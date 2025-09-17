@@ -4,33 +4,269 @@
     <link href="/Employee/CSS/Acadamic_Calender.css" rel="stylesheet" />
     <link href="css/Admin.css?v=1.2" rel="stylesheet" />
     <style>
-    .AdminNotice a{
-    font-size: 16px;
-    height: 43px;
-    background-color: #fff;
-    border-bottom: 1px solid #ddd;
-    color: red;
-    padding-top: 10px;
-    padding-bottom: 10px;
-}
-    @media (min-width: 1200px) {
-    .container {
-        max-width: 1160px;
-    }
-}
-
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .dashboard-title {
+            margin: 0;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .dashboard-links {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .gradient-link {
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: #fff !important;
+            font-weight: 600;
+            font-size: 13px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .gradient-link:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+            color: #fff !important;
+        }
+        
+        .gradient-link.find-student {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+        }
+        
+        .gradient-link.find-student:hover {
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4);
+        }
+        
+        .gradient-link.collect-payment {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            box-shadow: 0 4px 15px rgba(67, 233, 123, 0.3);
+        }
+        
+        .gradient-link.collect-payment:hover {
+            background: linear-gradient(135deg, #38f9d7 0%, #43e97b 100%);
+            box-shadow: 0 6px 20px rgba(56, 249, 215, 0.4);
+        }
+        
+        .gradient-link.attendance-display {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            box-shadow: 0 4px 15px rgba(250, 112, 154, 0.3);
+        }
+        
+        .gradient-link.attendance-display:hover {
+            background: linear-gradient(135deg, #fee140 0%, #fa709a 100%);
+            box-shadow: 0 6px 20px rgba(254, 225, 64, 0.4);
+        }
+        
+        .gradient-link i {
+            font-size: 14px;
+        }
+        
+        .card-header a {
+            color: white !important;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .card-header a:hover {
+            color: #f0f0f0 !important;
+            text-decoration: none;
+        }
+        
+        .print-link {
+            float: right;
+            text-decoration: none !important;
+            color: white !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .print-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white !important;
+            text-decoration: none;
+        }
+        
+        /* Tablet View */
+        @media (max-width: 992px) {
+            .dashboard-links {
+                gap: 10px;
+            }
+            
+            .gradient-link {
+                font-size: 12px;
+                padding: 8px 16px;
+            }
+        }
+        
+        /* Mobile View */
+        @media (max-width: 768px) {
+            .card-body.dashboard-header {
+                padding: 15px !important;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .dashboard-title {
+                text-align: center;
+                font-size: 18px;
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .dashboard-links {
+                justify-content: center;
+                width: 100%;
+                gap: 10px;
+                flex-wrap: wrap;
+                padding: 8px 5px;
+                align-items: center;
+            }
+            
+            .gradient-link {
+                font-size: 11px;
+                padding: 8px 16px;
+                white-space: nowrap;
+                flex-shrink: 0;
+                border-radius: 20px;
+                gap: 6px;
+                letter-spacing: 0.3px;
+                min-width: auto;
+            }
+            
+            .gradient-link i {
+                font-size: 12px;
+            }
+            
+            .btn-text-full {
+                display: none;
+            }
+            
+            .btn-text-short {
+                display: inline !important;
+            }
+        }
+        
+        /* Small Mobile View */
+        @media (max-width: 480px) {
+            .card-body.dashboard-header {
+                padding: 12px !important;
+            }
+            
+            .dashboard-header {
+                gap: 12px;
+            }
+            
+            .dashboard-title {
+                font-size: 16px;
+            }
+            
+            .dashboard-links {
+                gap: 8px;
+                padding: 5px 2px;
+                justify-content: center;
+            }
+            
+            .gradient-link {
+                font-size: 10px;
+                padding: 7px 14px;
+                border-radius: 18px;
+                gap: 5px;
+                letter-spacing: 0.2px;
+            }
+            
+            .gradient-link i {
+                font-size: 11px;
+            }
+        }
+        
+        /* Very Small Mobile View */
+        @media (max-width: 360px) {
+            .card-body.dashboard-header {
+                padding: 10px !important;
+            }
+            
+            .dashboard-links {
+                gap: 6px;
+                padding: 3px 0;
+                justify-content: center;
+            }
+            
+            .gradient-link {
+                font-size: 9px;
+                padding: 6px 12px;
+                gap: 4px;
+                border-radius: 15px;
+                letter-spacing: 0.1px;
+            }
+            
+            .gradient-link i {
+                font-size: 10px;
+            }
+        }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <div class="card my-3 wow fadeIn">
-        <div class="card-body d-sm-flex justify-content-between">
-            <h4 class="mb-0"><span>Dashboard</span></h4>
-            <%if (EmployeeRepeater.Items.Count > 0 || StudentRepeater.Items.Count > 0)
-                {%>
-            <a target="_blank" href="../Attendances/Online_Display/Attendance_Slider.aspx">
-                <i class="fa fa-television" aria-hidden="true"></i>
-                Online Attendance Display</a>
-            <%} %>
+        <div class="card-body dashboard-header" style="padding: 20px;">
+            <h4 class="dashboard-title">Dashboard</h4>
+            <div class="dashboard-links">
+                <a href="../ID_Cards/Find_Students.aspx" class="gradient-link find-student">
+                    <i class="fa fa-search"></i>
+                    <span class="btn-text-full">FIND STUDENT</span>
+                    <span class="btn-text-short d-none">FIND</span>
+                </a>
+                <a href="../Accounts/Payment/Payment_Collection.aspx" class="gradient-link collect-payment">
+                    <i class="fa fa-credit-card"></i>
+                    <span class="btn-text-full">COLLECT PAYMENT</span>
+                    <span class="btn-text-short d-none">PAYMENT</span>
+                </a>
+                <%if (EmployeeRepeater.Items.Count > 0 || StudentRepeater.Items.Count > 0) { %>
+                <a target="_blank" href="../Attendances/Online_Display/Attendance_Slider.aspx" class="gradient-link attendance-display">
+                    <i class="fa fa-television"></i>
+                    <span class="btn-text-full">ATTENDANCE DISPLAY</span>
+                    <span class="btn-text-short d-none">ATTENDANCE</span>
+                </a>
+                <%} %>
+            </div>
         </div>
     </div>
     <label id="results"></label>
@@ -41,9 +277,9 @@
                 <div class="card-header teal darken-4 white-text">
                     <i class="fa fa-pie-chart" aria-hidden="true"></i>
                     Old & New Student of Current Session
-                    <a href="Total_Student_List.aspx" title="Print" target="_blank" style="float: right; text-decoration: none;">Total Student:
-                        <label id="SGT" class="mb-0"></label>
-                        <i class="fa fa-print text-muted" aria-hidden="true"></i>
+                    <a href="Total_Student_List.aspx" title="Print Total Student List" target="_blank" class="print-link">
+                        <span>Total Student: <label id="SGT" class="mb-0"></label></span>
+                        <i class="fa fa-print"></i>
                     </a>
                 </div>
                 <div class="card-body pt-0 pb-0">
@@ -241,7 +477,8 @@ WHERE (Student.DateofBirth IS NOT NULL) AND
             <div class="card mb-4">
                 <div class="card-header teal darken-1 white-text">
                     <a href="/Employee/Employee_Attendance_Record.aspx" target="_blank">
-                        <i class="fa fa-bell mr-1" aria-hidden="true"></i>Employee Attendance
+                        <i class="fa fa-user-tie mr-1" aria-hidden="true"></i>
+                        Employee Attendance
                     </a>
                     <small class="pull-right">Today</small>
                 </div>
@@ -275,7 +512,8 @@ ORDER BY AttendanceStatus DESC">
             <div class="card mb-4">
                 <div class="card-header deep-purple white-text">
                     <a href="/Attendances/Attendance_Records.aspx" target="_blank">
-                        <i class="fa fa-bell mr-1" aria-hidden="true"></i>Student Attendance
+                        <i class="fa fa-user-graduate mr-1" aria-hidden="true"></i>
+                        Student Attendance
                     </a>
                     <small class="pull-right">Today</small>
                 </div>
