@@ -17,9 +17,25 @@ namespace EDUCATION.COM.ID_CARDS
 
         protected void FindButton_Click(object sender, EventArgs e)
         {
+            StudentGridView.DataBind(); // Refresh the GridView with current filter
             DataView dv = (DataView)AllStudentSQL.Select(DataSourceSelectArguments.Empty);
             StudentCountLabel.Text = "Total: " + dv.Count.ToString() + " Student(s)";
         }
 
+        protected void ClearButton_Click(object sender, EventArgs e)
+        {
+            // Clear the search textbox
+            SearchTextBox.Text = "";
+            
+            // Reset the dropdown to show all students
+            OldNewDropDownList.SelectedValue = "%";
+            
+            // Refresh the GridView
+            StudentGridView.DataBind();
+            
+            // Update the count
+            DataView dv = (DataView)AllStudentSQL.Select(DataSourceSelectArguments.Empty);
+            StudentCountLabel.Text = "Total: " + dv.Count.ToString() + " Student(s)";
+        }
     }
 }

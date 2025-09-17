@@ -22,6 +22,9 @@
                 <div class="form-group">
                     <asp:Button ID="FindButton" runat="server" CssClass="btn btn-primary" OnClick="FindButton_Click" Text="Find" />
                 </div>
+                <div class="form-group">
+                    <asp:Button ID="ClearButton" runat="server" CssClass="btn btn-secondary" OnClick="ClearButton_Click" Text="Clear" />
+                </div>
             </div>
 
             <div class=" alert alert-info">
@@ -62,7 +65,8 @@
 
                 <asp:SqlDataSource ID="AllStudentSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
                     SelectCommand="SELECT Student.StudentsName, Student.ID, Student.FathersName,Student.MothersName,Student.BloodGroup, CreateSection.Section, CreateClass.Class, CreateShift.Shift, CreateSubjectGroup.SubjectGroup, StudentsClass.RollNo, Student.Gender, Student.Religion, Student.StudentsLocalAddress, Student.PrevClass, Student.SMSPhoneNo, Student.AdmissionDate, StudentsClass.StudentClassID, StudentsClass.StudentID, Student.StudentImageID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID WHERE (Student.Status = 'Active') AND (Student.SchoolID = @SchoolID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.Is_New LIKE @Is_New)"
-                    FilterExpression="StudentsName LIKE '{0}%' or ID LIKE '{0}%' or FathersName LIKE '{0}%' or BloodGroup LIKE '{0}%' or Section LIKE '{0}%' or Class LIKE '{0}%' or Shift LIKE '{0}%' or SubjectGroup LIKE '{0}%' or RollNo LIKE '{0}%' or Gender LIKE '{0}%' or Religion LIKE '{0}%' or StudentsLocalAddress LIKE '{0}%' or SMSPhoneNo LIKE '{0}%'" CancelSelectOnNullParameter="False">
+                    FilterExpression="CONVERT(StudentsName, 'System.String') LIKE '%{0}%' OR CONVERT(ID, 'System.String') LIKE '%{0}%' OR CONVERT(FathersName, 'System.String') LIKE '%{0}%' OR CONVERT(MothersName, 'System.String') LIKE '%{0}%' OR CONVERT(BloodGroup, 'System.String') LIKE '%{0}%' OR CONVERT(Section, 'System.String') LIKE '%{0}%' OR CONVERT(Class, 'System.String') LIKE '%{0}%' OR CONVERT(Shift, 'System.String') LIKE '%{0}%' OR CONVERT(SubjectGroup, 'System.String') LIKE '%{0}%' OR CONVERT(RollNo, 'System.String') LIKE '%{0}%' OR CONVERT(Gender, 'System.String') LIKE '%{0}%' OR CONVERT(Religion, 'System.String') LIKE '%{0}%' OR CONVERT(StudentsLocalAddress, 'System.String') LIKE '%{0}%' OR CONVERT(SMSPhoneNo, 'System.String') LIKE '%{0}%'" 
+                    CancelSelectOnNullParameter="False">
                     <FilterParameters>
                         <asp:ControlParameter ControlID="SearchTextBox" Name="Find" PropertyName="Text" />
                     </FilterParameters>
