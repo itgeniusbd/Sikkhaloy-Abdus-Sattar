@@ -13,6 +13,22 @@ namespace EDUCATION.COM.Exam
 {
     public partial class ExmamPositionBangla : System.Web.UI.Page
     {
+        // ViewState properties for sorting
+        protected string SortExpression
+        {
+            get { return ViewState["SortExpression"] as string ?? "RollNo"; }
+            set { ViewState["SortExpression"] = value; }
+        }
+
+        protected SortDirection SortDirection
+        {
+            get
+            {
+                return ViewState["SortDirection"] as SortDirection? ?? SortDirection.Ascending;
+            }
+            set { ViewState["SortDirection"] = value; }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             Session["Group"] = GroupDropDownList.SelectedValue;
@@ -26,6 +42,26 @@ namespace EDUCATION.COM.Exam
                 ShiftDropDownList.Visible = false;
             }
         }
+        
+        // Sorting event handler
+        protected void StudentsGridView_Sorting(object sender, GridViewSortEventArgs e)
+        {
+            // Toggle sort direction if same column is clicked
+            if (SortExpression == e.SortExpression)
+            {
+                SortDirection = (SortDirection == SortDirection.Ascending) ? SortDirection.Descending : SortDirection.Ascending;
+            }
+            else
+            {
+                SortDirection = SortDirection.Ascending;
+            }
+            
+            SortExpression = e.SortExpression;
+            
+            // Reload data with sorting
+            LoadSubjectsAndResults();
+        }
+
         protected void view()
         {
             DataView GroupDV = new DataView();
@@ -204,9 +240,33 @@ namespace EDUCATION.COM.Exam
                 }
                 pivotColumns.Length--; // remove last comma
 
-                // Step 3: Dynamic PIVOT query
+                // Step 3: Build ORDER BY clause based on sort expression
+                string orderByClause = "ORDER BY ";
+                switch (SortExpression.ToLower())
+                {
+                    case "rollno":
+                        orderByClause += "CASE WHEN ISNUMERIC(RollNo) = 1 THEN CAST(RollNo AS INT) ELSE 999999 END";
+                        break;
+                    case "position_inexam_class":
+                        orderByClause += "CASE WHEN ISNUMERIC(Position_InExam_Class_Sort) = 1 THEN CAST(Position_InExam_Class_Sort AS INT) ELSE 999999 END";
+                        break;
+                    case "position_inexam_subsection":
+                        orderByClause += "CASE WHEN ISNUMERIC(Position_InExam_Subsection_Sort) = 1 THEN CAST(Position_InExam_Subsection_Sort AS INT) ELSE 999999 END";
+                        break;
+                    default:
+                        orderByClause += "CASE WHEN ISNUMERIC(RollNo) = 1 THEN CAST(RollNo AS INT) ELSE 999999 END";
+                        break;
+                }
+
+                if (SortDirection == SortDirection.Descending)
+                    orderByClause += " DESC";
+                else
+                    orderByClause += " ASC";
+
+                // Step 3: Dynamic PIVOT query with sorting - Fixed structure
                 string query = $@"
-        SELECT *
+        SELECT StudentID, RollNo, StudentsName, Total, Student_Grade, Student_Point, 
+               Position_InExam_Class, Position_InExam_Subsection, Average, {pivotColumns}
         FROM
         (
             SELECT 
@@ -219,6 +279,8 @@ namespace EDUCATION.COM.Exam
               translate(ers.Position_InExam_Class, N'0123456789', N'০১২৩৪৫৬৭৮৯') AS Position_InExam_Class,
               translate(ers.Position_InExam_Subsection, N'0123456789', N'০১২৩৪৫৬৭৮৯') AS Position_InExam_Subsection,
               translate(ers.Average, N'0123456789', N'০১২৩৪৫৬৭৮৯') AS Average,
+              ers.Position_InExam_Class as Position_InExam_Class_Sort,
+              ers.Position_InExam_Subsection as Position_InExam_Subsection_Sort,
               sub.SubjectName,
               translate(subR.ObtainedMark_ofSubject, N'0123456789', N'০১২৩৪৫৬৭৮৯') AS ObtainedMark_ofSubject
             FROM Exam_Result_of_Student ers
@@ -237,7 +299,7 @@ namespace EDUCATION.COM.Exam
             MAX(ObtainedMark_ofSubject)
             FOR SubjectName IN ({pivotColumns})
         ) AS PivotTable
-        ORDER BY RollNo";
+        {orderByClause}";
 
 
                 // Step 4: Execute query
@@ -257,8 +319,8 @@ namespace EDUCATION.COM.Exam
                 BoundField bfID = new BoundField { DataField = "StudentID", HeaderText = "আইডি" };
                 StudentsGridView.Columns.Add(bfID);
 
-                // Roll No
-                BoundField bfRoll = new BoundField { DataField = "RollNo", HeaderText = "রোল" };
+                // Roll No with sorting
+                BoundField bfRoll = new BoundField { DataField = "RollNo", HeaderText = "রোল", SortExpression = "RollNo" };
                 StudentsGridView.Columns.Add(bfRoll);
 
                 // Student Name
@@ -286,15 +348,15 @@ namespace EDUCATION.COM.Exam
                 StudentsGridView.Columns.Add(bfGrade);
 
                 // Point
-                BoundField bfPoint = new BoundField { DataField = "Student_Point", HeaderText = "পয়েন্ট" };
+                BoundField bfPoint = new BoundField { DataField = "Student_Point", HeaderText = "পয়েন্ট" };
                 StudentsGridView.Columns.Add(bfPoint);
 
-                // Class Position
-                BoundField bfClassPos = new BoundField { DataField = "Position_InExam_Class", HeaderText = "ক্লাশ মেধা" };
+                // Class Position with sorting
+                BoundField bfClassPos = new BoundField { DataField = "Position_InExam_Class", HeaderText = "ক্লাশ মেধা", SortExpression = "Position_InExam_Class" };
                 StudentsGridView.Columns.Add(bfClassPos);
 
-                // Section Position
-                BoundField bfSectionPos = new BoundField { DataField = "Position_InExam_Subsection", HeaderText = "শাখা মেধা" };
+                // Section Position with sorting
+                BoundField bfSectionPos = new BoundField { DataField = "Position_InExam_Subsection", HeaderText = "শাখা মেধা", SortExpression = "Position_InExam_Subsection" };
                 StudentsGridView.Columns.Add(bfSectionPos);
 
                 // Step 6: Bind data
@@ -309,7 +371,7 @@ namespace EDUCATION.COM.Exam
         {
             string subQuery = @"
     SELECT DISTINCT s.SubjectID, s.SubjectName, ISNULL(s.SN, 999) AS SN
-    FROM Exam_Result_of_Subject ers
+    FROM Exam_Result_of_Student ers
     INNER JOIN Subject s ON ers.SubjectID = s.SubjectID
     INNER JOIN Exam_Result_of_Student ersMain ON ers.StudentResultID = ersMain.StudentResultID
     INNER JOIN StudentsClass sc ON ersMain.StudentClassID = sc.StudentClassID
@@ -385,63 +447,92 @@ namespace EDUCATION.COM.Exam
         {
             if (e.Row.RowType == DataControlRowType.DataRow)
             {
-                //Class
-                var classIndex = 9;
+                // Find the actual column indices for Class Position and Section Position
+                int classPositionIndex = -1;
+                int sectionPositionIndex = -1;
+                int gradeIndex = -1;
 
-
-                if (e.Row.Cells[classIndex].Text == "১")
+                // Find the column indices dynamically
+                for (int i = 0; i < StudentsGridView.Columns.Count; i++)
                 {
-                    e.Row.Cells[classIndex].CssClass = "First";
-                    e.Row.Cells[classIndex].Text = " প্রথম";
+                    string headerText = StudentsGridView.Columns[i].HeaderText;
+                    if (headerText == "ক্লাশ মেধা")
+                        classPositionIndex = i;
+                    else if (headerText == "শাখা মেধা")
+                        sectionPositionIndex = i;
+                    else if (headerText == "গ্রেড")
+                        gradeIndex = i;
                 }
 
-                else if (e.Row.Cells[classIndex].Text == "২")
+                // Check for F grade and apply light red background to entire row
+                if (gradeIndex != -1 && gradeIndex < e.Row.Cells.Count)
                 {
-                    e.Row.Cells[classIndex].CssClass = "Second";
-                    e.Row.Cells[classIndex].Text = " দ্বিতীয়";
+                    string grade = e.Row.Cells[gradeIndex].Text.Trim();
+                    if (grade.ToUpper() == "F")
+                    {
+                        e.Row.CssClass = "RowColor";
+                    }
                 }
 
-                else if (e.Row.Cells[classIndex].Text == "৩")
+                // Class Position formatting and coloring
+                if (classPositionIndex != -1 && classPositionIndex < e.Row.Cells.Count)
                 {
-                    e.Row.Cells[classIndex].CssClass = "Third";
-                    e.Row.Cells[classIndex].Text = " তৃতীয়";
-
-                }
-                else
-                {
-                    e.Row.Cells[classIndex].Text += "";
-                }
-
-                //Section
-                var sectionIndex = 10;
-                if (e.Row.Cells[sectionIndex].Text == "১")
-                {
-                    e.Row.Cells[sectionIndex].CssClass = "First";
-                    e.Row.Cells[sectionIndex].Text = " প্রথম";
-                }
-
-                else if (e.Row.Cells[sectionIndex].Text == "২")
-                {
-                    e.Row.Cells[sectionIndex].CssClass = "Second";
-                    e.Row.Cells[sectionIndex].Text = " দ্বিতীয়";
-
+                    string classPosition = e.Row.Cells[classPositionIndex].Text.Trim();
+                    e.Row.Cells[classPositionIndex].CssClass += " merit-text"; // Add merit-text class for all merit cells
+                    
+                    if (classPosition == "১")
+                    {
+                        e.Row.Cells[classPositionIndex].CssClass += " First";
+                        e.Row.Cells[classPositionIndex].Text = "১ম";
+                    }
+                    else if (classPosition == "২")
+                    {
+                        e.Row.Cells[classPositionIndex].CssClass += " Second";
+                        e.Row.Cells[classPositionIndex].Text = "২য়";
+                    }
+                    else if (classPosition == "৩")
+                    {
+                        e.Row.Cells[classPositionIndex].CssClass += " Third";
+                        e.Row.Cells[classPositionIndex].Text = "৩য়";
+                    }
                 }
 
-                else if (e.Row.Cells[sectionIndex].Text == "৩")
+                // Section Position formatting and coloring
+                if (sectionPositionIndex != -1 && sectionPositionIndex < e.Row.Cells.Count)
                 {
-                    e.Row.Cells[sectionIndex].CssClass = "Third";
-                    e.Row.Cells[sectionIndex].Text = " তৃতীয়";
-
+                    string sectionPosition = e.Row.Cells[sectionPositionIndex].Text.Trim();
+                    e.Row.Cells[sectionPositionIndex].CssClass += " merit-text"; // Add merit-text class for all merit cells
+                    
+                    if (sectionPosition == "১")
+                    {
+                        e.Row.Cells[sectionPositionIndex].CssClass += " First";
+                        e.Row.Cells[sectionPositionIndex].Text = "১ম";
+                    }
+                    else if (sectionPosition == "২")
+                    {
+                        e.Row.Cells[sectionPositionIndex].CssClass += " Second";
+                        e.Row.Cells[sectionPositionIndex].Text = "২য়";
+                    }
+                    else if (sectionPosition == "৩")
+                    {
+                        e.Row.Cells[sectionPositionIndex].CssClass += " Third";
+                        e.Row.Cells[sectionPositionIndex].Text = "৩য়";
+                    }
                 }
-                else
+
+                // Check for failed students (if DataKeys are available) - Alternative check
+                try
                 {
-                    e.Row.Cells[sectionIndex].Text += "";
+                    if (StudentsGridView.DataKeys != null && StudentsGridView.DataKeys.Count > e.Row.DataItemIndex && 
+                        StudentsGridView.DataKeys[e.Row.DataItemIndex]["PassStatus_InSubject"] != null &&
+                        StudentsGridView.DataKeys[e.Row.DataItemIndex]["PassStatus_InSubject"].ToString() == "F")
+                    {
+                        e.Row.CssClass = "RowColor";
+                    }
                 }
-
-
-                if (StudentsGridView.DataKeys[e.Row.DataItemIndex]["PassStatus_InSubject"].ToString() == "F")
+                catch
                 {
-                    e.Row.CssClass = "RowColor";
+                    // Ignore if DataKeys are not available or configured
                 }
             }
 
@@ -450,20 +541,6 @@ namespace EDUCATION.COM.Exam
                 StudentsGridView.UseAccessibleHeader = true;
                 StudentsGridView.HeaderRow.TableSection = TableRowSection.TableHeader;
             }
-            // Print Header Fix
-            if (StudentsGridView.Rows.Count > 0)
-            {
-                StudentsGridView.UseAccessibleHeader = true;
-                StudentsGridView.HeaderRow.TableSection = TableRowSection.TableHeader;
-            }
-
-            // Optional: Row styling
-            if (e.Row.RowType == DataControlRowType.DataRow)
-            {
-                var sectionIndex = 10;
-                if (e.Row.Cells[sectionIndex].Text == "১ম") e.Row.BackColor = System.Drawing.Color.Green;
-            }
-
         }
         protected void StudentsGridView_RowCreated(object sender, GridViewRowEventArgs e)
         {

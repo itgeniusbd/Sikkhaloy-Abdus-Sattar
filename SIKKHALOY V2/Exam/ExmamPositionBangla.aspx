@@ -38,6 +38,81 @@
     }
 }
     </style>
+    
+    <style>
+        /* Merit position colors for both screen and print */
+        .First {
+            background-color: #28a745 !important; /* Green for 1st position */
+            color: white !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+        }
+        
+        .Second {
+            background-color: #1e90ff !important; /* Blue for 2nd position */
+            color: white !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+        }
+        
+        .Third {
+            background-color: #ff8c00 !important; /* Orange for 3rd position */
+            color: white !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+        }
+        
+        /* Failed student row background */
+        .RowColor {
+            background-color: #ffebee !important; /* Light red background */
+        }
+        
+        /* Merit position text styling */
+        .merit-text {
+            font-size: 16px !important;
+            font-weight: bold !important;
+        }
+        
+        @media print {
+            .First {
+                background-color: #28a745 !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 16px !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            
+            .Second {
+                background-color: #1e90ff !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 16px !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            
+            .Third {
+                background-color: #ff8c00 !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 16px !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            
+            .RowColor {
+                background-color: #ffebee !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            
+            .merit-text {
+                font-size: 16px !important;
+                font-weight: bold !important;
+            }
+        }
+    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -144,16 +219,18 @@
     PagerStyle-CssClass="pgr" 
     AllowSorting="True" 
     CssClass="mGrid"
-    OnRowCreated="StudentsGridView_RowCreated">
+    OnRowCreated="StudentsGridView_RowCreated"
+    OnSorting="StudentsGridView_Sorting"
+    OnRowDataBound="StudentsGridView_RowDataBound">
     <Columns>
-        <asp:BoundField DataField="RollNo" HeaderText="Roll No" />
-        <asp:BoundField DataField="StudentsName" HeaderText="Student Name" />
-        <asp:BoundField DataField="Total" HeaderText="Total" />
-        <asp:BoundField DataField="Average" HeaderText="Average" />
-           <asp:BoundField DataField="Student_Grade" HeaderText="Grade" />
-        <asp:BoundField DataField="Student_Point" HeaderText="Point" />
-        <asp:BoundField DataField="Position_InExam_Class" HeaderText="Class Position" />
-        <asp:BoundField DataField="Position_InExam_Subsection" HeaderText="Section Position" />
+        <asp:BoundField DataField="RollNo" HeaderText="রোল" SortExpression="RollNo" />
+        <asp:BoundField DataField="StudentsName" HeaderText="নাম" />
+        <asp:BoundField DataField="Total" HeaderText="মোট" />
+        <asp:BoundField DataField="Average" HeaderText="গড়" />
+        <asp:BoundField DataField="Student_Grade" HeaderText="গ্রেড" />
+        <asp:BoundField DataField="Student_Point" HeaderText="পয়েন্ট" />
+        <asp:BoundField DataField="Position_InExam_Class" HeaderText="ক্লাশ মেধা" SortExpression="Position_InExam_Class" />
+        <asp:BoundField DataField="Position_InExam_Subsection" HeaderText="শাখা মেধা" SortExpression="Position_InExam_Subsection" />
        
     </Columns>
 </asp:GridView>
@@ -229,7 +306,7 @@
                 });
             }
 
-            if (matchedIndex === -1) return; // না পেলে কিছু করবে না
+            if (matchedIndex === -1) return; // না পেলে কিছু যদি কিছু করে না
 
             var idx = matchedIndex;
             var hide = $(checkboxEl).is(':checked');
