@@ -96,16 +96,10 @@
 
         <div class="custom-form-row">
             <div class="form-group d-print-none">
-                <label>Donor Type</label>
+                <label>Member Type</label>
                 <asp:DropDownList ID="CommitteeMemberDropDownList" required="" runat="server" AppendDataBoundItems="True" AutoPostBack="True" CssClass="form-control" DataSourceID="MemberTypeSQL" DataTextField="CommitteeMemberType" DataValueField="CommitteeMemberTypeId">
                     <asp:ListItem Value="%">[ All Type ]</asp:ListItem>
                 </asp:DropDownList>
-                <asp:SqlDataSource ID="SqlDataSource1" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                    SelectCommand="SELECT CommitteeMemberTypeId, CommitteeMemberType FROM CommitteeMemberType WHERE (SchoolID = @SchoolID)">
-                    <SelectParameters>
-                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                    </SelectParameters>
-                </asp:SqlDataSource>
             </div>
 
             <div class="form-group d-print-none">
@@ -120,7 +114,10 @@
             </div>
         </div>
 
-        <asp:GridView ID="MemberGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="MemberSQL" DataKeyNames="CommitteeMemberId" AllowPaging="True" PageSize="100">
+        <asp:GridView ID="MemberGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="MemberSQL" DataKeyNames="CommitteeMemberId" AllowPaging="True" PageSize="100"
+            OnRowEditing="MemberGridView_RowEditing" 
+            OnRowCancelingEdit="MemberGridView_RowCancelingEdit" 
+            OnRowUpdating="MemberGridView_RowUpdating">
             <Columns>
 
 
@@ -128,6 +125,14 @@
                     <ItemTemplate>
                         <img src="data:image/jpg;base64, <%# Convert.ToBase64String(string.IsNullOrEmpty(Eval("Photo").ToString())? new byte[]{}: (byte[]) Eval("Photo"))  %>" onerror="this.src='/Handeler/Default/Male.png'" class="photo" style="width: 50px" alt="<%#Eval("MemberName") %>" />
                     </ItemTemplate>
+                    <EditItemTemplate>
+                        <div class="form-group">
+                            <img src="data:image/jpg;base64, <%# Convert.ToBase64String(string.IsNullOrEmpty(Eval("Photo").ToString())? new byte[]{}: (byte[]) Eval("Photo"))  %>" onerror="this.src='/Handeler/Default/Male.png'" class="photo" style="width: 50px; margin-bottom: 10px;" alt="<%#Eval("MemberName") %>" />
+                            <br />
+                            <small class="text-muted">Select new photo (optional):</small>
+                            <asp:FileUpload ID="EditPhotoFileUpload" runat="server" CssClass="form-control" />
+                        </div>
+                    </EditItemTemplate>
                 </asp:TemplateField>
 
 
@@ -142,7 +147,7 @@
                 </asp:TemplateField>
                 <asp:TemplateField HeaderText="Reference By" SortExpression="MemberName">
                     <EditItemTemplate>
-                        <asp:TextBox ID="ReferenceByTB" required="" runat="server" CssClass="form-control" Text='<%# Bind("ReferenceBy") %>'></asp:TextBox>
+                        <asp:TextBox ID="ReferenceByTB" runat="server" CssClass="form-control" Text='<%# Bind("ReferenceBy") %>'></asp:TextBox>
                     </EditItemTemplate>
                     <ItemTemplate>
                         <%#Eval("ReferenceBy") %>
@@ -191,11 +196,11 @@
                 </asp:TemplateField>
                 <asp:TemplateField HeaderText="Update">
                     <EditItemTemplate>
-                        <asp:LinkButton ID="LinkButton1" runat="server" CausesValidation="True" CommandName="Update" Text="Update"></asp:LinkButton>
-                        &nbsp;<asp:LinkButton ID="LinkButton2" runat="server" CausesValidation="False" CommandName="Cancel" Text="Cancel"></asp:LinkButton>
+                        <asp:LinkButton ID="LinkButton1" runat="server" CausesValidation="True" CommandName="Update" Text="Update" OnCommand="UpdateMember_Command" CssClass="btn btn-sm btn-success"></asp:LinkButton>
+                        &nbsp;<asp:LinkButton ID="LinkButton2" runat="server" CausesValidation="False" CommandName="Cancel" Text="Cancel" CssClass="btn btn-sm btn-secondary"></asp:LinkButton>
                     </EditItemTemplate>
                     <ItemTemplate>
-                        <asp:LinkButton ID="LinkButton1" runat="server" CausesValidation="False" CommandName="Edit" Text="Edit"></asp:LinkButton>
+                        <asp:LinkButton ID="LinkButton1" runat="server" CausesValidation="False" CommandName="Edit" Text="Edit" CssClass="btn btn-sm btn-primary"></asp:LinkButton>
                     </ItemTemplate>
                 </asp:TemplateField>
             </Columns>
@@ -208,7 +213,7 @@
 , CommitteeMember.DueDonation, CommitteeMember.InsertDate FROM CommitteeMember INNER JOIN CommitteeMemberType ON CommitteeMember.CommitteeMemberTypeId = CommitteeMemberType.CommitteeMemberTypeId WHERE (CommitteeMember.SchoolID = @SchoolID) AND CommitteeMemberType.CommitteeMemberTypeId LIKE @CommitteeMemberTypeId
     AND (CommitteeMember.SmsNumber LIKE ISNULL(@NamePhoneTextBox, '%') OR CommitteeMember.MemberName LIKE ISNULL(@NamePhoneTextBox, '%'))"
             CancelSelectOnNullParameter="False"
-            UpdateCommand="UPDATE CommitteeMember SET CommitteeMemberTypeId = @CommitteeMemberTypeId, MemberName = @MemberName,ReferenceBy=@ReferenceBy, SmsNumber = @SmsNumber, Address = @Address WHERE (CommitteeMemberId = @CommitteeMemberId)">
+            UpdateCommand="UPDATE CommitteeMember SET CommitteeMemberTypeId = @CommitteeMemberTypeId, MemberName = @MemberName,ReferenceBy=@ReferenceBy, SmsNumber = @SmsNumber, Address = @Address, Photo = @Photo WHERE (CommitteeMemberId = @CommitteeMemberId)">
             <InsertParameters>
                 <asp:ControlParameter ControlID="TypeDropDownList" Name="CommitteeMemberTypeId" PropertyName="SelectedValue" />
                 <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
@@ -224,6 +229,23 @@
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                 <asp:ControlParameter ControlID="CommitteeMemberDropDownList" Name="CommitteeMemberTypeId" PropertyName="SelectedValue" />
                 <asp:ControlParameter ControlID="NamePhoneTextBox" Name="NamePhoneTextBox" PropertyName="Text" />
+            </SelectParameters>
+            
+            <UpdateParameters>
+                <asp:Parameter Name="CommitteeMemberTypeId" Type="Int32" />
+                <asp:Parameter Name="MemberName" Type="String" />
+                <asp:Parameter Name="ReferenceBy" Type="String" />
+                <asp:Parameter Name="SmsNumber" Type="String" />
+                <asp:Parameter Name="Address" Type="String" />
+                <asp:Parameter Name="Photo" Type="Object" />
+                <asp:Parameter Name="CommitteeMemberId" Type="Int32" />
+            </UpdateParameters>
+        </asp:SqlDataSource>
+        
+        <asp:SqlDataSource ID="MemberTypeSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+            SelectCommand="SELECT CommitteeMemberTypeId, CommitteeMemberType FROM CommitteeMemberType WHERE (SchoolID = @SchoolID)">
+            <SelectParameters>
+                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             </SelectParameters>
         </asp:SqlDataSource>
     </div>
@@ -242,8 +264,7 @@
                 </div>
 
                 <div class="modal-body mx-3">
-                    <div class="form-row">
-
+                    <div class="form-group">
                         <label>Name</label>
                         <asp:RequiredFieldValidator runat="server" ControlToValidate="MemberNameTextBox" ErrorMessage="Name is required" ValidationGroup="1" CssClass="EroorSummer" ID="RequiredFieldValidator6"></asp:RequiredFieldValidator>
                         <asp:TextBox ID="MemberNameTextBox" runat="server" CssClass="form-control"></asp:TextBox>
@@ -260,7 +281,7 @@
                         </label>
                         <asp:RequiredFieldValidator runat="server" ControlToValidate="TypeDropDownList" ErrorMessage="Type is required" ValidationGroup="1" CssClass="EroorSummer" ID="RequiredFieldValidator1"></asp:RequiredFieldValidator>
                         <asp:DropDownList ID="TypeDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="MemberTypeSQL" DataTextField="CommitteeMemberType" DataValueField="CommitteeMemberTypeId">
-                            <asp:ListItem Value="">[ All Type ]</asp:ListItem>
+                            <asp:ListItem Value="">[ Select Type ]</asp:ListItem>
                         </asp:DropDownList>
                     </div>
                     <div class="form-group">
@@ -275,15 +296,6 @@
                     <div class="form-group">
                         <label>Photo</label>
                         <asp:FileUpload ID="ImageFileUpload" runat="server" CssClass="form-control" />
-                    </div>
-                    <div class="form-group" style="padding-top: 1.5rem">
-
-                        <asp:SqlDataSource ID="MemberTypeSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                            SelectCommand="SELECT CommitteeMemberTypeId, CommitteeMemberType FROM CommitteeMemberType WHERE (SchoolID = @SchoolID)">
-                            <SelectParameters>
-                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                            </SelectParameters>
-                        </asp:SqlDataSource>
                     </div>
 
                 </div>
