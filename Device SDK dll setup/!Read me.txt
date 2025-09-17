@@ -1,0 +1,11 @@
+1. Copy all the dll file from "Copy Paste dll to System folder" to system folder
+     * Run the bat file as administrator
+     Or
+     * Copy all the dll files and paste "C:\Windows\System32" if system is 32 bit or paste "C:\Windows\SysWOW64" for 64 bit.
+
+2. Run Register_SDK bat file as administrator.
+
+3. Unregister SDK bat file is for unregister SDK if needed.
+
+4. Delete_SDK bat file for delete dll file form system folder.
+	

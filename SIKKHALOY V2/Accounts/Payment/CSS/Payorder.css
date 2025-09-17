@@ -1,0 +1,9 @@
+﻿
+#Contain{ width:100%}
+#Contain a{ text-decoration:none;  color:#0094ff}
+#Contain a:hover{text-decoration:underline}
+#Contain h4{ color:#333;  font-size:11pt;  margin:4px;  font-weight:normal}
+.MinForm{ background-color:#ddd;  padding:3px;  padding-right:4px;  margin:2px;  color:#333;  border:1px solid rgb(128,128,128);  border-radius:3px}
+.Datetime{ width:90%}
+.RoleCheck_Back{ background-color:hsl(200,100%,18%);  color:#fff}
+.selected{ background-color:#A1DCF2}

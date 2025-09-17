@@ -1,0 +1,332 @@
+﻿<Window
+    x:Class="AttendanceDevice.Settings.Setting"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:AttendanceDevice.Settings"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Setting"
+    MinWidth="700"
+    MinHeight="500"
+    Background="{DynamicResource MaterialDesignPaper}"
+    FontFamily="{DynamicResource MaterialDesignFont}"
+    Icon="../Resources/Sikkhaloy.ico"
+    Loaded="Window_Loaded"
+    TextElement.FontSize="13"
+    TextElement.FontWeight="Regular"
+    TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+    TextOptions.TextFormattingMode="Ideal"
+    TextOptions.TextRenderingMode="Auto"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+        <Storyboard x:Key="MenuOpen">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="GridManu" Storyboard.TargetProperty="(FrameworkElement.Width)">
+                <EasingDoubleKeyFrame KeyTime="0" Value="200" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="45" />
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+        <Storyboard x:Key="MenuClose">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="GridManu" Storyboard.TargetProperty="(FrameworkElement.Width)">
+                <EasingDoubleKeyFrame KeyTime="0" Value="45" />
+                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="200" />
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+
+        <Style
+            x:Key="ManuButton"
+            BasedOn="{StaticResource MaterialDesignRaisedButton}"
+            TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="{x:Null}" />
+            <Setter Property="BorderBrush" Value="{x:Null}" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="400" />
+            <Setter Property="Padding" Value="5,0,0,0" />
+            <Setter Property="Margin" Value="5,8,0,8" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{x:Null}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="ButtonBase.Click" SourceName="ButtonManuOpen">
+            <BeginStoryboard Storyboard="{StaticResource MenuOpen}" />
+        </EventTrigger>
+        <EventTrigger RoutedEvent="ButtonBase.Click" SourceName="ButtonManuClose">
+            <BeginStoryboard Storyboard="{StaticResource MenuClose}" />
+        </EventTrigger>
+    </Window.Triggers>
+ 
+    <DockPanel>
+        <Grid
+            x:Name="GridManu"
+            Width="200"
+            HorizontalAlignment="Left"
+            Background="#273a28"
+            DockPanel.Dock="Left">
+            <StackPanel>
+                <StackPanel
+                    Height="62"
+                    Background="#FF046129"
+                    Orientation="Horizontal">
+                    <Image Height="45" Source="/AttendanceDevice;component/Resources/Sikkhaloy.ico" />
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="22"
+                            FontWeight="ExtraBold"
+                            Foreground="#DDECECEC"
+                            Text="SIKKHALOY" />
+                        <TextBlock Foreground="#DDAAAAAA" Text="Attendance System" />
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel x:Name="ManuPanel" Margin="0,20">
+                    <Button Click="Dashboard_Button_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="ViewDashboard" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Dashboard" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        x:Name="btnDisplay"
+                        Click="DisplayButton_Click"
+                        Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="Monitor" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Atten. Display" />
+                            <ProgressBar
+                                x:Name="PB"
+                                Margin="5,0,0,0"
+                                Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                Value="0" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="UserButton_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="users" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="User Info" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="Device_Button_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="DesktopClassic" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Device Setting" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="InstitutionInfo_Button_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="OfficeBuilding" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Institution Info" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="AttendanceLog_Button_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="Timetable" />
+                            <TextBlock
+                                Margin="8,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Pending Record" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="BackUpData_Button_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="BackupOutline" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Device Logs" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="FingerPrint_Button_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="Fingerprint" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Fingerprint" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="BtnSchedule_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="EventTime" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Schedule" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="LeaveUser_Button_Click" Style="{StaticResource ManuButton}">
+                        <StackPanel Width="{Binding ActualWidth, ElementName=ManuPanel}" Orientation="Horizontal">
+                            <materialDesign:PackIcon
+                                Width="25"
+                                Height="25"
+                                Foreground="#fff"
+                                Kind="UserGroup" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="18"
+                                Foreground="WhiteSmoke"
+                                Text="Leave User" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+        <materialDesign:ColorZone
+            Padding="0,15"
+            materialDesign:ShadowAssist.ShadowDepth="Depth3"
+            Background="#FF00C851"
+            DockPanel.Dock="Top"
+            Foreground="#FFFFFFFF">
+            <Grid>
+                <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
+                    <Button
+                        x:Name="ButtonManuClose"
+                        Background="{x:Null}"
+                        BorderBrush="{x:Null}"
+                        Click="ButtonManuClose_Click"
+                        Visibility="Collapsed">
+                        <materialDesign:PackIcon
+                            Width="25"
+                            Height="25"
+                            Foreground="#fff"
+                            Kind="Menu" />
+                    </Button>
+                    <Button
+                        x:Name="ButtonManuOpen"
+                        Background="{x:Null}"
+                        BorderBrush="{x:Null}"
+                        Click="ButtonManuOpen_Click">
+                        <materialDesign:PackIcon
+                            Width="25"
+                            Height="25"
+                            Foreground="#fff"
+                            Kind="ArrowLeft" />
+                    </Button>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="20"
+                        FontWeight="Bold"
+                        Foreground="#fff"
+                        Text="Settings" />
+                </StackPanel>
+
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <Button
+                        Background="{x:Null}"
+                        BorderBrush="{x:Null}"
+                        Click="Sikkhaloy_Facebook_Click">
+                        <materialDesign:PackIcon
+                            Width="20"
+                            Height="20"
+                            Foreground="#fff"
+                            Kind="Facebook" />
+                    </Button>
+                    <materialDesign:PopupBox DockPanel.Dock="Right" PlacementMode="BottomAndAlignRightEdges">
+                        <StackPanel>
+                            <Button
+                                Click="Sikkhaloy_Button_Click"
+                                Content="Sikkhaloy"
+                                Style="{StaticResource MaterialDesignFlatButton}" />
+                            <Button
+                                Click="Loopsit_Button_Click"
+                                Content="Loops IT"
+                                Style="{StaticResource MaterialDesignFlatButton}" />
+                        </StackPanel>
+                    </materialDesign:PopupBox>
+                </StackPanel>
+            </Grid>
+        </materialDesign:ColorZone>
+        <Frame
+            x:Name="FrameSetting"
+            Navigating="FrameSetting_Navigating"
+            NavigationUIVisibility="Hidden" />
+    </DockPanel>
+</Window>

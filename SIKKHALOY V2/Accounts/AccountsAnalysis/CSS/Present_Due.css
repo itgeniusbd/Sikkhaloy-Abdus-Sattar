@@ -1,0 +1,4 @@
+﻿
+@media print {
+    .modal-body { height: auto; overflow: auto; }
+}

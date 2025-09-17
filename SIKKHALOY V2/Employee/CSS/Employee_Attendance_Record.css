@@ -1,0 +1,16 @@
+﻿
+.box {color: #333; margin-bottom:15px; border:1px solid #b3b3b3; border-radius:3px;}
+.box h5 { font-size: 10px; font-weight: 700; margin-top:10px;}
+.box h4 { font-size: 24px; }
+
+.Emp_Att { font-weight:bold; font-size:18px;}
+.Atten_Count { background-color: #34495e; border-radius: 3px; color: #fff; font-family: Tahoma; font-size: 15px; margin: 0 3px; padding: 2px 8px; }
+
+@page{ margin:0.5cm}
+@media print{
+ .pgr,.panel-heading  { display:none;}
+ h3{ color:#000; font-size:22px; font-weight:400; margin:0; margin-bottom:15px; text-align:center; }
+
+     .panel { margin-bottom: 0; border: none; border-radius: 0; box-shadow: none; }
+    .panel-body { padding:0; }
+}

@@ -1,0 +1,175 @@
+﻿<Page
+    x:Class="AttendanceDevice.Settings.Pages.UserInfoPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:AttendanceDevice.Settings.Pages"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="User Info"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    Loaded="Page_Loaded"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <BitmapImage x:Key="DefaultImage" UriSource="/AttendanceDevice;component/Resources/Default.png" />
+
+        <Style TargetType="DataGridCell">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="ToolTip" Value="Double click to edit &#x0a;Press delete key to delete" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Page.Resources>
+
+    <materialDesign:Card Margin="20" materialDesign:ShadowAssist.ShadowDepth="Depth1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Margin="15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBox
+                        Height="30px"
+                        Name="FileNameTB"
+                        Padding="5,0"
+                        materialDesign:HintAssist.Hint="Upload .csv File" />
+                    <Button
+                        Name="Upload_CSV"
+                        Margin="5,0,0,0"
+                        Click="Upload_CSV_Click"
+                        Content="Browse" />
+                </StackPanel>
+                <StackPanel
+                    Grid.Column="1"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <ProgressBar
+                        Name="LoadingPB"
+                        Style="{StaticResource MaterialDesignCircularProgressBar}"
+                        Value="0" />
+                    <Button
+                        Name="DownloadButton"
+                        Background="{x:Null}"
+                        BorderBrush="{x:Null}"
+                        Click="DownloadButton_Click" Height="45">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon
+                                VerticalAlignment="Bottom"
+                                Foreground="#FF0007A4"
+                                Kind="Download" />
+                                <TextBlock Foreground="#FF0007A4" Text="Download from sikkhaloy" />
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="1" Foreground="#333" Text="download Only schedule assigned student" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <StackPanel Grid.Row="1">
+                <materialDesign:Card
+                    Margin="15"
+                    Padding="15"
+                    materialDesign:ShadowAssist.ShadowDepth="Depth1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Name="TotalRecord"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource MaterialDesignSubtitle2TextBlock}" />
+                        <Button
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            Click="DeleteButton_Click"
+                            Content="Delete All User" />
+                    </Grid>
+                </materialDesign:Card>
+                <materialDesign:Snackbar
+                    x:Name="ErrorSnackBar"
+                    HorizontalAlignment="Stretch"
+                    Background="#FFD30000"
+                    IsActive="False">
+                    <materialDesign:SnackbarMessage />
+                </materialDesign:Snackbar>
+            </StackPanel>
+
+            <DataGrid
+                x:Name="UserList"
+                Grid.Row="2"
+                Margin="15"
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                CanUserDeleteRows="True"
+                ColumnWidth="*"
+                CommandManager.PreviewExecuted="UserList_PreviewExecuted"
+                RowEditEnding="UserList_RowEditEnding">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Binding="{Binding ID}"
+                        Header="ID"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Binding="{Binding DeviceID}"
+                        Header="Device ID"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn Binding="{Binding RFID, UpdateSourceTrigger=PropertyChanged}" Header="RFID" />
+                    <DataGridTextColumn Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Header="Name" />
+                    <DataGridTextColumn Binding="{Binding Designation, UpdateSourceTrigger=PropertyChanged}" Header="Designation" />
+                    <DataGridTemplateColumn
+                        MaxWidth="100"
+                        Header="Image"
+                        IsReadOnly="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Ellipse
+                                        MaxWidth="50"
+                                        MouseDown="Ellipse_MouseDown"
+                                        Stretch="UniformToFill"
+                                        ToolTip="Click to change image">
+                                        <Ellipse.Effect>
+                                            <DropShadowEffect
+                                                BlurRadius="15"
+                                                Direction="0"
+                                                ShadowDepth="5"
+                                                Color="#dddddd" />
+                                        </Ellipse.Effect>
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{Binding ImgLink, FallbackValue={StaticResource DefaultImage}}" />
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background" Value="#fff" />
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </Grid>
+    </materialDesign:Card>
+</Page>

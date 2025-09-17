@@ -1,0 +1,41 @@
+﻿
+/*Profile info*/
+.p-image { flex-shrink:0;padding-right:1rem}
+.p-image img{ height: 208px; width: 208px;}
+.gimg { width:120px; height: 135px; display: block; margin: auto; }
+
+.info {width:100%;}
+.info ul{ margin:0;  padding:0}
+.info ul li { border-bottom:1px solid #d6e0eb; color: #5d6772; font-size: 15px; line-height: 23px; list-style: outside none none; margin: 6px 0 0; padding-bottom: 5px; padding-left: 2px; }
+.info ul li:last-child { border-bottom: none; }
+
+.Accounts-p-title {font-size:16px; font-weight:bold;}
+.Accounts-p-title .badge { padding: 7px 18px; font-size: 19px; }
+.Accounts-p-title label {margin-bottom: 0;}
+
+/*Attendance Calender*/
+ .Pre { background-color: #8CC63E; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
+ .Abs { background-color: #C90035; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
+ .Late { background-color: #FBB917; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
+ .Late_Abs { background-color: #FF5627; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
+ .Att_Holidays { background-color: #06d79c; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
+
+  #Attendance .Appointment { color: #fff; font-family: tahoma; font-size: 15px; }
+ .Re_Desin { float: left; font-weight: bold; padding: 5px 10px; }
+  #Attendance .myCalendar tr td.myCalendarDay {height: 60px; }
+
+  /*Attendance Summary*/
+.box { padding:20px; text-align:center; margin-bottom:15px; color:#fff}
+.box h4,h5{ font-size:1rem}
+.bg-w { background-color:#398bf7}
+.bg-p { background-color:#06d79c}
+.bg-a { background-color:#ef5350}
+.bg-l{ background-color:#f4ab43}
+.bg-la{ background-color:#EC4A89}
+.bg-lv { background-color:#93BE52}
+
+
+@page{margin:0.5cm}
+@media print{
+
+}

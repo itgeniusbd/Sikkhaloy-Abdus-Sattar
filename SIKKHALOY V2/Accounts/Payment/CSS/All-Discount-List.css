@@ -1,0 +1,15 @@
+﻿
+
+.Title {color:#000; font-size:19px; margin:8px 0 }
+.Amt { color:#000; font-size:19px;}
+@page{margin:0.5cm}
+@media print{ 
+ .Site_Navigation, .Category,.UserPanel, .btn btn-primary,.footer,#Print,.NoPrint,h3{ display:none}
+.headerBack{ margin-bottom:10px}
+ .maincontain { width: 100%; margin-left: 0; float: none; padding:0 }
+ #AllStudents{ margin-left:0}
+
+  h3{ color:#000; font-size:20px; margin:0; text-align:center; background-color:#fff; font-family:Tahoma}
+ .mGrid td{ font-size:12px; padding:3px; color:#000; border:1px solid #a2a2a2}
+ .mGrid th a{color:#000;}
+}

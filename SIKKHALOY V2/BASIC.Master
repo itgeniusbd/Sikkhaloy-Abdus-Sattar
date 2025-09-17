@@ -1,0 +1,429 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="BASIC.master.cs" Inherits="EDUCATION.COM.BASIC" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1" runat="server">
+    <title>Sikkhaloy.com</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <link rel="shortcut icon" href="/CSS/Image/MYfavicon.png" type="image/x-icon" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <!-- Bootstrap core CSS -->
+    <link href="/CSS/bootstrap/bootstrap.css" rel="stylesheet" />
+    <!-- Material Design Bootstrap -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.5.15/css/mdb.min.css" rel="stylesheet" />
+    <!-- Date Range Picker -->
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+    <!-- Bootstrap Date-Picker Plugin -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.4.1/css/bootstrap-datepicker3.css" />
+    <!-- Custom -->
+    <link href="/CSS/Internal_Master.css?v=1.0.1" rel="stylesheet" />
+    <!-- Sidebar -->
+    <link href="/CSS/SideNavbar.css?v=2.3.0" rel="stylesheet" />
+    <!-- grid view -->
+    <link href="/CSS/Gridview.css?v=5.1.0" rel="stylesheet" />
+    <!-- Print -->
+    <link href="/CSS/Print.css?v=2.0.1" media="print" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+     <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+   <![endif]-->
+
+    <style>
+        .sidedrawer-toggle .my-navbar-icon { display: inline-block; width: 1.5em; height: 1.5em; vertical-align: middle; content: ""; background: no-repeat center center; background-size: 100% 100%; background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgb(255, 255, 255)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 8h24M4 16h24M4 24h24'/%3E%3C/svg%3E"); }
+
+        </style>
+
+    <asp:ContentPlaceHolder ID="head" runat="server" />
+</head>
+
+<body>
+    <form id="Form1" runat="server">
+        <asp:ScriptManager ID="ScriptManager1" runat="server" AsyncPostBackTimeout="56000"></asp:ScriptManager>
+        <div id="sidedrawer" class="d-print-none z-depth-1">
+            <asp:FormView ID="AdminFormView" runat="server" DataKeyNames="AdminID" DataSourceID="AdminInfoSQL" Width="100%">
+                <ItemTemplate>
+                    <div class="Admin-p">
+                        <a href="/Profile_Redirect.aspx" class="Dash_b">
+                            <img class="rounded-circle img-thumbnail" alt="No Image" title="Go Profile" src="/Handeler/Admin_Photo.ashx?Img=<%#Eval("AdminID") %>" />
+                        </a>
+                        <p class="dropdown-toggle mb-0 mt-2 p-0 U_Name" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <%# Eval("Name") %>
+                        </p>
+                        <ul class="dropdown-menu pull-right">
+                            <li><a href="/Profile/Update_Info.aspx" class="dropdown-item"><i class="fa fa-user"></i>Update Info</a></li>
+                            <li><a href="/Profile/Change_Password.aspx" class="dropdown-item"><i class="fa fa-lock"></i>Change Password</a></li>
+                        </ul>
+
+                        <asp:LoginView ID="CustomerLoginView" runat="server">
+                            <LoggedInTemplate>
+                                <asp:LoginStatus ID="LoginStatus1" CssClass="Logout" runat="server" LogoutPageUrl="~/Default.aspx" LogoutText="" LogoutAction="Redirect" OnLoggingOut="LoginStatus1_LoggingOut" />
+                            </LoggedInTemplate>
+                        </asp:LoginView>
+                    </div>
+                </ItemTemplate>
+            </asp:FormView>
+            <asp:SqlDataSource ID="AdminInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                SelectCommand="SELECT FirstName + ' ' + ISNULL(LastName,'') AS Name, Admin.* FROM Admin WHERE (SchoolID = @SchoolID) AND (RegistrationID = @RegistrationID)">
+                <SelectParameters>
+                    <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
+                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
+                </SelectParameters>
+            </asp:SqlDataSource>
+
+            <asp:DropDownList ID="Session_DropDownList" CssClass="Session_DDL edu-session-year" runat="server" DataSourceID="SessionSQL" DataTextField="EducationYear" DataValueField="EducationYearID"></asp:DropDownList>
+            <asp:SqlDataSource ID="SessionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT 'Session : ' + EducationYear AS EducationYear, EducationYearID FROM Education_Year WHERE (SchoolID = @SchoolID) ORDER BY SN">
+                <SelectParameters>
+                    <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
+                </SelectParameters>
+            </asp:SqlDataSource>
+            <hr />
+            <asp:TreeView ID="LinkTreeView"
+                ExpandImageUrl="~/CSS/Image/Expand_Ico.png"
+                CollapseImageUrl="~/CSS/Image/Collaps_Ico.png"
+                NodeStyle-CssClass="treeNode"
+                RootNodeStyle-CssClass="rootNode"
+                LeafNodeStyle-CssClass="leafNode"
+                SelectedNodeStyle-CssClass="Selected_Node"
+                NodeWrap="true"
+                runat="server">
+            </asp:TreeView>
+        </div>
+
+        <div id="header">
+            <asp:HiddenField ID="_redIdHidden" runat="server" />
+            <div class="bg-main z-depth-1">
+                <asp:FormView ID="LogoFormView" runat="server" DataKeyNames="SchoolID" DataSourceID="Logo" Width="100%">
+                    <ItemTemplate>
+                        <div class="container-fluid">
+                            <div class="d-flex flex-sm-row flex-column">
+                                <a class="sidedrawer-toggle d-md-none js-show-sidedrawer d-print-none"><span class="my-navbar-icon"></span></a>
+                                <a class="sidedrawer-toggle d-none d-md-inline-block js-hide-sidedrawer d-print-none"><span class="my-navbar-icon"></span></a>
+
+                                <div class="logo-waper text-center text-sm-left">
+                                    <img class="rounded" src="/Handeler/SchoolLogo.ashx?SLogo=<%#Eval("SchoolID") %>" style="height: 50px; max-width: 60px" alt="No logo" />
+                                </div>
+                                <div class="InsInfo text-center text-sm-left">
+                                    <a href="/Profile_Redirect.aspx" title="Go Deshboard" class="white-text" id="InstitutionName"><%# Eval("SchoolName") %> <span class="d-print-none">(<%# Eval("EducationYear") %>)</span></a>
+                                    <p>
+                                        <i class="fa fa-map-marker mr-1"></i><%#Eval("Address") %>
+                                        <i class="fa fa-phone mx-1"></i><%#Eval("Phone") %>
+                                        <i class="fa fa-envelope-o mx-1"></i><%#Eval("Email") %>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </ItemTemplate>
+                </asp:FormView>
+                <asp:SqlDataSource ID="Logo" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                    SelectCommand="SELECT SchoolInfo.SchoolID, Education_Year.EducationYear, SchoolInfo.SchoolName, SchoolInfo.Address, SchoolInfo.Phone, SchoolInfo.Email FROM SchoolInfo INNER JOIN Education_Year ON SchoolInfo.SchoolID = Education_Year.SchoolID WHERE (SchoolInfo.SchoolID = @SchoolID) AND (Education_Year.EducationYearID = @EducationYearID)">
+                    <SelectParameters>
+                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                        <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
+                    </SelectParameters>
+                </asp:SqlDataSource>
+            </div>
+
+            <asp:FormView ID="NoticeFormView" runat="server" DataSourceID="NoticeSQL" Width="100%">
+                <ItemTemplate>
+                    <div class="AdminNotice d-print-none">
+                        <a title="Click To More Details" href="/Notices/Details.aspx"><%# Eval("Notice") %></a>
+                    </div>
+                </ItemTemplate>
+            </asp:FormView>
+            <asp:SqlDataSource ID="NoticeSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Notice FROM Notice_Admin WHERE (GETDATE() BETWEEN Show_Date AND End_Date) ORDER BY AdminNoticeID DESC"></asp:SqlDataSource>
+        </div>
+
+        <div id="content-wrapper">
+            <div class="container-fluid">
+                <!-- JQuery -->
+                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+                <!-- Bootstrap tooltips -->
+                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.4/umd/popper.min.js"></script>
+                <!-- Bootstrap core JavaScript -->
+                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/js/bootstrap.min.js"></script>
+                <!-- MDB core JavaScript -->
+                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.5.15/js/mdb.min.js"></script>
+                  <!--Notify.js-->
+                <script src="/JS/notify.min.js"></script>
+                <!--Sidebar-->
+                <script src="/JS/mui.min.js"></script>
+                <script src="/JS/Basic_Index.js"></script>
+                <!-- Date Range Picker -->
+                <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+                <script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+                <!-- Bootstrap Date-Picker Plugin -->
+                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.4.1/js/bootstrap-datepicker.min.js"></script>
+                <!--Autocomplete-->
+                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+                <!--Canvas Resize Image-->
+                <script src="/JS/Resize_Img/binaryajax.js"></script>
+                <script src="/JS/Resize_Img/canvasResize.js"></script>
+                <script src="/JS/Resize_Img/exif.js"></script>
+                <!--scroll-->
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.nicescroll/3.7.6/jquery.nicescroll.min.js"></script>
+                <asp:ContentPlaceHolder ID="body" runat="server" />
+            </div>
+        </div>
+
+        <footer style="background-color:#000000" id="footer" class="page-footer mt-4 wow fadeIn bg-main p-0 d-print-none">
+            <div class="container">
+                <ul class="list-unstyled list-inline text-center pt-4">
+                    <li class="list-inline-item">
+                        <button type="button" class="btn btn-outline-white" data-toggle="modal" data-target="#Testimonial">Share Experience</button>
+                    </li>
+                    <li class="list-inline-item">
+                        <a href="/Profile/Support/Support_Ticket.aspx" class="btn btn-outline-white">Call Center Number (Office Time: 10:00 AM - 05:00 PM) Phone: 09638669966 Mobile: 01739144141</a>
+                    </li>
+                    <li class="list-inline-item">
+                        <button type="button" class="btn btn-outline-white" data-toggle="modal" data-target="#PaynemtM">Make Payment</button>
+                    </li>
+                </ul>
+
+                <ul class="list-unstyled list-inline text-center">
+                    <li class="list-inline-item">
+                        <a target="_blank" href="https://www.facebook.com/Sikkhaloy24" class="btn-floating btn-sm rgba-white-slight mx-1 waves-effect waves-light">
+                            <i class="fa fa-facebook"></i>
+                        </a>
+                    </li>
+                    <li class="list-inline-item">
+                        <a class="btn-floating btn-sm rgba-white-slight mx-1 waves-effect waves-light">
+                            <i class="fa fa-twitter"></i>
+                        </a>
+                    </li>
+               
+                    <li class="list-inline-item">
+                        <a target="_blank" href="https://www.youtube.com/channel/UCjyS7P3JSdXwD51IpXGqXAQ" class="btn-floating btn-sm rgba-white-slight mx-1 waves-effect waves-light">
+                            <i class="fa fa-youtube"></i>
+                        </a>
+                    </li>
+                    <li class="list-inline-item">
+                        <a target="_blank" href="https://play.google.com/store/apps/details?id=com.loopsit.sikkhaloy&hl=en&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1">
+                            <img style="width: 170px;" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' />
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="footer-copyright text-center py-3">
+                © 2015-<span id="CurrentYear"></span>
+                Copyright : <a href="http://loopsit.com/" target="_blank">Loops IT LTD.</a>
+            </div>
+        </footer>
+
+        <!-- payment info Modal -->
+        <div class="modal fade right" id="PaynemtM" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-side modal-bottom-right modal-notify modal-success" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p class="heading lead">Make Payment</p>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true" class="white-text">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="list-group z-depth-0">
+                            <li class="list-group-item text-center">
+                                <img src="/CSS/Image/Bkash.png" class="img-fluid" />
+                                <h6 class="font-weight-bold" style="color: #d9095e">
+                                  <%--  <img src="/CSS/Image/bkash_favicon.ico" />--%>
+                                 <%--   bKash Personal Account</h6>
+                                <p class="m-0"><b>Abdus Sattar</b></p>
+                                <p class="m-0">01911943839</p>--%>
+                            </li>
+
+                            <li class="list-group-item justify-content-between">
+                                <h6 class="font-weight-bold" style="color: #89288f">
+                                    <i style="color: #89288f" class="fa fa-paper-plane" aria-hidden="true"></i>
+                                    DBBL Rocket</h6>
+                                <p class="m-0">017391441416</p>
+                            </li>
+
+                            <li class="list-group-item justify-content-between">
+                                <h6 class="font-weight-bold">
+                                    <img src="/CSS/Image/DBBL.png" />
+                                    Dutch bangla bank</h6>
+                                <p class="m-0"><b>Account Name:</b> Loops IT</p>
+                                <p class="m-0"><b>Account Number:</b> 227.110.6579</p>
+                                <p class="m-0"><b>Branch:</b> Tejgaon Branch</p>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer d-block">
+                        <div class="alert alert-info text-center">
+                            <p class="m-0">Please assure us after your payment.</p>
+                            <p class="m-0">Phone: 09638669966 Mobile: 01739144141</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testimonial -->
+        <div class="modal fade left" id="Testimonial" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-side modal-bottom-left modal-notify modal-success" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p class="heading lead">Testimonial</p>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true" class="white-text">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <asp:UpdatePanel ID="UpdatePanel1" runat="server">
+                            <ContentTemplate>
+                                <%if (TestimonialGridView.Rows.Count == 0)
+                                    { %>
+                                <div class="form-group">
+                                    <label>Share your experience with our services.</label>
+                                    <asp:TextBox ID="MessageTextBox" TextMode="MultiLine" Rows="3" placeholder="Your Experience" CssClass="form-control" runat="server"></asp:TextBox>
+                                </div>
+                                <div class="form-group">
+                                    <asp:Button ID="SubmitButton" runat="server" Text="Submit" CssClass="btn btn-default" OnClick="SubmitButton_Click" />
+                                    <asp:SqlDataSource ID="TestimonialSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" DeleteCommand="DELETE FROM [Public_Testimonial] WHERE [TestimonialID] = @TestimonialID" InsertCommand="INSERT INTO Public_Testimonial(RegistrationID, SchoolID, Testimonial_Text, Is_Show) VALUES (@RegistrationID, @SchoolID, @Testimonial_Text, 0)" SelectCommand="SELECT TestimonialID, RegistrationID, SchoolID, Testimonial_Text, Is_Show, Show_SN, Insert_Date FROM Public_Testimonial WHERE (SchoolID = @SchoolID) AND (RegistrationID = @RegistrationID)" UpdateCommand="UPDATE Public_Testimonial SET Testimonial_Text = @Testimonial_Text WHERE (TestimonialID = @TestimonialID)">
+                                        <DeleteParameters>
+                                            <asp:Parameter Name="TestimonialID" Type="Int32" />
+                                        </DeleteParameters>
+                                        <InsertParameters>
+                                            <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
+                                            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
+                                            <asp:ControlParameter ControlID="MessageTextBox" Name="Testimonial_Text" PropertyName="Text" Type="String" />
+                                        </InsertParameters>
+                                        <SelectParameters>
+                                            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                                            <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
+                                        </SelectParameters>
+                                        <UpdateParameters>
+                                            <asp:Parameter Name="Testimonial_Text" Type="String" />
+                                            <asp:Parameter Name="TestimonialID" Type="Int32" />
+                                        </UpdateParameters>
+                                    </asp:SqlDataSource>
+                                </div>
+
+                                <%} %>
+                                <asp:Label ID="MsgLabel" runat="server" ForeColor="Green"></asp:Label>
+                                <asp:GridView ID="TestimonialGridView" ShowHeader="False" CssClass="mGrid" runat="server" AutoGenerateColumns="False" DataKeyNames="TestimonialID" DataSourceID="TestimonialSQL">
+                                    <Columns>
+                                        <asp:TemplateField>
+                                            <ItemTemplate>
+                                                <p><%#Eval("Testimonial_Text") %></p>
+
+                                                <asp:LinkButton ID="LinkButton1" runat="server" CausesValidation="False" CommandName="Delete" Text="Delete"></asp:LinkButton>
+                                            </ItemTemplate>
+                                        </asp:TemplateField>
+                                    </Columns>
+                                </asp:GridView>
+                            </ContentTemplate>
+                        </asp:UpdatePanel>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            $(function () {
+                $("#sidedrawer").niceScroll({
+                    cursorcolor: "#394C3A", // change cursor color in hex
+                    cursorwidth: "7px", // cursor width in pixel (you can also write "5px")
+                    cursorborder: "1px solid #394C3A", // css definition for cursor border
+                    cursorborderradius: "3px", // border radius in pixel for cursor
+                    emulatetouch: true // enable cursor-drag scrolling like touch devices in desktop computer
+                });
+
+                $("#sidedrawer").mouseover(function () {
+                    $("#sidedrawer").getNiceScroll().resize();
+                });
+
+                //Animations MDB
+                new WOW().init();
+
+                //Back To Top
+                $('body').append('<div id="toTop" class="btn btn-info d-print-none"><span class="glyphicon glyphicon-chevron-up"></span> TOP</div>');
+
+                $(window).scroll(function () {
+                    if ($(this).scrollTop() !== 0) {
+                        $('#toTop').fadeIn();
+                    } else {
+                        $('#toTop').fadeOut();
+                    }
+                });
+
+                $('#toTop').click(function () {
+                    $("html, body").animate({ scrollTop: 0 }, 600);
+                    return false;
+                });
+
+                //Current Year
+                $("#CurrentYear").text((new Date).getFullYear());
+
+                $('a[href$=_SkipLink]').each(function () {
+                    $(this).remove();
+                });
+
+                //store user
+                storeUser();
+            });
+
+            //different Session
+            $("#content-wrapper").mouseover(function () {
+                checkUser();
+
+                if (localStorage._sid) {
+                    const previousId = $(".edu-session-year").val();
+                    const currentId = localStorage._sid;
+
+                    if (previousId !== currentId) {
+                        localStorage._sid = previousId;
+                        location.reload(true);
+                    }
+                }
+            });
+
+            //Change Session
+            $(".edu-session-year").change(function () {
+                var id = $(this).val();
+                if (!id) return;
+
+                const data = { id: id };
+                $.ajax({
+                    type: "POST",
+                    url: '/Default.aspx/Session_Change',
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    data: JSON.stringify(data),
+                    success: function (r) {
+                        localStorage._sid = id;
+                        location.reload();
+                    },
+                    error: function (e) {
+                        console.log(`there was an error!${e.d}`);
+                    }
+                });
+            });
+
+            //check user
+            function checkUser() {
+                if (localStorage._regId) {
+                    const previousId = localStorage._regId;
+                    const currentId = $("[id*=_redIdHidden]").val();
+
+                    if (previousId !== currentId) {
+                        localStorage._regId = currentId;
+                        location.reload(true);
+                    }
+                }
+            }
+
+            //store user
+            function storeUser() {
+                const currentUser = $("[id*=_redIdHidden]").val();
+                localStorage._regId = currentUser;
+            }
+        </script>
+    </form>
+</body>
+</html>

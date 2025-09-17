@@ -1,0 +1,84 @@
+﻿
+html,
+body { height: 100%; }
+/*body { color: #707070; }*/
+h3 { padding: 1rem; border-radius: .25rem; margin-top: 3px; text-transform: uppercase; color:#3e4551; font-size: 1rem; font-weight: 400; background-color: #fff; box-shadow: 0 2px 5px 0 rgba(0,0,0,.16),0 2px 10px 0 rgba(0,0,0,.12); margin-bottom: 1.5rem !important; }
+h3 label { margin: 0 !important; }
+
+.bg-main { background-color: #00a12a; color: #fff; padding: 0.5em 0; }
+.btn-default { background-color: #ff3547 !important; }
+.Session_DDL { padding: 3px 5px; font-size: 14px; color: #142715; border: none !important; border-radius: 9px; text-align: center; cursor: pointer; display: block; width: 95%; background: #848D70; margin: auto; margin-bottom: 1rem; }
+
+.AdminNotice {box-shadow: 0 2px 5px 0 rgba(0,0,0,.16),0 2px 10px 0 rgba(0,0,0,.12);overflow: hidden;font-size: 1rem; height:30px; background-color: #fff; padding: 0.3rem 2rem; border-bottom: 1px solid #ddd; }
+.AdminNotice:before {padding-right: .4rem;content:'\f0a1';font-family:'fontawesome';color:#fe1d1d}
+
+.AdminNotice a {font-weight: 400;background: linear-gradient(60deg, hsl(0, 2.4%, 51.8%) 10%, hsl(0, 0%, 23.5%) 25%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation:20s BeProud linear infinite, 3s Always ease alternate infinite; }
+
+@keyframes BeProud {100% { background-position: 100vw 0px; }}
+@keyframes Always {100% { transform: scale(1.1); }}
+
+/*--Back to top----*/
+#toTop { position: fixed; bottom: 10px; right: 10px; cursor: pointer; display: none; z-index:999}
+
+/*Footer*/
+.btn-floating { -webkit-box-shadow: 0 5px 11px 0 rgba(0,0,0,.18),0 4px 15px 0 rgba(0,0,0,.15); box-shadow: 0 5px 11px 0 rgba(0,0,0,.18),0 4px 15px 0 rgba(0,0,0,.15); width: 47px; height: 47px; position: relative; z-index: 1; vertical-align: middle; display: inline-block; overflow: hidden; -webkit-transition: all .2s ease-in-out; -o-transition: all .2s ease-in-out; transition: all .2s ease-in-out; margin: 10px; margin-right: 10px; margin-left: 10px; -webkit-border-radius: 50%; border-radius: 50%; padding: 0; border: none; cursor: pointer; }
+.btn-floating.btn-sm i { font-size: .96154rem; line-height: 46px; }
+
+/*------------update progress----------------*/
+#progress_BG { position: fixed; top: 0px; bottom: 0px; left: 0px; right: 0px; z-index: 120; background-color: #000; filter: alpha(opacity=40); opacity: 0.7; display: none; }
+#progress { position: fixed; top: 40%; left: 46%; text-align: center; z-index: 200; }
+#progress b { color: hsl(200,100%,18%); background-color: #ddd; padding: 2px 5px; }
+/*-------------checkbox---------------*/
+input[type=checkbox] { display: none; }
+input[type=checkbox] + label { padding-left: 29px; display: inline-block; height: 21px; line-height: 24px; background-repeat: no-repeat; background-position: 7px 3px; vertical-align: middle; cursor: pointer; background-image: url(Image/CheckBox.png); -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; z-index:4; }
+input[type=checkbox]:checked + label { background-position: 7px -19px; background-image: url(Image/CheckBox.png); -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+
+/*-----------radio button---------------*/
+input[type=radio] { display: none; }
+input[type=radio] + label { background-position: 5px 3px; background-image: url(Image/RadioButton.png);margin-bottom: 0; font-weight: normal; padding-left: 26px; height: 21px; display: inline-block; line-height: 21px; background-repeat: no-repeat; font-size: 13px; vertical-align: middle; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+input[type=radio]:checked + label { background-position: 5px -17px; background-image: url(Image/RadioButton.png); -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+/*----------End radio button----------*/
+.EroorStar { color: red; font-size: 8pt; }
+.EroorSummer { color: red; font-size: 10pt; }
+.SuccessMessage { color: #07a807; font-size: 14px; }
+
+.hideGridColumn { display: none; }
+.SuccessMsg { color: #616161; font-size: 10pt; }
+.First { font-weight: bold; color: #fff; background: #0e8322; }
+.Second { font-weight: bold; color: #fff; background-color: #0c88a4; }
+.Third { font-weight: bold; color: #fff; background-color: #f39c00; }
+
+.RowColor { background-color: #ffb4a6; }
+.selected { background-color: #A1DCF2; }
+.Deselected { background-color: #fff; }
+
+.form-inline .form-group { margin-bottom: 15px; margin-right:5px;}
+/*.form-inline .form-group:nth-last-child(2) { margin-right:0;}*/
+
+.form-inline .btn { padding: 0.55rem 2.14rem;}
+.form-group label { display: inline-block; margin-bottom: .5rem; font-weight: 300; font-size: 0.91rem; }
+.form-control { min-width: 80px; }
+
+/**Autocomplete**/
+.typeahead { box-shadow: 0 2px 5px 0 rgba(0,0,0,.16),0 2px 10px 0 rgba(0,0,0,.12); }
+.typeahead li { border-bottom: 1px solid #ddd; }
+
+/*Modal*/
+.modal-header { background-color: rgb(0, 200, 81); color: rgb(255, 255, 255); }
+/*.modal-body { overflow: auto; max-height: calc(100vh - 35vh); }*/
+
+/*Tab*/
+.nav-tabs {background-color:#3e4551; border: 0;margin-left: 1rem; margin-right: 1rem; margin-bottom: -20px; z-index: 2; position: relative; border-radius: 2px; }
+.nav-item { flex-basis: 0; -webkit-box-flex: 1; flex-grow: 1; text-align: center; margin-bottom: -3px; }
+.nav-tabs .nav-link {padding:1rem; border: 0; color: rgba(255,255,255,.7); border-top-left-radius: .25rem; border-top-right-radius: .25rem; }
+.nav-tabs .nav-link.active { border-bottom: 3px solid #ffeb3b; background-color:#3e4551; color: #fff; -webkit-transition: all 1s; transition: all 1s; border-radius:0; }
+.tab-content {padding: 2.5rem 1rem 1rem; z-index: 1; border-radius: 0 0 .3rem .3rem; }
+
+@media (max-width: 767.98px) {
+    .form-inline { display: block; }
+}
+
+
+@media print {
+    @page { size: auto !important; }
+}

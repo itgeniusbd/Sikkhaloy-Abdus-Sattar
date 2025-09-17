@@ -1,0 +1,15 @@
+﻿
+.range_inputs { display:none;}
+.amount { font-size:1rem;}
+.amount label{ margin:0}
+
+.mGrid td p{ text-align: right; margin:0;line-height: 1.5rem;}
+
+@media print {
+.amount {margin-top:15px;}
+ .mGrid th {border: 1px solid #333;}
+ .mGrid th a {color: #000; }
+
+ .mGrid td { border: 1px solid #333; font-size: 11px; padding: 5px 3px; color: #000; }
+ .mGrid td a { font-size: 11px; text-align: left; color: #000; }
+}

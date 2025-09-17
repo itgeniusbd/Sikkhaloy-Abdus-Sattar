@@ -1,0 +1,54 @@
+﻿
+.Main-table > tbody > tr > td { padding: 0 !important; }
+.invoice-wraper { height: 63rem; position: relative; }
+
+.Inst_Name { display: flex; margin-bottom: 1.1rem; margin-top: 2rem; padding-left: 2.5rem; }
+.Inst_Name h2 { font-family: Roboto,sans-serif; font-weight: 700; margin-bottom: -5px; padding: 0; color: #3a3d42; line-height: 35px; font-size: 1.7rem; }
+.Inst_Name small { color: #3a3d42; }
+
+.Ititle { background-color: #00ca51; text-align: right; padding-right: 90px; padding-top: 3px; padding-bottom: 3px; }
+.Ititle b { background-color: #fff; padding: 10px; font-size: 27px; }
+
+.invoice-table { width: 100%; }
+.invoice-table thead { background-color: #373b46; color: #fff; }
+.invoice-table thead th { padding: 10px 5px; }
+
+.invoice-table tbody tr:nth-child(even) { background: #f2f2f2; }
+.invoice-table tbody tr:nth-child(odd) { background: #FFF; border-bottom: 1px solid #dedede; }
+.invoice-table tbody tr td { padding: 10px 5px; color: #333; }
+
+
+.invoice-to { padding: 0.7rem 2rem; margin: 0.9rem 1rem; }
+.invoice-to h2 { border-bottom: 2px solid #727574; margin-bottom: 10px; font-weight: 600; padding: 0; color: #3a3d42; line-height: 30px; font-size: 1.5rem; }
+.invoice-to h5 { font-weight: 400; margin-bottom: 5px; padding: 0; color: #3a3d42; font-size: 1rem; }
+.invoice-to P { margin-bottom: 3px; padding: 0; color: #000; font-size: .8rem; }
+
+.details-list { padding: 0 2rem; margin: 0 1rem; }
+
+.gt-table { margin: 3rem 45px 10px 0; }
+.gt-table table { width: 100%; }
+.gt-table table tr td { color: #000; font-weight: 600; font-size: 1rem; line-height: 22px; }
+.gt-table table tr td:nth-child(2) { text-align: right; }
+
+.grand-total { background-color: #00ca51; padding: 10px 41px 10px 10px; color: #fff; }
+.grand-total table { width: 100%; }
+.grand-total table tr td { font-weight: 600; font-size: 1rem; }
+.grand-total table tr td:nth-child(2) { text-align: right; }
+
+.conclusion { margin: 3rem 0 0 45px; color: #333; }
+.conclusion h4 { font-size: 1.2rem; font-weight: 600; margin-bottom: 10px; }
+.conclusion h5 { font-size: 1rem; font-weight: 500; margin-bottom: 10px; }
+.conclusion table tr td { font-weight: 400; font-size: .8rem; }
+.conclusion table tr td:nth-child(2) { padding-left: 25px; }
+
+.invc-footer { width: 100%; position: absolute; bottom: 0; color: #3C525B; }
+.footer_title { background-color: #00ca51; height: 4px; margin-bottom: 10px; }
+.footer_title b { background-color: #fff; }
+
+.auto-sign { position: absolute; bottom: 65px; right: 46px; border-top: 2px solid #939393; text-align: center; color: #000; }
+
+@page { margin: 0 !important; }
+
+@media print {
+    #header { display: none; }
+}

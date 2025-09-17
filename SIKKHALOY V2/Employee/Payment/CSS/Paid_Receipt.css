@@ -1,0 +1,11 @@
+﻿
+.Info { width:100%; text-align: center; }
+.Info ul { margin: 0; padding: 0; }
+.Info ul li {color: #777; font-size:16px; line-height: 26px; list-style: none; margin: 4px 0 0;}
+h3 { text-align:center; font-size:30px; margin-bottom:15px}
+
+@page{ margin:0.5cm}
+@media print{ 
+#header,a{ display:none}
+
+}

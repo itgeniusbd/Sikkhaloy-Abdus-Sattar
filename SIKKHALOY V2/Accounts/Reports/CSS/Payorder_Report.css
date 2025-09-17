@@ -1,0 +1,38 @@
+﻿
+
+
+.Fees-section { padding: 18px 10px; text-align: center;}
+.Fees-section h2 { margin: 0; font-size: 20px; overflow: hidden; text-overflow: ellipsis; -ms-text-overflow:ellipsis; -o-text-overflow:ellipsis; white-space: nowrap; }
+.Fees-section small { font-size: 14px; }
+
+.Payorder-bg { background-color: #009688; color: #fff; }
+.Latefee-bg { background-color: #FF9800; color: #fff; }
+.Concession-bg { background-color: #00BCD4; color: #fff;}
+
+.Paid-bg { background-color: #8BC34A; color: #fff; }
+.Unpaid-bg { background-color: #E91E63; color: #fff; }
+
+.grid-title { padding: 10px 0 10px 15px; text-transform: uppercase; color: #fff; border: 1px solid #ddd; }
+.grid-title span { font-weight: bold; }
+.For-tle-bg { background-color: #29B6F6; }
+
+.mGrid td { text-align: right;padding: 5px;}
+.mGrid td:first-child { text-align: left; }
+
+/*--responsive--*/
+@media(max-width:1390px) {
+.box { font-size: 18px; padding: 10px 6px; }
+}
+
+@media(max-width:991px) {
+.Paid-bg, .Unpaid-bg { margin-top: 15px; }
+}
+
+@media(max-width:768px) {
+.box { font-size: 19px; padding: 10px 6px; }
+}
+
+
+@media print {
+ .Fees-section { border: 1px solid #ddd; }
+}

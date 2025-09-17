@@ -1,0 +1,1751 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="Exam_Result" targetNamespace="http://tempuri.org/Exam_Result.xsd" xmlns:mstns="http://tempuri.org/Exam_Result.xsd" xmlns="http://tempuri.org/Exam_Result.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:msprop="urn:schemas-microsoft-com:xml-msprop" attributeFormDefault="qualified" elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:appinfo source="urn:schemas-microsoft-com:xml-msdatasource">
+      <DataSource DefaultConnectionIndex="2" FunctionsComponentName="QueriesTableAdapter" Modifier="AutoLayout, AnsiClass, Class, Public" SchemaSerializationMode="IncludeSchema" xmlns="urn:schemas-microsoft-com:xml-msdatasource">
+        <Connections>
+          <Connection AppSettingsObjectName="Web.config" AppSettingsPropertyName="EducationConnectionString" ConnectionStringObject="" IsAppSettingsProperty="true" Modifier="Assembly" Name="EducationConnectionString (Web.config)" ParameterPrefix="@" PropertyReference="AppConfig.System.Configuration.ConfigurationManager.0.ConnectionStrings.EducationConnectionString.ConnectionString" Provider="System.Data.SqlClient" />
+          <Connection AppSettingsObjectName="Web.config" AppSettingsPropertyName="Login" ConnectionStringObject="" IsAppSettingsProperty="true" Modifier="Assembly" Name="Login (Web.config)" ParameterPrefix="@" PropertyReference="AppConfig.System.Configuration.ConfigurationManager.0.ConnectionStrings.Login.ConnectionString" Provider="System.Data.SqlClient" />
+          <Connection ConnectionStringObject="Data Source=.;Initial Catalog=Edu;Integrated Security=True;MultipleActiveResultSets=True;Connect Timeout=2000;Encrypt=False;TrustServerCertificate=True" IsAppSettingsProperty="false" Modifier="Assembly" Name="EduConnectionString (EDUCATION.COM)" ParameterPrefix="@" Provider="System.Data.SqlClient" />
+        </Connections>
+        <Tables>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="RTableTableAdapter" GeneratorDataComponentClassName="RTableTableAdapter" Name="RTable" UserDataComponentName="RTableTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="EduConnectionString (EDUCATION.COM)" DbObjectType="Unknown" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT        SchoolInfo.SchoolName, SchoolInfo.SchoolLogo, SchoolInfo.Address, Student.ID, Student.StudentsName, Student_Image.Image, CreateClass.Class, StudentsClass.RollNo, CreateShift.Shift, CreateSection.Section, 
+                         CreateSubjectGroup.SubjectGroup, Subject.SubjectName, Exam_Name.ExamName, Exam_SubExam_Name.SubExamName, Exam_Obtain_Marks.FullMark, Exam_Obtain_Marks.PassMark, Exam_Obtain_Marks.MarksObtained, 
+                         Exam_Obtain_Marks.ObtainedGrades, Exam_Obtain_Marks.ObtainedPoint, Exam_Result_of_Subject.TotalMark_ofSubject, Exam_Result_of_Subject.ObtainedMark_ofSubject, Exam_Result_of_Subject.SubjectGrades, 
+                         Exam_Result_of_Subject.SubjectPoint, Exam_Result_of_Student.TotalMark_ofStudent, Exam_Result_of_Student.ObtainedMark_ofStudent, Exam_Result_of_Student.ObtainedPercentage_ofStudent, 
+                         Exam_Result_of_Student.Student_Point, Exam_Result_of_Student.Student_Grade, Exam_Result_of_Student.PassMark_Student, Exam_Result_of_Student.PassStatus_Student, Exam_Result_of_Student.PassStatus_InSubject, 
+                         Exam_Result_of_Subject.PassStatus_InSubExam, Exam_Result_of_Student.StudentAbsenceStatus, Exam_Result_of_Subject.PassStatus_Subject, Exam_Obtain_Marks.AbsenceStatus, Exam_Result_of_Subject.SubjectType, 
+                         Exam_Publish_Setting.Attendance_FromDate, Exam_Publish_Setting.Attendance_ToDate, Attendance_Student.TotalPresent, Attendance_Student.TotalAbsent, Attendance_Student.TotalLate, Attendance_Student.TotalLeave, 
+                         Attendance_Student.TotalBunk, Attendance_Student.WorkingDays, Exam_Result_of_Subject.HighestMark_InSubject_Class, Exam_Result_of_Subject.HighestMark_InSubject_Subsection, 
+                         CAST(Exam_Result_of_Subject.Position_InSubject_Class AS VARCHAR(10)) + CASE WHEN Position_InSubject_Class % 100 IN (11, 12, 13) 
+                         THEN 'th' WHEN Position_InSubject_Class % 10 = 1 THEN 'st' WHEN Position_InSubject_Class % 10 = 2 THEN 'nd' WHEN Position_InSubject_Class % 10 = 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Class, 
+                         CAST(Exam_Result_of_Subject.Position_InSubject_Subsection AS VARCHAR(10)) + CASE WHEN Position_InSubject_Subsection % 100 IN (11, 12, 13) 
+                         THEN 'th' WHEN Position_InSubject_Subsection % 10 = 1 THEN 'st' WHEN Position_InSubject_Subsection % 10 = 2 THEN 'nd' WHEN Position_InSubject_Subsection % 10 = 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Subsection,
+                          Exam_Result_of_Student.HighestMark_InExam_Class, Exam_Result_of_Student.HighestMark_InExam_Subsection, CAST(Exam_Result_of_Student.Position_InExam_Class AS VARCHAR(10)) 
+                         + CASE WHEN Position_InExam_Class % 100 IN (11, 12, 13) 
+                         THEN 'th' WHEN Position_InExam_Class % 10 = 1 THEN 'st' WHEN Position_InExam_Class % 10 = 2 THEN 'nd' WHEN Position_InExam_Class % 10 = 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Class, 
+                         CAST(Exam_Result_of_Student.Position_InExam_Subsection AS VARCHAR(10)) + CASE WHEN Position_InExam_Subsection % 100 IN (11, 12, 13) 
+                         THEN 'th' WHEN Position_InExam_Subsection % 10 = 1 THEN 'st' WHEN Position_InExam_Subsection % 10 = 2 THEN 'nd' WHEN Position_InExam_Subsection % 10 = 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Subsection,
+                          Exam_Publish_Setting.IS_Hide_Sec_Position, Exam_Publish_Setting.IS_Hide_Class_Position, Exam_Publish_Setting.IS_Hide_FullMark, Exam_Publish_Setting.IS_Hide_PassMark, Exam_Result_of_Student.Average, 
+                         Exam_Result_of_Student.NotGolden, Exam_Result_of_Student.Student_Comments, SchoolInfo.Phone, Attendance_Student.TotalLateAbs, ISNULL(Exam_SubExam_Name.Sub_ExamSN, 0) AS Sub_ExamSN, 
+                         Exam_Result_of_Subject.SubjectAbsenceStatus, Exam_Result_of_Subject.IS_Add_InExam, Exam_Publish_Setting.Last_Published_Date, Subject.SN AS SubjectSN
+FROM            CreateClass INNER JOIN
+                         Subject INNER JOIN
+                         Exam_Obtain_Marks ON Subject.SubjectID = Exam_Obtain_Marks.SubjectID ON CreateClass.ClassID = Exam_Obtain_Marks.ClassID INNER JOIN
+                         Exam_Name ON Exam_Obtain_Marks.ExamID = Exam_Name.ExamID INNER JOIN
+                         Student ON Exam_Obtain_Marks.StudentID = Student.StudentID INNER JOIN
+                         Exam_Result_of_Student INNER JOIN
+                         Exam_Result_of_Subject ON Exam_Result_of_Student.StudentResultID = Exam_Result_of_Subject.StudentResultID ON Exam_Obtain_Marks.StudentResultID = Exam_Result_of_Subject.StudentResultID AND 
+                         Exam_Obtain_Marks.SubjectID = Exam_Result_of_Subject.SubjectID INNER JOIN
+                         StudentsClass ON Exam_Result_of_Student.StudentClassID = StudentsClass.StudentClassID INNER JOIN
+                         Exam_Publish_Setting ON Exam_Result_of_Student.Publish_SettingID = Exam_Publish_Setting.Publish_SettingID INNER JOIN
+                         SchoolInfo ON Exam_Publish_Setting.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN
+                         Attendance_Student ON Exam_Result_of_Student.StudentClassID = Attendance_Student.StudentClassID AND Exam_Result_of_Student.ExamID = Attendance_Student.ExamID LEFT OUTER JOIN
+                         Student_Image ON Student.StudentImageID = Student_Image.StudentImageID LEFT OUTER JOIN
+                         CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN
+                         CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN
+                         CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN
+                         Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID
+WHERE        (Student.Status = N'Active') AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND 
+                         (Exam_Publish_Setting.SchoolID = @SchoolID) AND (Exam_Publish_Setting.EducationYearID = @EducationYearID) AND (Exam_Publish_Setting.ExamID = @ExamID) AND (Exam_Publish_Setting.ClassID = @ClassID)
+ORDER BY CreateSection.Section, CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END, ISNULL(Subject.SN, 9999)</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="true" AutogeneratedName="SectionID" ColumnName="SectionID" DataSourceName="Edu.dbo.StudentsClass" DataTypeServer="nvarchar(50)" DbType="String" Direction="Input" ParameterName="@SectionID" Precision="0" ProviderType="NVarChar" Scale="0" Size="50" SourceColumn="SectionID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="SubjectGroupID" ColumnName="SubjectGroupID" DataSourceName="Edu.dbo.StudentsClass" DataTypeServer="nvarchar(50)" DbType="String" Direction="Input" ParameterName="@SubjectGroupID" Precision="0" ProviderType="NVarChar" Scale="0" Size="50" SourceColumn="SubjectGroupID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="ShiftID" ColumnName="ShiftID" DataSourceName="Edu.dbo.StudentsClass" DataTypeServer="nvarchar(50)" DbType="String" Direction="Input" ParameterName="@ShiftID" Precision="0" ProviderType="NVarChar" Scale="0" Size="50" SourceColumn="ShiftID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ExamID" ColumnName="ExamID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ExamID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="ID" DataSetColumn="ID" />
+              <Mapping SourceColumn="StudentsName" DataSetColumn="StudentsName" />
+              <Mapping SourceColumn="Class" DataSetColumn="Class" />
+              <Mapping SourceColumn="SubjectName" DataSetColumn="SubjectName" />
+              <Mapping SourceColumn="ExamName" DataSetColumn="ExamName" />
+              <Mapping SourceColumn="SubExamName" DataSetColumn="SubExamName" />
+              <Mapping SourceColumn="FullMark" DataSetColumn="FullMark" />
+              <Mapping SourceColumn="PassMark" DataSetColumn="PassMark" />
+              <Mapping SourceColumn="MarksObtained" DataSetColumn="MarksObtained" />
+              <Mapping SourceColumn="ObtainedGrades" DataSetColumn="ObtainedGrades" />
+              <Mapping SourceColumn="ObtainedPoint" DataSetColumn="ObtainedPoint" />
+              <Mapping SourceColumn="TotalMark_ofSubject" DataSetColumn="TotalMark_ofSubject" />
+              <Mapping SourceColumn="ObtainedMark_ofSubject" DataSetColumn="ObtainedMark_ofSubject" />
+              <Mapping SourceColumn="SubjectGrades" DataSetColumn="SubjectGrades" />
+              <Mapping SourceColumn="SubjectPoint" DataSetColumn="SubjectPoint" />
+              <Mapping SourceColumn="TotalMark_ofStudent" DataSetColumn="TotalMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedMark_ofStudent" DataSetColumn="ObtainedMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedPercentage_ofStudent" DataSetColumn="ObtainedPercentage_ofStudent" />
+              <Mapping SourceColumn="Student_Point" DataSetColumn="Student_Point" />
+              <Mapping SourceColumn="Student_Grade" DataSetColumn="Student_Grade" />
+              <Mapping SourceColumn="PassMark_Student" DataSetColumn="PassMark_Student" />
+              <Mapping SourceColumn="PassStatus_Student" DataSetColumn="PassStatus_Student" />
+              <Mapping SourceColumn="PassStatus_InSubject" DataSetColumn="PassStatus_InSubject" />
+              <Mapping SourceColumn="StudentAbsenceStatus" DataSetColumn="StudentAbsenceStatus" />
+              <Mapping SourceColumn="PassStatus_InSubExam" DataSetColumn="PassStatus_InSubExam" />
+              <Mapping SourceColumn="PassStatus_Subject" DataSetColumn="PassStatus_Subject" />
+              <Mapping SourceColumn="AbsenceStatus" DataSetColumn="AbsenceStatus" />
+              <Mapping SourceColumn="SubjectType" DataSetColumn="SubjectType" />
+              <Mapping SourceColumn="TotalPresent" DataSetColumn="TotalPresent" />
+              <Mapping SourceColumn="TotalAbsent" DataSetColumn="TotalAbsent" />
+              <Mapping SourceColumn="TotalLate" DataSetColumn="TotalLate" />
+              <Mapping SourceColumn="TotalLeave" DataSetColumn="TotalLeave" />
+              <Mapping SourceColumn="TotalBunk" DataSetColumn="TotalBunk" />
+              <Mapping SourceColumn="WorkingDays" DataSetColumn="WorkingDays" />
+              <Mapping SourceColumn="HighestMark_InSubject_Class" DataSetColumn="HighestMark_InSubject_Class" />
+              <Mapping SourceColumn="HighestMark_InSubject_Subsection" DataSetColumn="HighestMark_InSubject_Subsection" />
+              <Mapping SourceColumn="Position_InSubject_Class" DataSetColumn="Position_InSubject_Class" />
+              <Mapping SourceColumn="Position_InSubject_Subsection" DataSetColumn="Position_InSubject_Subsection" />
+              <Mapping SourceColumn="HighestMark_InExam_Class" DataSetColumn="HighestMark_InExam_Class" />
+              <Mapping SourceColumn="HighestMark_InExam_Subsection" DataSetColumn="HighestMark_InExam_Subsection" />
+              <Mapping SourceColumn="Position_InExam_Class" DataSetColumn="Position_InExam_Class" />
+              <Mapping SourceColumn="Position_InExam_Subsection" DataSetColumn="Position_InExam_Subsection" />
+              <Mapping SourceColumn="RollNo" DataSetColumn="RollNo" />
+              <Mapping SourceColumn="SubjectGroup" DataSetColumn="SubjectGroup" />
+              <Mapping SourceColumn="Section" DataSetColumn="Section" />
+              <Mapping SourceColumn="Shift" DataSetColumn="Shift" />
+              <Mapping SourceColumn="SchoolName" DataSetColumn="SchoolName" />
+              <Mapping SourceColumn="SchoolLogo" DataSetColumn="SchoolLogo" />
+              <Mapping SourceColumn="Address" DataSetColumn="Address" />
+              <Mapping SourceColumn="Image" DataSetColumn="Image" />
+              <Mapping SourceColumn="Attendance_FromDate" DataSetColumn="Attendance_FromDate" />
+              <Mapping SourceColumn="Attendance_ToDate" DataSetColumn="Attendance_ToDate" />
+              <Mapping SourceColumn="Average" DataSetColumn="Average" />
+              <Mapping SourceColumn="NotGolden" DataSetColumn="NotGolden" />
+              <Mapping SourceColumn="Student_Comments" DataSetColumn="Student_Comments" />
+              <Mapping SourceColumn="Phone" DataSetColumn="Phone" />
+              <Mapping SourceColumn="TotalLateAbs" DataSetColumn="TotalLateAbs" />
+              <Mapping SourceColumn="IS_Hide_Sec_Position" DataSetColumn="IS_Hide_Sec_Position" />
+              <Mapping SourceColumn="IS_Hide_Class_Position" DataSetColumn="IS_Hide_Class_Position" />
+              <Mapping SourceColumn="Sub_ExamSN" DataSetColumn="Sub_ExamSN" />
+              <Mapping SourceColumn="IS_Hide_FullMark" DataSetColumn="IS_Hide_FullMark" />
+              <Mapping SourceColumn="IS_Hide_PassMark" DataSetColumn="IS_Hide_PassMark" />
+              <Mapping SourceColumn="SubjectAbsenceStatus" DataSetColumn="SubjectAbsenceStatus" />
+              <Mapping SourceColumn="IS_Add_InExam" DataSetColumn="IS_Add_InExam" />
+              <Mapping SourceColumn="Last_Published_Date" DataSetColumn="Last_Published_Date" />
+              <Mapping SourceColumn="SubjectSN" DataSetColumn="SubjectSN" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="Exam_VS_SubTableAdapter" GeneratorDataComponentClassName="Exam_VS_SubTableAdapter" Name="Exam_VS_Sub" UserDataComponentName="Exam_VS_SubTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="Education365.dbo.Examinee_Vs_Grade" DbObjectType="StoredProcedure" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="StoredProcedure" ModifiedByUser="false">
+                    <CommandText>dbo.Examinee_Vs_Grade</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="true" AutogeneratedName="" DataSourceName="" DataTypeServer="int" DbType="Int32" Direction="ReturnValue" ParameterName="@RETURN_VALUE" Precision="10" ProviderType="Int" Scale="0" Size="4" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="" DataSourceName="" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="10" ProviderType="Int" Scale="0" Size="4" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="" DataSourceName="" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="10" ProviderType="Int" Scale="0" Size="4" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="" DataSourceName="" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="10" ProviderType="Int" Scale="0" Size="4" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="" DataSourceName="" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="10" ProviderType="Int" Scale="0" Size="4" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="NoOfStudent" DataSetColumn="NoOfStudent" />
+              <Mapping SourceColumn="Percentage" DataSetColumn="Percentage" />
+              <Mapping SourceColumn="Student_Grade" DataSetColumn="Student_Grade" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="Exam_PassTableAdapter" GeneratorDataComponentClassName="Exam_PassTableAdapter" Name="Exam_Pass" UserDataComponentName="Exam_PassTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="IISAC.dbo.Exam_Result_of_Student" DbObjectType="Table" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT        PassStatus_InSubject, COUNT(*) AS NoOfStudent, 100.0 * COUNT(*) /
+                             (SELECT        COUNT(*) AS Expr1
+                               FROM            Exam_Result_of_Student
+                               WHERE        (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ClassID = @ClassID) AND (ExamID = @ExamID)) AS Percentage
+FROM            Exam_Result_of_Student AS Exam_Result_of_Student_1
+WHERE        (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ClassID = @ClassID) AND (ExamID = @ExamID)
+GROUP BY PassStatus_InSubject</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="IISAC.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="IISAC.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="IISAC.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ExamID" ColumnName="ExamID" DataSourceName="IISAC.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ExamID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="PassStatus_InSubject" DataSetColumn="PassStatus_InSubject" />
+              <Mapping SourceColumn="NoOfStudent" DataSetColumn="NoOfStudent" />
+              <Mapping SourceColumn="Percentage" DataSetColumn="Percentage" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="Statistics_of_SubTableAdapter" GeneratorDataComponentClassName="Statistics_of_SubTableAdapter" Name="Statistics_of_Sub" UserDataComponentName="Statistics_of_SubTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="" DbObjectType="Unknown" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT Exam_Result_of_Subject_1.SubjectGrades, Subject.SubjectName, Exam_Result_of_Subject_1.SubjectPoint, (SELECT COUNT(*) AS Expr1 FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (StudentsClass.SchoolID = @SchoolID) AND (StudentsClass.ClassID = @ClassID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (Student.Status = 'Active')) AS TotalStudent, (SELECT COUNT(*) AS Expr1 FROM Exam_Result_of_Subject AS Exam_Result_of_Subject_2 WHERE (SubjectID = Exam_Result_of_Subject_1.SubjectID) AND (ExamID = @ExamID) AND (ClassID = @ClassID) AND (SubjectAbsenceStatus = 'Absent') AND (EducationYearID = @EducationYearID) AND (SchoolID = @SchoolID)) AS Absent, (SELECT COUNT(*) AS Expr1 FROM Exam_Result_of_Subject WHERE (SubjectID = Exam_Result_of_Subject_1.SubjectID) AND (ExamID = @ExamID) AND (ClassID = @ClassID) AND (SubjectAbsenceStatus = 'Present') AND (EducationYearID = @EducationYearID) AND (SchoolID = @SchoolID)) AS Examinee, (SELECT COUNT(*) AS Expr1 FROM Exam_Result_of_Subject AS Exam_Result_of_Subject_2 WHERE (ExamID = @ExamID) AND (SubjectID = Exam_Result_of_Subject_1.SubjectID) AND (ClassID = @ClassID) AND (EducationYearID = @EducationYearID) AND (SchoolID = @SchoolID) AND (PassStatus_Subject = 'P')) AS Pass, (SELECT COUNT(*) AS Expr1 FROM Exam_Result_of_Subject AS Exam_Result_of_Subject_2 WHERE (ExamID = @ExamID) AND (SubjectID = Exam_Result_of_Subject_1.SubjectID) AND (ClassID = @ClassID) AND (EducationYearID = @EducationYearID) AND (SchoolID = @SchoolID) AND (PassStatus_Subject = 'F')) AS Fail, (SELECT SUM(SubjectPoint) / COUNT(*) AS Expr1 FROM Exam_Result_of_Subject AS Exam_Result_of_Subject_2 WHERE (SubjectID = Exam_Result_of_Subject_1.SubjectID) AND (ExamID = @ExamID) AND (ClassID = @ClassID) AND (EducationYearID = @EducationYearID) AND (SchoolID = @SchoolID) AND (SubjectAbsenceStatus = 'Present')) AS GPA FROM Exam_Result_of_Subject AS Exam_Result_of_Subject_1 INNER JOIN Subject ON Exam_Result_of_Subject_1.SubjectID = Subject.SubjectID WHERE (Exam_Result_of_Subject_1.SchoolID = @SchoolID) AND (Exam_Result_of_Subject_1.EducationYearID = @EducationYearID) AND (Exam_Result_of_Subject_1.ClassID = @ClassID) AND (Exam_Result_of_Subject_1.ExamID = @ExamID)</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Cu_Edu.dbo.Exam_Result_of_Subject" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Cu_Edu.dbo.Exam_Result_of_Subject" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="Cu_Edu.dbo.Exam_Result_of_Subject" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ExamID" ColumnName="ExamID" DataSourceName="Cu_Edu.dbo.Exam_Result_of_Subject" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ExamID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="SubjectPoint" DataSetColumn="SubjectPoint" />
+              <Mapping SourceColumn="SubjectGrades" DataSetColumn="SubjectGrades" />
+              <Mapping SourceColumn="SubjectName" DataSetColumn="SubjectName" />
+              <Mapping SourceColumn="TotalStudent" DataSetColumn="TotalStudent" />
+              <Mapping SourceColumn="Examinee" DataSetColumn="Examinee" />
+              <Mapping SourceColumn="Absent" DataSetColumn="Absent" />
+              <Mapping SourceColumn="Pass" DataSetColumn="Pass" />
+              <Mapping SourceColumn="Fail" DataSetColumn="Fail" />
+              <Mapping SourceColumn="GPA" DataSetColumn="GPA" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="UnsuccessFull_StudentTableAdapter" GeneratorDataComponentClassName="UnsuccessFull_StudentTableAdapter" Name="UnsuccessFull_Student" UserDataComponentName="UnsuccessFull_StudentTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="" DbObjectType="Unknown" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT        Student.ID, Student.StudentsName, CreateClass.Class, StudentsClass.RollNo, Subject.SubjectName, Exam_Name.ExamName, Exam_SubExam_Name.SubExamName, Exam_Obtain_Marks.FullMark, 
+                         Exam_Obtain_Marks.PassMark, Exam_Obtain_Marks.MarksObtained AS ObtainedMark, Exam_Obtain_Marks.PassMark - Exam_Obtain_Marks.MarksObtained AS Lack, Exam_Obtain_Marks.AbsenceStatus, 
+                         Exam_Result_of_Subject.PassStatus_Subject, Exam_Result_of_Subject.SubjectType, Student.Status
+FROM            CreateClass INNER JOIN
+                         Subject INNER JOIN
+                         Exam_Obtain_Marks ON Subject.SubjectID = Exam_Obtain_Marks.SubjectID ON CreateClass.ClassID = Exam_Obtain_Marks.ClassID INNER JOIN
+                         Exam_Name ON Exam_Obtain_Marks.ExamID = Exam_Name.ExamID INNER JOIN
+                         Student ON Exam_Obtain_Marks.StudentID = Student.StudentID INNER JOIN
+                         StudentsClass ON Exam_Obtain_Marks.StudentClassID = StudentsClass.StudentClassID INNER JOIN
+                         Exam_Result_of_Subject ON Exam_Obtain_Marks.StudentResultID = Exam_Result_of_Subject.StudentResultID AND Exam_Obtain_Marks.SubjectID = Exam_Result_of_Subject.SubjectID AND 
+                         Exam_Obtain_Marks.ExamID = Exam_Result_of_Subject.ExamID AND Exam_Obtain_Marks.ClassID = Exam_Result_of_Subject.ClassID AND 
+                         Exam_Obtain_Marks.SchoolID = Exam_Result_of_Subject.SchoolID LEFT OUTER JOIN
+                         Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID
+WHERE        (Exam_Obtain_Marks.SchoolID = @SchoolID) AND (Exam_Obtain_Marks.EducationYearID = @EducationYearID) AND (Exam_Obtain_Marks.ClassID = @ClassID) AND (Exam_Obtain_Marks.ExamID = @ExamID) AND 
+                         (Exam_Obtain_Marks.PassStatus = 'F') AND (Student.Status = N'Active')
+ORDER BY Student.ID, Subject.SN, Subject.SubjectName</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Edu.dbo.Exam_Obtain_Marks" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Edu.dbo.Exam_Obtain_Marks" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="Edu.dbo.Exam_Obtain_Marks" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ExamID" ColumnName="ExamID" DataSourceName="Edu.dbo.Exam_Obtain_Marks" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ExamID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="ID" DataSetColumn="ID" />
+              <Mapping SourceColumn="StudentsName" DataSetColumn="StudentsName" />
+              <Mapping SourceColumn="Class" DataSetColumn="Class" />
+              <Mapping SourceColumn="SubjectName" DataSetColumn="SubjectName" />
+              <Mapping SourceColumn="ExamName" DataSetColumn="ExamName" />
+              <Mapping SourceColumn="SubExamName" DataSetColumn="SubExamName" />
+              <Mapping SourceColumn="FullMark" DataSetColumn="FullMark" />
+              <Mapping SourceColumn="PassMark" DataSetColumn="PassMark" />
+              <Mapping SourceColumn="ObtainedMark" DataSetColumn="ObtainedMark" />
+              <Mapping SourceColumn="Lack" DataSetColumn="Lack" />
+              <Mapping SourceColumn="AbsenceStatus" DataSetColumn="AbsenceStatus" />
+              <Mapping SourceColumn="RollNo" DataSetColumn="RollNo" />
+              <Mapping SourceColumn="PassStatus_Subject" DataSetColumn="PassStatus_Subject" />
+              <Mapping SourceColumn="SubjectType" DataSetColumn="SubjectType" />
+              <Mapping SourceColumn="Status" DataSetColumn="Status" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="TestTableAdapter" GeneratorDataComponentClassName="TestTableAdapter" Name="Test" UserDataComponentName="TestTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="" DbObjectType="Unknown" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT Student.ID, Student.StudentsName, CreateClass.Class, Subject.SubjectName, Exam_Name.ExamName, Exam_SubExam_Name.SubExamName, Exam_Obtain_Marks.FullMark, Exam_Obtain_Marks.PassMark, Exam_Obtain_Marks.MarksObtained, Exam_Obtain_Marks.ObtainedGrades, Exam_Obtain_Marks.ObtainedPoint, Exam_Result_of_Subject.TotalMark_ofSubject, Exam_Result_of_Subject.ObtainedMark_ofSubject, Exam_Result_of_Subject.SubjectGrades, Exam_Result_of_Subject.SubjectPoint, Exam_Result_of_Student.TotalMark_ofStudent, Exam_Result_of_Student.ObtainedMark_ofStudent, Exam_Result_of_Student.ObtainedPercentage_ofStudent, Exam_Result_of_Student.Student_Point, Exam_Result_of_Student.Student_Grade, Exam_Result_of_Student.PassMark_Student, Exam_Result_of_Student.PassStatus_Student, Exam_Result_of_Student.PassStatus_InSubject, Exam_Result_of_Student.StudentAbsenceStatus, Exam_Result_of_Subject.Fail_inSubExam, Exam_Result_of_Subject.PassStatus_InSubExam, Exam_Result_of_Subject.PassStatus_Subject, Exam_Obtain_Marks.AbsenceStatus, StudentRecord.SubjectType, Exam_Result_of_Student.Grade_as_it_is, Attendance_Student.TotalPresent, Attendance_Student.TotalAbsent, Attendance_Student.TotalLate, Attendance_Student.TotalLeave, Attendance_Student.TotalBunk, Attendance_Student.WorkingDays, Exam_Result_of_Subject.HighestMark_InSubject_Class, Exam_Result_of_Subject.HighestMark_InSubject_Subsection, Exam_Result_of_Subject.Position_InSubject_Class + CASE Exam_Result_of_Subject.Position_InSubject_Class % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Class, Exam_Result_of_Subject.Position_InSubject_Subsection + CASE Exam_Result_of_Subject.Position_InSubject_Subsection % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Subsection, Exam_Result_of_Student.HighestMark_InExam_Class, Exam_Result_of_Student.HighestMark_InExam_Subsection, Exam_Result_of_Student.Position_InExam_Class + CASE Exam_Result_of_Student.Position_InExam_Class % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Class, Exam_Result_of_Student.Position_InExam_Subsection + CASE Exam_Result_of_Student.Position_InExam_Subsection % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Subsection FROM CreateClass INNER JOIN Subject INNER JOIN Exam_Obtain_Marks ON Subject.SubjectID = Exam_Obtain_Marks.SubjectID ON CreateClass.ClassID = Exam_Obtain_Marks.ClassID INNER JOIN Exam_Name ON Exam_Obtain_Marks.ExamID = Exam_Name.ExamID INNER JOIN Student ON Exam_Obtain_Marks.StudentID = Student.StudentID INNER JOIN Exam_Result_of_Student INNER JOIN Exam_Result_of_Subject ON Exam_Result_of_Student.StudentResultID = Exam_Result_of_Subject.StudentResultID ON Exam_Obtain_Marks.StudentResultID = Exam_Result_of_Subject.StudentResultID AND Exam_Obtain_Marks.SubjectID = Exam_Result_of_Subject.SubjectID INNER JOIN StudentRecord ON Exam_Result_of_Subject.StudentRecordID = StudentRecord.StudentRecordID LEFT OUTER JOIN Attendance_Student ON Exam_Obtain_Marks.StudentClassID = Attendance_Student.StudentClassID AND Exam_Obtain_Marks.ExamID = Attendance_Student.ExamID LEFT OUTER JOIN Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID WHERE (Exam_Result_of_Student.SchoolID = @SchoolID) AND (Exam_Result_of_Student.EducationYearID = @EducationYearID) AND (Exam_Result_of_Student.ClassID = @ClassID) AND (Exam_Obtain_Marks.PublishStatus = N'Pub') AND (Student.Status = N'Active') ORDER BY Student.ID, Exam_Result_of_Subject.SubjectID</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Education365.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Education365.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="Education365.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="ID" DataSetColumn="ID" />
+              <Mapping SourceColumn="StudentsName" DataSetColumn="StudentsName" />
+              <Mapping SourceColumn="Class" DataSetColumn="Class" />
+              <Mapping SourceColumn="SubjectName" DataSetColumn="SubjectName" />
+              <Mapping SourceColumn="ExamName" DataSetColumn="ExamName" />
+              <Mapping SourceColumn="SubExamName" DataSetColumn="SubExamName" />
+              <Mapping SourceColumn="FullMark" DataSetColumn="FullMark" />
+              <Mapping SourceColumn="PassMark" DataSetColumn="PassMark" />
+              <Mapping SourceColumn="MarksObtained" DataSetColumn="MarksObtained" />
+              <Mapping SourceColumn="ObtainedGrades" DataSetColumn="ObtainedGrades" />
+              <Mapping SourceColumn="ObtainedPoint" DataSetColumn="ObtainedPoint" />
+              <Mapping SourceColumn="TotalMark_ofSubject" DataSetColumn="TotalMark_ofSubject" />
+              <Mapping SourceColumn="ObtainedMark_ofSubject" DataSetColumn="ObtainedMark_ofSubject" />
+              <Mapping SourceColumn="SubjectGrades" DataSetColumn="SubjectGrades" />
+              <Mapping SourceColumn="SubjectPoint" DataSetColumn="SubjectPoint" />
+              <Mapping SourceColumn="TotalMark_ofStudent" DataSetColumn="TotalMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedMark_ofStudent" DataSetColumn="ObtainedMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedPercentage_ofStudent" DataSetColumn="ObtainedPercentage_ofStudent" />
+              <Mapping SourceColumn="Student_Point" DataSetColumn="Student_Point" />
+              <Mapping SourceColumn="Student_Grade" DataSetColumn="Student_Grade" />
+              <Mapping SourceColumn="PassMark_Student" DataSetColumn="PassMark_Student" />
+              <Mapping SourceColumn="PassStatus_Student" DataSetColumn="PassStatus_Student" />
+              <Mapping SourceColumn="PassStatus_InSubject" DataSetColumn="PassStatus_InSubject" />
+              <Mapping SourceColumn="StudentAbsenceStatus" DataSetColumn="StudentAbsenceStatus" />
+              <Mapping SourceColumn="Fail_inSubExam" DataSetColumn="Fail_inSubExam" />
+              <Mapping SourceColumn="PassStatus_InSubExam" DataSetColumn="PassStatus_InSubExam" />
+              <Mapping SourceColumn="PassStatus_Subject" DataSetColumn="PassStatus_Subject" />
+              <Mapping SourceColumn="AbsenceStatus" DataSetColumn="AbsenceStatus" />
+              <Mapping SourceColumn="SubjectType" DataSetColumn="SubjectType" />
+              <Mapping SourceColumn="Grade_as_it_is" DataSetColumn="Grade_as_it_is" />
+              <Mapping SourceColumn="TotalPresent" DataSetColumn="TotalPresent" />
+              <Mapping SourceColumn="TotalAbsent" DataSetColumn="TotalAbsent" />
+              <Mapping SourceColumn="TotalLate" DataSetColumn="TotalLate" />
+              <Mapping SourceColumn="TotalLeave" DataSetColumn="TotalLeave" />
+              <Mapping SourceColumn="TotalBunk" DataSetColumn="TotalBunk" />
+              <Mapping SourceColumn="WorkingDays" DataSetColumn="WorkingDays" />
+              <Mapping SourceColumn="HighestMark_InSubject_Class" DataSetColumn="HighestMark_InSubject_Class" />
+              <Mapping SourceColumn="HighestMark_InSubject_Subsection" DataSetColumn="HighestMark_InSubject_Subsection" />
+              <Mapping SourceColumn="Position_InSubject_Class" DataSetColumn="Position_InSubject_Class" />
+              <Mapping SourceColumn="Position_InSubject_Subsection" DataSetColumn="Position_InSubject_Subsection" />
+              <Mapping SourceColumn="HighestMark_InExam_Class" DataSetColumn="HighestMark_InExam_Class" />
+              <Mapping SourceColumn="HighestMark_InExam_Subsection" DataSetColumn="HighestMark_InExam_Subsection" />
+              <Mapping SourceColumn="Position_InExam_Class" DataSetColumn="Position_InExam_Class" />
+              <Mapping SourceColumn="Position_InExam_Subsection" DataSetColumn="Position_InExam_Subsection" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="Exam_Grading_SystemTableAdapter" GeneratorDataComponentClassName="Exam_Grading_SystemTableAdapter" Name="Exam_Grading_System" UserDataComponentName="Exam_Grading_SystemTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="Edu.dbo.Exam_Grading_System" DbObjectType="Table" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT        Exam_Grading_System.Grades, CAST(Exam_Grading_System.MinPercentage AS varchar) + '% - ' + CAST(Exam_Grading_System.MaxPercentage AS varchar) + '%' AS MARKS, Exam_Grading_System.Comments, 
+                         Exam_Grading_System.Point
+FROM            Exam_Grading_System INNER JOIN
+                         Exam_Grading_Assign ON Exam_Grading_System.GradeNameID = Exam_Grading_Assign.GradeNameID AND Exam_Grading_System.SchoolID = Exam_Grading_Assign.SchoolID
+WHERE        (Exam_Grading_Assign.SchoolID = @SchoolID) AND (Exam_Grading_Assign.ClassID = @ClassID) AND (Exam_Grading_Assign.ExamID = @ExamID) AND (Exam_Grading_Assign.EducationYearID = @EducationYearID)
+ORDER BY Exam_Grading_System.Point DESC</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Edu.dbo.Exam_Grading_Assign" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="Edu.dbo.Exam_Grading_Assign" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ExamID" ColumnName="ExamID" DataSourceName="Edu.dbo.Exam_Grading_Assign" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ExamID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Edu.dbo.Exam_Grading_Assign" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="Grades" DataSetColumn="Grades" />
+              <Mapping SourceColumn="MARKS" DataSetColumn="MARKS" />
+              <Mapping SourceColumn="Comments" DataSetColumn="Comments" />
+              <Mapping SourceColumn="Point" DataSetColumn="Point" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="Profile_newTableAdapter" GeneratorDataComponentClassName="Profile_newTableAdapter" Name="Profile_new" UserDataComponentName="Profile_newTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="" DbObjectType="Unknown" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>
+						SELECT        SchoolInfo.SchoolName, SchoolInfo.SchoolLogo, SchoolInfo.Address, Student.ID, Student.StudentsName, Student_Image.Image, CreateClass.Class, StudentsClass.RollNo, CreateShift.Shift, CreateSection.Section,
+						CreateSubjectGroup.SubjectGroup, Subject.SubjectName, Exam_Name.ExamName, Exam_SubExam_Name.SubExamName, Exam_Obtain_Marks.FullMark, Exam_Obtain_Marks.PassMark, Exam_Obtain_Marks.MarksObtained,
+						Exam_Obtain_Marks.ObtainedGrades, Exam_Obtain_Marks.ObtainedPoint, Exam_Result_of_Subject.TotalMark_ofSubject, Exam_Result_of_Subject.ObtainedMark_ofSubject, Exam_Result_of_Subject.SubjectGrades,
+						Exam_Result_of_Subject.SubjectPoint, Exam_Result_of_Student.TotalMark_ofStudent, Exam_Result_of_Student.ObtainedMark_ofStudent, Exam_Result_of_Student.ObtainedPercentage_ofStudent,
+						Exam_Result_of_Student.Student_Point, Exam_Result_of_Student.Student_Grade, Exam_Result_of_Student.PassMark_Student, Exam_Result_of_Student.PassStatus_Student, Exam_Result_of_Student.PassStatus_InSubject,
+						Exam_Result_of_Subject.PassStatus_InSubExam, Exam_Result_of_Student.StudentAbsenceStatus, Exam_Result_of_Subject.PassStatus_Subject, Exam_Obtain_Marks.AbsenceStatus, Exam_Result_of_Subject.SubjectType,
+						Exam_Publish_Setting.Attendance_FromDate, Exam_Publish_Setting.Attendance_ToDate, Attendance_Student.TotalPresent, Attendance_Student.TotalAbsent, Attendance_Student.TotalLate, Attendance_Student.TotalLeave,
+						Attendance_Student.TotalBunk, Attendance_Student.WorkingDays, Exam_Result_of_Subject.HighestMark_InSubject_Class, Exam_Result_of_Subject.HighestMark_InSubject_Subsection,
+						Exam_Result_of_Subject.Position_InSubject_Class + CASE Exam_Result_of_Subject.Position_InSubject_Class % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Class,
+						Exam_Result_of_Subject.Position_InSubject_Subsection + CASE Exam_Result_of_Subject.Position_InSubject_Subsection % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Subsection,
+						Exam_Result_of_Student.HighestMark_InExam_Class, Exam_Result_of_Student.HighestMark_InExam_Subsection,
+						Exam_Result_of_Student.Position_InExam_Class + CASE Exam_Result_of_Student.Position_InExam_Class % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Class,
+						Exam_Result_of_Student.Position_InExam_Subsection + CASE Exam_Result_of_Student.Position_InExam_Subsection % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Subsection,
+						Exam_Publish_Setting.IS_Hide_Sec_Position,Exam_Publish_Setting.IS_Hide_Class_Position, Exam_Result_of_Student.Average, Exam_Result_of_Student.NotGolden, Exam_Result_of_Student.Student_Comments, SchoolInfo.Phone, Attendance_Student.TotalLateAbs,
+						Exam_Result_of_Subject.SubjectAbsenceStatus, Exam_Result_of_Subject.IS_Add_InExam
+						FROM            CreateClass INNER JOIN
+						Subject INNER JOIN
+						Exam_Obtain_Marks ON Subject.SubjectID = Exam_Obtain_Marks.SubjectID ON CreateClass.ClassID = Exam_Obtain_Marks.ClassID INNER JOIN
+						Exam_Name ON Exam_Obtain_Marks.ExamID = Exam_Name.ExamID INNER JOIN
+						Student ON Exam_Obtain_Marks.StudentID = Student.StudentID INNER JOIN
+						Exam_Result_of_Student INNER JOIN
+						Exam_Result_of_Subject ON Exam_Result_of_Student.StudentResultID = Exam_Result_of_Subject.StudentResultID ON Exam_Obtain_Marks.StudentResultID = Exam_Result_of_Subject.StudentResultID AND
+						Exam_Obtain_Marks.SubjectID = Exam_Result_of_Subject.SubjectID INNER JOIN
+						StudentsClass ON Exam_Result_of_Student.StudentClassID = StudentsClass.StudentClassID INNER JOIN
+						Exam_Publish_Setting ON Exam_Result_of_Student.Publish_SettingID = Exam_Publish_Setting.Publish_SettingID INNER JOIN
+						SchoolInfo ON Exam_Publish_Setting.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN
+						Attendance_Student ON Exam_Result_of_Student.StudentClassID = Attendance_Student.StudentClassID AND Exam_Result_of_Student.ExamID = Attendance_Student.ExamID LEFT OUTER JOIN
+						Student_Image ON Student.StudentImageID = Student_Image.StudentImageID LEFT OUTER JOIN
+						CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN
+						CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN
+						CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN
+						Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID
+						WHERE        (Student.Status = N'Active') AND (Exam_Result_of_Student.StudentClassID = @StudentClassID) AND (Exam_Publish_Setting.SchoolID = @SchoolID) AND (Exam_Publish_Setting.EducationYearID = @EducationYearID) AND
+						(Exam_Publish_Setting.ExamID = @ExamID) AND (Exam_Publish_Setting.IS_Published = 1) AND (StudentsClass.StudentClassID = @StudentClassID)
+						ORDER BY CreateSection.Section, StudentsClass.RollNo, ISNULL(Subject.SN, 9999)</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="StudentClassID" ColumnName="StudentClassID" DataSourceName="Edu.dbo.Exam_Result_of_Student" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@StudentClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="StudentClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ExamID" ColumnName="ExamID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ExamID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="ID" DataSetColumn="ID" />
+              <Mapping SourceColumn="StudentsName" DataSetColumn="StudentsName" />
+              <Mapping SourceColumn="Class" DataSetColumn="Class" />
+              <Mapping SourceColumn="SubjectName" DataSetColumn="SubjectName" />
+              <Mapping SourceColumn="ExamName" DataSetColumn="ExamName" />
+              <Mapping SourceColumn="SubExamName" DataSetColumn="SubExamName" />
+              <Mapping SourceColumn="FullMark" DataSetColumn="FullMark" />
+              <Mapping SourceColumn="PassMark" DataSetColumn="PassMark" />
+              <Mapping SourceColumn="MarksObtained" DataSetColumn="MarksObtained" />
+              <Mapping SourceColumn="ObtainedGrades" DataSetColumn="ObtainedGrades" />
+              <Mapping SourceColumn="ObtainedPoint" DataSetColumn="ObtainedPoint" />
+              <Mapping SourceColumn="TotalMark_ofSubject" DataSetColumn="TotalMark_ofSubject" />
+              <Mapping SourceColumn="ObtainedMark_ofSubject" DataSetColumn="ObtainedMark_ofSubject" />
+              <Mapping SourceColumn="SubjectGrades" DataSetColumn="SubjectGrades" />
+              <Mapping SourceColumn="SubjectPoint" DataSetColumn="SubjectPoint" />
+              <Mapping SourceColumn="TotalMark_ofStudent" DataSetColumn="TotalMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedMark_ofStudent" DataSetColumn="ObtainedMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedPercentage_ofStudent" DataSetColumn="ObtainedPercentage_ofStudent" />
+              <Mapping SourceColumn="Student_Point" DataSetColumn="Student_Point" />
+              <Mapping SourceColumn="Student_Grade" DataSetColumn="Student_Grade" />
+              <Mapping SourceColumn="PassMark_Student" DataSetColumn="PassMark_Student" />
+              <Mapping SourceColumn="PassStatus_Student" DataSetColumn="PassStatus_Student" />
+              <Mapping SourceColumn="PassStatus_InSubject" DataSetColumn="PassStatus_InSubject" />
+              <Mapping SourceColumn="StudentAbsenceStatus" DataSetColumn="StudentAbsenceStatus" />
+              <Mapping SourceColumn="PassStatus_InSubExam" DataSetColumn="PassStatus_InSubExam" />
+              <Mapping SourceColumn="PassStatus_Subject" DataSetColumn="PassStatus_Subject" />
+              <Mapping SourceColumn="AbsenceStatus" DataSetColumn="AbsenceStatus" />
+              <Mapping SourceColumn="SubjectType" DataSetColumn="SubjectType" />
+              <Mapping SourceColumn="TotalPresent" DataSetColumn="TotalPresent" />
+              <Mapping SourceColumn="TotalAbsent" DataSetColumn="TotalAbsent" />
+              <Mapping SourceColumn="TotalLate" DataSetColumn="TotalLate" />
+              <Mapping SourceColumn="TotalLeave" DataSetColumn="TotalLeave" />
+              <Mapping SourceColumn="TotalBunk" DataSetColumn="TotalBunk" />
+              <Mapping SourceColumn="WorkingDays" DataSetColumn="WorkingDays" />
+              <Mapping SourceColumn="HighestMark_InSubject_Class" DataSetColumn="HighestMark_InSubject_Class" />
+              <Mapping SourceColumn="HighestMark_InSubject_Subsection" DataSetColumn="HighestMark_InSubject_Subsection" />
+              <Mapping SourceColumn="Position_InSubject_Class" DataSetColumn="Position_InSubject_Class" />
+              <Mapping SourceColumn="Position_InSubject_Subsection" DataSetColumn="Position_InSubject_Subsection" />
+              <Mapping SourceColumn="HighestMark_InExam_Class" DataSetColumn="HighestMark_InExam_Class" />
+              <Mapping SourceColumn="HighestMark_InExam_Subsection" DataSetColumn="HighestMark_InExam_Subsection" />
+              <Mapping SourceColumn="Position_InExam_Class" DataSetColumn="Position_InExam_Class" />
+              <Mapping SourceColumn="Position_InExam_Subsection" DataSetColumn="Position_InExam_Subsection" />
+              <Mapping SourceColumn="Section" DataSetColumn="Section" />
+              <Mapping SourceColumn="Shift" DataSetColumn="Shift" />
+              <Mapping SourceColumn="SubjectGroup" DataSetColumn="SubjectGroup" />
+              <Mapping SourceColumn="RollNo" DataSetColumn="RollNo" />
+              <Mapping SourceColumn="SchoolName" DataSetColumn="SchoolName" />
+              <Mapping SourceColumn="SchoolLogo" DataSetColumn="SchoolLogo" />
+              <Mapping SourceColumn="Address" DataSetColumn="Address" />
+              <Mapping SourceColumn="Image" DataSetColumn="Image" />
+              <Mapping SourceColumn="Attendance_FromDate" DataSetColumn="Attendance_FromDate" />
+              <Mapping SourceColumn="Attendance_ToDate" DataSetColumn="Attendance_ToDate" />
+              <Mapping SourceColumn="IS_Hide_Sec_Position" DataSetColumn="IS_Hide_Sec_Position" />
+              <Mapping SourceColumn="IS_Hide_Class_Position" DataSetColumn="IS_Hide_Class_Position" />
+              <Mapping SourceColumn="Average" DataSetColumn="Average" />
+              <Mapping SourceColumn="NotGolden" DataSetColumn="NotGolden" />
+              <Mapping SourceColumn="Student_Comments" DataSetColumn="Student_Comments" />
+              <Mapping SourceColumn="Phone" DataSetColumn="Phone" />
+              <Mapping SourceColumn="TotalLateAbs" DataSetColumn="TotalLateAbs" />
+              <Mapping SourceColumn="SubjectAbsenceStatus" DataSetColumn="SubjectAbsenceStatus" />
+              <Mapping SourceColumn="IS_Add_InExam" DataSetColumn="IS_Add_InExam" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="SchoolInfoTableAdapter" GeneratorDataComponentClassName="SchoolInfoTableAdapter" Name="SchoolInfo" UserDataComponentName="SchoolInfoTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="Edu.dbo.SchoolInfo" DbObjectType="Table" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT        SchoolName, SchoolLogo, Address
+FROM            SchoolInfo
+WHERE        (SchoolID = @SchoolID)</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Edu.dbo.SchoolInfo" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="SchoolName" DataSetColumn="SchoolName" />
+              <Mapping SourceColumn="SchoolLogo" DataSetColumn="SchoolLogo" />
+              <Mapping SourceColumn="Address" DataSetColumn="Address" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="Cumuletive_Grading_SystemTableAdapter" GeneratorDataComponentClassName="Cumuletive_Grading_SystemTableAdapter" Name="Cumuletive_Grading_System" UserDataComponentName="Cumuletive_Grading_SystemTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="Edu.dbo.Exam_Grading_System" DbObjectType="Table" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT Exam_Grading_System.Grades, CAST(Exam_Grading_System.MinPercentage AS varchar) + '% - ' + CAST(Exam_Grading_System.MaxPercentage AS varchar) + '%' AS MARKS, Exam_Grading_System.Comments, Exam_Grading_System.Point FROM Exam_Grading_System INNER JOIN Exam_Cumulative_Setting ON Exam_Grading_System.GradeNameID = Exam_Cumulative_Setting.GradeNameID AND Exam_Grading_System.SchoolID = Exam_Cumulative_Setting.SchoolID WHERE (Exam_Cumulative_Setting.SchoolID = @SchoolID) AND (Exam_Cumulative_Setting.ClassID = @ClassID) AND (Exam_Cumulative_Setting.CumulativeNameID = @CumulativeNameID) AND (Exam_Cumulative_Setting.EducationYearID = @EducationYearID) ORDER BY Exam_Grading_System.Point DESC</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Edu.dbo.Exam_Cumulative_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="Edu.dbo.Exam_Cumulative_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="CumulativeNameID" ColumnName="CumulativeNameID" DataSourceName="Edu.dbo.Exam_Cumulative_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@CumulativeNameID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="CumulativeNameID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Edu.dbo.Exam_Cumulative_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="Grades" DataSetColumn="Grades" />
+              <Mapping SourceColumn="MARKS" DataSetColumn="MARKS" />
+              <Mapping SourceColumn="Comments" DataSetColumn="Comments" />
+              <Mapping SourceColumn="Point" DataSetColumn="Point" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+          <TableAdapter BaseClass="System.ComponentModel.Component" DataAccessorModifier="AutoLayout, AnsiClass, Class, Public" DataAccessorName="BoardResultTableAdapter" GeneratorDataComponentClassName="BoardResultTableAdapter" Name="BoardResult" UserDataComponentName="BoardResultTableAdapter">
+            <MainSource>
+              <DbSource ConnectionRef="Login (Web.config)" DbObjectName="" DbObjectType="Unknown" FillMethodModifier="Public" FillMethodName="Fill" GenerateMethods="Both" GenerateShortCommands="false" GeneratorGetMethodName="GetData" GeneratorSourceName="Fill" GetMethodModifier="Public" GetMethodName="GetData" QueryType="Rowset" ScalarCallRetval="System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" UseOptimisticConcurrency="false" UserGetMethodName="GetData" UserSourceName="Fill">
+                <SelectCommand>
+                  <DbCommand CommandType="Text" ModifiedByUser="true">
+                    <CommandText>SELECT        SchoolInfo.SchoolName, SchoolInfo.SchoolLogo, SchoolInfo.Address, Student.ID, Student.StudentsName, CreateClass.Class, StudentsClass.RollNo, CreateShift.Shift, CreateSection.Section, CreateSubjectGroup.SubjectGroup, 
+                         Subject.SubjectName, Exam_Name.ExamName, Exam_SubExam_Name.SubExamName, Exam_Obtain_Marks.MarksObtained, Exam_Result_of_Subject.ObtainedMark_ofSubject, Exam_Result_of_Subject.SubjectGrades, 
+                         Exam_Result_of_Subject.SubjectPoint, Exam_Result_of_Student.TotalMark_ofStudent, Exam_Result_of_Student.ObtainedMark_ofStudent, Exam_Result_of_Student.ObtainedPercentage_ofStudent, 
+                         Exam_Result_of_Student.Student_Point, Exam_Result_of_Student.Student_Grade, Exam_Result_of_Student.PassStatus_Student, Exam_Result_of_Student.PassStatus_InSubject, 
+                         Exam_Result_of_Subject.PassStatus_InSubExam, Exam_Result_of_Student.StudentAbsenceStatus, Exam_Result_of_Subject.PassStatus_Subject, Exam_Obtain_Marks.AbsenceStatus, Exam_Result_of_Subject.SubjectType, 
+                         Exam_Result_of_Subject.Position_InSubject_Class + CASE Exam_Result_of_Subject.Position_InSubject_Class % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Class, 
+                         Exam_Result_of_Subject.Position_InSubject_Subsection + CASE Exam_Result_of_Subject.Position_InSubject_Subsection % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InSubject_Subsection,
+                          Exam_Result_of_Student.Position_InExam_Class + CASE Exam_Result_of_Student.Position_InExam_Class % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Class, 
+                         Exam_Result_of_Student.Position_InExam_Subsection + CASE Exam_Result_of_Student.Position_InExam_Subsection % 10 WHEN 1 THEN 'st' WHEN 2 THEN 'nd' WHEN 3 THEN 'rd' ELSE 'th' END AS Position_InExam_Subsection,
+                          SchoolInfo.Phone, ISNULL(Exam_SubExam_Name.Sub_ExamSN, 0) AS Sub_ExamSN, Exam_Result_of_Subject.SubjectAbsenceStatus, Exam_Result_of_Subject.IS_Add_InExam, Student.DateofBirth, Student.FathersName, 
+                         Student.MothersName, Education_Year.EducationYear, Exam_Publish_Setting.Last_Published_Date, Subject.SN AS SubjectSN
+FROM            Student INNER JOIN
+                         Exam_Result_of_Student INNER JOIN
+                         Exam_Result_of_Subject ON Exam_Result_of_Student.StudentResultID = Exam_Result_of_Subject.StudentResultID INNER JOIN
+                         Exam_Obtain_Marks ON Exam_Result_of_Subject.StudentResultID = Exam_Obtain_Marks.StudentResultID AND Exam_Result_of_Subject.SubjectID = Exam_Obtain_Marks.SubjectID ON 
+                         Student.StudentID = Exam_Result_of_Student.StudentID INNER JOIN
+                         StudentsClass ON Exam_Result_of_Student.StudentClassID = StudentsClass.StudentClassID INNER JOIN
+                         Exam_Publish_Setting ON Exam_Result_of_Student.Publish_SettingID = Exam_Publish_Setting.Publish_SettingID INNER JOIN
+                         CreateClass ON Exam_Publish_Setting.ClassID = CreateClass.ClassID INNER JOIN
+                         SchoolInfo ON Exam_Publish_Setting.SchoolID = SchoolInfo.SchoolID INNER JOIN
+                         Exam_Name ON Exam_Publish_Setting.ExamID = Exam_Name.ExamID INNER JOIN
+                         Subject ON Exam_Result_of_Subject.SubjectID = Subject.SubjectID INNER JOIN
+                         Education_Year ON Exam_Publish_Setting.EducationYearID = Education_Year.EducationYearID LEFT OUTER JOIN
+                         CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN
+                         CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN
+                         CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN
+                         Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID
+WHERE        (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = N'Active') AND 
+                         (Exam_Publish_Setting.SchoolID = @SchoolID) AND (Exam_Publish_Setting.EducationYearID = @EducationYearID) AND (Exam_Publish_Setting.ExamID = @ExamID) AND (Exam_Publish_Setting.ClassID = @ClassID)
+ORDER BY CreateSection.Section, CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END, ISNULL(Subject.SN, 9999)</CommandText>
+                    <Parameters>
+                      <Parameter AllowDbNull="true" AutogeneratedName="SectionID" ColumnName="SectionID" DataSourceName="Edu.dbo.StudentsClass" DataTypeServer="nvarchar(50)" DbType="String" Direction="Input" ParameterName="@SectionID" Precision="0" ProviderType="NVarChar" Scale="0" Size="50" SourceColumn="SectionID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="SubjectGroupID" ColumnName="SubjectGroupID" DataSourceName="Edu.dbo.StudentsClass" DataTypeServer="nvarchar(50)" DbType="String" Direction="Input" ParameterName="@SubjectGroupID" Precision="0" ProviderType="NVarChar" Scale="0" Size="50" SourceColumn="SubjectGroupID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="true" AutogeneratedName="ShiftID" ColumnName="ShiftID" DataSourceName="Edu.dbo.StudentsClass" DataTypeServer="nvarchar(50)" DbType="String" Direction="Input" ParameterName="@ShiftID" Precision="0" ProviderType="NVarChar" Scale="0" Size="50" SourceColumn="ShiftID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="SchoolID" ColumnName="SchoolID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@SchoolID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="SchoolID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="EducationYearID" ColumnName="EducationYearID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@EducationYearID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="EducationYearID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ExamID" ColumnName="ExamID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ExamID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ExamID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                      <Parameter AllowDbNull="false" AutogeneratedName="ClassID" ColumnName="ClassID" DataSourceName="Edu.dbo.Exam_Publish_Setting" DataTypeServer="int" DbType="Int32" Direction="Input" ParameterName="@ClassID" Precision="0" ProviderType="Int" Scale="0" Size="4" SourceColumn="ClassID" SourceColumnNullMapping="false" SourceVersion="Current" />
+                    </Parameters>
+                  </DbCommand>
+                </SelectCommand>
+              </DbSource>
+            </MainSource>
+            <Mappings>
+              <Mapping SourceColumn="SchoolName" DataSetColumn="SchoolName" />
+              <Mapping SourceColumn="SchoolLogo" DataSetColumn="SchoolLogo" />
+              <Mapping SourceColumn="Address" DataSetColumn="Address" />
+              <Mapping SourceColumn="ID" DataSetColumn="ID" />
+              <Mapping SourceColumn="StudentsName" DataSetColumn="StudentsName" />
+              <Mapping SourceColumn="Class" DataSetColumn="Class" />
+              <Mapping SourceColumn="RollNo" DataSetColumn="RollNo" />
+              <Mapping SourceColumn="Shift" DataSetColumn="Shift" />
+              <Mapping SourceColumn="Section" DataSetColumn="Section" />
+              <Mapping SourceColumn="SubjectGroup" DataSetColumn="SubjectGroup" />
+              <Mapping SourceColumn="SubjectName" DataSetColumn="SubjectName" />
+              <Mapping SourceColumn="ExamName" DataSetColumn="ExamName" />
+              <Mapping SourceColumn="SubExamName" DataSetColumn="SubExamName" />
+              <Mapping SourceColumn="MarksObtained" DataSetColumn="MarksObtained" />
+              <Mapping SourceColumn="ObtainedMark_ofSubject" DataSetColumn="ObtainedMark_ofSubject" />
+              <Mapping SourceColumn="SubjectGrades" DataSetColumn="SubjectGrades" />
+              <Mapping SourceColumn="SubjectPoint" DataSetColumn="SubjectPoint" />
+              <Mapping SourceColumn="TotalMark_ofStudent" DataSetColumn="TotalMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedMark_ofStudent" DataSetColumn="ObtainedMark_ofStudent" />
+              <Mapping SourceColumn="ObtainedPercentage_ofStudent" DataSetColumn="ObtainedPercentage_ofStudent" />
+              <Mapping SourceColumn="Student_Point" DataSetColumn="Student_Point" />
+              <Mapping SourceColumn="Student_Grade" DataSetColumn="Student_Grade" />
+              <Mapping SourceColumn="PassStatus_Student" DataSetColumn="PassStatus_Student" />
+              <Mapping SourceColumn="PassStatus_InSubject" DataSetColumn="PassStatus_InSubject" />
+              <Mapping SourceColumn="PassStatus_InSubExam" DataSetColumn="PassStatus_InSubExam" />
+              <Mapping SourceColumn="StudentAbsenceStatus" DataSetColumn="StudentAbsenceStatus" />
+              <Mapping SourceColumn="PassStatus_Subject" DataSetColumn="PassStatus_Subject" />
+              <Mapping SourceColumn="AbsenceStatus" DataSetColumn="AbsenceStatus" />
+              <Mapping SourceColumn="SubjectType" DataSetColumn="SubjectType" />
+              <Mapping SourceColumn="Position_InSubject_Class" DataSetColumn="Position_InSubject_Class" />
+              <Mapping SourceColumn="Position_InSubject_Subsection" DataSetColumn="Position_InSubject_Subsection" />
+              <Mapping SourceColumn="Position_InExam_Class" DataSetColumn="Position_InExam_Class" />
+              <Mapping SourceColumn="Position_InExam_Subsection" DataSetColumn="Position_InExam_Subsection" />
+              <Mapping SourceColumn="Phone" DataSetColumn="Phone" />
+              <Mapping SourceColumn="Sub_ExamSN" DataSetColumn="Sub_ExamSN" />
+              <Mapping SourceColumn="SubjectAbsenceStatus" DataSetColumn="SubjectAbsenceStatus" />
+              <Mapping SourceColumn="IS_Add_InExam" DataSetColumn="IS_Add_InExam" />
+              <Mapping SourceColumn="DateofBirth" DataSetColumn="DateofBirth" />
+              <Mapping SourceColumn="FathersName" DataSetColumn="FathersName" />
+              <Mapping SourceColumn="MothersName" DataSetColumn="MothersName" />
+              <Mapping SourceColumn="EducationYear" DataSetColumn="EducationYear" />
+              <Mapping SourceColumn="Last_Published_Date" DataSetColumn="Last_Published_Date" />
+              <Mapping SourceColumn="SubjectSN" DataSetColumn="SubjectSN" />
+            </Mappings>
+            <Sources />
+          </TableAdapter>
+        </Tables>
+        <Sources />
+      </DataSource>
+    </xs:appinfo>
+  </xs:annotation>
+  <xs:element name="Exam_Result" msdata:IsDataSet="true" msdata:UseCurrentLocale="true" msprop:Generator_UserDSName="Exam_Result" msprop:EnableTableAdapterManager="true" msprop:Generator_DataSetName="Exam_Result">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="RTable" msprop:Generator_RowEvHandlerName="RTableRowChangeEventHandler" msprop:Generator_RowDeletedName="RTableRowDeleted" msprop:Generator_RowDeletingName="RTableRowDeleting" msprop:Generator_RowEvArgName="RTableRowChangeEvent" msprop:Generator_TablePropName="RTable" msprop:Generator_RowChangedName="RTableRowChanged" msprop:Generator_UserTableName="RTable" msprop:Generator_RowChangingName="RTableRowChanging" msprop:Generator_RowClassName="RTableRow" msprop:Generator_TableClassName="RTableDataTable" msprop:Generator_TableVarName="tableRTable">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ID" msprop:Generator_ColumnPropNameInTable="IDColumn" msprop:Generator_ColumnPropNameInRow="ID" msprop:Generator_UserColumnName="ID" msprop:Generator_ColumnVarNameInTable="columnID">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentsName" msprop:Generator_ColumnPropNameInTable="StudentsNameColumn" msprop:Generator_ColumnPropNameInRow="StudentsName" msprop:Generator_UserColumnName="StudentsName" msprop:Generator_ColumnVarNameInTable="columnStudentsName">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Class" msprop:Generator_ColumnPropNameInTable="ClassColumn" msprop:Generator_ColumnPropNameInRow="Class" msprop:Generator_UserColumnName="Class" msprop:Generator_ColumnVarNameInTable="columnClass" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectName" msprop:Generator_ColumnPropNameInTable="SubjectNameColumn" msprop:Generator_ColumnPropNameInRow="SubjectName" msprop:Generator_UserColumnName="SubjectName" msprop:Generator_ColumnVarNameInTable="columnSubjectName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ExamName" msprop:Generator_ColumnPropNameInTable="ExamNameColumn" msprop:Generator_ColumnPropNameInRow="ExamName" msprop:Generator_UserColumnName="ExamName" msprop:Generator_ColumnVarNameInTable="columnExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubExamName" msprop:Generator_ColumnPropNameInTable="SubExamNameColumn" msprop:Generator_ColumnPropNameInRow="SubExamName" msprop:Generator_UserColumnName="SubExamName" msprop:Generator_ColumnVarNameInTable="columnSubExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="FullMark" msprop:Generator_ColumnPropNameInTable="FullMarkColumn" msprop:Generator_ColumnPropNameInRow="FullMark" msprop:Generator_UserColumnName="FullMark" msprop:Generator_ColumnVarNameInTable="columnFullMark" type="xs:double" minOccurs="0" />
+              <xs:element name="PassMark" msprop:Generator_ColumnPropNameInTable="PassMarkColumn" msprop:Generator_ColumnPropNameInRow="PassMark" msprop:Generator_UserColumnName="PassMark" msprop:Generator_ColumnVarNameInTable="columnPassMark" type="xs:double" minOccurs="0" />
+              <xs:element name="MarksObtained" msprop:Generator_ColumnPropNameInTable="MarksObtainedColumn" msprop:Generator_ColumnPropNameInRow="MarksObtained" msprop:Generator_UserColumnName="MarksObtained" msprop:Generator_ColumnVarNameInTable="columnMarksObtained" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedGrades" msprop:Generator_ColumnPropNameInTable="ObtainedGradesColumn" msprop:Generator_ColumnPropNameInRow="ObtainedGrades" msprop:Generator_UserColumnName="ObtainedGrades" msprop:Generator_ColumnVarNameInTable="columnObtainedGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ObtainedPoint" msprop:Generator_ColumnPropNameInTable="ObtainedPointColumn" msprop:Generator_ColumnPropNameInRow="ObtainedPoint" msprop:Generator_UserColumnName="ObtainedPoint" msprop:Generator_ColumnVarNameInTable="columnObtainedPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="TotalMark_ofSubject" msprop:Generator_ColumnPropNameInTable="TotalMark_ofSubjectColumn" msprop:Generator_ColumnPropNameInRow="TotalMark_ofSubject" msprop:Generator_UserColumnName="TotalMark_ofSubject" msprop:Generator_ColumnVarNameInTable="columnTotalMark_ofSubject" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofSubject" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofSubjectColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofSubject" msprop:Generator_UserColumnName="ObtainedMark_ofSubject" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofSubject" type="xs:double" minOccurs="0" />
+              <xs:element name="SubjectGrades" msprop:Generator_ColumnPropNameInTable="SubjectGradesColumn" msprop:Generator_ColumnPropNameInRow="SubjectGrades" msprop:Generator_UserColumnName="SubjectGrades" msprop:Generator_ColumnVarNameInTable="columnSubjectGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectPoint" msprop:Generator_ColumnPropNameInTable="SubjectPointColumn" msprop:Generator_ColumnPropNameInRow="SubjectPoint" msprop:Generator_UserColumnName="SubjectPoint" msprop:Generator_ColumnVarNameInTable="columnSubjectPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="TotalMark_ofStudent" msprop:Generator_ColumnPropNameInTable="TotalMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="TotalMark_ofStudent" msprop:Generator_UserColumnName="TotalMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnTotalMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofStudent" msprop:Generator_UserColumnName="ObtainedMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedPercentage_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedPercentage_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedPercentage_ofStudent" msprop:Generator_UserColumnName="ObtainedPercentage_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedPercentage_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Point" msprop:Generator_ColumnPropNameInTable="Student_PointColumn" msprop:Generator_ColumnPropNameInRow="Student_Point" msprop:Generator_UserColumnName="Student_Point" msprop:Generator_ColumnVarNameInTable="columnStudent_Point" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Grade" msprop:Generator_ColumnPropNameInTable="Student_GradeColumn" msprop:Generator_ColumnPropNameInRow="Student_Grade" msprop:Generator_UserColumnName="Student_Grade" msprop:Generator_ColumnVarNameInTable="columnStudent_Grade" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassMark_Student" msprop:Generator_ColumnPropNameInTable="PassMark_StudentColumn" msprop:Generator_ColumnPropNameInRow="PassMark_Student" msprop:Generator_UserColumnName="PassMark_Student" msprop:Generator_ColumnVarNameInTable="columnPassMark_Student" type="xs:double" minOccurs="0" />
+              <xs:element name="PassStatus_Student" msprop:Generator_ColumnPropNameInTable="PassStatus_StudentColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Student" msprop:Generator_UserColumnName="PassStatus_Student" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Student" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubject" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubject" msprop:Generator_UserColumnName="PassStatus_InSubject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentAbsenceStatus" msprop:Generator_ColumnPropNameInTable="StudentAbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="StudentAbsenceStatus" msprop:Generator_UserColumnName="StudentAbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnStudentAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubExam" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubExamColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubExam" msprop:Generator_UserColumnName="PassStatus_InSubExam" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubExam" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_Subject" msprop:Generator_ColumnPropNameInTable="PassStatus_SubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Subject" msprop:Generator_UserColumnName="PassStatus_Subject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Subject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="AbsenceStatus" msprop:Generator_ColumnPropNameInTable="AbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="AbsenceStatus" msprop:Generator_UserColumnName="AbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectType" msprop:Generator_ColumnPropNameInTable="SubjectTypeColumn" msprop:Generator_ColumnPropNameInRow="SubjectType" msprop:Generator_UserColumnName="SubjectType" msprop:Generator_ColumnVarNameInTable="columnSubjectType" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="TotalPresent" msprop:Generator_ColumnPropNameInTable="TotalPresentColumn" msprop:Generator_ColumnPropNameInRow="TotalPresent" msprop:Generator_UserColumnName="TotalPresent" msprop:Generator_ColumnVarNameInTable="columnTotalPresent" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalAbsent" msprop:Generator_ColumnPropNameInTable="TotalAbsentColumn" msprop:Generator_ColumnPropNameInRow="TotalAbsent" msprop:Generator_UserColumnName="TotalAbsent" msprop:Generator_ColumnVarNameInTable="columnTotalAbsent" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalLate" msprop:Generator_ColumnPropNameInTable="TotalLateColumn" msprop:Generator_ColumnPropNameInRow="TotalLate" msprop:Generator_UserColumnName="TotalLate" msprop:Generator_ColumnVarNameInTable="columnTotalLate" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalLeave" msprop:Generator_ColumnPropNameInTable="TotalLeaveColumn" msprop:Generator_ColumnPropNameInRow="TotalLeave" msprop:Generator_UserColumnName="TotalLeave" msprop:Generator_ColumnVarNameInTable="columnTotalLeave" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalBunk" msprop:Generator_ColumnPropNameInTable="TotalBunkColumn" msprop:Generator_ColumnPropNameInRow="TotalBunk" msprop:Generator_UserColumnName="TotalBunk" msprop:Generator_ColumnVarNameInTable="columnTotalBunk" type="xs:int" minOccurs="0" />
+              <xs:element name="WorkingDays" msprop:Generator_ColumnPropNameInTable="WorkingDaysColumn" msprop:Generator_ColumnPropNameInRow="WorkingDays" msprop:Generator_UserColumnName="WorkingDays" msprop:Generator_ColumnVarNameInTable="columnWorkingDays" type="xs:int" minOccurs="0" />
+              <xs:element name="HighestMark_InSubject_Class" msprop:Generator_ColumnPropNameInTable="HighestMark_InSubject_ClassColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InSubject_Class" msprop:Generator_UserColumnName="HighestMark_InSubject_Class" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InSubject_Class" type="xs:double" minOccurs="0" />
+              <xs:element name="HighestMark_InSubject_Subsection" msprop:Generator_ColumnPropNameInTable="HighestMark_InSubject_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InSubject_Subsection" msprop:Generator_UserColumnName="HighestMark_InSubject_Subsection" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InSubject_Subsection" type="xs:double" minOccurs="0" />
+              <xs:element name="Position_InSubject_Class" msprop:Generator_ColumnPropNameInTable="Position_InSubject_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Class" msprop:Generator_UserColumnName="Position_InSubject_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InSubject_Subsection" msprop:Generator_ColumnPropNameInTable="Position_InSubject_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Subsection" msprop:Generator_UserColumnName="Position_InSubject_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="HighestMark_InExam_Class" msprop:Generator_ColumnPropNameInTable="HighestMark_InExam_ClassColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InExam_Class" msprop:Generator_UserColumnName="HighestMark_InExam_Class" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InExam_Class" type="xs:double" minOccurs="0" />
+              <xs:element name="HighestMark_InExam_Subsection" msprop:Generator_ColumnPropNameInTable="HighestMark_InExam_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InExam_Subsection" msprop:Generator_UserColumnName="HighestMark_InExam_Subsection" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InExam_Subsection" type="xs:double" minOccurs="0" />
+              <xs:element name="Position_InExam_Class" msprop:Generator_ColumnPropNameInTable="Position_InExam_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Class" msprop:Generator_UserColumnName="Position_InExam_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InExam_Subsection" msprop:Generator_ColumnPropNameInTable="Position_InExam_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Subsection" msprop:Generator_UserColumnName="Position_InExam_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="RollNo" msprop:Generator_ColumnPropNameInTable="RollNoColumn" msprop:Generator_ColumnPropNameInRow="RollNo" msprop:Generator_UserColumnName="RollNo" msprop:Generator_ColumnVarNameInTable="columnRollNo" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectGroup" msprop:Generator_ColumnPropNameInTable="SubjectGroupColumn" msprop:Generator_ColumnPropNameInRow="SubjectGroup" msprop:Generator_UserColumnName="SubjectGroup" msprop:Generator_ColumnVarNameInTable="columnSubjectGroup" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Section" msprop:Generator_ColumnPropNameInTable="SectionColumn" msprop:Generator_ColumnPropNameInRow="Section" msprop:Generator_UserColumnName="Section" msprop:Generator_ColumnVarNameInTable="columnSection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Shift" msprop:Generator_ColumnPropNameInTable="ShiftColumn" msprop:Generator_ColumnPropNameInRow="Shift" msprop:Generator_UserColumnName="Shift" msprop:Generator_ColumnVarNameInTable="columnShift" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SchoolName" msprop:Generator_ColumnPropNameInTable="SchoolNameColumn" msprop:Generator_ColumnPropNameInRow="SchoolName" msprop:Generator_UserColumnName="SchoolName" msprop:Generator_ColumnVarNameInTable="columnSchoolName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SchoolLogo" msprop:Generator_ColumnPropNameInTable="SchoolLogoColumn" msprop:Generator_ColumnPropNameInRow="SchoolLogo" msprop:Generator_UserColumnName="SchoolLogo" msprop:Generator_ColumnVarNameInTable="columnSchoolLogo" type="xs:base64Binary" minOccurs="0" />
+              <xs:element name="Address" msprop:Generator_ColumnPropNameInTable="AddressColumn" msprop:Generator_ColumnPropNameInRow="Address" msprop:Generator_UserColumnName="Address" msprop:Generator_ColumnVarNameInTable="columnAddress" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Image" msprop:Generator_ColumnPropNameInTable="ImageColumn" msprop:Generator_ColumnPropNameInRow="Image" msprop:Generator_UserColumnName="Image" msprop:Generator_ColumnVarNameInTable="columnImage" type="xs:base64Binary" minOccurs="0" />
+              <xs:element name="Attendance_FromDate" msprop:Generator_ColumnPropNameInTable="Attendance_FromDateColumn" msprop:Generator_ColumnPropNameInRow="Attendance_FromDate" msprop:Generator_UserColumnName="Attendance_FromDate" msprop:Generator_ColumnVarNameInTable="columnAttendance_FromDate" type="xs:dateTime" minOccurs="0" />
+              <xs:element name="Attendance_ToDate" msprop:Generator_ColumnPropNameInTable="Attendance_ToDateColumn" msprop:Generator_ColumnPropNameInRow="Attendance_ToDate" msprop:Generator_UserColumnName="Attendance_ToDate" msprop:Generator_ColumnVarNameInTable="columnAttendance_ToDate" type="xs:dateTime" minOccurs="0" />
+              <xs:element name="Average" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="AverageColumn" msprop:Generator_ColumnPropNameInRow="Average" msprop:Generator_UserColumnName="Average" msprop:Generator_ColumnVarNameInTable="columnAverage" type="xs:double" minOccurs="0" />
+              <xs:element name="NotGolden" msprop:Generator_ColumnPropNameInTable="NotGoldenColumn" msprop:Generator_ColumnPropNameInRow="NotGolden" msprop:Generator_UserColumnName="NotGolden" msprop:Generator_ColumnVarNameInTable="columnNotGolden" type="xs:boolean" minOccurs="0" />
+              <xs:element name="Student_Comments" msprop:Generator_ColumnPropNameInTable="Student_CommentsColumn" msprop:Generator_ColumnPropNameInRow="Student_Comments" msprop:Generator_UserColumnName="Student_Comments" msprop:Generator_ColumnVarNameInTable="columnStudent_Comments" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Phone" msprop:Generator_ColumnPropNameInTable="PhoneColumn" msprop:Generator_ColumnPropNameInRow="Phone" msprop:Generator_UserColumnName="Phone" msprop:Generator_ColumnVarNameInTable="columnPhone" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="TotalLateAbs" msprop:Generator_ColumnPropNameInTable="TotalLateAbsColumn" msprop:Generator_ColumnPropNameInRow="TotalLateAbs" msprop:Generator_UserColumnName="TotalLateAbs" msprop:Generator_ColumnVarNameInTable="columnTotalLateAbs" type="xs:int" minOccurs="0" />
+              <xs:element name="IS_Hide_Sec_Position" msprop:Generator_ColumnPropNameInTable="IS_Hide_Sec_PositionColumn" msprop:Generator_ColumnPropNameInRow="IS_Hide_Sec_Position" msprop:Generator_UserColumnName="IS_Hide_Sec_Position" msprop:Generator_ColumnVarNameInTable="columnIS_Hide_Sec_Position" type="xs:boolean" minOccurs="0" />
+              <xs:element name="IS_Hide_Class_Position" msprop:Generator_ColumnPropNameInTable="IS_Hide_Class_PositionColumn" msprop:Generator_ColumnPropNameInRow="IS_Hide_Class_Position" msprop:Generator_UserColumnName="IS_Hide_Class_Position" msprop:Generator_ColumnVarNameInTable="columnIS_Hide_Class_Position" type="xs:boolean" minOccurs="0" />
+              <xs:element name="Sub_ExamSN" msprop:Generator_ColumnPropNameInTable="Sub_ExamSNColumn" msprop:Generator_ColumnPropNameInRow="Sub_ExamSN" msprop:Generator_UserColumnName="Sub_ExamSN" msprop:Generator_ColumnVarNameInTable="columnSub_ExamSN" type="xs:int" minOccurs="0" />
+              <xs:element name="IS_Hide_FullMark" msprop:Generator_ColumnPropNameInTable="IS_Hide_FullMarkColumn" msprop:Generator_ColumnPropNameInRow="IS_Hide_FullMark" msprop:Generator_UserColumnName="IS_Hide_FullMark" msprop:Generator_ColumnVarNameInTable="columnIS_Hide_FullMark" type="xs:boolean" minOccurs="0" />
+              <xs:element name="IS_Hide_PassMark" msprop:Generator_ColumnPropNameInTable="IS_Hide_PassMarkColumn" msprop:Generator_ColumnPropNameInRow="IS_Hide_PassMark" msprop:Generator_UserColumnName="IS_Hide_PassMark" msprop:Generator_ColumnVarNameInTable="columnIS_Hide_PassMark" type="xs:boolean" minOccurs="0" />
+              <xs:element name="SubjectAbsenceStatus" msprop:Generator_ColumnPropNameInTable="SubjectAbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="SubjectAbsenceStatus" msprop:Generator_UserColumnName="SubjectAbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnSubjectAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="IS_Add_InExam" msprop:Generator_ColumnPropNameInTable="IS_Add_InExamColumn" msprop:Generator_ColumnPropNameInRow="IS_Add_InExam" msprop:Generator_UserColumnName="IS_Add_InExam" msprop:Generator_ColumnVarNameInTable="columnIS_Add_InExam" type="xs:boolean" minOccurs="0" />
+              <xs:element name="Last_Published_Date" msprop:Generator_ColumnPropNameInTable="Last_Published_DateColumn" msprop:Generator_ColumnPropNameInRow="Last_Published_Date" msprop:Generator_UserColumnName="Last_Published_Date" msprop:Generator_ColumnVarNameInTable="columnLast_Published_Date" type="xs:dateTime" minOccurs="0" />
+              <xs:element name="SubjectSN" msprop:Generator_ColumnPropNameInTable="SubjectSNColumn" msprop:Generator_ColumnPropNameInRow="SubjectSN" msprop:Generator_UserColumnName="SubjectSN" msprop:Generator_ColumnVarNameInTable="columnSubjectSN" type="xs:int" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Exam_VS_Sub" msprop:Generator_RowEvHandlerName="Exam_VS_SubRowChangeEventHandler" msprop:Generator_RowDeletedName="Exam_VS_SubRowDeleted" msprop:Generator_RowDeletingName="Exam_VS_SubRowDeleting" msprop:Generator_RowEvArgName="Exam_VS_SubRowChangeEvent" msprop:Generator_TablePropName="Exam_VS_Sub" msprop:Generator_RowChangedName="Exam_VS_SubRowChanged" msprop:Generator_UserTableName="Exam_VS_Sub" msprop:Generator_RowChangingName="Exam_VS_SubRowChanging" msprop:Generator_RowClassName="Exam_VS_SubRow" msprop:Generator_TableClassName="Exam_VS_SubDataTable" msprop:Generator_TableVarName="tableExam_VS_Sub">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="NoOfStudent" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="NoOfStudentColumn" msprop:Generator_ColumnPropNameInRow="NoOfStudent" msprop:Generator_UserColumnName="NoOfStudent" msprop:Generator_ColumnVarNameInTable="columnNoOfStudent" type="xs:int" minOccurs="0" />
+              <xs:element name="Percentage" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="PercentageColumn" msprop:Generator_ColumnPropNameInRow="Percentage" msprop:Generator_UserColumnName="Percentage" msprop:Generator_ColumnVarNameInTable="columnPercentage" type="xs:decimal" minOccurs="0" />
+              <xs:element name="Student_Grade" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="Student_GradeColumn" msprop:Generator_ColumnPropNameInRow="Student_Grade" msprop:Generator_UserColumnName="Student_Grade" msprop:Generator_ColumnVarNameInTable="columnStudent_Grade" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Exam_Pass" msprop:Generator_RowEvHandlerName="Exam_PassRowChangeEventHandler" msprop:Generator_RowDeletedName="Exam_PassRowDeleted" msprop:Generator_RowDeletingName="Exam_PassRowDeleting" msprop:Generator_RowEvArgName="Exam_PassRowChangeEvent" msprop:Generator_TablePropName="Exam_Pass" msprop:Generator_RowChangedName="Exam_PassRowChanged" msprop:Generator_UserTableName="Exam_Pass" msprop:Generator_RowChangingName="Exam_PassRowChanging" msprop:Generator_RowClassName="Exam_PassRow" msprop:Generator_TableClassName="Exam_PassDataTable" msprop:Generator_TableVarName="tableExam_Pass">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="PassStatus_InSubject" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubject" msprop:Generator_UserColumnName="PassStatus_InSubject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="NoOfStudent" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="NoOfStudentColumn" msprop:Generator_ColumnPropNameInRow="NoOfStudent" msprop:Generator_UserColumnName="NoOfStudent" msprop:Generator_ColumnVarNameInTable="columnNoOfStudent" type="xs:int" minOccurs="0" />
+              <xs:element name="Percentage" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="PercentageColumn" msprop:Generator_ColumnPropNameInRow="Percentage" msprop:Generator_UserColumnName="Percentage" msprop:Generator_ColumnVarNameInTable="columnPercentage" type="xs:decimal" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Statistics_of_Sub" msprop:Generator_RowEvHandlerName="Statistics_of_SubRowChangeEventHandler" msprop:Generator_RowDeletedName="Statistics_of_SubRowDeleted" msprop:Generator_RowDeletingName="Statistics_of_SubRowDeleting" msprop:Generator_RowEvArgName="Statistics_of_SubRowChangeEvent" msprop:Generator_TablePropName="Statistics_of_Sub" msprop:Generator_RowChangedName="Statistics_of_SubRowChanged" msprop:Generator_UserTableName="Statistics_of_Sub" msprop:Generator_RowChangingName="Statistics_of_SubRowChanging" msprop:Generator_RowClassName="Statistics_of_SubRow" msprop:Generator_TableClassName="Statistics_of_SubDataTable" msprop:Generator_TableVarName="tableStatistics_of_Sub">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="SubjectPoint" msprop:Generator_ColumnPropNameInTable="SubjectPointColumn" msprop:Generator_ColumnPropNameInRow="SubjectPoint" msprop:Generator_UserColumnName="SubjectPoint" msprop:Generator_ColumnVarNameInTable="columnSubjectPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="SubjectGrades" msprop:Generator_ColumnPropNameInTable="SubjectGradesColumn" msprop:Generator_ColumnPropNameInRow="SubjectGrades" msprop:Generator_UserColumnName="SubjectGrades" msprop:Generator_ColumnVarNameInTable="columnSubjectGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectName" msprop:Generator_ColumnPropNameInTable="SubjectNameColumn" msprop:Generator_ColumnPropNameInRow="SubjectName" msprop:Generator_UserColumnName="SubjectName" msprop:Generator_ColumnVarNameInTable="columnSubjectName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="TotalStudent" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="TotalStudentColumn" msprop:Generator_ColumnPropNameInRow="TotalStudent" msprop:Generator_UserColumnName="TotalStudent" msprop:Generator_ColumnVarNameInTable="columnTotalStudent" type="xs:int" minOccurs="0" />
+              <xs:element name="Examinee" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="ExamineeColumn" msprop:Generator_ColumnPropNameInRow="Examinee" msprop:Generator_UserColumnName="Examinee" msprop:Generator_ColumnVarNameInTable="columnExaminee" type="xs:int" minOccurs="0" />
+              <xs:element name="Absent" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="AbsentColumn" msprop:Generator_ColumnPropNameInRow="Absent" msprop:Generator_UserColumnName="Absent" msprop:Generator_ColumnVarNameInTable="columnAbsent" type="xs:int" minOccurs="0" />
+              <xs:element name="Pass" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="PassColumn" msprop:Generator_ColumnPropNameInRow="Pass" msprop:Generator_UserColumnName="Pass" msprop:Generator_ColumnVarNameInTable="columnPass" type="xs:int" minOccurs="0" />
+              <xs:element name="Fail" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="FailColumn" msprop:Generator_ColumnPropNameInRow="Fail" msprop:Generator_UserColumnName="Fail" msprop:Generator_ColumnVarNameInTable="columnFail" type="xs:int" minOccurs="0" />
+              <xs:element name="GPA" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="GPAColumn" msprop:Generator_ColumnPropNameInRow="GPA" msprop:Generator_UserColumnName="GPA" msprop:Generator_ColumnVarNameInTable="columnGPA" type="xs:double" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="UnsuccessFull_Student" msprop:Generator_RowEvHandlerName="UnsuccessFull_StudentRowChangeEventHandler" msprop:Generator_RowDeletedName="UnsuccessFull_StudentRowDeleted" msprop:Generator_RowDeletingName="UnsuccessFull_StudentRowDeleting" msprop:Generator_RowEvArgName="UnsuccessFull_StudentRowChangeEvent" msprop:Generator_TablePropName="UnsuccessFull_Student" msprop:Generator_RowChangedName="UnsuccessFull_StudentRowChanged" msprop:Generator_UserTableName="UnsuccessFull_Student" msprop:Generator_RowChangingName="UnsuccessFull_StudentRowChanging" msprop:Generator_RowClassName="UnsuccessFull_StudentRow" msprop:Generator_TableClassName="UnsuccessFull_StudentDataTable" msprop:Generator_TableVarName="tableUnsuccessFull_Student">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ID" msprop:Generator_ColumnPropNameInTable="IDColumn" msprop:Generator_ColumnPropNameInRow="ID" msprop:Generator_UserColumnName="ID" msprop:Generator_ColumnVarNameInTable="columnID">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentsName" msprop:Generator_ColumnPropNameInTable="StudentsNameColumn" msprop:Generator_ColumnPropNameInRow="StudentsName" msprop:Generator_UserColumnName="StudentsName" msprop:Generator_ColumnVarNameInTable="columnStudentsName">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Class" msprop:Generator_ColumnPropNameInTable="ClassColumn" msprop:Generator_ColumnPropNameInRow="Class" msprop:Generator_UserColumnName="Class" msprop:Generator_ColumnVarNameInTable="columnClass" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectName" msprop:Generator_ColumnPropNameInTable="SubjectNameColumn" msprop:Generator_ColumnPropNameInRow="SubjectName" msprop:Generator_UserColumnName="SubjectName" msprop:Generator_ColumnVarNameInTable="columnSubjectName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ExamName" msprop:Generator_ColumnPropNameInTable="ExamNameColumn" msprop:Generator_ColumnPropNameInRow="ExamName" msprop:Generator_UserColumnName="ExamName" msprop:Generator_ColumnVarNameInTable="columnExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubExamName" msprop:Generator_ColumnPropNameInTable="SubExamNameColumn" msprop:Generator_ColumnPropNameInRow="SubExamName" msprop:Generator_UserColumnName="SubExamName" msprop:Generator_ColumnVarNameInTable="columnSubExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="FullMark" msprop:Generator_ColumnPropNameInTable="FullMarkColumn" msprop:Generator_ColumnPropNameInRow="FullMark" msprop:Generator_UserColumnName="FullMark" msprop:Generator_ColumnVarNameInTable="columnFullMark" type="xs:double" minOccurs="0" />
+              <xs:element name="PassMark" msprop:Generator_ColumnPropNameInTable="PassMarkColumn" msprop:Generator_ColumnPropNameInRow="PassMark" msprop:Generator_UserColumnName="PassMark" msprop:Generator_ColumnVarNameInTable="columnPassMark" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark" msprop:Generator_ColumnPropNameInTable="ObtainedMarkColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark" msprop:Generator_UserColumnName="ObtainedMark" msprop:Generator_ColumnVarNameInTable="columnObtainedMark" type="xs:double" minOccurs="0" />
+              <xs:element name="Lack" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="LackColumn" msprop:Generator_ColumnPropNameInRow="Lack" msprop:Generator_UserColumnName="Lack" msprop:Generator_ColumnVarNameInTable="columnLack" type="xs:double" minOccurs="0" />
+              <xs:element name="AbsenceStatus" msprop:Generator_ColumnPropNameInTable="AbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="AbsenceStatus" msprop:Generator_UserColumnName="AbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="RollNo" msprop:Generator_ColumnPropNameInTable="RollNoColumn" msprop:Generator_ColumnPropNameInRow="RollNo" msprop:Generator_UserColumnName="RollNo" msprop:Generator_ColumnVarNameInTable="columnRollNo" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_Subject" msprop:Generator_ColumnPropNameInTable="PassStatus_SubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Subject" msprop:Generator_UserColumnName="PassStatus_Subject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Subject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectType" msprop:Generator_ColumnPropNameInTable="SubjectTypeColumn" msprop:Generator_ColumnPropNameInRow="SubjectType" msprop:Generator_UserColumnName="SubjectType" msprop:Generator_ColumnVarNameInTable="columnSubjectType" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="10" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Status" msprop:Generator_ColumnPropNameInTable="StatusColumn" msprop:Generator_ColumnPropNameInRow="Status" msprop:Generator_UserColumnName="Status" msprop:Generator_ColumnVarNameInTable="columnStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Test" msprop:Generator_RowEvHandlerName="TestRowChangeEventHandler" msprop:Generator_RowDeletedName="TestRowDeleted" msprop:Generator_RowDeletingName="TestRowDeleting" msprop:Generator_RowEvArgName="TestRowChangeEvent" msprop:Generator_TablePropName="Test" msprop:Generator_RowChangedName="TestRowChanged" msprop:Generator_UserTableName="Test" msprop:Generator_RowChangingName="TestRowChanging" msprop:Generator_RowClassName="TestRow" msprop:Generator_TableClassName="TestDataTable" msprop:Generator_TableVarName="tableTest">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ID" msprop:Generator_ColumnPropNameInTable="IDColumn" msprop:Generator_ColumnPropNameInRow="ID" msprop:Generator_UserColumnName="ID" msprop:Generator_ColumnVarNameInTable="columnID">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentsName" msprop:Generator_ColumnPropNameInTable="StudentsNameColumn" msprop:Generator_ColumnPropNameInRow="StudentsName" msprop:Generator_UserColumnName="StudentsName" msprop:Generator_ColumnVarNameInTable="columnStudentsName">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Class" msprop:Generator_ColumnPropNameInTable="ClassColumn" msprop:Generator_ColumnPropNameInRow="Class" msprop:Generator_UserColumnName="Class" msprop:Generator_ColumnVarNameInTable="columnClass" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectName" msprop:Generator_ColumnPropNameInTable="SubjectNameColumn" msprop:Generator_ColumnPropNameInRow="SubjectName" msprop:Generator_UserColumnName="SubjectName" msprop:Generator_ColumnVarNameInTable="columnSubjectName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ExamName" msprop:Generator_ColumnPropNameInTable="ExamNameColumn" msprop:Generator_ColumnPropNameInRow="ExamName" msprop:Generator_UserColumnName="ExamName" msprop:Generator_ColumnVarNameInTable="columnExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubExamName" msprop:Generator_ColumnPropNameInTable="SubExamNameColumn" msprop:Generator_ColumnPropNameInRow="SubExamName" msprop:Generator_UserColumnName="SubExamName" msprop:Generator_ColumnVarNameInTable="columnSubExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="FullMark" msprop:Generator_ColumnPropNameInTable="FullMarkColumn" msprop:Generator_ColumnPropNameInRow="FullMark" msprop:Generator_UserColumnName="FullMark" msprop:Generator_ColumnVarNameInTable="columnFullMark" type="xs:double" minOccurs="0" />
+              <xs:element name="PassMark" msprop:Generator_ColumnPropNameInTable="PassMarkColumn" msprop:Generator_ColumnPropNameInRow="PassMark" msprop:Generator_UserColumnName="PassMark" msprop:Generator_ColumnVarNameInTable="columnPassMark" type="xs:double" minOccurs="0" />
+              <xs:element name="MarksObtained" msprop:Generator_ColumnPropNameInTable="MarksObtainedColumn" msprop:Generator_ColumnPropNameInRow="MarksObtained" msprop:Generator_UserColumnName="MarksObtained" msprop:Generator_ColumnVarNameInTable="columnMarksObtained" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedGrades" msprop:Generator_ColumnPropNameInTable="ObtainedGradesColumn" msprop:Generator_ColumnPropNameInRow="ObtainedGrades" msprop:Generator_UserColumnName="ObtainedGrades" msprop:Generator_ColumnVarNameInTable="columnObtainedGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ObtainedPoint" msprop:Generator_ColumnPropNameInTable="ObtainedPointColumn" msprop:Generator_ColumnPropNameInRow="ObtainedPoint" msprop:Generator_UserColumnName="ObtainedPoint" msprop:Generator_ColumnVarNameInTable="columnObtainedPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="TotalMark_ofSubject" msprop:Generator_ColumnPropNameInTable="TotalMark_ofSubjectColumn" msprop:Generator_ColumnPropNameInRow="TotalMark_ofSubject" msprop:Generator_UserColumnName="TotalMark_ofSubject" msprop:Generator_ColumnVarNameInTable="columnTotalMark_ofSubject" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofSubject" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofSubjectColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofSubject" msprop:Generator_UserColumnName="ObtainedMark_ofSubject" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofSubject" type="xs:double" minOccurs="0" />
+              <xs:element name="SubjectGrades" msprop:Generator_ColumnPropNameInTable="SubjectGradesColumn" msprop:Generator_ColumnPropNameInRow="SubjectGrades" msprop:Generator_UserColumnName="SubjectGrades" msprop:Generator_ColumnVarNameInTable="columnSubjectGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectPoint" msprop:Generator_ColumnPropNameInTable="SubjectPointColumn" msprop:Generator_ColumnPropNameInRow="SubjectPoint" msprop:Generator_UserColumnName="SubjectPoint" msprop:Generator_ColumnVarNameInTable="columnSubjectPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="TotalMark_ofStudent" msprop:Generator_ColumnPropNameInTable="TotalMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="TotalMark_ofStudent" msprop:Generator_UserColumnName="TotalMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnTotalMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofStudent" msprop:Generator_UserColumnName="ObtainedMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedPercentage_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedPercentage_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedPercentage_ofStudent" msprop:Generator_UserColumnName="ObtainedPercentage_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedPercentage_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Point" msprop:Generator_ColumnPropNameInTable="Student_PointColumn" msprop:Generator_ColumnPropNameInRow="Student_Point" msprop:Generator_UserColumnName="Student_Point" msprop:Generator_ColumnVarNameInTable="columnStudent_Point" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Grade" msprop:Generator_ColumnPropNameInTable="Student_GradeColumn" msprop:Generator_ColumnPropNameInRow="Student_Grade" msprop:Generator_UserColumnName="Student_Grade" msprop:Generator_ColumnVarNameInTable="columnStudent_Grade" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassMark_Student" msprop:Generator_ColumnPropNameInTable="PassMark_StudentColumn" msprop:Generator_ColumnPropNameInRow="PassMark_Student" msprop:Generator_UserColumnName="PassMark_Student" msprop:Generator_ColumnVarNameInTable="columnPassMark_Student" type="xs:double" minOccurs="0" />
+              <xs:element name="PassStatus_Student" msprop:Generator_ColumnPropNameInTable="PassStatus_StudentColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Student" msprop:Generator_UserColumnName="PassStatus_Student" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Student" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubject" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubject" msprop:Generator_UserColumnName="PassStatus_InSubject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentAbsenceStatus" msprop:Generator_ColumnPropNameInTable="StudentAbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="StudentAbsenceStatus" msprop:Generator_UserColumnName="StudentAbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnStudentAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Fail_inSubExam" msprop:Generator_ColumnPropNameInTable="Fail_inSubExamColumn" msprop:Generator_ColumnPropNameInRow="Fail_inSubExam" msprop:Generator_UserColumnName="Fail_inSubExam" msprop:Generator_ColumnVarNameInTable="columnFail_inSubExam" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubExam" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubExamColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubExam" msprop:Generator_UserColumnName="PassStatus_InSubExam" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubExam" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_Subject" msprop:Generator_ColumnPropNameInTable="PassStatus_SubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Subject" msprop:Generator_UserColumnName="PassStatus_Subject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Subject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="AbsenceStatus" msprop:Generator_ColumnPropNameInTable="AbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="AbsenceStatus" msprop:Generator_UserColumnName="AbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectType" msprop:Generator_ColumnPropNameInTable="SubjectTypeColumn" msprop:Generator_ColumnPropNameInRow="SubjectType" msprop:Generator_UserColumnName="SubjectType" msprop:Generator_ColumnVarNameInTable="columnSubjectType" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Grade_as_it_is" msprop:Generator_ColumnPropNameInTable="Grade_as_it_isColumn" msprop:Generator_ColumnPropNameInRow="Grade_as_it_is" msprop:Generator_UserColumnName="Grade_as_it_is" msprop:Generator_ColumnVarNameInTable="columnGrade_as_it_is" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="TotalPresent" msprop:Generator_ColumnPropNameInTable="TotalPresentColumn" msprop:Generator_ColumnPropNameInRow="TotalPresent" msprop:Generator_UserColumnName="TotalPresent" msprop:Generator_ColumnVarNameInTable="columnTotalPresent" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalAbsent" msprop:Generator_ColumnPropNameInTable="TotalAbsentColumn" msprop:Generator_ColumnPropNameInRow="TotalAbsent" msprop:Generator_UserColumnName="TotalAbsent" msprop:Generator_ColumnVarNameInTable="columnTotalAbsent" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalLate" msprop:Generator_ColumnPropNameInTable="TotalLateColumn" msprop:Generator_ColumnPropNameInRow="TotalLate" msprop:Generator_UserColumnName="TotalLate" msprop:Generator_ColumnVarNameInTable="columnTotalLate" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalLeave" msprop:Generator_ColumnPropNameInTable="TotalLeaveColumn" msprop:Generator_ColumnPropNameInRow="TotalLeave" msprop:Generator_UserColumnName="TotalLeave" msprop:Generator_ColumnVarNameInTable="columnTotalLeave" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalBunk" msprop:Generator_ColumnPropNameInTable="TotalBunkColumn" msprop:Generator_ColumnPropNameInRow="TotalBunk" msprop:Generator_UserColumnName="TotalBunk" msprop:Generator_ColumnVarNameInTable="columnTotalBunk" type="xs:int" minOccurs="0" />
+              <xs:element name="WorkingDays" msprop:Generator_ColumnPropNameInTable="WorkingDaysColumn" msprop:Generator_ColumnPropNameInRow="WorkingDays" msprop:Generator_UserColumnName="WorkingDays" msprop:Generator_ColumnVarNameInTable="columnWorkingDays" type="xs:int" minOccurs="0" />
+              <xs:element name="HighestMark_InSubject_Class" msprop:Generator_ColumnPropNameInTable="HighestMark_InSubject_ClassColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InSubject_Class" msprop:Generator_UserColumnName="HighestMark_InSubject_Class" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InSubject_Class" type="xs:double" minOccurs="0" />
+              <xs:element name="HighestMark_InSubject_Subsection" msprop:Generator_ColumnPropNameInTable="HighestMark_InSubject_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InSubject_Subsection" msprop:Generator_UserColumnName="HighestMark_InSubject_Subsection" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InSubject_Subsection" type="xs:double" minOccurs="0" />
+              <xs:element name="Position_InSubject_Class" msprop:Generator_ColumnPropNameInTable="Position_InSubject_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Class" msprop:Generator_UserColumnName="Position_InSubject_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InSubject_Subsection" msprop:Generator_ColumnPropNameInTable="Position_InSubject_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Subsection" msprop:Generator_UserColumnName="Position_InSubject_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="HighestMark_InExam_Class" msprop:Generator_ColumnPropNameInTable="HighestMark_InExam_ClassColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InExam_Class" msprop:Generator_UserColumnName="HighestMark_InExam_Class" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InExam_Class" type="xs:double" minOccurs="0" />
+              <xs:element name="HighestMark_InExam_Subsection" msprop:Generator_ColumnPropNameInTable="HighestMark_InExam_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InExam_Subsection" msprop:Generator_UserColumnName="HighestMark_InExam_Subsection" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InExam_Subsection" type="xs:double" minOccurs="0" />
+              <xs:element name="Position_InExam_Class" msprop:Generator_ColumnPropNameInTable="Position_InExam_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Class" msprop:Generator_UserColumnName="Position_InExam_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InExam_Subsection" msprop:Generator_ColumnPropNameInTable="Position_InExam_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Subsection" msprop:Generator_UserColumnName="Position_InExam_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Exam_Grading_System" msprop:Generator_RowEvHandlerName="Exam_Grading_SystemRowChangeEventHandler" msprop:Generator_RowDeletedName="Exam_Grading_SystemRowDeleted" msprop:Generator_RowDeletingName="Exam_Grading_SystemRowDeleting" msprop:Generator_RowEvArgName="Exam_Grading_SystemRowChangeEvent" msprop:Generator_TablePropName="Exam_Grading_System" msprop:Generator_RowChangedName="Exam_Grading_SystemRowChanged" msprop:Generator_UserTableName="Exam_Grading_System" msprop:Generator_RowChangingName="Exam_Grading_SystemRowChanging" msprop:Generator_RowClassName="Exam_Grading_SystemRow" msprop:Generator_TableClassName="Exam_Grading_SystemDataTable" msprop:Generator_TableVarName="tableExam_Grading_System">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Grades" msprop:Generator_ColumnPropNameInTable="GradesColumn" msprop:Generator_ColumnPropNameInRow="Grades" msprop:Generator_UserColumnName="Grades" msprop:Generator_ColumnVarNameInTable="columnGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MARKS" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="MARKSColumn" msprop:Generator_ColumnPropNameInRow="MARKS" msprop:Generator_UserColumnName="MARKS" msprop:Generator_ColumnVarNameInTable="columnMARKS" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="65" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Comments" msprop:Generator_ColumnPropNameInTable="CommentsColumn" msprop:Generator_ColumnPropNameInRow="Comments" msprop:Generator_UserColumnName="Comments" msprop:Generator_ColumnVarNameInTable="columnComments" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Point" msprop:Generator_ColumnPropNameInTable="PointColumn" msprop:Generator_ColumnPropNameInRow="Point" msprop:Generator_UserColumnName="Point" msprop:Generator_ColumnVarNameInTable="columnPoint" type="xs:double" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Profile_new" msprop:Generator_RowEvHandlerName="Profile_newRowChangeEventHandler" msprop:Generator_RowDeletedName="Profile_newRowDeleted" msprop:Generator_RowDeletingName="Profile_newRowDeleting" msprop:Generator_RowEvArgName="Profile_newRowChangeEvent" msprop:Generator_TablePropName="Profile_new" msprop:Generator_RowChangedName="Profile_newRowChanged" msprop:Generator_UserTableName="Profile_new" msprop:Generator_RowChangingName="Profile_newRowChanging" msprop:Generator_RowClassName="Profile_newRow" msprop:Generator_TableClassName="Profile_newDataTable" msprop:Generator_TableVarName="tableProfile_new">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ID" msprop:Generator_ColumnPropNameInTable="IDColumn" msprop:Generator_ColumnPropNameInRow="ID" msprop:Generator_UserColumnName="ID" msprop:Generator_ColumnVarNameInTable="columnID">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentsName" msprop:Generator_ColumnPropNameInTable="StudentsNameColumn" msprop:Generator_ColumnPropNameInRow="StudentsName" msprop:Generator_UserColumnName="StudentsName" msprop:Generator_ColumnVarNameInTable="columnStudentsName">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Class" msprop:Generator_ColumnPropNameInTable="ClassColumn" msprop:Generator_ColumnPropNameInRow="Class" msprop:Generator_UserColumnName="Class" msprop:Generator_ColumnVarNameInTable="columnClass" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectName" msprop:Generator_ColumnPropNameInTable="SubjectNameColumn" msprop:Generator_ColumnPropNameInRow="SubjectName" msprop:Generator_UserColumnName="SubjectName" msprop:Generator_ColumnVarNameInTable="columnSubjectName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ExamName" msprop:Generator_ColumnPropNameInTable="ExamNameColumn" msprop:Generator_ColumnPropNameInRow="ExamName" msprop:Generator_UserColumnName="ExamName" msprop:Generator_ColumnVarNameInTable="columnExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubExamName" msprop:Generator_ColumnPropNameInTable="SubExamNameColumn" msprop:Generator_ColumnPropNameInRow="SubExamName" msprop:Generator_UserColumnName="SubExamName" msprop:Generator_ColumnVarNameInTable="columnSubExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="FullMark" msprop:Generator_ColumnPropNameInTable="FullMarkColumn" msprop:Generator_ColumnPropNameInRow="FullMark" msprop:Generator_UserColumnName="FullMark" msprop:Generator_ColumnVarNameInTable="columnFullMark" type="xs:double" minOccurs="0" />
+              <xs:element name="PassMark" msprop:Generator_ColumnPropNameInTable="PassMarkColumn" msprop:Generator_ColumnPropNameInRow="PassMark" msprop:Generator_UserColumnName="PassMark" msprop:Generator_ColumnVarNameInTable="columnPassMark" type="xs:double" minOccurs="0" />
+              <xs:element name="MarksObtained" msprop:Generator_ColumnPropNameInTable="MarksObtainedColumn" msprop:Generator_ColumnPropNameInRow="MarksObtained" msprop:Generator_UserColumnName="MarksObtained" msprop:Generator_ColumnVarNameInTable="columnMarksObtained" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedGrades" msprop:Generator_ColumnPropNameInTable="ObtainedGradesColumn" msprop:Generator_ColumnPropNameInRow="ObtainedGrades" msprop:Generator_UserColumnName="ObtainedGrades" msprop:Generator_ColumnVarNameInTable="columnObtainedGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ObtainedPoint" msprop:Generator_ColumnPropNameInTable="ObtainedPointColumn" msprop:Generator_ColumnPropNameInRow="ObtainedPoint" msprop:Generator_UserColumnName="ObtainedPoint" msprop:Generator_ColumnVarNameInTable="columnObtainedPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="TotalMark_ofSubject" msprop:Generator_ColumnPropNameInTable="TotalMark_ofSubjectColumn" msprop:Generator_ColumnPropNameInRow="TotalMark_ofSubject" msprop:Generator_UserColumnName="TotalMark_ofSubject" msprop:Generator_ColumnVarNameInTable="columnTotalMark_ofSubject" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofSubject" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofSubjectColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofSubject" msprop:Generator_UserColumnName="ObtainedMark_ofSubject" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofSubject" type="xs:double" minOccurs="0" />
+              <xs:element name="SubjectGrades" msprop:Generator_ColumnPropNameInTable="SubjectGradesColumn" msprop:Generator_ColumnPropNameInRow="SubjectGrades" msprop:Generator_UserColumnName="SubjectGrades" msprop:Generator_ColumnVarNameInTable="columnSubjectGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectPoint" msprop:Generator_ColumnPropNameInTable="SubjectPointColumn" msprop:Generator_ColumnPropNameInRow="SubjectPoint" msprop:Generator_UserColumnName="SubjectPoint" msprop:Generator_ColumnVarNameInTable="columnSubjectPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="TotalMark_ofStudent" msprop:Generator_ColumnPropNameInTable="TotalMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="TotalMark_ofStudent" msprop:Generator_UserColumnName="TotalMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnTotalMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofStudent" msprop:Generator_UserColumnName="ObtainedMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedPercentage_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedPercentage_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedPercentage_ofStudent" msprop:Generator_UserColumnName="ObtainedPercentage_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedPercentage_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Point" msprop:Generator_ColumnPropNameInTable="Student_PointColumn" msprop:Generator_ColumnPropNameInRow="Student_Point" msprop:Generator_UserColumnName="Student_Point" msprop:Generator_ColumnVarNameInTable="columnStudent_Point" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Grade" msprop:Generator_ColumnPropNameInTable="Student_GradeColumn" msprop:Generator_ColumnPropNameInRow="Student_Grade" msprop:Generator_UserColumnName="Student_Grade" msprop:Generator_ColumnVarNameInTable="columnStudent_Grade" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassMark_Student" msprop:Generator_ColumnPropNameInTable="PassMark_StudentColumn" msprop:Generator_ColumnPropNameInRow="PassMark_Student" msprop:Generator_UserColumnName="PassMark_Student" msprop:Generator_ColumnVarNameInTable="columnPassMark_Student" type="xs:double" minOccurs="0" />
+              <xs:element name="PassStatus_Student" msprop:Generator_ColumnPropNameInTable="PassStatus_StudentColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Student" msprop:Generator_UserColumnName="PassStatus_Student" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Student" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubject" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubject" msprop:Generator_UserColumnName="PassStatus_InSubject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentAbsenceStatus" msprop:Generator_ColumnPropNameInTable="StudentAbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="StudentAbsenceStatus" msprop:Generator_UserColumnName="StudentAbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnStudentAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubExam" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubExamColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubExam" msprop:Generator_UserColumnName="PassStatus_InSubExam" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubExam" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_Subject" msprop:Generator_ColumnPropNameInTable="PassStatus_SubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Subject" msprop:Generator_UserColumnName="PassStatus_Subject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Subject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="AbsenceStatus" msprop:Generator_ColumnPropNameInTable="AbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="AbsenceStatus" msprop:Generator_UserColumnName="AbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectType" msprop:Generator_ColumnPropNameInTable="SubjectTypeColumn" msprop:Generator_ColumnPropNameInRow="SubjectType" msprop:Generator_UserColumnName="SubjectType" msprop:Generator_ColumnVarNameInTable="columnSubjectType" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="TotalPresent" msprop:Generator_ColumnPropNameInTable="TotalPresentColumn" msprop:Generator_ColumnPropNameInRow="TotalPresent" msprop:Generator_UserColumnName="TotalPresent" msprop:Generator_ColumnVarNameInTable="columnTotalPresent" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalAbsent" msprop:Generator_ColumnPropNameInTable="TotalAbsentColumn" msprop:Generator_ColumnPropNameInRow="TotalAbsent" msprop:Generator_UserColumnName="TotalAbsent" msprop:Generator_ColumnVarNameInTable="columnTotalAbsent" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalLate" msprop:Generator_ColumnPropNameInTable="TotalLateColumn" msprop:Generator_ColumnPropNameInRow="TotalLate" msprop:Generator_UserColumnName="TotalLate" msprop:Generator_ColumnVarNameInTable="columnTotalLate" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalLeave" msprop:Generator_ColumnPropNameInTable="TotalLeaveColumn" msprop:Generator_ColumnPropNameInRow="TotalLeave" msprop:Generator_UserColumnName="TotalLeave" msprop:Generator_ColumnVarNameInTable="columnTotalLeave" type="xs:int" minOccurs="0" />
+              <xs:element name="TotalBunk" msprop:Generator_ColumnPropNameInTable="TotalBunkColumn" msprop:Generator_ColumnPropNameInRow="TotalBunk" msprop:Generator_UserColumnName="TotalBunk" msprop:Generator_ColumnVarNameInTable="columnTotalBunk" type="xs:int" minOccurs="0" />
+              <xs:element name="WorkingDays" msprop:Generator_ColumnPropNameInTable="WorkingDaysColumn" msprop:Generator_ColumnPropNameInRow="WorkingDays" msprop:Generator_UserColumnName="WorkingDays" msprop:Generator_ColumnVarNameInTable="columnWorkingDays" type="xs:int" minOccurs="0" />
+              <xs:element name="HighestMark_InSubject_Class" msprop:Generator_ColumnPropNameInTable="HighestMark_InSubject_ClassColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InSubject_Class" msprop:Generator_UserColumnName="HighestMark_InSubject_Class" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InSubject_Class" type="xs:double" minOccurs="0" />
+              <xs:element name="HighestMark_InSubject_Subsection" msprop:Generator_ColumnPropNameInTable="HighestMark_InSubject_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InSubject_Subsection" msprop:Generator_UserColumnName="HighestMark_InSubject_Subsection" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InSubject_Subsection" type="xs:double" minOccurs="0" />
+              <xs:element name="Position_InSubject_Class" msprop:Generator_ColumnPropNameInTable="Position_InSubject_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Class" msprop:Generator_UserColumnName="Position_InSubject_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InSubject_Subsection" msprop:Generator_ColumnPropNameInTable="Position_InSubject_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Subsection" msprop:Generator_UserColumnName="Position_InSubject_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="HighestMark_InExam_Class" msprop:Generator_ColumnPropNameInTable="HighestMark_InExam_ClassColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InExam_Class" msprop:Generator_UserColumnName="HighestMark_InExam_Class" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InExam_Class" type="xs:double" minOccurs="0" />
+              <xs:element name="HighestMark_InExam_Subsection" msprop:Generator_ColumnPropNameInTable="HighestMark_InExam_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="HighestMark_InExam_Subsection" msprop:Generator_UserColumnName="HighestMark_InExam_Subsection" msprop:Generator_ColumnVarNameInTable="columnHighestMark_InExam_Subsection" type="xs:double" minOccurs="0" />
+              <xs:element name="Position_InExam_Class" msprop:Generator_ColumnPropNameInTable="Position_InExam_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Class" msprop:Generator_UserColumnName="Position_InExam_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InExam_Subsection" msprop:Generator_ColumnPropNameInTable="Position_InExam_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Subsection" msprop:Generator_UserColumnName="Position_InExam_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Section" msprop:Generator_ColumnPropNameInTable="SectionColumn" msprop:Generator_ColumnPropNameInRow="Section" msprop:Generator_UserColumnName="Section" msprop:Generator_ColumnVarNameInTable="columnSection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Shift" msprop:Generator_ColumnPropNameInTable="ShiftColumn" msprop:Generator_ColumnPropNameInRow="Shift" msprop:Generator_UserColumnName="Shift" msprop:Generator_ColumnVarNameInTable="columnShift" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectGroup" msprop:Generator_ColumnPropNameInTable="SubjectGroupColumn" msprop:Generator_ColumnPropNameInRow="SubjectGroup" msprop:Generator_UserColumnName="SubjectGroup" msprop:Generator_ColumnVarNameInTable="columnSubjectGroup" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="RollNo" msprop:Generator_ColumnPropNameInTable="RollNoColumn" msprop:Generator_ColumnPropNameInRow="RollNo" msprop:Generator_UserColumnName="RollNo" msprop:Generator_ColumnVarNameInTable="columnRollNo" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SchoolName" msprop:Generator_ColumnPropNameInTable="SchoolNameColumn" msprop:Generator_ColumnPropNameInRow="SchoolName" msprop:Generator_UserColumnName="SchoolName" msprop:Generator_ColumnVarNameInTable="columnSchoolName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SchoolLogo" msprop:Generator_ColumnPropNameInTable="SchoolLogoColumn" msprop:Generator_ColumnPropNameInRow="SchoolLogo" msprop:Generator_UserColumnName="SchoolLogo" msprop:Generator_ColumnVarNameInTable="columnSchoolLogo" type="xs:base64Binary" minOccurs="0" />
+              <xs:element name="Address" msprop:Generator_ColumnPropNameInTable="AddressColumn" msprop:Generator_ColumnPropNameInRow="Address" msprop:Generator_UserColumnName="Address" msprop:Generator_ColumnVarNameInTable="columnAddress" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Image" msprop:Generator_ColumnPropNameInTable="ImageColumn" msprop:Generator_ColumnPropNameInRow="Image" msprop:Generator_UserColumnName="Image" msprop:Generator_ColumnVarNameInTable="columnImage" type="xs:base64Binary" minOccurs="0" />
+              <xs:element name="Attendance_FromDate" msprop:Generator_ColumnPropNameInTable="Attendance_FromDateColumn" msprop:Generator_ColumnPropNameInRow="Attendance_FromDate" msprop:Generator_UserColumnName="Attendance_FromDate" msprop:Generator_ColumnVarNameInTable="columnAttendance_FromDate" type="xs:dateTime" minOccurs="0" />
+              <xs:element name="Attendance_ToDate" msprop:Generator_ColumnPropNameInTable="Attendance_ToDateColumn" msprop:Generator_ColumnPropNameInRow="Attendance_ToDate" msprop:Generator_UserColumnName="Attendance_ToDate" msprop:Generator_ColumnVarNameInTable="columnAttendance_ToDate" type="xs:dateTime" minOccurs="0" />
+              <xs:element name="IS_Hide_Sec_Position" msprop:Generator_ColumnPropNameInTable="IS_Hide_Sec_PositionColumn" msprop:Generator_ColumnPropNameInRow="IS_Hide_Sec_Position" msprop:Generator_UserColumnName="IS_Hide_Sec_Position" msprop:Generator_ColumnVarNameInTable="columnIS_Hide_Sec_Position" type="xs:boolean" minOccurs="0" />
+              <xs:element name="IS_Hide_Class_Position" msprop:Generator_ColumnPropNameInTable="IS_Hide_Class_PositionColumn" msprop:Generator_ColumnPropNameInRow="IS_Hide_Class_Position" msprop:Generator_UserColumnName="IS_Hide_Class_Position" msprop:Generator_ColumnVarNameInTable="columnIS_Hide_Class_Position" type="xs:boolean" minOccurs="0" />
+              <xs:element name="Average" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="AverageColumn" msprop:Generator_ColumnPropNameInRow="Average" msprop:Generator_UserColumnName="Average" msprop:Generator_ColumnVarNameInTable="columnAverage" type="xs:double" minOccurs="0" />
+              <xs:element name="NotGolden" msprop:Generator_ColumnPropNameInTable="NotGoldenColumn" msprop:Generator_ColumnPropNameInRow="NotGolden" msprop:Generator_UserColumnName="NotGolden" msprop:Generator_ColumnVarNameInTable="columnNotGolden" type="xs:boolean" minOccurs="0" />
+              <xs:element name="Student_Comments" msprop:Generator_ColumnPropNameInTable="Student_CommentsColumn" msprop:Generator_ColumnPropNameInRow="Student_Comments" msprop:Generator_UserColumnName="Student_Comments" msprop:Generator_ColumnVarNameInTable="columnStudent_Comments" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Phone" msprop:Generator_ColumnPropNameInTable="PhoneColumn" msprop:Generator_ColumnPropNameInRow="Phone" msprop:Generator_UserColumnName="Phone" msprop:Generator_ColumnVarNameInTable="columnPhone" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="TotalLateAbs" msprop:Generator_ColumnPropNameInTable="TotalLateAbsColumn" msprop:Generator_ColumnPropNameInRow="TotalLateAbs" msprop:Generator_UserColumnName="TotalLateAbs" msprop:Generator_ColumnVarNameInTable="columnTotalLateAbs" type="xs:int" minOccurs="0" />
+              <xs:element name="SubjectAbsenceStatus" msprop:Generator_ColumnPropNameInTable="SubjectAbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="SubjectAbsenceStatus" msprop:Generator_UserColumnName="SubjectAbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnSubjectAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="IS_Add_InExam" msprop:Generator_ColumnPropNameInTable="IS_Add_InExamColumn" msprop:Generator_ColumnPropNameInRow="IS_Add_InExam" msprop:Generator_UserColumnName="IS_Add_InExam" msprop:Generator_ColumnVarNameInTable="columnIS_Add_InExam" type="xs:boolean" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="SchoolInfo" msprop:Generator_RowEvHandlerName="SchoolInfoRowChangeEventHandler" msprop:Generator_RowDeletedName="SchoolInfoRowDeleted" msprop:Generator_RowDeletingName="SchoolInfoRowDeleting" msprop:Generator_RowEvArgName="SchoolInfoRowChangeEvent" msprop:Generator_TablePropName="SchoolInfo" msprop:Generator_RowChangedName="SchoolInfoRowChanged" msprop:Generator_UserTableName="SchoolInfo" msprop:Generator_RowChangingName="SchoolInfoRowChanging" msprop:Generator_RowClassName="SchoolInfoRow" msprop:Generator_TableClassName="SchoolInfoDataTable" msprop:Generator_TableVarName="tableSchoolInfo">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="SchoolName" msprop:Generator_ColumnPropNameInTable="SchoolNameColumn" msprop:Generator_ColumnPropNameInRow="SchoolName" msprop:Generator_UserColumnName="SchoolName" msprop:Generator_ColumnVarNameInTable="columnSchoolName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SchoolLogo" msprop:Generator_ColumnPropNameInTable="SchoolLogoColumn" msprop:Generator_ColumnPropNameInRow="SchoolLogo" msprop:Generator_UserColumnName="SchoolLogo" msprop:Generator_ColumnVarNameInTable="columnSchoolLogo" type="xs:base64Binary" minOccurs="0" />
+              <xs:element name="Address" msprop:Generator_ColumnPropNameInTable="AddressColumn" msprop:Generator_ColumnPropNameInRow="Address" msprop:Generator_UserColumnName="Address" msprop:Generator_ColumnVarNameInTable="columnAddress" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Cumuletive_Grading_System" msprop:Generator_RowEvHandlerName="Cumuletive_Grading_SystemRowChangeEventHandler" msprop:Generator_RowDeletedName="Cumuletive_Grading_SystemRowDeleted" msprop:Generator_RowDeletingName="Cumuletive_Grading_SystemRowDeleting" msprop:Generator_RowEvArgName="Cumuletive_Grading_SystemRowChangeEvent" msprop:Generator_TablePropName="Cumuletive_Grading_System" msprop:Generator_RowChangedName="Cumuletive_Grading_SystemRowChanged" msprop:Generator_UserTableName="Cumuletive_Grading_System" msprop:Generator_RowChangingName="Cumuletive_Grading_SystemRowChanging" msprop:Generator_RowClassName="Cumuletive_Grading_SystemRow" msprop:Generator_TableClassName="Cumuletive_Grading_SystemDataTable" msprop:Generator_TableVarName="tableCumuletive_Grading_System">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Grades" msprop:Generator_ColumnPropNameInTable="GradesColumn" msprop:Generator_ColumnPropNameInRow="Grades" msprop:Generator_UserColumnName="Grades" msprop:Generator_ColumnVarNameInTable="columnGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MARKS" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="MARKSColumn" msprop:Generator_ColumnPropNameInRow="MARKS" msprop:Generator_UserColumnName="MARKS" msprop:Generator_ColumnVarNameInTable="columnMARKS" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="65" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Comments" msprop:Generator_ColumnPropNameInTable="CommentsColumn" msprop:Generator_ColumnPropNameInRow="Comments" msprop:Generator_UserColumnName="Comments" msprop:Generator_ColumnVarNameInTable="columnComments" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Point" msprop:Generator_ColumnPropNameInTable="PointColumn" msprop:Generator_ColumnPropNameInRow="Point" msprop:Generator_UserColumnName="Point" msprop:Generator_ColumnVarNameInTable="columnPoint" type="xs:double" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="BoardResult" msprop:Generator_RowEvHandlerName="BoardResultRowChangeEventHandler" msprop:Generator_RowDeletedName="BoardResultRowDeleted" msprop:Generator_RowDeletingName="BoardResultRowDeleting" msprop:Generator_RowEvArgName="BoardResultRowChangeEvent" msprop:Generator_TablePropName="BoardResult" msprop:Generator_RowChangedName="BoardResultRowChanged" msprop:Generator_UserTableName="BoardResult" msprop:Generator_RowChangingName="BoardResultRowChanging" msprop:Generator_RowClassName="BoardResultRow" msprop:Generator_TableClassName="BoardResultDataTable" msprop:Generator_TableVarName="tableBoardResult">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="SchoolName" msprop:Generator_ColumnPropNameInTable="SchoolNameColumn" msprop:Generator_ColumnPropNameInRow="SchoolName" msprop:Generator_UserColumnName="SchoolName" msprop:Generator_ColumnVarNameInTable="columnSchoolName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SchoolLogo" msprop:Generator_ColumnPropNameInTable="SchoolLogoColumn" msprop:Generator_ColumnPropNameInRow="SchoolLogo" msprop:Generator_UserColumnName="SchoolLogo" msprop:Generator_ColumnVarNameInTable="columnSchoolLogo" type="xs:base64Binary" minOccurs="0" />
+              <xs:element name="Address" msprop:Generator_ColumnPropNameInTable="AddressColumn" msprop:Generator_ColumnPropNameInRow="Address" msprop:Generator_UserColumnName="Address" msprop:Generator_ColumnVarNameInTable="columnAddress" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="500" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ID" msprop:Generator_ColumnPropNameInTable="IDColumn" msprop:Generator_ColumnPropNameInRow="ID" msprop:Generator_UserColumnName="ID" msprop:Generator_ColumnVarNameInTable="columnID">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentsName" msprop:Generator_ColumnPropNameInTable="StudentsNameColumn" msprop:Generator_ColumnPropNameInRow="StudentsName" msprop:Generator_UserColumnName="StudentsName" msprop:Generator_ColumnVarNameInTable="columnStudentsName">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Class" msprop:Generator_ColumnPropNameInTable="ClassColumn" msprop:Generator_ColumnPropNameInRow="Class" msprop:Generator_UserColumnName="Class" msprop:Generator_ColumnVarNameInTable="columnClass" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="RollNo" msprop:Generator_ColumnPropNameInTable="RollNoColumn" msprop:Generator_ColumnPropNameInRow="RollNo" msprop:Generator_UserColumnName="RollNo" msprop:Generator_ColumnVarNameInTable="columnRollNo" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Shift" msprop:Generator_ColumnPropNameInTable="ShiftColumn" msprop:Generator_ColumnPropNameInRow="Shift" msprop:Generator_UserColumnName="Shift" msprop:Generator_ColumnVarNameInTable="columnShift" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Section" msprop:Generator_ColumnPropNameInTable="SectionColumn" msprop:Generator_ColumnPropNameInRow="Section" msprop:Generator_UserColumnName="Section" msprop:Generator_ColumnVarNameInTable="columnSection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectGroup" msprop:Generator_ColumnPropNameInTable="SubjectGroupColumn" msprop:Generator_ColumnPropNameInRow="SubjectGroup" msprop:Generator_UserColumnName="SubjectGroup" msprop:Generator_ColumnVarNameInTable="columnSubjectGroup" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectName" msprop:Generator_ColumnPropNameInTable="SubjectNameColumn" msprop:Generator_ColumnPropNameInRow="SubjectName" msprop:Generator_UserColumnName="SubjectName" msprop:Generator_ColumnVarNameInTable="columnSubjectName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ExamName" msprop:Generator_ColumnPropNameInTable="ExamNameColumn" msprop:Generator_ColumnPropNameInRow="ExamName" msprop:Generator_UserColumnName="ExamName" msprop:Generator_ColumnVarNameInTable="columnExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubExamName" msprop:Generator_ColumnPropNameInTable="SubExamNameColumn" msprop:Generator_ColumnPropNameInRow="SubExamName" msprop:Generator_UserColumnName="SubExamName" msprop:Generator_ColumnVarNameInTable="columnSubExamName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MarksObtained" msprop:Generator_ColumnPropNameInTable="MarksObtainedColumn" msprop:Generator_ColumnPropNameInRow="MarksObtained" msprop:Generator_UserColumnName="MarksObtained" msprop:Generator_ColumnVarNameInTable="columnMarksObtained" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofSubject" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofSubjectColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofSubject" msprop:Generator_UserColumnName="ObtainedMark_ofSubject" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofSubject" type="xs:double" minOccurs="0" />
+              <xs:element name="SubjectGrades" msprop:Generator_ColumnPropNameInTable="SubjectGradesColumn" msprop:Generator_ColumnPropNameInRow="SubjectGrades" msprop:Generator_UserColumnName="SubjectGrades" msprop:Generator_ColumnVarNameInTable="columnSubjectGrades" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectPoint" msprop:Generator_ColumnPropNameInTable="SubjectPointColumn" msprop:Generator_ColumnPropNameInRow="SubjectPoint" msprop:Generator_UserColumnName="SubjectPoint" msprop:Generator_ColumnVarNameInTable="columnSubjectPoint" type="xs:double" minOccurs="0" />
+              <xs:element name="TotalMark_ofStudent" msprop:Generator_ColumnPropNameInTable="TotalMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="TotalMark_ofStudent" msprop:Generator_UserColumnName="TotalMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnTotalMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedMark_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedMark_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedMark_ofStudent" msprop:Generator_UserColumnName="ObtainedMark_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedMark_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="ObtainedPercentage_ofStudent" msprop:Generator_ColumnPropNameInTable="ObtainedPercentage_ofStudentColumn" msprop:Generator_ColumnPropNameInRow="ObtainedPercentage_ofStudent" msprop:Generator_UserColumnName="ObtainedPercentage_ofStudent" msprop:Generator_ColumnVarNameInTable="columnObtainedPercentage_ofStudent" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Point" msprop:Generator_ColumnPropNameInTable="Student_PointColumn" msprop:Generator_ColumnPropNameInRow="Student_Point" msprop:Generator_UserColumnName="Student_Point" msprop:Generator_ColumnVarNameInTable="columnStudent_Point" type="xs:double" minOccurs="0" />
+              <xs:element name="Student_Grade" msprop:Generator_ColumnPropNameInTable="Student_GradeColumn" msprop:Generator_ColumnPropNameInRow="Student_Grade" msprop:Generator_UserColumnName="Student_Grade" msprop:Generator_ColumnVarNameInTable="columnStudent_Grade" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_Student" msprop:Generator_ColumnPropNameInTable="PassStatus_StudentColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Student" msprop:Generator_UserColumnName="PassStatus_Student" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Student" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubject" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubject" msprop:Generator_UserColumnName="PassStatus_InSubject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_InSubExam" msprop:Generator_ColumnPropNameInTable="PassStatus_InSubExamColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_InSubExam" msprop:Generator_UserColumnName="PassStatus_InSubExam" msprop:Generator_ColumnVarNameInTable="columnPassStatus_InSubExam" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="StudentAbsenceStatus" msprop:Generator_ColumnPropNameInTable="StudentAbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="StudentAbsenceStatus" msprop:Generator_UserColumnName="StudentAbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnStudentAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PassStatus_Subject" msprop:Generator_ColumnPropNameInTable="PassStatus_SubjectColumn" msprop:Generator_ColumnPropNameInRow="PassStatus_Subject" msprop:Generator_UserColumnName="PassStatus_Subject" msprop:Generator_ColumnVarNameInTable="columnPassStatus_Subject" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="AbsenceStatus" msprop:Generator_ColumnPropNameInTable="AbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="AbsenceStatus" msprop:Generator_UserColumnName="AbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SubjectType" msprop:Generator_ColumnPropNameInTable="SubjectTypeColumn" msprop:Generator_ColumnPropNameInRow="SubjectType" msprop:Generator_UserColumnName="SubjectType" msprop:Generator_ColumnVarNameInTable="columnSubjectType" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="10" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InSubject_Class" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="Position_InSubject_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Class" msprop:Generator_UserColumnName="Position_InSubject_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="52" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InSubject_Subsection" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="Position_InSubject_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InSubject_Subsection" msprop:Generator_UserColumnName="Position_InSubject_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InSubject_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="52" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InExam_Class" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="Position_InExam_ClassColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Class" msprop:Generator_UserColumnName="Position_InExam_Class" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Class" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="52" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Position_InExam_Subsection" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="Position_InExam_SubsectionColumn" msprop:Generator_ColumnPropNameInRow="Position_InExam_Subsection" msprop:Generator_UserColumnName="Position_InExam_Subsection" msprop:Generator_ColumnVarNameInTable="columnPosition_InExam_Subsection" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="52" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Phone" msprop:Generator_ColumnPropNameInTable="PhoneColumn" msprop:Generator_ColumnPropNameInRow="Phone" msprop:Generator_UserColumnName="Phone" msprop:Generator_ColumnVarNameInTable="columnPhone" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Sub_ExamSN" msdata:ReadOnly="true" msprop:Generator_ColumnPropNameInTable="Sub_ExamSNColumn" msprop:Generator_ColumnPropNameInRow="Sub_ExamSN" msprop:Generator_UserColumnName="Sub_ExamSN" msprop:Generator_ColumnVarNameInTable="columnSub_ExamSN" type="xs:int" minOccurs="0" />
+              <xs:element name="SubjectAbsenceStatus" msprop:Generator_ColumnPropNameInTable="SubjectAbsenceStatusColumn" msprop:Generator_ColumnPropNameInRow="SubjectAbsenceStatus" msprop:Generator_UserColumnName="SubjectAbsenceStatus" msprop:Generator_ColumnVarNameInTable="columnSubjectAbsenceStatus" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="IS_Add_InExam" msprop:Generator_ColumnPropNameInTable="IS_Add_InExamColumn" msprop:Generator_ColumnPropNameInRow="IS_Add_InExam" msprop:Generator_UserColumnName="IS_Add_InExam" msprop:Generator_ColumnVarNameInTable="columnIS_Add_InExam" type="xs:boolean" minOccurs="0" />
+              <xs:element name="DateofBirth" msprop:Generator_ColumnPropNameInTable="DateofBirthColumn" msprop:Generator_ColumnPropNameInRow="DateofBirth" msprop:Generator_UserColumnName="DateofBirth" msprop:Generator_ColumnVarNameInTable="columnDateofBirth" type="xs:dateTime" minOccurs="0" />
+              <xs:element name="FathersName" msprop:Generator_ColumnPropNameInTable="FathersNameColumn" msprop:Generator_ColumnPropNameInRow="FathersName" msprop:Generator_UserColumnName="FathersName" msprop:Generator_ColumnVarNameInTable="columnFathersName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MothersName" msprop:Generator_ColumnPropNameInTable="MothersNameColumn" msprop:Generator_ColumnPropNameInRow="MothersName" msprop:Generator_UserColumnName="MothersName" msprop:Generator_ColumnVarNameInTable="columnMothersName" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="50" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="EducationYear" msprop:Generator_ColumnPropNameInTable="EducationYearColumn" msprop:Generator_ColumnPropNameInRow="EducationYear" msprop:Generator_UserColumnName="EducationYear" msprop:Generator_ColumnVarNameInTable="columnEducationYear" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="128" />
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="Last_Published_Date" msprop:Generator_ColumnPropNameInTable="Last_Published_DateColumn" msprop:Generator_ColumnPropNameInRow="Last_Published_Date" msprop:Generator_UserColumnName="Last_Published_Date" msprop:Generator_ColumnVarNameInTable="columnLast_Published_Date" type="xs:dateTime" minOccurs="0" />
+              <xs:element name="SubjectSN" msprop:Generator_ColumnPropNameInTable="SubjectSNColumn" msprop:Generator_ColumnPropNameInRow="SubjectSN" msprop:Generator_UserColumnName="SubjectSN" msprop:Generator_ColumnVarNameInTable="columnSubjectSN" type="xs:int" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -1,0 +1,91 @@
+﻿
+
+
+/*Category Section*/
+.Category-Section .mGrid th { background-color: #fff !important; border: 1px solid #ddd; color: #6f6f6f; font-size: 14px; padding: 5px; }
+
+.box { color: #fff; padding: 10px 0 10px 6px; margin-top: 25px; }
+.Account-box { background-color: #00acec; }
+.Income-box { background-color: #49bf67; }
+.Expense-box { background-color: #f34541; }
+.User-box { background-color: #9564e2; }
+
+.Acc_Footer {background-color:#00ACEC }
+.Acc_Footer td {color:#fff; border:none;  font-size: 15px; }
+/*All Payment Section*/
+.All_Payment-Section { background-color: #fff; border: 1px solid #ddd; border-radius: 3px;}
+
+.All_Payment-Section .Title-f-size { font-size: 17px; font-weight: normal; padding: 13px 0; text-align: right; }
+.All_Payment-Section h2 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size:20px;}
+
+.All-session-Title { background-color: #e7e7e7; border-bottom: 2px solid #cbcbcb; clear: both; margin-bottom: 20px; padding: 11px 0 10px 15px; }
+.All-session-Title h2 { margin: 0; font-size: 19px; color: #828282; }
+
+.Income-widget > .P-Heading { background-color: #10c8a2; color: #fff; font-size: 37px; font-weight: bold; padding: 14px 8px 10px; border-top-left-radius: 3px; border-top-right-radius: 3px; }
+.Income-widget > .P-Footer { background-color: #0cbc96; border-top: 1px solid #19af89; font-size: 14px; padding: 6px 20px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; }
+
+.Expense-widget > .P-Heading { background-color: #F13C3C; color: #fff; font-size: 37px; font-weight: bold; padding: 14px 8px 10px; border-top-left-radius: 3px; border-top-right-radius: 3px; }
+.Expense-widget > .P-Footer { background-color: #F45E5E; border-top: 1px solid #db4545; font-size: 14px; padding: 6px 20px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; }
+
+.Net-widget > .P-Heading { background-color: #603CBA; color: #fff; font-size: 37px; font-weight: bold; padding: 14px 8px 10px; border-top-left-radius: 3px; border-top-right-radius: 3px; }
+.Net-widget > .P-Footer { background-color: #704cca; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; border-top: 1px solid #5430ae; font-size: 14px; padding: 6px 20px; }
+
+
+
+/*Student Section*/
+
+.Student-Title h2 { margin: 0; font-size:14px; color: #333; }
+
+.Fees-section { padding: 18px 10px; text-align: center;}
+.Fees-section h2 { margin: 0; font-size:17px; overflow: hidden; text-overflow: ellipsis; -ms-text-overflow:ellipsis; -o-text-overflow:ellipsis; white-space: nowrap; }
+.Fees-section small { font-size: 14px; }
+
+.Payorder-bg { background-color: #009688; color: #fff; }
+.Latefee-bg { background-color: #FF9800; color: #fff; }
+.Concession-bg { background-color: #00BCD4; color: #fff;}
+
+.Paid-bg { background-color: #8BC34A; color: #fff; }
+.Unpaid-bg { background-color: #E91E63; color: #fff; }
+
+
+.Paid-bg > .P-Footer { background-color: #73ab32; border-top: 1px solid #6ca42b; font-size: 15px; padding: 5px; text-align: center; }
+.Unpaid-bg > .P-Footer { background-color: #cf0a4f; border-top: 1px solid #c90146; font-size: 15px; padding: 5px; text-align: center; }
+.Payorder-bg > .P-Footer { background-color: #008476; border-top: 1px solid #038072;  font-size: 15px; padding: 5px; text-align: center; }
+.Latefee-bg > .P-Footer { background-color: #ed8602; border-top: 1px solid #e9820a; font-size: 15px; padding: 5px; text-align: center; }
+.Concession-bg > .P-Footer { background-color: #00adc5; border-top: 1px solid #01a8c0; font-size: 15px; padding: 5px; text-align: center; }
+
+
+/*Session Section*/
+
+.Session-Section {margin-top:50px;}
+.Session-Section h2 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.Session-Title {background-color: #e7e7e7; border-bottom: 2px solid #cbcbcb; clear: both; margin-bottom: 20px; padding: 10px 0 10px 15px; }
+ .Session-Title h2 { color: #828282; font-size: 20px; margin: 0; }
+.session-date{ font-size:12px; color:#333;}
+
+.Payorder-paid { margin:30px 0}
+
+.Session-Total-amt { border:1px solid #9b9b9b;}
+ .Session-Total-amt > .P-Heading { background-color: #ffffff; color: #9b9b9b; font-size: 37px; font-weight: bold; padding: 20px 10px; }
+ .Session-Total-amt > .P-Footer { background-color: #9b9b9b; border-top: 1px solid #9d9d9d; color: #fff; font-size: 12px; padding: 0 10px; }
+
+.Session-Total-amt h2 { color: #73879C; font-size: 24px;}
+.Session-Section .Title-f-size { font-size: 17px; font-weight: normal; padding: 2px 0;}
+
+
+.s-Paid-bg, .s-Unpaid-bg, .s-Payorder-bg, .s-Latefee-bg, .s-Concession-bg { border:1px solid #ddd}
+
+.s-Paid-bg > .P-Footer { background-color: #73ab32; border-top: 1px solid #6ca42b; font-size: 15px; padding: 5px; text-align: center; }
+.s-Unpaid-bg > .P-Footer { background-color: #cf0a4f; border-top: 1px solid #c90146; font-size: 15px; padding: 5px; text-align: center; }
+.s-Payorder-bg > .P-Footer { background-color: #008476; border-top: 1px solid #038072; font-size: 15px; padding: 5px; text-align: center; }
+.s-Latefee-bg > .P-Footer { background-color: #ed8602; border-top: 1px solid #e9820a; font-size: 15px; padding: 5px; text-align: center; }
+.s-Concession-bg > .P-Footer { background-color: #00adc5; border-top: 1px solid #01a8c0; font-size: 15px; padding: 5px; text-align: center; }
+
+
+.P-Footer a { color:#fff !important;}
+.P-Footer a:hover { color:#ddd !important;}
+
+.Paid-link a:hover {text-decoration:none; }
+
+

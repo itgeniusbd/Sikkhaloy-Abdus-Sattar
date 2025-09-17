@@ -1,0 +1,38 @@
+﻿
+.student-photo { flex-shrink: 0; padding-right: 1rem }
+.student-photo img { height: 160px; width: 160px; }
+
+/*student active status*/
+.student-activation { text-align:center;font-size:0.9rem;font-weight:bold;}
+.active-status {color:#00C851}
+.active-status:before { margin-right: 3px; content: '\f058'; font-family: 'fontawesome'; color: #00C851 }
+
+.in-active-status { color: #ff4444 }
+.in-active-status:before { margin-right: 3px; content: '\f057'; font-family: 'fontawesome'; color: #ff4444 }
+
+.info {width:100%;}
+.info ul{ margin:0;  padding:0}
+.info ul li { border-bottom:1px solid #d6e0eb; color: #5d6772; font-size: 15px; line-height: 23px; list-style: outside none none; margin: 6px 0 0; padding-bottom: 5px; padding-left: 2px; }
+.info ul li:last-child { border-bottom: none; }
+
+
+.current-due-total { background-color: #2196f3; border-bottom: 4px solid #077cd9; color: #dae4ef; font-size: 18px; font-weight: bold; margin: 3px 0 20px; padding: 10px; }
+
+/*applied css in code behind*/
+.curremt-due td { color: #dc0000 }
+.others-payment { background-color: #5fc42a; color: #fff }
+
+.mGrid td { padding: 0.2rem 0.5rem; font-weight: 400; }
+.mGrid tr:nth-child(even) {background: #f6f6f6}
+.mGrid tr:nth-child(odd) {background: #fff}
+
+#total-pay-amount { font-weight: bold }
+#payment-submit { display: none }
+
+.row-selected td { background-color: #1CAA56; color: #fff; font-weight: bold; }
+
+#grand-total-fixed {display:none; opacity: 0.95; position: fixed; width: 87%; background: #fff; bottom: 0; box-shadow: 0 0 16px -1px rgba(40, 40, 40, 0.75); margin-left: -15px; text-align: center; font-size: 1.5rem; font-weight: bold; padding: 1.5rem 0; z-index: 999; }
+
+@media (max-width: 767.98px) {
+    #grand-total-fixed { width: 100%; }
+}

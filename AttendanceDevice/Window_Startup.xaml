@@ -1,0 +1,60 @@
+﻿<Window
+    x:Class="AttendanceDevice.Window_Startup"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:gif="http://wpfanimatedgif.codeplex.com"
+    xmlns:local="clr-namespace:AttendanceDevice"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Window_Startup"
+    Width="550"
+    Height="150"
+    AllowsTransparency="True"
+    Background="Transparent"
+    Icon="Resources/Sikkhaloy.ico"
+    Loaded="Window_Loaded"
+    MouseDown="Window_MouseDown"
+    ResizeMode="NoResize"
+    Topmost="True"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="None"
+    mc:Ignorable="d">
+
+    <Border Margin="10">
+        <Border.Effect>
+            <DropShadowEffect
+                BlurRadius="10"
+                Direction="270"
+                ShadowDepth="3"
+                Color="#777" />
+        </Border.Effect>
+        <Grid Background="#FF00C651">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="auto" />
+            </Grid.RowDefinitions>
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <Image
+                    Width="70"
+                    gif:ImageBehavior.AnimatedSource="Resources/Sikk_Loading.gif"
+                    gif:ImageBehavior.RepeatBehavior="3x" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontFamily="Tahoma"
+                    FontSize="25"
+                    FontWeight="Bold"
+                    Foreground="#fff"
+                    Text="SIKKHALOY ATTENDANCE SYSTEM"
+                    TextAlignment="Center" />
+            </StackPanel>
+            <StackPanel
+                Grid.Row="1"
+                Height="20"
+                Background="#FF068D3D" />
+        </Grid>
+    </Border>
+</Window>

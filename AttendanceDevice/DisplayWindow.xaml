@@ -1,0 +1,250 @@
+﻿<Window
+    x:Class="AttendanceDevice.DisplayWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:AttendanceDevice"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:browser="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    Title="Display"
+    MinWidth="600"
+    MinHeight="600"
+    Background="{DynamicResource MaterialDesignPaper}"
+    FontFamily="{DynamicResource MaterialDesignFont}"
+    Icon="Resources/Sikkhaloy.ico"
+    Loaded="Window_Loaded"
+    TextElement.FontSize="13"
+    TextElement.FontWeight="Regular"
+    TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+    TextOptions.TextFormattingMode="Ideal"
+    TextOptions.TextRenderingMode="Auto"
+    WindowStartupLocation="CenterScreen"
+    WindowState="Maximized"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+        <BitmapImage x:Key="DefaultLogo" UriSource="/AttendanceDevice;component/Resources/Sikkhaloy.ico" />
+        <BitmapImage x:Key="DefaultImage" UriSource="Resources/Default.png" />
+
+        <Style x:Key="CountDataStyle" TargetType="materialDesign:Badged">
+            <Setter Property="BadgeBackground" Value="#f44336" />
+            <Style.Triggers>
+                <Trigger Property="Badge" Value="0">
+                    <Setter Property="BadgeBackground" Value="Gray" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid Panel.ZIndex="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!--  Header  -->
+            <materialDesign:ColorZone
+                Padding="0,8"
+                materialDesign:ShadowAssist.ShadowDepth="Depth3"
+                Background="#FFFFFFFF">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="0,0,0,5" Background="#3E4551">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Margin="0,5" Orientation="Horizontal">
+                            <materialDesign:PopupBox Foreground="#DDFFFFFF" PlacementMode="BottomAndAlignLeftEdges">
+                                <StackPanel>
+                                    <Button
+                                        Click="Sikkhaloy_Click"
+                                        Style="{StaticResource MaterialDesignFlatButton}"
+                                        ToolTip="sikkhaloy.com">
+                                        Online Display
+                                    </Button>
+                                    <Button
+                                        Click="LoopsIT_Click"
+                                        Style="{StaticResource MaterialDesignFlatButton}"
+                                        ToolTip="loopsit.com">
+                                        Loops IT
+                                    </Button>
+                                </StackPanel>
+                            </materialDesign:PopupBox>
+                            <Image
+                                Height="30"
+                                VerticalAlignment="Center"
+                                Source="Resources/Sikkhaloy.ico" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock
+                                    Margin="5,0,0,0"
+                                    FontSize="15"
+                                    FontWeight="Bold"
+                                    Foreground="#fff"
+                                    Text="SIKKHALOY" />
+                                <TextBlock
+                                    Margin="5,-3,0,0"
+                                    FontSize="9.5"
+                                    Foreground="#FFA6A6A6"
+                                    Text="Attendance System" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal">
+                            <TextBlock
+                                x:Name="DeviceError"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Foreground="#ffeb3b" />
+
+                            <materialDesign:Badged
+                                Name="countDevice"
+                                VerticalAlignment="Center"
+                                Badge="0"
+                                BadgeBackground="#FF40B754"
+                                BadgeForeground="#fff">
+                                <Button
+                                    x:Name="btnReconnect"
+                                    Height="auto"
+                                    Padding="0"
+                                    Background="{x:Null}"
+                                    BorderBrush="{x:Null}"
+                                    Click="BtnReConnect_Device_Click">
+                                    <materialDesign:PackIcon
+                                        Width="25"
+                                        Height="25"
+                                        Foreground="White"
+                                        Kind="Monitors"
+                                        ToolTip="Click To Re-Connect Device" />
+                                </Button>
+                            </materialDesign:Badged>
+
+                            <materialDesign:Badged
+                                Name="countRecord"
+                                Margin="20,0"
+                                VerticalAlignment="Center"
+                                Badge="0"
+                                BadgeColorZoneMode="Standard"
+                                BadgeForeground="#fff"
+                                Style="{StaticResource CountDataStyle}">
+                                <materialDesign:PackIcon
+                                    Width="27"
+                                    Height="27"
+                                    Foreground="#fff"
+                                    Kind="Database"
+                                    ToolTip="Attendance Log" />
+                            </materialDesign:Badged>
+                            <Button
+                                x:Name="btnSetting"
+                                Margin="10,0,0,0"
+                                Background="{x:Null}"
+                                BorderBrush="{x:Null}"
+                                Click="Setting_Button_Click"
+                                ToolTip="Setting">
+                                <materialDesign:PackIcon
+                                    Width="25"
+                                    Height="25"
+                                    Foreground="#fff"
+                                    Kind="HamburgerMenu" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="1" MaxHeight="110">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{Binding ActualHeight, ElementName=InstitutionName}" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Image
+                            Margin="5,0,0,0"
+                            VerticalAlignment="Center"
+                            Source="{Binding Logo, TargetNullValue={StaticResource DefaultLogo}}"
+                            Stretch="Uniform" />
+                        <Viewbox
+                            Name="InstitutionName"
+                            Grid.Column="1"
+                            Margin="0,0,5,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontWeight="Heavy"
+                                Text="{Binding InstitutionName}" />
+                        </Viewbox>
+                    </Grid>
+                </Grid>
+            </materialDesign:ColorZone>
+
+            <!--  Main  -->
+            <Grid Panel.ZIndex="1" Grid.Row="1" Margin="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.2*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Margin="0 0 15 0">
+                    <materialDesign:Card
+                        Name="UserDataGrid"
+                        materialDesign:ShadowAssist.ShadowDepth="Depth2">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
+
+                            <Image MaxWidth="500" Source="{Binding ImgLink, FallbackValue={StaticResource DefaultImage}}"/>
+                            <Grid Grid.Row="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="50" />
+                                </Grid.RowDefinitions>
+                                <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock
+                                FontWeight="Black"
+                                Margin="5"
+                                Foreground="#000"
+                                Text="{Binding Name}"
+                                TextAlignment="Center" />
+                                </Viewbox>
+
+                                <Viewbox Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock
+                                        Margin="5"
+                                FontWeight="Bold"
+                                Foreground="#4285F4"
+                                Text="{Binding Enroll_Time, StringFormat=dd MMM yyyy (hh:mm tt)}"
+                                TextAlignment="Center" />
+                                </Viewbox>
+
+                                <Viewbox Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock
+                                Margin="5"
+                                FontWeight="Bold"
+                                Foreground="#333"
+                                Text="{Binding ID}"
+                                TextAlignment="Center" />
+                                </Viewbox>
+                            </Grid>
+                        </Grid>
+                    </materialDesign:Card>
+                </StackPanel>
+
+                <DockPanel Grid.Column="1">
+                    <browser:WebView2 Name="webView" />
+                </DockPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

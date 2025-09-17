@@ -1,0 +1,30 @@
+﻿
+.user-grid {color: #fff; border:1px solid #ddd; padding:10px; margin-bottom:8px; border-radius: 3px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);}
+.user-grid .headline { font-size: 1em; margin-bottom: 3px; line-height: 1.4;}
+.user-grid .headline p { font-size:12px; margin:0}
+.user-grid .value { font-size: 18px; font-weight: bold; margin-top: 5px; }
+
+.Account-bg{ background-color:#01A8FE;padding: 18px 10px;}
+.In_Out-bg{ background-color:#E91E63;padding: 18px 10px;}
+.Bef-after-bg{ background-color:#5C6BC0}
+
+.acc-name { font-size: 20px; margin:7px 0; font-weight:bold;}
+.find-date { font-size: 8pt; font-weight: normal; line-height:13px; }
+
+
+#b-Section .mGrid th { background-color: #fff; border: 1px solid #ddd; }
+#b-Section .mGrid th > a{ color: #6f6f6f; font-size: 14px; padding: 5px; }
+
+.box { color: #fff; font-size: 14px; margin-top: 28px; padding: 3px 8px; }
+.b-add{ background-color: #53cb97}
+.b-add-adjt{ background-color:#46BE8A}
+
+.b-subs{ background-color:#EC407A}
+.b-subs-adjt{ background-color: #C2185B}
+
+.b-add, .b-add-adjt, .b-subs, .b-subs-adjt {display:none;}
+
+@media print {
+.well { background-color:#fff; border:none; border-radius:0; box-shadow:none; margin-bottom: 20px; padding:0;}
+.box { font-size: 17px; border-bottom:1px solid #ddd; padding-bottom:3px;}
+}

@@ -1,0 +1,26 @@
+﻿
+.Class_Info { font-size:20px; color:#000;}
+.Att_Summary{ font-size:20px; color:#000;}
+
+@page{margin:0.5cm}
+@media print {
+    .Site_Navigation, .footer, .Category, .UserPanel, .btn btn-primary, #Print, .pgr, .NoPrint,.panel-heading { display: none; }
+    .maincontain { width: 100%; margin-left: 0; float: none; padding: 0; }
+    .headerBack { margin-bottom: 10px; }
+    .ManuWraper { padding: 0 20px; height: 100px; }
+    .SchoolLogo { margin-top: 13px; }
+    .SchoolLogo img { height: 70px; }
+    .S_Name { font-size: 29px; margin: 30px 0 0 10px; }
+
+
+    h3 { color: #000; font-size: 20px; font-weight: 400; margin: 0; margin-bottom: 10px; text-align: center; background-color: #fff; font-family: Tahoma; }
+
+    .mGrid th { border: 1px solid #333; }
+    .mGrid th a { font-size: 14px; color: #000; }
+    .mGrid td { border: 1px solid #333; font-size: 13px; padding: 5px 3px; color: #000; }
+    .mGrid td a { font-size: 13px; text-align: left; color: #000; }
+
+    .panel { margin-bottom: 0; border: none; border-radius: 0; box-shadow: none; }
+    .panel-body { padding:0; }
+}
+

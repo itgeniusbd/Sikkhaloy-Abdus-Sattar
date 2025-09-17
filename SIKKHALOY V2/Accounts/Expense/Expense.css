@@ -1,0 +1,25 @@
+﻿
+#ErMsg {color:#1ab931; }
+.TotalEx { margin-bottom:0;}
+.TotalEx label{ margin-bottom:0;}
+
+@page { margin: 0.5cm; }
+
+@media print {
+ .Site_Navigation, .footer, .UserPanel, .btn btn-primary, .NoPrint, .pgr, .SearchButton { display: none; }
+
+ .maincontain { width: 100%; padding:0; margin:0 }
+
+ h3 { color: #000; font-size: 20px; font-weight: 400; margin: 0; background-color: #fff; font-family: Tahoma; }
+
+ .mGrid th { border: 1px solid #333; }
+
+  .mGrid th a { font-size: 14px; color: #000; }
+
+ .mGrid td { border: 1px solid #333; font-size: 13px; padding: 5px 3px; color: #000; }
+
+  .mGrid td a { font-size: 13px; text-align: left; color: #000; }
+ .headerBack { margin-bottom: 10px; }
+
+ .Datetime { border: medium none; box-shadow: none; font-size: 17px; }
+}

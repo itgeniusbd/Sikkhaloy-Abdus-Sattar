@@ -1,0 +1,26 @@
+﻿
+
+.mGrid { width: 100%;text-align: center;border: none;}
+.mGrid th { padding: 0.3rem 0.1rem; border: 1px solid #717783; font-size: .9rem; font-weight: 400; background-color:#4B515D; color: #fff; }
+.mGrid th a {color:#fff}
+.mGrid th a:after {font-size: .71rem; content: '\f0dc'; font-family: 'Fontawesome'; padding-left: 3px; }
+
+.mGrid td { padding:0.3rem 0.2rem; border: 1px solid #dee2e6; color: #000; font-size: .9rem; font-weight: 300;}
+.mGrid > td > a {color: #006fff; font-size: .9rem; font-weight: 300; text-decoration: none; }
+
+.mGrid .pgr { background-color: #f2f2f2 !important; }
+.mGrid > tbody > .pgr:hover { background: #f2f2f2; }
+
+.mGrid .pgr table { margin: 3px 0; }
+.mGrid .pgr td { border-left: 1px solid #D0D0D0; border-width: 0 0 0 1px; color: #1da092; font-weight: bold; line-height: 12px; padding: 2px 6px; }
+.mGrid .pgr a { color: #000; text-decoration: none; }
+.mGrid .pgr a:hover { color: #000; text-decoration: none; }
+
+.mGrid .Selected { background-color: #eaeaea; }
+.mGrid .GridFooter { background-color:#4B515D; border: 1px solid #717783; font-weight: bold; padding: 5px; text-align: center; }
+.mGrid .GridFooter > td >label{margin-bottom:0;font-weight:bold;color: #fff !important; }
+
+@media (max-width: 767.98px) {
+    .mGrid th { white-space: nowrap; }
+    .mGrid th a { white-space: nowrap; }
+}

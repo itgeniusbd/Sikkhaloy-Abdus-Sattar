@@ -1,0 +1,63 @@
+﻿
+.word-style{ min-height:50rem;position:relative;}
+
+.TC_Head { text-align:center; font-size:30px; color:#333; margin-top:15px}
+.Head { color: #333; font-size: 17px; height:170px; line-height: 31px; margin: 20px 0; padding: 25px; text-align: justify; }
+
+.TC_Middle { color: #333; font-size: 16px; height: 300px; line-height: 31px; margin: 20px 0; padding-Left: 21px; }
+.TC_Middle ul li { list-style:none;}
+
+.Sign-head { border-top: 1px solid #b8b7b7; position:absolute;bottom:0; width:100%;}
+.Sign { color: #333; font-size: 17px; line-height: 36px;}
+
+
+input[type="checkbox"] { display: none; }
+input[type="checkbox"] + label { -moz-user-select: none; background-image: url("../../CSS/Image/CheckBox.png"); background-position: 7px 3px; background-repeat: no-repeat; cursor: pointer; display: inline-block; height: 21px; line-height: 24px; padding-left: 29px; vertical-align: middle; z-index: 20000; font-size: 16px; }
+input[type="checkbox"]:checked + label { -moz-user-select: none; background-image: url("../../CSS/Image/CheckBox.png"); background-position: 7px -19px; }
+
+.date-position{
+    float:right;
+    font-size:30px;
+    font-weight:bold;
+}
+.blink_text {
+    animation: 5s blinker linear infinite;
+    -webkit-animation: 5s blinker linear infinite;
+    -moz-animation: 5s blinker linear infinite;
+    font-size: 15px;
+    color: red;
+}
+
+@-moz-keyframes blinker {
+    0% { opacity: 1.0; }
+    50% { opacity: 0.0; }
+    100% { opacity: 1.0; }
+}
+
+@-webkit-keyframes blinker {
+    0% { opacity: 1.0; }
+    50% { opacity: 0.0; }
+    100% { opacity: 1.0; }
+}
+
+@keyframes blinker {
+    0% { opacity: 1.0; }
+    50% { opacity: 0.0; }
+    100% { opacity: 1.0; }
+}
+
+#ReadingDate { line-height: 0; max-width: 110px !important; text-align: center; }
+
+@page { margin: 0.5cm; }
+@media print {
+ .Site_Navigation, .footer, .UserPanel, .btn btn-primary, #Print, .ui-tabs .ui-tabs-nav, .pgr, .PrintPage, .NoPrint,.blink_text  { display: none; }
+ .maincontain { width: 100%; margin-left: 0; float: none; padding:0}
+ .headerBack { margin-bottom: 10px; }
+ .ManuWraper { padding: 0 20px;  height: 100px;}
+ .SchoolLogo { margin-top: 13px; }
+ .SchoolLogo img { height: 70px; }
+ .S_Name { font-size: 29px; margin: 30px 0 0 10px; }
+ input[type="checkbox"] + label {font-size: 16px;}
+
+ #ReadingDate{border:none; width:auto !important}
+}

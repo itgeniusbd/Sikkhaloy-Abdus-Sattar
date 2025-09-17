@@ -1,0 +1,16 @@
+﻿
+.DisableTextbox { border: 1px solid #c4c4c4; border-radius: 4px; box-shadow: 0 0 8px #d9d9d9; font-size: 13px; padding: 5px; background-color: #ddd; }
+.Clname { display: none; }
+.Help { color:#ff6a00;}
+.mGrid td > table td { border: none; }
+
+@page{ margin:0.5cm}
+@media print{ 
+.Site_Navigation, .Category,.UserPanel, .btn btn-primary,.footer,#Print,.NoPrint,h3{ display:none}
+.headerBack{ margin-bottom:10px}
+.maincontain { width: 100%; margin-left: 0; float: none; padding:0 }
+
+.Clname {display:block; color:#000; font-size:16px; font-weight:bold; margin:10px 0}
+.mGrid th{ font-size:14px; border:1px solid #a2a2a2}
+.mGrid td{ font-size:14px; padding:3px; color:#000; border:1px solid #a2a2a2}
+}

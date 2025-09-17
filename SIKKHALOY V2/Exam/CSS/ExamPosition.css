@@ -1,0 +1,24 @@
+﻿
+
+/*For Export To Word Data*/
+/*@page { mso-page-border-surround-header: no; mso-page-border-surround-footer: no; }
+@page Exam_Position{
+ size:21cm 29.7cm;
+ mso-page-orientation:portrait; 
+ margin: 0.7cm 0.7cm 0.7cm 0.7cm; 
+ mso-header-margin: 42.55pt;
+ mso-footer-margin: 49.6pt;
+ mso-paper-source: 0;
+ layout-grid: 18.0pt;
+}*/
+
+/*div.Exam_Position{ page: Exam_Position; }*/
+
+.mGrid td table td{border:none }
+
+.First { font-weight: bold; color: #fff; background: #0e8322; }
+.Second { font-weight: bold; color: #fff; background-color: #0c88a4; }
+.Third { font-weight: bold; color: #fff; background-color: #f39c00; }
+.RowColor {background-color:#ffb4a6; }
+.RowColor td table td{ text-align:center}
+

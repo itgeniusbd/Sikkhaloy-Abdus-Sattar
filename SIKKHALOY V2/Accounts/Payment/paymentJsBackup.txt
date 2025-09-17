@@ -1,0 +1,337 @@
+﻿<script type="text/javascript">
+        $(function () {
+            if ($(".Student-Status").text() == "Active") {
+                $(".Student-Status").addClass("Status-on");
+            } else {
+                $(".Student-Status").addClass("Status-off").removeClass("Status-on");
+            }
+
+            $('[id*=SearchIDTextBox]').typeahead({
+                minLength: 1,
+                source: function (request, result) {
+                    $.ajax({
+                        url: "/Handeler/Student_IDs.asmx/GetStudentID",
+                        data: JSON.stringify({ 'ids': request }),
+                        dataType: "json",
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        success: function (response) {
+                            result($.map(JSON.parse(response.d), function (item) {
+                                return item;
+                            }));
+                        }
+                    });
+                }
+            });
+
+            //press enter on ID_textbox
+            $("[id*=SearchIDTextBox]").on("keypress", function (e) {
+                var key = e.which;
+                if (key == 13)  // the enter key code
+                {
+                    $("[id*=SearchButton]").click();
+                    return false;
+                }
+            });
+
+
+            //Reset checkbox after Search clicking
+            $("[id*=SearchButton]").click(function () {
+                $(':checkbox').each(function () {
+                    this.checked = false;
+                    var td = $("td", $(this).closest("tr"));
+                    parseFloat($("[id*=DueAmountTextBox]", td).val($("[id*=DueLabel]", td).text()));
+                });
+            });
+
+            //Student Info FormView
+            if ($('#IDLabel').text() != "") {
+                $("#Add_P").show();
+            } else {
+                $("#Add_P").hide();
+            }
+
+            //All GridView is empty
+            if ($('[id*=DueGridView] tr').length || $('[id*=OtherSessionGridView] tr').length) {
+                $(".Pay_Show").show();
+            }
+
+            //others session GridView is empty
+            if ($('[id*=OtherSessionGridView] tr').length && $('[id*=DueGridView] tr').length) {
+                $(".All_session_Total").show();
+            }
+            else {
+                $(".All_session_Total").hide();
+            }
+
+
+            //Current Session
+            $("[id*=DueCheckBox]").prop('checked', false);
+
+            var total = 0;
+            var GV_Total1 = 0;
+            var GV_Total2 = 0;
+
+            $("[id*=DueCheckBox]").on("click", function () {
+                if ($(this).is(":checked")) {
+                    $("td", $(this).closest("tr")).addClass("selected"); //Selected Color
+                    var td = $("td", $(this).closest("tr"));
+                    $("[id*=DueAmountTextBox]", td).removeAttr("disabled");
+
+                    total += parseFloat($("[id*=DueAmountTextBox]", td).val());
+                    $("#GrandTotal").text(total);
+
+                    //Final Total
+                    GV_Total1 = parseFloat($("#GrandTotal").text());
+                    GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                    $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+
+                }
+                else {
+                    $("td", $(this).closest("tr")).removeClass("selected"); //Selected Color
+
+                    var td = $("td", $(this).closest("tr"));
+                    $("[id*=DueAmountTextBox]", td).attr("disabled", "disabled");
+
+                    if (isNaN(parseFloat($("[id*=DueAmountTextBox]", td).val()))) {
+                        parseFloat($("[id*=DueAmountTextBox]", td).val(0));
+                    }
+
+                    total -= parseFloat($("[id*=DueAmountTextBox]", td).val());
+                    $("#GrandTotal").text(total);
+
+                    //Final Total
+                    GV_Total1 = parseFloat($("#GrandTotal").text());
+                    GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                    $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+
+                    parseFloat($("[id*=DueAmountTextBox]", td).val($("[id*=DueLabel]", td).text()));
+
+                    $("#Error").text("");
+                    $("[id*=DueAmountTextBox]", td).removeClass("ErrorTextbox");
+                    $(".GTotal").css("color", "#5d6772");
+                    $("[id*=DueLabel]", td).css("color", "#333");
+                }
+            });
+
+            var KeyDown = true;
+            var KeyUP = true;
+            $("[id*=DueAmountTextBox]").on("keypress", function () {
+                if (!KeyDown) return;
+                var Focustotal = 0;
+                if (!isNaN(parseFloat($(this).val()))) {
+                    Focustotal = parseFloat($(this).val());
+                }
+
+                var gTotal = (total - Focustotal);
+                $("#GrandTotal").text(gTotal);
+                total = gTotal;
+
+                KeyUP = true;
+                KeyDown = false;
+
+                //Final Total
+                GV_Total1 = parseFloat($("#GrandTotal").text());
+                GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+            });
+
+            $("[id*=DueAmountTextBox]").on("keyup", function () {
+                if (!KeyUP) return;
+
+                //regex
+                var reg = /^([1-9]\d*)$/;
+                if (!reg.test($(this).val())) {
+                    $(this).val("");
+                    return;
+                }
+
+
+                var Change = 0;
+                if (!isNaN(parseFloat($(this).val()))) {
+                    Change = parseFloat($(this).val());
+                }
+
+                var gTotal = (total + Change);
+                $("#GrandTotal").text(gTotal);
+                total = gTotal;
+
+                KeyDown = true;
+                KeyUP = false;
+
+                var td = $("td", $(this).closest("tr"));
+                var DueAmount = parseFloat($("[id*=DueLabel]", td).text());
+                var PaidAmount = parseFloat($("[id*=DueAmountTextBox]", td).val());
+
+                if (PaidAmount > DueAmount) {
+                    $("#Error").text("Paid Amount Greater than due amount");
+                    $("[id*=DueAmountTextBox]", td).addClass("ErrorTextbox");
+                    $("[id*=PayButton]").prop("disabled", !0).removeClass("btn btn-primary");
+                    $(".GTotal").css("color", "red");
+                    $("[id*=DueLabel]", td).css("color", "red");
+                }
+                else {
+                    $("#Error").text("");
+                    $("[id*=DueAmountTextBox]", td).removeClass("ErrorTextbox");
+                    $("[id*=PayButton]").prop("disabled", !1).addClass("btn btn-primary");
+                    $(".GTotal").css("color", "#5d6772");
+                    $("[id*=DueLabel]", td).css("color", "#333");
+                }
+
+                //Final Total
+                GV_Total1 = parseFloat($("#GrandTotal").text());
+                GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+            });
+
+            //Others Session
+            $("[id*=Other_Session_CheckBox]").prop('checked', false);
+
+            var Others_total = 0;
+            var GV_Total1 = 0;
+            var GV_Total2 = 0;
+
+            $("[id*=Other_Session_CheckBox]").on("click", function () {
+                if ($(this).is(":checked")) {
+                    $("td", $(this).closest("tr")).addClass("selected"); //Selected Color
+                    var td = $("td", $(this).closest("tr"));
+                    $("[id*=Other_Session_AmountTextBox]", td).removeAttr("disabled");
+
+                    Others_total += parseFloat($("[id*=Other_Session_AmountTextBox]", td).val());
+                    $("#Others_GrandTotal").text(Others_total);
+
+                    //Final Total
+                    GV_Total1 = parseFloat($("#GrandTotal").text());
+                    GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                    $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+                }
+                else {
+                    $("td", $(this).closest("tr")).removeClass("selected"); //Selected Color
+
+                    var td = $("td", $(this).closest("tr"));
+                    $("[id*=Other_Session_AmountTextBox]", td).attr("disabled", "disabled");
+
+                    if (isNaN(parseFloat($("[id*=Other_Session_AmountTextBox]", td).val()))) {
+                        parseFloat($("[id*=Other_Session_AmountTextBox]", td).val(0));
+                    }
+
+                    Others_total -= parseFloat($("[id*=Other_Session_AmountTextBox]", td).val());
+                    $("#Others_GrandTotal").text(Others_total)
+
+                    parseFloat($("[id*=Other_Session_AmountTextBox]", td).val($("[id*=DueLabel]", td).text()));
+
+                    $("#Error_Others").text("");
+                    $("[id*=Other_Session_AmountTextBox]", td).removeClass("ErrorTextbox");
+                    $(".GTotal_Others").css("color", "#5d6772");
+                    $("[id*=DueLabel]", td).css("color", "#333");
+
+                    //Final Total
+                    GV_Total1 = parseFloat($("#GrandTotal").text());
+                    GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                    $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+                }
+            });
+
+            var KeyDown = true;
+            var KeyUP = true;
+            $("[id*=Other_Session_AmountTextBox]").on("keypress", function () {
+                if (!KeyDown) return;
+                var Focustotal = 0;
+                if (!isNaN(parseFloat($(this).val()))) {
+                    Focustotal = parseFloat($(this).val());
+                }
+
+                var gTotal = (Others_total - Focustotal);
+                $("#Others_GrandTotal").text(gTotal);
+                Others_total = gTotal;
+
+                KeyUP = true;
+                KeyDown = false;
+
+                //Final Total
+                GV_Total1 = parseFloat($("#GrandTotal").text());
+                GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+            });
+
+            $("[id*=Other_Session_AmountTextBox]").on("keyup", function () {
+                if (!KeyUP) return;
+
+                //rex
+                var reg = /^([1-9]\d*)$/;
+                if (!reg.test($(this).val())) {
+                    $(this).val("");
+                    return;
+                }
+
+                var Change = 0;
+                if (!isNaN(parseFloat($(this).val()))) {
+                    Change = parseFloat($(this).val());
+                }
+
+                var gTotal = (Others_total + Change);
+                $("#Others_GrandTotal").text(gTotal);
+                Others_total = gTotal;
+
+                KeyDown = true;
+                KeyUP = false;
+
+                var td = $("td", $(this).closest("tr"));
+                var DueAmount = parseFloat($("[id*=Other_Session_DueLabel]", td).text());
+                var PaidAmount = parseFloat($("[id*=Other_Session_AmountTextBox]", td).val());
+
+                if (PaidAmount > DueAmount) {
+                    $("#Error_Others").text("Paid Amount Greater than due amount");
+                    $("[id*=Other_Session_AmountTextBox]", td).addClass("ErrorTextbox");
+                    $("[id*=PayButton]").prop("disabled", !0).removeClass("btn btn-primary");
+                    $(".GTotal_Others").css("color", "red");
+                    $("[id*=Other_Session_DueLabel]", td).css("color", "red");
+                }
+                else {
+                    $("#Error_Others").text("");
+                    $("[id*=Other_Session_AmountTextBox]", td).removeClass("ErrorTextbox");
+                    $("[id*=PayButton]").prop("disabled", !1).addClass("btn btn-primary");
+                    $(".GTotal_Others").css("color", "#5d6772");
+                    $("[id*=Other_Session_DueLabel]", td).css("color", "#333");
+                }
+
+                //Final Total
+                GV_Total1 = parseFloat($("#GrandTotal").text());
+                GV_Total2 = parseFloat($("#Others_GrandTotal").text());
+                $("#All_Session_Total").text(GV_Total1 + GV_Total2);
+            });
+        });
+
+        Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (a, b) {
+            //Paid Grand Total
+            var PaidTotal = 0;
+            $("[id*=PaidAmountLabel]").each(function () { PaidTotal = PaidTotal + parseFloat($(this).text()) });
+            $("#PGTLabel").text(PaidTotal + " Tk");
+        });
+
+        function isNumberKey(a) { a = a.which ? a.which : event.keyCode; return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0 };
+
+        function DisableButton() { document.getElementById("<%=PayButton.ClientID %>").disabled = true; }
+
+        window.onbeforeunload = DisableButton;
+
+        function openModal() {
+            $('#myModal').modal('show');
+        }
+
+        function Success() {
+            var e = $('#Msg');
+            e.text("Payment Added Successfully!!");
+            e.fadeIn();
+            e.queue(function () { setTimeout(function () { e.dequeue(); }, 3000); });
+            e.fadeOut('slow');
+        }
+
+        //Working Reuired validator
+        function RFV() {
+            if (Page_ClientValidate('PaY')) {
+                return true;
+            }
+            return false;
+        }
+    </script>

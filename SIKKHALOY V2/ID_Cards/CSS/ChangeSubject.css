@@ -1,0 +1,23 @@
+﻿
+.Personal_Info { background-color: #fafafa; border: 1px solid #f2f2f2; padding: 6px 0 10px 10px; width: 73%; float: left; margin: 17px 0; }
+.Profile_Image { float: left; }
+.P_Image { background-color: #fff; border: 1px solid #f2f2f2; border-radius: 3px; height:100px; padding: 10px;  margin-top: 4px; }
+
+.Updt_Image { height: 80px; width: 60px; }
+.Info { float: left; margin-left: 1%; width: 73%;}
+.Info ul { margin: 0; padding: 0; }
+.Info ul li { background: #fff none repeat scroll 0 0; border: 1px solid #f2f2f2; color: #777; font-size: 13px; line-height: 26px; list-style: outside none none; margin: 4px 0 0; padding-left: 8px; }
+
+.Clname { display: none; }
+.Show { display:none}
+@page{ margin:0.5cm}
+@media print{ 
+.Site_Navigation, .Category,.UserPanel, .btn btn-primary,.footer,#Print,.NoPrint,h3,.H,#tabs{ display:none}
+.headerBack{ margin-bottom:10px}
+.maincontain { width: 100%; margin-left: 0; float: none; padding:0 }
+
+
+.Clname {display:block; color:#000; font-size:16px; font-weight:bold; margin:10px 0}
+.mGrid th{ font-size:14px; border:1px solid #a2a2a2}
+.mGrid td{ font-size:14px; padding:3px; color:#000; border:1px solid #a2a2a2}
+}

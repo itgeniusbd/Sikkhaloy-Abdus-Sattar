@@ -1,0 +1,30 @@
+﻿<Application
+    x:Class="AttendanceDevice.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:dragablz="clr-namespace:Dragablz;assembly=Dragablz"
+    xmlns:local="clr-namespace:AttendanceDevice"
+    DispatcherUnhandledException="Application_DispatcherUnhandledException"
+    StartupUri="Window_Startup.xaml">
+    
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Light.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Primary/MaterialDesignColor.Blue.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Accent/MaterialDesignColor.Lime.xaml" />
+
+                <!--  Scrollbar Style  -->
+                <ResourceDictionary Source="/Resources/Dictionary/ScrollbarDictionary.xaml" />
+
+                <!--  Include the Dragablz Material Design style  -->
+                <ResourceDictionary Source="pack://application:,,,/Dragablz;component/Themes/materialdesign.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--  **disable tab switch and Drag** Remove the InterTabController  -->
+            <!--  Tell Dragablz tab control to use the Material Design theme  -->
+            <Style BasedOn="{StaticResource MaterialDesignTabablzControlStyle}" TargetType="{x:Type dragablz:TabablzControl}" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

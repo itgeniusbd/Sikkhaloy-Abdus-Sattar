@@ -1,0 +1,15 @@
+﻿
+.badge { margin-bottom: 2px; }
+
+.p-image { flex-shrink:0;padding-right:1rem}
+.p-image img{ height: 208px; width: 208px;}
+
+.info {width:100%;}
+.info ul{ margin:0;  padding:0}
+.info ul li { border-bottom:1px solid #d6e0eb; color: #5d6772; font-size: 15px; line-height: 23px; list-style: outside none none; margin: 6px 0 0; padding-bottom: 5px; padding-left: 2px; }
+.info ul li:last-child { border-bottom: none; }
+
+@media print{ 
+#Print{ display:none}
+ h3{ color:#000; font-size:22px;font-weight:400;margin:0;text-align:center;background-color:#fff;}
+}

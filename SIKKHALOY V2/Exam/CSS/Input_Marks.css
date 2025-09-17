@@ -1,0 +1,20 @@
+﻿
+
+.EmptyRows { background-color:#f9d122;}
+
+.hide_Cont {color:#fff;margin-bottom:15px;}
+.FullM { background-color: #0094ff; padding: 4px 0;}
+.PassM { background-color:#00bb93; padding: 4px 0;}
+.PassP { background-color:#efb700; padding: 4px 0;}
+
+.EroorSummer { font-size:15px;}
+.SuccessMsg { font-size:15px; color:#32b000}
+
+.mGrid tr:nth-child(even) {background: #eee}
+.mGrid tr:nth-child(odd) {background: #fff}
+
+.showHideName { display:none;}
+
+@media (max-width: 767.98px) {
+.showHideName { display: block; }
+}

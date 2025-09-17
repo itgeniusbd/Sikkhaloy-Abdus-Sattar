@@ -1,0 +1,9 @@
+﻿#Contain{ width:100%}
+#Contain a{ text-decoration:none;  color:#0094ff}
+#Contain a:hover{text-decoration:underline}
+
+#Contain h4{ color:hsl(240,100%,30%);  font-size:12pt;  margin:2px}
+.textbox{ width:80%}
+.Datetime{ width:80%}
+.MinForm{ background-color:#ddd;  padding:4px;  margin:2px;  color:#333;  border:1px solid rgb(128,128,128);  border-radius:3px}
+

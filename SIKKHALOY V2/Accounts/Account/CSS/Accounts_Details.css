@@ -1,0 +1,43 @@
+﻿
+.Title { font-size: 17px; font-weight: bold; margin: 22px 0 0; padding: 0 0 4px 28px; }
+.Title2 { color:#333; font-size: 17px; font-weight: bold; margin: 22px 0 0; }
+
+.In { background: rgba(0, 0, 0, 0) url("Ico/In.png") no-repeat scroll 2px 2px; color: #29b59d; }
+.Out { background: rgba(0, 0, 0, 0) url("Ico/Out.png") no-repeat scroll 2px 2px; color: #E1A740; }
+
+.A_Name { color: #333; font-size: 13px; margin: 15px 0 3px; }
+.Sub_In { background: rgba(0, 0, 0, 0) url("Ico/Sub_In.png") no-repeat scroll 0 0; padding: 0 0 0 20px; }
+.Sub_Out { background: rgba(0, 0, 0, 0) url("Ico/Sub_Out.png") no-repeat scroll 0 0; padding: 0 0 0 20px; }
+
+.Out_Grid th { background-color: #e1a740; border-bottom: 1px solid #bebebe; color: #fff; }
+.Adjsmnt { background: url("Ico/Adjsmnt.png") no-repeat scroll 0 6px; color: #7e8b95; display: none; font-weight: bold; margin: 10px 0 -13px; padding: 8px 0 2px 23px; }
+.Net_Amt { border-top: 2px solid #7e8b95; color: #63707a; font-size: 19px; margin-top: 24px; text-align: center; width: 100%; }
+
+.Summery { border-top: 2px solid #7e8b95; color: #63707a; font-size: 19px; line-height: 27px; padding: 5px 7px; }
+
+.btn btn-primary { font-size: 15px; padding: 3px 9px; }
+h3 { color: #7f7f7f; margin: 0 0 10px; padding: 0 0 5px; }
+ .ui-tabs .ui-tabs-panel { border: none; }
+.ui-helper-clearfix::before, .ui-helper-clearfix::after { margin-top: 15px; }
+.Account { border: 1px solid #ddd; color: #014366; font-size: 14px; line-height: 30px; margin:30px 12px 10px 0; padding: 0 15px 11px; text-align: right; }
+.A_Name2 { border-bottom: 1px solid #c4c4c4;color: #333; font-size: 15px; padding: 0 5px 0 0; }
+.Amount { color: #00a48c; font-weight: bold; }
+.Print_Header { display:none;}
+@page { margin: 0.3cm; }
+
+@media print {
+ body { padding:0; margin:0}
+ .Site_Navigation, .footer, .Category, .UserPanel, .btn btn-primary, .ui-tabs .ui-tabs-nav, .pgr, h3, .Logo, .Datetime, ul ,.NoPrint{ display: none; }
+ .maincontain { width: 100%; margin-left: 0; float: none; padding:0}
+ .headerBack { margin-bottom: 10px; }
+ .ManuWraper { padding: 0 20px;  height: 100px;}
+ .SchoolLogo { margin-top: 13px; }
+ .SchoolLogo img { height: 70px; }
+ .S_Name { font-size: 29px; margin: 30px 0 0 10px; }
+ .Print_Header { display:block; color:#333; font-size:19px; font-weight: bold; margin:10px 0; text-align:center; width:100%}
+.ui-tabs .ui-tabs-panel {border:none; padding:0; }
+
+.Title { font-size:16px; font-weight: bold; margin:18px 0 0; padding: 0 0 4px 28px; }
+.Title2 { color:#333; font-size:16px; font-weight: bold; margin:18px 0 0; }
+
+}

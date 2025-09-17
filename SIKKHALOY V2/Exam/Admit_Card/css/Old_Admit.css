@@ -1,0 +1,33 @@
+﻿
+/*Card*/
+#wrapper { display: grid; grid-gap:33px;grid-template-columns:repeat(2, 1fr);}
+#wrapper > div {border:2px solid #c01146; color: #333;height:347px;}
+
+.Info-card { padding:0.2em}
+
+.card-header {background-color: #c01146; border-bottom: 2px solid #84000a; color:#fff;display: grid; grid-template-columns:40px auto; text-align: center; margin-bottom: 4px; padding: 6px 0; border-radius:0 !important; }
+.card-header h4{ text-transform:none; margin:0;font-size:17px;}
+.card-header p { margin:0;font-size: 11px !important;}
+
+.sLogo { padding-left:6px}
+.sLogo img { border-radius:3px; width:40px; height:40px; border: 1px solid #dadada;}
+
+.Card_Title {margin-top:20px; font-size:17pt; font-weight: bold; text-align: center; padding-bottom: 3px; }
+
+.student-info {display: grid; grid-template-columns:150px auto;margin-top: 10px;}
+.s-Photo { text-align:center;margin-bottom:20px}
+.s-Photo img { width:120px; height:120px;}
+.s-Photo strong { display: block; font-size: 16px; padding-top: 8px; }
+
+.Info {padding-left:12px;}
+.Info table { width:100%;}
+.Info table tr td:nth-child(2) {width:6%;}
+
+.Sign { padding:0 3px;}
+.Sign label { margin-bottom:0; font-size:13px;}
+.Sign > div > div {height:25px;}
+
+@page { margin:.7cm !important; }
+@media print {
+    #header,h3{ display: none; }
+}

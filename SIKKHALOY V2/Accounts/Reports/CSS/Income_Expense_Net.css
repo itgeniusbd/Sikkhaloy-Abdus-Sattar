@@ -1,0 +1,22 @@
+﻿
+.range_inputs { display: none; }
+.user-grid {background-color:#fff; color: #333; border:1px solid #ddd; padding:10px 15px; margin-bottom:20px; border-radius: 3px;}
+.user-grid i { display: block; float: left; font-size: 1.5rem; text-align: center; }
+.user-grid .headline { font-size: 1rem; margin-bottom: 4px; display: block; text-align: right; }
+.user-grid .value { min-height:20px; display: block; font-size:1.6rem; margin-top:5px; text-align: right; }
+
+.box { color: #333; font-size: 21px; padding-bottom: 10px}
+
+.Acc-income { float:left;width:49%;}
+.Acc-expense{ float:right;width:49%;}
+
+@media print {
+ .box { font-size: 17px; border-bottom:1px solid #ddd; padding-bottom:3px; margin-bottom:5px;}
+
+.user-grid {padding:0 10px 0 0; margin-bottom:10px; border-radius:0; border:1px solid #555;}
+.user-grid i {display:none;}
+
+}
+
+
+

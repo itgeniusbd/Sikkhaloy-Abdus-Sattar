@@ -1,0 +1,1342 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="EduModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="Attendance_Device_Setting">
+          <Key>
+            <PropertyRef Name="AttendanceSettingID" />
+          </Key>
+          <Property Name="AttendanceSettingID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="UserName" Type="nvarchar" MaxLength="100" />
+          <Property Name="Password" Type="nvarchar" MaxLength="50" />
+          <Property Name="IsActive" Type="bit" />
+          <Property Name="InsertDate" Type="datetime" />
+          <Property Name="SettingKey" Type="nvarchar" MaxLength="50" />
+          <Property Name="Image_Link" Type="nvarchar" MaxLength="200" />
+          <Property Name="Is_Device_Attendance_Enable" Type="bit" />
+          <Property Name="Is_All_SMS_On" Type="bit" />
+          <Property Name="Is_Holiday_As_Offday" Type="bit" />
+          <Property Name="Is_Student_All_SMS_Active" Type="bit" />
+          <Property Name="Is_Student_Entry_SMS_ON" Type="bit" />
+          <Property Name="Is_Student_Exit_SMS_ON" Type="bit" />
+          <Property Name="Is_Student_Abs_SMS_ON" Type="bit" />
+          <Property Name="Is_Student_Late_SMS_ON" Type="bit" />
+          <Property Name="Is_Employee_SMS_Active" Type="bit" />
+          <Property Name="Is_Employee_Abs_SMS_ON" Type="bit" />
+          <Property Name="Is_Employee_Late_SMS_ON" Type="bit" />
+          <Property Name="Is_Employee_SMS_OwnNumber" Type="bit" />
+          <Property Name="Employee_SMS_Number" Type="nvarchar" MaxLength="50" />
+          <Property Name="SMS_TimeOut_Minute" Type="int" />
+          <Property Name="Is_Student_Attendance_Enable" Type="bit" />
+          <Property Name="Is_Employee_Attendance_Enable" Type="bit" />
+          <Property Name="Is_English_SMS" Type="bit" />
+        </EntityType>
+        <EntityType Name="Attendance_Record">
+          <Key>
+            <PropertyRef Name="AttendanceRecordID" />
+          </Key>
+          <Property Name="AttendanceRecordID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="StudentID" Type="int" Nullable="false" />
+          <Property Name="RegistrationID" Type="int" Nullable="false" />
+          <Property Name="SchoolID" Type="int" Nullable="false" />
+          <Property Name="ClassID" Type="int" />
+          <Property Name="StudentClassID" Type="int" />
+          <Property Name="EducationYearID" Type="int" />
+          <Property Name="Attendance" Type="nvarchar" MaxLength="128" />
+          <Property Name="AttendanceDate" Type="date" />
+          <Property Name="Reason" Type="nvarchar" MaxLength="500" />
+          <Property Name="EntryTime" Type="time" Precision="7" />
+          <Property Name="ExitTime" Type="time" Precision="7" />
+          <Property Name="InsertDate" Type="datetime" />
+          <Property Name="ExitStatus" Type="nvarchar" MaxLength="50" />
+          <Property Name="Is_OUT" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Attendance_Schedule">
+          <Key>
+            <PropertyRef Name="ScheduleID" />
+          </Key>
+          <Property Name="ScheduleID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RegistrationID" Type="int" />
+          <Property Name="ScheduleName" Type="nvarchar" MaxLength="128" />
+          <Property Name="LateEntryTime" Type="time" Precision="7" />
+          <Property Name="Date" Type="date" />
+          <Property Name="StartTime" Type="time" Precision="7" />
+          <Property Name="EndTime" Type="time" Precision="7" />
+        </EntityType>
+        <EntityType Name="Attendance_Schedule_AssignStudent">
+          <Key>
+            <PropertyRef Name="Schedule_AssignStuID" />
+          </Key>
+          <Property Name="Schedule_AssignStuID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RegistrationID" Type="int" />
+          <Property Name="ScheduleID" Type="int" />
+          <Property Name="StudentID" Type="int" />
+          <Property Name="Entry_Confirmation" Type="bit" />
+          <Property Name="Exit_Confirmation" Type="bit" />
+          <Property Name="Date" Type="date" />
+          <Property Name="Is_Abs_SMS" Type="bit" />
+          <Property Name="Is_Late_SMS" Type="bit" />
+        </EntityType>
+        <EntityType Name="Attendance_Schedule_Day">
+          <Key>
+            <PropertyRef Name="ScheduleDayID" />
+          </Key>
+          <Property Name="ScheduleDayID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="ScheduleID" Type="int" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RegistrationID" Type="int" />
+          <Property Name="Day" Type="nvarchar" MaxLength="50" />
+          <Property Name="LateEntryTime" Type="time" Precision="7" />
+          <Property Name="StartTime" Type="time" Precision="7" />
+          <Property Name="EndTime" Type="time" Precision="7" />
+          <Property Name="Insert_Date" Type="date" Nullable="false" />
+          <Property Name="Is_OnDay" Type="bit" />
+        </EntityType>
+        <EntityType Name="Attendance_SMS">
+          <Key>
+            <PropertyRef Name="Attendance_SMSID" />
+          </Key>
+          <Property Name="Attendance_SMSID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" Nullable="false" />
+          <Property Name="ScheduleTime" Type="time" Precision="7" />
+          <Property Name="CreateTime" Type="time" Precision="7" />
+          <Property Name="SentTime" Type="time" Precision="7" />
+          <Property Name="AttendanceDate" Type="date" />
+          <Property Name="SMS_Text" Type="nvarchar" MaxLength="500" />
+          <Property Name="MobileNo" Type="nvarchar" MaxLength="50" />
+          <Property Name="Is_Send" Type="bit" />
+          <Property Name="InsertDate" Type="datetime" />
+          <Property Name="AttendanceStatus" Type="nvarchar" MaxLength="50" />
+          <Property Name="SMS_TimeOut" Type="int" />
+          <Property Name="EmployeeID" Type="int" />
+          <Property Name="StudentID" Type="int" />
+        </EntityType>
+        <EntityType Name="Attendance_SMS_Failed">
+          <Key>
+            <PropertyRef Name="AttendanceSmsFailedId" />
+          </Key>
+          <Property Name="AttendanceSmsFailedId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" Nullable="false" />
+          <Property Name="ScheduleTime" Type="time" Precision="7" />
+          <Property Name="CreateTime" Type="time" Precision="7" />
+          <Property Name="SentTime" Type="time" Precision="7" />
+          <Property Name="AttendanceDate" Type="date" />
+          <Property Name="SMS_Text" Type="nvarchar" MaxLength="500" />
+          <Property Name="MobileNo" Type="nvarchar" MaxLength="50" />
+          <Property Name="AttendanceStatus" Type="nvarchar" MaxLength="50" />
+          <Property Name="SMS_TimeOut" Type="int" />
+          <Property Name="EmployeeID" Type="int" />
+          <Property Name="StudentID" Type="int" />
+          <Property Name="FailedReson" Type="nvarchar" MaxLength="128" />
+          <Property Name="InsertDate" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Attendance_SMS_Sender">
+          <Key>
+            <PropertyRef Name="AttendanceSmsSenderId" />
+          </Key>
+          <Property Name="AttendanceSmsSenderId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="AppStartTime" Type="datetime" Nullable="false" />
+          <Property Name="AppCloseTime" Type="datetime" />
+          <Property Name="TotalEventCall" Type="int" Nullable="false" />
+          <Property Name="TotalSmsSend" Type="int" Nullable="false" />
+          <Property Name="TotalSmsFailed" Type="int" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Attendance_Student">
+          <Key>
+            <PropertyRef Name="AttendanceStudentID" />
+          </Key>
+          <Property Name="AttendanceStudentID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RegistrationID" Type="int" Nullable="false" />
+          <Property Name="EducationYearID" Type="int" />
+          <Property Name="StudentID" Type="int" />
+          <Property Name="ExamID" Type="int" />
+          <Property Name="ClassID" Type="int" />
+          <Property Name="StudentClassID" Type="int" />
+          <Property Name="WorkingDays" Type="int" />
+          <Property Name="TotalPresent" Type="int" />
+          <Property Name="TotalAbsent" Type="int" />
+          <Property Name="TotalLate" Type="int" />
+          <Property Name="TotalLeave" Type="int" />
+          <Property Name="TotalBunk" Type="int" />
+          <Property Name="CumulativeNameID" Type="int" />
+          <Property Name="Insert_Date" Type="datetime" />
+          <Property Name="TotalLateAbs" Type="int" />
+        </EntityType>
+        <EntityType Name="Education_Year">
+          <Key>
+            <PropertyRef Name="EducationYearID" />
+          </Key>
+          <Property Name="EducationYearID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RegistrationID" Type="int" />
+          <Property Name="EducationYear" Type="nvarchar" MaxLength="128" />
+          <Property Name="Status" Type="nvarchar" MaxLength="50" />
+          <Property Name="StartDate" Type="date" />
+          <Property Name="EndDate" Type="date" />
+          <Property Name="IsActive" Type="bit" />
+          <Property Name="SN" Type="int" />
+        </EntityType>
+        <EntityType Name="Employee_Attendance_Report">
+          <Key>
+            <PropertyRef Name="Employee_Attendance_ReportID" />
+          </Key>
+          <Property Name="Employee_Attendance_ReportID" Type="int" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RegistrationID" Type="int" />
+          <Property Name="EducationYearID" Type="int" />
+          <Property Name="EmployeeID" Type="int" Nullable="false" />
+          <Property Name="ReportName" Type="nvarchar" MaxLength="50" />
+          <Property Name="Total_WorkingDays" Type="int" />
+          <Property Name="Total_Present" Type="int" />
+          <Property Name="Total_Absent" Type="int" />
+          <Property Name="Total_Late" Type="int" />
+          <Property Name="Total_Leave" Type="int" />
+          <Property Name="Report_StartDate" Type="date" />
+          <Property Name="Report_EndDate" Type="date" />
+          <Property Name="CreateDate" Type="date" />
+        </EntityType>
+        <EntityType Name="Employee_Attendance_Schedule_Assign">
+          <Key>
+            <PropertyRef Name="Employee_Schedule_AssignID" />
+          </Key>
+          <Property Name="Employee_Schedule_AssignID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RegistrationID" Type="int" />
+          <Property Name="EmployeeID" Type="int" Nullable="false" />
+          <Property Name="CreateDate" Type="date" />
+          <Property Name="ScheduleID" Type="int" />
+          <Property Name="Is_Abs_SMS" Type="bit" />
+          <Property Name="Is_Late_SMS" Type="bit" />
+        </EntityType>
+        <EntityType Name="SchoolInfo">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+          </Key>
+          <Property Name="SchoolID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolName" Type="nvarchar" MaxLength="500" />
+          <Property Name="SchoolLogo" Type="varbinary(max)" />
+          <Property Name="Institution_Dialog" Type="nvarchar" MaxLength="256" />
+          <Property Name="Established" Type="nvarchar" MaxLength="50" />
+          <Property Name="Principal" Type="nvarchar" MaxLength="128" />
+          <Property Name="AcadamicStaff" Type="nvarchar" MaxLength="50" />
+          <Property Name="Students" Type="nvarchar" MaxLength="50" />
+          <Property Name="Address" Type="nvarchar" MaxLength="500" />
+          <Property Name="City" Type="nvarchar" MaxLength="128" />
+          <Property Name="State" Type="nvarchar" MaxLength="128" />
+          <Property Name="LocalArea" Type="nvarchar" MaxLength="128" />
+          <Property Name="PostalCode" Type="nvarchar" MaxLength="50" />
+          <Property Name="Phone" Type="nvarchar" MaxLength="50" />
+          <Property Name="Email" Type="nvarchar" MaxLength="50" />
+          <Property Name="Website" Type="nvarchar" MaxLength="128" />
+          <Property Name="UserName" Type="nvarchar" MaxLength="128" />
+          <Property Name="Validation" Type="nvarchar" MaxLength="50" />
+          <Property Name="Date" Type="datetime" />
+          <Property Name="School_SN" Type="int" />
+          <Property Name="Per_Student_Rate" Type="float" />
+          <Property Name="Device_SN" Type="int" />
+          <Property Name="IS_ServiceChargeActive" Type="bit" />
+          <Property Name="Discount" Type="float" />
+          <Property Name="Fixed" Type="float" />
+          <Property Name="Free_SMS" Type="int" />
+          <Property Name="Principal_Sign" Type="varbinary(max)" />
+          <Property Name="Teacher_Sign" Type="varbinary(max)" />
+        </EntityType>
+        <EntityType Name="SikkhaloySetting">
+          <Key>
+            <PropertyRef Name="SikkhaloySettingId" />
+          </Key>
+          <Property Name="SikkhaloySettingId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SmsProvider" Type="nvarchar" MaxLength="50" />
+          <Property Name="SmsProviderMultiple" Type="nvarchar" MaxLength="50" />
+        </EntityType>
+        <EntityType Name="SMS">
+          <Key>
+            <PropertyRef Name="SMSID" />
+          </Key>
+          <Property Name="SMSID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="SMS_Balance" Type="int" />
+          <Property Name="Masking" Type="nvarchar" MaxLength="50" />
+          <Property Name="Date" Type="date" />
+        </EntityType>
+        <EntityType Name="SMS_OtherInfo">
+          <Key>
+            <PropertyRef Name="SMS_Send_ID" />
+          </Key>
+          <Property Name="SMS_Send_ID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="StudentID" Type="int" />
+          <Property Name="TeacherID" Type="int" />
+          <Property Name="EducationYearID" Type="int" />
+          <Property Name="SMS_NumberID" Type="int" />
+          <Property Name="CommitteeMemberId" Type="int" />
+        </EntityType>
+        <EntityType Name="SMS_Recharge_Record">
+          <Key>
+            <PropertyRef Name="SMS_Recharge_RecordID" />
+          </Key>
+          <Property Name="SMS_Recharge_RecordID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="RechargeSMS" Type="int" />
+          <Property Name="PerSMS_Price" Type="float" />
+          <Property Name="Total_Price" Type="float" StoreGeneratedPattern="Computed" />
+          <Property Name="Date" Type="date" />
+          <Property Name="Is_Paid" Type="bit" />
+        </EntityType>
+        <EntityType Name="SMS_Send_Record">
+          <Key>
+            <PropertyRef Name="SMS_Send_ID" />
+          </Key>
+          <Property Name="SMS_Send_ID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="PhoneNumber" Type="nvarchar" MaxLength="50" />
+          <Property Name="TextSMS" Type="nvarchar(max)" />
+          <Property Name="TextCount" Type="float" />
+          <Property Name="SMSCount" Type="float" />
+          <Property Name="PurposeOfSMS" Type="nvarchar(max)" />
+          <Property Name="SMS_Response" Type="nvarchar" MaxLength="50" />
+          <Property Name="Status" Type="nvarchar" MaxLength="50" />
+          <Property Name="Date" Type="datetime" />
+        </EntityType>
+        <!--Errors Found During Generation:
+warning 6002: The table/view 'Edu.dbo.VW_Attendance_Stu' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
+        <EntityType Name="VW_Attendance_Stu">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+            <PropertyRef Name="StudentID" />
+            <PropertyRef Name="StudentClassID" />
+          </Key>
+          <Property Name="SchoolID" Type="int" Nullable="false" />
+          <Property Name="DeviceID" Type="int" />
+          <Property Name="StudentID" Type="int" Nullable="false" />
+          <Property Name="StudentClassID" Type="int" Nullable="false" />
+          <Property Name="ClassID" Type="int" />
+          <Property Name="EducationYearID" Type="int" />
+        </EntityType>
+        <!--Errors Found During Generation:
+warning 6002: The table/view 'Edu.dbo.VW_Attendance_Stu_Setting' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
+        <EntityType Name="VW_Attendance_Stu_Setting">
+          <Key>
+            <PropertyRef Name="StudentsName" />
+            <PropertyRef Name="SMSPhoneNo" />
+          </Key>
+          <Property Name="SchoolID" Type="int" />
+          <Property Name="ScheduleID" Type="int" />
+          <Property Name="StudentID" Type="int" />
+          <Property Name="StudentsName" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="SMSPhoneNo" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Entry_Confirmation" Type="bit" />
+          <Property Name="Exit_Confirmation" Type="bit" />
+          <Property Name="Is_Abs_SMS" Type="bit" />
+          <Property Name="Is_Late_SMS" Type="bit" />
+          <Property Name="LateEntryTime" Type="time" Precision="7" />
+          <Property Name="StartTime" Type="time" Precision="7" />
+          <Property Name="EndTime" Type="time" Precision="7" />
+        </EntityType>
+        <!--Errors Found During Generation:
+warning 6002: The table/view 'Edu.dbo.VW_Attendance_User_Leave' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
+        <EntityType Name="VW_Attendance_User_Leave">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+          </Key>
+          <Property Name="SchoolID" Type="int" Nullable="false" />
+          <Property Name="DeviceID" Type="int" />
+          <Property Name="StartDate" Type="date" />
+          <Property Name="EndDate" Type="date" />
+        </EntityType>
+        <!--Errors Found During Generation:
+warning 6002: The table/view 'Edu.dbo.VW_Attendance_Users' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
+        <EntityType Name="VW_Attendance_Users">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+          </Key>
+          <Property Name="SchoolID" Type="int" Nullable="false" />
+          <Property Name="DeviceID" Type="int" />
+          <Property Name="ID" Type="nvarchar" MaxLength="51" />
+          <Property Name="RFID" Type="nvarchar" MaxLength="50" />
+          <Property Name="Name" Type="nvarchar" MaxLength="257" />
+          <Property Name="Designation" Type="nvarchar" MaxLength="128" />
+          <Property Name="Is_Student" Type="bit" />
+          <Property Name="ScheduleID" Type="int" />
+        </EntityType>
+        <!--Errors Found During Generation:
+warning 6002: The table/view 'Edu.dbo.VW_Emp_Info' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
+        <EntityType Name="VW_Emp_Info">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+            <PropertyRef Name="EmployeeID" />
+          </Key>
+          <Property Name="DeviceID" Type="int" />
+          <Property Name="SchoolID" Type="int" Nullable="false" />
+          <Property Name="Job_Status" Type="nvarchar" MaxLength="50" />
+          <Property Name="EmployeeID" Type="int" Nullable="false" />
+          <Property Name="ID" Type="nvarchar" MaxLength="50" />
+          <Property Name="EmployeeType" Type="nvarchar" MaxLength="500" />
+          <Property Name="Permanent_Temporary" Type="nvarchar" MaxLength="50" />
+          <Property Name="Bank_AccNo" Type="nvarchar" MaxLength="128" />
+          <Property Name="Work_Time_Basis" Type="nvarchar" MaxLength="50" />
+          <Property Name="Salary" Type="float" />
+          <Property Name="Time_Basis_Type" Type="nvarchar" MaxLength="50" />
+          <Property Name="RFID" Type="nvarchar" MaxLength="50" />
+          <Property Name="FirstName" Type="nvarchar" MaxLength="128" />
+          <Property Name="LastName" Type="nvarchar" MaxLength="128" />
+          <Property Name="Designation" Type="nvarchar" MaxLength="128" />
+          <Property Name="Phone" Type="nvarchar" MaxLength="50" />
+          <Property Name="Image" Type="varbinary(max)" />
+        </EntityType>
+        <Association Name="FK_Attendance_Schedule_AssignStudent_Attendance_Schedule">
+          <End Role="Attendance_Schedule" Type="Self.Attendance_Schedule" Multiplicity="0..1" />
+          <End Role="Attendance_Schedule_AssignStudent" Type="Self.Attendance_Schedule_AssignStudent" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Attendance_Schedule">
+              <PropertyRef Name="ScheduleID" />
+            </Principal>
+            <Dependent Role="Attendance_Schedule_AssignStudent">
+              <PropertyRef Name="ScheduleID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="EduModelStoreContainer">
+          <EntitySet Name="Attendance_Device_Setting" EntityType="Self.Attendance_Device_Setting" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_Record" EntityType="Self.Attendance_Record" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_Schedule" EntityType="Self.Attendance_Schedule" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_Schedule_AssignStudent" EntityType="Self.Attendance_Schedule_AssignStudent" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_Schedule_Day" EntityType="Self.Attendance_Schedule_Day" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_SMS" EntityType="Self.Attendance_SMS" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_SMS_Failed" EntityType="Self.Attendance_SMS_Failed" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_SMS_Sender" EntityType="Self.Attendance_SMS_Sender" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Attendance_Student" EntityType="Self.Attendance_Student" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Education_Year" EntityType="Self.Education_Year" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Employee_Attendance_Report" EntityType="Self.Employee_Attendance_Report" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Employee_Attendance_Schedule_Assign" EntityType="Self.Employee_Attendance_Schedule_Assign" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SchoolInfo" EntityType="Self.SchoolInfo" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SikkhaloySetting" EntityType="Self.SikkhaloySetting" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SMS" EntityType="Self.SMS" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SMS_OtherInfo" EntityType="Self.SMS_OtherInfo" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SMS_Recharge_Record" EntityType="Self.SMS_Recharge_Record" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SMS_Send_Record" EntityType="Self.SMS_Send_Record" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="VW_Attendance_Stu" EntityType="Self.VW_Attendance_Stu" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [VW_Attendance_Stu].[SchoolID] AS [SchoolID], 
+    [VW_Attendance_Stu].[DeviceID] AS [DeviceID], 
+    [VW_Attendance_Stu].[StudentID] AS [StudentID], 
+    [VW_Attendance_Stu].[StudentClassID] AS [StudentClassID], 
+    [VW_Attendance_Stu].[ClassID] AS [ClassID], 
+    [VW_Attendance_Stu].[EducationYearID] AS [EducationYearID]
+    FROM [dbo].[VW_Attendance_Stu] AS [VW_Attendance_Stu]</DefiningQuery>
+          </EntitySet>
+          <EntitySet Name="VW_Attendance_Stu_Setting" EntityType="Self.VW_Attendance_Stu_Setting" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [VW_Attendance_Stu_Setting].[SchoolID] AS [SchoolID], 
+    [VW_Attendance_Stu_Setting].[ScheduleID] AS [ScheduleID], 
+    [VW_Attendance_Stu_Setting].[StudentID] AS [StudentID], 
+    [VW_Attendance_Stu_Setting].[StudentsName] AS [StudentsName], 
+    [VW_Attendance_Stu_Setting].[SMSPhoneNo] AS [SMSPhoneNo], 
+    [VW_Attendance_Stu_Setting].[Entry_Confirmation] AS [Entry_Confirmation], 
+    [VW_Attendance_Stu_Setting].[Exit_Confirmation] AS [Exit_Confirmation], 
+    [VW_Attendance_Stu_Setting].[Is_Abs_SMS] AS [Is_Abs_SMS], 
+    [VW_Attendance_Stu_Setting].[Is_Late_SMS] AS [Is_Late_SMS], 
+    [VW_Attendance_Stu_Setting].[LateEntryTime] AS [LateEntryTime], 
+    [VW_Attendance_Stu_Setting].[StartTime] AS [StartTime], 
+    [VW_Attendance_Stu_Setting].[EndTime] AS [EndTime]
+    FROM [dbo].[VW_Attendance_Stu_Setting] AS [VW_Attendance_Stu_Setting]</DefiningQuery>
+          </EntitySet>
+          <EntitySet Name="VW_Attendance_User_Leave" EntityType="Self.VW_Attendance_User_Leave" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [VW_Attendance_User_Leave].[SchoolID] AS [SchoolID], 
+    [VW_Attendance_User_Leave].[DeviceID] AS [DeviceID], 
+    [VW_Attendance_User_Leave].[StartDate] AS [StartDate], 
+    [VW_Attendance_User_Leave].[EndDate] AS [EndDate]
+    FROM [dbo].[VW_Attendance_User_Leave] AS [VW_Attendance_User_Leave]</DefiningQuery>
+          </EntitySet>
+          <EntitySet Name="VW_Attendance_Users" EntityType="Self.VW_Attendance_Users" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [VW_Attendance_Users].[SchoolID] AS [SchoolID], 
+    [VW_Attendance_Users].[DeviceID] AS [DeviceID], 
+    [VW_Attendance_Users].[ID] AS [ID], 
+    [VW_Attendance_Users].[RFID] AS [RFID], 
+    [VW_Attendance_Users].[Name] AS [Name], 
+    [VW_Attendance_Users].[Designation] AS [Designation], 
+    [VW_Attendance_Users].[Is_Student] AS [Is_Student], 
+    [VW_Attendance_Users].[ScheduleID] AS [ScheduleID]
+    FROM [dbo].[VW_Attendance_Users] AS [VW_Attendance_Users]</DefiningQuery>
+          </EntitySet>
+          <EntitySet Name="VW_Emp_Info" EntityType="Self.VW_Emp_Info" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [VW_Emp_Info].[DeviceID] AS [DeviceID], 
+    [VW_Emp_Info].[SchoolID] AS [SchoolID], 
+    [VW_Emp_Info].[Job_Status] AS [Job_Status], 
+    [VW_Emp_Info].[EmployeeID] AS [EmployeeID], 
+    [VW_Emp_Info].[ID] AS [ID], 
+    [VW_Emp_Info].[EmployeeType] AS [EmployeeType], 
+    [VW_Emp_Info].[Permanent_Temporary] AS [Permanent_Temporary], 
+    [VW_Emp_Info].[Bank_AccNo] AS [Bank_AccNo], 
+    [VW_Emp_Info].[Work_Time_Basis] AS [Work_Time_Basis], 
+    [VW_Emp_Info].[Salary] AS [Salary], 
+    [VW_Emp_Info].[Time_Basis_Type] AS [Time_Basis_Type], 
+    [VW_Emp_Info].[RFID] AS [RFID], 
+    [VW_Emp_Info].[FirstName] AS [FirstName], 
+    [VW_Emp_Info].[LastName] AS [LastName], 
+    [VW_Emp_Info].[Designation] AS [Designation], 
+    [VW_Emp_Info].[Phone] AS [Phone], 
+    [VW_Emp_Info].[Image] AS [Image]
+    FROM [dbo].[VW_Emp_Info] AS [VW_Emp_Info]</DefiningQuery>
+          </EntitySet>
+          <AssociationSet Name="FK_Attendance_Schedule_AssignStudent_Attendance_Schedule" Association="Self.FK_Attendance_Schedule_AssignStudent_Attendance_Schedule">
+            <End Role="Attendance_Schedule" EntitySet="Attendance_Schedule" />
+            <End Role="Attendance_Schedule_AssignStudent" EntitySet="Attendance_Schedule_AssignStudent" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="EduModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="Attendance_Device_Setting">
+          <Key>
+            <PropertyRef Name="AttendanceSettingID" />
+          </Key>
+          <Property Name="AttendanceSettingID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="UserName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="Password" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="IsActive" Type="Boolean" />
+          <Property Name="InsertDate" Type="DateTime" Precision="3" />
+          <Property Name="SettingKey" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Image_Link" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="Is_Device_Attendance_Enable" Type="Boolean" />
+          <Property Name="Is_All_SMS_On" Type="Boolean" />
+          <Property Name="Is_Holiday_As_Offday" Type="Boolean" />
+          <Property Name="Is_Student_All_SMS_Active" Type="Boolean" />
+          <Property Name="Is_Student_Entry_SMS_ON" Type="Boolean" />
+          <Property Name="Is_Student_Exit_SMS_ON" Type="Boolean" />
+          <Property Name="Is_Student_Abs_SMS_ON" Type="Boolean" />
+          <Property Name="Is_Student_Late_SMS_ON" Type="Boolean" />
+          <Property Name="Is_Employee_SMS_Active" Type="Boolean" />
+          <Property Name="Is_Employee_Abs_SMS_ON" Type="Boolean" />
+          <Property Name="Is_Employee_Late_SMS_ON" Type="Boolean" />
+          <Property Name="Is_Employee_SMS_OwnNumber" Type="Boolean" />
+          <Property Name="Employee_SMS_Number" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SMS_TimeOut_Minute" Type="Int32" />
+          <Property Name="Is_Student_Attendance_Enable" Type="Boolean" />
+          <Property Name="Is_Employee_Attendance_Enable" Type="Boolean" />
+          <Property Name="Is_English_SMS" Type="Boolean" />
+        </EntityType>
+        <EntityType Name="Attendance_Record">
+          <Key>
+            <PropertyRef Name="AttendanceRecordID" />
+          </Key>
+          <Property Name="AttendanceRecordID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="StudentID" Type="Int32" Nullable="false" />
+          <Property Name="RegistrationID" Type="Int32" Nullable="false" />
+          <Property Name="SchoolID" Type="Int32" Nullable="false" />
+          <Property Name="ClassID" Type="Int32" />
+          <Property Name="StudentClassID" Type="Int32" />
+          <Property Name="EducationYearID" Type="Int32" />
+          <Property Name="Attendance" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="AttendanceDate" Type="DateTime" Precision="0" />
+          <Property Name="Reason" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="EntryTime" Type="Time" Precision="7" />
+          <Property Name="ExitTime" Type="Time" Precision="7" />
+          <Property Name="InsertDate" Type="DateTime" Precision="3" />
+          <Property Name="ExitStatus" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Is_OUT" Type="Boolean" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Attendance_Schedule">
+          <Key>
+            <PropertyRef Name="ScheduleID" />
+          </Key>
+          <Property Name="ScheduleID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RegistrationID" Type="Int32" />
+          <Property Name="ScheduleName" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="LateEntryTime" Type="Time" Precision="7" />
+          <Property Name="Date" Type="DateTime" Precision="0" />
+          <Property Name="StartTime" Type="Time" Precision="7" />
+          <Property Name="EndTime" Type="Time" Precision="7" />
+          <NavigationProperty Name="Attendance_Schedule_AssignStudent" Relationship="Self.FK_Attendance_Schedule_AssignStudent_Attendance_Schedule" FromRole="Attendance_Schedule" ToRole="Attendance_Schedule_AssignStudent" />
+        </EntityType>
+        <EntityType Name="Attendance_Schedule_AssignStudent">
+          <Key>
+            <PropertyRef Name="Schedule_AssignStuID" />
+          </Key>
+          <Property Name="Schedule_AssignStuID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RegistrationID" Type="Int32" />
+          <Property Name="ScheduleID" Type="Int32" />
+          <Property Name="StudentID" Type="Int32" />
+          <Property Name="Entry_Confirmation" Type="Boolean" />
+          <Property Name="Exit_Confirmation" Type="Boolean" />
+          <Property Name="Date" Type="DateTime" Precision="0" />
+          <Property Name="Is_Abs_SMS" Type="Boolean" />
+          <Property Name="Is_Late_SMS" Type="Boolean" />
+          <NavigationProperty Name="Attendance_Schedule" Relationship="Self.FK_Attendance_Schedule_AssignStudent_Attendance_Schedule" FromRole="Attendance_Schedule_AssignStudent" ToRole="Attendance_Schedule" />
+        </EntityType>
+        <EntityType Name="Attendance_Schedule_Day">
+          <Key>
+            <PropertyRef Name="ScheduleDayID" />
+          </Key>
+          <Property Name="ScheduleDayID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="ScheduleID" Type="Int32" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RegistrationID" Type="Int32" />
+          <Property Name="Day" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="LateEntryTime" Type="Time" Precision="7" />
+          <Property Name="StartTime" Type="Time" Precision="7" />
+          <Property Name="EndTime" Type="Time" Precision="7" />
+          <Property Name="Insert_Date" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="Is_OnDay" Type="Boolean" />
+        </EntityType>
+        <EntityType Name="Attendance_SMS">
+          <Key>
+            <PropertyRef Name="Attendance_SMSID" />
+          </Key>
+          <Property Name="Attendance_SMSID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" Nullable="false" />
+          <Property Name="ScheduleTime" Type="Time" Precision="7" />
+          <Property Name="CreateTime" Type="Time" Precision="7" />
+          <Property Name="SentTime" Type="Time" Precision="7" />
+          <Property Name="AttendanceDate" Type="DateTime" Precision="0" />
+          <Property Name="SMS_Text" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="MobileNo" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Is_Send" Type="Boolean" />
+          <Property Name="InsertDate" Type="DateTime" Precision="3" />
+          <Property Name="AttendanceStatus" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SMS_TimeOut" Type="Int32" />
+          <Property Name="EmployeeID" Type="Int32" />
+          <Property Name="StudentID" Type="Int32" />
+        </EntityType>
+        <EntityType Name="Attendance_SMS_Failed">
+          <Key>
+            <PropertyRef Name="AttendanceSmsFailedId" />
+          </Key>
+          <Property Name="AttendanceSmsFailedId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" Nullable="false" />
+          <Property Name="ScheduleTime" Type="Time" Precision="7" />
+          <Property Name="CreateTime" Type="Time" Precision="7" />
+          <Property Name="SentTime" Type="Time" Precision="7" />
+          <Property Name="AttendanceDate" Type="DateTime" Precision="0" />
+          <Property Name="SMS_Text" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="MobileNo" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="AttendanceStatus" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SMS_TimeOut" Type="Int32" />
+          <Property Name="EmployeeID" Type="Int32" />
+          <Property Name="StudentID" Type="Int32" />
+          <Property Name="FailedReson" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="InsertDate" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="Attendance_SMS_Sender">
+          <Key>
+            <PropertyRef Name="AttendanceSmsSenderId" />
+          </Key>
+          <Property Name="AttendanceSmsSenderId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="AppStartTime" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="AppCloseTime" Type="DateTime" Precision="3" />
+          <Property Name="TotalEventCall" Type="Int32" Nullable="false" />
+          <Property Name="TotalSmsSend" Type="Int32" Nullable="false" />
+          <Property Name="TotalSmsFailed" Type="Int32" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Attendance_Student">
+          <Key>
+            <PropertyRef Name="AttendanceStudentID" />
+          </Key>
+          <Property Name="AttendanceStudentID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RegistrationID" Type="Int32" Nullable="false" />
+          <Property Name="EducationYearID" Type="Int32" />
+          <Property Name="StudentID" Type="Int32" />
+          <Property Name="ExamID" Type="Int32" />
+          <Property Name="ClassID" Type="Int32" />
+          <Property Name="StudentClassID" Type="Int32" />
+          <Property Name="WorkingDays" Type="Int32" />
+          <Property Name="TotalPresent" Type="Int32" />
+          <Property Name="TotalAbsent" Type="Int32" />
+          <Property Name="TotalLate" Type="Int32" />
+          <Property Name="TotalLeave" Type="Int32" />
+          <Property Name="TotalBunk" Type="Int32" />
+          <Property Name="CumulativeNameID" Type="Int32" />
+          <Property Name="Insert_Date" Type="DateTime" Precision="3" />
+          <Property Name="TotalLateAbs" Type="Int32" />
+        </EntityType>
+        <EntityType Name="Education_Year">
+          <Key>
+            <PropertyRef Name="EducationYearID" />
+          </Key>
+          <Property Name="EducationYearID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RegistrationID" Type="Int32" />
+          <Property Name="EducationYear" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="Status" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="StartDate" Type="DateTime" Precision="0" />
+          <Property Name="EndDate" Type="DateTime" Precision="0" />
+          <Property Name="IsActive" Type="Boolean" />
+          <Property Name="SN" Type="Int32" />
+        </EntityType>
+        <EntityType Name="Employee_Attendance_Report">
+          <Key>
+            <PropertyRef Name="Employee_Attendance_ReportID" />
+          </Key>
+          <Property Name="Employee_Attendance_ReportID" Type="Int32" Nullable="false" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RegistrationID" Type="Int32" />
+          <Property Name="EducationYearID" Type="Int32" />
+          <Property Name="EmployeeID" Type="Int32" Nullable="false" />
+          <Property Name="ReportName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Total_WorkingDays" Type="Int32" />
+          <Property Name="Total_Present" Type="Int32" />
+          <Property Name="Total_Absent" Type="Int32" />
+          <Property Name="Total_Late" Type="Int32" />
+          <Property Name="Total_Leave" Type="Int32" />
+          <Property Name="Report_StartDate" Type="DateTime" Precision="0" />
+          <Property Name="Report_EndDate" Type="DateTime" Precision="0" />
+          <Property Name="CreateDate" Type="DateTime" Precision="0" />
+        </EntityType>
+        <EntityType Name="Employee_Attendance_Schedule_Assign">
+          <Key>
+            <PropertyRef Name="Employee_Schedule_AssignID" />
+          </Key>
+          <Property Name="Employee_Schedule_AssignID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RegistrationID" Type="Int32" />
+          <Property Name="EmployeeID" Type="Int32" Nullable="false" />
+          <Property Name="CreateDate" Type="DateTime" Precision="0" />
+          <Property Name="ScheduleID" Type="Int32" />
+          <Property Name="Is_Abs_SMS" Type="Boolean" />
+          <Property Name="Is_Late_SMS" Type="Boolean" />
+        </EntityType>
+        <EntityType Name="SchoolInfo">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+          </Key>
+          <Property Name="SchoolID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolName" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="SchoolLogo" Type="Binary" MaxLength="Max" FixedLength="false" />
+          <Property Name="Institution_Dialog" Type="String" MaxLength="256" FixedLength="false" Unicode="true" />
+          <Property Name="Established" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Principal" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="AcadamicStaff" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Students" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Address" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="City" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="State" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="LocalArea" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="PostalCode" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Phone" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Email" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Website" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="UserName" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="Validation" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Date" Type="DateTime" Precision="3" />
+          <Property Name="School_SN" Type="Int32" />
+          <Property Name="Per_Student_Rate" Type="Double" />
+          <Property Name="Device_SN" Type="Int32" />
+          <Property Name="IS_ServiceChargeActive" Type="Boolean" />
+          <Property Name="Discount" Type="Double" />
+          <Property Name="Fixed" Type="Double" />
+          <Property Name="Free_SMS" Type="Int32" />
+          <Property Name="Principal_Sign" Type="Binary" MaxLength="Max" FixedLength="false" />
+          <Property Name="Teacher_Sign" Type="Binary" MaxLength="Max" FixedLength="false" />
+        </EntityType>
+        <EntityType Name="SikkhaloySetting">
+          <Key>
+            <PropertyRef Name="SikkhaloySettingId" />
+          </Key>
+          <Property Name="SikkhaloySettingId" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SmsProvider" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="SmsProviderMultiple" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="SM">
+          <Key>
+            <PropertyRef Name="SMSID" />
+          </Key>
+          <Property Name="SMSID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="SMS_Balance" Type="Int32" />
+          <Property Name="Masking" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Date" Type="DateTime" Precision="0" />
+        </EntityType>
+        <EntityType Name="SMS_OtherInfo">
+          <Key>
+            <PropertyRef Name="SMS_Send_ID" />
+          </Key>
+          <Property Name="SMS_Send_ID" Type="Guid" Nullable="false" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="StudentID" Type="Int32" />
+          <Property Name="TeacherID" Type="Int32" />
+          <Property Name="EducationYearID" Type="Int32" />
+          <Property Name="SMS_NumberID" Type="Int32" />
+          <Property Name="CommitteeMemberId" Type="Int32" />
+        </EntityType>
+        <EntityType Name="SMS_Recharge_Record">
+          <Key>
+            <PropertyRef Name="SMS_Recharge_RecordID" />
+          </Key>
+          <Property Name="SMS_Recharge_RecordID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="RechargeSMS" Type="Int32" />
+          <Property Name="PerSMS_Price" Type="Double" />
+          <Property Name="Total_Price" Type="Double" annotation:StoreGeneratedPattern="Computed" />
+          <Property Name="Date" Type="DateTime" Precision="0" />
+          <Property Name="Is_Paid" Type="Boolean" />
+        </EntityType>
+        <EntityType Name="SMS_Send_Record">
+          <Key>
+            <PropertyRef Name="SMS_Send_ID" />
+          </Key>
+          <Property Name="SMS_Send_ID" Type="Guid" Nullable="false" />
+          <Property Name="PhoneNumber" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TextSMS" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="TextCount" Type="Double" />
+          <Property Name="SMSCount" Type="Double" />
+          <Property Name="PurposeOfSMS" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="SMS_Response" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Status" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Date" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="VW_Attendance_Stu">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+            <PropertyRef Name="StudentID" />
+            <PropertyRef Name="StudentClassID" />
+          </Key>
+          <Property Name="SchoolID" Type="Int32" Nullable="false" />
+          <Property Name="DeviceID" Type="Int32" />
+          <Property Name="StudentID" Type="Int32" Nullable="false" />
+          <Property Name="StudentClassID" Type="Int32" Nullable="false" />
+          <Property Name="ClassID" Type="Int32" />
+          <Property Name="EducationYearID" Type="Int32" />
+        </EntityType>
+        <EntityType Name="VW_Attendance_Stu_Setting">
+          <Key>
+            <PropertyRef Name="StudentsName" />
+            <PropertyRef Name="SMSPhoneNo" />
+          </Key>
+          <Property Name="SchoolID" Type="Int32" />
+          <Property Name="ScheduleID" Type="Int32" />
+          <Property Name="StudentID" Type="Int32" />
+          <Property Name="StudentsName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="SMSPhoneNo" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Entry_Confirmation" Type="Boolean" />
+          <Property Name="Exit_Confirmation" Type="Boolean" />
+          <Property Name="Is_Abs_SMS" Type="Boolean" />
+          <Property Name="Is_Late_SMS" Type="Boolean" />
+          <Property Name="LateEntryTime" Type="Time" Precision="7" />
+          <Property Name="StartTime" Type="Time" Precision="7" />
+          <Property Name="EndTime" Type="Time" Precision="7" />
+        </EntityType>
+        <EntityType Name="VW_Attendance_User_Leave">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+          </Key>
+          <Property Name="SchoolID" Type="Int32" Nullable="false" />
+          <Property Name="DeviceID" Type="Int32" />
+          <Property Name="StartDate" Type="DateTime" Precision="0" />
+          <Property Name="EndDate" Type="DateTime" Precision="0" />
+        </EntityType>
+        <EntityType Name="VW_Attendance_Users">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+          </Key>
+          <Property Name="SchoolID" Type="Int32" Nullable="false" />
+          <Property Name="DeviceID" Type="Int32" />
+          <Property Name="ID" Type="String" MaxLength="51" FixedLength="false" Unicode="true" />
+          <Property Name="RFID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Name" Type="String" MaxLength="257" FixedLength="false" Unicode="true" />
+          <Property Name="Designation" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="Is_Student" Type="Boolean" />
+          <Property Name="ScheduleID" Type="Int32" />
+        </EntityType>
+        <EntityType Name="VW_Emp_Info">
+          <Key>
+            <PropertyRef Name="SchoolID" />
+            <PropertyRef Name="EmployeeID" />
+          </Key>
+          <Property Name="DeviceID" Type="Int32" />
+          <Property Name="SchoolID" Type="Int32" Nullable="false" />
+          <Property Name="Job_Status" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="EmployeeID" Type="Int32" Nullable="false" />
+          <Property Name="ID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="EmployeeType" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Permanent_Temporary" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Bank_AccNo" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="Work_Time_Basis" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Salary" Type="Double" />
+          <Property Name="Time_Basis_Type" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="RFID" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="FirstName" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="LastName" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="Designation" Type="String" MaxLength="128" FixedLength="false" Unicode="true" />
+          <Property Name="Phone" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Image" Type="Binary" MaxLength="Max" FixedLength="false" />
+        </EntityType>
+        <Association Name="FK_Attendance_Schedule_AssignStudent_Attendance_Schedule">
+          <End Role="Attendance_Schedule" Type="Self.Attendance_Schedule" Multiplicity="0..1" />
+          <End Role="Attendance_Schedule_AssignStudent" Type="Self.Attendance_Schedule_AssignStudent" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Attendance_Schedule">
+              <PropertyRef Name="ScheduleID" />
+            </Principal>
+            <Dependent Role="Attendance_Schedule_AssignStudent">
+              <PropertyRef Name="ScheduleID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="EduEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="Attendance_Device_Setting" EntityType="Self.Attendance_Device_Setting" />
+          <EntitySet Name="Attendance_Record" EntityType="Self.Attendance_Record" />
+          <EntitySet Name="Attendance_Schedule" EntityType="Self.Attendance_Schedule" />
+          <EntitySet Name="Attendance_Schedule_AssignStudent" EntityType="Self.Attendance_Schedule_AssignStudent" />
+          <EntitySet Name="Attendance_Schedule_Day" EntityType="Self.Attendance_Schedule_Day" />
+          <EntitySet Name="Attendance_SMS" EntityType="Self.Attendance_SMS" />
+          <EntitySet Name="Attendance_SMS_Failed" EntityType="Self.Attendance_SMS_Failed" />
+          <EntitySet Name="Attendance_SMS_Sender" EntityType="Self.Attendance_SMS_Sender" />
+          <EntitySet Name="Attendance_Student" EntityType="Self.Attendance_Student" />
+          <EntitySet Name="Education_Year" EntityType="Self.Education_Year" />
+          <EntitySet Name="Employee_Attendance_Report" EntityType="Self.Employee_Attendance_Report" />
+          <EntitySet Name="Employee_Attendance_Schedule_Assign" EntityType="Self.Employee_Attendance_Schedule_Assign" />
+          <EntitySet Name="SchoolInfoes" EntityType="Self.SchoolInfo" />
+          <EntitySet Name="SikkhaloySettings" EntityType="Self.SikkhaloySetting" />
+          <EntitySet Name="SMS" EntityType="Self.SM" />
+          <EntitySet Name="SMS_OtherInfo" EntityType="Self.SMS_OtherInfo" />
+          <EntitySet Name="SMS_Recharge_Record" EntityType="Self.SMS_Recharge_Record" />
+          <EntitySet Name="SMS_Send_Record" EntityType="Self.SMS_Send_Record" />
+          <EntitySet Name="VW_Attendance_Stu" EntityType="Self.VW_Attendance_Stu" />
+          <EntitySet Name="VW_Attendance_Stu_Setting" EntityType="Self.VW_Attendance_Stu_Setting" />
+          <EntitySet Name="VW_Attendance_User_Leave" EntityType="Self.VW_Attendance_User_Leave" />
+          <EntitySet Name="VW_Attendance_Users" EntityType="Self.VW_Attendance_Users" />
+          <EntitySet Name="VW_Emp_Info" EntityType="Self.VW_Emp_Info" />
+          <AssociationSet Name="FK_Attendance_Schedule_AssignStudent_Attendance_Schedule" Association="Self.FK_Attendance_Schedule_AssignStudent_Attendance_Schedule">
+            <End Role="Attendance_Schedule" EntitySet="Attendance_Schedule" />
+            <End Role="Attendance_Schedule_AssignStudent" EntitySet="Attendance_Schedule_AssignStudent" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="EduModelStoreContainer" CdmEntityContainer="EduEntities">
+          <EntitySetMapping Name="Attendance_Device_Setting">
+            <EntityTypeMapping TypeName="EduModel.Attendance_Device_Setting">
+              <MappingFragment StoreEntitySet="Attendance_Device_Setting">
+                <ScalarProperty Name="AttendanceSettingID" ColumnName="AttendanceSettingID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="UserName" ColumnName="UserName" />
+                <ScalarProperty Name="Password" ColumnName="Password" />
+                <ScalarProperty Name="IsActive" ColumnName="IsActive" />
+                <ScalarProperty Name="InsertDate" ColumnName="InsertDate" />
+                <ScalarProperty Name="SettingKey" ColumnName="SettingKey" />
+                <ScalarProperty Name="Image_Link" ColumnName="Image_Link" />
+                <ScalarProperty Name="Is_Device_Attendance_Enable" ColumnName="Is_Device_Attendance_Enable" />
+                <ScalarProperty Name="Is_All_SMS_On" ColumnName="Is_All_SMS_On" />
+                <ScalarProperty Name="Is_Holiday_As_Offday" ColumnName="Is_Holiday_As_Offday" />
+                <ScalarProperty Name="Is_Student_All_SMS_Active" ColumnName="Is_Student_All_SMS_Active" />
+                <ScalarProperty Name="Is_Student_Entry_SMS_ON" ColumnName="Is_Student_Entry_SMS_ON" />
+                <ScalarProperty Name="Is_Student_Exit_SMS_ON" ColumnName="Is_Student_Exit_SMS_ON" />
+                <ScalarProperty Name="Is_Student_Abs_SMS_ON" ColumnName="Is_Student_Abs_SMS_ON" />
+                <ScalarProperty Name="Is_Student_Late_SMS_ON" ColumnName="Is_Student_Late_SMS_ON" />
+                <ScalarProperty Name="Is_Employee_SMS_Active" ColumnName="Is_Employee_SMS_Active" />
+                <ScalarProperty Name="Is_Employee_Abs_SMS_ON" ColumnName="Is_Employee_Abs_SMS_ON" />
+                <ScalarProperty Name="Is_Employee_Late_SMS_ON" ColumnName="Is_Employee_Late_SMS_ON" />
+                <ScalarProperty Name="Is_Employee_SMS_OwnNumber" ColumnName="Is_Employee_SMS_OwnNumber" />
+                <ScalarProperty Name="Employee_SMS_Number" ColumnName="Employee_SMS_Number" />
+                <ScalarProperty Name="SMS_TimeOut_Minute" ColumnName="SMS_TimeOut_Minute" />
+                <ScalarProperty Name="Is_Student_Attendance_Enable" ColumnName="Is_Student_Attendance_Enable" />
+                <ScalarProperty Name="Is_Employee_Attendance_Enable" ColumnName="Is_Employee_Attendance_Enable" />
+                <ScalarProperty Name="Is_English_SMS" ColumnName="Is_English_SMS" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_Record">
+            <EntityTypeMapping TypeName="EduModel.Attendance_Record">
+              <MappingFragment StoreEntitySet="Attendance_Record">
+                <ScalarProperty Name="AttendanceRecordID" ColumnName="AttendanceRecordID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="ClassID" ColumnName="ClassID" />
+                <ScalarProperty Name="StudentClassID" ColumnName="StudentClassID" />
+                <ScalarProperty Name="EducationYearID" ColumnName="EducationYearID" />
+                <ScalarProperty Name="Attendance" ColumnName="Attendance" />
+                <ScalarProperty Name="AttendanceDate" ColumnName="AttendanceDate" />
+                <ScalarProperty Name="Reason" ColumnName="Reason" />
+                <ScalarProperty Name="EntryTime" ColumnName="EntryTime" />
+                <ScalarProperty Name="ExitTime" ColumnName="ExitTime" />
+                <ScalarProperty Name="InsertDate" ColumnName="InsertDate" />
+                <ScalarProperty Name="ExitStatus" ColumnName="ExitStatus" />
+                <ScalarProperty Name="Is_OUT" ColumnName="Is_OUT" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_Schedule">
+            <EntityTypeMapping TypeName="EduModel.Attendance_Schedule">
+              <MappingFragment StoreEntitySet="Attendance_Schedule">
+                <ScalarProperty Name="ScheduleID" ColumnName="ScheduleID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="ScheduleName" ColumnName="ScheduleName" />
+                <ScalarProperty Name="LateEntryTime" ColumnName="LateEntryTime" />
+                <ScalarProperty Name="Date" ColumnName="Date" />
+                <ScalarProperty Name="StartTime" ColumnName="StartTime" />
+                <ScalarProperty Name="EndTime" ColumnName="EndTime" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_Schedule_AssignStudent">
+            <EntityTypeMapping TypeName="EduModel.Attendance_Schedule_AssignStudent">
+              <MappingFragment StoreEntitySet="Attendance_Schedule_AssignStudent">
+                <ScalarProperty Name="Schedule_AssignStuID" ColumnName="Schedule_AssignStuID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="ScheduleID" ColumnName="ScheduleID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+                <ScalarProperty Name="Entry_Confirmation" ColumnName="Entry_Confirmation" />
+                <ScalarProperty Name="Exit_Confirmation" ColumnName="Exit_Confirmation" />
+                <ScalarProperty Name="Date" ColumnName="Date" />
+                <ScalarProperty Name="Is_Abs_SMS" ColumnName="Is_Abs_SMS" />
+                <ScalarProperty Name="Is_Late_SMS" ColumnName="Is_Late_SMS" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_Schedule_Day">
+            <EntityTypeMapping TypeName="EduModel.Attendance_Schedule_Day">
+              <MappingFragment StoreEntitySet="Attendance_Schedule_Day">
+                <ScalarProperty Name="ScheduleDayID" ColumnName="ScheduleDayID" />
+                <ScalarProperty Name="ScheduleID" ColumnName="ScheduleID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="Day" ColumnName="Day" />
+                <ScalarProperty Name="LateEntryTime" ColumnName="LateEntryTime" />
+                <ScalarProperty Name="StartTime" ColumnName="StartTime" />
+                <ScalarProperty Name="EndTime" ColumnName="EndTime" />
+                <ScalarProperty Name="Insert_Date" ColumnName="Insert_Date" />
+                <ScalarProperty Name="Is_OnDay" ColumnName="Is_OnDay" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_SMS">
+            <EntityTypeMapping TypeName="EduModel.Attendance_SMS">
+              <MappingFragment StoreEntitySet="Attendance_SMS">
+                <ScalarProperty Name="Attendance_SMSID" ColumnName="Attendance_SMSID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="ScheduleTime" ColumnName="ScheduleTime" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="SentTime" ColumnName="SentTime" />
+                <ScalarProperty Name="AttendanceDate" ColumnName="AttendanceDate" />
+                <ScalarProperty Name="SMS_Text" ColumnName="SMS_Text" />
+                <ScalarProperty Name="MobileNo" ColumnName="MobileNo" />
+                <ScalarProperty Name="Is_Send" ColumnName="Is_Send" />
+                <ScalarProperty Name="InsertDate" ColumnName="InsertDate" />
+                <ScalarProperty Name="AttendanceStatus" ColumnName="AttendanceStatus" />
+                <ScalarProperty Name="SMS_TimeOut" ColumnName="SMS_TimeOut" />
+                <ScalarProperty Name="EmployeeID" ColumnName="EmployeeID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_SMS_Failed">
+            <EntityTypeMapping TypeName="EduModel.Attendance_SMS_Failed">
+              <MappingFragment StoreEntitySet="Attendance_SMS_Failed">
+                <ScalarProperty Name="AttendanceSmsFailedId" ColumnName="AttendanceSmsFailedId" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="ScheduleTime" ColumnName="ScheduleTime" />
+                <ScalarProperty Name="CreateTime" ColumnName="CreateTime" />
+                <ScalarProperty Name="SentTime" ColumnName="SentTime" />
+                <ScalarProperty Name="AttendanceDate" ColumnName="AttendanceDate" />
+                <ScalarProperty Name="SMS_Text" ColumnName="SMS_Text" />
+                <ScalarProperty Name="MobileNo" ColumnName="MobileNo" />
+                <ScalarProperty Name="AttendanceStatus" ColumnName="AttendanceStatus" />
+                <ScalarProperty Name="SMS_TimeOut" ColumnName="SMS_TimeOut" />
+                <ScalarProperty Name="EmployeeID" ColumnName="EmployeeID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+                <ScalarProperty Name="FailedReson" ColumnName="FailedReson" />
+                <ScalarProperty Name="InsertDate" ColumnName="InsertDate" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_SMS_Sender">
+            <EntityTypeMapping TypeName="EduModel.Attendance_SMS_Sender">
+              <MappingFragment StoreEntitySet="Attendance_SMS_Sender">
+                <ScalarProperty Name="AttendanceSmsSenderId" ColumnName="AttendanceSmsSenderId" />
+                <ScalarProperty Name="AppStartTime" ColumnName="AppStartTime" />
+                <ScalarProperty Name="AppCloseTime" ColumnName="AppCloseTime" />
+                <ScalarProperty Name="TotalEventCall" ColumnName="TotalEventCall" />
+                <ScalarProperty Name="TotalSmsSend" ColumnName="TotalSmsSend" />
+                <ScalarProperty Name="TotalSmsFailed" ColumnName="TotalSmsFailed" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Attendance_Student">
+            <EntityTypeMapping TypeName="EduModel.Attendance_Student">
+              <MappingFragment StoreEntitySet="Attendance_Student">
+                <ScalarProperty Name="AttendanceStudentID" ColumnName="AttendanceStudentID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="EducationYearID" ColumnName="EducationYearID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+                <ScalarProperty Name="ExamID" ColumnName="ExamID" />
+                <ScalarProperty Name="ClassID" ColumnName="ClassID" />
+                <ScalarProperty Name="StudentClassID" ColumnName="StudentClassID" />
+                <ScalarProperty Name="WorkingDays" ColumnName="WorkingDays" />
+                <ScalarProperty Name="TotalPresent" ColumnName="TotalPresent" />
+                <ScalarProperty Name="TotalAbsent" ColumnName="TotalAbsent" />
+                <ScalarProperty Name="TotalLate" ColumnName="TotalLate" />
+                <ScalarProperty Name="TotalLeave" ColumnName="TotalLeave" />
+                <ScalarProperty Name="TotalBunk" ColumnName="TotalBunk" />
+                <ScalarProperty Name="CumulativeNameID" ColumnName="CumulativeNameID" />
+                <ScalarProperty Name="Insert_Date" ColumnName="Insert_Date" />
+                <ScalarProperty Name="TotalLateAbs" ColumnName="TotalLateAbs" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Education_Year">
+            <EntityTypeMapping TypeName="EduModel.Education_Year">
+              <MappingFragment StoreEntitySet="Education_Year">
+                <ScalarProperty Name="EducationYearID" ColumnName="EducationYearID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="EducationYear" ColumnName="EducationYear" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="StartDate" ColumnName="StartDate" />
+                <ScalarProperty Name="EndDate" ColumnName="EndDate" />
+                <ScalarProperty Name="IsActive" ColumnName="IsActive" />
+                <ScalarProperty Name="SN" ColumnName="SN" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Employee_Attendance_Report">
+            <EntityTypeMapping TypeName="EduModel.Employee_Attendance_Report">
+              <MappingFragment StoreEntitySet="Employee_Attendance_Report">
+                <ScalarProperty Name="Employee_Attendance_ReportID" ColumnName="Employee_Attendance_ReportID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="EducationYearID" ColumnName="EducationYearID" />
+                <ScalarProperty Name="EmployeeID" ColumnName="EmployeeID" />
+                <ScalarProperty Name="ReportName" ColumnName="ReportName" />
+                <ScalarProperty Name="Total_WorkingDays" ColumnName="Total_WorkingDays" />
+                <ScalarProperty Name="Total_Present" ColumnName="Total_Present" />
+                <ScalarProperty Name="Total_Absent" ColumnName="Total_Absent" />
+                <ScalarProperty Name="Total_Late" ColumnName="Total_Late" />
+                <ScalarProperty Name="Total_Leave" ColumnName="Total_Leave" />
+                <ScalarProperty Name="Report_StartDate" ColumnName="Report_StartDate" />
+                <ScalarProperty Name="Report_EndDate" ColumnName="Report_EndDate" />
+                <ScalarProperty Name="CreateDate" ColumnName="CreateDate" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Employee_Attendance_Schedule_Assign">
+            <EntityTypeMapping TypeName="EduModel.Employee_Attendance_Schedule_Assign">
+              <MappingFragment StoreEntitySet="Employee_Attendance_Schedule_Assign">
+                <ScalarProperty Name="Employee_Schedule_AssignID" ColumnName="Employee_Schedule_AssignID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RegistrationID" ColumnName="RegistrationID" />
+                <ScalarProperty Name="EmployeeID" ColumnName="EmployeeID" />
+                <ScalarProperty Name="CreateDate" ColumnName="CreateDate" />
+                <ScalarProperty Name="ScheduleID" ColumnName="ScheduleID" />
+                <ScalarProperty Name="Is_Abs_SMS" ColumnName="Is_Abs_SMS" />
+                <ScalarProperty Name="Is_Late_SMS" ColumnName="Is_Late_SMS" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="SchoolInfoes">
+            <EntityTypeMapping TypeName="EduModel.SchoolInfo">
+              <MappingFragment StoreEntitySet="SchoolInfo">
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="SchoolName" ColumnName="SchoolName" />
+                <ScalarProperty Name="SchoolLogo" ColumnName="SchoolLogo" />
+                <ScalarProperty Name="Institution_Dialog" ColumnName="Institution_Dialog" />
+                <ScalarProperty Name="Established" ColumnName="Established" />
+                <ScalarProperty Name="Principal" ColumnName="Principal" />
+                <ScalarProperty Name="AcadamicStaff" ColumnName="AcadamicStaff" />
+                <ScalarProperty Name="Students" ColumnName="Students" />
+                <ScalarProperty Name="Address" ColumnName="Address" />
+                <ScalarProperty Name="City" ColumnName="City" />
+                <ScalarProperty Name="State" ColumnName="State" />
+                <ScalarProperty Name="LocalArea" ColumnName="LocalArea" />
+                <ScalarProperty Name="PostalCode" ColumnName="PostalCode" />
+                <ScalarProperty Name="Phone" ColumnName="Phone" />
+                <ScalarProperty Name="Email" ColumnName="Email" />
+                <ScalarProperty Name="Website" ColumnName="Website" />
+                <ScalarProperty Name="UserName" ColumnName="UserName" />
+                <ScalarProperty Name="Validation" ColumnName="Validation" />
+                <ScalarProperty Name="Date" ColumnName="Date" />
+                <ScalarProperty Name="School_SN" ColumnName="School_SN" />
+                <ScalarProperty Name="Per_Student_Rate" ColumnName="Per_Student_Rate" />
+                <ScalarProperty Name="Device_SN" ColumnName="Device_SN" />
+                <ScalarProperty Name="IS_ServiceChargeActive" ColumnName="IS_ServiceChargeActive" />
+                <ScalarProperty Name="Discount" ColumnName="Discount" />
+                <ScalarProperty Name="Fixed" ColumnName="Fixed" />
+                <ScalarProperty Name="Free_SMS" ColumnName="Free_SMS" />
+                <ScalarProperty Name="Principal_Sign" ColumnName="Principal_Sign" />
+                <ScalarProperty Name="Teacher_Sign" ColumnName="Teacher_Sign" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="SikkhaloySettings">
+            <EntityTypeMapping TypeName="EduModel.SikkhaloySetting">
+              <MappingFragment StoreEntitySet="SikkhaloySetting">
+                <ScalarProperty Name="SikkhaloySettingId" ColumnName="SikkhaloySettingId" />
+                <ScalarProperty Name="SmsProvider" ColumnName="SmsProvider" />
+                <ScalarProperty Name="SmsProviderMultiple" ColumnName="SmsProviderMultiple" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="SMS">
+            <EntityTypeMapping TypeName="EduModel.SM">
+              <MappingFragment StoreEntitySet="SMS">
+                <ScalarProperty Name="SMSID" ColumnName="SMSID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="SMS_Balance" ColumnName="SMS_Balance" />
+                <ScalarProperty Name="Masking" ColumnName="Masking" />
+                <ScalarProperty Name="Date" ColumnName="Date" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="SMS_OtherInfo">
+            <EntityTypeMapping TypeName="EduModel.SMS_OtherInfo">
+              <MappingFragment StoreEntitySet="SMS_OtherInfo">
+                <ScalarProperty Name="SMS_Send_ID" ColumnName="SMS_Send_ID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+                <ScalarProperty Name="TeacherID" ColumnName="TeacherID" />
+                <ScalarProperty Name="EducationYearID" ColumnName="EducationYearID" />
+                <ScalarProperty Name="SMS_NumberID" ColumnName="SMS_NumberID" />
+                <ScalarProperty Name="CommitteeMemberId" ColumnName="CommitteeMemberId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="SMS_Recharge_Record">
+            <EntityTypeMapping TypeName="EduModel.SMS_Recharge_Record">
+              <MappingFragment StoreEntitySet="SMS_Recharge_Record">
+                <ScalarProperty Name="SMS_Recharge_RecordID" ColumnName="SMS_Recharge_RecordID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="RechargeSMS" ColumnName="RechargeSMS" />
+                <ScalarProperty Name="PerSMS_Price" ColumnName="PerSMS_Price" />
+                <ScalarProperty Name="Total_Price" ColumnName="Total_Price" />
+                <ScalarProperty Name="Date" ColumnName="Date" />
+                <ScalarProperty Name="Is_Paid" ColumnName="Is_Paid" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="SMS_Send_Record">
+            <EntityTypeMapping TypeName="EduModel.SMS_Send_Record">
+              <MappingFragment StoreEntitySet="SMS_Send_Record">
+                <ScalarProperty Name="SMS_Send_ID" ColumnName="SMS_Send_ID" />
+                <ScalarProperty Name="PhoneNumber" ColumnName="PhoneNumber" />
+                <ScalarProperty Name="TextSMS" ColumnName="TextSMS" />
+                <ScalarProperty Name="TextCount" ColumnName="TextCount" />
+                <ScalarProperty Name="SMSCount" ColumnName="SMSCount" />
+                <ScalarProperty Name="PurposeOfSMS" ColumnName="PurposeOfSMS" />
+                <ScalarProperty Name="SMS_Response" ColumnName="SMS_Response" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="Date" ColumnName="Date" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="VW_Attendance_Stu">
+            <EntityTypeMapping TypeName="EduModel.VW_Attendance_Stu">
+              <MappingFragment StoreEntitySet="VW_Attendance_Stu">
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="DeviceID" ColumnName="DeviceID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+                <ScalarProperty Name="StudentClassID" ColumnName="StudentClassID" />
+                <ScalarProperty Name="ClassID" ColumnName="ClassID" />
+                <ScalarProperty Name="EducationYearID" ColumnName="EducationYearID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="VW_Attendance_Stu_Setting">
+            <EntityTypeMapping TypeName="EduModel.VW_Attendance_Stu_Setting">
+              <MappingFragment StoreEntitySet="VW_Attendance_Stu_Setting">
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="ScheduleID" ColumnName="ScheduleID" />
+                <ScalarProperty Name="StudentID" ColumnName="StudentID" />
+                <ScalarProperty Name="StudentsName" ColumnName="StudentsName" />
+                <ScalarProperty Name="SMSPhoneNo" ColumnName="SMSPhoneNo" />
+                <ScalarProperty Name="Entry_Confirmation" ColumnName="Entry_Confirmation" />
+                <ScalarProperty Name="Exit_Confirmation" ColumnName="Exit_Confirmation" />
+                <ScalarProperty Name="Is_Abs_SMS" ColumnName="Is_Abs_SMS" />
+                <ScalarProperty Name="Is_Late_SMS" ColumnName="Is_Late_SMS" />
+                <ScalarProperty Name="LateEntryTime" ColumnName="LateEntryTime" />
+                <ScalarProperty Name="StartTime" ColumnName="StartTime" />
+                <ScalarProperty Name="EndTime" ColumnName="EndTime" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="VW_Attendance_User_Leave">
+            <EntityTypeMapping TypeName="EduModel.VW_Attendance_User_Leave">
+              <MappingFragment StoreEntitySet="VW_Attendance_User_Leave">
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="DeviceID" ColumnName="DeviceID" />
+                <ScalarProperty Name="StartDate" ColumnName="StartDate" />
+                <ScalarProperty Name="EndDate" ColumnName="EndDate" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="VW_Attendance_Users">
+            <EntityTypeMapping TypeName="EduModel.VW_Attendance_Users">
+              <MappingFragment StoreEntitySet="VW_Attendance_Users">
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="DeviceID" ColumnName="DeviceID" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="RFID" ColumnName="RFID" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Designation" ColumnName="Designation" />
+                <ScalarProperty Name="Is_Student" ColumnName="Is_Student" />
+                <ScalarProperty Name="ScheduleID" ColumnName="ScheduleID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="VW_Emp_Info">
+            <EntityTypeMapping TypeName="EduModel.VW_Emp_Info">
+              <MappingFragment StoreEntitySet="VW_Emp_Info">
+                <ScalarProperty Name="DeviceID" ColumnName="DeviceID" />
+                <ScalarProperty Name="SchoolID" ColumnName="SchoolID" />
+                <ScalarProperty Name="Job_Status" ColumnName="Job_Status" />
+                <ScalarProperty Name="EmployeeID" ColumnName="EmployeeID" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="EmployeeType" ColumnName="EmployeeType" />
+                <ScalarProperty Name="Permanent_Temporary" ColumnName="Permanent_Temporary" />
+                <ScalarProperty Name="Bank_AccNo" ColumnName="Bank_AccNo" />
+                <ScalarProperty Name="Work_Time_Basis" ColumnName="Work_Time_Basis" />
+                <ScalarProperty Name="Salary" ColumnName="Salary" />
+                <ScalarProperty Name="Time_Basis_Type" ColumnName="Time_Basis_Type" />
+                <ScalarProperty Name="RFID" ColumnName="RFID" />
+                <ScalarProperty Name="FirstName" ColumnName="FirstName" />
+                <ScalarProperty Name="LastName" ColumnName="LastName" />
+                <ScalarProperty Name="Designation" ColumnName="Designation" />
+                <ScalarProperty Name="Phone" ColumnName="Phone" />
+                <ScalarProperty Name="Image" ColumnName="Image" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

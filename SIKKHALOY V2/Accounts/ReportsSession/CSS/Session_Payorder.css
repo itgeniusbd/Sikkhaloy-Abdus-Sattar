@@ -1,0 +1,30 @@
+﻿
+.Session-Title { background-color: #fff; border: 1px solid #ddd; margin-bottom: 20px;}
+
+.session-name {color: #9b9b9b; font-size:18px;}
+.session-date{ font-size:12px; color:#333;}
+.sort-Date{display:none; font-size:14px; color:#333; padding-top:5px;}
+
+.Fees-section {margin-bottom:30px; padding: 10px 0 10px; text-align:center; border:1px solid #ddd; color:#fff}
+.tile-number { font-size:16px; line-height: 1; padding: 5px 0 5px; overflow: hidden; text-overflow: ellipsis; -ms-text-overflow:ellipsis; -o-text-overflow:ellipsis; white-space: nowrap;}
+
+.Student-bg { background-color:#348CD4}
+.Payorder-bg{ background-color:#45BBE0}
+.Late-Fee-bg{ background-color:#8892D6}
+.Concession-bg{ background-color:#1EA69A}
+.Paid-bg{ background-color: #78C350} 
+.Unpaid-bg{ background-color:#F06292}
+
+
+.Class-tle-bg { background-color: #684D90; margin-top:0 !important}
+.Role-tle-bg { background-color:#29B6F6}
+.For-tle-bg { background-color:#6CB73B}
+
+.grid-title {padding: 10px 0 10px 15px; text-transform:uppercase; color:#fff; border:1px solid #ddd}
+.grid-title span { font-weight:bold;}
+
+.mGrid th{background-color:#fff; color:#333 !important; border: 1px solid #ddd;border-top:none;}
+.mGrid th a {color:#333 !important }
+
+#Print-Set a { color: #fff; text-decoration: none; transition: color 0.3s linear; -webkit-transition: color 0.3s linear; -moz-transition: color 0.3s linear; }
+ #Print-Set a:hover { color: #ddd; }

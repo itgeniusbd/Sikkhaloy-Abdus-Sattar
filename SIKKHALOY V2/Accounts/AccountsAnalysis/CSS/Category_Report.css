@@ -1,0 +1,16 @@
+﻿
+.tab-content table { width:100%}
+#ctl00_body_Student_Icome_ReportViewer_ReportViewer,
+#ctl00_body_Daily_Income_ReportViewer_ReportViewer,
+#ctl00_body_Monthly_Income_ReportViewer_ReportViewer,
+#ctl00_body_Daily_Expense_ReportViewer_ReportViewer,
+#ctl00_body_Monthly_Expense_ReportViewer_ReportViewer div { width: auto !important; }
+
+@page { margin: 0.2cm; }
+@media print {
+#ctl00_body_Student_Icome_ReportViewer_ctl05,
+#ctl00_body_Daily_Income_ReportViewer_ctl05,
+#ctl00_body_Monthly_Income_ReportViewer_ctl05,
+#ctl00_body_Daily_Expense_ReportViewer_ctl05,
+#ctl00_body_Monthly_Expense_ReportViewer_ctl05{ display: none; }
+}

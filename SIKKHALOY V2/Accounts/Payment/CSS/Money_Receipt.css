@@ -1,0 +1,18 @@
+﻿
+.SInfo { text-align: center; color: #333; font-weight: bold; margin-bottom: 6px; }
+.RecvBy { text-align: center; color: #333; font-size: 11px; margin-top: 5px;}
+.P_Dues {display:none; margin:10px 0 0 0; font-size:13px; font-weight:bold}
+
+.mGrid td {padding: 3px;  border: 1px solid #a0a0a0;}
+.GVfooter td { font-weight:bold;}
+
+
+@page { margin: 0 13.3rem !important; }
+@media print {
+    .logo-waper{display:none;}
+    #header { margin-bottom: 10px; border-bottom: none !important; }
+
+    /*for black and white page*/
+    .bg-main { background-color: #fff; color: #000; box-shadow: none !important }
+    #InstitutionName { font-weight: bold; color: #000 !important; }
+}

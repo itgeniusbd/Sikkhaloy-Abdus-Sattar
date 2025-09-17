@@ -1,0 +1,30 @@
+﻿
+.border {width: 323.52px; height: 204px; background-color: #fff; border:1px solid #0075d2; border-radius: 2px; page-break-after:auto; padding-left:0; padding-right:0; margin:24px;}
+.border .row { margin-left:0; margin-right:0}
+.Student_ID { background-color: #0075d2; border-radius: 6px; color: #fff; font-size: 16px; margin: auto; padding: 1px 0; text-align: center; width: 127px; }
+.card-header {padding:0 0 5px 0; background-color: #0075d2; border-bottom: 2px solid #006bc8; color:#fff;margin-left: 0; margin-right: 0; margin-bottom:5px;}
+.card-footer {padding: 2px 0; background-color: #0075d2; color:#fff; font-size:8.5pt; margin-left: 0; margin-right: 0; position:absolute; bottom:0; width:100%}
+
+.Hidden_Ins_Name{ position: absolute; visibility: hidden; height: auto; width: auto; white-space: nowrap; }
+
+.Institution_Dialog { font-size: 11px; letter-spacing: 2.4px; line-height: 14px; }
+.Ins_Logo { border-radius: 3px; height: 36px !important; width: 43px !important; padding-top: 4px; }
+.S_Photo{width:80px !important; height:80px !important; border:1px solid #d0d0d0}
+
+.S_Info {padding-right:0; margin-top:5px;}
+.S_Info ul { margin: 0; padding: 0;}
+.S_Info ul li { font-size:12px; line-height:18px; list-style: outside none none;}
+.S-ID {font-size:12px}
+
+.sign{position:absolute; right:0; bottom:23px; font-weight: normal; margin-bottom: 0; font-size:8.5pt}
+.Help {color: red; font-size: 12px; font-family: Tahoma; }
+
+@page {margin:0}
+@media print {
+#Side_Nav,.btn btn-primary, .NoPrint, .footer, .headerBack, h3, .Help,.alert-link { display: none;}
+html, body { font-size: 9.5pt; margin: 0 auto; }
+body { background: none; }
+.container-fluid { padding-left: 0; padding-right: 0; }
+.Print-size { padding: 0; }
+#Main_Contain,.IdCard { width: 100%; }
+}

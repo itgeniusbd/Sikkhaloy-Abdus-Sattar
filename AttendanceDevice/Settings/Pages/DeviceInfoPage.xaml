@@ -1,0 +1,144 @@
+﻿<Page
+    x:Class="AttendanceDevice.Settings.Pages.DeviceInfoPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:AttendanceDevice.Settings.Pages"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Device Info"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    Loaded="Page_Loaded"
+    mc:Ignorable="d">
+
+    <Grid>
+        <materialDesign:DialogHost Name="LoadingDH" Grid.ZIndex="2">
+            <materialDesign:DialogHost.DialogContent>
+                <StackPanel
+                    Margin="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                    <ProgressBar
+                        Margin="30,0"
+                        HorizontalAlignment="Center"
+                        IsIndeterminate="True"
+                        Style="{DynamicResource MaterialDesignCircularProgressBar}"
+                        Value="0" />
+                    <TextBlock
+                        Margin="30,5"
+                        FontWeight="Bold"
+                        Text="Loading" />
+                </StackPanel>
+            </materialDesign:DialogHost.DialogContent>
+        </materialDesign:DialogHost>
+
+        <Grid Margin="20" Grid.ZIndex="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Margin="0,15">
+                <TextBlock
+                    Margin="0,0,0,10"
+                    Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                    Text="DEVICE SETTING" />
+
+                <materialDesign:Snackbar
+                    x:Name="ErrorSnackbar"
+                    HorizontalAlignment="Stretch"
+                    Background="#FFD30000"
+                    IsActive="False">
+                    <materialDesign:SnackbarMessage />
+                </materialDesign:Snackbar>
+            </StackPanel>
+
+            <Grid Grid.Row="1">
+                <StackPanel Margin="0,15" Orientation="Horizontal">
+                    <TextBox
+                        Name="DeviceNameTextbox"
+                        Padding="2,0,5,0"
+                        materialDesign:HintAssist.Hint="Device Name"
+                        FontSize="15" />
+                    <TextBox
+                        Name="DeviceIPTextbox"
+                        Margin="10,0"
+                        Padding="2,0,5,0"
+                        materialDesign:HintAssist.Hint="Device IP Address"
+                        FontSize="15" />
+                    <Button Click="AddDevice_Button_Click" Content="Add Device" />
+                </StackPanel>
+                <StackPanel
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+
+                    <Button
+                        Click="BtnRefresh_Click"
+                        Style="{StaticResource MaterialDesignFloatingActionMiniDarkButton}"
+                        ToolTip="Refresh Device">
+                        <materialDesign:PackIcon
+                            Width="24"
+                            Height="24"
+                            Kind="Refresh" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <DataGrid
+                Name="DeviceDtagrid"
+                Grid.Row="2"
+                AutoGenerateColumns="False"
+                CanUserAddRows="False"
+                ColumnWidth="*"
+                RowEditEnding="DeviceDtagrid_RowEditEnding">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding DeviceName, UpdateSourceTrigger=PropertyChanged}" Header="Device Name" />
+                    <DataGridTextColumn Binding="{Binding Port, UpdateSourceTrigger=PropertyChanged}" Header="Port" />
+                    <DataGridTextColumn Binding="{Binding CommKey, UpdateSourceTrigger=PropertyChanged}" Header="Comm Key" />
+
+                    <DataGridTemplateColumn Header="Device IP">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <materialDesign:PackIcon
+                                        Name="IpIco"
+                                        Foreground="#FF09CB00"
+                                        Kind="PlayNetwork" />
+                                    <TextBlock Text="{Binding DeviceIP}" />
+                                </StackPanel>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Path=IsConnected}" Value="0">
+                                        <Setter TargetName="IpIco" Property="Kind" Value="CloseNetwork" />
+                                        <Setter TargetName="IpIco" Property="Foreground" Value="#FFFF3A00" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding DeviceIP, UpdateSourceTrigger=PropertyChanged}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Connect">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button
+                                    Click="Connect_Button_Click"
+                                    IsEnabled="{Binding Path=IsConnected}"
+                                    Style="{StaticResource MaterialDesignFlatButton}">
+                                    Connect
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </Grid>
+</Page>

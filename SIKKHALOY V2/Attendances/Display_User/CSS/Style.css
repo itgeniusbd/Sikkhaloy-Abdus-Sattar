@@ -1,0 +1,20 @@
+﻿
+
+body { font-family: sans-serif;}
+
+fieldset { background-color: #fff; border: 2px solid #dadada; border-radius: 3px; font-family: sans-serif; padding: 15px;}
+fieldset legend { background-color:#e47600; border-radius: 7px; color: #fff; font-size: 20px; padding: 4px 3px; width: 500px; text-align:center}
+
+.Student_img { float:left; margin-right: 20px; }
+.Student_img img { border: 1px solid #f2f2f2; border-radius: 4px; height: 140px; width: 130px; }
+
+.Student_info { float:left; color: #515151; font-family: arial; font-size: 25px; font-weight: bold; }
+.marquee { overflow:hidden;}
+
+.Student_info table tr td {border-bottom:1px solid #ababab; padding:2px 0;}
+.TD_Size { width:110px}
+
+.Emp_Main {width:100%}
+.Emp_Info { background-color: #f2f2f2; border: 1px solid #a4a4a4; font-size:20px; margin-bottom: 25px; padding: 10px; text-align: center;}
+.Emp_Info table {width:100%}
+.Emp_Info img { border: 1px solid #f2f2f2; border-radius: 3px; width:160px;}

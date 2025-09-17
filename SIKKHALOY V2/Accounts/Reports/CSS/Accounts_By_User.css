@@ -1,0 +1,25 @@
+﻿
+.range_inputs { display:none;}
+.user-imge {float: left; height: 60px; width: 60px; }
+.user-imge img { height:100%; width:100%; border:1px solid #ddd; border-radius:50%;}
+
+.user-grid {color: #fff; border:1px solid #ddd; padding:10px; margin-bottom:20px; border-radius: 3px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);}
+.user-grid i { float: left; font-size: 2.5rem; text-align: center; }
+.user-grid .headline { font-size: 0.8rem; margin-bottom: 4px; text-align: right; }
+.user-grid .value { min-height: 22px; font-size: 1.5rem; font-weight: 600; text-align: right; }
+
+.user-bg { background-color:#03A9F4}
+.income-bg{ background-color:#8BC34A}
+.expense-bg{ background-color:#E84E40}
+
+.box { color: #333; font-size: 21px; padding-bottom: 10px}
+
+@media (min-width:768px) and (max-width:1480px) {
+ .user-grid { padding: 13px; }
+ .headline { overflow: hidden; text-overflow: ellipsis; -ms-text-overflow: ellipsis; -o-text-overflow: ellipsis; white-space: nowrap; }
+ .user-grid .value { font-size: 0.9rem; }
+}
+
+
+
+

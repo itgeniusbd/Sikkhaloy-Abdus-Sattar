@@ -1,0 +1,8 @@
+﻿
+
+@media print{
+#ctl00_body_Examinee_Vs_GradeRV_ctl05,
+#ctl00_body_Individual_SubjectRV_ctl05,
+#ctl00_body_UnsuccessfulRV_ctl05,
+#ctl00_body_Pass_FailRV_ctl05,#header{ display:none}
+}

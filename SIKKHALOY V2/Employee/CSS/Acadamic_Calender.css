@@ -1,0 +1,36 @@
+﻿
+.H_Date { font-size: 25px; color: #147c00; margin: 10px 0; border-bottom: 1px solid #147c00; }
+.H_Details { font-size: 16px; color: #0067ac; }
+.Appointment {font-size: 13px; }
+.Evnt_Date {padding: 2px 0; text-align: center; color: #05b401;border: 1px solid #ddd;}
+
+.myCalendar {width:100% !important; background-color: #fff; border: none !important; }
+.myCalendar a { text-decoration: none; }
+.myCalendar .myCalendarTitle {background-color:#f2f2f2; border-bottom: 1px solid #f2f2f2; color:#777; font-weight: bold; height: 40px; line-height: 40px;}
+.myCalendar th.myCalendarDayHeader { height: 25px; }
+.myCalendar tr { border-bottom: solid 1px #ddd; }
+
+ .myCalendar table tr { border-bottom: none !important; }
+ .myCalendar tr:last-child td { border-bottom: none; }
+ .myCalendar tr td.myCalendarDay, .myCalendar tr th.myCalendarDayHeader { border-right: solid 1px #ddd; text-align:center}
+ .myCalendar tr td:last-child.myCalendarDay, .myCalendar tr th:last-child.myCalendarDayHeader { border-right: none; }
+
+ .myCalendar td.myCalendarDay:nth-child(7) a { color: #c52e2e !important; }
+ .myCalendar .myCalendarNextPrev { text-align: center; }
+
+ .myCalendar .myCalendarNextPrev a { font-size: 1px; }
+ .myCalendar .myCalendarNextPrev:nth-child(1) a { color: #4CCAEF !important; background: url("Ico/prevMonth.png") no-repeat center center; }
+ .myCalendar .myCalendarNextPrev:nth-child(1) a:hover, .myCalendar .myCalendarNextPrev:nth-child(3) a:hover { background-color: transparent; }
+ .myCalendar .myCalendarNextPrev:nth-child(3) a { color: #4CCAEF !important; background: url("Ico/nextMonth.png") no-repeat center center; }
+
+ .myCalendar .myCalendarDayHeader a,
+ .myCalendar .myCalendarDay a,
+ .myCalendar .myCalendarSelector a,
+ .myCalendar .myCalendarNextPrev a { padding: 7px 15px; }
+ .myCalendar .myCalendarToday { background-color: #f2f2f2; -webkit-box-shadow: 1px 1px 8px 1px #8f8f8f; box-shadow: 1px 1px 8px 1px #8f8f8f; display: inline-block; width: 100% !important; height: 60px !important; border: 2px solid #f2f2f2; position: relative; padding-top: 6px; }
+.myCalendarSelected { background-color: #c52e2e; color: #fff; }
+
+.myCalendar .myCalendarToday a { color: #25bae5 !important; font-weight: bold; }
+ .myCalendar .myCalendarToday a:after { content: "TODAY"; color: #000; font-size: 12px; display: inline-block; pointer-events: none; width: 100%;}
+.myCalendar .myCalendarDay a:hover,
+.myCalendar .myCalendarSelector a:hover { background-color: #ddd; }

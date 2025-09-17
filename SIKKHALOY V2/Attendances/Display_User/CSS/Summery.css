@@ -1,0 +1,7 @@
+﻿
+body { font-family: sans-serif;}
+
+.info { width:310px}
+.info h3 { background-color:#518221; color: #fff; font-size:25px; padding: 7px; text-align: center;}
+.info table td {border-bottom:1px solid #ababab; padding:2px 0; font-size:28px; font-weight:bold; line-height:35px}
+.TD_Size { width:250px}

@@ -1,0 +1,18 @@
+﻿
+.range_inputs { display:none;}
+.Fees-section {margin-bottom:30px; padding: 10px 0 10px; text-align:center; border:1px solid #ddd; color:#fff}
+.tile-number { font-size:16px; line-height: 1; padding: 5px 0 5px; overflow: hidden; text-overflow: ellipsis; -ms-text-overflow:ellipsis; -o-text-overflow:ellipsis; white-space: nowrap;}
+
+.Student-bg { background-color:#348CD4}
+.Payorder-bg{ background-color:#45BBE0}
+.Late-Fee-bg{ background-color:#8892D6}
+.Concession-bg{ background-color:#1EA69A}
+.Paid-bg{ background-color: #78C350} 
+.Unpaid-bg{ background-color:#F06292}
+
+#Print-Set a { color: #fff; text-decoration: none; transition: color 0.3s linear; -webkit-transition: color 0.3s linear; -moz-transition: color 0.3s linear; }
+#Print-Set a:hover { color: #ddd; }
+
+@media print {
+   #Print-Set i { display:none;}
+}
