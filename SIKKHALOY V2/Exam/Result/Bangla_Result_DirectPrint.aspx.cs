@@ -797,7 +797,7 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Method to get dynamic sub-exam names for the current exam and class - More specific version
+        // Method to get dynamic sub-exam names - Simplified and more effective approach
         private DataTable GetSubExamNames(string examID)
         {
             using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
@@ -809,100 +809,119 @@ namespace EDUCATION.COM.Exam.Result
                     // Get current class ID from session or exam data
                     string classID = GetCurrentClassID();
                     
-                    // More specific query that checks for actual usage in this class and exam combination
-                    string query = @"
-                        SELECT DISTINCT 
+                    // Step 1: Get all sub-exams with their total marks for this class and exam
+                    string analysisQuery = @"
+                        SELECT 
                             esn.SubExamID,
                             esn.SubExamName,
                             esn.Sub_ExamSN,
-                            COUNT(eom.MarksObtained) as MarkCount
+                            COUNT(eom.MarksObtained) as StudentCount,
+                            SUM(CASE WHEN eom.MarksObtained > 0 THEN 1 ELSE 0 END) as StudentsWithMarks,
+                            AVG(CAST(eom.MarksObtained AS FLOAT)) as AvgMarks
                         FROM Exam_SubExam_Name esn
                         INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
                         INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                        INNER JOIN Exam_Result_of_Student ers ON sc.StudentClassID = ers.StudentClassID
                         WHERE eom.ExamID = @ExamID
+                        AND sc.ClassID = @ClassID
                         AND esn.SchoolID = @SchoolID
                         AND esn.EducationYearID = @EducationYearID
-                        AND sc.ClassID = @ClassID
-                        AND ers.ExamID = @ExamID
-                        AND eom.MarksObtained > 0
                         GROUP BY esn.SubExamID, esn.SubExamName, esn.Sub_ExamSN
-                        HAVING COUNT(eom.MarksObtained) >= 3
                         ORDER BY esn.Sub_ExamSN";
 
-                    SqlCommand cmd = new SqlCommand(query, con);
+                    SqlCommand cmd = new SqlCommand(analysisQuery, con);
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.AddWithValue("@ExamID", examID);
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"].ToString());
                     cmd.Parameters.AddWithValue("@ClassID", classID);
 
-                    DataTable dt = new DataTable();
+                    DataTable allSubExams = new DataTable();
                     SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                    adapter.Fill(dt);
+                    adapter.Fill(allSubExams);
 
-                    // If no meaningful sub-exams found, try a simpler approach
-                    if (dt.Rows.Count == 0)
+                    // Step 2: Log analysis for debugging
+                    string analysisScript = "console.log('=== SUB-EXAM ANALYSIS FOR CLASS " + classID + " ===');";
+                    foreach (DataRow row in allSubExams.Rows)
                     {
-                        // Try to get the most commonly used sub-exams for this class
-                        string fallbackQuery = @"
-                            SELECT TOP 2
-                                esn.SubExamID,
-                                esn.SubExamName,
-                                esn.Sub_ExamSN,
-                                COUNT(*) as UsageCount
-                            FROM Exam_SubExam_Name esn
-                            INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                            INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                            WHERE eom.ExamID = @ExamID
-                            AND sc.ClassID = @ClassID
-                            AND eom.MarksObtained > 0
-                            GROUP BY esn.SubExamID, esn.SubExamName, esn.Sub_ExamSN
-                            ORDER BY COUNT(*) DESC, esn.Sub_ExamSN";
-
-                        SqlCommand fallbackCmd = new SqlCommand(fallbackQuery, con);
-                        fallbackCmd.CommandTimeout = 15;
-                        fallbackCmd.Parameters.AddWithValue("@ExamID", examID);
-                        fallbackCmd.Parameters.AddWithValue("@ClassID", classID);
-
-                        dt.Clear();
-                        SqlDataAdapter fallbackAdapter = new SqlDataAdapter(fallbackCmd);
-                        fallbackAdapter.Fill(dt);
+                        string name = SafeGetString(row, "SubExamName");
+                        string studentCount = SafeGetString(row, "StudentCount");
+                        string studentsWithMarks = SafeGetString(row, "StudentsWithMarks");
+                        string avgMarks = Math.Round(SafeGetDecimal(row, "AvgMarks"), 1).ToString();
+                        
+                        analysisScript += "console.log('" + name + ": " + studentCount + " students, " + studentsWithMarks + " with marks, avg=" + avgMarks + "');";
                     }
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamAnalysis", analysisScript, true);
 
-                    // Log the sub-exam names found for this specific class
-                    if (dt.Rows.Count > 0)
+                    // Step 3: Filter meaningful sub-exams
+                    DataTable meaningfulSubExams = allSubExams.Clone();
+                    
+                    foreach (DataRow row in allSubExams.Rows)
                     {
-                        string subExamList = "";
-                        foreach (DataRow row in dt.Rows)
+                        int studentsWithMarks = SafeGetString(row, "StudentsWithMarks") != "" ? Convert.ToInt32(row["StudentsWithMarks"]) : 0;
+                        decimal avgMarks = SafeGetDecimal(row, "AvgMarks");
+                        
+                        // A sub-exam is meaningful if:
+                        // 1. At least 5 students have marks > 0
+                        // 2. Average mark is > 5 (not just token marks)
+                        if (studentsWithMarks >= 5 && avgMarks > 5)
                         {
-                            string subExamName = SafeGetString(row, "SubExamName");
-                            string markCount = SafeGetString(row, "MarkCount") ?? SafeGetString(row, "UsageCount");
-                            subExamList += subExamName + "(" + markCount + "), ";
+                            meaningfulSubExams.ImportRow(row);
                         }
-                        subExamList = subExamList.TrimEnd(',', ' ');
-                        string debugScript = "console.log('Filtered sub-exams for Class " + classID + ": " + subExamList + "');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "filteredSubExamNamesForClass", debugScript, true);
-                    }
-                    else
-                    {
-                        string noSubExamScript = "console.log('No meaningful sub-exams found for Class " + classID + " in Exam " + examID + "');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "noMeaningfulSubExamForClass", noSubExamScript, true);
                     }
 
-                    return dt;
+                    // Step 4: If no meaningful sub-exams, take top 2 by usage
+                    if (meaningfulSubExams.Rows.Count == 0)
+                    {
+                        string fallbackScript = "console.log('No meaningful sub-exams found, using top 2 by student count');";
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamFallback", fallbackScript, true);
+                        
+                        for (int i = 0; i < Math.Min(2, allSubExams.Rows.Count); i++)
+                        {
+                            meaningfulSubExams.ImportRow(allSubExams.Rows[i]);
+                        }
+                    }
+
+                    // Step 5: Limit to maximum 3 sub-exams for better layout
+                    if (meaningfulSubExams.Rows.Count > 3)
+                    {
+                        DataTable limitedSubExams = meaningfulSubExams.Clone();
+                        for (int i = 0; i < 3; i++)
+                        {
+                            limitedSubExams.ImportRow(meaningfulSubExams.Rows[i]);
+                        }
+                        meaningfulSubExams = limitedSubExams;
+                        
+                        string limitScript = "console.log('Limited to top 3 meaningful sub-exams');";
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamLimit", limitScript, true);
+                    }
+
+                    // Step 6: Log final selection
+                    if (meaningfulSubExams.Rows.Count > 0)
+                    {
+                        string selectedList = "";
+                        foreach (DataRow row in meaningfulSubExams.Rows)
+                        {
+                            selectedList += SafeGetString(row, "SubExamName") + ", ";
+                        }
+                        selectedList = selectedList.TrimEnd(',', ' ');
+                        
+                        string selectionScript = "console.log('SELECTED SUB-EXAMS: " + selectedList + "');";
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "finalSubExamSelection", selectionScript, true);
+                    }
+
+                    return meaningfulSubExams;
                 }
                 catch (Exception ex)
                 {
                     string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                    string errorScript = "console.error('Filtered sub-exam names error: " + errorMsg + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "filteredSubExamErrorForClass", errorScript, true);
+                    string errorScript = "console.error('Sub-exam analysis error: " + errorMsg + "');";
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamAnalysisError", errorScript, true);
                     return new DataTable();
                 }
             }
         }
 
-        // Check if exam has meaningful sub-exams - Enhanced version
+        // Check if exam has meaningful sub-exams - Simplified version with better logging
         private bool CheckIfExamHasSubExams(string studentResultID)
         {
             using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
@@ -915,67 +934,21 @@ namespace EDUCATION.COM.Exam.Result
                     string classID = GetCurrentClassID();
                     string examID = GetExamIDFromStudentResult(studentResultID);
                     
-                    // Check for meaningful sub-exams with actual usage
-                    string checkQuery = @"
-                        SELECT COUNT(DISTINCT esn.SubExamID) as SubExamCount
-                        FROM Exam_SubExam_Name esn
-                        INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                        INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                        WHERE eom.ExamID = @ExamID
-                        AND sc.ClassID = @ClassID
-                        AND eom.MarksObtained > 0
-                        GROUP BY esn.SubExamID
-                        HAVING COUNT(eom.MarksObtained) >= 3";
-
-                    SqlCommand cmd = new SqlCommand(checkQuery, con);
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
-                    cmd.Parameters.AddWithValue("@ClassID", classID);
+                    // Get actual sub-exam data to analyze
+                    DataTable subExams = GetSubExamNames(examID);
                     
-                    object result = cmd.ExecuteScalar();
-                    int meaningfulSubExamCount = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+                    // Log the decision process
+                    bool hasSubExams = subExams.Rows.Count > 1;
+                    string decisionScript = "console.log('SUB-EXAM DECISION: " + subExams.Rows.Count + " sub-exams found, Using " + (hasSubExams ? "DETAILED" : "SIMPLE") + " table');";
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamDecision" + studentResultID, decisionScript, true);
                     
-                    // If no meaningful sub-exams found, check for any sub-exams at all
-                    if (meaningfulSubExamCount == 0)
-                    {
-                        string simpleCheckQuery = @"
-                            SELECT COUNT(DISTINCT esn.SubExamID) as SubExamCount
-                            FROM Exam_SubExam_Name esn
-                            INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                            INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                            WHERE eom.ExamID = @ExamID
-                            AND sc.ClassID = @ClassID";
-
-                        SqlCommand simpleCmd = new SqlCommand(simpleCheckQuery, con);
-                        simpleCmd.CommandTimeout = 15;
-                        simpleCmd.Parameters.AddWithValue("@ExamID", examID);
-                        simpleCmd.Parameters.AddWithValue("@ClassID", classID);
-                        
-                        object simpleResult = simpleCmd.ExecuteScalar();
-                        int totalSubExamCount = simpleResult != null && simpleResult != DBNull.Value ? Convert.ToInt32(simpleResult) : 0;
-                        
-                        // Log the result for debugging
-                        string debugScript = "console.log('Sub-exam analysis for Class " + classID + ": Meaningful=" + meaningfulSubExamCount + ", Total=" + totalSubExamCount + "');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamAnalysis" + studentResultID, debugScript, true);
-                        
-                        // Only show detailed table if we have at least 2 different sub-exams with some usage
-                        return totalSubExamCount >= 2;
-                    }
-                    else
-                    {
-                        // Log the result for debugging
-                        string debugScript = "console.log('Meaningful sub-exam check for Class " + classID + ": Found " + meaningfulSubExamCount + " meaningful sub-exams');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "meaningfulSubExamCheck" + studentResultID, debugScript, true);
-                        
-                        return meaningfulSubExamCount >= 1;
-                    }
+                    return hasSubExams;
                 }
                 catch (Exception ex)
                 {
-                    // Log timeout or other errors
                     string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                    string errorScript = "console.error('Enhanced sub-exam check error: " + errorMsg + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "enhancedSubExamCheckError" + studentResultID, errorScript, true);
+                    string errorScript = "console.error('Sub-exam decision error: " + errorMsg + "');";
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamDecisionError" + studentResultID, errorScript, true);
                     
                     return false; // Default to simple table on error
                 }
@@ -1101,6 +1074,174 @@ namespace EDUCATION.COM.Exam.Result
 
             html += "</table>";
             return html;
+        }
+
+        // Helper method to get current class ID with better debugging
+        private string GetCurrentClassID()
+        {
+            try
+            {
+                string classID = "";
+                
+                // First try to get from ClassDropDownList
+                if (ClassDropDownList != null && !string.IsNullOrEmpty(ClassDropDownList.SelectedValue) && ClassDropDownList.SelectedValue != "0")
+                {
+                    classID = ClassDropDownList.SelectedValue;
+                    string dropdownScript = "console.log('ClassID from DropDown: " + classID + "');";
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDFromDropdown", dropdownScript, true);
+                    return classID;
+                }
+                
+                // Fallback to session if available
+                if (Session["ClassID"] != null)
+                {
+                    classID = Session["ClassID"].ToString();
+                    string sessionScript = "console.log('ClassID from Session: " + classID + "');";
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDFromSession", sessionScript, true);
+                    return classID;
+                }
+                
+                // Default fallback
+                classID = "1";
+                string fallbackScript = "console.log('ClassID fallback to default: " + classID + "');";
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDFallback", fallbackScript, true);
+                return classID;
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
+                string errorScript = "console.error('GetCurrentClassID error: " + errorMsg + "');";
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDError", errorScript, true);
+                return "1";
+            }
+        }
+
+        // Helper method to get ExamID from StudentResultID - Missing method
+        private string GetExamIDFromStudentResult(string studentResultID)
+        {
+            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+            {
+                try
+                {
+                    con.Open();
+                    string query = "SELECT ExamID FROM Exam_Result_of_Student WHERE StudentResultID = @StudentResultID";
+                    SqlCommand cmd = new SqlCommand(query, con);
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    
+                    object result = cmd.ExecuteScalar();
+                    string examID = result != null && result != DBNull.Value ? result.ToString() : "";
+                    
+                    if (!string.IsNullOrEmpty(examID))
+                    {
+                        string debugScript = "console.log('ExamID from StudentResult: " + examID + "');";
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "examIDFromResult", debugScript, true);
+                    }
+                    
+                    return examID;
+                }
+                catch (Exception ex)
+                {
+                    string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
+                    string errorScript = "console.error('GetExamIDFromStudentResult error: " + errorMsg + "');";
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "examIDError", errorScript, true);
+                    return "";
+                }
+            }
+        }
+
+        // Public method called from ASPX for generating subject marks table
+        public string GenerateSubjectMarksTable(string studentResultID, string studentGrade, decimal studentPoint)
+        {
+            try
+            {
+                // Check if exam has meaningful sub-exams
+                bool hasSubExams = CheckIfExamHasSubExams(studentResultID);
+                
+                if (hasSubExams)
+                {
+                    return GenerateDetailedSubjectTable(studentResultID, studentGrade, studentPoint);
+                }
+                else
+                {
+                    return GenerateSimpleSubjectTable(studentResultID, studentGrade, studentPoint);
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
+                string errorScript = "console.error('GenerateSubjectMarksTable error: " + errorMsg + "');";
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "subjectTableError", errorScript, true);
+                return "<p>Error loading subject table</p>";
+            }
+        }
+
+        // Generate simple subject table (without sub-exams)
+        private string GenerateSimpleSubjectTable(string studentResultID, string studentGrade, decimal studentPoint)
+        {
+            DataTable subjects = GetSubjectDataSimple(studentResultID);
+            string resultComment = GetResultComment(studentGrade, studentPoint);
+            
+            if (subjects.Rows.Count == 0)
+            {
+                return "<p>No subject data found</p>";
+            }
+            
+            string html = @"
+                <div class=""marks-heading"">বিষয়ভিত্তিক ফলাফল</div>
+                <table class=""marks-table"">
+                    <tr>
+                        <th>বিষয়সমূহ</th>
+                        <th>প্রাপ্ত নাম্বার</th>
+                        <th>পূর্ণ নাম্বার</th>
+                        <th>গ্রেড</th>
+                        <th>পয়েন্ট</th>
+                        <th rowspan=""" + (subjects.Rows.Count + 1) + @""" class=""vertical-text"">" + resultComment + @"</th>
+                    </tr>";
+
+            foreach (DataRow row in subjects.Rows)
+            {
+                string subjectName = SafeGetString(row, "SubjectName");
+                string obtainedMark = SafeGetString(row, "ObtainedMark_ofSubject");
+                string fullMark = SafeGetString(row, "FullMark");
+                string subjectGrades = SafeGetString(row, "SubjectGrades");
+                decimal subjectPoint = SafeGetDecimal(row, "SubjectPoint");
+                string passStatus = SafeGetString(row, "PassStatus_InSubject");
+                
+                if (passStatus == "") passStatus = "Pass";
+                string rowClass = passStatus == "Fail" ? "failed-row" : "";
+                
+                html += @"
+                    <tr class=""" + rowClass + @""">
+                        <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
+                        <td>" + obtainedMark + @"</td>
+                        <td>" + fullMark + @"</td>
+                        <td>" + subjectGrades + @"</td>
+                        <td>" + subjectPoint.ToString("F1") + @"</td>
+                    </tr>";
+            }
+
+            html += "</table>";
+            return html;
+        }
+
+        // Helper methods for safe data access
+        private string SafeGetString(DataRow row, string columnName)
+        {
+            if (row.Table.Columns.Contains(columnName) && row[columnName] != DBNull.Value)
+                return row[columnName].ToString();
+            return string.Empty;
+        }
+
+        private decimal SafeGetDecimal(DataRow row, string columnName)
+        {
+            if (row.Table.Columns.Contains(columnName) && row[columnName] != DBNull.Value)
+            {
+                decimal value;
+                if (decimal.TryParse(row[columnName].ToString(), out value))
+                    return value;
+            }
+            return 0m;
         }
     }
 }
