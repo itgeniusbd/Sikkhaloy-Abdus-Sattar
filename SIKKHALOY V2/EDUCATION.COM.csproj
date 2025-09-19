@@ -521,6 +521,7 @@
     <Content Include="Exam\ExmamPositionBangla.aspx" />
     <Content Include="Exam\Input_Exam_Marks_WithSubExam.aspx" />
     <Content Include="Exam\Result\BanglaResult.aspx" />
+    <Content Include="Exam\Result\Bangla_Result_DirectPrint.aspx" />
     <Content Include="Exam\Result\Board_Result.aspx" />
     <Content Include="Exam\CSS\Input_Marks.css" />
     <Content Include="Exam\CSS\ExamPosition.css" />
@@ -1994,6 +1995,13 @@
     </Compile>
     <Compile Include="Exam\Result\BanglaResult.aspx.designer.cs">
       <DependentUpon>BanglaResult.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Exam\Result\Bangla_Result_DirectPrint.aspx.cs">
+      <DependentUpon>Bangla_Result_DirectPrint.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Exam\Result\Bangla_Result_DirectPrint.aspx.designer.cs">
+      <DependentUpon>Bangla_Result_DirectPrint.aspx</DependentUpon>
     </Compile>
     <Compile Include="Exam\Result\Board_Result.aspx.cs">
       <DependentUpon>Board_Result.aspx</DependentUpon>
