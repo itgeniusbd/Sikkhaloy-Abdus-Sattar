@@ -11,7 +11,7 @@ namespace EDUCATION.COM.Exam.Result
 {
 
 
-    public partial class Bangla_Result_DirectPrint
+    public partial class Bangla_Result_DirectPrint_New
     {
 
         /// <summary>
@@ -130,14 +130,5 @@ namespace EDUCATION.COM.Exam.Result
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater ResultRepeater;
-
-        /// <summary>
-        /// UpdateProgress control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.UpdateProgress UpdateProgress;
     }
 }

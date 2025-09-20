@@ -1,6 +1,8 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Bangla_Result_DirectPrint.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Bangla_Result_DirectPrint" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Bangla_Result_DirectPrint.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Bangla_Result_DirectPrint_New" ResponseEncoding="UTF-8" EnableViewState="true" EnableEventValidation="true" ValidateRequest="false" ViewStateMode="Enabled" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -25,9 +27,9 @@
             /* Remove problematic font forcing */
             * {
                 font-family: Arial, sans-serif !important; /* Use Arial instead of Kalpurush for print */
-                -webkit-font-smoothing: auto !important;
-                -moz-osx-font-smoothing: auto !important;
-                text-rendering: auto !important;
+                -webkit-font-smoothing: antialiased !important;
+                -moz-osx-font-smoothing: grayscale !important;
+                text-rendering: optimizeLegibility !important;
             }
             
             .result-card { 
@@ -292,298 +294,6 @@
             font-family: 'Kalpurush', Arial, sans-serif !important;
         }
 
-        /* Print color adjustments */
-        @media print {
-            /* Default landscape orientation */
-            @page {
-                size: A4 landscape;
-                margin: 2mm; /* Proper margin for pagination */
-            }
-            
-            /* Portrait mode specific rules */
-            @media print and (orientation: portrait) {
-                @page {
-                    size: A4 portrait;
-                    margin: 2mm; /* Slightly more margin for portrait */
-                }
-                
-                .result-card {
-                    max-width: none !important;
-                    width: auto !important;
-                    height: auto !important;
-                    padding: 8mm !important; /* More padding for portrait */
-                    margin: 3mm !important;
-                    border: 3px solid #0072bc !important; /* Thicker border */
-                    box-sizing: border-box !important;
-                    page-break-before: auto !important;
-                    page-break-inside: avoid !important;
-                    page-break-after: always !important;
-                    position: relative !important;
-                    top: auto !important;
-                    left: auto !important;
-                }
-                
-                /* Larger fonts for portrait mode */
-                .header h2 {
-                    font-size: 26px !important; /* Larger for portrait */
-                }
-                
-                .header p {
-                    font-size: 16px !important; /* Larger for portrait */
-                }
-                
-                .title {
-                    font-size: 22px !important; /* Larger for portrait */
-                    margin: 12px 0 !important;
-                }
-                
-                .info-table td {
-                    font-size: 16px !important; /* Keep original size for portrait */
-                    padding: 6px 8px !important; /* Keep original padding */
-                }
-                
-                .summary-header td {
-                    font-size: 14px !important; /* Keep original size for portrait */
-                    padding: 6px 6px !important; /* Keep original padding */
-                }
-                
-                .summary-values td {
-                    font-size: 15px !important; /* Keep original size for portrait */
-                    padding: 6px !important; /* Keep original padding */
-                }
-                
-                .grade-chart table {
-                    font-size: 11px !important; /* Larger for portrait */
-                }
-                
-                .grade-chart th {
-                    font-size: 12px !important;
-                }
-                
-                /* Larger fonts for marks table in portrait */
-                .marks-table th, .marks-table td {
-                    font-size: 13px !important; /* Default larger font for portrait */
-                    padding: 4px !important;
-                }
-                
-                .marks-table th {
-                    font-size: 18px !important; /* Larger headers for portrait */
-                }
-                
-                /* Portrait specific dynamic font sizes */
-                .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-                    font-size: 15px !important; /* Larger medium font for portrait */
-                    padding: 5px !important;
-                }
-                
-                .marks-table.medium-subjects th {
-                    font-size: 16px !important;
-                }
-                
-                .marks-table.small-subjects th, .marks-table.small-subjects td {
-                    font-size: 14px !important; /* Larger small font for portrait */
-                    padding: 4px !important;
-                }
-                
-                .marks-table.small-subjects th {
-                    font-size: 16px !important;
-                }
-                
-                .footer {
-                    font-size: 18px !important; /* Larger footer for portrait */
-                    margin-top: 25px !important;
-                }
-                
-                /* Better spacing for portrait */
-                .top-section {
-                    margin-bottom: 8px !important;
-                }
-                
-                .header {
-                    padding-bottom: 8px !important;
-                    margin-bottom: 8px !important;
-                }
-            }
-            
-            /* Prevent empty page at start */
-            * {
-                box-sizing: border-box !important;
-            }
-            
-            body {
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            .result-card {
-                max-width: none !important; /* Remove width restrictions */
-                width: auto !important; /* Let it flow naturally */
-                height: auto !important; /* Remove fixed height */
-                padding: 5mm !important;
-                margin: 5mm !important; /* Proper margins */
-                border: 4px solid #0072bc !important;
-                transform: none !important; /* Remove transform */
-                transform-origin: none !important;
-                box-sizing: border-box !important;
-                page-break-before: auto !important;
-                page-break-inside: avoid !important;
-                page-break-after: always !important; /* Force page break for multiple cards */
-                position: relative !important; /* Remove absolute positioning */
-                top: auto !important;
-                left: auto !important;
-            }
-            
-            .header {
-                padding-bottom: 5px !important;
-                margin-bottom: 5px !important;
-            }
-            
-            .header h2 {
-                font-size: 22px !important; /* Increased for print */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .header p {
-                font-size: 13px !important; /* Increased for print */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: normal !important;
-            }
-            
-            .title {
-                margin: 8px 0 !important;
-                font-size: 18px !important; /* Increased for print */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .top-section {
-                margin-bottom: 5px !important;
-            }
-            
-            .info-table td {
-                padding: 5px 8px !important; /* Increased padding */
-                font-size: 16px !important; /* Keep original font size */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .summary td {
-                padding: 4px !important;
-                font-size: 13px !important;
-            }
-            
-            .grade-chart table {
-                font-size: 6px !important; /* Increased font size */
-            }
-            
-            .grade-chart th, .grade-chart td {
-                padding: 1.5px 1.5px !important; /* Increased padding */
-            }
-            
-            .marks-table th, .marks-table td {
-                padding: 4px !important; /* Increased padding */
-                font-size: 16px !important; /* Default font size for 5 or less subjects */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            /* Dynamic font sizes for print based on subject count */
-            .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-                font-size: 13px !important; /* Smaller font for 6-10 subjects */
-                padding: 3px !important; /* Reduced padding */
-            }
-            
-            .marks-table.medium-subjects th {
-                font-size: 14px !important; /* Smaller header font */
-            }
-            
-            .marks-table.small-subjects th, .marks-table.small-subjects td {
-                font-size: 11px !important; /* Very small font for 10-15 subjects */
-                padding: 2px !important; /* Minimal padding for small fonts */
-            }
-            
-            .marks-table.small-subjects th {
-                font-size: 11px !important; /* Very small header font */
-            }
-            
-            .footer {
-                margin-top: 20px !important;
-                font-size: 15px !important;
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .summary-header td {
-                padding: 6px 6px !important; /* Keep original padding */
-                font-size: 14px !important; /* Keep original font size */
-                background-color: #f8f9fa !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color: #333 !important;
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .summary-values td {
-                padding: 6px !important; /* Keep original padding */
-                font-size: 15px !important; /* Keep original font size */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .grade-chart th, .grade-chart td {
-                padding: 1px 2px !important; /* Increased padding */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            /* Color backgrounds for print view */
-            .summary-values td:nth-child(1) { 
-                background: #ffd966 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(2) { 
-                background: #f4b183 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(3) { 
-                background: #a9d08e !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(4) { 
-                background: #9dc3e6 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(5) { 
-                background: #c5e0b4 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(6) { 
-                background: #ffe699 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(7) { 
-                background: #d9d2e9 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-        }
-        
-        .summary td {
-            padding: 4px; /* Same as print view */
-            font-size: 13px; /* Same as print view */
-            font-weight: bold;
-            text-align: center;
-            border: 1px solid #0072bc; /* Changed to blue */
-        }
-        
         /* Add the same colors as print view for normal view */
         .summary td:nth-child(1) { background: #ffd966; }
         .summary td:nth-child(2) { background: #f4b183; }
@@ -604,10 +314,7 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Class</label>
-                    <asp:DropDownList ID="ClassDropDownList" runat="server" AppendDataBoundItems="True" 
-                        CssClass="form-control" DataSourceID="ClassSQL" DataTextField="Class" 
-                        DataValueField="ClassID" OnSelectedIndexChanged="ClassDropDownList_SelectedIndexChanged" 
-                        AutoPostBack="True">
+                    <asp:DropDownList ID="ClassDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="ClassSQL" DataTextField="Class" DataValueField="ClassID" OnSelectedIndexChanged="ClassDropDownList_SelectedIndexChanged" AutoPostBack="True">
                         <asp:ListItem Value="0">[ SELECT ]</asp:ListItem>
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="ClassSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
@@ -625,9 +332,8 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Group</label>
-                    <asp:DropDownList ID="GroupDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" 
-                        DataSourceID="GroupSQL" DataTextField="SubjectGroup" DataValueField="SubjectGroupID" 
-                        OnDataBound="GroupDropDownList_DataBound" OnSelectedIndexChanged="GroupDropDownList_SelectedIndexChanged">
+                    <asp:DropDownList ID="GroupDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" DataSourceID="GroupSQL" DataTextField="SubjectGroup"
+                        DataValueField="SubjectGroupID" OnDataBound="GroupDropDownList_DataBound" OnSelectedIndexChanged="GroupDropDownList_SelectedIndexChanged">
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="GroupSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
                         SelectCommand="SELECT DISTINCT [Join].SubjectGroupID, CreateSubjectGroup.SubjectGroup FROM [Join] INNER JOIN CreateSubjectGroup ON [Join].SubjectGroupID = CreateSubjectGroup.SubjectGroupID WHERE ([Join].ClassID = @ClassID) AND ([Join].SectionID LIKE @SectionID) AND ([Join].ShiftID LIKE  @ShiftID) ">
@@ -646,9 +352,7 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Section</label>
-                    <asp:DropDownList ID="SectionDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" 
-                        DataSourceID="SectionSQL" DataTextField="Section" DataValueField="SectionID" 
-                        OnDataBound="SectionDropDownList_DataBound" OnSelectedIndexChanged="SectionDropDownList_SelectedIndexChanged">
+                    <asp:DropDownList ID="SectionDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" DataSourceID="SectionSQL" DataTextField="Section" DataValueField="SectionID" OnDataBound="SectionDropDownList_DataBound" OnSelectedIndexChanged="SectionDropDownList_SelectedIndexChanged">
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="SectionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
                         SelectCommand="SELECT DISTINCT [Join].SectionID, CreateSection.Section FROM [Join] INNER JOIN CreateSection ON [Join].SectionID = CreateSection.SectionID WHERE ([Join].ClassID = @ClassID) AND ([Join].SubjectGroupID LIKE @SubjectGroupID) AND ([Join].ShiftID LIKE @ShiftID) ">
@@ -667,9 +371,7 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Shift</label>
-                    <asp:DropDownList ID="ShiftDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" 
-                        DataSourceID="ShiftSQL" DataTextField="Shift" DataValueField="ShiftID" 
-                        OnDataBound="ShiftDropDownList_DataBound" OnSelectedIndexChanged="ShiftDropDownList_SelectedIndexChanged">
+                    <asp:DropDownList ID="ShiftDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" DataSourceID="ShiftSQL" DataTextField="Shift" DataValueField="ShiftID" OnDataBound="ShiftDropDownList_DataBound" OnSelectedIndexChanged="ShiftDropDownList_SelectedIndexChanged">
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="ShiftSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
                         SelectCommand="SELECT DISTINCT [Join].ShiftID, CreateShift.Shift FROM [Join] INNER JOIN CreateShift ON [Join].ShiftID = CreateShift.ShiftID WHERE ([Join].SubjectGroupID LIKE @SubjectGroupID) AND ([Join].SectionID LIKE  @SectionID) AND ([Join].ClassID = @ClassID)">
@@ -688,14 +390,10 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Exam</label>
-                    <asp:DropDownList ID="ExamDropDownList" runat="server" CssClass="form-control" 
-                        OnSelectedIndexChanged="ExamDropDownList_SelectedIndexChanged" AutoPostBack="True" 
-                        DataSourceID="ExamSQL" DataTextField="ExamName" DataValueField="ExamID" 
-                        OnDataBound="ExamDropDownList_DataBound">
+                    <asp:DropDownList ID="ExamDropDownList" runat="server" CssClass="form-control" OnSelectedIndexChanged="ExamDropDownList_SelectedIndexChanged" AutoPostBack="True" DataSourceID="ExamSQL" DataTextField="ExamName" DataValueField="ExamID" OnDataBound="ExamDropDownList_DataBound">
                         <asp:ListItem Value="0">[ SELECT ]</asp:ListItem>
                     </asp:DropDownList>
-                    <asp:SqlDataSource ID="ExamSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" 
-                        SelectCommand="SELECT DISTINCT Exam_Name.ExamID, Exam_Name.ExamName FROM Exam_Name INNER JOIN Exam_Result_of_Student ON Exam_Name.ExamID = Exam_Result_of_Student.ExamID WHERE (Exam_Name.EducationYearID = @EducationYearID) AND (Exam_Name.SchoolID = @SchoolID) AND (Exam_Result_of_Student.ClassID = @ClassID) ORDER BY Exam_Name.ExamID">
+                    <asp:SqlDataSource ID="ExamSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT DISTINCT Exam_Name.ExamID, Exam_Name.ExamName FROM Exam_Name INNER JOIN Exam_Result_of_Student ON Exam_Name.ExamID = Exam_Result_of_Student.ExamID WHERE (Exam_Name.EducationYearID = @EducationYearID) AND (Exam_Name.SchoolID = @SchoolID) AND (Exam_Result_of_Student.ClassID = @ClassID) ORDER BY Exam_Name.ExamID">
                         <SelectParameters>
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
@@ -746,22 +444,23 @@
                         <div class="info-summary">
                             <table class="info-table">
                               <tr>
-                           <td> নাম:</td> <td colspan="6"><b><%# Eval("StudentsName") %></b></td>
+                           <td> নাম:</td> <td colspan="3"><b><%# Eval("StudentsName") %></b></td>
+                                    <td>আইডি:</td>
+                                    <td><%# Eval("ID") %></td>
                                 </tr>
                                 <tr>
                                     <td>ক্লাস:</td>
                                     <td><%# Eval("ClassName") %></td>
-                                    <td>গ্রুপ:</td>
-                                    <td><%# Eval("GroupName") %></td>
-                                    <td>শাখা:</td>
-                                    <td><%# Eval("SectionName") %></td>
+                                     <td>রোল:</td>
+                                    <td><%# Eval("RollNo") %></td>
+                                    <td colspan="2"></td>
                                 </tr>
 
                                 <tr>
-                                    <td>রোল:</td>
-                                    <td><%# Eval("RollNo") %></td>
-                                    <td>আইডি:</td>
-                                    <td><%# Eval("ID") %></td>
+                                <td>গ্রুপ:</td>
+                            <td><%# string.IsNullOrEmpty(Eval("GroupName").ToString()) ? "" : Eval("GroupName").ToString() %></td>
+                            <td>শাখা:</td>
+                            <td><%# string.IsNullOrEmpty(Eval("SectionName").ToString()) ? "" : Eval("SectionName").ToString() %></td>
                                     <td colspan="2"></td>
                                 </tr>
                             </table>
@@ -818,15 +517,4 @@
         </asp:Repeater>
     </asp:Panel>
     <%}%>
-
-    <asp:UpdateProgress ID="UpdateProgress" runat="server">
-        <ProgressTemplate>
-            <div id="progress_BG"></div>
-            <div id="progress">
-                <img src="../../CSS/loading.gif" alt="Loading..." />
-                <br />
-                <b>Loading...</b>
-            </div>
-        </ProgressTemplate>
-    </asp:UpdateProgress>
 </asp:Content>

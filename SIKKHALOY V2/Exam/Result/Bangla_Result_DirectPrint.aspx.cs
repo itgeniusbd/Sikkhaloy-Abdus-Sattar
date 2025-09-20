@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace EDUCATION.COM.Exam.Result
 {
-    public partial class Bangla_Result_DirectPrint : System.Web.UI.Page
+    public partial class Bangla_Result_DirectPrint_New : System.Web.UI.Page
     {
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -29,16 +29,40 @@ namespace EDUCATION.COM.Exam.Result
             catch { }
         }
 
-        protected void UpdateDropdownVisibility()
+        protected void view()
         {
-            DataView GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
-            GroupDropDownList.Visible = GroupDV.Count > 0;
+            DataView GroupDV = new DataView();
+            GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
+            if (GroupDV.Count < 1)
+            {
+                GroupDropDownList.Visible = false;
+            }
+            else
+            {
+                GroupDropDownList.Visible = true;
+            }
 
-            DataView SectionDV = (DataView)SectionSQL.Select(DataSourceSelectArguments.Empty);
-            SectionDropDownList.Visible = SectionDV.Count > 0;
+            DataView SectionDV = new DataView();
+            SectionDV = (DataView)SectionSQL.Select(DataSourceSelectArguments.Empty);
+            if (SectionDV.Count < 1)
+            {
+                SectionDropDownList.Visible = false;
+            }
+            else
+            {
+                SectionDropDownList.Visible = true;
+            }
 
-            DataView ShiftDV = (DataView)ShiftSQL.Select(DataSourceSelectArguments.Empty);
-            ShiftDropDownList.Visible = ShiftDV.Count > 0;
+            DataView ShiftDV = new DataView();
+            ShiftDV = (DataView)ShiftSQL.Select(DataSourceSelectArguments.Empty);
+            if (ShiftDV.Count < 1)
+            {
+                ShiftDropDownList.Visible = false;
+            }
+            else
+            {
+                ShiftDropDownList.Visible = true;
+            }
         }
 
         protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
@@ -46,17 +70,18 @@ namespace EDUCATION.COM.Exam.Result
             Session["Group"] = "%";
             Session["Shift"] = "%";
             Session["Section"] = "%";
+
             GroupDropDownList.DataBind();
             ShiftDropDownList.DataBind();
             SectionDropDownList.DataBind();
             ExamDropDownList.DataBind();
-            UpdateDropdownVisibility();
+            view();
             ResultPanel.Visible = false;
         }
 
         protected void GroupDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            UpdateDropdownVisibility();
+            view();
             ResultPanel.Visible = false;
         }
 
@@ -64,16 +89,12 @@ namespace EDUCATION.COM.Exam.Result
         {
             GroupDropDownList.Items.Insert(0, new ListItem("[ ALL ]", "%"));
             if (IsPostBack)
-            {
-                var groupValue = Session["Group"]?.ToString();
-                if (!string.IsNullOrEmpty(groupValue) && GroupDropDownList.Items.FindByValue(groupValue) != null)
-                    GroupDropDownList.Items.FindByValue(groupValue).Selected = true;
-            }
+                GroupDropDownList.Items.FindByValue(Session["Group"].ToString()).Selected = true;
         }
 
         protected void SectionDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            UpdateDropdownVisibility();
+            view();
             ResultPanel.Visible = false;
         }
 
@@ -81,16 +102,12 @@ namespace EDUCATION.COM.Exam.Result
         {
             SectionDropDownList.Items.Insert(0, new ListItem("[ ALL ]", "%"));
             if (IsPostBack)
-            {
-                var sectionValue = Session["Section"]?.ToString();
-                if (!string.IsNullOrEmpty(sectionValue) && SectionDropDownList.Items.FindByValue(sectionValue) != null)
-                    SectionDropDownList.Items.FindByValue(sectionValue).Selected = true;
-            }
+                SectionDropDownList.Items.FindByValue(Session["Section"].ToString()).Selected = true;
         }
 
         protected void ShiftDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            UpdateDropdownVisibility();
+            view();
             ResultPanel.Visible = false;
         }
 
@@ -98,16 +115,12 @@ namespace EDUCATION.COM.Exam.Result
         {
             ShiftDropDownList.Items.Insert(0, new ListItem("[ ALL ]", "%"));
             if (IsPostBack)
-            {
-                var shiftValue = Session["Shift"]?.ToString();
-                if (!string.IsNullOrEmpty(shiftValue) && ShiftDropDownList.Items.FindByValue(shiftValue) != null)
-                    ShiftDropDownList.Items.FindByValue(shiftValue).Selected = true;
-            }
+                ShiftDropDownList.Items.FindByValue(Session["Shift"].ToString()).Selected = true;
         }
 
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            UpdateDropdownVisibility();
+            view();
             ResultPanel.Visible = false;
         }
 
@@ -251,7 +264,7 @@ namespace EDUCATION.COM.Exam.Result
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
                     cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue != "0" ? ClassDropDownList.SelectedValue : "1");
                     cmd.Parameters.AddWithValue("@ExamID", ExamDropDownList.SelectedValue != "0" ? ExamDropDownList.SelectedValue : "1");
-                    
+
                     DataTable dt = new DataTable();
                     SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     adapter.Fill(dt);
@@ -295,13 +308,13 @@ namespace EDUCATION.COM.Exam.Result
             {
                 DataTable subjects = GetSubjectResults(studentResultID);
                 string resultComment = GetResultStatus(studentGrade, studentPoint);
-                
+
                 if (subjects.Rows.Count == 0)
                     return "<p>No subject data found</p>";
-                
+
                 // Check if sub-exams exist for this exam
                 bool hasSubExams = CheckIfSubExamsExist(studentResultID);
-                
+
                 if (hasSubExams)
                 {
                     return GenerateSubExamTable(studentResultID, resultComment, subjects.Rows.Count);
@@ -324,17 +337,36 @@ namespace EDUCATION.COM.Exam.Result
                 try
                 {
                     con.Open();
-                    string query = @"
-                        SELECT COUNT(DISTINCT sub_exam.SubExamName) as SubExamCount
-                        FROM Exam_Result_of_Subject ers
-                        INNER JOIN Exam_Result_of_SubExam sub_exam ON ers.StudentResultID = sub_exam.StudentResultID 
-                        WHERE ers.StudentResultID = @StudentResultID";
+                    // Try different possible table names for sub-exam data
+                    string[] possibleQueries = new string[]
+                    {
+                        @"SELECT COUNT(*) FROM Exam_Result_of_SubExam WHERE StudentResultID = @StudentResultID",
+                        @"SELECT COUNT(*) FROM ExamResult_SubExam WHERE StudentResultID = @StudentResultID",
+                        @"SELECT COUNT(*) FROM Exam_SubResult WHERE StudentResultID = @StudentResultID",
+                        @"SELECT COUNT(*) FROM SubExam_Result WHERE StudentResultID = @StudentResultID"
+                    };
 
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    
-                    object result = cmd.ExecuteScalar();
-                    return Convert.ToInt32(result) > 0;
+                    foreach (string query in possibleQueries)
+                    {
+                        try
+                        {
+                            SqlCommand cmd = new SqlCommand(query, con);
+                            cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+
+                            object result = cmd.ExecuteScalar();
+                            if (result != null && Convert.ToInt32(result) > 0)
+                            {
+                                return true;
+                            }
+                        }
+                        catch
+                        {
+                            // Continue to next query if this table doesn't exist
+                            continue;
+                        }
+                    }
+
+                    return false;
                 }
                 catch
                 {
@@ -350,57 +382,74 @@ namespace EDUCATION.COM.Exam.Result
                 try
                 {
                     con.Open();
-                    
-                    // Get sub-exam names
-                    string subExamQuery = @"
-                        SELECT DISTINCT sub_exam.SubExamName, sub_exam.SubExamID
-                        FROM Exam_Result_of_SubExam sub_exam
-                        INNER JOIN Exam_Result_of_Subject ers ON sub_exam.StudentResultID = ers.StudentResultID
-                        WHERE ers.StudentResultID = @StudentResultID
-                        ORDER BY sub_exam.SubExamID";
 
-                    SqlCommand subExamCmd = new SqlCommand(subExamQuery, con);
-                    subExamCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    
+                    // Try to find the correct sub-exam table structure
                     DataTable subExams = new DataTable();
-                    SqlDataAdapter subExamAdapter = new SqlDataAdapter(subExamCmd);
-                    subExamAdapter.Fill(subExams);
-
-                    // Get subject results with sub-exam details
-                    string query = @"
-                        SELECT 
-                            ISNULL(sub.SubjectName, '') as SubjectName,
-                            sub.SubjectID,
-                            ISNULL(sub.SN, 999) as SubjectSN,
-                            ISNULL(ers.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
-                            ISNULL(ers.TotalMark_ofSubject, 0) as TotalMark_ofSubject,
-                            ISNULL(ers.SubjectGrades, '') as SubjectGrades,
-                            ISNULL(ers.SubjectPoint, 0) as SubjectPoint,
-                            ISNULL(ers.PassStatus_Subject, 'Pass') as PassStatus_Subject,
-                            ISNULL(sub_exam.SubExamName, '') as SubExamName,
-                            ISNULL(sub_exam.ObtainedMark, 0) as SubExamObtainedMark,
-                            ISNULL(sub_exam.TotalMark, 0) as SubExamTotalMark
-                        FROM Exam_Result_of_Subject ers
-                        INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
-                        LEFT JOIN Exam_Result_of_SubExam sub_exam ON ers.StudentResultID = sub_exam.StudentResultID AND ers.SubjectID = sub_exam.SubjectID
-                        WHERE ers.StudentResultID = @StudentResultID
-                        AND ISNULL(ers.IS_Add_InExam, 1) = 1
-                        ORDER BY ISNULL(sub.SN, 999), sub.SubjectName, sub_exam.SubExamID";
-
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    
                     DataTable results = new DataTable();
-                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                    adapter.Fill(results);
+
+                    // Method 1: Try Exam_Result_of_SubExam table
+                    try
+                    {
+                        string subExamQuery = @"
+                            SELECT DISTINCT SubExamName, SubExamID 
+                            FROM Exam_Result_of_SubExam 
+                            WHERE StudentResultID = @StudentResultID
+                            ORDER BY SubExamID";
+
+                        SqlCommand subExamCmd = new SqlCommand(subExamQuery, con);
+                        subExamCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+
+                        SqlDataAdapter subExamAdapter = new SqlDataAdapter(subExamCmd);
+                        subExamAdapter.Fill(subExams);
+
+                        if (subExams.Rows.Count > 0)
+                        {
+                            // Get detailed results
+                            string detailQuery = @"
+                                SELECT 
+                                    ISNULL(sub.SubjectName, '') as SubjectName,
+                                    sub.SubjectID,
+                                    ISNULL(irs.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
+                                    ISNULL(irs.TotalMark_ofSubject, 0) as TotalMark_ofSubject,
+                                    ISNULL(irs.SubjectGrades, '') as SubjectGrades,
+                                    ISNULL(irs.SubjectPoint, 0) as SubjectPoint,
+                                    ISNULL(irs.PassStatus_Subject, 'Pass') as PassStatus_Subject,
+                                    ISNULL(sub_exam.SubExamName, '') as SubExamName,
+                                    ISNULL(sub_exam.ObtainedMark, 0) as SubExamObtainedMark,
+                                    ISNULL(sub_exam.TotalMark, 0) as SubExamTotalMark
+                                FROM Exam_Result_of_Subject irs
+                                INNER JOIN Subject sub ON irs.SubjectID = sub.SubjectID
+                                LEFT JOIN Exam_Result_of_SubExam sub_exam ON irs.StudentResultID = sub_exam.StudentResultID AND irs.SubjectID = sub_exam.SubjectID
+                                WHERE irs.StudentResultID = @StudentResultID
+                                AND ISNULL(irs.IS_Add_InExam, 1) = 1
+                                ORDER BY ISNULL(sub.SN, 999), sub.SubjectName";
+
+                            SqlCommand detailCmd = new SqlCommand(detailQuery, con);
+                            detailCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+
+                            SqlDataAdapter detailAdapter = new SqlDataAdapter(detailCmd);
+                            detailAdapter.Fill(results);
+                        }
+                    }
+                    catch
+                    {
+                        // If sub-exam table doesn't exist or has different structure, fallback to simple table
+                        return GenerateSimpleSubjectTable(GetSubjectResults(studentResultID), resultComment);
+                    }
+
+                    if (subExams.Rows.Count == 0 || results.Rows.Count == 0)
+                    {
+                        // No sub-exam data found, use simple table
+                        return GenerateSimpleSubjectTable(GetSubjectResults(studentResultID), resultComment);
+                    }
 
                     string tableSizeClass = GetTableCssClass(subjectCount);
-                    
+
                     string html = @"
-                        <div class=""marks-heading"">???????????? ????? (Sub-Exam Breakdown)</div>
+                        <div class=""marks-heading"">[SUB_EXAM_HEADING]</div>
                         <table class=""marks-table " + tableSizeClass + @""">
                             <tr>
-                                <th rowspan=""2"">?????????</th>";
+                                <th rowspan=""2"">[SUBJECT_HEADER]</th>";
 
                     // Add sub-exam headers
                     foreach (DataRow subExamRow in subExams.Rows)
@@ -408,10 +457,10 @@ namespace EDUCATION.COM.Exam.Result
                         html += "<th colspan=\"2\">" + subExamRow["SubExamName"].ToString() + "</th>";
                     }
 
-                    html += @",
-                                <th rowspan=""2"">??? ???????</th>
-                                <th rowspan=""2"">?????</th>
-                                <th rowspan=""2"">???????</th>
+                    html += @"
+                                <th rowspan=""2"">[TOTAL_MARK_HEADER]</th>
+                                <th rowspan=""2"">[GRADE_HEADER]</th>
+                                <th rowspan=""2"">[POINT_HEADER]</th>
                                 <th rowspan=""" + (subjectCount + 2) + @""" class=""vertical-text"">" + resultComment + @"</th>
                             </tr>
                             <tr>";
@@ -419,7 +468,7 @@ namespace EDUCATION.COM.Exam.Result
                     // Add sub-exam mark headers
                     foreach (DataRow subExamRow in subExams.Rows)
                     {
-                        html += "<th>???????</th><th>?????</th>";
+                        html += "<th>[OBTAINED_HEADER]</th><th>[TOTAL_HEADER]</th>";
                     }
 
                     html += "</tr>";
@@ -431,13 +480,13 @@ namespace EDUCATION.COM.Exam.Result
                     foreach (DataRow row in results.Rows)
                     {
                         string subjectName = row["SubjectName"].ToString();
-                        
+
                         if (!subjectDict.ContainsKey(subjectName))
                         {
                             subjectDict[subjectName] = row;
                             subExamDict[subjectName] = new List<DataRow>();
                         }
-                        
+
                         if (!string.IsNullOrEmpty(row["SubExamName"].ToString()))
                         {
                             subExamDict[subjectName].Add(row);
@@ -448,11 +497,11 @@ namespace EDUCATION.COM.Exam.Result
                     {
                         string subjectName = kvp.Key;
                         DataRow subjectRow = kvp.Value;
-                        
+
                         string passStatus = subjectRow["PassStatus_Subject"].ToString();
                         if (string.IsNullOrEmpty(passStatus)) passStatus = "Pass";
                         string rowClass = passStatus == "Fail" ? "failed-row" : "";
-                        
+
                         html += "<tr class=\"" + rowClass + "\">";
                         html += "<td style=\"text-align: left; padding-left: 12px;\">" + subjectName + "</td>";
 
@@ -461,7 +510,7 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             string subExamName = subExamRow["SubExamName"].ToString();
                             DataRow foundRow = null;
-                            
+
                             foreach (DataRow sr in subExamDict[subjectName])
                             {
                                 if (sr["SubExamName"].ToString() == subExamName)
@@ -470,7 +519,7 @@ namespace EDUCATION.COM.Exam.Result
                                     break;
                                 }
                             }
-                            
+
                             if (foundRow != null)
                             {
                                 html += "<td>" + foundRow["SubExamObtainedMark"].ToString() + "</td>";
@@ -489,11 +538,22 @@ namespace EDUCATION.COM.Exam.Result
                     }
 
                     html += "</table>";
+
+                    // Replace placeholders with actual Bengali text
+                    html = html.Replace("[SUB_EXAM_HEADING]", "???????????? ????? (Sub-Exam Breakdown)");
+                    html = html.Replace("[SUBJECT_HEADER]", "?????????");
+                    html = html.Replace("[TOTAL_MARK_HEADER]", "??? ???????");
+                    html = html.Replace("[GRADE_HEADER]", "?????");
+                    html = html.Replace("[POINT_HEADER]", "???????");
+                    html = html.Replace("[OBTAINED_HEADER]", "???????");
+                    html = html.Replace("[TOTAL_HEADER]", "?????");
+
                     return html;
                 }
                 catch (Exception ex)
                 {
-                    return "<p>Error loading sub-exam table: " + ex.Message + "</p>";
+                    // If anything fails, fallback to simple table
+                    return GenerateSimpleSubjectTable(GetSubjectResults(studentResultID), resultComment);
                 }
             }
         }
@@ -501,16 +561,16 @@ namespace EDUCATION.COM.Exam.Result
         private string GenerateSimpleSubjectTable(DataTable subjects, string resultComment)
         {
             string tableSizeClass = GetTableCssClass(subjects.Rows.Count);
-            
+
             string html = @"
-                <div class=""marks-heading"">???????????? ?????</div>
+                <div class=""marks-heading"">[SUBJECT_TABLE_HEADING]</div>
                 <table class=""marks-table " + tableSizeClass + @""">
                     <tr>
-                        <th>?????????</th>
-                        <th>??????? ???????</th>
-                        <th>????? ???????</th>
-                        <th>?????</th>
-                        <th>???????</th>
+                        <th>[SUBJECT_HEADER]</th>
+                        <th>[OBTAINED_MARK_HEADER]</th>
+                        <th>[TOTAL_MARK_HEADER]</th>
+                        <th>[GRADE_HEADER]</th>
+                        <th>[POINT_HEADER]</th>
                         <th rowspan=""" + (subjects.Rows.Count + 1) + @""" class=""vertical-text"">" + resultComment + @"</th>
                     </tr>";
 
@@ -522,10 +582,10 @@ namespace EDUCATION.COM.Exam.Result
                 string subjectGrades = GetSafeColumnValue(row, "SubjectGrades");
                 decimal subjectPoint = GetSafeDecimalValue(row, "SubjectPoint");
                 string passStatus = GetSafeColumnValue(row, "PassStatus_Subject");
-                
+
                 if (passStatus == "") passStatus = "Pass";
                 string rowClass = passStatus == "Fail" ? "failed-row" : "";
-                
+
                 html += @"
                     <tr class=""" + rowClass + @""">
                         <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
@@ -537,6 +597,15 @@ namespace EDUCATION.COM.Exam.Result
             }
 
             html += "</table>";
+
+            // Replace placeholders with actual Bengali text
+            html = html.Replace("[SUBJECT_TABLE_HEADING]", "???????????? ?????");
+            html = html.Replace("[SUBJECT_HEADER]", "?????????");
+            html = html.Replace("[OBTAINED_MARK_HEADER]", "??????? ???????");
+            html = html.Replace("[TOTAL_MARK_HEADER]", "????? ???????");
+            html = html.Replace("[GRADE_HEADER]", "?????");
+            html = html.Replace("[POINT_HEADER]", "???????");
+
             return html;
         }
 
@@ -567,7 +636,7 @@ namespace EDUCATION.COM.Exam.Result
                     SqlCommand cmd = new SqlCommand(query, con);
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    
+
                     DataTable dt = new DataTable();
                     SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     adapter.Fill(dt);
@@ -585,7 +654,7 @@ namespace EDUCATION.COM.Exam.Result
         {
             if (string.IsNullOrEmpty(studentGrade))
                 return "Good";
-                
+
             switch (studentGrade.ToUpper())
             {
                 case "A+": return "Excellent";
@@ -596,6 +665,24 @@ namespace EDUCATION.COM.Exam.Result
                 case "D": return "Below Average";
                 case "F": return "Fail";
                 default: return gpa >= 4.0m ? "Excellent" : "Good";
+            }
+        }
+
+        public string GetResultStatusBengali(string studentGrade, decimal gpa)
+        {
+            if (string.IsNullOrEmpty(studentGrade))
+                return "???";
+
+            switch (studentGrade.ToUpper())
+            {
+                case "A+": return "??????";
+                case "A": return "??????? ???";
+                case "A-": return "???";
+                case "B": return "?????????";
+                case "C": return "???";
+                case "D": return "????? ????";
+                case "F": return "?????????";
+                default: return gpa >= 4.0m ? "??????" : "???";
             }
         }
 
@@ -631,6 +718,53 @@ namespace EDUCATION.COM.Exam.Result
         {
             DataRowView row = (DataRowView)dataItem;
             return row["PassStatus_ofStudent"].ToString() == "Pass" ? "????????" : "??????????";
+        }
+
+        // Helper method to ensure proper Bengali text encoding
+        private string EncodeBengaliText(string text)
+        {
+            return System.Web.HttpUtility.HtmlEncode(text);
+        }
+
+        // Helper method to generate dynamic info table row
+        public string GenerateDynamicInfoRow(object dataItem)
+        {
+            DataRowView row = (DataRowView)dataItem;
+            string className = row["ClassName"]?.ToString() ?? "";
+            string groupName = row["GroupName"]?.ToString() ?? "";
+            string sectionName = row["SectionName"]?.ToString() ?? "";
+            
+            string html = "<tr><td>?????:</td><td>" + className + "</td>";
+            
+            bool hasGroup = !string.IsNullOrEmpty(groupName);
+            bool hasSection = !string.IsNullOrEmpty(sectionName);
+            
+            if (hasGroup && hasSection)
+            {
+                // Both Group and Section exist: ????? | Value | ????? | Value | ???? | Value (6 columns total)
+                html += "<td>?????:</td><td>" + groupName + "</td>";
+                html += "<td>????:</td><td>" + sectionName + "</td>";
+            }
+            else if (hasGroup && !hasSection)
+            {
+                // Only Group exists: ????? | Value | ????? | Value | colspan="2" (6 columns total)
+                html += "<td>?????:</td><td>" + groupName + "</td>";
+                html += "<td colspan=\"2\"></td>";
+            }
+            else if (!hasGroup && hasSection)
+            {
+                // Only Section exists: ????? | Value | ???? | Value | colspan="2" (6 columns total)
+                html += "<td>????:</td><td>" + sectionName + "</td>";
+                html += "<td colspan=\"2\"></td>";
+            }
+            else
+            {
+                // Neither Group nor Section exists: ????? | Value | colspan="4" (6 columns total)
+                html += "<td colspan=\"4\"></td>";
+            }
+            
+            html += "</tr>";
+            return html;
         }
     }
 }
