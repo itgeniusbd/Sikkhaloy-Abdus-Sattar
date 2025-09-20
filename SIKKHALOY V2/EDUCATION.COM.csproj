@@ -2003,10 +2003,7 @@
     <Compile Include="Exam\Result\Bangla_Result_DirectPrint.aspx.designer.cs">
       <DependentUpon>Bangla_Result_DirectPrint.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Exam\Result\Board_Result.aspx.cs">
-      <DependentUpon>Board_Result.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
+
     <Compile Include="Exam\Result\Board_Result.aspx.designer.cs">
       <DependentUpon>Board_Result.aspx</DependentUpon>
     </Compile>

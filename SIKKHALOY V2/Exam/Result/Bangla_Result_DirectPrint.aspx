@@ -1,20 +1,12 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Bangla_Result_DirectPrint.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Bangla_Result_DirectPrint" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="https://fonts.maateen.me/kalpurush/font.css" rel="stylesheet">
+    <!-- Use Google Fonts for better reliability -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        @font-face {
-            font-family: 'Kalpurush';
-            src: url('https://fonts.maateen.me/kalpurush/kalpurush.woff2') format('woff2'),
-                 url('https://fonts.maateen.me/kalpurush/kalpurush.woff') format('woff');
-            font-display: swap;
-            font-weight: normal;
-            font-style: normal;
-        }
-        
-        /* Force font for all elements */
+        /* Use reliable Google Fonts with local fallbacks */
         * {
-            font-family: 'Kalpurush', Arial, sans-serif !important;
+            font-family: 'Noto Sans Bengali', 'SolaimanLipi', 'Kalpurush', Arial, sans-serif !important;
         }
         
         @media print {
@@ -102,8 +94,8 @@
         .header {
             text-align: center;
             border-bottom: 2px solid #0072bc;
-            padding-bottom: 8px; /* Reduced padding */
-            margin-bottom: 8px; /* Reduced margin */
+            padding-bottom: 5px; /* Same as print view */
+            margin-bottom: 5px; /* Same as print view */
             position: relative;
         }
         
@@ -120,22 +112,22 @@
         .header h2 {
             margin: 0;
             color: #0072bc;
-            font-size: 24px; /* Increased font size */
+            font-size: 22px; /* Same as print view */
             font-weight: bold;
         }
         
         .header p {
             margin: 1px 0; /* Reduced margin */
-            font-size: 14px; /* Increased font size */
+            font-size: 13px; /* Same as print view */
             font-weight: bold; /* Made bold */
         }
         
         .title {
             text-align: center;
             font-weight: bold;
-            margin: 10px 0; /* Reduced margin */
+            margin: 8px 0; /* Same as print view */
             color: green;
-            font-size: 20px; /* Increased font size */
+            font-size: 18px; /* Same as print view */
         }
         
         .marks-heading {
@@ -150,7 +142,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 10px; /* Reduced margin */
+            margin-bottom: 5px; /* Same as print view */
         }
         
         .info-summary {
@@ -160,20 +152,20 @@
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6px; /* Reduced margin */
+            margin-bottom: 6px; /* Keep existing margin */
         }
         
         .info-table td {
             border: 1px solid #0072bc; /* Changed to blue */
-            padding: 6px 10px; /* Increased padding */
-            font-size: 16px; /* Increased font size */
+            padding: 5px 8px; /* Same as print view */
+            font-size: 16px; /* Same as print view */
             font-weight: bold; /* Made bold */
         }
         
         .summary {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 14px; /* Reduced margin */
+            margin-top: 5px; /* Same as print view */
             font-family: 'Kalpurush', Arial, sans-serif;
         }
         
@@ -185,14 +177,14 @@
         }
         
         .summary-header td {
-            padding: 5px 6px !important;
-            font-size: 13px !important;
+            padding: 5px 6px; /* Same as print view */
+            font-size: 15px; /* Same as print view */
             background-color: #f8f9fa !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color: #333 !important;
-            font-family: Arial, sans-serif !important; /* Use Arial for print */
             font-weight: bold !important;
+            border: 1px solid #0072bc; /* Changed to blue */
         }
         
         .summary-values {
@@ -200,56 +192,86 @@
         }
         
         .summary-values td {
-            padding: 6px !important; /* Increased padding */
-            font-size: 15px !important; /* Increased font size */
-            font-family: Arial, sans-serif !important; /* Use Arial for print */
-            font-weight: bold !important;
+            padding: 6px; /* Same as print view */
+            font-size: 16px; /* Same as print view */
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid #0072bc; /* Changed to blue */
         }
         
         .grade-chart {
-            width: 25%;
+            width: 26%;
         }
         
         .grade-chart table {
             border-collapse: collapse;
             width: 100%;
-            font-size: 10px; /* Increased font size */
+            font-size: 6px; /* Same as print view */
         }
         
         .grade-chart th, .grade-chart td {
             border: 1px solid #0072bc; /* Changed to blue */
-            padding: 2px 2px; /* Increased padding */
+            padding: 1px 1px; /* Same as print view */
             text-align: center;
             font-weight: bold; /* Made bold */
             font-family: 'Kalpurush', Arial, sans-serif !important;
-            font-weight: bold !important;
         }
         
         .grade-chart th {
             background: #f0f0f0;
             font-weight: bold;
-            font-size: 13px; /* Increased font size */
+            font-size: 11px; /* Increased font size */
         }
         
         .marks-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 8px; /* Reduced margin */
+            margin-top: 8px; /* Keep existing margin */
         }
         
         .marks-table th, .marks-table td {
             border: 1px solid #0072bc; /* Changed to blue */
             text-align: center;
-            padding: 6px; /* Increased padding */
-            font-size: 15px; /* Increased font size */
+            padding: 4px; /* Same as print view */
+            font-size: 16px; /* Same as print view default */
             font-weight: bold; /* Made bold */
             font-family: 'Kalpurush', Arial, sans-serif !important;
-            font-weight: bold !important;
         }
         
         .marks-table th {
             background: #f2f2f2;
-            font-size: 16px; /* Larger for headers */
+            font-size: 18px; /* Larger for headers */
+        }
+        
+        /* Sub-exam table specific styling */
+        .marks-table th[colspan] {
+            background: #e8f4fd;
+            color: #0072bc;
+            font-weight: bold;
+        }
+        
+        .marks-table tr:nth-child(2) th {
+            background: #f8f9fa;
+            font-size: 14px;
+        }
+        
+        /* Dynamic font sizes based on subject count - same as print view */
+        .marks-table.medium-subjects th, .marks-table.medium-subjects td {
+            font-size: 12px !important; /* Same as print view */
+            padding: 3px !important; /* Same as print view */
+        }
+        
+        .marks-table.medium-subjects th {
+            font-size: 13px !important; /* Same as print view */
+        }
+        
+        .marks-table.small-subjects th, .marks-table.small-subjects td {
+            font-size: 11px !important; /* Same as print view */
+            padding: 2px !important; /* Same as print view */
+        }
+        
+        .marks-table.small-subjects th {
+            font-size: 12px !important; /* Same as print view */
         }
         
         .vertical-text {
@@ -264,18 +286,123 @@
         .footer {
             display: flex;
             justify-content: space-between;
-            margin-top: 30px; /* Reduced margin */
-            font-size: 16px; /* Increased font size */
+            margin-top: 20px; /* Same as print view */
+            font-size: 15px; /* Same as print view */
             font-weight: bold; /* Made bold */
             font-family: 'Kalpurush', Arial, sans-serif !important;
         }
 
         /* Print color adjustments */
         @media print {
-            /* Landscape orientation optimization */
+            /* Default landscape orientation */
             @page {
                 size: A4 landscape;
-                margin: 5mm; /* Proper margin for pagination */
+                margin: 2mm; /* Proper margin for pagination */
+            }
+            
+            /* Portrait mode specific rules */
+            @media print and (orientation: portrait) {
+                @page {
+                    size: A4 portrait;
+                    margin: 2mm; /* Slightly more margin for portrait */
+                }
+                
+                .result-card {
+                    max-width: none !important;
+                    width: auto !important;
+                    height: auto !important;
+                    padding: 8mm !important; /* More padding for portrait */
+                    margin: 3mm !important;
+                    border: 3px solid #0072bc !important; /* Thicker border */
+                    box-sizing: border-box !important;
+                    page-break-before: auto !important;
+                    page-break-inside: avoid !important;
+                    page-break-after: always !important;
+                    position: relative !important;
+                    top: auto !important;
+                    left: auto !important;
+                }
+                
+                /* Larger fonts for portrait mode */
+                .header h2 {
+                    font-size: 26px !important; /* Larger for portrait */
+                }
+                
+                .header p {
+                    font-size: 16px !important; /* Larger for portrait */
+                }
+                
+                .title {
+                    font-size: 22px !important; /* Larger for portrait */
+                    margin: 12px 0 !important;
+                }
+                
+                .info-table td {
+                    font-size: 16px !important; /* Keep original size for portrait */
+                    padding: 6px 8px !important; /* Keep original padding */
+                }
+                
+                .summary-header td {
+                    font-size: 14px !important; /* Keep original size for portrait */
+                    padding: 6px 6px !important; /* Keep original padding */
+                }
+                
+                .summary-values td {
+                    font-size: 15px !important; /* Keep original size for portrait */
+                    padding: 6px !important; /* Keep original padding */
+                }
+                
+                .grade-chart table {
+                    font-size: 11px !important; /* Larger for portrait */
+                }
+                
+                .grade-chart th {
+                    font-size: 12px !important;
+                }
+                
+                /* Larger fonts for marks table in portrait */
+                .marks-table th, .marks-table td {
+                    font-size: 13px !important; /* Default larger font for portrait */
+                    padding: 4px !important;
+                }
+                
+                .marks-table th {
+                    font-size: 18px !important; /* Larger headers for portrait */
+                }
+                
+                /* Portrait specific dynamic font sizes */
+                .marks-table.medium-subjects th, .marks-table.medium-subjects td {
+                    font-size: 15px !important; /* Larger medium font for portrait */
+                    padding: 5px !important;
+                }
+                
+                .marks-table.medium-subjects th {
+                    font-size: 16px !important;
+                }
+                
+                .marks-table.small-subjects th, .marks-table.small-subjects td {
+                    font-size: 14px !important; /* Larger small font for portrait */
+                    padding: 4px !important;
+                }
+                
+                .marks-table.small-subjects th {
+                    font-size: 16px !important;
+                }
+                
+                .footer {
+                    font-size: 18px !important; /* Larger footer for portrait */
+                    margin-top: 25px !important;
+                }
+                
+                /* Better spacing for portrait */
+                .top-section {
+                    margin-bottom: 8px !important;
+                }
+                
+                .header {
+                    padding-bottom: 8px !important;
+                    margin-bottom: 8px !important;
+                }
             }
             
             /* Prevent empty page at start */
@@ -336,27 +463,48 @@
             
             .info-table td {
                 padding: 5px 8px !important; /* Increased padding */
-                font-size: 16px !important; /* Increased font size */
+                font-size: 16px !important; /* Keep original font size */
                 font-family: Arial, sans-serif !important; /* Use Arial for print */
                 font-weight: bold !important;
             }
             
             .summary td {
                 padding: 4px !important;
-                font-size: 11px !important;
+                font-size: 13px !important;
             }
             
             .grade-chart table {
-                font-size: 11px !important; /* Increased font size */
+                font-size: 6px !important; /* Increased font size */
             }
             
             .grade-chart th, .grade-chart td {
-                padding: 2px 4px !important; /* Increased padding */
+                padding: 1.5px 1.5px !important; /* Increased padding */
             }
             
             .marks-table th, .marks-table td {
                 padding: 4px !important; /* Increased padding */
-                font-size: 14px !important; /* Increased font size */
+                font-size: 16px !important; /* Default font size for 5 or less subjects */
+                font-family: Arial, sans-serif !important; /* Use Arial for print */
+                font-weight: bold !important;
+            }
+            
+            /* Dynamic font sizes for print based on subject count */
+            .marks-table.medium-subjects th, .marks-table.medium-subjects td {
+                font-size: 13px !important; /* Smaller font for 6-10 subjects */
+                padding: 3px !important; /* Reduced padding */
+            }
+            
+            .marks-table.medium-subjects th {
+                font-size: 14px !important; /* Smaller header font */
+            }
+            
+            .marks-table.small-subjects th, .marks-table.small-subjects td {
+                font-size: 11px !important; /* Very small font for 10-15 subjects */
+                padding: 2px !important; /* Minimal padding for small fonts */
+            }
+            
+            .marks-table.small-subjects th {
+                font-size: 11px !important; /* Very small header font */
             }
             
             .footer {
@@ -367,8 +515,8 @@
             }
             
             .summary-header td {
-                padding: 5px 6px !important; /* Increased padding */
-                font-size: 13px !important; /* Increased font size */
+                padding: 6px 6px !important; /* Keep original padding */
+                font-size: 14px !important; /* Keep original font size */
                 background-color: #f8f9fa !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -378,15 +526,8 @@
             }
             
             .summary-values td {
-                padding: 6px !important; /* Increased padding */
-                font-size: 15px !important; /* Increased font size */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .marks-table th, .marks-table td {
-                padding: 4px !important; /* Increased padding */
-                font-size: 14px !important; /* Increased font size */
+                padding: 6px !important; /* Keep original padding */
+                font-size: 15px !important; /* Keep original font size */
                 font-family: Arial, sans-serif !important; /* Use Arial for print */
                 font-weight: bold !important;
             }
@@ -397,13 +538,7 @@
                 font-weight: bold !important;
             }
             
-            .footer {
-                margin-top: 20px !important;
-                font-size: 15px !important;
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
+            /* Color backgrounds for print view */
             .summary-values td:nth-child(1) { 
                 background: #ffd966 !important;
                 -webkit-print-color-adjust: exact !important;
@@ -442,13 +577,14 @@
         }
         
         .summary td {
-            padding: 6px; /* Reduced padding */
-            font-size: 13px; /* Slightly smaller */
+            padding: 4px; /* Same as print view */
+            font-size: 13px; /* Same as print view */
             font-weight: bold;
             text-align: center;
             border: 1px solid #0072bc; /* Changed to blue */
         }
         
+        /* Add the same colors as print view for normal view */
         .summary td:nth-child(1) { background: #ffd966; }
         .summary td:nth-child(2) { background: #f4b183; }
         .summary td:nth-child(3) { background: #a9d08e; }

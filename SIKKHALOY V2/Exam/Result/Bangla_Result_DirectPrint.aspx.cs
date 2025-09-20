@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
 using System.Web.UI;
 using System.Web.UI.WebControls;
-using System.Text;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace EDUCATION.COM.Exam.Result
 {
@@ -29,7 +29,7 @@ namespace EDUCATION.COM.Exam.Result
             catch { }
         }
 
-        protected void view()
+        protected void UpdateDropdownVisibility()
         {
             DataView GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
             GroupDropDownList.Visible = GroupDV.Count > 0;
@@ -46,19 +46,17 @@ namespace EDUCATION.COM.Exam.Result
             Session["Group"] = "%";
             Session["Shift"] = "%";
             Session["Section"] = "%";
-
             GroupDropDownList.DataBind();
             ShiftDropDownList.DataBind();
             SectionDropDownList.DataBind();
             ExamDropDownList.DataBind();
-            view();
-
+            UpdateDropdownVisibility();
             ResultPanel.Visible = false;
         }
 
         protected void GroupDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            view();
+            UpdateDropdownVisibility();
             ResultPanel.Visible = false;
         }
 
@@ -75,7 +73,7 @@ namespace EDUCATION.COM.Exam.Result
 
         protected void SectionDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            view();
+            UpdateDropdownVisibility();
             ResultPanel.Visible = false;
         }
 
@@ -92,7 +90,7 @@ namespace EDUCATION.COM.Exam.Result
 
         protected void ShiftDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            view();
+            UpdateDropdownVisibility();
             ResultPanel.Visible = false;
         }
 
@@ -109,7 +107,7 @@ namespace EDUCATION.COM.Exam.Result
 
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            view();
+            UpdateDropdownVisibility();
             ResultPanel.Visible = false;
         }
 
@@ -122,52 +120,28 @@ namespace EDUCATION.COM.Exam.Result
         {
             try
             {
-                // Debug using simple console.log with safe string handling
-                string debugScript = "console.log('=== DEBUG INFO ===');" +
-                                    "console.log('Class: " + ClassDropDownList.SelectedValue + "');" +
-                                    "console.log('Exam: " + ExamDropDownList.SelectedValue + "');" +
-                                    "console.log('Section: " + SectionDropDownList.SelectedValue + "');" +
-                                    "console.log('Group: " + GroupDropDownList.SelectedValue + "');" +
-                                    "console.log('Shift: " + ShiftDropDownList.SelectedValue + "');";
-
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "debug", debugScript, true);
-
                 if (ExamDropDownList.SelectedValue != "0" && ClassDropDownList.SelectedValue != "0")
                 {
-                    LoadResults();
+                    LoadResultsData();
                 }
                 else
                 {
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "alert",
-                        "alert('Please select both Class and Exam');", true);
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "alert", "alert('Please select both Class and Exam');", true);
                 }
             }
             catch (Exception ex)
             {
-                string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-                string errorScript = "console.error('LoadResults Error: " + errorMsg + "');";
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "error", errorScript, true);
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "error", "console.error('LoadResults Error: " + ex.Message.Replace("'", "\\'") + "');", true);
             }
         }
 
-        private void LoadResults()
+        private void LoadResultsData()
         {
             using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
             {
                 try
                 {
                     con.Open();
-
-                    // Debug session values using safe string handling
-                    string schoolId = Session["SchoolID"]?.ToString() ?? "NULL";
-                    string eduYear = Session["Edu_Year"]?.ToString() ?? "NULL";
-
-                    string sessionScript = "console.log('=== SESSION VALUES ===');" +
-                                         "console.log('SchoolID: " + schoolId + "');" +
-                                         "console.log('EducationYearID: " + eduYear + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "sessionDebug", sessionScript, true);
-
-                    // Fixed query with SchoolID included
                     string query = @"
                         SELECT DISTINCT
                             ers.StudentResultID,
@@ -179,10 +153,7 @@ namespace EDUCATION.COM.Exam.Result
                             ers.TotalMark_ofStudent,
                             ers.Position_InExam_Class,
                             ers.Position_InExam_Subsection,
-                            CASE 
-                                WHEN ers.Student_Grade = 'F' THEN 'Fail'
-                                ELSE 'Pass'
-                            END as PassStatus_ofStudent,
+                            CASE WHEN ers.Student_Grade = 'F' THEN 'Fail' ELSE 'Pass' END as PassStatus_ofStudent,
                             s.StudentsName,
                             s.StudentID as ID,
                             sc.RollNo,
@@ -191,22 +162,10 @@ namespace EDUCATION.COM.Exam.Result
                             ISNULL(csh.Shift, '') as ShiftName,
                             ISNULL(csg.SubjectGroup, '') as GroupName,
                             en.ExamName,
-                            -- Include SchoolID for logo handler
                             ers.SchoolID,
-                            -- Default values for missing columns
-                            NULL as Image,
                             'Imperial Ideal School & College' as SchoolName,
                             '761,Tulatulisohera Rd,Kalulkotil, Narayangonj' as Address,
-                            'Phone: 01906-265260, 01789-752002' as Phone,
-                            NULL as SchoolLogo,
-                            -- Attendance default values
-                            0 as WorkingDays,
-                            0 as TotalPresent,
-                            0 as TotalAbsent,
-                            0 as TotalLate,
-                            0 as TotalLeave,
-                            0 as TotalBunk,
-                            0 as TotalLateAbs
+                            '01906-265260, 01789-752002' as Phone
                         FROM Exam_Result_of_Student ers
                         INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
                         INNER JOIN Student s ON sc.StudentID = s.StudentID
@@ -237,35 +196,22 @@ namespace EDUCATION.COM.Exam.Result
                     SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     adapter.Fill(dt);
 
-                    // Debug: Show row count with safe string handling
-                    string resultScript = "console.log('=== QUERY RESULT ===');" +
-                                        "console.log('Found " + dt.Rows.Count + " students');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "debug2", resultScript, true);
-
                     if (dt.Rows.Count > 0)
                     {
                         ResultRepeater.DataSource = dt;
                         ResultRepeater.DataBind();
                         ResultPanel.Visible = true;
-
-                        // Success message
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "success",
-                            "console.log('Results loaded successfully!'); alert('Results loaded successfully!');", true);
                     }
                     else
                     {
                         ResultPanel.Visible = false;
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "nodata",
-                            "alert('No results found for the selected criteria');", true);
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "nodata", "alert('No results found for the selected criteria');", true);
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Handle error with detailed message and safe string handling
                     ResultPanel.Visible = false;
-                    string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-                    string errorScript = "console.error('Database Error: " + errorMsg + "'); alert('Database Error occurred. Check console for details.');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "dberror", errorScript, true);
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "dberror", "console.error('Database Error: " + ex.Message.Replace("'", "\\'") + "');", true);
                 }
             }
         }
@@ -274,342 +220,56 @@ namespace EDUCATION.COM.Exam.Result
         {
             if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
             {
-                DataRowView row = (DataRowView)e.Item.DataItem;
-                string studentResultID = row["StudentResultID"].ToString();
-
-                // Find the nested repeater for subjects
-                Repeater subjectRepeater = (Repeater)e.Item.FindControl("SubjectRepeater");
-                
-                if (subjectRepeater != null)
-                {
-                    // Load subject data for this student
-                    DataTable subjectData = GetSubjectData(studentResultID);
-                    subjectRepeater.DataSource = subjectData;
-                    subjectRepeater.DataBind();
-                }
-
-                // Find and bind the grading system repeater
                 Repeater gradingSystemRepeater = (Repeater)e.Item.FindControl("GradingSystemRepeater");
-                
                 if (gradingSystemRepeater != null)
                 {
-                    // Load grading system for this school
-                    DataTable gradingData = GetGradingSystemForDisplay();
+                    DataTable gradingData = GetGradingSystemData();
                     gradingSystemRepeater.DataSource = gradingData;
                     gradingSystemRepeater.DataBind();
-                    
-                    // Debug: Log grading system info
-                    string gradingScript = "console.log('Grading System loaded: " + gradingData.Rows.Count + " grade levels');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingDebug" + studentResultID, gradingScript, true);
                 }
             }
         }
 
-        private DataTable GetSubjectData(string studentResultID)
+        public DataTable GetGradingSystemData()
         {
             using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
             {
                 try
                 {
                     con.Open();
-                    
-                    // First check if we should use simple or complex query
-                    bool hasSubExams = CheckIfExamHasSubExams(studentResultID);
-                    
-                    if (!hasSubExams)
-                    {
-                        // Use simple query for better performance
-                        return GetSubjectDataSimple(studentResultID);
-                    }
-                    
-                    // Continue with complex query only if sub-exams exist
-                    DataTable gradingSystem = GetGradingSystem();
-                    
-                    // Get the exam ID and class ID for dynamic sub-exam detection
-                    string examID = GetExamIDFromStudentResult(studentResultID);
-                    string classID = GetCurrentClassID();
-                    DataTable subExams = GetSubExamNames(examID);
-                    
-                    // Build dynamic sub-exam columns only if sub-exams exist for this class
-                    string subExamColumns = "";
-                    if (subExams.Rows.Count > 0)
-                    {
-                        for (int i = 0; i < subExams.Rows.Count; i++)
-                        {
-                            string subExamID = SafeGetString(subExams.Rows[i], "SubExamID");
-                            string columnName = "SubExam" + (i + 1) + "Mark";
-                            
-                            subExamColumns += @"
-                                ISNULL((SELECT TOP 1 eom.MarksObtained 
-                                       FROM Exam_Obtain_Marks eom 
-                                       INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                                       WHERE eom.StudentClassID = ersMain.StudentClassID 
-                                       AND eom.SubjectID = ers.SubjectID 
-                                       AND eom.ExamID = ersMain.ExamID
-                                       AND eom.SubExamID = " + subExamID + @"
-                                       AND sc.ClassID = @ClassID), 0) as " + columnName + ",";
-                        }
-                    }
-                    else
-                    {
-                        // Fallback to generic detection with class filtering
-                        subExamColumns = @"
-                            ISNULL((SELECT TOP 1 eom.MarksObtained 
-                                   FROM Exam_Obtain_Marks eom 
-                                   INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
-                                   INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                                   WHERE eom.StudentClassID = ersMain.StudentClassID 
-                                   AND eom.SubjectID = ers.SubjectID 
-                                   AND eom.ExamID = ersMain.ExamID
-                                   AND sc.ClassID = @ClassID
-                                   AND esn.Sub_ExamSN = 1), 0) as MidtermMark,
-                                   
-                            ISNULL((SELECT TOP 1 eom.MarksObtained 
-                                   FROM Exam_Obtain_Marks eom 
-                                   INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
-                                   INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                                   WHERE eom.StudentClassID = ersMain.StudentClassID 
-                                   AND eom.SubjectID = ers.SubjectID 
-                                   AND eom.ExamID = ersMain.ExamID
-                                   AND sc.ClassID = @ClassID
-                                   AND esn.Sub_ExamSN = 2), 0) as PeriodicalMark,";
-                    }
-                    
-                    // Optimized query with class filtering
                     string query = @"
-                        SELECT 
-                            ISNULL(sub.SubjectName, '') as SubjectName,
-                            sub.SubjectID,
-                            ISNULL(sub.SN, 999) as SubjectSN,
-                            ISNULL(ers.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
-                            ISNULL(ers.TotalMark_ofSubject, 0) as FullMark,
-                            ISNULL(ers.SubjectGrades, '') as SubjectGrades,
-                            ISNULL(ers.SubjectPoint, 0) as SubjectPoint,
-                            ISNULL(ers.PassStatus_Subject, 'Pass') as PassStatus_InSubject,
-                            " + subExamColumns + @"
-                            ISNULL(ers.HighestMark_InSubject_Class, 0) as HighestMark_InSubject_Class,
-                            ISNULL(ers.Position_InSubject_Class, 0) as Position_InSubject_Class,
-                            ISNULL(ers.SubjectAbsenceStatus, '') as SubjectAbsenceStatus,
-                            ISNULL(ers.IS_Add_InExam, 1) as IS_Add_InExam,
-                            ISNULL(ers.PassMark_Subject, 33) as PassMark
-                        FROM Exam_Result_of_Subject ers WITH (NOLOCK)
-                        INNER JOIN Subject sub WITH (NOLOCK) ON ers.SubjectID = sub.SubjectID
-                        INNER JOIN Exam_Result_of_Student ersMain WITH (NOLOCK) ON ers.StudentResultID = ersMain.StudentResultID
-                        INNER JOIN StudentsClass sc WITH (NOLOCK) ON ersMain.StudentClassID = sc.StudentClassID
-                        WHERE ers.StudentResultID = @StudentResultID
-                        AND ISNULL(ers.IS_Add_InExam, 1) = 1
-                        AND sc.ClassID = @ClassID
-                        ORDER BY ISNULL(sub.SN, 999), sub.SubjectName";
-
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.CommandTimeout = 30;
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@ClassID", classID);
-                    
-                    DataTable dt = new DataTable();
-                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                    adapter.Fill(dt);
-
-                    // Apply dynamic grading if grades are missing
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        string currentGrade = SafeGetString(row, "SubjectGrades");
-                        decimal currentPoint = SafeGetDecimal(row, "SubjectPoint");
-                        
-                        if (string.IsNullOrEmpty(currentGrade) || currentPoint == 0)
-                        {
-                            ApplyDynamicGrading(row, gradingSystem);
-                        }
-                    }
-
-                    // Debug logging with class info
-                    if (dt.Rows.Count > 0)
-                    {
-                        string subExamInfo = "";
-                        if (subExams.Rows.Count > 0)
-                        {
-                            foreach (DataRow subExamRow in subExams.Rows)
-                            {
-                                subExamInfo += SafeGetString(subExamRow, "SubExamName") + ", ";
-                            }
-                            subExamInfo = subExamInfo.TrimEnd(',', ' ');
-                        }
-                        else
-                        {
-                            subExamInfo = "Midterm, Periodical";
-                        }
-                        
-                        string infoScript = "console.log('Class " + classID + " - Sub-exams: " + subExamInfo + "');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "classSpecificSubExamInfo" + studentResultID, infoScript, true);
-                        
-                        string successScript = "console.log('Class-specific subject data loaded - " + dt.Rows.Count + " subjects found');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "classSpecificSubjectSuccess" + studentResultID, successScript, true);
-                    }
-
-                    return dt;
-                }
-                catch (Exception ex)
-                {
-                    // Log error and fallback to simple query
-                    string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-                    string errorScript = "console.error('Class-specific subject query failed, trying simple: " + errorMsg + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "classSpecificSubjectError" + studentResultID, errorScript, true);
-                    
-                    // Fallback to simple query on error
-                    return GetSubjectDataSimple(studentResultID);
-                }
-            }
-        }
-
-        private DataTable GetSubjectDataSimple(string studentResultID)
-        {
-            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-            {
-                try
-                {
-                    con.Open();
-                    
-                    // Simple query without sub-exam complexity
-                    string query = @"
-                        SELECT 
-                            ISNULL(sub.SubjectName, '') as SubjectName,
-                            sub.SubjectID,
-                            ISNULL(sub.SN, 999) as SubjectSN,
-                            ISNULL(ers.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
-                            ISNULL(ers.TotalMark_ofSubject, 0) as FullMark,
-                            ISNULL(ers.SubjectGrades, '') as SubjectGrades,
-                            ISNULL(ers.SubjectPoint, 0) as SubjectPoint,
-                            ISNULL(ers.PassStatus_Subject, 'Pass') as PassStatus_InSubject,
-                            ISNULL(ers.IS_Add_InExam, 1) as IS_Add_InExam
-                        FROM Exam_Result_of_Subject ers
-                        INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
-                        WHERE ers.StudentResultID = @StudentResultID
-                        AND ISNULL(ers.IS_Add_InExam, 1) = 1
-                        ORDER BY ISNULL(sub.SN, 999), sub.SubjectName";
-
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.CommandTimeout = 15; // 15 second timeout
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    
-                    DataTable dt = new DataTable();
-                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                    adapter.Fill(dt);
-
-                    // Apply dynamic grading if needed
-                    DataTable gradingSystem = GetGradingSystem();
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        string currentGrade = SafeGetString(row, "SubjectGrades");
-                        decimal currentPoint = SafeGetDecimal(row, "SubjectPoint");
-                        
-                        if (string.IsNullOrEmpty(currentGrade) || currentPoint == 0)
-                        {
-                            ApplyDynamicGrading(row, gradingSystem);
-                        }
-                    }
-
-                    // Log success
-                    string successScript = "console.log('Simple subject data loaded - " + dt.Rows.Count + " subjects found');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "simpleSubjectSuccess" + studentResultID, successScript, true);
-
-                    return dt;
-                }
-                catch (Exception ex)
-                {
-                    string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                    string errorScript = "console.error('Simple subject data error: " + errorMsg + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "simpleSubjectError" + studentResultID, errorScript, true);
-                    return new DataTable();
-                }
-            }
-        }
-
-        private void ApplyDynamicGrading(DataRow row, DataTable gradingSystem)
-        {
-            try
-            {
-                decimal obtainedMarks = Convert.ToDecimal(row["ObtainedMark_ofSubject"]);
-                decimal fullMarks = Convert.ToDecimal(row["FullMark"]);
-                decimal percentage = fullMarks > 0 ? (obtainedMarks / fullMarks) * 100 : 0;
-
-                // Find the appropriate grade
-                string grade = "F";
-                decimal point = 0.0m;
-                string status = "Fail";
-
-                foreach (DataRow gradeRow in gradingSystem.Rows)
-                {
-                    decimal maxPercentage = Convert.ToDecimal(gradeRow["MaxPercentage"]);
-                    decimal minPercentage = Convert.ToDecimal(gradeRow["MinPercentage"]);
-
-                    if (percentage >= minPercentage && percentage <= maxPercentage)
-                    {
-                        grade = gradeRow["Grades"].ToString();
-                        point = Convert.ToDecimal(gradeRow["Point"]);
-                        status = grade == "F" ? "Fail" : "Pass";
-                        break;
-                    }
-                }
-
-                // Update the row with calculated values
-                row["SubjectGrades"] = grade;
-                row["SubjectPoint"] = point;
-                row["PassStatus_InSubject"] = status;
-            }
-            catch
-            {
-                // If calculation fails, use default values
-                row["SubjectGrades"] = "F";
-                row["SubjectPoint"] = 0.0;
-                row["PassStatus_InSubject"] = "Fail";
-            }
-        }
-
-        private DataTable GetGradingSystem()
-        {
-            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-            {
-                try
-                {
-                    con.Open();
-                    
-                    // Get grading system based on school and exam
-                    string query = @"
-                        SELECT 
-                            Grades,
-                            MaxPercentage,
-                            MinPercentage,
-                            Point,
-                            Comments
+                        SELECT DISTINCT Grades, MaxPercentage, MinPercentage, Point, Comments
                         FROM Exam_Grading_System 
-                        WHERE SchoolID = @SchoolID 
-                        AND EducationYearID = @EducationYearID
+                        WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
+                        AND (ClassID = @ClassID OR ClassID IS NULL)
+                        AND (ExamID = @ExamID OR ExamID IS NULL)
                         ORDER BY MaxPercentage DESC";
 
                     SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue != "0" ? ClassDropDownList.SelectedValue : "1");
+                    cmd.Parameters.AddWithValue("@ExamID", ExamDropDownList.SelectedValue != "0" ? ExamDropDownList.SelectedValue : "1");
                     
                     DataTable dt = new DataTable();
                     SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     adapter.Fill(dt);
 
-                    // If no custom grading system found, use default Bangladesh system
                     if (dt.Rows.Count == 0)
                     {
-                        dt = GetDefaultGradingSystem();
+                        dt = GetDefaultGradingData();
                     }
-
                     return dt;
                 }
                 catch
                 {
-                    return GetDefaultGradingSystem();
+                    return GetDefaultGradingData();
                 }
             }
         }
 
-        private DataTable GetDefaultGradingSystem()
+        private DataTable GetDefaultGradingData()
         {
             DataTable dt = new DataTable();
             dt.Columns.Add("Grades", typeof(string));
@@ -618,7 +278,6 @@ namespace EDUCATION.COM.Exam.Result
             dt.Columns.Add("Point", typeof(decimal));
             dt.Columns.Add("Comments", typeof(string));
 
-            // Default Bangladesh Grading System
             dt.Rows.Add("A+", 100, 80, 5.00, "Outstanding");
             dt.Rows.Add("A", 79, 70, 4.00, "Excellent");
             dt.Rows.Add("A-", 69, 60, 3.50, "Very Good");
@@ -630,583 +289,239 @@ namespace EDUCATION.COM.Exam.Result
             return dt;
         }
 
-        private void ApplyDynamicGrading(DataTable subjectData, DataTable gradingSystem)
-        {
-            foreach (DataRow row in subjectData.Rows)
-            {
-                try
-                {
-                    decimal obtainedMarks = Convert.ToDecimal(row["ObtainedMark_ofSubject"]);
-                    decimal percentage = obtainedMarks; // Assuming marks are already in percentage
-
-                    // Find the appropriate grade
-                    string grade = "F";
-                    decimal point = 0.0m;
-                    string status = "Fail";
-
-                    foreach (DataRow gradeRow in gradingSystem.Rows)
-                    {
-                        decimal maxPercentage = Convert.ToDecimal(gradeRow["MaxPercentage"]);
-                        decimal minPercentage = Convert.ToDecimal(gradeRow["MinPercentage"]);
-
-                        if (percentage >= minPercentage && percentage <= maxPercentage)
-                        {
-                            grade = gradeRow["Grades"].ToString();
-                            point = Convert.ToDecimal(gradeRow["Point"]);
-                            status = grade == "F" ? "Fail" : "Pass";
-                            break;
-                        }
-                    }
-
-                    // Update the row with calculated values
-                    row["SubjectGrades"] = grade;
-                    row["SubjectPoint"] = point;
-                    row["ObtainedPoint"] = point;
-                    row["PassStatus_InSubject"] = status;
-                    row["PassStatus_InSubExam"] = status;
-                }
-                catch
-                {
-                    // If calculation fails, use default values
-                    row["SubjectGrades"] = "F";
-                    row["SubjectPoint"] = 0.0;
-                    row["ObtainedPoint"] = 0.0;
-                    row["PassStatus_InSubject"] = "Fail";
-                    row["PassStatus_InSubExam"] = "Fail";
-                }
-            }
-        }
-
-        // Public method to get grading system for display in grade scale box
-        public DataTable GetGradingSystemForDisplay()
-        {
-            return GetGradingSystem();
-        }
-
-        // Helper methods for data binding - Public methods for ASPX access
-        public string GetSchoolName()
-        {
-            return "Imperial Ideal School & College";
-        }
-
-        public string GetSchoolAddress()
-        {
-            return "761,Tulatulisohera Rd,Kalulkotil, Narayangonj | Phone: 01906-265260, 01789-752002 | Idealedu8@gmail.com";
-        }
-
-        public string GetExamName()
-        {
-            return ExamDropDownList.SelectedItem?.Text + " - " + DateTime.Now.Year;
-        }
-
-        public string GetTotalMarks(object dataItem)
-        {
-            // Calculate total marks from subjects
-            DataRowView row = (DataRowView)dataItem;
-            return GetSubjectMarksTotal(row["StudentResultID"].ToString());
-        }
-
-        public string GetFullMarks(object dataItem)
-        {
-            // Calculate full marks from subjects
-            DataRowView row = (DataRowView)dataItem;
-            return GetSubjectFullMarksTotal(row["StudentResultID"].ToString());
-        }
-
-        public string GetResult(object dataItem)
-        {
-            DataRowView row = (DataRowView)dataItem;
-            return row["PassStatus_ofStudent"].ToString() == "Pass" ? "উত্তীর্ণ" : "অনুত্তীর্ণ";
-        }
-
-        private string GetSubjectMarksTotal(string studentResultID)
-        {
-            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-            {
-                try
-                {
-                    con.Open();
-                    string query = @"
-                        SELECT SUM(CAST(ISNULL(ObtainedMark_ofSubject, 0) AS FLOAT)) as TotalMarks
-                        FROM Exam_Result_of_Subject 
-                        WHERE StudentResultID = @StudentResultID";
-
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-
-                    object result = cmd.ExecuteScalar();
-                    return result?.ToString() ?? "0";
-                }
-                catch
-                {
-                    return "0";
-                }
-            }
-        }
-
-        private string GetSubjectFullMarksTotal(string studentResultID)
-        {
-            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-            {
-                try
-                {
-                    con.Open();
-                    string query = @"
-                        SELECT SUM(CAST(ISNULL(s.FullMark, 0) AS FLOAT)) as FullMarks
-                        FROM Exam_Result_of_Subject ers
-                        INNER JOIN Subject s ON ers.SubjectID = s.SubjectID
-                        WHERE ers.StudentResultID = @StudentResultID";
-
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-
-                    object result = cmd.ExecuteScalar();
-                    return result?.ToString() ?? "0";
-                }
-                catch
-                {
-                    return "0";
-                }
-            }
-        }
-
-        // Method to get result comment based on student grade
-        public string GetResultComment(string studentGrade, decimal gpa)
-        {
-            if (string.IsNullOrEmpty(studentGrade))
-                return "Good";
-                
-            switch (studentGrade.ToUpper())
-            {
-                case "A+":
-                    return "Excellent";
-                case "A":
-                    return "Very Good";
-                case "A-":
-                    return "Good";
-                case "B":
-                    return "Satisfactory";
-                case "C":
-                    return "Average";
-                case "D":
-                    return "Below Average";
-                case "F":
-                    return "Fail";
-                default:
-                    return gpa >= 4.0m ? "Excellent" : "Good";
-            }
-        }
-
-        // Method to get dynamic sub-exam names - Simplified and more effective approach
-        private DataTable GetSubExamNames(string examID)
-        {
-            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-            {
-                try
-                {
-                    con.Open();
-                    
-                    // Get current class ID from session or exam data
-                    string classID = GetCurrentClassID();
-                    
-                    // Step 1: Get all sub-exams with their total marks for this class and exam
-                    string analysisQuery = @"
-                        SELECT 
-                            esn.SubExamID,
-                            esn.SubExamName,
-                            esn.Sub_ExamSN,
-                            COUNT(eom.MarksObtained) as StudentCount,
-                            SUM(CASE WHEN eom.MarksObtained > 0 THEN 1 ELSE 0 END) as StudentsWithMarks,
-                            AVG(CAST(eom.MarksObtained AS FLOAT)) as AvgMarks
-                        FROM Exam_SubExam_Name esn
-                        INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                        INNER JOIN StudentsClass sc ON eom.StudentClassID = sc.StudentClassID
-                        WHERE eom.ExamID = @ExamID
-                        AND sc.ClassID = @ClassID
-                        AND esn.SchoolID = @SchoolID
-                        AND esn.EducationYearID = @EducationYearID
-                        GROUP BY esn.SubExamID, esn.SubExamName, esn.Sub_ExamSN
-                        ORDER BY esn.Sub_ExamSN";
-
-                    SqlCommand cmd = new SqlCommand(analysisQuery, con);
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"].ToString());
-                    cmd.Parameters.AddWithValue("@ClassID", classID);
-
-                    DataTable allSubExams = new DataTable();
-                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                    adapter.Fill(allSubExams);
-
-                    // Step 2: Log analysis for debugging
-                    string analysisScript = "console.log('=== SUB-EXAM ANALYSIS FOR CLASS " + classID + " ===');";
-                    foreach (DataRow row in allSubExams.Rows)
-                    {
-                        string name = SafeGetString(row, "SubExamName");
-                        string studentCount = SafeGetString(row, "StudentCount");
-                        string studentsWithMarks = SafeGetString(row, "StudentsWithMarks");
-                        string avgMarks = Math.Round(SafeGetDecimal(row, "AvgMarks"), 1).ToString();
-                        
-                        analysisScript += "console.log('" + name + ": " + studentCount + " students, " + studentsWithMarks + " with marks, avg=" + avgMarks + "');";
-                    }
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamAnalysis", analysisScript, true);
-
-                    // Step 3: Filter meaningful sub-exams
-                    DataTable meaningfulSubExams = allSubExams.Clone();
-                    
-                    foreach (DataRow row in allSubExams.Rows)
-                    {
-                        int studentsWithMarks = SafeGetString(row, "StudentsWithMarks") != "" ? Convert.ToInt32(row["StudentsWithMarks"]) : 0;
-                        decimal avgMarks = SafeGetDecimal(row, "AvgMarks");
-                        
-                        // A sub-exam is meaningful if:
-                        // 1. At least 5 students have marks > 0
-                        // 2. Average mark is > 5 (not just token marks)
-                        if (studentsWithMarks >= 5 && avgMarks > 5)
-                        {
-                            meaningfulSubExams.ImportRow(row);
-                        }
-                    }
-
-                    // Step 4: If no meaningful sub-exams, take top 2 by usage
-                    if (meaningfulSubExams.Rows.Count == 0)
-                    {
-                        string fallbackScript = "console.log('No meaningful sub-exams found, using top 2 by student count');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamFallback", fallbackScript, true);
-                        
-                        for (int i = 0; i < Math.Min(2, allSubExams.Rows.Count); i++)
-                        {
-                            meaningfulSubExams.ImportRow(allSubExams.Rows[i]);
-                        }
-                    }
-
-                    // Step 5: Limit to maximum 3 sub-exams for better layout
-                    if (meaningfulSubExams.Rows.Count > 3)
-                    {
-                        DataTable limitedSubExams = meaningfulSubExams.Clone();
-                        for (int i = 0; i < 3; i++)
-                        {
-                            limitedSubExams.ImportRow(meaningfulSubExams.Rows[i]);
-                        }
-                        meaningfulSubExams = limitedSubExams;
-                        
-                        string limitScript = "console.log('Limited to top 3 meaningful sub-exams');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamLimit", limitScript, true);
-                    }
-
-                    // Step 6: Log final selection
-                    if (meaningfulSubExams.Rows.Count > 0)
-                    {
-                        string selectedList = "";
-                        foreach (DataRow row in meaningfulSubExams.Rows)
-                        {
-                            selectedList += SafeGetString(row, "SubExamName") + ", ";
-                        }
-                        selectedList = selectedList.TrimEnd(',', ' ');
-                        
-                        string selectionScript = "console.log('SELECTED SUB-EXAMS: " + selectedList + "');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "finalSubExamSelection", selectionScript, true);
-                    }
-
-                    return meaningfulSubExams;
-                }
-                catch (Exception ex)
-                {
-                    string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                    string errorScript = "console.error('Sub-exam analysis error: " + errorMsg + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamAnalysisError", errorScript, true);
-                    return new DataTable();
-                }
-            }
-        }
-
-        // Check if exam has meaningful sub-exams - Simplified version with better logging
-        private bool CheckIfExamHasSubExams(string studentResultID)
-        {
-            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-            {
-                try
-                {
-                    con.Open();
-                    
-                    // Get current class ID and exam ID
-                    string classID = GetCurrentClassID();
-                    string examID = GetExamIDFromStudentResult(studentResultID);
-                    
-                    // Get actual sub-exam data to analyze
-                    DataTable subExams = GetSubExamNames(examID);
-                    
-                    // Log the decision process
-                    bool hasSubExams = subExams.Rows.Count > 1;
-                    string decisionScript = "console.log('SUB-EXAM DECISION: " + subExams.Rows.Count + " sub-exams found, Using " + (hasSubExams ? "DETAILED" : "SIMPLE") + " table');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamDecision" + studentResultID, decisionScript, true);
-                    
-                    return hasSubExams;
-                }
-                catch (Exception ex)
-                {
-                    string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                    string errorScript = "console.error('Sub-exam decision error: " + errorMsg + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "subExamDecisionError" + studentResultID, errorScript, true);
-                    
-                    return false; // Default to simple table on error
-                }
-            }
-        }
-
-        // Generate detailed subject table (with sub-exams) - Enhanced with better filtering
-        private string GenerateDetailedSubjectTable(string studentResultID, string studentGrade, decimal studentPoint)
-        {
-            DataTable subjects = GetSubjectData(studentResultID);
-            string resultComment = GetResultComment(studentGrade, studentPoint);
-            
-            if (subjects.Rows.Count == 0)
-            {
-                return "<p>No subject data found</p>";
-            }
-            
-            // Get dynamic sub-exam names with better filtering
-            string examID = GetExamIDFromStudentResult(studentResultID);
-            DataTable subExams = GetSubExamNames(examID);
-            
-            // If we have too many sub-exams (more than 4), limit to most important ones
-            if (subExams.Rows.Count > 4)
-            {
-                // Keep only first 2 most used sub-exams
-                DataTable limitedSubExams = subExams.Clone();
-                for (int i = 0; i < Math.Min(2, subExams.Rows.Count); i++)
-                {
-                    limitedSubExams.ImportRow(subExams.Rows[i]);
-                }
-                subExams = limitedSubExams;
-                
-                string limitScript = "console.log('Limited sub-exams to first 2 most used ones');";
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "limitSubExams", limitScript, true);
-            }
-            
-            // Build dynamic header
-            string subExamHeaders = "";
-            if (subExams.Rows.Count > 0)
-            {
-                foreach (DataRow subExamRow in subExams.Rows)
-                {
-                    string subExamName = SafeGetString(subExamRow, "SubExamName");
-                    // Shorten long sub-exam names for better display
-                    if (subExamName.Length > 10)
-                    {
-                        if (subExamName.Contains("Midterm") || subExamName.Contains("মধ্য"))
-                            subExamName = "Midterm";
-                        else if (subExamName.Contains("Periodical") || subExamName.Contains("পর্যায়"))
-                            subExamName = "Periodical";
-                        else if (subExamName.Contains("Final") || subExamName.Contains("চূড়ান্ত"))
-                            subExamName = "Final";
-                        else
-                            subExamName = subExamName.Substring(0, 8) + "..";
-                    }
-                    subExamHeaders += "<th>" + subExamName + "</th>";
-                }
-            }
-            else
-            {
-                // Fallback to default headers
-                subExamHeaders = "<th>Midterm</th><th>Periodical</th>";
-            }
-            
-            string html = @"
-                <table class=""marks-table"">
-                    <tr>
-                        <th rowspan=""2"">বিষয়সমূহ</th>
-                        <th colspan=""" + Math.Max(subExams.Rows.Count, 2) + @""">প্রাপ্ত নাম্বার</th>
-                        <th rowspan=""2"">মোট</th>
-                        <th rowspan=""2"">গ্রেড</th>
-                        <th rowspan=""2"">পয়েন্ট</th>
-                        <th rowspan=""" + (subjects.Rows.Count + 2) + @""" class=""vertical-text"">" + resultComment + @"</th>
-                    </tr>
-                    <tr>
-                        " + subExamHeaders + @"
-                    </tr>";
-
-            foreach (DataRow row in subjects.Rows)
-            {
-                // Safe null handling for all fields
-                string subjectName = SafeGetString(row, "SubjectName");
-                string obtainedMark = SafeGetString(row, "ObtainedMark_ofSubject");
-                string subjectGrades = SafeGetString(row, "SubjectGrades");
-                decimal subjectPoint = SafeGetDecimal(row, "SubjectPoint");
-                string passStatus = SafeGetString(row, "PassStatus_InSubject");
-                
-                if (passStatus == "") passStatus = "Pass"; // Default to Pass if empty
-                string rowClass = passStatus == "Fail" ? "failed-row" : "";
-                
-                // Build sub-exam marks dynamically based on filtered sub-exams
-                string subExamMarks = "";
-                if (subExams.Rows.Count > 0)
-                {
-                    // Get marks for each filtered sub-exam
-                    for (int i = 1; i <= subExams.Rows.Count; i++)
-                    {
-                        string columnName = "SubExam" + i + "Mark";
-                        string mark = SafeGetString(row, columnName);
-                        if (mark == "") mark = "0";
-                        subExamMarks += "<td>" + mark + "</td>";
-                    }
-                }
-                else
-                {
-                    // Fallback to midterm and periodical
-                    string midtermMark = SafeGetString(row, "MidtermMark");
-                    string periodicalMark = SafeGetString(row, "PeriodicalMark");
-                    if (midtermMark == "") midtermMark = "0";
-                    if (periodicalMark == "") periodicalMark = "0";
-                    subExamMarks = "<td>" + midtermMark + "</td><td>" + periodicalMark + "</td>";
-                }
-                
-                html += @"
-                    <tr class=""" + rowClass + @""">
-                        <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
-                        " + subExamMarks + @"
-                        <td>" + obtainedMark + @"</td>
-                        <td>" + subjectGrades + @"</td>
-                        <td>" + subjectPoint.ToString("F1") + @"</td>
-                    </tr>";
-            }
-
-            html += "</table>";
-            return html;
-        }
-
-        // Helper method to get current class ID with better debugging
-        private string GetCurrentClassID()
-        {
-            try
-            {
-                string classID = "";
-                
-                // First try to get from ClassDropDownList
-                if (ClassDropDownList != null && !string.IsNullOrEmpty(ClassDropDownList.SelectedValue) && ClassDropDownList.SelectedValue != "0")
-                {
-                    classID = ClassDropDownList.SelectedValue;
-                    string dropdownScript = "console.log('ClassID from DropDown: " + classID + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDFromDropdown", dropdownScript, true);
-                    return classID;
-                }
-                
-                // Fallback to session if available
-                if (Session["ClassID"] != null)
-                {
-                    classID = Session["ClassID"].ToString();
-                    string sessionScript = "console.log('ClassID from Session: " + classID + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDFromSession", sessionScript, true);
-                    return classID;
-                }
-                
-                // Default fallback
-                classID = "1";
-                string fallbackScript = "console.log('ClassID fallback to default: " + classID + "');";
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDFallback", fallbackScript, true);
-                return classID;
-            }
-            catch (Exception ex)
-            {
-                string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                string errorScript = "console.error('GetCurrentClassID error: " + errorMsg + "');";
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "classIDError", errorScript, true);
-                return "1";
-            }
-        }
-
-        // Helper method to get ExamID from StudentResultID - Missing method
-        private string GetExamIDFromStudentResult(string studentResultID)
-        {
-            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-            {
-                try
-                {
-                    con.Open();
-                    string query = "SELECT ExamID FROM Exam_Result_of_Student WHERE StudentResultID = @StudentResultID";
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    
-                    object result = cmd.ExecuteScalar();
-                    string examID = result != null && result != DBNull.Value ? result.ToString() : "";
-                    
-                    if (!string.IsNullOrEmpty(examID))
-                    {
-                        string debugScript = "console.log('ExamID from StudentResult: " + examID + "');";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "examIDFromResult", debugScript, true);
-                    }
-                    
-                    return examID;
-                }
-                catch (Exception ex)
-                {
-                    string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                    string errorScript = "console.error('GetExamIDFromStudentResult error: " + errorMsg + "');";
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "examIDError", errorScript, true);
-                    return "";
-                }
-            }
-        }
-
-        // Public method called from ASPX for generating subject marks table
         public string GenerateSubjectMarksTable(string studentResultID, string studentGrade, decimal studentPoint)
         {
             try
             {
-                // Check if exam has meaningful sub-exams
-                bool hasSubExams = CheckIfExamHasSubExams(studentResultID);
+                DataTable subjects = GetSubjectResults(studentResultID);
+                string resultComment = GetResultStatus(studentGrade, studentPoint);
+                
+                if (subjects.Rows.Count == 0)
+                    return "<p>No subject data found</p>";
+                
+                // Check if sub-exams exist for this exam
+                bool hasSubExams = CheckIfSubExamsExist(studentResultID);
                 
                 if (hasSubExams)
                 {
-                    return GenerateDetailedSubjectTable(studentResultID, studentGrade, studentPoint);
+                    return GenerateSubExamTable(studentResultID, resultComment, subjects.Rows.Count);
                 }
                 else
                 {
-                    return GenerateSimpleSubjectTable(studentResultID, studentGrade, studentPoint);
+                    return GenerateSimpleSubjectTable(subjects, resultComment);
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                string errorMsg = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"");
-                string errorScript = "console.error('GenerateSubjectMarksTable error: " + errorMsg + "');";
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "subjectTableError", errorScript, true);
                 return "<p>Error loading subject table</p>";
             }
         }
 
-        // Generate simple subject table (without sub-exams)
-        private string GenerateSimpleSubjectTable(string studentResultID, string studentGrade, decimal studentPoint)
+        private bool CheckIfSubExamsExist(string studentResultID)
         {
-            DataTable subjects = GetSubjectDataSimple(studentResultID);
-            string resultComment = GetResultComment(studentGrade, studentPoint);
-            
-            if (subjects.Rows.Count == 0)
+            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
             {
-                return "<p>No subject data found</p>";
+                try
+                {
+                    con.Open();
+                    string query = @"
+                        SELECT COUNT(DISTINCT sub_exam.SubExamName) as SubExamCount
+                        FROM Exam_Result_of_Subject ers
+                        INNER JOIN Exam_Result_of_SubExam sub_exam ON ers.StudentResultID = sub_exam.StudentResultID 
+                        WHERE ers.StudentResultID = @StudentResultID";
+
+                    SqlCommand cmd = new SqlCommand(query, con);
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    
+                    object result = cmd.ExecuteScalar();
+                    return Convert.ToInt32(result) > 0;
+                }
+                catch
+                {
+                    return false;
+                }
             }
+        }
+
+        private string GenerateSubExamTable(string studentResultID, string resultComment, int subjectCount)
+        {
+            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+            {
+                try
+                {
+                    con.Open();
+                    
+                    // Get sub-exam names
+                    string subExamQuery = @"
+                        SELECT DISTINCT sub_exam.SubExamName, sub_exam.SubExamID
+                        FROM Exam_Result_of_SubExam sub_exam
+                        INNER JOIN Exam_Result_of_Subject ers ON sub_exam.StudentResultID = ers.StudentResultID
+                        WHERE ers.StudentResultID = @StudentResultID
+                        ORDER BY sub_exam.SubExamID";
+
+                    SqlCommand subExamCmd = new SqlCommand(subExamQuery, con);
+                    subExamCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    
+                    DataTable subExams = new DataTable();
+                    SqlDataAdapter subExamAdapter = new SqlDataAdapter(subExamCmd);
+                    subExamAdapter.Fill(subExams);
+
+                    // Get subject results with sub-exam details
+                    string query = @"
+                        SELECT 
+                            ISNULL(sub.SubjectName, '') as SubjectName,
+                            sub.SubjectID,
+                            ISNULL(sub.SN, 999) as SubjectSN,
+                            ISNULL(ers.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
+                            ISNULL(ers.TotalMark_ofSubject, 0) as TotalMark_ofSubject,
+                            ISNULL(ers.SubjectGrades, '') as SubjectGrades,
+                            ISNULL(ers.SubjectPoint, 0) as SubjectPoint,
+                            ISNULL(ers.PassStatus_Subject, 'Pass') as PassStatus_Subject,
+                            ISNULL(sub_exam.SubExamName, '') as SubExamName,
+                            ISNULL(sub_exam.ObtainedMark, 0) as SubExamObtainedMark,
+                            ISNULL(sub_exam.TotalMark, 0) as SubExamTotalMark
+                        FROM Exam_Result_of_Subject ers
+                        INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
+                        LEFT JOIN Exam_Result_of_SubExam sub_exam ON ers.StudentResultID = sub_exam.StudentResultID AND ers.SubjectID = sub_exam.SubjectID
+                        WHERE ers.StudentResultID = @StudentResultID
+                        AND ISNULL(ers.IS_Add_InExam, 1) = 1
+                        ORDER BY ISNULL(sub.SN, 999), sub.SubjectName, sub_exam.SubExamID";
+
+                    SqlCommand cmd = new SqlCommand(query, con);
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    
+                    DataTable results = new DataTable();
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    adapter.Fill(results);
+
+                    string tableSizeClass = GetTableCssClass(subjectCount);
+                    
+                    string html = @"
+                        <div class=""marks-heading"">???????????? ????? (Sub-Exam Breakdown)</div>
+                        <table class=""marks-table " + tableSizeClass + @""">
+                            <tr>
+                                <th rowspan=""2"">?????????</th>";
+
+                    // Add sub-exam headers
+                    foreach (DataRow subExamRow in subExams.Rows)
+                    {
+                        html += "<th colspan=\"2\">" + subExamRow["SubExamName"].ToString() + "</th>";
+                    }
+
+                    html += @",
+                                <th rowspan=""2"">??? ???????</th>
+                                <th rowspan=""2"">?????</th>
+                                <th rowspan=""2"">???????</th>
+                                <th rowspan=""" + (subjectCount + 2) + @""" class=""vertical-text"">" + resultComment + @"</th>
+                            </tr>
+                            <tr>";
+
+                    // Add sub-exam mark headers
+                    foreach (DataRow subExamRow in subExams.Rows)
+                    {
+                        html += "<th>???????</th><th>?????</th>";
+                    }
+
+                    html += "</tr>";
+
+                    // Group results by subject using Dictionary
+                    Dictionary<string, DataRow> subjectDict = new Dictionary<string, DataRow>();
+                    Dictionary<string, List<DataRow>> subExamDict = new Dictionary<string, List<DataRow>>();
+
+                    foreach (DataRow row in results.Rows)
+                    {
+                        string subjectName = row["SubjectName"].ToString();
+                        
+                        if (!subjectDict.ContainsKey(subjectName))
+                        {
+                            subjectDict[subjectName] = row;
+                            subExamDict[subjectName] = new List<DataRow>();
+                        }
+                        
+                        if (!string.IsNullOrEmpty(row["SubExamName"].ToString()))
+                        {
+                            subExamDict[subjectName].Add(row);
+                        }
+                    }
+
+                    foreach (var kvp in subjectDict)
+                    {
+                        string subjectName = kvp.Key;
+                        DataRow subjectRow = kvp.Value;
+                        
+                        string passStatus = subjectRow["PassStatus_Subject"].ToString();
+                        if (string.IsNullOrEmpty(passStatus)) passStatus = "Pass";
+                        string rowClass = passStatus == "Fail" ? "failed-row" : "";
+                        
+                        html += "<tr class=\"" + rowClass + "\">";
+                        html += "<td style=\"text-align: left; padding-left: 12px;\">" + subjectName + "</td>";
+
+                        // Add sub-exam marks for this subject
+                        foreach (DataRow subExamRow in subExams.Rows)
+                        {
+                            string subExamName = subExamRow["SubExamName"].ToString();
+                            DataRow foundRow = null;
+                            
+                            foreach (DataRow sr in subExamDict[subjectName])
+                            {
+                                if (sr["SubExamName"].ToString() == subExamName)
+                                {
+                                    foundRow = sr;
+                                    break;
+                                }
+                            }
+                            
+                            if (foundRow != null)
+                            {
+                                html += "<td>" + foundRow["SubExamObtainedMark"].ToString() + "</td>";
+                                html += "<td>" + foundRow["SubExamTotalMark"].ToString() + "</td>";
+                            }
+                            else
+                            {
+                                html += "<td>-</td><td>-</td>";
+                            }
+                        }
+
+                        html += "<td>" + subjectRow["ObtainedMark_ofSubject"].ToString() + "/" + subjectRow["TotalMark_ofSubject"].ToString() + "</td>";
+                        html += "<td>" + subjectRow["SubjectGrades"].ToString() + "</td>";
+                        html += "<td>" + Convert.ToDecimal(subjectRow["SubjectPoint"]).ToString("F1") + "</td>";
+                        html += "</tr>";
+                    }
+
+                    html += "</table>";
+                    return html;
+                }
+                catch (Exception ex)
+                {
+                    return "<p>Error loading sub-exam table: " + ex.Message + "</p>";
+                }
+            }
+        }
+
+        private string GenerateSimpleSubjectTable(DataTable subjects, string resultComment)
+        {
+            string tableSizeClass = GetTableCssClass(subjects.Rows.Count);
             
             string html = @"
-                <div class=""marks-heading"">বিষয়ভিত্তিক ফলাফল</div>
-                <table class=""marks-table"">
+                <div class=""marks-heading"">???????????? ?????</div>
+                <table class=""marks-table " + tableSizeClass + @""">
                     <tr>
-                        <th>বিষয়সমূহ</th>
-                        <th>প্রাপ্ত নাম্বার</th>
-                        <th>পূর্ণ নাম্বার</th>
-                        <th>গ্রেড</th>
-                        <th>পয়েন্ট</th>
+                        <th>?????????</th>
+                        <th>??????? ???????</th>
+                        <th>????? ???????</th>
+                        <th>?????</th>
+                        <th>???????</th>
                         <th rowspan=""" + (subjects.Rows.Count + 1) + @""" class=""vertical-text"">" + resultComment + @"</th>
                     </tr>";
 
             foreach (DataRow row in subjects.Rows)
             {
-                string subjectName = SafeGetString(row, "SubjectName");
-                string obtainedMark = SafeGetString(row, "ObtainedMark_ofSubject");
-                string fullMark = SafeGetString(row, "FullMark");
-                string subjectGrades = SafeGetString(row, "SubjectGrades");
-                decimal subjectPoint = SafeGetDecimal(row, "SubjectPoint");
-                string passStatus = SafeGetString(row, "PassStatus_InSubject");
+                string subjectName = GetSafeColumnValue(row, "SubjectName");
+                string obtainedMark = GetSafeColumnValue(row, "ObtainedMark_ofSubject");
+                string fullMark = GetSafeColumnValue(row, "TotalMark_ofSubject");
+                string subjectGrades = GetSafeColumnValue(row, "SubjectGrades");
+                decimal subjectPoint = GetSafeDecimalValue(row, "SubjectPoint");
+                string passStatus = GetSafeColumnValue(row, "PassStatus_Subject");
                 
                 if (passStatus == "") passStatus = "Pass";
                 string rowClass = passStatus == "Fail" ? "failed-row" : "";
@@ -1225,15 +540,80 @@ namespace EDUCATION.COM.Exam.Result
             return html;
         }
 
-        // Helper methods for safe data access
-        private string SafeGetString(DataRow row, string columnName)
+        private DataTable GetSubjectResults(string studentResultID)
+        {
+            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+            {
+                try
+                {
+                    con.Open();
+                    string query = @"
+                        SELECT 
+                            ISNULL(sub.SubjectName, '') as SubjectName,
+                            sub.SubjectID,
+                            ISNULL(sub.SN, 999) as SubjectSN,
+                            ISNULL(ers.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
+                            ISNULL(ers.TotalMark_ofSubject, 0) as TotalMark_ofSubject,
+                            ISNULL(ers.SubjectGrades, '') as SubjectGrades,
+                            ISNULL(ers.SubjectPoint, 0) as SubjectPoint,
+                            ISNULL(ers.PassStatus_Subject, 'Pass') as PassStatus_Subject,
+                            ISNULL(ers.IS_Add_InExam, 1) as IS_Add_InExam
+                        FROM Exam_Result_of_Subject ers
+                        INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
+                        WHERE ers.StudentResultID = @StudentResultID
+                        AND ISNULL(ers.IS_Add_InExam, 1) = 1
+                        ORDER BY ISNULL(sub.SN, 999), sub.SubjectName";
+
+                    SqlCommand cmd = new SqlCommand(query, con);
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    
+                    DataTable dt = new DataTable();
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    adapter.Fill(dt);
+
+                    return dt;
+                }
+                catch
+                {
+                    return new DataTable();
+                }
+            }
+        }
+
+        public string GetResultStatus(string studentGrade, decimal gpa)
+        {
+            if (string.IsNullOrEmpty(studentGrade))
+                return "Good";
+                
+            switch (studentGrade.ToUpper())
+            {
+                case "A+": return "Excellent";
+                case "A": return "Very Good";
+                case "A-": return "Good";
+                case "B": return "Satisfactory";
+                case "C": return "Average";
+                case "D": return "Below Average";
+                case "F": return "Fail";
+                default: return gpa >= 4.0m ? "Excellent" : "Good";
+            }
+        }
+
+        private string GetTableCssClass(int subjectCount)
+        {
+            if (subjectCount <= 6) return "";
+            else if (subjectCount >= 7 && subjectCount <= 10) return "medium-subjects";
+            else return "small-subjects";
+        }
+
+        private string GetSafeColumnValue(DataRow row, string columnName)
         {
             if (row.Table.Columns.Contains(columnName) && row[columnName] != DBNull.Value)
                 return row[columnName].ToString();
             return string.Empty;
         }
 
-        private decimal SafeGetDecimal(DataRow row, string columnName)
+        private decimal GetSafeDecimalValue(DataRow row, string columnName)
         {
             if (row.Table.Columns.Contains(columnName) && row[columnName] != DBNull.Value)
             {
@@ -1242,6 +622,15 @@ namespace EDUCATION.COM.Exam.Result
                     return value;
             }
             return 0m;
+        }
+
+        public string GetSchoolName() => "Imperial Ideal School & College";
+        public string GetSchoolAddress() => "761,Tulatulisohera Rd,Kalulkotil, Narayangonj | Phone: 01906-265260, 01789-752002 | Idealedu8@gmail.com";
+        public string GetExamName() => ExamDropDownList.SelectedItem?.Text + " - " + DateTime.Now.Year;
+        public string GetResult(object dataItem)
+        {
+            DataRowView row = (DataRowView)dataItem;
+            return row["PassStatus_ofStudent"].ToString() == "Pass" ? "????????" : "??????????";
         }
     }
 }
