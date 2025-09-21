@@ -771,7 +771,7 @@ namespace EDUCATION.COM.Exam.Result
                 }
 
                 string html = @"
-                    <div class=""marks-heading"">বিষয় ভিত্তিক নম্বর</div>
+                    
                     <table class=""marks-table " + tableSizeClass + @""">";
 
                 // Create header row

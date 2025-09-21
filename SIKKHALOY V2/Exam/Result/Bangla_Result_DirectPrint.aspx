@@ -126,9 +126,17 @@
             text-align: center;
             font-weight: bold;
             margin: 8px 0; /* Same as print view */
-            color: green;
+            color: darkgreen; /* Changed to dark green */
             font-size: 18px; /* Same as print view */
         }
+          .Exam_name {            
+             text-align: center;
+            font-weight: bold;
+            margin: 8px 0; /* Same as print view */
+            color: #0072bc; /* Changed to blue #0072bc */
+            font-size: 18px; /* Same as print view */
+
+             }
         
         .marks-heading {
             text-align: center;
@@ -177,14 +185,14 @@
         }
         
         .summary-header td {
-            padding: 5px 6px; /* Same as print view */
-            font-size: 15px; /* Same as print view */
+            padding: 6px 6px !important; /* Keep original padding */
+            font-size: 20px !important; /* Increased to 20px */
             background-color: #f8f9fa !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color: #333 !important;
+            font-family: Arial, sans-serif !important; /* Use Arial for print */
             font-weight: bold !important;
-            border: 1px solid #0072bc; /* Changed to blue */
         }
         
         .summary-values {
@@ -192,11 +200,10 @@
         }
         
         .summary-values td {
-            padding: 6px; /* Same as print view */
-            font-size: 16px; /* Same as print view */
-            font-weight: bold;
-            text-align: center;
-            border: 1px solid #0072bc; /* Changed to blue */
+            padding: 6px !important; /* Keep original padding */
+            font-size: 20px !important; /* Increased to 20px */
+            font-family: Arial, sans-serif !important; /* Use Arial for print */
+            font-weight: bold !important;
         }
         
         .grade-chart {
@@ -239,14 +246,14 @@
         }
         
         .marks-table th {
-            background: #f2f2f2;
+            background: #d7ede1;
             font-size: 18px; /* Larger for headers */
         }
         
         /* Sub-exam header styling */
         .marks-table th[colspan="2"] {
             background: #e8f4fd;
-            color: #0072bc;
+            color: #000;
             font-weight: bold;
         }
         
@@ -261,7 +268,7 @@
         
         /* Total marks column styling */
         .marks-table .total-marks-cell {
-            background: #f8f9fa;
+            background: white;
             font-weight: bold;
             color: #0072bc;
         }
@@ -354,7 +361,19 @@
                 .title {
                     font-size: 22px !important; /* Larger for portrait */
                     margin: 12px 0 !important;
+                    text-align: center !important;
+                    font-weight: bold !important;
+                    color: darkgreen !important; /* Dark green for exam name */
                 }
+                
+                .Exam_name {
+                    font-size: 22px !important; /* Larger for portrait */
+                    margin: 12px 0 !important;
+                    text-align: center !important;
+                    font-weight: bold !important;
+                    color: #0072bc !important; /* Blue for Result Card */
+                }
+
                 
                 .info-table td {
                     font-size: 16px !important; /* Keep original size for portrait */
@@ -362,12 +381,12 @@
                 }
                 
                 .summary-header td {
-                    font-size: 14px !important; /* Keep original size for portrait */
+                    font-size: 20px !important; /* Increased to 20px */
                     padding: 6px 6px !important; /* Keep original padding */
                 }
                 
                 .summary-values td {
-                    font-size: 15px !important; /* Keep original size for portrait */
+                    font-size: 20px !important; /* Increased to 20px */
                     padding: 6px !important; /* Keep original padding */
                 }
                 
@@ -474,6 +493,17 @@
                 font-size: 18px !important; /* Increased for print */
                 font-family: Arial, sans-serif !important; /* Use Arial for print */
                 font-weight: bold !important;
+                text-align: center !important;
+                color: darkgreen !important; /* Dark green for exam name */
+            }
+            
+            .Exam_name {
+                margin: 8px 0 !important;
+                font-size: 18px !important; /* Increased for print */
+                font-family: Arial, sans-serif !important; /* Use Arial for print */
+                font-weight: bold !important;
+                text-align: center !important;
+                color: #0072bc !important; /* Blue for Result Card */
             }
             
             .top-section {
@@ -489,7 +519,7 @@
             
             .summary td {
                 padding: 4px !important;
-                font-size: 13px !important;
+                font-size: 20px !important; /* Increased to 20px */
             }
             
             .grade-chart table {
@@ -615,7 +645,7 @@
         
         .summary td {
             padding: 4px; /* Same as print view */
-            font-size: 13px; /* Same as print view */
+            font-size: 20px; /* Increased to 20px */
             font-weight: bold;
             text-align: center;
             border: 1px solid #0072bc; /* Changed to blue */
@@ -773,8 +803,9 @@
                     </div>
 
                     <!-- Title Section -->
-                    <div class="title">
-                        Result Card <br> <%# Eval("ExamName") %>
+                    <div >
+                       <p class="Exam_name">Result Card</p>
+                        <p class="title"><%# Eval("ExamName") %></p>
                     </div>
 
                     <!-- Top Section with Info and Grade Chart -->
@@ -782,7 +813,7 @@
                         <!-- Left: Student Info + Summary -->
                         <div class="info-summary">
                             <table class="info-table">
-                              <tr>
+                              <tr style="background:#e8f4fd" >
                            <td> নাম:</td> <td colspan="6"><b><%# Eval("StudentsName") %></b></td>
                                 </tr>
                                 <tr>
