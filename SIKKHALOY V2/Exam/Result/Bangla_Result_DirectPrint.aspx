@@ -331,6 +331,9 @@
         .SignTeacher img, .SignHead img {
             max-height: 35px;
             max-width: 80px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            display: block;
         }
 
         .Teacher, .Head {
@@ -338,6 +341,7 @@
             font-weight: bold;
             margin-top: 5px;
             min-width: 120px;
+            font-family: Arial, sans-serif;
         }
 
         /* Browse button styling */
@@ -864,6 +868,10 @@
         </div>
     </div>
 
+    <!-- Hidden fields to store database signature values -->
+    <asp:HiddenField ID="HiddenTeacherSign" runat="server" />
+    <asp:HiddenField ID="HiddenPrincipalSign" runat="server" />
+
     <%if (ExamDropDownList.SelectedIndex != 0)
     {%>
     <asp:Panel ID="ResultPanel" runat="server" Visible="false">
@@ -982,6 +990,9 @@
 
     <script>
         $(document).ready(function() {
+            // Load database signatures when page loads
+            loadDatabaseSignatures();
+            
             // Initialize teacher and head teacher text
             updateSignatureTexts();
 
@@ -1004,6 +1015,9 @@
                                 img.attr("style", "height:35px;width:80px");
                                 img.attr("src", e.target.result);
                                 dvPreview.append(img);
+                                
+                                // Save to database immediately
+                                saveSignatureToDatabase('teacher', e.target.result);
                             }
                             reader.readAsDataURL(file[0]);
                         } else {
@@ -1036,6 +1050,9 @@
                                 img.attr("style", "height:35px;width:80px");
                                 img.attr("src", e.target.result);
                                 dvPreview.append(img);
+                                
+                                // Save to database immediately
+                                saveSignatureToDatabase('principal', e.target.result);
                             }
                             reader.readAsDataURL(file[0]);
                         } else {
@@ -1064,6 +1081,106 @@
                 
                 $(".Teacher").text(teacherText);
                 $(".Head").text(headText);
+            }
+
+            function loadDatabaseSignatures() {
+                // Get signature values from hidden fields
+                var teacherSignPath = $("[id*=HiddenTeacherSign]").val();
+                var principalSignPath = $("[id*=HiddenPrincipalSign]").val();
+
+                console.log('Teacher Sign Path:', teacherSignPath);
+                console.log('Principal Sign Path:', principalSignPath);
+
+                // Load teacher signature if exists
+                if (teacherSignPath && teacherSignPath.trim() !== '') {
+                    loadSignatureImage(teacherSignPath, 'teacher');
+                } else {
+                    console.log('No teacher signature path available');
+                }
+
+                // Load principal signature if exists
+                if (principalSignPath && principalSignPath.trim() !== '') {
+                    loadSignatureImage(principalSignPath, 'principal');
+                } else {
+                    console.log('No principal signature path available');
+                }
+            }
+
+            function loadSignatureImage(imagePath, signatureType) {
+                var targetElement = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
+                
+                // Try to load the image
+                var img = new Image();
+                img.onload = function() {
+                    console.log(signatureType + ' signature loaded successfully');
+                    var $img = $("<img />");
+                    $img.attr("style", "height:35px;width:80px;object-fit:contain;");
+                    $img.attr("src", imagePath);
+                    $(targetElement).html($img);
+                };
+                
+                img.onerror = function() {
+                    console.log(signatureType + ' signature failed to load:', imagePath);
+                    
+                    // Test the handler directly to see what's wrong
+                    $.ajax({
+                        url: imagePath,
+                        type: 'GET',
+                        timeout: 10000,
+                        success: function(data, textStatus, xhr) {
+                            console.log(signatureType + ' handler response:', {
+                                status: xhr.status,
+                                contentType: xhr.getResponseHeader('Content-Type'),
+                                responseLength: xhr.responseText ? xhr.responseText.length : 0
+                            });
+                        },
+                        error: function(xhr, status, error) {
+                            console.log(signatureType + ' handler error:', {
+                                status: xhr.status,
+                                statusText: xhr.statusText,
+                                responseText: xhr.responseText,
+                                error: error
+                            });
+                        }
+                    });
+                };
+                
+                img.src = imagePath;
+            }
+
+            function saveSignatureToDatabase(signatureType, base64Data) {
+                // Extract base64 data without the data:image prefix
+                var base64Image = base64Data.split(',')[1];
+                
+                $.ajax({
+                    type: "POST",
+                    url: "Bangla_Result_DirectPrint.aspx/SaveSignature",
+                    data: JSON.stringify({
+                        signatureType: signatureType,
+                        imageData: base64Image
+                    }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function(response) {
+                        if (response.d.success) {
+                            console.log(signatureType + ' signature saved successfully');
+                            
+                            // Update hidden field with new handler URL
+                            var newUrl = "/Handeler/SignatureHandler.ashx?type=" + signatureType + "&schoolId=" + response.d.schoolId + "&t=" + new Date().getTime();
+                            if (signatureType === 'teacher') {
+                                $("[id*=HiddenTeacherSign]").val(newUrl);
+                            } else {
+                                $("[id*=HiddenPrincipalSign]").val(newUrl);
+                            }
+                        } else {
+                            alert('Error saving signature: ' + response.d.message);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('AJAX Error saving signature:', error);
+                        alert('Error saving signature to database');
+                    }
+                });
             }
         });
     </script>

@@ -114,6 +114,24 @@ namespace EDUCATION.COM.Exam.Result
         protected global::System.Web.UI.WebControls.Button LoadResultsButton;
 
         /// <summary>
+        /// TeacherSignTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox TeacherSignTextBox;
+
+        /// <summary>
+        /// HeadTeacherSignTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox HeadTeacherSignTextBox;
+
+        /// <summary>
         /// ResultPanel control.
         /// </summary>
         /// <remarks>

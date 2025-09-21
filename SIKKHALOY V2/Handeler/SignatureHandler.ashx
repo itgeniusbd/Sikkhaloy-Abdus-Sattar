@@ -1,0 +1,1 @@
+<%@ WebHandler Language="C#" CodeBehind="SignatureHandler.ashx.cs" Class="EDUCATION.COM.Handeler.SignatureHandler" %>

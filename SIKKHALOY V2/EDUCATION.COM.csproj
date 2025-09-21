@@ -715,6 +715,8 @@
     <Content Include="Handeler\Sign_Teacher.ashx" />
     <Content Include="Handeler\Commeti_Photo.ashx" />
     <Content Include="Handeler\Comitee_Image.ashx" />
+    <Content Include="Handeler\SignatureHandler.ashx" />
+    <Content Include="Handeler\TestHandler.ashx" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
     <Content Include="Routines\Modify_Routine.aspx" />
@@ -2003,7 +2005,6 @@
     <Compile Include="Exam\Result\Bangla_Result_DirectPrint.aspx.designer.cs">
       <DependentUpon>Bangla_Result_DirectPrint.aspx</DependentUpon>
     </Compile>
-
     <Compile Include="Exam\Result\Board_Result.aspx.designer.cs">
       <DependentUpon>Board_Result.aspx</DependentUpon>
     </Compile>
@@ -2223,6 +2224,9 @@
     <Compile Include="Handeler\SchoolLogo.ashx.cs">
       <DependentUpon>SchoolLogo.ashx</DependentUpon>
     </Compile>
+    <Compile Include="Handeler\SignatureHandler.ashx.cs">
+      <DependentUpon>SignatureHandler.ashx</DependentUpon>
+    </Compile>
     <Compile Include="Handeler\Sign_Principal.ashx.cs">
       <DependentUpon>Sign_Principal.ashx</DependentUpon>
     </Compile>
@@ -2244,6 +2248,9 @@
     </Compile>
     <Compile Include="Handeler\Teachers.ashx.cs">
       <DependentUpon>Teachers.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Handeler\TestHandler.ashx.cs">
+      <DependentUpon>TestHandler.ashx</DependentUpon>
     </Compile>
     <Compile Include="ID_Cards\All_ID_Cards.aspx.cs">
       <DependentUpon>All_ID_Cards.aspx</DependentUpon>

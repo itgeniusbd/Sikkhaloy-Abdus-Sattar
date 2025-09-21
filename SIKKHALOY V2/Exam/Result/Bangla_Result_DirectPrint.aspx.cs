@@ -1,15 +1,24 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
 using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
-using System.Web.UI;
-using System.Web.UI.WebControls;
+using System.Text;
+using System.Web.Services;
 using System.Threading;
 
 namespace EDUCATION.COM.Exam.Result
 {
     public partial class Bangla_Result_DirectPrint : System.Web.UI.Page
     {
+        // Protected controls for accessing from code-behind
+        protected HiddenField HiddenTeacherSign;
+        protected HiddenField HiddenPrincipalSign;
+        
         protected void Page_Load(object sender, EventArgs e)
         {
             try
@@ -245,6 +254,9 @@ namespace EDUCATION.COM.Exam.Result
 
                     if (dt.Rows.Count > 0)
                     {
+                        // Load signatures separately
+                        LoadSignatureImages();
+                        
                         ResultRepeater.DataSource = dt;
                         ResultRepeater.DataBind();
                         ResultPanel.Visible = true;
@@ -279,6 +291,72 @@ namespace EDUCATION.COM.Exam.Result
                 {
                     con.Close();
                     con.Dispose();
+                }
+            }
+        }
+
+        private void LoadSignatureImages()
+        {
+            SqlConnection con = null;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: Starting for SchoolID: {Session["SchoolID"]}");
+                
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+
+                string signatureQuery = @"
+                    SELECT 
+                        CASE WHEN Teacher_Sign IS NOT NULL AND DATALENGTH(Teacher_Sign) > 0 THEN 1 ELSE 0 END as HasTeacherSign,
+                        CASE WHEN Principal_Sign IS NOT NULL AND DATALENGTH(Principal_Sign) > 0 THEN 1 ELSE 0 END as HasPrincipalSign
+                    FROM SchoolInfo 
+                    WHERE SchoolID = @SchoolID";
+
+                using (SqlCommand cmd = new SqlCommand(signatureQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            bool hasTeacherSign = Convert.ToBoolean(reader["HasTeacherSign"]);
+                            bool hasPrincipalSign = Convert.ToBoolean(reader["HasPrincipalSign"]);
+                            
+                            System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: SchoolID: {Session["SchoolID"]}, HasTeacherSign: {hasTeacherSign}, HasPrincipalSign: {hasPrincipalSign}");
+                            
+                            // Add timestamp to avoid caching issues
+                            string timestamp = DateTime.Now.Ticks.ToString();
+                            
+                            // Set paths to signature handler if signatures exist
+                            HiddenTeacherSign.Value = hasTeacherSign ? 
+                                $"/Handeler/SignatureHandler.ashx?type=teacher&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
+                            HiddenPrincipalSign.Value = hasPrincipalSign ? 
+                                $"/Handeler/SignatureHandler.ashx?type=principal&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: No SchoolInfo record found for SchoolID: {Session["SchoolID"]}");
+                            // Set empty values if no school record found
+                            HiddenTeacherSign.Value = "";
+                            HiddenPrincipalSign.Value = "";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't stop the main process
+                System.Diagnostics.Debug.WriteLine($"LoadSignatureImages error: {ex.Message}\nStack: {ex.StackTrace}");
+                // Set empty values if error occurs
+                HiddenTeacherSign.Value = "";
+                HiddenPrincipalSign.Value = "";
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
                 }
             }
         }
@@ -492,10 +570,17 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
                 
+                // Check if there are any sub-exam marks for this school, education year, class, and exam
                 string query = @"
-                    SELECT COUNT(*) 
+                    SELECT COUNT(DISTINCT eom.SubExamID) 
                     FROM Exam_Obtain_Marks eom
                     INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
+                    INNER JOIN StudentsClass sc ON eom.StudentResultID IN (
+                        SELECT ers.StudentResultID 
+                        FROM Exam_Result_of_Student ers 
+                        INNER JOIN StudentsClass sc2 ON ers.StudentClassID = sc2.StudentClassID
+                        WHERE ers.ExamID = @ExamID AND sc2.ClassID = @ClassID
+                    )
                     WHERE eom.SchoolID = @SchoolID 
                     AND eom.EducationYearID = @EducationYearID";
 
@@ -504,13 +589,19 @@ namespace EDUCATION.COM.Exam.Result
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
 
                     int count = Convert.ToInt32(cmd.ExecuteScalar());
+                    
+                    System.Diagnostics.Debug.WriteLine($"HasSubExams: Found {count} sub-exam types for ClassID: {ClassDropDownList.SelectedValue}, ExamID: {examID}");
+                    
                     return count > 0;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in HasSubExams: {ex.Message}");
                 return false;
             }
             finally
@@ -532,20 +623,11 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
                 
-                // Debug: First check if we have any Exam_Obtain_Marks records at all
-                string debugQuery = @"SELECT COUNT(*) FROM Exam_Obtain_Marks WHERE StudentResultID = @StudentResultID";
-                using (SqlCommand debugCmd = new SqlCommand(debugQuery, con))
-                {
-                    debugCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    int totalRecords = Convert.ToInt32(debugCmd.ExecuteScalar());
-                    System.Diagnostics.Debug.WriteLine($"Total Exam_Obtain_Marks records for StudentResultID {studentResultID}: {totalRecords}");
-                }
-                
-                // Use the exact same query structure as ExamPosition_WithSub.aspx
+                // Use the exact same query as ExamPosition_WithSub.aspx without ExamID filter first
                 string query = @"
                     SELECT 
                         Exam_SubExam_Name.SubExamName, 
-                        ISNULL(CAST(Exam_Obtain_Marks.MarksObtained AS char(10)), 'A') as ObtainedMark_ofSubExam 
+                        ISNULL(CAST(Exam_Obtain_Marks.MarksObtained AS char(10)), 'A') as MarksObtained 
                     FROM Exam_Obtain_Marks 
                     INNER JOIN Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID 
                     WHERE (Exam_Obtain_Marks.SchoolID = @SchoolID) 
@@ -569,10 +651,12 @@ namespace EDUCATION.COM.Exam.Result
                         adapter.Fill(dt);
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"Found {dt.Rows.Count} sub-exam records for Subject {subjectID}");
+                    System.Diagnostics.Debug.WriteLine($"GetSubExamMarks: Subject {subjectID}: Found {dt.Rows.Count} sub-exam records for StudentResultID {studentResultID}");
+                    
+                    // Log the sub-exam details for debugging
                     foreach (DataRow row in dt.Rows)
                     {
-                        System.Diagnostics.Debug.WriteLine($"  - {row["SubExamName"]}: {row["ObtainedMark_ofSubExam"]}");
+                        System.Diagnostics.Debug.WriteLine($"  Sub-exam: {row["SubExamName"]} = {row["MarksObtained"]}");
                     }
 
                     return dt;
@@ -597,7 +681,60 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Method to get sub-exam header names - only if there are meaningful sub-exam marks
+        // Method to get the actual number of sub-exams for a specific class and exam
+        private int GetSubExamCount(int examID)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+                
+                // Count only sub-exams that have actual data for this class and exam
+                string query = @"
+                    SELECT COUNT(DISTINCT esn.SubExamID) 
+                    FROM Exam_SubExam_Name esn
+                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                    WHERE esn.SchoolID = @SchoolID
+                    AND esn.EducationYearID = @EducationYearID
+                    AND ers.ExamID = @ExamID
+                    AND sc.ClassID = @ClassID
+                    AND eom.SchoolID = @SchoolID
+                    AND eom.EducationYearID = @EducationYearID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                    int count = Convert.ToInt32(cmd.ExecuteScalar());
+                    
+                    System.Diagnostics.Debug.WriteLine($"GetSubExamCount: Found {count} active sub-exams for ClassID: {ClassDropDownList.SelectedValue}, ExamID: {examID}");
+                    
+                    return count;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamCount: {ex.Message}");
+                return 0;
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+        }
+
+        // Method to get sub-exam header names - only for sub-exams with actual data for this class
         private string GetSubExamHeaderNames(string studentResultID)
         {
             SqlConnection con = null;
@@ -606,49 +743,29 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
                 
-                // First check if we actually have meaningful sub-exam data
-                string checkQuery = @"
-                    SELECT COUNT(*) 
-                    FROM Exam_Obtain_Marks eom
-                    INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
-                    WHERE eom.StudentResultID = @StudentResultID
-                    AND eom.SchoolID = @SchoolID
-                    AND eom.EducationYearID = @EducationYearID
-                    AND ISNULL(CAST(eom.MarksObtained AS VARCHAR(10)), '') != ''
-                    AND ISNULL(CAST(eom.MarksObtained AS VARCHAR(10)), '') != 'A'
-                    AND ISNUMERIC(CAST(eom.MarksObtained AS VARCHAR(10))) = 1
-                    AND CAST(eom.MarksObtained AS DECIMAL) > 0";
-
-                using (SqlCommand checkCmd = new SqlCommand(checkQuery, con))
-                {
-                    checkCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    checkCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    checkCmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-
-                    int meaningfulSubExamCount = Convert.ToInt32(checkCmd.ExecuteScalar());
-                    System.Diagnostics.Debug.WriteLine($"Meaningful sub-exam records found: {meaningfulSubExamCount}");
-                    
-                    if (meaningfulSubExamCount == 0)
-                    {
-                        return ""; // No meaningful sub-exam data
-                    }
-                }
+                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
                 
-                // If we have meaningful data, get the header names
+                // Get only sub-exam names that have actual data for this class and exam
                 string query = @"
                     SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN
-                    FROM Exam_Obtain_Marks eom
-                    INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
-                    WHERE eom.StudentResultID = @StudentResultID
+                    FROM Exam_SubExam_Name esn
+                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                    WHERE esn.SchoolID = @SchoolID
+                    AND esn.EducationYearID = @EducationYearID
+                    AND ers.ExamID = @ExamID
+                    AND sc.ClassID = @ClassID
                     AND eom.SchoolID = @SchoolID
                     AND eom.EducationYearID = @EducationYearID
                     ORDER BY esn.Sub_ExamSN";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
 
                     DataTable dt = new DataTable();
                     using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
@@ -656,13 +773,15 @@ namespace EDUCATION.COM.Exam.Result
                         adapter.Fill(dt);
                     }
 
+                    System.Diagnostics.Debug.WriteLine($"GetSubExamHeaderNames: Found {dt.Rows.Count} active sub-exams for ClassID: {ClassDropDownList.SelectedValue}");
+
                     string headerHtml = "";
                     foreach (DataRow row in dt.Rows)
                     {
                         headerHtml += $"<th>{row["SubExamName"]}</th>";
+                        System.Diagnostics.Debug.WriteLine($"  Adding header: {row["SubExamName"]}");
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"Generated header HTML: {headerHtml}");
                     return headerHtml;
                 }
             }
@@ -681,66 +800,116 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Method to get sub-exam marks formatted for display in separate cells
+        // Method to get sub-exam marks formatted for display in separate cells - Only active sub-exams for this class
         private (string SubExamMarksCells, string TotalMarks) GetSubExamMarksForDisplay(string studentResultID, int subjectID, string originalObtainedMark)
         {
             try
             {
-                DataTable subExams = GetSubExamMarks(studentResultID, subjectID, 0); // examID not needed
+                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
                 
-                System.Diagnostics.Debug.WriteLine($"Subject {subjectID}: Found {subExams.Rows.Count} sub-exam rows");
+                System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Processing StudentResultID={studentResultID}, SubjectID={subjectID}, ExamID={examID}");
                 
-                if (subExams.Rows.Count > 0)
+                // Get sub-exam marks for this specific subject and student
+                DataTable subExamMarks = GetSubExamMarks(studentResultID, subjectID, examID);
+                
+                System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Found {subExamMarks.Rows.Count} sub-exam marks");
+                
+                // Get the ordered sub-exam names for header consistency - only active ones for this class
+                SqlConnection con2 = null;
+                try
                 {
-                    string cellsHtml = "";
-                    decimal totalMarks = 0;
-                    bool hasValidSubExamMarks = false;
-                    int validMarkCount = 0;
+                    con2 = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                    con2.Open();
                     
-                    foreach (DataRow row in subExams.Rows)
+                    // Get only sub-exam names that have actual data for this class and exam
+                    string headerQuery = @"
+                        SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN
+                        FROM Exam_SubExam_Name esn
+                        INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                        INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                        INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                        WHERE esn.SchoolID = @SchoolID
+                        AND esn.EducationYearID = @EducationYearID
+                        AND ers.ExamID = @ExamID
+                        AND sc.ClassID = @ClassID
+                        AND eom.SchoolID = @SchoolID
+                        AND eom.EducationYearID = @EducationYearID
+                        ORDER BY esn.Sub_ExamSN";
+
+                    using (SqlCommand cmd2 = new SqlCommand(headerQuery, con2))
                     {
-                        string markValue = row["ObtainedMark_ofSubExam"].ToString().Trim();
-                        System.Diagnostics.Debug.WriteLine($"  Sub-exam mark: '{markValue}'");
-                        
-                        cellsHtml += $"<td>{markValue}</td>";
-                        
-                        // Calculate total if it's numeric and not 'A' (absent) and not empty
-                        if (!string.IsNullOrEmpty(markValue) && 
-                            markValue != "A" && 
-                            decimal.TryParse(markValue, out decimal mark) && 
-                            mark > 0)
+                        cmd2.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                        cmd2.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                        cmd2.Parameters.AddWithValue("@ExamID", examID);
+                        cmd2.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                        DataTable subExamHeaders = new DataTable();
+                        using (SqlDataAdapter adapter = new SqlDataAdapter(cmd2))
                         {
-                            totalMarks += mark;
-                            hasValidSubExamMarks = true;
-                            validMarkCount++;
+                            adapter.Fill(subExamHeaders);
                         }
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"  Valid mark count: {validMarkCount}, Total: {totalMarks}");
-                    
-                    // If we have at least one valid sub-exam mark, show sub-exam breakdown
-                    if (hasValidSubExamMarks)
-                    {
-                        string totalMarksCellHtml = $"<td class=\"total-marks-cell\">{totalMarks}</td>";
-                        return (cellsHtml, totalMarksCellHtml);
-                    }
-                    else
-                    {
-                        // Sub-exams exist but no meaningful marks - treat as non-sub-exam subject
-                        return ("<td>-</td><td>-</td>", $"<td class=\"total-marks-cell\">{originalObtainedMark}</td>");
+
+                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Found {subExamHeaders.Rows.Count} active header names for ClassID: {ClassDropDownList.SelectedValue}");
+
+                        // Create dictionary of actual marks
+                        Dictionary<string, string> marksDict = new Dictionary<string, string>();
+                        foreach (DataRow markRow in subExamMarks.Rows)
+                        {
+                            string subExamName = markRow["SubExamName"].ToString();
+                            string markValue = markRow["MarksObtained"].ToString();
+                            marksDict[subExamName] = markValue;
+                            System.Diagnostics.Debug.WriteLine($"  Added to dict: {subExamName} = {markValue}");
+                        }
+
+                        // Generate cells in header order
+                        string cellsHtml = "";
+                        decimal totalMarks = 0;
+                        bool hasValidMarks = false;
+                        
+                        foreach (DataRow headerRow in subExamHeaders.Rows)
+                        {
+                            string subExamName = headerRow["SubExamName"].ToString();
+                            string markValue = marksDict.ContainsKey(subExamName) ? marksDict[subExamName] : "-";
+                            
+                            cellsHtml += $"<td>{markValue}</td>";
+                            System.Diagnostics.Debug.WriteLine($"  Generated cell for {subExamName}: {markValue}");
+                            
+                            // Calculate total if it's a valid numeric mark
+                            if (!string.IsNullOrEmpty(markValue) && 
+                                markValue != "A" && 
+                                markValue != "-" &&
+                                decimal.TryParse(markValue, out decimal mark))
+                            {
+                                totalMarks += mark;
+                                hasValidMarks = true;
+                            }
+                        }
+                        
+                        // Return the cells and total
+                        string totalCell = hasValidMarks ? 
+                            $"<td class=\"total-marks-cell\">{totalMarks}</td>" : 
+                            $"<td class=\"total-marks-cell\">{originalObtainedMark}</td>";
+                        
+                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Final result - HasValidMarks: {hasValidMarks}, Total: {(hasValidMarks ? totalMarks.ToString() : originalObtainedMark)}");
+                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: CellsHtml: {cellsHtml}");
+                        
+                        return (cellsHtml, totalCell);
                     }
                 }
-                else
+                finally
                 {
-                    // No sub-exams at all - show empty cells and original mark
-                    System.Diagnostics.Debug.WriteLine($"  No sub-exams found, using original mark: {originalObtainedMark}");
-                    return ("<td>-</td><td>-</td>", $"<td class=\"total-marks-cell\">{originalObtainedMark}</td>");
+                    if (con2 != null && con2.State == ConnectionState.Open)
+                    {
+                        con2.Close();
+                        con2.Dispose();
+                    }
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForDisplay: {ex.Message}");
-                return ("<td>-</td><td>-</td>", $"<td class=\"total-marks-cell\">{originalObtainedMark}</td>");
+                System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
+                return ("", $"<td class=\"total-marks-cell\">{originalObtainedMark}</td>");
             }
         }
 
@@ -756,31 +925,31 @@ namespace EDUCATION.COM.Exam.Result
 
                 string tableSizeClass = GetTableCssClass(subjects.Rows.Count);
 
-                // Debug output
-                System.Diagnostics.Debug.WriteLine($"Generating table for StudentResultID: {studentResultID}");
-
                 // Check if we have sub-exams to determine table structure
                 int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
                 bool hasSubExams = HasSubExams(examID);
                 string subExamHeader = "";
+                int subExamCount = 0;
+
+                string html = @"<table class=""marks-table " + tableSizeClass + @""">";
 
                 if (hasSubExams)
                 {
-                    // Get sub-exam names for header
-                    subExamHeader = GetSubExamHeaderNames(studentResultID);
+                    // Get actual sub-exam count and header names
+                    subExamCount = GetSubExamCount(examID);
+                    if (subExamCount > 0)
+                    {
+                        subExamHeader = GetSubExamHeaderNames(studentResultID);
+                    }
                 }
 
-                string html = @"
-                    
-                    <table class=""marks-table " + tableSizeClass + @""">";
-
-                // Create header row
-                if (hasSubExams && !string.IsNullOrEmpty(subExamHeader))
+                // Create header row - Dynamic structure based on actual sub-exam count
+                if (hasSubExams && subExamCount > 0 && !string.IsNullOrEmpty(subExamHeader))
                 {
                     html += @"
                         <tr>
                             <th rowspan=""2"">বিষয়</th>
-                            <th colspan=""2"">প্রাপ্ত নম্বর</th>
+                            <th colspan=""" + subExamCount + @""">প্রাপ্ত নম্বর</th>
                             <th rowspan=""2"">মোট নম্বর</th>
                             <th rowspan=""2"">পূর্ণ নম্বর</th>
                             <th rowspan=""2"">গ্রেড</th>
@@ -791,6 +960,7 @@ namespace EDUCATION.COM.Exam.Result
                 }
                 else
                 {
+                    // No sub-exams - Simple table structure
                     html += @"
                         <tr>
                             <th>বিষয়</th>
@@ -812,15 +982,12 @@ namespace EDUCATION.COM.Exam.Result
                     string passStatus = GetSafeColumnValue(row, "PassStatus_Subject");
                     int subjectID = Convert.ToInt32(GetSafeColumnValue(row, "SubjectID"));
 
-                    // Debug output
-                    System.Diagnostics.Debug.WriteLine($"Processing subject: {subjectName} (ID: {subjectID})");
-
                     if (passStatus == "") passStatus = "Pass";
                     string rowClass = passStatus == "Fail" ? "failed-row" : "";
 
-                    if (hasSubExams)
+                    if (hasSubExams && subExamCount > 0)
                     {
-                        // Get sub-exam marks for this subject (pass original obtained mark)
+                        // Get dynamic sub-exam marks for this subject
                         var subExamData = GetSubExamMarksForDisplay(studentResultID, subjectID, obtainedMark);
                         
                         html += @"
@@ -835,6 +1002,7 @@ namespace EDUCATION.COM.Exam.Result
                     }
                     else
                     {
+                        // No sub-exams - Simple row structure
                         html += @"
                             <tr class=""" + rowClass + @""">
                                 <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
@@ -851,8 +1019,63 @@ namespace EDUCATION.COM.Exam.Result
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in GenerateSubjectMarksTable: {ex.Message}");
                 return "<p>Error loading subject table: " + ex.Message + "</p>";
+            }
+        }
+
+        [System.Web.Services.WebMethod]
+        public static object SaveSignature(string signatureType, string imageData)
+        {
+            try
+            {
+                var context = HttpContext.Current;
+                var schoolId = context.Session["SchoolID"];
+                
+                if (schoolId == null)
+                {
+                    return new { success = false, message = "School ID not found in session" };
+                }
+
+                // Convert base64 to byte array
+                byte[] imageBytes = Convert.FromBase64String(imageData);
+
+                SqlConnection con = null;
+                try
+                {
+                    con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                    con.Open();
+
+                    string column = signatureType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
+                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@ImageData", imageBytes);
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            return new { success = true, message = "Signature saved successfully", schoolId = schoolId };
+                        }
+                        else
+                        {
+                            return new { success = false, message = "No rows updated" };
+                        }
+                    }
+                }
+                finally
+                {
+                    if (con != null && con.State == ConnectionState.Open)
+                    {
+                        con.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, message = ex.Message };
             }
         }
     }
