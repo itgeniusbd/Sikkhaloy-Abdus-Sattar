@@ -10,6 +10,8 @@
 
 #pragma warning disable 1591
 
+using System;
+
 namespace EDUCATION.COM {
     
     
@@ -16801,6 +16803,11 @@ ORDER BY Exam_Grading_System.Point DESC";
             Exam_Result.SchoolInfoDataTable dataTable = new Exam_Result.SchoolInfoDataTable();
             this.Adapter.Fill(dataTable);
             return dataTable;
+        }
+
+        internal object GetDataBySchoolID(int schoolId)
+        {
+            throw new NotImplementedException();
         }
     }
     
