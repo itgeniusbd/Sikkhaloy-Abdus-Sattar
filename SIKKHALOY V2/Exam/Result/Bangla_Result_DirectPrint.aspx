@@ -312,12 +312,61 @@
         .footer {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px; /* Same as print view */
+            align-items: flex-end;
+            margin-top: 30px; /* Increased margin */
             font-size: 15px; /* Same as print view */
             font-weight: bold; /* Made bold */
             font-family: 'Kalpurush', Arial, sans-serif !important;
+            padding: 0 50px; /* Add horizontal padding for better spacing */
         }
 
+        /* Signature styling */
+        .SignTeacher, .SignHead {
+            min-height: 40px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .SignTeacher img, .SignHead img {
+            max-height: 35px;
+            max-width: 80px;
+        }
+
+        .Teacher, .Head {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+            min-width: 120px;
+        }
+
+        /* Browse button styling */
+        .btn-file {
+            position: relative;
+            overflow: hidden;
+            background-color: #6c757d;
+            color: white;
+            border: 1px solid #6c757d;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-file:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+
+        .Card-space {
+            border: 1px solid #dee2e6;
+        }
+
+        .Card-space .form-group {
+            display: flex;
+            align-items: center;
+        }
+        
         /* Print color adjustments */
         @media print {
             /* Default landscape orientation */
@@ -429,17 +478,26 @@
                 
                 .footer {
                     font-size: 18px !important; /* Larger footer for portrait */
-                    margin-top: 25px !important;
+                    margin-top: 35px !important; /* More margin for portrait */
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: flex-end !important;
+                    padding: 0 60px !important; /* More padding for portrait */
                 }
-                
-                /* Better spacing for portrait */
-                .top-section {
-                    margin-bottom: 8px !important;
+
+                /* Portrait styles for signatures */
+                .SignTeacher, .SignHead {
+                    min-height: 45px !important;
                 }
-                
-                .header {
-                    padding-bottom: 8px !important;
-                    margin-bottom: 8px !important;
+
+                .SignTeacher img, .SignHead img {
+                    max-height: 40px !important;
+                    max-width: 90px !important;
+                }
+
+                .Teacher, .Head {
+                    font-size: 16px !important;
+                    min-width: 130px !important;
                 }
             }
             
@@ -788,6 +846,24 @@
 
     <div class="alert alert-success NoPrint">Page Setup Must Be (Page Size: A4. Page Margin: Narrow) In Word File</div>
 
+    <!-- Teacher and Head Teacher Signature Controls -->
+    <div class="form-inline NoPrint Card-space" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+        <div class="form-group" style="margin-right: 15px;">
+            <asp:TextBox ID="TeacherSignTextBox" Text="শ্রেনি শিক্ষক" runat="server" placeholder="শ্রেণি শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
+            <label class="btn btn-grey btn-file" style="margin-left: 5px;">
+                Browse
+                <input id="Tfileupload" type="file" accept="image/*" style="display: none;" />
+            </label>
+        </div>
+        <div class="form-group" style="margin-right: 15px;">
+            <asp:TextBox ID="HeadTeacherSignTextBox" Text="প্রধান শিক্ষক" runat="server" placeholder="মুখ্য শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
+            <label class="btn btn-grey btn-file" style="margin-left: 5px;">
+                Browse
+                <input id="Hfileupload" type="file" accept="image/*" style="display: none;" />
+            </label>
+        </div>
+    </div>
+
     <%if (ExamDropDownList.SelectedIndex != 0)
     {%>
     <asp:Panel ID="ResultPanel" runat="server" Visible="false">
@@ -878,8 +954,14 @@
 
                     <!-- Footer -->
                     <div class="footer">
-                        <div>শ্রেণি শিক্ষক</div>
-                        <div>প্রধান শিক্ষক</div>
+                        <div style="text-align: center;">
+                            <div class="SignTeacher" style="height: 40px; margin-bottom: 5px;"></div>
+                            <div class="Teacher" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">শ্রেণি শিক্ষক</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div class="SignHead" style="height: 40px; margin-bottom: 5px;"></div>
+                            <div class="Head" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">প্রধান শিক্ষক</div>
+                        </div>
                     </div>
                 </div>
             </ItemTemplate>
@@ -897,4 +979,92 @@
             </div>
         </ProgressTemplate>
     </asp:UpdateProgress>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize teacher and head teacher text
+            updateSignatureTexts();
+
+            // Teacher signature file upload
+            $("#Tfileupload").change(function () {
+                if (typeof (FileReader) != "undefined") {
+                    var dvPreview = $(".SignTeacher");
+                    dvPreview.html("");
+                    
+                    $($(this)[0].files).each(function () {
+                        var file = $(this);
+                        var fileName = file[0].name.toLowerCase();
+                        var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
+                        var fileExtension = fileName.split('.').pop();
+                        
+                        if (validExtensions.indexOf(fileExtension) > -1) {
+                            var reader = new FileReader();
+                            reader.onload = function (e) {
+                                var img = $("<img />");
+                                img.attr("style", "height:35px;width:80px");
+                                img.attr("src", e.target.result);
+                                dvPreview.append(img);
+                            }
+                            reader.readAsDataURL(file[0]);
+                        } else {
+                            alert(file[0].name + " is not a valid image file. Please select JPG, JPEG, PNG, GIF, or BMP files.");
+                            dvPreview.html("");
+                            return false;
+                        }
+                    });
+                } else {
+                    alert("This browser does not support HTML5 FileReader.");
+                }
+            });
+
+            // Head teacher signature file upload  
+            $("#Hfileupload").change(function () {
+                if (typeof (FileReader) != "undefined") {
+                    var dvPreview = $(".SignHead");
+                    dvPreview.html("");
+                    
+                    $($(this)[0].files).each(function () {
+                        var file = $(this);
+                        var fileName = file[0].name.toLowerCase();
+                        var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
+                        var fileExtension = fileName.split('.').pop();
+                        
+                        if (validExtensions.indexOf(fileExtension) > -1) {
+                            var reader = new FileReader();
+                            reader.onload = function (e) {
+                                var img = $("<img />");
+                                img.attr("style", "height:35px;width:80px");
+                                img.attr("src", e.target.result);
+                                dvPreview.append(img);
+                            }
+                            reader.readAsDataURL(file[0]);
+                        } else {
+                            alert(file[0].name + " is not a valid image file. Please select JPG, JPEG, PNG, GIF, or BMP files.");
+                            dvPreview.html("");
+                            return false;
+                        }
+                    });
+                } else {
+                    alert("This browser does not support HTML5 FileReader.");
+                }
+            });
+
+            // Update signature texts when textboxes change
+            $("[id*=TeacherSignTextBox]").on('keyup change', function () {
+                updateSignatureTexts();
+            });
+
+            $("[id*=HeadTeacherSignTextBox]").on('keyup change', function () {
+                updateSignatureTexts();
+            });
+
+            function updateSignatureTexts() {
+                var teacherText = $("[id*=TeacherSignTextBox]").val() || "শ্রেণি শিক্ষক";
+                var headText = $("[id*=HeadTeacherSignTextBox]").val() || "প্রধান শিক্ষক";
+                
+                $(".Teacher").text(teacherText);
+                $(".Head").text(headText);
+            }
+        });
+    </script>
 </asp:Content>
