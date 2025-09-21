@@ -947,7 +947,7 @@
                                 <asp:Repeater ID="GradingSystemRepeater" runat="server">
                                     <ItemTemplate>
                                         <tr>
-                                            <td><%# Eval("MaxPercentage") %>-<%# Eval("MinPercentage") %></td>
+                                            <td><%# Eval("MARKS") %></td>
                                             <td><%# Eval("Grades") %></td>
                                             <td><%# String.Format("{0:F1}", Eval("Point")) %></td>
                                         </tr>

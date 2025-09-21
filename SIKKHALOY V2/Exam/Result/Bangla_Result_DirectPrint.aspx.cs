@@ -375,6 +375,7 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
+        // Update GetGradingSystemData to use the exact same query as the official TableAdapter from BanglaResult.aspx, matching column names and structure exactly
         public DataTable GetGradingSystemData()
         {
             SqlConnection con = null;
@@ -383,21 +384,29 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
 
+                // Use the exact same query as Exam_Grading_SystemTableAdapter from BanglaResult.aspx
                 string query = @"
-                    SELECT DISTINCT Grades, MaxPercentage, MinPercentage, Point, Comments
+                    SELECT 
+                        Exam_Grading_System.Grades, 
+                        CAST(Exam_Grading_System.MinPercentage AS varchar) + '% - ' + CAST(Exam_Grading_System.MaxPercentage AS varchar) + '%' AS MARKS, 
+                        Exam_Grading_System.Comments, 
+                        Exam_Grading_System.Point
                     FROM Exam_Grading_System 
-                    WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
-                    AND (ClassID = @ClassID OR ClassID IS NULL)
-                    AND (ExamID = @ExamID OR ExamID IS NULL)
-                    ORDER BY MaxPercentage DESC";
+                    INNER JOIN Exam_Grading_Assign ON Exam_Grading_System.GradeNameID = Exam_Grading_Assign.GradeNameID 
+                                                  AND Exam_Grading_System.SchoolID = Exam_Grading_Assign.SchoolID
+                    WHERE (Exam_Grading_Assign.SchoolID = @SchoolID) 
+                      AND (Exam_Grading_Assign.ClassID = @ClassID) 
+                      AND (Exam_Grading_Assign.ExamID = @ExamID) 
+                      AND (Exam_Grading_Assign.EducationYearID = @EducationYearID)
+                    ORDER BY Exam_Grading_System.Point DESC";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
                     cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue != "0" ? ClassDropDownList.SelectedValue : "1");
                     cmd.Parameters.AddWithValue("@ExamID", ExamDropDownList.SelectedValue != "0" ? ExamDropDownList.SelectedValue : "1");
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
 
                     DataTable dt = new DataTable();
                     using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
@@ -406,10 +415,12 @@ namespace EDUCATION.COM.Exam.Result
                         adapter.Fill(dt);
                     }
 
+                    // If no specific grading system found, use default
                     if (dt.Rows.Count == 0)
                     {
                         dt = GetDefaultGradingData();
                     }
+                    
                     return dt;
                 }
             }
@@ -417,8 +428,9 @@ namespace EDUCATION.COM.Exam.Result
             {
                 throw;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"GetGradingSystemData error: {ex.Message}");
                 return GetDefaultGradingData();
             }
             finally
@@ -435,18 +447,17 @@ namespace EDUCATION.COM.Exam.Result
         {
             DataTable dt = new DataTable();
             dt.Columns.Add("Grades", typeof(string));
-            dt.Columns.Add("MaxPercentage", typeof(decimal));
-            dt.Columns.Add("MinPercentage", typeof(decimal));
-            dt.Columns.Add("Point", typeof(decimal));
+            dt.Columns.Add("MARKS", typeof(string));  // Changed to match TableAdapter format
             dt.Columns.Add("Comments", typeof(string));
+            dt.Columns.Add("Point", typeof(decimal));
 
-            dt.Rows.Add("A+", 100, 80, 5.00, "Outstanding");
-            dt.Rows.Add("A", 79, 70, 4.00, "Excellent");
-            dt.Rows.Add("A-", 69, 60, 3.50, "Very Good");
-            dt.Rows.Add("B", 59, 50, 3.00, "Good");
-            dt.Rows.Add("C", 49, 40, 2.00, "Satisfactory");
-            dt.Rows.Add("D", 39, 33, 1.00, "Acceptable");
-            dt.Rows.Add("F", 32, 0, 0.00, "Fail");
+            dt.Rows.Add("A+", "80% - 100%", "Outstanding", 5.00);
+            dt.Rows.Add("A", "70% - 79%", "Excellent", 4.00);
+            dt.Rows.Add("A-", "60% - 69%", "Very Good", 3.50);
+            dt.Rows.Add("B", "50% - 59%", "Good", 3.00);
+            dt.Rows.Add("C", "40% - 49%", "Satisfactory", 2.00);
+            dt.Rows.Add("D", "33% - 39%", "Acceptable", 1.00);
+            dt.Rows.Add("F", "0% - 32%", "Fail", 0.00);
 
             return dt;
         }
