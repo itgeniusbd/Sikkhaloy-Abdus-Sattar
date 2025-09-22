@@ -31,29 +31,34 @@
             }
             
             .result-card { 
-                margin: 5mm !important; /* Normal margin for proper pagination */
-                width: auto !important; /* Let it flow naturally */
-                height: auto !important; /* Remove fixed height for proper pagination */
+                margin: 5mm 5mm !important; /* Individual card margins */
+                width: auto !important; 
+                height: auto !important; 
                 max-width: none !important;
-                padding: 5mm !important;
-                page-break-after: always !important; /* Force page break after each card */
+                padding: 8mm !important; /* Internal padding */
+                page-break-after: always !important; 
                 page-break-before: auto !important;
-                page-break-inside: avoid !important; /* Avoid breaking inside card */
+                page-break-inside: avoid !important; 
                 box-shadow: none !important;
-                border: 2px solid #0072bc !important;
+                border: 2px solid #0072bc !important; /* Individual card border */
                 box-sizing: border-box !important;
-                position: relative !important; /* Remove absolute positioning */
+                position: static !important; /* Static positioning for proper flow */
                 top: auto !important;
                 left: auto !important;
                 font-family: Arial, sans-serif !important;
+                background: white !important; /* White background for each card */
+                display: block !important; /* Block display */
+                clear: both !important; /* Clear floats */
             }
             
             .result-card:last-child { 
-                page-break-after: auto !important; /* Don't force page break after last card */
+                page-break-after: auto !important; 
+                margin: 5mm 5mm !important; /* Bottom margin for last card */
             }
             
             .result-card:first-child { 
                 page-break-before: avoid !important;
+               margin: 5mm 5mm !important; /* Top margin for first card */
             }
             
             #header { display: none !important; }
@@ -112,28 +117,117 @@
                 width: 60px !important; /* Same as student photo */
                 height: 60px !important; /* Same as student photo */
             }
+            
+            /* Summary table - smaller text for print */
+            .summary-header td {
+                padding: 4px 3px !important; /* Reduced padding */
+                font-size: 12px !important; /* Smaller font for headers */
+                background-color: #f8f9fa !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color: #333 !important;
+                font-family: Arial, sans-serif !important;
+                font-weight: bold !important;
+            }
+            
+            .summary-values td {
+                padding: 4px 3px !important; /* Reduced padding */
+                font-size: 12px !important; /* Smaller font for values */
+                font-family: Arial, sans-serif !important;
+                font-weight: bold !important;
+            }
+
+            /* Info table - smaller text */
+            .info-table td {
+                font-size: 14px !important; /* Smaller font */
+                padding: 3px 5px !important; /* Reduced padding */
+            }
+
+            /* Marks table - larger text for print */
+            .marks-table th, .marks-table td {
+                font-size: 16px !important; /* Larger font for marks table */
+                padding: 5px !important; /* More padding */
+                font-family: Arial, sans-serif !important;
+            }
+            
+            .marks-table th {
+                font-size: 18px !important; /* Larger font for headers */
+                background: #d7ede1 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* Medium subjects table - adjust for print */
+            .marks-table.medium-subjects th, .marks-table.medium-subjects td {
+                font-size: 15px !important; /* Larger than before for print */
+                padding: 3px !important;
+            }
+            
+            .marks-table.medium-subjects th {
+                font-size: 15px !important; /* Larger headers */
+            }
+
+            /* Small subjects table - adjust for print */
+            .marks-table.small-subjects th, .marks-table.small-subjects td {
+                font-size: 14px !important; /* Larger than before for print */
+                padding: 2px !important;
+            }
+            
+            .marks-table.small-subjects th {
+                font-size: 15px !important; /* Larger headers */
+            }
+
+            /* Grade chart - smaller for print */
+            .grade-chart th, .grade-chart td {
+                font-size: 12px !important; /* Smaller font */
+                padding: 2px 3px !important; /* Reduced padding */
+            }
+            
+            .grade-chart th {
+                font-size: 11px !important; /* Slightly larger headers */
+            }
+
+            /* Footer - smaller text */
+            .footer {
+                font-size: 13px !important; /* Smaller font */
+                margin-top: 20px !important; /* Reduced margin */
+                padding: 0 30px !important; /* Reduced padding */
+            }
         }
        
         body {
             font-family: 'Kalpurush', Arial, sans-serif;
             background: #fff;
             margin: 0;
-            padding: 40px; /* Increased padding around entire page */
+            padding: 20px; /* Reduced padding around entire page */
         }
         
         .result-card {
             border: 2px solid #0072bc;
             border-radius: 5px;
-            padding: 20px; /* Increased padding inside the card */
-            max-width: 1100px; /* Slightly reduced to allow more margin */
-            margin: 30px auto; /* Increased margin around the card */
+            padding: 20px; /* Internal padding inside the card */
+            max-width: 1100px; 
+            margin: 5mm 5mm !important; /* Proper margin around each card */
             page-break-after: always;
             page-break-inside: avoid;
-            page-break-before: avoid; /* Prevent page break before card */
+            page-break-before: auto; /* Allow natural page breaks */
+            background: white; /* Ensure white background */
+            box-sizing: border-box; /* Include border in width calculation */
+            display: block; /* Ensure block-level display */
         }
         
         .result-card:last-child {
             page-break-after: auto;
+            margin-bottom: 20px; /* Add bottom margin to last card */
+        }
+        
+        .result-card:first-child {
+            margin: 5mm 5mm !important; /* Add top margin to first card */
+        }
+        
+        /* Ensure individual card isolation */
+        .result-card + .result-card {
+            margin-top: 20px; /* Space between consecutive cards */
         }
         
         .header {
@@ -186,7 +280,7 @@
         .title {
             text-align: center;
             font-weight: bold;
-            margin: 8px 0;
+            margin: 3px 0;
             color: darkgreen;
             font-size: 18px;
         }
@@ -238,7 +332,7 @@
         
         .summary-header td {
             padding: 6px 6px !important;
-            font-size: 20px !important;
+            font-size: 16px !important;
             background-color: #f8f9fa !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -253,7 +347,7 @@
         
         .summary-values td {
             padding: 6px !important;
-            font-size: 20px !important;
+            font-size: 16px !important;
             font-family: Arial, sans-serif !important;
             font-weight: bold !important;
         }
@@ -265,7 +359,7 @@
         .grade-chart table {
             border-collapse: collapse;
             width: 100%;
-            font-size: 12px;
+            font-size: 11px;
         }
         
         .grade-chart th, .grade-chart td {
@@ -274,13 +368,13 @@
             text-align: center;
             font-weight: bold;
             font-family: 'Kalpurush', Arial, sans-serif !important;
-            font-size: 12px;
+            font-size: 11px;
         }
         
         .grade-chart th {
             background: #f0f0f0;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 11px;
         }
         
         .marks-table {
@@ -327,29 +421,29 @@
         
         /* Dynamic font sizes based on subject count - same as print view */
         .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-            font-size: 12px !important; /* Same as print view */
+            font-size: 14px !important; /* Same as print view */
             padding: 3px !important; /* Same as print view */
         }
         
         .marks-table.medium-subjects th {
-            font-size: 13px !important; /* Same as print view */
+            font-size: 14px !important; /* Same as print view */
         }
         
         .marks-table.medium-subjects .sub-exam-marks {
-            font-size: 11px !important;
+            font-size: 13px !important;
         }
         
         .marks-table.small-subjects th, .marks-table.small-subjects td {
-            font-size: 11px !important; /* Same as print view */
+            font-size: 13px !important; /* Same as print view */
             padding: 2px !important; /* Same as print view */
         }
         
         .marks-table.small-subjects th {
-            font-size: 12px !important; /* Same as print view */
+            font-size: 13px !important; /* Same as print view */
         }
         
         .marks-table.small-subjects .sub-exam-marks {
-            font-size: 9px !important;
+            font-size: 12px !important;
         }
         
         .vertical-text {
@@ -398,7 +492,7 @@
 
         .summary td {
             padding: 4px;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             text-align: center;
             border: 1px solid #0072bc;
@@ -412,6 +506,31 @@
         .summary td:nth-child(5) { background: #c5e0b4; }
         .summary td:nth-child(6) { background: #ffe699; }
         .summary td:nth-child(7) { background: #d9d2e9; }
+
+        /* Ensure ResultPanel doesn't interfere with individual card borders */
+        #ResultPanel, .result-panel {
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+        
+        /* Controls section styling */
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        
+        /* Ensure no global borders interfere */
+        .container-fluid, .container, .row, .col-md-12 {
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
     </style>
 </asp:Content>
 
@@ -666,19 +785,122 @@
             // Convert English numbers to Bengali numbers
             convertNumbersToBengali();
             
+            // Fix absent marks display
+            fixAbsentMarksDisplay();
+            
             // Load database signatures when page loads
             loadDatabaseSignatures();
             
             // Initialize teacher and head teacher text
             updateSignatureTexts();
 
+            function fixAbsentMarksDisplay() {
+                // Find all marks tables and fix absent marks
+                $('.marks-table').each(function() {
+                    var $table = $(this);
+                    
+                    // Process each row in the table
+                    $table.find('tr').each(function(rowIndex) {
+                        var $row = $(this);
+                        
+                        // Skip header rows
+                        if ($row.find('th').length > 0) {
+                            return;
+                        }
+                        
+                        // Process each cell in the row
+                        $row.find('td').each(function(cellIndex) {
+                            var $cell = $(this);
+                            var cellText = $cell.text().trim();
+                            
+                            // Get the header for this column to determine what type of column it is
+                            var $headerRow = $table.find('tr').first();
+                            var $headerCells = $headerRow.find('th');
+                            var columnHeader = '';
+                            
+                            // Find the corresponding header for this cell
+                            if (cellIndex < $headerCells.length) {
+                                columnHeader = $headerCells.eq(cellIndex).text().trim();
+                            }
+                            
+                            // Only convert 'A' to 'অনুপস্থিত' in marks columns, NOT in grade columns
+                            if (cellText === 'A') {
+                                // Check if this is a grade column (গ্রেড) - if so, don't convert
+                                if (columnHeader === 'গ্রেড' || columnHeader.indexOf('গ্রেড') !== -1) {
+                                    return; // Skip grade columns
+                                }
+                                
+                                // Check if this is a marks/score column or sub-exam column
+                                if (columnHeader === 'প্রাপ্ত নম্বর' || 
+                                    columnHeader.indexOf('নম্বর') !== -1 ||
+                                    columnHeader === 'Midterm' ||
+                                    columnHeader === 'Periodical' ||
+                                    columnHeader === 'Subjective' ||
+                                    columnHeader === 'Objective' ||
+                                    cellIndex <= 2) { // First few columns are usually marks columns
+                                    
+                                    $cell.text('অনুপস্থান');
+                                }
+                            }
+                            // Convert '0' to '-' in total marks column (if it's likely absent)
+                            else if (cellText === '0' && $cell.hasClass('total-marks-cell')) {
+                                // Check if any sibling cell in same row has 'অনুপস্থিত' or 'A'
+                                var hasAbsentMarks = false;
+                                
+                                $row.find('td').each(function() {
+                                    var siblingText = $(this).text().trim();
+                                    if (siblingText === 'অনুপস্থিত' || (siblingText === 'A' && !$(this).closest('td').prev().text().trim().match(/গ্রেড/))) {
+                                        hasAbsentMarks = true;
+                                        return false;
+                                    }
+                                });
+                                
+                                if (hasAbsentMarks) {
+                                    $cell.text('-');
+                                }
+                            }
+                            // Also check for standalone 0 marks that should be '-' for absent
+                            else if (cellText === '0' && !$cell.hasClass('total-marks-cell')) {
+                                // Check if this row has absent marks (but not in grade columns)
+                                var $row = $cell.closest('tr');
+                                var totalCells = $row.find('td').length;
+                                var absentCells = 0;
+                                
+                                $row.find('td').each(function(idx) {
+                                    var siblingText = $(this).text().trim();
+                                    var siblingHeader = '';
+                                    if (idx < $headerCells.length) {
+                                        siblingHeader = $headerCells.eq(idx).text().trim();
+                                    }
+                                    
+                                    // Count absent marks but exclude grade columns
+                                    if ((siblingText === 'অনুপস্থিত' || siblingText === '-') && 
+                                        siblingHeader !== 'গ্রেড' && siblingHeader.indexOf('গ্রেড') === -1) {
+                                        absentCells++;
+                                    }
+                                });
+                                
+                                // If most non-grade cells are absent, convert 0 to -
+                                if (absentCells > totalCells / 3) { // More conservative threshold
+                                    // But make sure this isn't a grade column
+                                    if (columnHeader !== 'গ্রেড' && columnHeader.indexOf('গ্রেড') === -1 &&
+                                        columnHeader !== 'পয়েন্ট' && columnHeader.indexOf('পয়েন্ট') === -1) {
+                                        $cell.text('-');
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
+            }
+
             function convertNumbersToBengali() {
-                // Bengali number mapping
+                // Correct Bengali number mapping
                 var englishToBengali = {
                     '0': '০',
                     '1': '১',
                     '2': '২', 
-                    '3': '৳',
+                    '3': '৩',
                     '4': '৪',
                     '5': '৫',
                     '6': '৬',
@@ -717,6 +939,12 @@
                         
                         // Skip if this cell is inside header area
                         if ($cell.closest('.header').length > 0) {
+                            return;
+                        }
+                        
+                        // Skip if this cell contains absent marks (don't convert '-' or 'অনুপস্থিত')
+                        var cellText = $cell.text().trim();
+                        if (cellText === '-' || cellText === 'অনুপস্থিত' || cellText === 'A') {
                             return;
                         }
                         
@@ -794,7 +1022,74 @@
         // Convert numbers after partial postback
         Sys$Application$add_pageLoaded(function() {
             setTimeout(function() {
-                // Bengali number mapping
+                // Fix absent marks first
+                $('.marks-table').each(function() {
+                    var $table = $(this);
+                    
+                    // Process each row in the table
+                    $table.find('tr').each(function(rowIndex) {
+                        var $row = $(this);
+                        
+                        // Skip header rows
+                        if ($row.find('th').length > 0) {
+                            return;
+                        }
+                        
+                        // Get header cells for column identification
+                        var $headerRow = $table.find('tr').first();
+                        var $headerCells = $headerRow.find('th');
+                        
+                        // Process each cell in the row
+                        $row.find('td').each(function(cellIndex) {
+                            var $cell = $(this);
+                            var cellText = $cell.text().trim();
+                            
+                            // Get the header for this column
+                            var columnHeader = '';
+                            if (cellIndex < $headerCells.length) {
+                                columnHeader = $headerCells.eq(cellIndex).text().trim();
+                            }
+                            
+                            // Only convert 'A' to 'অনুপস্থিত' in marks columns, NOT in grade columns
+                            if (cellText === 'A') {
+                                // Check if this is a grade column - if so, don't convert
+                                if (columnHeader === 'গ্রেড' || columnHeader.indexOf('গ্রেড') !== -1) {
+                                    return; // Skip grade columns
+                                }
+                                
+                                // Convert A to অনুপস্থিত in marks columns only
+                                if (columnHeader === 'প্রাপ্ত নম্বর' || 
+                                    columnHeader.indexOf('নম্বর') !== -1 ||
+                                    columnHeader === 'Midterm' ||
+                                    columnHeader === 'Periodical' ||
+                                    columnHeader === 'Subjective' ||
+                                    columnHeader === 'Objective' ||
+                                    cellIndex <= 2) { // First few columns are usually marks columns
+                                    
+                                    $cell.text('অনুপস্থিত');
+                                }
+                            }
+                            // Convert '0' to '-' in total marks column (if it's likely absent)
+                            else if (cellText === '0' && $cell.hasClass('total-marks-cell')) {
+                                var hasAbsentMarks = false;
+                                
+                                $row.find('td').each(function() {
+                                    var siblingText = $(this).text().trim();
+                                    if (siblingText === 'অনুপস্থিত') {
+                                        hasAbsentMarks = true;
+                                        return false;
+                                    }
+                                });
+                                
+                                if (hasAbsentMarks) {
+                                    $cell.text('-');
+                                }
+                            }
+                        });
+                    });
+                });
+                
+                // Then convert numbers to Bengali
                 var englishToBengali = {
                     '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
                     '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
@@ -826,6 +1121,14 @@
                         
                         // Skip if inside header
                         if ($element.closest('.header').length > 0) {
+                            return;
+                        }
+                        
+                        // Skip if contains absent marks or grades
+                        var elementText = $element.text().trim();
+                        if (elementText === '-' || elementText === 'অনুপস্থিত' || 
+                            elementText === 'A+' || elementText === 'A-' || elementText === 'B' || 
+                            elementText === 'C' || elementText === 'D' || elementText === 'F') {
                             return;
                         }
                         

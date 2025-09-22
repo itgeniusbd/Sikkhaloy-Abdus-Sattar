@@ -553,12 +553,12 @@ namespace EDUCATION.COM.Exam.Result
                         ISNULL(sub.SubjectName, '') as SubjectName,
                         sub.SubjectID,
                         ISNULL(sub.SN, 999) as SubjectSN,
-                        ISNULL(ers.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
-                        ISNULL(ers.TotalMark_ofSubject, 0) as TotalMark_ofSubject,
-                        ISNULL(ers.SubjectGrades, '') as SubjectGrades,
-                        ISNULL(ers.SubjectPoint, 0) as SubjectPoint,
-                        ISNULL(ers.PassStatus_Subject, 'Pass') as PassStatus_Subject,
-                        ISNULL(ers.IS_Add_InExam, 1) as IS_Add_InExam
+                        ISNULL(ERS.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
+                        ISNULL(ERS.TotalMark_ofSubject, 0) as TotalMark_ofSubject,
+                        ISNULL(ERS.SubjectGrades, '') as SubjectGrades,
+                        ISNULL(ERS.SubjectPoint, 0) as SubjectPoint,
+                        ISNULL(ERS.PassStatus_Subject, 'Pass') as PassStatus_Subject,
+                        ISNULL(ERS.IS_Add_InExam, 1) as IS_Add_InExam
                     FROM Exam_Result_of_Subject ers
                     INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
                     WHERE ers.StudentResultID = @StudentResultID
@@ -902,18 +902,31 @@ namespace EDUCATION.COM.Exam.Result
                         string cellsHtml = "";
                         decimal totalMarks = 0;
                         bool hasValidMarks = false;
-                        
+                        bool hasAbsentMarks = false;
                         foreach (DataRow headerRow in subExamHeaders.Rows)
                         {
                             string subExamName = headerRow["SubExamName"].ToString();
                             string markValue = marksDict.ContainsKey(subExamName) ? marksDict[subExamName] : "-";
                             
+                            // Check if this is an absent mark (A) or 0 for absent student
+                            if (markValue == "A")
+                            {
+                                markValue = "অনুপস্থিত";
+                                hasAbsentMarks = true;
+                            }
+                            else if (markValue == "0" && IsStudentAbsent(studentResultID, subjectID))
+                            {
+                                markValue = "অনুপস্থিত";
+                                hasAbsentMarks = true;
+                            }
+                            
                             cellsHtml += $"<td>{markValue}</td>";
                             System.Diagnostics.Debug.WriteLine($"  Generated cell for {subExamName}: {markValue}");
                             
-                            // Calculate total if it's a valid numeric mark
+                            // Calculate total if it's a valid numeric mark (not absent)
                             if (!string.IsNullOrEmpty(markValue) && 
                                 markValue != "A" && 
+                                markValue != "অনুপস্থিত" &&
                                 markValue != "-" &&
                                 decimal.TryParse(markValue, out decimal mark))
                             {
@@ -922,12 +935,33 @@ namespace EDUCATION.COM.Exam.Result
                             }
                         }
                         
-                        // Return the cells and total
-                        string totalCell = hasValidMarks ? 
-                            $"<td class=\"total-marks-cell\">{totalMarks}</td>" : 
-                            $"<td class=\"total-marks-cell\">{originalObtainedMark}</td>";
+                        // Format the total marks display
+                        string totalCell;
                         
-                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Final result - HasValidMarks: {hasValidMarks}, Total: {(hasValidMarks ? totalMarks.ToString() : originalObtainedMark)}");
+                        // If student has absent marks in sub-exams, show "-" in total
+                        if (hasAbsentMarks || IsStudentAbsent(studentResultID, subjectID))
+                        {
+                            totalCell = $"<td class=\"total-marks-cell\">-</td>";
+                        }
+                        else if (hasValidMarks)
+                        {
+                            totalCell = $"<td class=\"total-marks-cell\">{totalMarks}</td>";
+                        }
+                        else
+                        {
+                            // Format original marks - show "অনুপস্থিত" or "-" for absent
+                            string formattedOriginalMark = FormatMarksDisplay(originalObtainedMark, studentResultID, subjectID);
+                            if (formattedOriginalMark == "অনুপস্থিত")
+                            {
+                                totalCell = $"<td class=\"total-marks-cell\">-</td>";
+                            }
+                            else
+                            {
+                                totalCell = $"<td class=\"total-marks-cell\">{formattedOriginalMark}</td>";
+                            }
+                        }
+                        
+                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: HasValidMarks: {hasValidMarks}, HasAbsentMarks: {hasAbsentMarks}, Total: {(hasValidMarks ? totalMarks.ToString() : "N/A")}");
                         System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: CellsHtml: {cellsHtml}");
                         
                         return (cellsHtml, totalCell);
@@ -946,7 +980,14 @@ namespace EDUCATION.COM.Exam.Result
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForDisplay: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
-                return ("", $"<td class=\"total-marks-cell\">{originalObtainedMark}</td>");
+                
+                // For error case, check if student is absent and show appropriate total
+                string formattedOriginalMark = FormatMarksDisplay(originalObtainedMark, studentResultID, subjectID);
+                string errorTotalCell = formattedOriginalMark == "অনুপস্থিত" ? 
+                    $"<td class=\"total-marks-cell\">-</td>" : 
+                    $"<td class=\"total-marks-cell\">{formattedOriginalMark}</td>";
+                    
+                return ("", errorTotalCell);
             }
         }
 
@@ -1022,6 +1063,9 @@ namespace EDUCATION.COM.Exam.Result
                     if (passStatus == "") passStatus = "Pass";
                     string rowClass = passStatus == "Fail" ? "failed-row" : "";
 
+                    // Format marks display - show 'অনুপস্থিত' for absent students instead of 0
+                    string displayMark = FormatMarksDisplay(obtainedMark, studentResultID, subjectID);
+
                     if (hasSubExams && subExamCount > 0)
                     {
                         // Get dynamic sub-exam marks for this subject
@@ -1039,11 +1083,11 @@ namespace EDUCATION.COM.Exam.Result
                     }
                     else
                     {
-                        // No sub-exams - Simple row structure
+                        // No sub-exams - Simple row structure with formatted marks
                         html += @"
                             <tr class=""" + rowClass + @""">
                                 <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
-                                <td>" + obtainedMark + @"</td>
+                                <td>" + displayMark + @"</td>
                                 <td>" + fullMark + @"</td>
                                 <td>" + subjectGrades + @"</td>
                                 <td>" + subjectPoint.ToString("F1") + @"</td>
@@ -1246,5 +1290,203 @@ namespace EDUCATION.COM.Exam.Result
                     </tr>";
             }
         }
-    }
-}
+
+        // Enhanced method to check if student was absent - with debugging
+        private bool IsStudentAbsent(string studentResultID, int subjectID)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+                
+                System.Diagnostics.Debug.WriteLine($"Checking absence for StudentResultID: {studentResultID}, SubjectID: {subjectID}");
+                
+                // Get the obtained marks for this subject
+                string marksQuery = @"
+                    SELECT ISNULL(ObtainedMark_ofSubject, '0') as ObtainedMarks
+                    FROM Exam_Result_of_Subject 
+                    WHERE StudentResultID = @StudentResultID 
+                    AND SubjectID = @SubjectID";
+
+                using (SqlCommand cmd = new SqlCommand(marksQuery, con))
+                {
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
+
+                    object result = cmd.ExecuteScalar();
+                    
+                    if (result == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"No record found for StudentResultID: {studentResultID}, SubjectID: {subjectID} - marking as absent");
+                        return true; // No record = absent
+                    }
+                    
+                    string obtainedMarks = result.ToString().Trim();
+                    System.Diagnostics.Debug.WriteLine($"Found marks: '{obtainedMarks}' for StudentResultID: {studentResultID}, SubjectID: {subjectID}");
+                    
+                    // Check for explicit absent markers
+                    if (obtainedMarks.ToUpper() == "A" || 
+                        obtainedMarks.ToUpper() == "AB" || 
+                        obtainedMarks.ToLower() == "absent")
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Explicit absent marker found: '{obtainedMarks}'");
+                        return true;
+                    }
+                    
+                    // If marks is 0, we need to determine if this is real 0 or absent
+                    if (obtainedMarks == "0")
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Found 0 marks for StudentResultID: {studentResultID}, SubjectID: {subjectID} - checking participation");
+                        
+                        // First check if this exam has sub-exams at all
+                        int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                        bool examHasSubExams = HasSubExams(examID);
+                        
+                        System.Diagnostics.Debug.WriteLine($"Exam {examID} has sub-exams: {examHasSubExams}");
+                        
+                        if (examHasSubExams)
+                        {
+                            // Check if there are any sub-exam marks for this subject
+                            string subExamQuery = @"
+                                SELECT COUNT(*) 
+                                FROM Exam_Obtain_Marks eom
+                                WHERE eom.StudentResultID = @StudentResultID 
+                                AND eom.SubjectID = @SubjectID
+                                AND eom.SchoolID = @SchoolID
+                                AND eom.EducationYearID = @EducationYearID
+                                AND ISNULL(eom.MarksObtained, '') != ''
+                                AND ISNULL(eom.MarksObtained, '') != 'A'";
+
+                            using (SqlCommand cmd2 = new SqlCommand(subExamQuery, con))
+                            {
+                                cmd2.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                                cmd2.Parameters.AddWithValue("@SubjectID", subjectID);
+                                cmd2.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                                cmd2.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+
+                                int participationCount = Convert.ToInt32(cmd2.ExecuteScalar());
+                                System.Diagnostics.Debug.WriteLine($"Sub-exam participation count: {participationCount}");
+                                
+                                // If no sub-exam participation and total is 0, consider absent
+                                if (participationCount == 0)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"No sub-exam participation found - marking as absent");
+                                    return true;
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"Sub-exam participation found - marking as real 0");
+                                    return false; // Student participated but got 0
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // No sub-exams in this exam, so 0 could mean absent
+                            // Let's assume 0 without sub-exams means absent unless proven otherwise
+                            System.Diagnostics.Debug.WriteLine($"No sub-exams in this exam - assuming 0 marks means absent");
+                            return true;
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Student not absent for StudentResultID: {studentResultID}, SubjectID: {subjectID}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in IsStudentAbsent: {ex.Message}");
+                // In case of error, don't assume absent
+                return false;
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+        }
+
+        // Enhanced method that combines both approaches
+        private bool IsStudentReallyAbsent(string studentResultID, int subjectID)
+        {
+            // Try primary method first
+            bool absentPrimary = IsStudentAbsent(studentResultID, subjectID);
+            
+            // If primary method says absent, verify with alternative
+            if (absentPrimary)
+            {
+                return IsStudentAbsent(studentResultID, subjectID);
+            }
+            
+            // Also check if marks is exactly 0 and no participation
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+                
+                string zeroMarksQuery = @"
+                    SELECT ObtainedMark_ofSubject 
+                    FROM Exam_Result_of_Subject 
+                    WHERE StudentResultID = @StudentResultID 
+                    AND SubjectID = @SubjectID";
+
+                using (SqlCommand cmd = new SqlCommand(zeroMarksQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
+
+                    object result = cmd.ExecuteScalar();
+                    if (result != null && result.ToString().Trim() == "0")
+                    {
+                        // Check if this 0 is due to absence (no participation in any sub-exam)
+                        return IsStudentAbsent(studentResultID, subjectID);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in IsStudentReallyAbsent: {ex.Message}");
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+            
+            return false;
+        }
+
+        // Helper method to format marks display - show 'অনুপস্থিত' for absent, actual marks for others
+        private string FormatMarksDisplay(string marks, string studentResultID, int subjectID)
+        {
+            // Check for explicit absent markers first
+            if (!string.IsNullOrEmpty(marks))
+            {
+                string trimmedMarks = marks.Trim().ToUpper();
+                if (trimmedMarks == "A" || trimmedMarks == "AB" || trimmedMarks == "ABSENT")
+                {
+                    return "অনুপস্থিত";
+                }
+            }
+            
+            // If marks is 0, check if student was really absent
+            if (marks == "0")
+            {
+                if (IsStudentAbsent(studentResultID, subjectID))
+                {
+                    return "অনুপস্থিত";
+                }
+            }
+            
+            return marks;
+        }
+    }}
