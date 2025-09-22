@@ -375,72 +375,55 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Update GetGradingSystemData to use the exact same query as the official TableAdapter from BanglaResult.aspx, matching column names and structure exactly
+        // Update GetGradingSystemData to use the exact same TableAdapter as the official BanglaResult.aspx
         public DataTable GetGradingSystemData()
         {
-            SqlConnection con = null;
             try
             {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
+                // Use the exact same TableAdapter that BanglaResult.aspx uses
+                var tableAdapter = new EDUCATION.COM.Exam_ResultTableAdapters.Exam_Grading_SystemTableAdapter();
+                
+                int schoolID = Convert.ToInt32(Session["SchoolID"] ?? 1);
+                int classID = Convert.ToInt32(ClassDropDownList.SelectedValue != "0" ? ClassDropDownList.SelectedValue : "1");
+                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue != "0" ? ExamDropDownList.SelectedValue : "1");
+                int educationYearID = Convert.ToInt32(Session["Edu_Year"] ?? 1);
 
-                // Use the exact same query as Exam_Grading_SystemTableAdapter from BanglaResult.aspx
-                string query = @"
-                    SELECT 
-                        Exam_Grading_System.Grades, 
-                        CAST(Exam_Grading_System.MinPercentage AS varchar) + '% - ' + CAST(Exam_Grading_System.MaxPercentage AS varchar) + '%' AS MARKS, 
-                        Exam_Grading_System.Comments, 
-                        Exam_Grading_System.Point
-                    FROM Exam_Grading_System 
-                    INNER JOIN Exam_Grading_Assign ON Exam_Grading_System.GradeNameID = Exam_Grading_Assign.GradeNameID 
-                                                  AND Exam_Grading_System.SchoolID = Exam_Grading_Assign.SchoolID
-                    WHERE (Exam_Grading_Assign.SchoolID = @SchoolID) 
-                      AND (Exam_Grading_Assign.ClassID = @ClassID) 
-                      AND (Exam_Grading_Assign.ExamID = @ExamID) 
-                      AND (Exam_Grading_Assign.EducationYearID = @EducationYearID)
-                    ORDER BY Exam_Grading_System.Point DESC";
+                // Call the same method that BanglaResult.aspx ObjectDataSource calls
+                var gradingData = tableAdapter.GetData(schoolID, classID, examID, educationYearID);
+                
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapter", 
+                    $"console.log('TableAdapter returned {gradingData.Rows.Count} grading rows');", true);
 
-                using (SqlCommand cmd = new SqlCommand(query, con))
+                // If we got data from TableAdapter, return it
+                if (gradingData.Rows.Count > 0)
                 {
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue != "0" ? ClassDropDownList.SelectedValue : "1");
-                    cmd.Parameters.AddWithValue("@ExamID", ExamDropDownList.SelectedValue != "0" ? ExamDropDownList.SelectedValue : "1");
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-
-                    DataTable dt = new DataTable();
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+                    // Log what we found
+                    foreach (System.Data.DataRow row in gradingData.Rows)
                     {
-                        adapter.SelectCommand.CommandTimeout = 15;
-                        adapter.Fill(dt);
-                    }
-
-                    // If no specific grading system found, use default
-                    if (dt.Rows.Count == 0)
-                    {
-                        dt = GetDefaultGradingData();
+                        string grade = row["Grades"]?.ToString() ?? "";
+                        string comment = row["Comments"]?.ToString() ?? "";
+                        string marks = row["MARKS"]?.ToString() ?? "";
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), $"gradingRow{grade}", 
+                            $"console.log('TableAdapter Grade: {grade}, Comment: {comment}, Marks: {marks}');", true);
                     }
                     
-                    return dt;
+                    return gradingData;
                 }
-            }
-            catch (ThreadAbortException)
-            {
-                throw;
+                else
+                {
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradingData", 
+                        $"console.log('No grading data from TableAdapter, using default');", true);
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GetGradingSystemData error: {ex.Message}");
-                return GetDefaultGradingData();
+                System.Diagnostics.Debug.WriteLine($"TableAdapter GetGradingSystemData error: {ex.Message}");
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapterError", 
+                    $"console.error('TableAdapter error: {ex.Message}');", true);
             }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
+
+            // Fallback to default grading data if TableAdapter fails
+            return GetDefaultGradingData();
         }
 
         private DataTable GetDefaultGradingData()
@@ -462,22 +445,68 @@ namespace EDUCATION.COM.Exam.Result
             return dt;
         }
 
+        // Updated to fetch dynamic comments from database based on student's grade, school, exam settings
         public string GetResultStatus(string studentGrade, decimal gpa)
         {
             if (string.IsNullOrEmpty(studentGrade))
-                return "Good";
+                return "ভালো";
 
+            // First try to get comment from the TableAdapter grading data we already have
+            string gradeChartComment = GetCommentFromGradingChart(studentGrade);
+            if (!string.IsNullOrEmpty(gradeChartComment))
+            {
+                return gradeChartComment;
+            }
+
+            // Fallback to static comments based on your school's system
             switch (studentGrade.ToUpper())
             {
-                case "A+": return "Excellent";
-                case "A": return "Very Good";
-                case "A-": return "Good";
-                case "B": return "Satisfactory";
-                case "C": return "Average";
-                case "D": return "Below Average";
-                case "F": return "Fail";
-                default: return gpa >= 4.0m ? "Excellent" : "Good";
+                case "A+": return "চমৎকার";
+                case "A": return "ভালো"; 
+                case "A-": return "মোটামুটি ভালো";
+                case "B": return "বেশি ভালো নয়";
+                case "C": return "সন্তোষজনক নয়";
+                case "D": return "খুব খারাপ";
+                case "F": return "অকৃতকার্য";
+                default: return gpa >= 4.0m ? "চমৎকার" : "ভালো";
             }
+        }
+
+        private string GetCommentFromGradingChart(string studentGrade)
+        {
+            try
+            {
+                // Get the same grading data that we use for the chart (which now comes from TableAdapter)
+                DataTable gradingData = GetGradingSystemData();
+                
+                foreach (DataRow row in gradingData.Rows)
+                {
+                    string gradeFromChart = row["Grades"]?.ToString()?.Trim() ?? "";
+                    string commentFromChart = row["Comments"]?.ToString()?.Trim() ?? "";
+                    
+                    if (string.Equals(gradeFromChart, studentGrade, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeFromChart", 
+                            $"console.log('Found comment from TableAdapter: Grade={gradeFromChart}, Comment={commentFromChart}');", true);
+                        
+                        if (!string.IsNullOrEmpty(commentFromChart))
+                        {
+                            return commentFromChart;
+                        }
+                    }
+                }
+                
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradeFromChart", 
+                    $"console.log('No comment found in TableAdapter data for grade: {studentGrade}');", true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetCommentFromGradingChart error: {ex.Message}");
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeChartError", 
+                    $"console.error('GetCommentFromGradingChart error: {ex.Message}');", true);
+            }
+            
+            return string.Empty;
         }
 
         private string GetTableCssClass(int subjectCount)
@@ -784,7 +813,7 @@ namespace EDUCATION.COM.Exam.Result
                         adapter.Fill(dt);
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"GetSubExamHeaderNames: Found {dt.Rows.Count} active sub-exams for ClassID: {ClassDropDownList.SelectedValue}");
+                    System.Diagnostics.Debug.WriteLine($"GetSubExamHeaderNames: Found {dt.Rows.Count} active sub-exams for ClassDropDownList.SelectedValue: {ClassDropDownList.SelectedValue}");
 
                     string headerHtml = "";
                     foreach (DataRow row in dt.Rows)

@@ -218,7 +218,7 @@
         
         .grade-chart th, .grade-chart td {
             border: 1px solid #0072bc; /* Changed to blue */
-            padding: 1px 1px; /* Same as print view */
+            padding: 1.5px 1.5px; /* Increased padding */
             text-align: center;
             font-weight: bold; /* Made bold */
             font-family: 'Kalpurush', Arial, sans-serif !important;
@@ -451,6 +451,12 @@
                     font-size: 12px !important;
                 }
                 
+                .grade-chart td:last-child {
+                    text-align: left !important; /* Left align comments for portrait */
+                    font-size: 6px !important; /* Readable font for comments in portrait */
+                    padding: 2px 3px !important; /* More padding for portrait comments */
+                }
+                
                 /* Larger fonts for marks table in portrait */
                 .marks-table th, .marks-table td {
                     font-size: 13px !important; /* Default larger font for portrait */
@@ -585,11 +591,23 @@
             }
             
             .grade-chart table {
-                font-size: 6px !important; /* Increased font size */
+                font-size: 4px !important; /* Smaller font for print with comments */
             }
             
             .grade-chart th, .grade-chart td {
-                padding: 1.5px 1.5px !important; /* Increased padding */
+                padding: 1px 1px !important; /* Minimal padding */
+                font-family: Arial, sans-serif !important; /* Use Arial for print */
+                font-weight: bold !important;
+            }
+            
+            .grade-chart th {
+                font-size: 6px !important; /* Smaller header font */
+            }
+            
+            .grade-chart td:last-child {
+                text-align: left !important; /* Left align comments for print */
+                font-size: 3px !important; /* Very small font for comments in print */
+                padding: 1px 2px !important; /* Minimal padding for comments */
             }
             
             .marks-table th, .marks-table td {
