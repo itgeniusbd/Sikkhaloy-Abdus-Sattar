@@ -67,6 +67,51 @@
                 margin: 0 !important; 
                 padding: 0 !important; 
             }
+
+            .header h2 {
+                font-size: 22px !important;
+                font-family: Arial, sans-serif !important;
+                font-weight: bold !important;
+                color: #0072bc !important; /* School name blue */
+                line-height: 1.2 !important; /* Reduced line height */
+                margin: 5px 0 !important; /* Reduced margin */
+            }
+            
+            .header p {
+                font-size: 13px !important;
+                font-family: Arial, sans-serif !important;
+                font-weight: normal !important;
+                color: #000 !important; /* Address and phone black */
+                line-height: 1.1 !important; /* Reduced line height */
+                margin: 2px 0 !important; /* Reduced margin */
+            }
+
+            /* Student photo styles for print - square with rounded corners */
+            .student-photo {
+                width: 60px !important;
+                height: 60px !important;
+                border-radius: 10px !important; /* Square with rounded corners */
+                object-fit: cover !important;
+                position: absolute !important;
+                right: 0 !important;
+                top: 0 !important;
+                left: auto !important;
+                border: 3px solid #0072bc !important;
+                background: white !important;
+                z-index: 10 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .header img {
+                border-radius: 5px !important; /* Square with rounded corners for logo */
+                border: 2px solid #0072bc !important; /* Same border as student photo */
+                background: white !important; /* Same background as student photo */
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                width: 60px !important; /* Same as student photo */
+                height: 60px !important; /* Same as student photo */
+            }
         }
        
         body {
@@ -94,63 +139,70 @@
         .header {
             text-align: center;
             border-bottom: 2px solid #0072bc;
-            padding-bottom: 5px; /* Same as print view */
-            margin-bottom: 5px; /* Same as print view */
+            padding-bottom: 5px;
+            margin-bottom: 5px;
             position: relative;
         }
         
+        .header h2 {
+            color: #0072bc !important; /* School name blue */
+            line-height: 1.2 !important; /* Reduced line height */
+            margin: 5px 0 !important; /* Reduced margin */
+        }
+
+        .header p {
+            color: #000 !important; /* Address and phone black */
+            line-height: 1.1 !important; /* Reduced line height */
+            margin: 2px 0 !important; /* Reduced margin */
+        }
+        
         .header img {
-            width: 50px; /* Slightly smaller */
-            height: 50px;
-            border-radius: 50%;
+            width: 60px; /* Same as student photo */
+            height: 60px; /* Same as student photo */
+            border-radius: 5px !important; /* Square with rounded corners */
             object-fit: cover;
             position: absolute;
             left: 0;
             top: 0;
+            border: 2px solid #0072bc !important; /* Same border as student photo */
+            background: white !important; /* Same background as student photo */
         }
-        
-        .header h2 {
-            margin: 0;
-            color: #0072bc;
-            font-size: 22px; /* Same as print view */
-            font-weight: bold;
-        }
-        
-        .header p {
-            margin: 1px 0; /* Reduced margin */
-            font-size: 13px; /* Same as print view */
-            font-weight: bold; /* Made bold */
+
+        /* Student photo in header - square with rounded corners */
+        .student-photo {
+            width: 60px !important;
+            height: 60px !important;
+            border-radius: 5px !important; /* Square with rounded corners */
+            object-fit: cover !important;
+            position: absolute !important;
+            right: 0 !important;
+            top: 0 !important;
+            left: auto !important;
+            border: 3px solid #0072bc !important;
+            background: white !important;
+            z-index: 10 !important;
         }
         
         .title {
             text-align: center;
             font-weight: bold;
-            margin: 8px 0; /* Same as print view */
-            color: darkgreen; /* Changed to dark green */
-            font-size: 18px; /* Same as print view */
+            margin: 8px 0;
+            color: darkgreen;
+            font-size: 18px;
         }
           .Exam_name {            
              text-align: center;
             font-weight: bold;
-            margin: 8px 0; /* Same as print view */
-            color: #0072bc; /* Changed to blue #0072bc */
-            font-size: 18px; /* Same as print view */
-
-             }
-        
-        .marks-heading {
-            text-align: center;
-            font-weight: bold;
-            margin: 20px 0 10px 0;
+            margin: 5px 0;
             color: #0072bc;
-            font-size: 20px; /* Increased font size */
-        }
+            font-size: 18px;
+             }
         
         .top-section {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 5px; /* Same as print view */
+            margin-bottom: 5px;
         }
         
         .info-summary {
@@ -160,20 +212,20 @@
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6px; /* Keep existing margin */
+            margin-bottom: 6px;
         }
         
         .info-table td {
-            border: 1px solid #0072bc; /* Changed to blue */
-            padding: 5px 8px; /* Same as print view */
-            font-size: 16px; /* Same as print view */
-            font-weight: bold; /* Made bold */
+            border: 1px solid #0072bc;
+            padding: 5px 8px;
+            font-size: 16px;
+            font-weight: bold;
         }
         
         .summary {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px; /* Same as print view */
+            margin-top: 5px;
             font-family: 'Kalpurush', Arial, sans-serif;
         }
         
@@ -185,13 +237,13 @@
         }
         
         .summary-header td {
-            padding: 6px 6px !important; /* Keep original padding */
-            font-size: 20px !important; /* Increased to 20px */
+            padding: 6px 6px !important;
+            font-size: 20px !important;
             background-color: #f8f9fa !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color: #333 !important;
-            font-family: Arial, sans-serif !important; /* Use Arial for print */
+            font-family: Arial, sans-serif !important;
             font-weight: bold !important;
         }
         
@@ -200,9 +252,9 @@
         }
         
         .summary-values td {
-            padding: 6px !important; /* Keep original padding */
-            font-size: 20px !important; /* Increased to 20px */
-            font-family: Arial, sans-serif !important; /* Use Arial for print */
+            padding: 6px !important;
+            font-size: 20px !important;
+            font-family: Arial, sans-serif !important;
             font-weight: bold !important;
         }
         
@@ -213,44 +265,44 @@
         .grade-chart table {
             border-collapse: collapse;
             width: 100%;
-            font-size: 6px; /* Same as print view */
+            font-size: 12px;
         }
         
         .grade-chart th, .grade-chart td {
-            border: 1px solid #0072bc; /* Changed to blue */
-            padding: 1.5px 1.5px; /* Increased padding */
+            border: 1px solid #0072bc;
+            padding: 3px 4px;
             text-align: center;
-            font-weight: bold; /* Made bold */
+            font-weight: bold;
             font-family: 'Kalpurush', Arial, sans-serif !important;
+            font-size: 12px;
         }
         
         .grade-chart th {
             background: #f0f0f0;
             font-weight: bold;
-            font-size: 11px; /* Increased font size */
+            font-size: 13px;
         }
         
         .marks-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 8px; /* Keep existing margin */
+            margin-top: 8px;
         }
         
         .marks-table th, .marks-table td {
-            border: 1px solid #0072bc; /* Changed to blue */
+            border: 1px solid #0072bc;
             text-align: center;
-            padding: 4px; /* Same as print view */
-            font-size: 16px; /* Same as print view default */
-            font-weight: bold; /* Made bold */
+            padding: 4px;
+            font-size: 16px;
+            font-weight: bold;
             font-family: 'Kalpurush', Arial, sans-serif !important;
         }
         
         .marks-table th {
             background: #d7ede1;
-            font-size: 18px; /* Larger for headers */
+            font-size: 18px;
         }
         
-        /* Sub-exam header styling */
         .marks-table th[colspan="2"] {
             background: #e8f4fd;
             color: #000;
@@ -313,11 +365,11 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            margin-top: 30px; /* Increased margin */
-            font-size: 15px; /* Same as print view */
-            font-weight: bold; /* Made bold */
+            margin-top: 30px;
+            font-size: 15px;
+            font-weight: bold;
             font-family: 'Kalpurush', Arial, sans-serif !important;
-            padding: 0 50px; /* Add horizontal padding for better spacing */
+            padding: 0 50px;
         }
 
         /* Signature styling */
@@ -344,391 +396,12 @@
             font-family: Arial, sans-serif;
         }
 
-        /* Browse button styling */
-        .btn-file {
-            position: relative;
-            overflow: hidden;
-            background-color: #6c757d;
-            color: white;
-            border: 1px solid #6c757d;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-file:hover {
-            background-color: #5a6268;
-            border-color: #545b62;
-        }
-
-        .Card-space {
-            border: 1px solid #dee2e6;
-        }
-
-        .Card-space .form-group {
-            display: flex;
-            align-items: center;
-        }
-        
-        /* Print color adjustments */
-        @media print {
-            /* Default landscape orientation */
-            @page {
-                size: A4 landscape;
-                margin: 2mm; /* Proper margin for pagination */
-            }
-            
-            /* Portrait mode specific rules */
-            @media print and (orientation: portrait) {
-                @page {
-                    size: A4 portrait;
-                    margin: 2mm; /* Slightly more margin for portrait */
-                }
-                
-                .result-card {
-                    max-width: none !important;
-                    width: auto !important;
-                    height: auto !important;
-                    padding: 8mm !important; /* More padding for portrait */
-                    margin: 3mm !important;
-                    border: 3px solid #0072bc !important; /* Thicker border */
-                    box-sizing: border-box !important;
-                    page-break-before: auto !important;
-                    page-break-inside: avoid !important;
-                    page-break-after: always !important;
-                    position: relative !important;
-                    top: auto !important;
-                    left: auto !important;
-                }
-                
-                /* Larger fonts for portrait mode */
-                .header h2 {
-                    font-size: 26px !important; /* Larger for portrait */
-                }
-                
-                .header p {
-                    font-size: 16px !important; /* Larger for portrait */
-                }
-                
-                .title {
-                    font-size: 22px !important; /* Larger for portrait */
-                    margin: 12px 0 !important;
-                    text-align: center !important;
-                    font-weight: bold !important;
-                    color: darkgreen !important; /* Dark green for exam name */
-                }
-                
-                .Exam_name {
-                    font-size: 22px !important; /* Larger for portrait */
-                    margin: 12px 0 !important;
-                    text-align: center !important;
-                    font-weight: bold !important;
-                    color: #0072bc !important; /* Blue for Result Card */
-                }
-
-                
-                .info-table td {
-                    font-size: 16px !important; /* Keep original size for portrait */
-                    padding: 6px 8px !important; /* Keep original padding */
-                }
-                
-                .summary-header td {
-                    font-size: 20px !important; /* Increased to 20px */
-                    padding: 6px 6px !important; /* Keep original padding */
-                }
-                
-                .summary-values td {
-                    font-size: 20px !important; /* Increased to 20px */
-                    padding: 6px !important; /* Keep original padding */
-                }
-                
-                .grade-chart table {
-                    font-size: 11px !important; /* Larger for portrait */
-                }
-                
-                .grade-chart th {
-                    font-size: 12px !important;
-                }
-                
-                .grade-chart td:last-child {
-                    text-align: left !important; /* Left align comments for portrait */
-                    font-size: 6px !important; /* Readable font for comments in portrait */
-                    padding: 2px 3px !important; /* More padding for portrait comments */
-                }
-                
-                /* Larger fonts for marks table in portrait */
-                .marks-table th, .marks-table td {
-                    font-size: 13px !important; /* Default larger font for portrait */
-                    padding: 4px !important;
-                }
-                
-                .marks-table th {
-                    font-size: 18px !important; /* Larger headers for portrait */
-                }
-                
-                /* Portrait specific dynamic font sizes */
-                .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-                    font-size: 15px !important; /* Larger medium font for portrait */
-                    padding: 5px !important;
-                }
-                
-                .marks-table.medium-subjects th {
-                    font-size: 16px !important;
-                }
-                
-                .marks-table.small-subjects th, .marks-table.small-subjects td {
-                    font-size: 14px !important; /* Larger small font for portrait */
-                    padding: 4px !important;
-                }
-                
-                .marks-table.small-subjects th {
-                    font-size: 16px !important;
-                }
-                
-                .footer {
-                    font-size: 18px !important; /* Larger footer for portrait */
-                    margin-top: 35px !important; /* More margin for portrait */
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    align-items: flex-end !important;
-                    padding: 0 60px !important; /* More padding for portrait */
-                }
-
-                /* Portrait styles for signatures */
-                .SignTeacher, .SignHead {
-                    min-height: 45px !important;
-                }
-
-                .SignTeacher img, .SignHead img {
-                    max-height: 40px !important;
-                    max-width: 90px !important;
-                }
-
-                .Teacher, .Head {
-                    font-size: 16px !important;
-                    min-width: 130px !important;
-                }
-            }
-            
-            /* Prevent empty page at start */
-            * {
-                box-sizing: border-box !important;
-            }
-            
-            body {
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            .result-card {
-                max-width: none !important; /* Remove width restrictions */
-                width: auto !important; /* Let it flow naturally */
-                height: auto !important; /* Remove fixed height */
-                padding: 5mm !important;
-                margin: 5mm !important; /* Proper margins */
-                border: 4px solid #0072bc !important;
-                transform: none !important; /* Remove transform */
-                transform-origin: none !important;
-                box-sizing: border-box !important;
-                page-break-before: auto !important;
-                page-break-inside: avoid !important;
-                page-break-after: always !important; /* Force page break for multiple cards */
-                position: relative !important; /* Remove absolute positioning */
-                top: auto !important;
-                left: auto !important;
-            }
-            
-            .header {
-                padding-bottom: 5px !important;
-                margin-bottom: 5px !important;
-            }
-            
-            .header h2 {
-                font-size: 22px !important; /* Increased for print */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .header p {
-                font-size: 13px !important; /* Increased for print */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: normal !important;
-            }
-            
-            .title {
-                margin: 8px 0 !important;
-                font-size: 18px !important; /* Increased for print */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-                text-align: center !important;
-                color: darkgreen !important; /* Dark green for exam name */
-            }
-            
-            .Exam_name {
-                margin: 8px 0 !important;
-                font-size: 18px !important; /* Increased for print */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-                text-align: center !important;
-                color: #0072bc !important; /* Blue for Result Card */
-            }
-            
-            .top-section {
-                margin-bottom: 5px !important;
-            }
-            
-            .info-table td {
-                padding: 5px 8px !important; /* Increased padding */
-                font-size: 16px !important; /* Keep original font size */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .summary td {
-                padding: 4px !important;
-                font-size: 20px !important; /* Increased to 20px */
-            }
-            
-            .grade-chart table {
-                font-size: 4px !important; /* Smaller font for print with comments */
-            }
-            
-            .grade-chart th, .grade-chart td {
-                padding: 1px 1px !important; /* Minimal padding */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .grade-chart th {
-                font-size: 6px !important; /* Smaller header font */
-            }
-            
-            .grade-chart td:last-child {
-                text-align: left !important; /* Left align comments for print */
-                font-size: 3px !important; /* Very small font for comments in print */
-                padding: 1px 2px !important; /* Minimal padding for comments */
-            }
-            
-            .marks-table th, .marks-table td {
-                padding: 4px !important; /* Increased padding */
-                font-size: 16px !important; /* Default font size for 5 or less subjects */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            /* Sub-exam marks styling for print */
-            .marks-table .sub-exam-marks {
-                font-size: 14px !important;
-                font-weight: normal !important;
-                white-space: nowrap !important;
-                font-family: Arial, sans-serif !important;
-                color: #333 !important;
-                display: inline-block !important;
-            }
-            
-            /* Dynamic font sizes for print based on subject count */
-            .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-                font-size: 13px !important; /* Smaller font for 6-10 subjects */
-                padding: 3px !important; /* Reduced padding */
-            }
-            
-            .marks-table.medium-subjects th {
-                font-size: 14px !important; /* Smaller header font */
-            }
-            
-            .marks-table.medium-subjects .sub-exam-marks {
-                font-size: 11px !important;
-            }
-            
-            .marks-table.small-subjects th, .marks-table.small-subjects td {
-                font-size: 11px !important; /* Very small font for 10-15 subjects */
-                padding: 2px !important; /* Minimal padding for small fonts */
-            }
-            
-            .marks-table.small-subjects th {
-                font-size: 11px !important; /* Very small header font */
-            }
-            
-            .marks-table.small-subjects .sub-exam-marks {
-                font-size: 9px !important;
-            }
-            
-            .footer {
-                margin-top: 20px !important;
-                font-size: 15px !important;
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .summary-header td {
-                padding: 6px 6px !important; /* Keep original padding */
-                font-size: 14px !important; /* Keep original font size */
-                background-color: #f8f9fa !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color: #333 !important;
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .summary-values td {
-                padding: 6px !important; /* Keep original padding */
-                font-size: 15px !important; /* Keep original font size */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            .grade-chart th, .grade-chart td {
-                padding: 1px 2px !important; /* Increased padding */
-                font-family: Arial, sans-serif !important; /* Use Arial for print */
-                font-weight: bold !important;
-            }
-            
-            /* Color backgrounds for print view */
-            .summary-values td:nth-child(1) { 
-                background: #ffd966 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(2) { 
-                background: #f4b183 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(3) { 
-                background: #a9d08e !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(4) { 
-                background: #9dc3e6 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(5) { 
-                background: #c5e0b4 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(6) { 
-                background: #ffe699 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .summary-values td:nth-child(7) { 
-                background: #d9d2e9 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-        }
-        
         .summary td {
-            padding: 4px; /* Same as print view */
-            font-size: 20px; /* Increased to 20px */
+            padding: 4px;
+            font-size: 20px;
             font-weight: bold;
             text-align: center;
-            border: 1px solid #0072bc; /* Changed to blue */
+            border: 1px solid #0072bc;
         }
         
         /* Add the same colors as print view for normal view */
@@ -777,7 +450,7 @@
                         OnDataBound="GroupDropDownList_DataBound" OnSelectedIndexChanged="GroupDropDownList_SelectedIndexChanged">
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="GroupSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                        SelectCommand="SELECT DISTINCT [Join].SubjectGroupID, CreateSubjectGroup.SubjectGroup FROM [Join] INNER JOIN CreateSubjectGroup ON [Join].SubjectGroupID = CreateSubjectGroup.SubjectGroupID WHERE ([Join].ClassID = @ClassID) AND ([Join].SectionID LIKE @SectionID) AND ([Join].ShiftID LIKE  @ShiftID) ">
+                        SelectCommand="SELECT DISTINCT [Join].SubjectGroupID, CreateSubjectGroup.SubjectGroup FROM [Join] INNER JOIN CreateSubjectGroup ON [Join].SubjectGroupID = CreateSubjectGroup.SubjectGroupID WHERE ([Join].ClassID = @ClassID) AND ([Join].SectionID LIKE @SectionID) AND ([Join].ShiftID LIKE  @ShiftID)">
                         <SelectParameters>
                             <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
                             <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" PropertyName="SelectedValue" />
@@ -798,7 +471,7 @@
                         OnDataBound="SectionDropDownList_DataBound" OnSelectedIndexChanged="SectionDropDownList_SelectedIndexChanged">
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="SectionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                        SelectCommand="SELECT DISTINCT [Join].SectionID, CreateSection.Section FROM [Join] INNER JOIN CreateSection ON [Join].SectionID = CreateSection.SectionID WHERE ([Join].ClassID = @ClassID) AND ([Join].SubjectGroupID LIKE @SubjectGroupID) AND ([Join].ShiftID LIKE @ShiftID) ">
+                        SelectCommand="SELECT DISTINCT [Join].SectionID, CreateSection.Section FROM [Join] INNER JOIN CreateSection ON [Join].SectionID = CreateSection.SectionID WHERE ([Join].ClassID = @ClassID) AND ([Join].SubjectGroupID LIKE @SubjectGroupID) AND ([Join].ShiftID LIKE @ShiftID)">
                         <SelectParameters>
                             <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
                             <asp:ControlParameter ControlID="GroupDropDownList" Name="SubjectGroupID" PropertyName="SelectedValue" />
@@ -890,8 +563,6 @@
     <asp:HiddenField ID="HiddenTeacherSign" runat="server" />
     <asp:HiddenField ID="HiddenPrincipalSign" runat="server" />
 
-    <%if (ExamDropDownList.SelectedIndex != 0)
-    {%>
     <asp:Panel ID="ResultPanel" runat="server" Visible="false">
         <asp:Repeater ID="ResultRepeater" runat="server" OnItemDataBound="ResultRepeater_ItemDataBound">
             <ItemTemplate>
@@ -899,6 +570,7 @@
                     <!-- Header Section -->
                     <div class="header">
                         <img src="/Handeler/SchoolLogo.ashx?SLogo=<%# Eval("SchoolID") %>" alt="School Logo" onerror="this.style.display='none';" />
+                        <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>" alt="Student Photo" class="student-photo" onerror="this.style.display='none';" />
                         <h2><%# Eval("SchoolName") %></h2>
                         <p><%# Eval("Address") %></p>
                         <p>Phone: <%# Eval("Phone") %> </p>
@@ -918,14 +590,9 @@
                               <tr style="background:#e8f4fd" >
                            <td> নাম:</td> <td colspan="6"><b><%# Eval("StudentsName") %></b></td>
                                 </tr>
-                                <tr>
-                                    <td>ক্লাস:</td>
-                                    <td><%# Eval("ClassName") %></td>
-                                    <td>গ্রুপ:</td>
-                                    <td><%# Eval("GroupName") %></td>
-                                    <td>শাখা:</td>
-                                    <td><%# Eval("SectionName") %></td>
-                                </tr>
+                                
+                                <%-- Use helper method for dynamic row generation --%>
+                                <%# GetDynamicInfoRow(Container.DataItem) %>
 
                                 <tr>
                                     <td>রোল:</td>
@@ -961,7 +628,7 @@
                         <!-- Right: Grade Chart -->
                         <div class="grade-chart">
                             <table>
-                                <tr><th>Mark</th><th>Grade</th><th>Point</th></tr>
+                                <tr><th>মার্ক</th><th>গ্রেড</th><th>পয়েন্ট</th></tr>
                                 <asp:Repeater ID="GradingSystemRepeater" runat="server">
                                     <ItemTemplate>
                                         <tr>
@@ -993,18 +660,6 @@
             </ItemTemplate>
         </asp:Repeater>
     </asp:Panel>
-    <%}%>
-
-    <asp:UpdateProgress ID="UpdateProgress" runat="server">
-        <ProgressTemplate>
-            <div id="progress_BG"></div>
-            <div id="progress">
-                <img src="../../CSS/loading.gif" alt="Loading..." />
-                <br />
-                <b>Loading...</b>
-            </div>
-        </ProgressTemplate>
-    </asp:UpdateProgress>
 
     <script>
         $(document).ready(function() {
@@ -1013,85 +668,6 @@
             
             // Initialize teacher and head teacher text
             updateSignatureTexts();
-
-            // Teacher signature file upload
-            $("#Tfileupload").change(function () {
-                if (typeof (FileReader) != "undefined") {
-                    var dvPreview = $(".SignTeacher");
-                    dvPreview.html("");
-                    
-                    $($(this)[0].files).each(function () {
-                        var file = $(this);
-                        var fileName = file[0].name.toLowerCase();
-                        var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-                        var fileExtension = fileName.split('.').pop();
-                        
-                        if (validExtensions.indexOf(fileExtension) > -1) {
-                            var reader = new FileReader();
-                            reader.onload = function (e) {
-                                var img = $("<img />");
-                                img.attr("style", "height:35px;width:80px");
-                                img.attr("src", e.target.result);
-                                dvPreview.append(img);
-                                
-                                // Save to database immediately
-                                saveSignatureToDatabase('teacher', e.target.result);
-                            }
-                            reader.readAsDataURL(file[0]);
-                        } else {
-                            alert(file[0].name + " is not a valid image file. Please select JPG, JPEG, PNG, GIF, or BMP files.");
-                            dvPreview.html("");
-                            return false;
-                        }
-                    });
-                } else {
-                    alert("This browser does not support HTML5 FileReader.");
-                }
-            });
-
-            // Head teacher signature file upload  
-            $("#Hfileupload").change(function () {
-                if (typeof (FileReader) != "undefined") {
-                    var dvPreview = $(".SignHead");
-                    dvPreview.html("");
-                    
-                    $($(this)[0].files).each(function () {
-                        var file = $(this);
-                        var fileName = file[0].name.toLowerCase();
-                        var validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp'];
-                        var fileExtension = fileName.split('.').pop();
-                        
-                        if (validExtensions.indexOf(fileExtension) > -1) {
-                            var reader = new FileReader();
-                            reader.onload = function (e) {
-                                var img = $("<img />");
-                                img.attr("style", "height:35px;width:80px");
-                                img.attr("src", e.target.result);
-                                dvPreview.append(img);
-                                
-                                // Save to database immediately
-                                saveSignatureToDatabase('principal', e.target.result);
-                            }
-                            reader.readAsDataURL(file[0]);
-                        } else {
-                            alert(file[0].name + " is not a valid image file. Please select JPG, JPEG, PNG, GIF, or BMP files.");
-                            dvPreview.html("");
-                            return false;
-                        }
-                    });
-                } else {
-                    alert("This browser does not support HTML5 FileReader.");
-                }
-            });
-
-            // Update signature texts when textboxes change
-            $("[id*=TeacherSignTextBox]").on('keyup change', function () {
-                updateSignatureTexts();
-            });
-
-            $("[id*=HeadTeacherSignTextBox]").on('keyup change', function () {
-                updateSignatureTexts();
-            });
 
             function updateSignatureTexts() {
                 var teacherText = $("[id*=TeacherSignTextBox]").val() || "শ্রেণি শিক্ষক";
@@ -1106,99 +682,29 @@
                 var teacherSignPath = $("[id*=HiddenTeacherSign]").val();
                 var principalSignPath = $("[id*=HiddenPrincipalSign]").val();
 
-                console.log('Teacher Sign Path:', teacherSignPath);
-                console.log('Principal Sign Path:', principalSignPath);
-
                 // Load teacher signature if exists
                 if (teacherSignPath && teacherSignPath.trim() !== '') {
                     loadSignatureImage(teacherSignPath, 'teacher');
-                } else {
-                    console.log('No teacher signature path available');
                 }
 
                 // Load principal signature if exists
                 if (principalSignPath && principalSignPath.trim() !== '') {
                     loadSignatureImage(principalSignPath, 'principal');
-                } else {
-                    console.log('No principal signature path available');
                 }
             }
 
             function loadSignatureImage(imagePath, signatureType) {
                 var targetElement = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
                 
-                // Try to load the image
                 var img = new Image();
                 img.onload = function() {
-                    console.log(signatureType + ' signature loaded successfully');
                     var $img = $("<img />");
                     $img.attr("style", "height:35px;width:80px;object-fit:contain;");
                     $img.attr("src", imagePath);
                     $(targetElement).html($img);
                 };
                 
-                img.onerror = function() {
-                    console.log(signatureType + ' signature failed to load:', imagePath);
-                    
-                    // Test the handler directly to see what's wrong
-                    $.ajax({
-                        url: imagePath,
-                        type: 'GET',
-                        timeout: 10000,
-                        success: function(data, textStatus, xhr) {
-                            console.log(signatureType + ' handler response:', {
-                                status: xhr.status,
-                                contentType: xhr.getResponseHeader('Content-Type'),
-                                responseLength: xhr.responseText ? xhr.responseText.length : 0
-                            });
-                        },
-                        error: function(xhr, status, error) {
-                            console.log(signatureType + ' handler error:', {
-                                status: xhr.status,
-                                statusText: xhr.statusText,
-                                responseText: xhr.responseText,
-                                error: error
-                            });
-                        }
-                    });
-                };
-                
                 img.src = imagePath;
-            }
-
-            function saveSignatureToDatabase(signatureType, base64Data) {
-                // Extract base64 data without the data:image prefix
-                var base64Image = base64Data.split(',')[1];
-                
-                $.ajax({
-                    type: "POST",
-                    url: "Bangla_Result_DirectPrint.aspx/SaveSignature",
-                    data: JSON.stringify({
-                        signatureType: signatureType,
-                        imageData: base64Image
-                    }),
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    success: function(response) {
-                        if (response.d.success) {
-                            console.log(signatureType + ' signature saved successfully');
-                            
-                            // Update hidden field with new handler URL
-                            var newUrl = "/Handeler/SignatureHandler.ashx?type=" + signatureType + "&schoolId=" + response.d.schoolId + "&t=" + new Date().getTime();
-                            if (signatureType === 'teacher') {
-                                $("[id*=HiddenTeacherSign]").val(newUrl);
-                            } else {
-                                $("[id*=HiddenPrincipalSign]").val(newUrl);
-                            }
-                        } else {
-                            alert('Error saving signature: ' + response.d.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.log('AJAX Error saving signature:', error);
-                        alert('Error saving signature to database');
-                    }
-                });
             }
         });
     </script>

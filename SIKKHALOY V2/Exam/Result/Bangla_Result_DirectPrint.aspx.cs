@@ -15,10 +15,6 @@ namespace EDUCATION.COM.Exam.Result
 {
     public partial class Bangla_Result_DirectPrint : System.Web.UI.Page
     {
-        // Protected controls for accessing from code-behind
-        protected HiddenField HiddenTeacherSign;
-        protected HiddenField HiddenPrincipalSign;
-        
         protected void Page_Load(object sender, EventArgs e)
         {
             try
@@ -206,6 +202,7 @@ namespace EDUCATION.COM.Exam.Result
                         CASE WHEN ers.Student_Grade = 'F' THEN 'Fail' ELSE 'Pass' END as PassStatus_ofStudent,
                         s.StudentsName,
                         ISNULL(s.ID, '') as ID,
+                        ISNULL(s.StudentImageID, 0) as StudentImageID,
                         sc.RollNo,
                         cc.Class as ClassName,
                         ISNULL(cs.Section, '') as SectionName,
@@ -1141,7 +1138,113 @@ namespace EDUCATION.COM.Exam.Result
             if (!IsSectionSelected()) return "";
             
             DataRowView row = (DataRowView)dataItem;
-            return $"<td>{row["Position_InExam_Subsection"]}</td>";
+            return "<td>" + row["Position_InExam_Subsection"] + "</td>";
+        }
+
+        // Helper method to check if the selected class has groups available
+        protected bool HasGroupsForClass()
+        {
+            // Check if Group dropdown is visible (like summary table approach)
+            return GroupDropDownList.Visible;
+        }
+
+        // Helper method to check if the selected class has sections available - based on dropdown visibility  
+        protected bool HasSectionsForClass()
+        {
+            // Check if Section dropdown is visible (like summary table approach)
+            return SectionDropDownList.Visible;
+        }
+
+        // Helper methods to get group and section row HTML for dynamic display
+        protected string GetGroupRowHtml(object dataItem)
+        {
+            if (!HasGroupsForClass()) return "";
+            
+            DataRowView row = (DataRowView)dataItem;
+            string groupName = row["GroupName"]?.ToString() ?? "";
+            
+            return @"
+                <tr>
+                    <td>গ্রুপ:</td>
+                    <td>" + groupName + @"</td>
+                    <td>শাখা:</td>
+                    <td>" + row["SectionName"] + @"</td>
+                </tr>";
+        }
+
+        protected string GetSectionOnlyRowHtml(object dataItem)
+        {
+            // This method is for when there's no group but there are sections
+            if (HasGroupsForClass() || !HasSectionsForClass()) return "";
+            
+            DataRowView row = (DataRowView)dataItem;
+            return @"
+                <tr>
+                    <td>শাখা:</td>
+                    <td>" + row["SectionName"] + @"</td>
+                    <td colspan=""2""></td>
+                </tr>";
+        }
+
+        protected string GetNoGroupSectionRowHtml()
+        {
+            // This method is for when there's neither group nor section
+            if (HasGroupsForClass() || HasSectionsForClass()) return "";
+            
+            return @"
+                <tr style=""display: none;"">
+                    <td colspan=""4""></td>
+                </tr>";
+        }
+
+        // Helper method to generate dynamic info row based on class configuration
+        protected string GetDynamicInfoRow(object dataItem)
+        {
+            DataRowView row = (DataRowView)dataItem;
+            
+            string className = row["ClassName"]?.ToString() ?? "";
+            string groupName = row["GroupName"]?.ToString() ?? "";
+            string sectionName = row["SectionName"]?.ToString() ?? "";
+            
+            // Check if this class has groups and sections
+            bool hasGroups = HasGroupsForClass();
+            bool hasSections = HasSectionsForClass();
+            
+            if (hasGroups)
+            {
+                // Show Class, Group, and Section
+                return @"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>" + className + @"</td>
+                        <td>গ্রুপ:</td>
+                        <td>" + groupName + @"</td>
+                        <td>শাখা:</td>
+                        <td>" + sectionName + @"</td>
+                    </tr>";
+            }
+            else if (hasSections)
+            {
+                // Show Class and Section only
+                return @"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>" + className + @"</td>
+                        <td>শাখা:</td>
+                        <td>" + sectionName + @"</td>
+                        <td colspan=""2""></td>
+                    </tr>";
+            }
+            else
+            {
+                // Show Class only
+                return @"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>" + className + @"</td>
+                        <td colspan=""4""></td>
+                    </tr>";
+            }
         }
     }
 }
