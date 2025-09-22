@@ -205,7 +205,7 @@ namespace EDUCATION.COM.Exam.Result
                         ers.Position_InExam_Subsection,
                         CASE WHEN ers.Student_Grade = 'F' THEN 'Fail' ELSE 'Pass' END as PassStatus_ofStudent,
                         s.StudentsName,
-                        s.StudentID as ID,
+                        ISNULL(s.ID, '') as ID,
                         sc.RollNo,
                         cc.Class as ClassName,
                         ISNULL(cs.Section, '') as SectionName,
@@ -1117,6 +1117,31 @@ namespace EDUCATION.COM.Exam.Result
             {
                 return new { success = false, message = ex.Message };
             }
+        }
+
+        // Helper method to check if a specific section is selected (not ALL sections)
+        protected bool IsSectionSelected()
+        {
+            string sectionValue = SectionDropDownList.SelectedValue;
+            // Return true only if a specific section is selected (not % or empty)
+            return !string.IsNullOrEmpty(sectionValue) && 
+                   sectionValue != "%" && 
+                   sectionValue.Trim() != "" &&
+                   SectionDropDownList.Visible; // Also check if section dropdown is visible
+        }
+
+        // Helper method to get section column header and data for dynamic display
+        protected string GetSectionColumnHeader()
+        {
+            return IsSectionSelected() ? "<td>শাখা মেধা</td>" : "";
+        }
+
+        protected string GetSectionColumnData(object dataItem)
+        {
+            if (!IsSectionSelected()) return "";
+            
+            DataRowView row = (DataRowView)dataItem;
+            return $"<td>{row["Position_InExam_Subsection"]}</td>";
         }
     }
 }

@@ -944,7 +944,7 @@
                                     <td>গ্রেড</td>
                                     <td>জিপিএ</td>
                                     <td>ক্লাস মেধা</td>
-                                    <td>শাখা মেধা</td>
+                                    <%# GetSectionColumnHeader() %>
                                 </tr>
                                 <tr class="summary-values">
                                     <td><%# Eval("TotalExamObtainedMark_ofStudent") %>/<%# Eval("TotalMark_ofStudent") %></td>
@@ -953,7 +953,7 @@
                                     <td><%# Eval("Student_Grade") %></td>
                                     <td><%# Eval("Student_Point", "{0:F1}") %></td>
                                     <td><%# Eval("Position_InExam_Class") %></td>
-                                    <td><%# Eval("Position_InExam_Subsection") %></td>
+                                    <%# GetSectionColumnData(Container.DataItem) %>
                                 </tr>
                             </table>
                         </div>
