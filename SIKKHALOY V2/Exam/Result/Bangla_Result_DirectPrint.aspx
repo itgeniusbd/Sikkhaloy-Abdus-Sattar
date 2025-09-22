@@ -663,11 +663,87 @@
 
     <script>
         $(document).ready(function() {
+            // Convert English numbers to Bengali numbers
+            convertNumbersToBengali();
+            
             // Load database signatures when page loads
             loadDatabaseSignatures();
             
             // Initialize teacher and head teacher text
             updateSignatureTexts();
+
+            function convertNumbersToBengali() {
+                // Bengali number mapping
+                var englishToBengali = {
+                    '0': '০',
+                    '1': '১',
+                    '2': '২', 
+                    '3': '৳',
+                    '4': '৪',
+                    '5': '৫',
+                    '6': '৬',
+                    '7': '৭',
+                    '8': '৮',
+                    '9': '৯'
+                };
+
+                // Function to convert text
+                function convertText(text) {
+                    return text.replace(/[0-9]/g, function(match) {
+                        return englishToBengali[match] || match;
+                    });
+                }
+
+                // Convert all text nodes in result cards
+                $('.result-card').each(function() {
+                    var $card = $(this);
+                    
+                    // Get elements to exclude from conversion
+                    var $excludedElements = $card.find('.header p, .title'); // Address and Exam name
+                    
+                    // Convert all other elements
+                    $card.find('*').not('.header p').not('.title').contents().filter(function() {
+                        return this.nodeType === 3; // Text nodes only
+                    }).each(function() {
+                        var text = this.nodeValue;
+                        if (text && /[0-9]/.test(text)) {
+                            this.nodeValue = convertText(text);
+                        }
+                    });
+
+                    // Convert table cell contents (excluding header address area)
+                    $card.find('td, th').each(function() {
+                        var $cell = $(this);
+                        
+                        // Skip if this cell is inside header area
+                        if ($cell.closest('.header').length > 0) {
+                            return;
+                        }
+                        
+                        var text = $cell.html();
+                        if (text && /[0-9]/.test(text)) {
+                            // Only convert if it's not an HTML attribute
+                            var convertedText = text.replace(/>[^<]*</g, function(match) {
+                                return convertText(match);
+                            });
+                            // Also convert standalone text
+                            convertedText = convertedText.replace(/^[^<>]*$/, function(match) {
+                                return convertText(match);
+                            });
+                            $cell.html(convertedText);
+                        }
+                    });
+
+                    // Convert paragraph and span contents (excluding header p and title)
+                    $card.find('p, span, div:not(:has(*))').not('.header p').not('.title').each(function() {
+                        var $element = $(this);
+                        var text = $element.text();
+                        if (text && /[0-9]/.test(text)) {
+                            $element.text(convertText(text));
+                        }
+                    });
+                });
+            }
 
             function updateSignatureTexts() {
                 var teacherText = $("[id*=TeacherSignTextBox]").val() || "শ্রেণি শিক্ষক";
@@ -706,6 +782,60 @@
                 
                 img.src = imagePath;
             }
+        });
+
+        // Also convert numbers when new data is loaded via postback
+        function Sys$Application$add_pageLoaded(handler) {
+            if (typeof(Sys) !== "undefined" && Sys.Application) {
+                Sys.Application.add_pageLoaded(handler);
+            }
+        }
+
+        // Convert numbers after partial postback
+        Sys$Application$add_pageLoaded(function() {
+            setTimeout(function() {
+                // Bengali number mapping
+                var englishToBengali = {
+                    '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
+                    '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
+                };
+
+                function convertText(text) {
+                    return text.replace(/[0-9]/g, function(match) {
+                        return englishToBengali[match] || match;
+                    });
+                }
+
+                // Convert all result cards after postback (excluding header and title areas)
+                $('.result-card').each(function() {
+                    var $card = $(this);
+                    
+                    // Convert only non-excluded elements
+                    $card.find('*').not('.header p').not('.title').contents().filter(function() {
+                        return this.nodeType === 3;
+                    }).each(function() {
+                        var text = this.nodeValue;
+                        if (text && /[0-9]/.test(text)) {
+                            this.nodeValue = convertText(text);
+                        }
+                    });
+
+                    // Convert table cells and other elements (excluding header area)
+                    $card.find('td, th, span').each(function() {
+                        var $element = $(this);
+                        
+                        // Skip if inside header
+                        if ($element.closest('.header').length > 0) {
+                            return;
+                        }
+                        
+                        var text = $element.text();
+                        if (text && /[0-9]/.test(text)) {
+                            $element.text(convertText(text));
+                        }
+                    });
+                });
+            }, 100);
         });
     </script>
 </asp:Content>
