@@ -116,6 +116,12 @@
                                         <i class="fa fa-envelope-o mx-1"></i><%#Eval("Email") %>
                                     </p>
                                 </div>
+                                <!-- Language Toggle Button -->
+                                <div class="d-flex align-items-center ml-auto d-print-none">
+                                    <button type="button" id="languageToggle" class="btn btn-outline-light btn-sm" title="Toggle Language">
+                                        <i class="fa fa-language"></i> বাংলা
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </ItemTemplate>
@@ -327,23 +333,17 @@
         <script>
             $(function () {
                 $("#sidedrawer").niceScroll({
-                    cursorcolor: "#394C3A", // change cursor color in hex
-                    cursorwidth: "7px", // cursor width in pixel (you can also write "5px")
-                    cursorborder: "1px solid #394C3A", // css definition for cursor border
-                    cursorborderradius: "3px", // border radius in pixel for cursor
-                    emulatetouch: true // enable cursor-drag scrolling like touch devices in desktop computer
+                    cursorcolor: "#394C3A",
+                    cursorwidth: "7px",
+                    cursorborder: "1px solid #394C3A",
+                    cursorborderradius: "3px",
+                    emulatetouch: true
                 });
-
                 $("#sidedrawer").mouseover(function () {
                     $("#sidedrawer").getNiceScroll().resize();
                 });
-
-                //Animations MDB
                 new WOW().init();
-
-                //Back To Top
                 $('body').append('<div id="toTop" class="btn btn-info d-print-none"><span class="glyphicon glyphicon-chevron-up"></span> TOP</div>');
-
                 $(window).scroll(function () {
                     if ($(this).scrollTop() !== 0) {
                         $('#toTop').fadeIn();
@@ -351,23 +351,535 @@
                         $('#toTop').fadeOut();
                     }
                 });
-
                 $('#toTop').click(function () {
                     $("html, body").animate({ scrollTop: 0 }, 600);
                     return false;
                 });
-
-                //Current Year
                 $("#CurrentYear").text((new Date).getFullYear());
-
                 $('a[href$=_SkipLink]').each(function () {
                     $(this).remove();
                 });
-
-                //store user
                 storeUser();
+                // Initialize language system
+                initializeLanguageToggle();
+                
+                // Handle TreeView expansion/collapse events with multiple event types - More conservative
+                $('#LinkTreeView').on('click', 'a, img, span', function() {
+                    // Only re-translate if we're in Bengali mode and the element is visible
+                    if (isMenuBengali) {
+                        setTimeout(function() {
+                            // Only translate visible elements
+                            var visibleElements = $('#LinkTreeView').find('*').filter(':visible');
+                            if (visibleElements.length > 0) {
+                                translateMenuToBengali();
+                            }
+                        }, 100);
+                        
+                        setTimeout(function() {
+                            if (isMenuBengali) {
+                                translateMenuToBengali();
+                            }
+                        }, 500);
+                    }
+                });
+                
+                // Periodic check to ensure all content is translated - More conservative
+                if (typeof window.translationInterval !== 'undefined') {
+                    clearInterval(window.translationInterval);
+                }
+                
+                window.translationInterval = setInterval(function() {
+                    if (isMenuBengali) {
+                        // Only check for visible elements to avoid issues
+                        var hasUntranslated = false;
+                        var untranslatedItems = [];
+                        
+                        $('#LinkTreeView').find('a, span, td').filter(':visible').each(function() {
+                            var text = $(this).text().trim();
+                            if (text && menuTranslations[text] && !$(this).data('translated')) {
+                                hasUntranslated = true;
+                                untranslatedItems.push(text);
+                            }
+                        });
+                        
+                        if (hasUntranslated && untranslatedItems.length < 10) { // Only translate if reasonable number
+                            console.log('Found untranslated items:', untranslatedItems);
+                            translateMenuToBengali();
+                        }
+                    }
+                }, 2000); // Back to 2 seconds for stability
+                
+                // Quick check only for first few seconds
+                var quickCheckCount = 0;
+                var quickInterval = setInterval(function() {
+                    quickCheckCount++;
+                    if (quickCheckCount >= 5 || !isMenuBengali) { // Reduce to 5 checks
+                        clearInterval(quickInterval);
+                        return;
+                    }
+                    
+                    if (isMenuBengali) {
+                        var visibleUntranslated = $('#LinkTreeView').find('a, span').filter(':visible').filter(function() {
+                            var text = $(this).text().trim();
+                            return text && menuTranslations[text] && !$(this).data('translated');
+                        });
+                        
+                        if (visibleUntranslated.length > 0 && visibleUntranslated.length < 5) {
+                            translateMenuToBengali();
+                        }
+                    }
+                }, 1000); // Check every 1 second for first 5 seconds
             });
 
+            // Language Translation Dictionary
+            var menuTranslations = {
+                'Basic Settings': 'প্রাথমিক সেটিংস',
+                'Teacher & Staff': 'শিক্ষক ও কর্মচারী',
+                'Admission': 'ভর্তি',
+                'Student Management': 'ছাত্র ব্যবস্থাপনা',
+                'Student\'s Info': 'ছাত্রের তথ্য',
+                'Attendances': 'উপস্থিতি',
+            
+                'SMS': 'এসএমএস',
+                'Routines': 'রুটিন',
+                'Committee': 'কমিটি',
+                'SIKKHALOY INVOICE': 'শিক্ষালয় ইনভয়েস',
+                'School Info': 'স্কুলের তথ্য',
+                'Create Class': 'ক্লাস তৈরি',
+                'Create Section': 'শাখা তৈরি',
+                'Create Shift': 'শিফট তৈরি',
+                'Create Subject': 'বিষয় তৈরি',
+                'Create Subject Group': 'বিষয় গ্রুপ তৈরি',
+                'Subject Setting': 'বিষয় সেটিং',
+                'Grading System': 'গ্রেডিং সিস্টেম',
+                'Create Department': 'বিভাগ তৈরি',
+                'Create Designation': 'পদবী তৈরি',
+                'Registration': 'নিবন্ধন',
+                'Teacher Info': 'শিক্ষক তথ্য',
+                'Staff Info': 'কর্মচারী তথ্য',
+                'Entry Form': 'এন্ট্রি ফর্ম',
+                'ID Card': 'আইডি কার্ড',
+                'Online Admission Form': 'অনলাইন ভর্তির ফর্ম',
+                'Transfer Certificate': 'স্থানান্তর সনদ',
+                'Student Info': 'ছাত্রের তথ্য',
+                'ID Card Print': 'আইডি কার্ড প্রিন্ট',
+                'Student List': 'ছাত্র তালিকা',
+                'Present Student': 'বর্তমান ছাত্র',
+                'Attendance Entry': 'উপস্থিতি এন্ট্রি',
+                'Attendance Report': 'উপस्थितির রিপোর্ট',
+                'Monthly Report': 'মাসিক রিপোর্ট',
+                'Income': 'আয় সমূহ',
+                'Monthly Payment': 'মাসিক পেমেন্ট',
+                'Other Payment': 'অন্যান্য পেমেন্ট',
+                'Payment Report': 'পেমেন্ট রিপোর্ট',
+                'Due Report': 'বকেয়া রিপোর্ট',
+                'Create Exam': 'পরীক্ষা তৈরি',
+                'Marks Entry': 'নম্বর এন্ট্রি',
+                'Merit List': 'মেধা তালিকা',
+                'Testimonial': 'সকল সার্টিফিকেট',
+                'Certificate': 'সনদপত্র',
+                'Tabulation Sheet': 'ট্যাবুলেশন শীট',
+                'Send SMS': 'এসএমএস পাঠান',
+                'SMS Report': 'এসএমএস রিপোর্ট',
+                'SMS Settings': 'এসএমএস সেটিংস',
+                'Class Routine': 'ক্লাশ রুটিন',
+                'Exam Routine': 'পরীক্ষার রুটিন',
+                'Teacher Routine': 'শিক্ষক রুটিন',
+                'Managing Committee': 'পরিচালনা কমিটি',
+                'Committee Member': 'কমিটির সদস্য',
+                'Notice': 'নোটিশ',
+                'Class Test': 'ক্লাস টেস্ট',
+                'Home Work': 'বাড়ির কাজ',
+                // Exam types from new screenshot
+                'Individual Exam': 'একক পরীক্ষা',
+                'Cumulative Exam': 'সমষ্টিগত পরীক্ষা',
+                'Weekly Exam': 'সাপ্তাহিক পরীক্ষা',
+                'Seat Plan': 'আসন বিন্যাস',
+                'সংকলন': 'সংকলন',
+                'এসএমএস': 'এসএমএস',
+                'রুটিন': 'রুটিন',
+                'রুটিন তৈরি': 'রুটিন তৈরি',
+                'Assign Routine': 'রুটিন বরাদ্দ',
+                'Modify Routine': 'রুটিন পরিবর্তন',
+                'রুটিন রিপোর্ট': 'রুটিন রিপোর্ট',
+                'কমিটি': 'কমিটি',
+                'Add Member': 'সদস্য যোগ',
+                'Add Donation Category': 'দান ক্যাটাগরি যোগ',
+                'Add Donation': 'দান যোগ',
+                'Donations': 'দান সমূহ',
+                'Collect Donation': 'দান সংগ্রহ',
+                'Payment Record': 'পেমেন্ট রেকর্ড',
+                'Unpaid Receipt': 'রসিদ আনপেইড করুন',
+              
+                'এসএমএস পাঠান': 'এসএমএস পাঠান',
+                'শিক্ষালয় ইনভয়েস': 'শিক্ষালয় ইনভয়েস',
+                'Due Invoice': 'বকেয়া ইনভয়েস',
+                'Paid Invoice': 'প্রদত্ত ইনভয়েস',
+                // Menu items visible in the screenshot
+                'Class Management': 'ক্লাস ব্যবস্থাপনা',
+                'Add Class Group Section Shift': 'ক্লাস গ্রুপ সেকশন শিফট যোগ করুন',
+                'Sub-Admin Management': 'সাব-অ্যাডমিন ব্যবস্থাপনা',
+                'Create Sub-Admin': 'সাব-অ্যাডমিন তৈরি করুন',
+                'Manage Page Access': 'প্রবেশাধিকার ম্যানেজমেন্ট',
+                'Active/Deactivate': 'সক্রিয়/নিষ্ক্রিয়',
+                'Add All Subjects': 'সমস্ত বিষয় যোগ করুন',
+                'Manage Session': 'সেশন পরিচালনা',
+                'Institution Info': 'প্রতিষ্ঠানের তথ্য',
+                'Academic Calendar': 'একাডেমিক ক্যালেন্ডার',
+                'Admit New Student': 'নতুন ছাত্র ভর্তি',
+                'Single Re-Admission': 'একক পুনর্ভর্তি',
+                'Multiple Re-Admission': 'একাধিক পুনর্ভর্তি',
+                'Transfer Students': 'ছাত্রীস্থানান্তর',
+                'Bulk Operations': 'বাল্ক অপারেশন',
+                'Specify_group_section_Shift_for_classes': 'ক্লাসের জন্য গ্রুপ সেকশন শিফট নির্ধারণ করুন',
+                // Teacher & Staff sub-items
+                'Add Teacher': 'শিক্ষক যোগ করুন',
+                'Add Staff': 'কর্মচারী যোগ করুন',
+                'Employee List': 'কর্মচারী তালিকা',
+                'Active/Deactivate Teacher': 'শিক্ষক সক্রিয়/নিষ্ক্রিয়',
+                'Teacher Subject Assign': 'শিক্ষক বিষয় বরাদ্দ',
+                'Employee ID Card': 'কর্মচারী আইডি কার্ড',
+                // Accounts sub-items from new screenshot
+                'Add Payment Roles': 'পেমেন্ট রোলস যোগ করুন',
+                'Accounts': 'হিসাব-নিকাশ',
+                'Assign Payment Roles': 'পেমেন্ট রোলস বরাদ্দ করুন',
+                'মাসিক পে-অর্ডার করুন': 'মাসিক পে-অর্ডার করুন',
+                'Remove Pay order': 'পে অর্ডার মুছে ফেলা',
+                'Change Pay order Date': 'পে অর্ডার তারিখ পরিবর্তন',
+                'Money Receipt Check': 'মানি রিসিট চেক',
+                'Account Management': 'অঙ্গীকার ব্যবস্থাপনা',
+                'Unpaid Money Receipt': 'আনপেইড মানি রিসিট',
+                'Payment Collection': 'পেমেন্ট সংগ্রহ',
+                'Payment Collection By Date': 'তারিখ অনুসারে পেমেন্ট সংগ্রহ',
+                'Fee Concession': 'ফি ছাড়',
+                'Others Payment': 'অন্যান্য পেমেন্ট',
+                'Expense': 'খরচ সমূহ',
+                'Edit Expense': 'খরচ ইডিট/আপডেট',
+                'All Session Report': 'সকল সেশনের রিপোর্ট',
+                'Accounts Summary': 'একাউন্ট সামারী',
+                'Session Based Report': 'বর্তমান সেশনের রিপোর্ট',
+                'Month Based Report': 'মাস ভিত্তিক রিপোর্ট',
+                'Income Report': 'আয়ের রিপোর্ট',
+                'Expense Report': 'খরচ রিপোর্ট',
+                'Income Expense Net': 'আয়/ব্যায় ও ব্যালেন্স',
+                'Current Due': 'পিছনের সকল বকেয়া',
+                'Student Paid Details': 'শিক্ষার্থীর পেইড বিস্তরিত',
+                'Payorder Report': 'পে অর্ডার রিপোর্ট',
+                'My Accounts': 'আমার একাউন্ট',
+                'Account Details': 'একাউন্ট ডিটেইলস',
+                'Accounts Log': 'একাউন্ট কাজের হিস্টরী',
+                // Accounts sub-items (existing)
+                'Allowance': 'ভাতা',
+                'Deduction': 'কর্তন',
+                'Bonus & Fine': 'বোনাস ও জরিমানা',
+                'Pay Order Monthly': 'মাসিক পে-অর্ডার করুন',
+                'PSalary Sheet': 'বেতন শীট',
+                'Salary Payment': 'বেতন প্রদান করুন',
+                'Paid & Due Salary': 'পরিশোধ ও بকেয়া রিপোর্ট',
+                // Additional menu items from screenshot
+                'Class Change': 'ক্লাস পরিবর্তন করুন',
+                'Change Section/Shift/Group': 'সেকশন/শিফট/গ্রুপ পরিবর্তন',
+                'Manage Subjects': 'সাবজেক্ট ম্যানেজ করুন',
+                'T.C': 'টিসি',
+                'Student Details': 'ছাত্রের বিস্তারিত',
+                'Find Students': 'ছাত্র খুঁজুন',
+                'আইডি কার্ড': 'আইডি কার্ড',
+                'Change Roll No/Group/Section/Shift': 'রোল নং/গ্রুপ/সেকশন/শিফট পরিবর্তন',
+                'Change Subject': 'বিষয় পরিবর্তন',
+                // Employee sections
+                'Scheduling & RFID': 'সময়সূচী ও আরএফআইডি',
+                'Manual Attendance': 'মেন্যুয়াল হাজিরা নিন',
+                'Attendance Records': 'উপস্থিতির রেকর্ড',
+                'Leave': 'ছুটি',
+                'Attendance Fine Generate': 'উপস্থিতি জরিমানা তৈরি',
+                // Student Management items
+                'Signup / Userid': 'সাইনআপ / ইউজার আইডি',
+                // Additional Admission items
+                'Admission Form': 'ভর্তির ফর্ম',
+                // Subject Management
+                'Subject': 'বিষয়',
+                // Exam related items
+                'Exam': 'পরীক্ষার কাজ',
+                'Exam Settings': 'পরীক্ষার সেটিংস',
+                'Exam Name': 'পরীক্ষার নাম তৈরী',
+                'Sub-Exam Name': 'সাব পরীক্ষার নাম তৈরী',
+                'Change Pass Marks': 'পাশ মার্ক পরিবর্তন করুন',
+                'Marks Distribution': 'নম্বর বন্টন',
+                'Input Exam Marks': 'নম্বর যুক্ত করুন',
+                'Inputted Marks Check': 'নম্বর চেক করুন',
+                'Marks Collect Paper': 'নম্বর সংগ্রহ পত্র প্রিন্ট',
+                'Exam Control': 'পরীক্ষা কন্ট্রোল করুন',
+                'Admit Card': 'প্রবেশপত্র',
+                // SMS related items
+                'Send Message': 'এসএমএস পাঠান',
+                'Message History': 'এসএমএস রেকর্ড',
+                'SMS Settings': 'এসএমএস সেটিংস',
+                'SMS Balance': 'এসএমএস ব্যালেন্স',
+                // Committee related items
+                'Committee Information': 'কমিটির তথ্য',
+                'Committee List': 'কমিটির তালিকা',
+                // Routine related items
+                'Create Routine': 'রুটিন তৈরি',
+                'View Routine': 'রুটিন দেখুন',
+                'Print Routine': 'রুটিন প্রিন্ট',
+                'Blocked Unblocked Student': 'সাময়িক ব্লক/আনব্লক',
+                // Additional items from new screenshot
+                'অ্যাকাডেমিক ক্যালেন্ডার': 'একাডেমিক ক্যালেন্ডার',
+                'Admission New Student': 'নতুন ভর্তি',
+                'সাইনআপ / ইউজার আইডি': 'সাইনআপ / ইউজার আইডি',
+                'উপস্থিতি': 'উপস্থিতি',
+                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
+                'ছুটি': 'ছুটি',
+                'হাজিরা': 'হাজিরা',
+                'Change Roll No,Group,Section,Shift': 'রোল নং, গ্রুপ, সেকশন, শিফট পরিবর্তন',
+                'বিষয় পরিবর্তন': 'বিষয় পরিবর্তন',
+                'সংসদ': 'সংসদ',
+                'কর্মীর অংশগ্রহণ': 'কর্মীর অংশগ্রহণ',
+                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
+                'উপস্থিতির রেকর্ড': 'উপস্থিতির রেকর্ড',
+                'Attendance Schedule': 'হাজিরার সময়সূচী',
+                // More specific menu items from screenshot
+                'Change Section,Shift,Group': 'সেকশন, শিফট, গ্রুপ পরিবর্তন',
+                'বিষয় পরিচালনা': 'বিষয় পরিচালনা',
+                'উপরে': 'উপরে',
+                'TC': 'টিসি'
+            };
+            var isMenuBengali = false;
+            function forceTranslateAll() {
+                if (isMenuBengali) {
+                    console.log('Force translating to Bengali...');
+                    
+                    // Don't clear all data at once - be more selective
+                    
+                    // Wait a moment then translate
+                    setTimeout(function() {
+                        translateMenuToBengali();
+                    }, 50);
+                    
+                    // Second attempt
+                    setTimeout(function() {
+                        translateMenuToBengali();
+                    }, 200);
+                    
+                    // Final attempt  
+                    setTimeout(function() {
+                        translateMenuToBengali();
+                    }, 500);
+                } else {
+                    translateMenuToEnglish();
+                }
+            }
+            
+            function emergencyReset() {
+                console.log('Emergency reset - restoring menu visibility');
+                $('#LinkTreeView').find('*').each(function() {
+                    var $element = $(this);
+                    $element.show(); // Make sure element is visible
+                    $element.removeData('translated');
+                    $element.removeData('original-text');
+                });
+                
+                // Force refresh the TreeView
+                setTimeout(function() {
+                    $('#LinkTreeView').show();
+                }, 100);
+            }
+            
+            function initializeLanguageToggle() {
+                // Wait a bit for TreeView to fully render
+                setTimeout(function() {
+                    var savedLanguage = localStorage.getItem('menuLanguage');
+                    if (savedLanguage === 'bengali') {
+                        isMenuBengali = true;
+                        translateMenuToBengali();
+                        $('#languageToggle').html('<i class="fa fa-language"></i> English');
+                    } else {
+                        isMenuBengali = false;
+                        $('#languageToggle').html('<i class="fa fa-language"></i> বাংলা');
+                    }
+                    
+                    // Set up mutation observer to watch for new content
+                    setupTreeViewObserver();
+                }, 500);
+                
+                $('#languageToggle').click(function() {
+                    // Add loading effect
+                    var $btn = $(this);
+                    $btn.html('<i class="fa fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
+                    
+                    setTimeout(function() {
+                        try {
+                            if (isMenuBengali) {
+                                // Switch to English
+                                translateMenuToEnglish();
+                                $btn.html('<i class="fa fa-language"></i> বাংলা');
+                                isMenuBengali = false;
+                                localStorage.setItem('menuLanguage', 'english');
+                            } else {
+                                // Switch to Bengali
+                                isMenuBengali = true; // Set this first
+                                localStorage.setItem('menuLanguage', 'bengali');
+                                $btn.html('<i class="fa fa-language"></i> English');
+                                
+                                // Check if TreeView is visible before translating
+                                if ($('#LinkTreeView').is(':visible')) {
+                                    forceTranslateAll();
+                                } else {
+                                    // Emergency reset if TreeView is not visible
+                                    emergencyReset();
+                                    setTimeout(forceTranslateAll, 200);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Translation error:', error);
+                            emergencyReset();
+                        }
+                        
+                        // Re-enable button
+                        $btn.prop('disabled', false);
+                    }, 100);
+                });
+                
+                // Add double-click emergency reset
+                $('#languageToggle').dblclick(function() {
+                    emergencyReset();
+                    $(this).html('<i class="fa fa-language"></i> বাংলা');
+                    isMenuBengali = false;
+                    localStorage.setItem('menuLanguage', 'english');
+                });
+            }
+            
+            function setupTreeViewObserver() {
+                // Create a mutation observer to watch for changes in the TreeView
+                if (window.MutationObserver) {
+                    var observer = new MutationObserver(function(mutations) {
+                        var shouldTranslate = false;
+                        
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                                // Check if any text nodes or elements were added
+                                for (var i = 0; i < mutation.addedNodes.length; i++) {
+                                    if (mutation.addedNodes[i].nodeType === 1 || mutation.addedNodes[i].nodeType === 3) {
+                                        shouldTranslate = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // If new content was added and we're in Bengali mode, translate it
+                        if (shouldTranslate && isMenuBengali) {
+                            setTimeout(function() {
+                                translateMenuToBengali();
+                            }, 50);
+                        }
+                    });
+                    
+                    // Start observing the TreeView for changes
+                    var treeView = document.getElementById('LinkTreeView');
+                    if (treeView) {
+                        observer.observe(treeView, {
+                            childList: true,
+                            subtree: true,
+                            characterData: true
+                        });
+                    }
+                }
+            }
+            
+            function translateMenuToBengali() {
+                console.log('Starting Bengali translation...');
+                
+                // Method 1: Handle anchor tags and leaf nodes - More careful approach
+                $('#LinkTreeView').find('a, span').each(function() {
+                    var $element = $(this);
+                    var text = $element.text().trim();
+                    
+                    // Skip if empty or already translated
+                    if (!text || $element.data('translated') === 'yes') return;
+                    
+                    // Check for exact match
+                    if (menuTranslations[text]) {
+                        $element.data('original-text', text);
+                        $element.text(menuTranslations[text]);
+                        $element.data('translated', 'yes');
+                        console.log('Translated (Method 1): ' + text + ' -> ' + menuTranslations[text]);
+                        return;
+                    }
+                });
+                
+                // Method 2: Handle table cells - More conservative approach
+                $('#LinkTreeView').find('td').each(function() {
+                    var $element = $(this);
+                    
+                    // Skip if already processed
+                    if ($element.data('translated') === 'yes') return;
+                    
+                    // Only process leaf nodes (no child elements except text)
+                    if ($element.children().length === 0) {
+                        var text = $element.text().trim();
+                        
+                        if (text && menuTranslations[text]) {
+                            $element.data('original-text', text);
+                            $element.text(menuTranslations[text]);
+                            $element.data('translated', 'yes');
+                            console.log('Translated (Method 2): ' + text + ' -> ' + menuTranslations[text]);
+                        }
+                    }
+                });
+                
+                // Method 3: Handle direct text nodes only
+                $('#LinkTreeView').find('*').each(function() {
+                    var $element = $(this);
+                    
+                    // Skip if already processed or has child elements
+                    if ($element.data('translated') === 'yes' || $element.children().length > 0) return;
+                    
+                    var text = $element.text().trim();
+                    
+                    // Only translate if we have a direct match
+                    if (text && menuTranslations[text]) {
+                        $element.data('original-text', text);
+                        $element.text(menuTranslations[text]);
+                        $element.data('translated', 'yes');
+                        console.log('Translated (Method 3): ' + text + ' -> ' + menuTranslations[text]);
+                    }
+                });
+                
+                console.log('Bengali translation completed');
+            }
+            
+            function translateMenuToEnglish() {
+                console.log('Starting English translation...');
+                
+                // Restore all translated elements to their original text
+                $('#LinkTreeView').find('*').each(function() {
+                    var $element = $(this);
+                    var originalText = $element.data('original-text');
+                    
+                    if (originalText && $element.data('translated') === 'yes') {
+                        // Check if this element contains only text or has text nodes
+                        if ($element.children().length === 0) {
+                            // Simple case: element contains only text
+                            $element.text(originalText);
+                        } else {
+                            // Complex case: element has child elements, restore text nodes
+                            $element.contents().filter(function() {
+                                return this.nodeType === 3;
+                            }).each(function() {
+                                $(this).replaceWith(originalText);
+                            });
+                        }
+                        
+                        $element.removeData('translated');
+                        $element.removeData('original-text');
+                        console.log('Restored: ' + originalText);
+                    }
+                });
+                
+                console.log('English translation completed');
+            }
+            
             //different Session
             $("#content-wrapper").mouseover(function () {
                 checkUser();

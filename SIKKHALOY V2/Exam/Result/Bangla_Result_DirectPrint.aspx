@@ -344,8 +344,8 @@
             });
 
             // Show toggle button after LOAD button is clicked and results are loaded
-            $("[id*=LoadResultsButton]").click(function() {
-                setTimeout(function() {
+            $("[id*=LoadResultsButton]").click(function () {
+                setTimeout(function () {
                     if ($('.result-card').length > 0) {
                         $('#NumberToggleButton').show();
                         $('#PrintButton').show();
@@ -419,7 +419,7 @@
         // Toggle number language between English and Bengali
         function toggleNumberLanguage() {
             var button = document.getElementById('NumberToggleButton');
-            
+
             if (isNumbersBengali) {
                 // Convert to English
                 convertNumbersToEnglish();
@@ -518,7 +518,7 @@
 
             // DON'T convert numbers to Bengali after postback - keep them in English by default
             // convertNumbersToBengali(); // Commented out - keep numbers in English by default
-            
+
             // Reset button state to show "বাংলা সংখ্যা" since numbers are in English
             if ($('#NumberToggleButton').length > 0) {
                 $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
@@ -674,7 +674,7 @@
                 // Get header cells for column identification - define this at table level
                 var $headerRow = $table.find('tr').first();
                 var $headerCells = $headerRow.find('th');
-                
+
                 console.log('Processing table with', $headerCells.length, 'header cells');
 
                 // Process each row in the table
@@ -815,7 +815,7 @@
             // Make sure file inputs are properly accessible
             var teacherInput = document.getElementById('Tfileupload');
             var headInput = document.getElementById('Hfileupload');
-            
+
             console.log('Teacher input found:', teacherInput !== null);
             console.log('Head input found:', headInput !== null);
 
@@ -840,7 +840,7 @@
             });
 
             // Direct click handlers for labels - more reliable
-            $('label[for="Tfileupload"]').on('click', function(e) {
+            $('label[for="Tfileupload"]').on('click', function (e) {
                 e.preventDefault(); // Prevent any default behavior
                 console.log('Teacher browse label clicked');
                 var input = document.getElementById('Tfileupload');
@@ -851,7 +851,7 @@
                 }
             });
 
-            $('label[for="Hfileupload"]').on('click', function(e) {
+            $('label[for="Hfileupload"]').on('click', function (e) {
                 e.preventDefault(); // Prevent any default behavior
                 console.log('Principal browse label clicked');
                 var input = document.getElementById('Hfileupload');
@@ -863,12 +863,12 @@
             });
 
             // Also handle direct clicks on file inputs (fallback)
-            $('#Tfileupload').on('click', function() {
+            $('#Tfileupload').on('click', function () {
                 console.log('Teacher file input clicked directly');
                 this.value = ''; // Clear to ensure change event
             });
 
-            $('#Hfileupload').on('click', function() {
+            $('#Hfileupload').on('click', function () {
                 console.log('Principal file input clicked directly');
                 this.value = ''; // Clear to ensure change event
             });
@@ -878,7 +878,7 @@
         function handleFileUpload(e, signatureType) {
             console.log(signatureType + ' file upload started');
             var file = e.target.files[0];
-            
+
             if (!file) {
                 console.log('No file selected for ' + signatureType);
                 return;
@@ -909,17 +909,17 @@
             }
 
             var reader = new FileReader();
-            
+
             reader.onload = function (readerEvent) {
                 var targetElement = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
-                
+
                 // Show preview with improved styling
                 $(targetElement).html('<img src="' + readerEvent.target.result + '" style="height:35px;width:80px;object-fit:contain;border:1px solid #ddd;border-radius:3px;" />');
                 console.log(signatureType + ' signature preview updated successfully');
-                
+
                 // Extract base64 data for database save
                 var base64 = readerEvent.target.result.split(',')[1];
-                
+
                 // Save to database
                 $.ajax({
                     type: 'POST',
@@ -930,27 +930,27 @@
                     }),
                     contentType: 'application/json; charset=utf-8',
                     dataType: 'json',
-                    success: function(response) {
+                    success: function (response) {
                         if (response.d.success) {
                             console.log(signatureType + ' signature saved to database successfully');
                         } else {
                             alert('Error saving ' + signatureType + ' signature: ' + response.d.message);
                         }
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         console.error('Ajax error for ' + signatureType + ':', error);
                         alert('Error uploading ' + signatureType + ' signature: ' + error);
                     }
                 });
             };
-            
-            reader.onerror = function(readerEvent) {
+
+            reader.onerror = function (readerEvent) {
                 console.error('File read error for ' + signatureType + ':', readerEvent);
                 alert('Error reading file. Please try again.');
                 // Clear the input
                 e.target.value = '';
             };
-            
+
             // Start reading the file
             reader.readAsDataURL(file);
         }

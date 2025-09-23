@@ -639,6 +639,7 @@
     <Content Include="API\Attendance_DataSet.xsc">
       <DependentUpon>Attendance_DataSet.xsd</DependentUpon>
     </Content>
+    <Content Include="simple-translation.js" />
     <Content Include="Student\Notice.aspx" />
     <Content Include="Student\OnlinePayment\Success.aspx" />
     <Content Include="Teacher\AddStudentReport.aspx" />
@@ -718,6 +719,7 @@
     <Content Include="Handeler\Comitee_Image.ashx" />
     <Content Include="Handeler\SignatureHandler.ashx" />
     <Content Include="Handeler\TestHandler.ashx" />
+    <Content Include="NEW_BASIC.Master" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
     <Content Include="Routines\Modify_Routine.aspx" />
