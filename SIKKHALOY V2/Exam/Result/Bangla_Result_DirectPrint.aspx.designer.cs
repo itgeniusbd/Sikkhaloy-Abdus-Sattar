@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Exam.Result {
-    
-    
-    public partial class Bangla_Result_DirectPrint {
-        
+namespace EDUCATION.COM.Exam.Result
+{
+
+
+    public partial class Bangla_Result_DirectPrint
+    {
+
         /// <summary>
         /// ClassDropDownList control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ClassDropDownList;
-        
+
         /// <summary>
         /// ClassSQL control.
         /// </summary>
@@ -29,7 +31,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ClassSQL;
-        
+
         /// <summary>
         /// GroupDropDownList control.
         /// </summary>
@@ -38,7 +40,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList GroupDropDownList;
-        
+
         /// <summary>
         /// GroupSQL control.
         /// </summary>
@@ -47,7 +49,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource GroupSQL;
-        
+
         /// <summary>
         /// SectionDropDownList control.
         /// </summary>
@@ -56,7 +58,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList SectionDropDownList;
-        
+
         /// <summary>
         /// SectionSQL control.
         /// </summary>
@@ -65,7 +67,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SectionSQL;
-        
+
         /// <summary>
         /// ShiftDropDownList control.
         /// </summary>
@@ -74,7 +76,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ShiftDropDownList;
-        
+
         /// <summary>
         /// ShiftSQL control.
         /// </summary>
@@ -83,7 +85,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ShiftSQL;
-        
+
         /// <summary>
         /// ExamDropDownList control.
         /// </summary>
@@ -92,7 +94,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ExamDropDownList;
-        
+
         /// <summary>
         /// ExamSQL control.
         /// </summary>
@@ -101,7 +103,16 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ExamSQL;
-        
+
+        /// <summary>
+        /// StudentIDTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox StudentIDTextBox;
+
         /// <summary>
         /// LoadResultsButton control.
         /// </summary>
@@ -110,7 +121,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button LoadResultsButton;
-        
+
         /// <summary>
         /// TeacherSignTextBox control.
         /// </summary>
@@ -119,7 +130,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox TeacherSignTextBox;
-        
+
         /// <summary>
         /// HeadTeacherSignTextBox control.
         /// </summary>
@@ -128,7 +139,61 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox HeadTeacherSignTextBox;
-        
+
+        /// <summary>
+        /// PaginationInfoLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label PaginationInfoLabel;
+
+        /// <summary>
+        /// FirstPageButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button FirstPageButton;
+
+        /// <summary>
+        /// PrevPageButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button PrevPageButton;
+
+        /// <summary>
+        /// PageInfoLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label PageInfoLabel;
+
+        /// <summary>
+        /// NextPageButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button NextPageButton;
+
+        /// <summary>
+        /// LastPageButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button LastPageButton;
+
         /// <summary>
         /// HiddenTeacherSign control.
         /// </summary>
@@ -137,7 +202,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.HiddenField HiddenTeacherSign;
-        
+
         /// <summary>
         /// HiddenPrincipalSign control.
         /// </summary>
@@ -146,7 +211,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.HiddenField HiddenPrincipalSign;
-        
+
         /// <summary>
         /// ResultPanel control.
         /// </summary>
@@ -155,7 +220,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Panel ResultPanel;
-        
+
         /// <summary>
         /// ResultRepeater control.
         /// </summary>

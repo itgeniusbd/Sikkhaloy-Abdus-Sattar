@@ -13,7 +13,7 @@
     
     <div class="controls NoPrint">
         <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="form-group">
                     <label>Class</label>
                     <asp:DropDownList ID="ClassDropDownList" runat="server" AppendDataBoundItems="True" 
@@ -34,7 +34,7 @@
 
             <%if (GroupDropDownList.Items.Count > 1)
             {%>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="form-group">
                     <label>Group</label>
                     <asp:DropDownList ID="GroupDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" 
@@ -55,7 +55,7 @@
 
             <%if (SectionDropDownList.Items.Count > 1)
             {%>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="form-group">
                     <label>Section</label>
                     <asp:DropDownList ID="SectionDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" 
@@ -76,7 +76,7 @@
 
             <%if (ShiftDropDownList.Items.Count > 1)
             {%>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="form-group">
                     <label>Shift</label>
                     <asp:DropDownList ID="ShiftDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" 
@@ -97,7 +97,7 @@
 
             <%if (ExamDropDownList.Items.Count > 1)
             {%>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="form-group">
                     <label>Exam</label>
                     <asp:DropDownList ID="ExamDropDownList" runat="server" CssClass="form-control" 
@@ -118,14 +118,27 @@
             </div>
             <%}%>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="form-group">
-                    <label>&nbsp;</label><br />
-                    <button type="button" onclick="window.print()" class="btn btn-primary">
-                        <i class="fa fa-print"></i> Print
-                    </button>
-                    <asp:Button ID="LoadResultsButton" runat="server" Text="Load Results" 
-                        CssClass="btn btn-success" OnClick="LoadResultsButton_Click" />
+                    <label>Student ID</label>
+                    <asp:TextBox ID="StudentIDTextBox" runat="server" CssClass="form-control" 
+                        placeholder="১০১,১০৫,১০৭" 
+                        ToolTip="Enter Student IDs separated by commas"></asp:TextBox>
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <div class="button-container" style="display: flex; gap: 5px; margin-top: 5px;">
+                        <asp:Button ID="LoadResultsButton" runat="server" Text="LOAD" 
+                            CssClass="btn btn-success btn-sm" OnClick="LoadResultsButton_Click" 
+                            style="flex: 1; height: 34px;" />
+                        <button type="button" onclick="window.print()" class="btn btn-primary btn-sm" 
+                            id="PrintButton" style="display:none; flex: 1; height: 34px;">
+                            PRINT
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -133,21 +146,40 @@
 
    
 
-    <!-- Teacher and Head Teacher Signature Controls -->
-    <div class="form-inline NoPrint Card-space" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-        <div class="form-group" style="margin-right: 15px;">
-            <asp:TextBox ID="TeacherSignTextBox" Text="শ্রেনি শিক্ষক" runat="server" placeholder="শ্রেণি শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
-            <label class="btn btn-grey btn-file" style="margin-left: 5px;">
-                Browse
-                <input id="Tfileupload" type="file" accept="image/*" style="display: none;" />
-            </label>
+    <!-- Teacher and Head Teacher Signature Controls with Pagination -->
+    <div class="form-inline NoPrint Card-space" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center;">
+            <div class="form-group NoPrint" style="margin-right: 15px;">
+                <asp:TextBox ID="TeacherSignTextBox" Text="শ্রেনি শিক্ষক" runat="server" placeholder="শ্রেণি শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
+                <label class="btn btn-grey btn-file NoPrint" style="margin-left: 5px;">
+                    Browse
+                    <input id="Tfileupload" type="file" accept="image/*" style="display: none;" />
+                </label>
+            </div>
+            <div class="form-group NoPrint" style="margin-right: 15px;">
+                <asp:TextBox ID="HeadTeacherSignTextBox" Text="প্রধান শিক্ষক" runat="server" placeholder="মুখ্য শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
+                <label class="btn btn-grey btn-file" style="margin-left: 5px;">
+                    Browse
+                    <input id="Hfileupload" type="file" accept="image/*" style="display: none;" />
+                </label>
+            </div>
         </div>
-        <div class="form-group" style="margin-right: 15px;">
-            <asp:TextBox ID="HeadTeacherSignTextBox" Text="প্রধান শিক্ষক" runat="server" placeholder="মুখ্য শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
-            <label class="btn btn-grey btn-file" style="margin-left: 5px;">
-                Browse
-                <input id="Hfileupload" type="file" accept="image/*" style="display: none;" />
-            </label>
+                <div class="pagination-inline NoPrint" style="margin-bottom: 15px; text-align: center;">
+            <asp:Label ID="PaginationInfoLabel" runat="server" CssClass="pagination-label" 
+                Text="লোড হয়েছে 0 থেকে 0 জন। মোট 0 শিক্ষার্থী থেকে"></asp:Label>
+        </div>
+        <!-- Pagination Controls -->
+        <div class="pagination-inline NoPrint" style="display: flex; align-items: center;">
+            <asp:Button ID="FirstPageButton" runat="server" Text="First" CssClass="btn btn-xs btn-outline-primary" 
+                OnClick="FirstPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
+            <asp:Button ID="PrevPageButton" runat="server" Text="Prev" CssClass="btn btn-xs btn-outline-primary" 
+                OnClick="PrevPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
+            <asp:Label ID="PageInfoLabel" runat="server" CssClass="page-info-inline" 
+                Text="Page 1 of 1" style="margin: 0 8px; font-size: 12px; font-weight: bold; color: #495057;"></asp:Label>
+            <asp:Button ID="NextPageButton" runat="server" Text="Next" CssClass="btn btn-xs btn-outline-primary" 
+                OnClick="NextPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
+            <asp:Button ID="LastPageButton" runat="server" Text="Last" CssClass="btn btn-xs btn-outline-primary" 
+                OnClick="LastPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
         </div>
     </div>
 
@@ -156,6 +188,10 @@
     <asp:HiddenField ID="HiddenPrincipalSign" runat="server" />
 
     <asp:Panel ID="ResultPanel" runat="server" Visible="false">
+        <!-- Pagination Info -->
+
+
+        <!-- Results -->
         <asp:Repeater ID="ResultRepeater" runat="server" OnItemDataBound="ResultRepeater_ItemDataBound">
             <ItemTemplate>
                 <div class="result-card">
@@ -207,11 +243,11 @@
                                 </tr>
                                 <tr class="summary-values">
                                     <td><%# Eval("TotalExamObtainedMark_ofStudent") %>/<%# Eval("TotalMark_ofStudent") %></td>
-                                    <td><%# Eval("ObtainedPercentage_ofStudent", "{0:F2}") %></td>
-                                    <td><%# Eval("Average", "{0:F2}") %></td>
-                                    <td><%# Eval("Student_Grade") %></td>
-                                    <td><%# Eval("Student_Point", "{0:F1}") %></td>
-                                    <td><%# Eval("Position_InExam_Class") %></td>
+                                    <td><%# Eval("ObtainedPercentage_ofStudent") == DBNull.Value ? "0.00" : String.Format("{0:F2}", Eval("ObtainedPercentage_ofStudent")) %></td>
+                                    <td><%# Eval("Average") == DBNull.Value ? "0.00" : String.Format("{0:F2}", Eval("Average")) %></td>
+                                    <td><%# Eval("Student_Grade") == DBNull.Value ? "N/A" : Eval("Student_Grade") %></td>
+                                    <td><%# Eval("Student_Point") == DBNull.Value ? "0.0" : String.Format("{0:F1}", Eval("Student_Point")) %></td>
+                                    <td><%# Eval("Position_InExam_Class") == DBNull.Value ? "N/A" : Eval("Position_InExam_Class") %></td>
                                     <%# GetSectionColumnData(Container.DataItem) %>
                                 </tr>
                             </table>
@@ -235,7 +271,7 @@
                     </div>
 
                     <!-- Dynamic Subject Marks Table -->
-                    <%# GenerateSubjectMarksTable(Eval("StudentResultID").ToString(), Eval("Student_Grade").ToString(), Convert.ToDecimal(Eval("Student_Point"))) %>
+                    <%# GenerateSubjectMarksTable(Eval("StudentResultID").ToString(), Eval("Student_Grade").ToString(), Eval("Student_Point") == DBNull.Value ? 0m : Convert.ToDecimal(Eval("Student_Point"))) %>
 
                     <!-- Footer -->
                     <div class="footer">
@@ -266,352 +302,474 @@
             
             // Initialize teacher and head teacher text
             updateSignatureTexts();
-
-            function fixAbsentMarksDisplay() {
-                // Find all marks tables and fix absent marks
-                $('.marks-table').each(function() {
-                    var $table = $(this);
+            
+            // Initialize signature upload functionality
+            initializeSignatureUpload();
+            
+            // Apply pagination button styles
+            applyPaginationStyles();
+            
+            // Handle Enter key press in Student ID textbox
+            $("[id*=StudentIDTextBox]").keypress(function(e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    $("[id*=LoadResultsButton]").click();
+                }
+            });
+            
+            // Clear Student ID textbox when Class dropdown changes
+            $("[id*=ClassDropDownList]").change(function() {
+                $("[id*=StudentIDTextBox]").val('');
+            });
+            
+            // Add input validation for Student ID textbox - allow alphanumeric
+            $("[id*=StudentIDTextBox]").on('input', function() {
+                var value = $(this).val();
+                // Allow alphanumeric characters, Bengali numbers, commas, and spaces
+                var validChars = /^[a-zA-Z0-9০১২৩৪৫৬৭৮৯,،\s]*$/;
+                
+                if (!validChars.test(value)) {
+                    // Remove invalid characters
+                    value = value.replace(/[^a-zA-Z0-9০১২৩৪৫৬৭৮৯,،\s]/g, '');
+                    $(this).val(value);
+                }
+            });
+            
+            // Add helpful tooltips and validation feedback
+            $("[id*=StudentIDTextBox]").on('blur', function() {
+                var value = $(this).val().trim();
+                if (value) {
+                    // Convert Bengali to English for validation
+                    var englishValue = convertBengaliToEnglishJS(value);
+                    var ids = englishValue.split(/[,、]/).map(id => id.trim()).filter(id => id);
                     
-                    // Process each row in the table
-                    $table.find('tr').each(function(rowIndex) {
-                        var $row = $(this);
+                    // More flexible validation for alphanumeric IDs
+                    var invalidIds = ids.filter(id => !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0);
+                    if (invalidIds.length > 0) {
+                        $(this).addClass('is-invalid');
+                        $(this).attr('title', 'Invalid IDs: ' + invalidIds.join(', '));
+                    } else {
+                        $(this).removeClass('is-invalid');
+                        $(this).attr('title', 'Valid IDs: ' + ids.length + ' student(s)');
+                    }
+                }
+            });
+        });
+
+        // Function to apply pagination button styles
+        function applyPaginationStyles() {
+            // Apply black background and white text to pagination buttons
+            $('.pagination-inline .btn-outline-primary').each(function() {
+                $(this).css({
+                    'color': '#ffffff',
+                    'background-color': '#000000',
+                    'border-color': '#000000',
+                    'font-weight': 'bold'
+                });
+            });
+        }
+
+        // Helper functions
+        function convertBengaliToEnglishJS(text) {
+            var bengaliToEnglish = {
+                '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+                '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+            };
+            
+            return text.replace(/[০-৯]/g, function(match) {
+                return bengaliToEnglish[match] || match;
+            });
+        }
+
+        function fixAbsentMarksDisplay() {
+            // Find all marks tables and fix absent marks
+            $('.marks-table').each(function() {
+                var $table = $(this);
+                
+                // Process each row in the table
+                $table.find('tr').each(function(rowIndex) {
+                    var $row = $(this);
+                    
+                    // Skip header rows
+                    if ($row.find('th').length > 0) {
+                        return;
+                    }
+                    
+                    // Process each cell in the row
+                    $row.find('td').each(function(cellIndex) {
+                        var $cell = $(this);
+                        var cellText = $cell.text().trim();
                         
-                        // Skip header rows
-                        if ($row.find('th').length > 0) {
-                            return;
+                        // Get the header for this column to determine what type of column it is
+                        var $headerRow = $table.find('tr').first();
+                        var $headerCells = $headerRow.find('th');
+                        var columnHeader = '';
+                        
+                        // Find the corresponding header for this cell
+                        if (cellIndex < $headerCells.length) {
+                            columnHeader = $headerCells.eq(cellIndex).text().trim();
                         }
                         
-                        // Process each cell in the row
-                        $row.find('td').each(function(cellIndex) {
-                            var $cell = $(this);
-                            var cellText = $cell.text().trim();
-                            
-                            // Get the header for this column to determine what type of column it is
-                            var $headerRow = $table.find('tr').first();
-                            var $headerCells = $headerRow.find('th');
-                            var columnHeader = '';
-                            
-                            // Find the corresponding header for this cell
-                            if (cellIndex < $headerCells.length) {
-                                columnHeader = $headerCells.eq(cellIndex).text().trim();
+                        // Only convert 'A' to 'অনুপস্থিত' in marks columns, NOT in grade columns
+                        if (cellText === 'A') {
+                            // Check if this is a grade column (গ্রেড) - if so, don't convert
+                            if (columnHeader === 'গ্রেড' || columnHeader.indexOf('গ্রেড') !== -1) {
+                                return; // Skip grade columns
                             }
                             
-                            // Only convert 'A' to 'অনুপস্থিত' in marks columns, NOT in grade columns
-                            if (cellText === 'A') {
-                                // Check if this is a grade column (গ্রেড) - if so, don't convert
-                                if (columnHeader === 'গ্রেড' || columnHeader.indexOf('গ্রেড') !== -1) {
-                                    return; // Skip grade columns
-                                }
+                            // Check if this is a marks/score column or sub-exam column
+                            if (columnHeader === 'প্রাপ্ত নম্বর' || 
+                                columnHeader.indexOf('নম্বর') !== -1 ||
+                                columnHeader === 'Midterm' ||
+                                columnHeader === 'Periodical' ||
+                                columnHeader === 'Subjective' ||
+                                columnHeader === 'Objective' ||
+                                cellIndex <= 2) { // First few columns are usually marks columns
                                 
-                                // Check if this is a marks/score column or sub-exam column
-                                if (columnHeader === 'প্রাপ্ত নম্বর' || 
-                                    columnHeader.indexOf('নম্বর') !== -1 ||
-                                    columnHeader === 'Midterm' ||
-                                    columnHeader === 'Periodical' ||
-                                    columnHeader === 'Subjective' ||
-                                    columnHeader === 'Objective' ||
-                                    cellIndex <= 2) { // First few columns are usually marks columns
-                                    
-                                    $cell.text('অনুপস্থিত');
-                                }
+                                $cell.text('অনুপস্থিত');
                             }
-                            // Convert '0' to '-' in total marks column (if it's likely absent)
-                            else if (cellText === '0' && $cell.hasClass('total-marks-cell')) {
-                                // Check if any sibling cell in same row has 'অনুপস্থিত' or 'A'
-                                var hasAbsentMarks = false;
+                        }
+                        // Convert '0' to '-' in total marks column (if it's likely absent)
+                        else if (cellText === '0' && $cell.hasClass('total-marks-cell')) {
+                            // Check if any sibling cell in same row has 'অনুপস্থিত' or 'A'
+                            var hasAbsentMarks = false;
+                            
+                            $row.find('td').each(function() {
+                                var siblingText = $(this).text().trim();
+                                if (siblingText === 'অনুপস্থিত' || (siblingText === 'A' && !$(this).closest('td').prev().text().trim().match(/গ্রেড/))) {
+                                    hasAbsentMarks = true;
+                                    return false;
+                                }
+                            });
+                            
+                            if (hasAbsentMarks) {
+                                $cell.text('-');
+                            }
+                        }
+                        // Also check for standalone 0 marks that should be '-' for absent
+                        else if (cellText === '0' && !$cell.hasClass('total-marks-cell')) {
+                            // Check if this row has absent marks (but not in grade columns)
+                            var $row = $cell.closest('tr');
+                            var totalCells = $row.find('td').length;
+                            var absentCells = 0;
+                            
+                            $row.find('td').each(function(idx) {
+                                var siblingText = $(this).text().trim();
+                                var siblingHeader = '';
+                                if (idx < $headerCells.length) {
+                                    siblingHeader = $headerCells.eq(idx).text().trim();
+                                }
                                 
-                                $row.find('td').each(function() {
-                                    var siblingText = $(this).text().trim();
-                                    if (siblingText === 'অনুপস্থিত' || (siblingText === 'A' && !$(this).closest('td').prev().text().trim().match(/গ্রেড/))) {
-                                        hasAbsentMarks = true;
-                                        return false;
-                                    }
-                                });
-                                
-                                if (hasAbsentMarks) {
+                                // Count absent marks but exclude grade columns
+                                if ((siblingText === 'অনুপস্থিত' || siblingText === '-') && 
+                                    siblingHeader !== 'গ্রেড' && siblingHeader.indexOf('গ্রেড') === -1) {
+                                    absentCells++;
+                                }
+                            });
+                            
+                            // If most non-grade cells are absent, convert 0 to -'
+                            if (absentCells > totalCells / 3) { // More conservative threshold
+                                // But make sure this isn't a grade column
+                                if (columnHeader !== 'গ্রেড' && columnHeader.indexOf('গ্রেড') === -1 &&
+                                    columnHeader !== 'পয়েন্ট' && columnHeader.indexOf('পয়েন্ট') === -1) {
                                     $cell.text('-');
                                 }
                             }
-                            // Also check for standalone 0 marks that should be '-' for absent
-                            else if (cellText === '0' && !$cell.hasClass('total-marks-cell')) {
-                                // Check if this row has absent marks (but not in grade columns)
-                                var $row = $cell.closest('tr');
-                                var totalCells = $row.find('td').length;
-                                var absentCells = 0;
-                                
-                                $row.find('td').each(function(idx) {
-                                    var siblingText = $(this).text().trim();
-                                    var siblingHeader = '';
-                                    if (idx < $headerCells.length) {
-                                        siblingHeader = $headerCells.eq(idx).text().trim();
-                                    }
-                                    
-                                    // Count absent marks but exclude grade columns
-                                    if ((siblingText === 'অনুপস্থিত' || siblingText === '-') && 
-                                        siblingHeader !== 'গ্রেড' && siblingHeader.indexOf('গ্রেড') === -1) {
-                                        absentCells++;
-                                    }
-                                });
-                                
-                                // If most non-grade cells are absent, convert 0 to -
-                                if (absentCells > totalCells / 3) { // More conservative threshold
-                                    // But make sure this isn't a grade column
-                                    if (columnHeader !== 'গ্রেড' && columnHeader.indexOf('গ্রেড') === -1 &&
-                                        columnHeader !== 'পয়েন্ট' && columnHeader.indexOf('পয়েন্ট') === -1) {
-                                        $cell.text('-');
-                                    }
-                                }
-                            }
+                        }
+                    });
+                });
+            });
+        }
+
+        function convertNumbersToBengali() {
+            // Correct Bengali number mapping
+            var englishToBengali = {
+                '0': '০',
+                '1': '১',
+                '2': '২', 
+                '3': '৩',
+                '4': '৪',
+                '5': '৫',
+                '6': '৬',
+                '7': '৭',
+                '8': '৮',
+                '9': '৯'
+            };
+
+            // Function to convert text
+            function convertText(text) {
+                return text.replace(/[0-9]/g, function(match) {
+                    return englishToBengali[match] || match;
+                });
+            }
+
+            // Convert all text nodes in result cards
+            $('.result-card').each(function() {
+                var $card = $(this);
+                
+                // Get elements to exclude from conversion
+                var $excludedElements = $card.find('.header p, .title'); // Address and Exam name
+                
+                // Convert all other elements
+                $card.find('*').not('.header p').not('.title').contents().filter(function() {
+                    return this.nodeType === 3; // Text nodes only
+                }).each(function() {
+                    var text = this.nodeValue;
+                    if (text && /[0-9]/.test(text)) {
+                        this.nodeValue = convertText(text);
+                    }
+                });
+
+                // Convert table cell contents (excluding header address area)
+                $card.find('td, th').each(function() {
+                    var $cell = $(this);
+                    
+                    // Skip if this cell is inside header area
+                    if ($cell.closest('.header').length > 0) {
+                        return;
+                    }
+                    
+                    // Skip if this cell contains absent marks (don't convert '-' or 'অনুপস্থিত')
+                    var cellText = $cell.text().trim();
+                    if (cellText === '-' || cellText === 'অনুপস্থিত' || cellText === 'A') {
+                        return;
+                    }
+                    
+                    var text = $cell.html();
+                    if (text && /[0-9]/.test(text)) {
+                        // Only convert if it's not an HTML attribute
+                        var convertedText = text.replace(/>[^<]*</g, function(match) {
+                            return convertText(match);
                         });
-                    });
+                        // Also convert standalone text
+                        convertedText = convertedText.replace(/^[^<>]*$/, function(match) {
+                            return convertText(match);
+                        });
+                        $cell.html(convertedText);
+                    }
                 });
-            }
 
-            function convertNumbersToBengali() {
-                // Correct Bengali number mapping
-                var englishToBengali = {
-                    '0': '০',
-                    '1': '১',
-                    '2': '২', 
-                    '3': '৩',
-                    '4': '৪',
-                    '5': '৫',
-                    '6': '৬',
-                    '7': '৭',
-                    '8': '৮',
-                    '9': '৯'
-                };
-
-                // Function to convert text
-                function convertText(text) {
-                    return text.replace(/[0-9]/g, function(match) {
-                        return englishToBengali[match] || match;
-                    });
-                }
-
-                // Convert all text nodes in result cards
-                $('.result-card').each(function() {
-                    var $card = $(this);
-                    
-                    // Get elements to exclude from conversion
-                    var $excludedElements = $card.find('.header p, .title'); // Address and Exam name
-                    
-                    // Convert all other elements
-                    $card.find('*').not('.header p').not('.title').contents().filter(function() {
-                        return this.nodeType === 3; // Text nodes only
-                    }).each(function() {
-                        var text = this.nodeValue;
-                        if (text && /[0-9]/.test(text)) {
-                            this.nodeValue = convertText(text);
-                        }
-                    });
-
-                    // Convert table cell contents (excluding header address area)
-                    $card.find('td, th').each(function() {
-                        var $cell = $(this);
-                        
-                        // Skip if this cell is inside header area
-                        if ($cell.closest('.header').length > 0) {
-                            return;
-                        }
-                        
-                        // Skip if this cell contains absent marks (don't convert '-' or 'অনুপস্থিত')
-                        var cellText = $cell.text().trim();
-                        if (cellText === '-' || cellText === 'অনুপস্থিত' || cellText === 'A') {
-                            return;
-                        }
-                        
-                        var text = $cell.html();
-                        if (text && /[0-9]/.test(text)) {
-                            // Only convert if it's not an HTML attribute
-                            var convertedText = text.replace(/>[^<]*</g, function(match) {
-                                return convertText(match);
-                            });
-                            // Also convert standalone text
-                            convertedText = convertedText.replace(/^[^<>]*$/, function(match) {
-                                return convertText(match);
-                            });
-                            $cell.html(convertedText);
-                        }
-                    });
-
-                    // Convert paragraph and span contents (excluding header p and title)
-                    $card.find('p, span, div:not(:has(*))').not('.header p').not('.title').each(function() {
-                        var $element = $(this);
-                        var text = $element.text();
-                        if (text && /[0-9]/.test(text)) {
-                            $element.text(convertText(text));
-                        }
-                    });
+                // Convert paragraph and span contents (excluding header p and title)
+                $card.find('p, span, div:not(:has(*))').not('.header p').not('.title').each(function() {
+                    var $element = $(this);
+                    var text = $element.text();
+                    if (text && /[0-9]/.test(text)) {
+                        $element.text(convertText(text));
+                    }
                 });
+            });
+        }
+
+        function updateSignatureTexts() {
+            var teacherText = $("[id*=TeacherSignTextBox]").val() || "শ্রেণি শিক্ষক";
+            var headText = $("[id*=HeadTeacherSignTextBox]").val() || "প্রধান শিক্ষক";
+            
+            $(".Teacher").text(teacherText);
+            $(".Head").text(headText);
+        }
+
+        function loadDatabaseSignatures() {
+            // Get signature values from hidden fields
+            var teacherSignPath = $("[id*=HiddenTeacherSign]").val();
+            var principalSignPath = $("[id*=HiddenPrincipalSign]").val();
+
+            // Load teacher signature if exists
+            if (teacherSignPath && teacherSignPath.trim() !== '') {
+                loadSignatureImage(teacherSignPath, 'teacher');
             }
 
-            function updateSignatureTexts() {
-                var teacherText = $("[id*=TeacherSignTextBox]").val() || "শ্রেণি শিক্ষক";
-                var headText = $("[id*=HeadTeacherSignTextBox]").val() || "প্রধান শিক্ষক";
-                
-                $(".Teacher").text(teacherText);
-                $(".Head").text(headText);
-            }
-
-            function loadDatabaseSignatures() {
-                // Get signature values from hidden fields
-                var teacherSignPath = $("[id*=HiddenTeacherSign]").val();
-                var principalSignPath = $("[id*=HiddenPrincipalSign]").val();
-
-                // Load teacher signature if exists
-                if (teacherSignPath && teacherSignPath.trim() !== '') {
-                    loadSignatureImage(teacherSignPath, 'teacher');
-                }
-
-                // Load principal signature if exists
-                if (principalSignPath && principalSignPath.trim() !== '') {
-                    loadSignatureImage(principalSignPath, 'principal');
-                }
-            }
-
-            function loadSignatureImage(imagePath, signatureType) {
-                var targetElement = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
-                
-                var img = new Image();
-                img.onload = function() {
-                    var $img = $("<img />");
-                    $img.attr("style", "height:35px;width:80px;object-fit:contain;");
-                    $img.attr("src", imagePath);
-                    $(targetElement).html($img);
-                };
-                
-                img.src = imagePath;
-            }
-        });
-
-        // Also convert numbers when new data is loaded via postback
-        function Sys$Application$add_pageLoaded(handler) {
-            if (typeof(Sys) !== "undefined" && Sys.Application) {
-                Sys.Application.add_pageLoaded(handler);
+            // Load principal signature if exists
+            if (principalSignPath && principalSignPath.trim() !== '') {
+                loadSignatureImage(principalSignPath, 'principal');
             }
         }
 
-        // Convert numbers after partial postback
-        Sys$Application$add_pageLoaded(function() {
-            setTimeout(function() {
-                // Fix absent marks first
-                $('.marks-table').each(function() {
-                    var $table = $(this);
-                    
-                    // Process each row in the table
-                    $table.find('tr').each(function(rowIndex) {
-                        var $row = $(this);
-                        
-                        // Skip header rows
-                        if ($row.find('th').length > 0) {
-                            return;
-                        }
-                        
-                        // Get header cells for column identification
-                        var $headerRow = $table.find('tr').first();
-                        var $headerCells = $headerRow.find('th');
-                        
-                        // Process each cell in the row
-                        $row.find('td').each(function(cellIndex) {
-                            var $cell = $(this);
-                            var cellText = $cell.text().trim();
+        function loadSignatureImage(imagePath, signatureType) {
+            var targetElement = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
+            
+            var img = new Image();
+            img.onload = function() {
+                var $img = $("<img />");
+                $img.attr("style", "height:35px;width:80px;object-fit:contain;");
+                $img.attr("src", imagePath);
+                $(targetElement).html($img);
+            };
+            
+            img.src = imagePath;
+        }
+
+        // Signature upload functionality
+        function initializeSignatureUpload() {
+            console.log('Initializing signature upload functionality');
+            
+            // Teacher signature upload
+            $('#Tfileupload').on('change', function(e) {
+                console.log('Teacher file selected');
+                var file = e.target.files[0];
+                if (file) {
+                    if (file.type.indexOf('image/') === 0) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            var base64 = e.target.result.split(',')[1];
                             
-                            // Get the header for this column
-                            var columnHeader = '';
-                            if (cellIndex < $headerCells.length) {
-                                columnHeader = $headerCells.eq(cellIndex).text().trim();
-                            }
+                            // Show preview
+                            $('.SignTeacher').html('<img src="' + e.target.result + '" style="height:35px;width:80px;object-fit:contain;" />');
                             
-                            // Only convert 'A' to 'অনুপস্থিত' in marks columns, NOT in grade columns
-                            if (cellText === 'A') {
-                                // Check if this is a grade column - if so, don't convert
-                                if (columnHeader === 'গ্রেড' || columnHeader.indexOf('গ্রেড') !== -1) {
-                                    return; // Skip grade columns
-                                }
-                                
-                                // Convert A to অনুপস্থিত in marks columns only
-                                if (columnHeader === 'প্রাপ্ত নম্বর' || 
-                                    columnHeader.indexOf('নম্বর') !== -1 ||
-                                    columnHeader === 'Midterm' ||
-                                    columnHeader === 'Periodical' ||
-                                    columnHeader === 'Subjective' ||
-                                    columnHeader === 'Objective' ||
-                                    cellIndex <= 2) { // First few columns are usually marks columns
-                                    
-                                    $cell.text('অনুপস্থিত');
-                                }
-                            }
-                            // Convert '0' to '-' in total marks column (if it's likely absent)
-                            else if (cellText === '0' && $cell.hasClass('total-marks-cell')) {
-                                var hasAbsentMarks = false;
-                                
-                                $row.find('td').each(function() {
-                                    var siblingText = $(this).text().trim();
-                                    if (siblingText === 'অনুপস্থিত') {
-                                        hasAbsentMarks = true;
-                                        return false;
+                            // Save to database
+                            $.ajax({
+                                type: 'POST',
+                                url: 'Bangla_Result_DirectPrint.aspx/SaveSignature',
+                                data: JSON.stringify({
+                                    signatureType: 'teacher',
+                                    imageData: base64
+                                }),
+                                contentType: 'application/json; charset=utf-8',
+                                dataType: 'json',
+                                success: function(response) {
+                                    if (response.d.success) {
+                                        console.log('Teacher signature saved successfully');
+                                    } else {
+                                        alert('Error saving teacher signature: ' + response.d.message);
                                     }
-                                });
-                                
-                                if (hasAbsentMarks) {
-                                    $cell.text('-');
+                                },
+                                error: function(xhr, status, error) {
+                                    console.error('Ajax error:', error);
+                                    alert('Error uploading teacher signature: ' + error);
                                 }
-                            }
-                        });
-                    });
-                });
-                
-                // Then convert numbers to Bengali
-                var englishToBengali = {
-                    '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
-                    '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
-                };
-
-                function convertText(text) {
-                    return text.replace(/[0-9]/g, function(match) {
-                        return englishToBengali[match] || match;
-                    });
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        alert('Please select a valid image file.');
+                    }
                 }
+            });
 
-                // Convert all result cards after postback (excluding header and title areas)
-                $('.result-card').each(function() {
-                    var $card = $(this);
+            // Principal signature upload
+            $('#Hfileupload').on('change', function(e) {
+                console.log('Principal file selected');
+                var file = e.target.files[0];
+                if (file) {
+                    if (file.type.indexOf('image/') === 0) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            var base64 = e.target.result.split(',')[1];
+                            
+                            // Show preview
+                            $('.SignHead').html('<img src="' + e.target.result + '" style="height:35px;width:80px;object-fit:contain;" />');
+                            
+                            // Save to database
+                            $.ajax({
+                                type: 'POST',
+                                url: 'Bangla_Result_DirectPrint.aspx/SaveSignature',
+                                data: JSON.stringify({
+                                    signatureType: 'principal',
+                                    imageData: base64
+                                }),
+                                contentType: 'application/json; charset=utf-8',
+                                dataType: 'json',
+                                success: function(response) {
+                                    if (response.d.success) {
+                                        console.log('Principal signature saved successfully');
+                                    } else {
+                                        alert('Error saving principal signature: ' + response.d.message);
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    console.error('Ajax error:', error);
+                                    alert('Error uploading principal signature: ' + error);
+                                }
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        alert('Please select a valid image file.');
+                    }
+                }
+            });
+        }
+
+        // Convert numbers when new data is loaded via postback - using proper ASP.NET approach
+        function pageLoad(sender, args) {
+            if (args.get_isPartialLoad()) {
+                setTimeout(function() {
+                    convertNumbersAfterPostback();
+                    // Reapply pagination styles after postback
+                    applyPaginationStyles();
+                }, 100);
+            }
+        }
+
+        function convertNumbersAfterPostback() {
+            // Fix absent marks first
+            $('.marks-table').each(function() {
+                var $table = $(this);
+                
+                // Process each row in the table
+                $table.find('tr').each(function(rowIndex) {
+                    var $row = $(this);
                     
-                    // Convert only non-excluded elements
-                    $card.find('*').not('.header p').not('.title').contents().filter(function() {
-                        return this.nodeType === 3;
-                    }).each(function() {
-                        var text = this.nodeValue;
-                        if (text && /[0-9]/.test(text)) {
-                            this.nodeValue = convertText(text);
-                        }
-                    });
-
-                    // Convert table cells and other elements (excluding header area)
-                    $card.find('td, th, span').each(function() {
-                        var $element = $(this);
+                    // Skip header rows
+                    if ($row.find('th').length > 0) {
+                        return;
+                    }
+                    
+                    // Get header cells for column identification
+                    var $headerRow = $table.find('tr').first();
+                    var $headerCells = $headerRow.find('th');
+                    
+                    // Process each cell in the row
+                    $row.find('td').each(function(cellIndex) {
+                        var $cell = $(this);
+                        var cellText = $cell.text().trim();
                         
-                        // Skip if inside header
-                        if ($element.closest('.header').length > 0) {
-                            return;
-                        }
-                        
-                        // Skip if contains absent marks or grades
-                        var elementText = $element.text().trim();
-                        if (elementText === '-' || elementText === 'অনুপস্থিত' || 
-                            elementText === 'A+' || elementText === 'A-' || elementText === 'B' || 
-                            elementText === 'C' || elementText === 'D' || elementText === 'F') {
-                            return;
+                        // Get the header for this column
+                        var columnHeader = '';
+                        if (cellIndex < $headerCells.length) {
+                            columnHeader = $headerCells.eq(cellIndex).text().trim();
                         }
                         
-                        var text = $element.text();
-                        if (text && /[0-9]/.test(text)) {
-                            $element.text(convertText(text));
+                        // Only convert 'A' to 'অনুপস্থিত' in marks columns, NOT in grade columns
+                        if (cellText === 'A') {
+                            // Check if this is a grade column - if so, don't convert
+                            if (columnHeader === 'গ্রেড' || columnHeader.indexOf('গ্রেড') !== -1) {
+                                return; // Skip grade columns
+                            }
+                            
+                            // Convert A to অনুপস্থিত in marks columns only
+                            if (columnHeader === 'প্রাপ্ত নম্বর' || 
+                                columnHeader.indexOf('নম্বর') !== -1 ||
+                                columnHeader === 'Midterm' ||
+                                columnHeader === 'Periodical' ||
+                                columnHeader === 'Subjective' ||
+                                columnHeader === 'Objective' ||
+                                cellIndex <= 2) { // First few columns are usually marks columns
+                                
+                                $cell.text('অনুপস্থিত');
+                            }
+                        }
+                        // Convert '0' to '-' in total marks column (if it's likely absent)
+                        else if (cellText === '0' && $cell.hasClass('total-marks-cell')) {
+                            var hasAbsentMarks = false;
+                            
+                            $row.find('td').each(function() {
+                                var siblingText = $(this).text().trim();
+                                if (siblingText === 'অনুপস্থিত') {
+                                    hasAbsentMarks = true;
+                                    return false;
+                                }
+                            });
+                            
+                            if (hasAbsentMarks) {
+                                $cell.text('-');
+                            }
                         }
                     });
                 });
-            }, 100);
-        });
+            });
+            
+            // Then convert numbers to Bengali
+            convertNumbersToBengali();
+        }
     </script>
 </asp:Content>

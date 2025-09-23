@@ -10,11 +10,35 @@ using System.Configuration;
 using System.Text;
 using System.Web.Services;
 using System.Threading;
+using System.IO;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace EDUCATION.COM.Exam.Result
 {
     public partial class Bangla_Result_DirectPrint : System.Web.UI.Page
     {
+        // Pagination properties
+        private const int PageSize = 25; // 25 records per page
+        
+        private int CurrentPageIndex
+        {
+            get { return ViewState["CurrentPageIndex"] != null ? (int)ViewState["CurrentPageIndex"] : 0; }
+            set { ViewState["CurrentPageIndex"] = value; }
+        }
+        
+        private int TotalRecords
+        {
+            get { return ViewState["TotalRecords"] != null ? (int)ViewState["TotalRecords"] : 0; }
+            set { ViewState["TotalRecords"] = value; }
+        }
+        
+        private DataTable AllResultsData
+        {
+            get { return ViewState["AllResultsData"] as DataTable; }
+            set { ViewState["AllResultsData"] = value; }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             try
@@ -28,6 +52,7 @@ namespace EDUCATION.COM.Exam.Result
                     GroupDropDownList.Visible = false;
                     SectionDropDownList.Visible = false;
                     ShiftDropDownList.Visible = false;
+                    CurrentPageIndex = 0;
                 }
             }
             catch (ThreadAbortException)
@@ -78,6 +103,15 @@ namespace EDUCATION.COM.Exam.Result
                 ExamDropDownList.DataBind();
                 UpdateDropdownVisibility();
                 ResultPanel.Visible = false;
+                
+                // Reset pagination
+                CurrentPageIndex = 0;
+                AllResultsData = null;
+                TotalRecords = 0;
+                
+                // Hide print button when class changes
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintOnClassChange",
+                    "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
                 
                 // Reset page title when class changes
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleClassChange",
@@ -160,17 +194,40 @@ namespace EDUCATION.COM.Exam.Result
         {
             try
             {
-                if (ExamDropDownList.SelectedValue != "0" && ClassDropDownList.SelectedValue != "0")
+                // Check if Student ID search is being used
+                string studentIDText = StudentIDTextBox.Text.Trim();
+                bool isSearchingByID = !string.IsNullOrEmpty(studentIDText);
+                
+                if (isSearchingByID)
                 {
-                    // Add client-side debug information
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "debug1",
-                        $"console.log('Loading results for Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');", true);
+                    // For Student ID search, only Class and Exam are required
+                    if (ExamDropDownList.SelectedValue != "0" && ClassDropDownList.SelectedValue != "0")
+                    {
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "debug1",
+                            $"console.log('Loading results for Student IDs: {studentIDText}, Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');", true);
 
-                    LoadResultsData();
+                        LoadResultsData();
+                    }
+                    else
+                    {
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "alert", 
+                            "alert('For Student ID search, please select both Class and Exam');", true);
+                    }
                 }
                 else
                 {
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "alert", "alert('Please select both Class and Exam');", true);
+                    // For normal search, Class and Exam are required
+                    if (ExamDropDownList.SelectedValue != "0" && ClassDropDownList.SelectedValue != "0")
+                    {
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "debug1",
+                            $"console.log('Loading results for Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');", true);
+
+                        LoadResultsData();
+                    }
+                    else
+                    {
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "alert", "alert('Please select both Class and Exam');", true);
+                    }
                 }
             }
             catch (ThreadAbortException)
@@ -192,59 +249,130 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
 
-                string query = @"
-                    SELECT DISTINCT
-                        ers.StudentResultID,
-                        ers.TotalExamObtainedMark_ofStudent,
-                        ers.Student_Grade,
-                        ers.Student_Point,
-                        ers.Average,
-                        ers.ObtainedPercentage_ofStudent,
-                        ers.TotalMark_ofStudent,
-                        ers.Position_InExam_Class,
-                        ers.Position_InExam_Subsection,
-                        CASE WHEN ers.Student_Grade = 'F' THEN 'Fail' ELSE 'Pass' END as PassStatus_ofStudent,
-                        s.StudentsName,
-                        ISNULL(s.ID, '') as ID,
-                        ISNULL(s.StudentImageID, 0) as StudentImageID,
-                        sc.RollNo,
-                        cc.Class as ClassName,
-                        ISNULL(cs.Section, '') as SectionName,
-                        ISNULL(csh.Shift, '') as ShiftName,
-                        ISNULL(csg.SubjectGroup, '') as GroupName,
-                        en.ExamName,
-                        ers.SchoolID,
-                        sch.SchoolName,
-                        sch.Address,
-                        sch.Phone
-                    FROM Exam_Result_of_Student ers
-                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
-                    INNER JOIN Student s ON sc.StudentID = s.StudentID
-                    INNER JOIN CreateClass cc ON sc.ClassID = cc.ClassID
-                    INNER JOIN Exam_Name en ON ers.ExamID = en.ExamID
-                    INNER JOIN SchoolInfo sch ON ers.SchoolID = sch.SchoolID
-                    LEFT JOIN CreateSection cs ON sc.SectionID = cs.SectionID
-                    LEFT JOIN CreateShift csh ON sc.ShiftID = csh.ShiftID
-                    LEFT JOIN CreateSubjectGroup csg ON sc.SubjectGroupID = csg.SubjectGroupID
-                    WHERE ers.ExamID = @ExamID
-                    AND sc.ClassID = @ClassID
-                    AND sc.SectionID LIKE @SectionID
-                    AND sc.ShiftID LIKE @ShiftID
-                    AND sc.SubjectGroupID LIKE @GroupID
-                    AND ers.SchoolID = @SchoolID
-                    AND ers.EducationYearID = @EducationYearID
-                    ORDER BY sc.RollNo";
+                // Check if Student ID search is being used
+                string studentIDText = StudentIDTextBox.Text.Trim();
+                bool isSearchingByID = !string.IsNullOrEmpty(studentIDText);
+                
+                string query;
+                
+                if (isSearchingByID)
+                {
+                    // Parse student IDs from textbox
+                    var studentIDs = ParseStudentIDs(studentIDText);
+                    if (studentIDs.Count == 0)
+                    {
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "invalidID", 
+                            "alert('Please enter valid Student IDs');", true);
+                        return;
+                    }
+
+                    // Create IN clause for student IDs - they are already quoted in ParseStudentIDs
+                    string idInClause = string.Join(",", studentIDs);
+                    
+                    // Modified query for Student ID search - using 'ID' field instead of 'StudentID'
+                    query = @"
+                        SELECT DISTINCT
+                            ers.StudentResultID,
+                            ers.TotalExamObtainedMark_ofStudent,
+                            ers.Student_Grade,
+                            ers.Student_Point,
+                            ers.Average,
+                            ers.ObtainedPercentage_ofStudent,
+                            ers.TotalMark_ofStudent,
+                            ers.Position_InExam_Class,
+                            ers.Position_InExam_Subsection,
+                            CASE WHEN ers.Student_Grade = 'F' THEN 'Fail' ELSE 'Pass' END as PassStatus_ofStudent,
+                            s.StudentsName,
+                            s.ID,
+                            ISNULL(s.StudentImageID, 0) as StudentImageID,
+                            sc.RollNo,
+                            cc.Class as ClassName,
+                            ISNULL(cs.Section, '') as SectionName,
+                            ISNULL(csh.Shift, '') as ShiftName,
+                            ISNULL(csg.SubjectGroup, '') as GroupName,
+                            en.ExamName,
+                            ers.SchoolID,
+                            sch.SchoolName,
+                            sch.Address,
+                            sch.Phone
+                        FROM Exam_Result_of_Student ers
+                        INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                        INNER JOIN Student s ON sc.StudentID = s.StudentID
+                        INNER JOIN CreateClass cc ON sc.ClassID = cc.ClassID
+                        INNER JOIN Exam_Name en ON ers.ExamID = en.ExamID
+                        INNER JOIN SchoolInfo sch ON ers.SchoolID = sch.SchoolID
+                        LEFT JOIN CreateSection cs ON sc.SectionID = cs.SectionID
+                        LEFT JOIN CreateShift csh ON sc.ShiftID = csh.ShiftID
+                        LEFT JOIN CreateSubjectGroup csg ON sc.SubjectGroupID = csg.SubjectGroupID
+                        WHERE ers.ExamID = @ExamID
+                        AND sc.ClassID = @ClassID
+                        AND s.ID IN (" + idInClause + @")
+                        AND ers.SchoolID = @SchoolID
+                        AND ers.EducationYearID = @EducationYearID
+                        ORDER BY s.ID";
+                }
+                else
+                {
+                    // Original query for normal search
+                    query = @"
+                        SELECT DISTINCT
+                            ers.StudentResultID,
+                            ers.TotalExamObtainedMark_ofStudent,
+                            ers.Student_Grade,
+                            ers.Student_Point,
+                            ers.Average,
+                            ers.ObtainedPercentage_ofStudent,
+                            ers.TotalMark_ofStudent,
+                            ers.Position_InExam_Class,
+                            ers.Position_InExam_Subsection,
+                            CASE WHEN ers.Student_Grade = 'F' THEN 'Fail' ELSE 'Pass' END as PassStatus_ofStudent,
+                            s.StudentsName,
+                            ISNULL(s.ID, '') as ID,
+                            ISNULL(s.StudentImageID, 0) as StudentImageID,
+                            sc.RollNo,
+                            cc.Class as ClassName,
+                            ISNULL(cs.Section, '') as SectionName,
+                            ISNULL(csh.Shift, '') as ShiftName,
+                            ISNULL(csg.SubjectGroup, '') as GroupName,
+                            en.ExamName,
+                            ers.SchoolID,
+                            sch.SchoolName,
+                            sch.Address,
+                            sch.Phone
+                        FROM Exam_Result_of_Student ers
+                        INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                        INNER JOIN Student s ON sc.StudentID = s.StudentID
+                        INNER JOIN CreateClass cc ON sc.ClassID = cc.ClassID
+                        INNER JOIN Exam_Name en ON ers.ExamID = en.ExamID
+                        INNER JOIN SchoolInfo sch ON ers.SchoolID = sch.SchoolID
+                        LEFT JOIN CreateSection cs ON sc.SectionID = cs.SectionID
+                        LEFT JOIN CreateShift csh ON sc.ShiftID = csh.ShiftID
+                        LEFT JOIN CreateSubjectGroup csg ON sc.SubjectGroupID = csg.SubjectGroupID
+                        WHERE ers.ExamID = @ExamID
+                        AND sc.ClassID = @ClassID
+                        AND sc.SectionID LIKE @SectionID
+                        AND sc.ShiftID LIKE @ShiftID
+                        AND sc.SubjectGroupID LIKE @GroupID
+                        AND ers.SchoolID = @SchoolID
+                        AND ers.EducationYearID = @EducationYearID
+                        ORDER BY sc.RollNo";
+                }
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
-                    cmd.CommandTimeout = 30; // Increase timeout
+                    cmd.CommandTimeout = 30;
                     cmd.Parameters.AddWithValue("@ExamID", ExamDropDownList.SelectedValue);
                     cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-                    cmd.Parameters.AddWithValue("@SectionID", SectionDropDownList.SelectedValue);
-                    cmd.Parameters.AddWithValue("@ShiftID", ShiftDropDownList.SelectedValue);
-                    cmd.Parameters.AddWithValue("@GroupID", GroupDropDownList.SelectedValue);
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+                    
+                    // Only add these parameters for normal search (not ID search)
+                    if (!isSearchingByID)
+                    {
+                        cmd.Parameters.AddWithValue("@SectionID", SectionDropDownList.SelectedValue);
+                        cmd.Parameters.AddWithValue("@ShiftID", ShiftDropDownList.SelectedValue);
+                        cmd.Parameters.AddWithValue("@GroupID", GroupDropDownList.SelectedValue);
+                    }
 
                     DataTable dt = new DataTable();
                     using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
@@ -255,16 +383,26 @@ namespace EDUCATION.COM.Exam.Result
 
                     if (dt.Rows.Count > 0)
                     {
+                        // Store all data for pagination
+                        AllResultsData = dt;
+                        TotalRecords = dt.Rows.Count;
+                        CurrentPageIndex = 0; // Reset to first page
+                        
                         // Load signatures separately
                         LoadSignatureImages();
                         
-                        ResultRepeater.DataSource = dt;
-                        ResultRepeater.DataBind();
+                        // Bind paginated data
+                        BindResultsToRepeater(dt);
                         ResultPanel.Visible = true;
+                        
+                        // Show simple print button when results are available
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "showPrintButton",
+                            "document.getElementById('PrintButton').style.display = 'inline-block';", true);
 
                         // Update page title with dynamic student count
                         int studentCount = dt.Rows.Count;
-                        string dynamicTitle = $"বাংলা রেজাল্ট কার্ড - মোট শিক্ষার্থী ( {studentCount} )";
+                        string searchMethod = isSearchingByID ? "AIডি সার্চ" : "সাধারণ সার্চ";
+                        string dynamicTitle = $"বাংলা রেজাল্ট কার্ড - মোট শিক্ষার্থী ( {studentCount} ) - {searchMethod}";
                         
                         // Update page title using JavaScript
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "updateTitle",
@@ -272,14 +410,25 @@ namespace EDUCATION.COM.Exam.Result
                     }
                     else
                     {
+                        AllResultsData = null;
+                        TotalRecords = 0;
+                        CurrentPageIndex = 0;
                         ResultPanel.Visible = false;
+                        
+                        // Hide print button when no results
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintButton",
+                            "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
                         
                         // Reset page title when no results
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitle",
                             "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
                         
+                        string noResultsMessage = isSearchingByID ? 
+                            "No results found for the specified Student IDs" : 
+                            "No results found for the selected criteria";
+                        
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "nodata",
-                            "alert('No results found for the selected criteria');", true);
+                            $"alert('{noResultsMessage}');", true);
                     }
                 }
             }
@@ -317,6 +466,105 @@ namespace EDUCATION.COM.Exam.Result
                     con.Dispose();
                 }
             }
+        }
+
+        private void BindResultsToRepeater(DataTable dt)
+        {
+            if (dt == null || dt.Rows.Count == 0)
+            {
+                ResultRepeater.DataSource = null;
+                ResultRepeater.DataBind();
+                UpdatePaginationControls();
+                return;
+            }
+
+            // Calculate pagination
+            int startIndex = CurrentPageIndex * PageSize;
+            int endIndex = Math.Min(startIndex + PageSize, dt.Rows.Count);
+            
+            // Create a new DataTable with only the current page data
+            DataTable pageData = dt.Clone();
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                pageData.ImportRow(dt.Rows[i]);
+            }
+            
+            // Bind to repeater
+            ResultRepeater.DataSource = pageData;
+            ResultRepeater.DataBind();
+            
+            // Update pagination controls
+            UpdatePaginationControls();
+        }
+        
+        private void UpdatePaginationControls()
+        {
+            if (TotalRecords == 0)
+            {
+                PaginationInfoLabel.Text = "No students found";
+                PageInfoLabel.Text = "Page 0 of 0";
+                
+                FirstPageButton.Enabled = false;
+                PrevPageButton.Enabled = false;
+                NextPageButton.Enabled = false;
+                LastPageButton.Enabled = false;
+                
+                // Hide print button when no results
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintButton",
+                    "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
+                return;
+            }
+            
+            int totalPages = (int)Math.Ceiling((double)TotalRecords / PageSize);
+            int currentPage = CurrentPageIndex + 1;
+            int startRecord = (CurrentPageIndex * PageSize) + 1;
+            int endRecord = Math.Min(startRecord + PageSize - 1, TotalRecords);
+            
+            // Update info labels
+            PaginationInfoLabel.Text = $"লোড হয়েছে {startRecord} থেকে {endRecord} জন। মোট {TotalRecords} জন শিক্ষার্থী থেকে";
+            PageInfoLabel.Text = $"Page {currentPage} of {totalPages}";
+     
+            // Enable/disable buttons
+            FirstPageButton.Enabled = CurrentPageIndex > 0;
+            PrevPageButton.Enabled = CurrentPageIndex > 0;
+            NextPageButton.Enabled = CurrentPageIndex < (totalPages - 1);
+            LastPageButton.Enabled = CurrentPageIndex < (totalPages - 1);
+            
+            // Show print button when there are results
+            Page.ClientScript.RegisterStartupScript(typeof(Page), "showPrintButton",
+                "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'inline-block';", true);
+        }
+
+        protected void NextPageButton_Click(object sender, EventArgs e)
+        {
+            int totalPages = (int)Math.Ceiling((double)TotalRecords / PageSize);
+            if (CurrentPageIndex < totalPages - 1)
+            {
+                CurrentPageIndex++;
+                BindResultsToRepeater(AllResultsData);
+            }
+        }
+
+        protected void PrevPageButton_Click(object sender, EventArgs e)
+        {
+            if (CurrentPageIndex > 0)
+            {
+                CurrentPageIndex--;
+                BindResultsToRepeater(AllResultsData);
+            }
+        }
+        
+        protected void FirstPageButton_Click(object sender, EventArgs e)
+        {
+            CurrentPageIndex = 0;
+            BindResultsToRepeater(AllResultsData);
+        }
+        
+        protected void LastPageButton_Click(object sender, EventArgs e)
+        {
+            int totalPages = (int)Math.Ceiling((double)TotalRecords / PageSize);
+            CurrentPageIndex = Math.Max(0, totalPages - 1);
+            BindResultsToRepeater(AllResultsData);
         }
 
         private void LoadSignatureImages()
@@ -549,7 +797,9 @@ namespace EDUCATION.COM.Exam.Result
 
         private decimal GetSafeDecimalValue(DataRow row, string columnName)
         {
-            if (row.Table.Columns.Contains(columnName) && row[columnName] != DBNull.Value)
+            if (row.Table.Columns.Contains(columnName) && 
+                row[columnName] != DBNull.Value && 
+                row[columnName] != null)
             {
                 decimal value;
                 if (decimal.TryParse(row[columnName].ToString(), out value))
@@ -564,7 +814,15 @@ namespace EDUCATION.COM.Exam.Result
         public string GetResult(object dataItem)
         {
             DataRowView row = (DataRowView)dataItem;
-            return row["PassStatus_ofStudent"].ToString() == "Pass" ? "উত্তীর্ণ" : "অনুত্তীর্ণ";
+            var passStatus = row["PassStatus_ofStudent"];
+            
+            // Handle DBNull values
+            if (passStatus == DBNull.Value || passStatus == null)
+            {
+                return "N/A";
+            }
+            
+            return passStatus.ToString() == "Pass" ? "উত্তীর্ণ" : "অনুত্তীর্ণ";
         }
 
         private DataTable GetSubjectResults(string studentResultID)
@@ -934,16 +1192,16 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             string subExamName = headerRow["SubExamName"].ToString();
                             string markValue = marksDict.ContainsKey(subExamName) ? marksDict[subExamName] : "-";
-                            
+
                             // Check if this is an absent mark (A) or 0 for absent student
                             if (markValue == "A")
                             {
                                 markValue = "অনুপস্থিত";
                                 hasAbsentMarks = true;
                             }
-                            else if (markValue == "0" && IsStudentAbsent(studentResultID, subjectID))
+                            else if (markValue == "0")
                             {
-                                markValue = "অনুপস্থিত";
+                                markValue = "অনুপstitut";
                                 hasAbsentMarks = true;
                             }
                             
@@ -966,7 +1224,7 @@ namespace EDUCATION.COM.Exam.Result
                         string totalCell;
                         
                         // If student has absent marks in sub-exams, show "-" in total
-                        if (hasAbsentMarks || IsStudentAbsent(studentResultID, subjectID))
+                        if (hasAbsentMarks)
                         {
                             totalCell = $"<td class=\"total-marks-cell\">-</td>";
                         }
@@ -976,16 +1234,9 @@ namespace EDUCATION.COM.Exam.Result
                         }
                         else
                         {
-                            // Format original marks - show "অনুপস্থিত" or "-" for absent
-                            string formattedOriginalMark = FormatMarksDisplay(originalObtainedMark, studentResultID, subjectID);
-                            if (formattedOriginalMark == "অনুপস্থিত")
-                            {
-                                totalCell = $"<td class=\"total-marks-cell\">-</td>";
-                            }
-                            else
-                            {
-                                totalCell = $"<td class=\"total-marks-cell\">{formattedOriginalMark}</td>";
-                            }
+                            // Show original marks or "-" for absent
+                            string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
+                            totalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
                         }
                         
                         System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: HasValidMarks: {hasValidMarks}, HasAbsentMarks: {hasAbsentMarks}, Total: {(hasValidMarks ? totalMarks.ToString() : "N/A")}");
@@ -1006,13 +1257,10 @@ namespace EDUCATION.COM.Exam.Result
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForDisplay: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
                 
                 // For error case, check if student is absent and show appropriate total
-                string formattedOriginalMark = FormatMarksDisplay(originalObtainedMark, studentResultID, subjectID);
-                string errorTotalCell = formattedOriginalMark == "অনুপস্থিত" ? 
-                    $"<td class=\"total-marks-cell\">-</td>" : 
-                    $"<td class=\"total-marks-cell\">{formattedOriginalMark}</td>";
+                string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
+                string errorTotalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
                     
                 return ("", errorTotalCell);
             }
@@ -1077,7 +1325,7 @@ namespace EDUCATION.COM.Exam.Result
                         </tr>";
                 }
 
-                foreach (DataRow row in subjects.Rows)
+                foreach ( DataRow row in subjects.Rows )
                 {
                     string subjectName = GetSafeColumnValue(row, "SubjectName");
                     string obtainedMark = GetSafeColumnValue(row, "ObtainedMark_ofSubject");
@@ -1091,7 +1339,7 @@ namespace EDUCATION.COM.Exam.Result
                     string rowClass = passStatus == "Fail" ? "failed-row" : "";
 
                     // Format marks display - show 'অনুপস্থিত' for absent students instead of 0
-                    string displayMark = FormatMarksDisplay(obtainedMark, studentResultID, subjectID);
+                    string displayMark = (obtainedMark == "A" || obtainedMark == "0") ? "অনুপস্থিত" : obtainedMark;
 
                     if (hasSubExams && subExamCount > 0)
                     {
@@ -1123,7 +1371,7 @@ namespace EDUCATION.COM.Exam.Result
                 }
 
                 html += "</table>";
-                return html;
+                return html.ToString();
             }
             catch (Exception ex)
             {
@@ -1187,6 +1435,67 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
+        // Helper method to parse Student IDs from comma-separated input
+        private List<string> ParseStudentIDs(string input)
+        {
+            var studentIDs = new List<string>();
+            
+            if (string.IsNullOrWhiteSpace(input))
+                return studentIDs;
+            
+            // Split by comma and parse each ID
+            string[] idStrings = input.Split(new char[] { ',', '،' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (string idString in idStrings)
+            {
+                string cleanId = idString.Trim();
+                
+                // Convert Bengali numbers to English if needed
+                cleanId = ConvertBengaliToEnglish(cleanId);
+                
+                // Check if it's a valid ID (can be numeric or alphanumeric)
+                if (!string.IsNullOrEmpty(cleanId) && cleanId.Length > 0)
+                {
+                    // Add quotes around the ID for SQL IN clause
+                    string quotedId = $"'{cleanId}'";
+                    if (!studentIDs.Contains(quotedId))
+                    {
+                        studentIDs.Add(quotedId);
+                    }
+                }
+            }
+            
+            return studentIDs;
+        }
+        
+        // Helper method to convert Bengali numbers to English
+        private string ConvertBengaliToEnglish(string bengaliText)
+        {
+            if (string.IsNullOrEmpty(bengaliText))
+                return bengaliText;
+                
+            var bengaliToEnglish = new Dictionary<char, char>
+            {
+                {'০', '0'}, {'১', '1'}, {'২', '2'}, {'৩', '3'}, {'৪', '4'},
+                {'৫', '5'}, {'৬', '6'}, {'৭', '7'}, {'৮', '8'}, {'৯', '9'}
+            };
+            
+            var result = new StringBuilder();
+            foreach (char c in bengaliText)
+            {
+                if (bengaliToEnglish.ContainsKey(c))
+                {
+                    result.Append(bengaliToEnglish[c]);
+                }
+                else
+                {
+                    result.Append(c);
+                }
+            }
+            
+            return result.ToString();
+        }
+
         // Helper method to check if a specific section is selected (not ALL sections)
         protected bool IsSectionSelected()
         {
@@ -1209,7 +1518,15 @@ namespace EDUCATION.COM.Exam.Result
             if (!IsSectionSelected()) return "";
             
             DataRowView row = (DataRowView)dataItem;
-            return "<td>" + row["Position_InExam_Subsection"] + "</td>";
+            var positionValue = row["Position_InExam_Subsection"];
+            
+            // Handle DBNull values
+            if (positionValue == DBNull.Value || positionValue == null)
+            {
+                return "<td>N/A</td>";
+            }
+            
+            return "<td>" + positionValue.ToString() + "</td>";
         }
 
         // Helper method to check if the selected class has groups available
@@ -1318,202 +1635,111 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Enhanced method to check if student was absent - with debugging
-        private bool IsStudentAbsent(string studentResultID, int subjectID)
+        private string GetDynamicInfoRowForPDF(DataRowView dataRow)
         {
-            SqlConnection con = null;
+            if (dataRow == null) return "<tr><td colspan='6'>Data not available</td></tr>";
+            
+            string className = dataRow["ClassName"]?.ToString() ?? "";
+            string groupName = dataRow["GroupName"]?.ToString() ?? "";
+            string sectionName = dataRow["SectionName"]?.ToString() ?? "";
+            
+            bool hasGroups = HasGroupsForClass();
+            bool hasSections = HasSectionsForClass();
+            
+            if (hasGroups)
+            {
+                return $@"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>{className}</td>
+                        <td>গ্রুপ:</td>
+                        <td>{groupName}</td>
+                        <td>শাখা:</td>
+                        <td>{sectionName}</td>
+                    </tr>";
+            }
+            else if (hasSections)
+            {
+                return $@"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>{className}</td>
+                        <td>শাখা:</td>
+                        <td>{sectionName}</td>
+                        <td colspan='2'></td>
+                    </tr>";
+            }
+            else
+            {
+                return $@"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>{className}</td>
+                        <td colspan='4'></td>
+                    </tr>";
+            }
+        }
+
+        private string GenerateGradeChartForPDF()
+        {
+            DataTable gradingData = GetGradingSystemData();
+            StringBuilder chartHtml = new StringBuilder();
+            
+            chartHtml.Append(@"
+                <table>
+                    <tr><th>মার্ক</th><th>গ্রেড</th><th>পয়েন্ট</th></tr>");
+            
+            foreach (DataRow row in gradingData.Rows)
+            {
+                chartHtml.AppendFormat(@"
+                    <tr>
+                        <td>{0}</td>
+                        <td>{1}</td>
+                        <td>{2:F1}</td>
+                    </tr>", 
+                    row["MARKS"], 
+                    row["Grades"], 
+                    Convert.ToDecimal(row["Point"]));
+            }
+            
+            chartHtml.Append("</table>");
+            return chartHtml.ToString();
+        }
+
+        protected void DownloadPDFButton_Click(object sender, EventArgs e)
+        {
             try
             {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
-                
-                System.Diagnostics.Debug.WriteLine($"Checking absence for StudentResultID: {studentResultID}, SubjectID: {subjectID}");
-                
-                // Get the obtained marks for this subject
-                string marksQuery = @"
-                    SELECT ISNULL(ObtainedMark_ofSubject, '0') as ObtainedMarks
-                    FROM Exam_Result_of_Subject 
-                    WHERE StudentResultID = @StudentResultID 
-                    AND SubjectID = @SubjectID";
-
-                using (SqlCommand cmd = new SqlCommand(marksQuery, con))
-                {
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-
-                    object result = cmd.ExecuteScalar();
-                    
-                    if (result == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"No record found for StudentResultID: {studentResultID}, SubjectID: {subjectID} - marking as absent");
-                        return true; // No record = absent
-                    }
-                    
-                    string obtainedMarks = result.ToString().Trim();
-                    System.Diagnostics.Debug.WriteLine($"Found marks: '{obtainedMarks}' for StudentResultID: {studentResultID}, SubjectID: {subjectID}");
-                    
-                    // Check for explicit absent markers
-                    if (obtainedMarks.ToUpper() == "A" || 
-                        obtainedMarks.ToUpper() == "AB" || 
-                        obtainedMarks.ToLower() == "absent")
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Explicit absent marker found: '{obtainedMarks}'");
-                        return true;
-                    }
-                    
-                    // If marks is 0, we need to determine if this is real 0 or absent
-                    if (obtainedMarks == "0")
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Found 0 marks for StudentResultID: {studentResultID}, SubjectID: {subjectID} - checking participation");
-                        
-                        // First check if this exam has sub-exams at all
-                        int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                        bool examHasSubExams = HasSubExams(examID);
-                        
-                        System.Diagnostics.Debug.WriteLine($"Exam {examID} has sub-exams: {examHasSubExams}");
-                        
-                        if (examHasSubExams)
-                        {
-                            // Check if there are any sub-exam marks for this subject
-                            string subExamQuery = @"
-                                SELECT COUNT(*) 
-                                FROM Exam_Obtain_Marks eom
-                                WHERE eom.StudentResultID = @StudentResultID 
-                                AND eom.SubjectID = @SubjectID
-                                AND eom.SchoolID = @SchoolID
-                                AND eom.EducationYearID = @EducationYearID
-                                AND ISNULL(eom.MarksObtained, '') != ''
-                                AND ISNULL(eom.MarksObtained, '') != 'A'";
-
-                            using (SqlCommand cmd2 = new SqlCommand(subExamQuery, con))
-                            {
-                                cmd2.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                                cmd2.Parameters.AddWithValue("@SubjectID", subjectID);
-                                cmd2.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                                cmd2.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-
-                                int participationCount = Convert.ToInt32(cmd2.ExecuteScalar());
-                                System.Diagnostics.Debug.WriteLine($"Sub-exam participation count: {participationCount}");
-                                
-                                // If no sub-exam participation and total is 0, consider absent
-                                if (participationCount == 0)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"No sub-exam participation found - marking as absent");
-                                    return true;
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Sub-exam participation found - marking as real 0");
-                                    return false; // Student participated but got 0
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // No sub-exams in this exam, so 0 could mean absent
-                            // Let's assume 0 without sub-exams means absent unless proven otherwise
-                            System.Diagnostics.Debug.WriteLine($"No sub-exams in this exam - assuming 0 marks means absent");
-                            return true;
-                        }
-                    }
-                }
-
-                System.Diagnostics.Debug.WriteLine($"Student not absent for StudentResultID: {studentResultID}, SubjectID: {subjectID}");
-                return false;
+                // Simply redirect to print-friendly version
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "printPage", 
+                    "window.open(window.location.href + '?print=1', '_blank');", true);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in IsStudentAbsent: {ex.Message}");
-                // In case of error, don't assume absent
-                return false;
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "error",
+                    $"alert('Error: {ex.Message}');", true);
             }
         }
 
-        // Enhanced method that combines both approaches
-        private bool IsStudentReallyAbsent(string studentResultID, int subjectID)
+        // Add this method to handle print parameter
+        protected void Page_PreRender(object sender, EventArgs e)
         {
-            // Try primary method first
-            bool absentPrimary = IsStudentAbsent(studentResultID, subjectID);
-            
-            // If primary method says absent, verify with alternative
-            if (absentPrimary)
+            if (Request.QueryString["print"] == "1")
             {
-                return IsStudentAbsent(studentResultID, subjectID);
+                // Hide unnecessary elements for printing
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "autoPrint", @"
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Hide buttons and unnecessary elements
+                        var buttons = document.querySelectorAll('.btn, .form-control');
+                        buttons.forEach(function(btn) { btn.style.display = 'none'; });
+                        
+                        // Auto-open print dialog
+                        setTimeout(function() {
+                            window.print();
+                        }, 1000);
+                    });
+                ", true);
             }
-            
-            // Also check if marks is exactly 0 and no participation
-            SqlConnection con = null;
-            try
-            {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
-                
-                string zeroMarksQuery = @"
-                    SELECT ObtainedMark_ofSubject 
-                    FROM Exam_Result_of_Subject 
-                    WHERE StudentResultID = @StudentResultID 
-                    AND SubjectID = @SubjectID";
-
-                using (SqlCommand cmd = new SqlCommand(zeroMarksQuery, con))
-                {
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-
-                    object result = cmd.ExecuteScalar();
-                    if (result != null && result.ToString().Trim() == "0")
-                    {
-                        // Check if this 0 is due to absence (no participation in any sub-exam)
-                        return IsStudentAbsent(studentResultID, subjectID);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in IsStudentReallyAbsent: {ex.Message}");
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
-            
-            return false;
         }
-
-        // Helper method to format marks display - show 'অনুপস্থিত' for absent, actual marks for others
-        private string FormatMarksDisplay(string marks, string studentResultID, int subjectID)
-        {
-            // Check for explicit absent markers first
-            if (!string.IsNullOrEmpty(marks))
-            {
-                string trimmedMarks = marks.Trim().ToUpper();
-                if (trimmedMarks == "A" || trimmedMarks == "AB" || trimmedMarks == "ABSENT")
-                {
-                    return "অনুপস্থিত";
-                }
-            }
-            
-            // If marks is 0, check if student was really absent
-            if (marks == "0")
-            {
-                if (IsStudentAbsent(studentResultID, subjectID))
-                {
-                    return "অনুপস্থিত";
-                }
-            }
-            
-            return marks;
-        }
-    }}
+    }
+}

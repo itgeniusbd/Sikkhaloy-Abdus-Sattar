@@ -5,7 +5,7 @@
 }
 
 @media print {
-    .NoPrint { display: none !important; }
+    .NoPrint, .controls, .btn { display: none !important; }
     html, body { 
         font-family: Arial, sans-serif !important; /* Use Arial for better print compatibility */
         margin: 0 !important; 
@@ -26,7 +26,7 @@
     }
     
     .result-card { 
-        margin: 5mm 5mm !important; /* Individual card margins */
+        margin: 5mm !important; /* Individual card margins */
         width: auto !important; 
         height: auto !important; 
         max-width: none !important;
@@ -34,7 +34,6 @@
         page-break-after: always !important; 
         page-break-before: auto !important;
         page-break-inside: avoid !important; 
-        box-shadow: none !important;
         border: 2px solid #0072bc !important; /* Individual card border */
         box-sizing: border-box !important;
         position: static !important; /* Static positioning for proper flow */
@@ -534,9 +533,316 @@ h3 {
     border: 1px solid #dee2e6;
 }
 
-/* Ensure no global borders interfere */
-.container-fluid, .container, .row, .col-md-12 {
-    border: none !important;
+/* Button styling improvements */
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 2px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    border-radius: 3px;
+    min-width: 65px;
+    font-weight: bold;
+}
+
+/* Extra small buttons */
+.btn-xs {
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1.3;
+    border-radius: 2px;
+}
+
+/* Pagination buttons with black background and white text - Higher specificity */
+.btn.btn-xs.btn-outline-primary,
+.btn-xs.btn-outline-primary,
+input[type="submit"].btn-outline-primary {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    font-weight: bold !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    border-radius: 2px !important;
+    text-decoration: none !important;
+}
+
+.btn.btn-xs.btn-outline-primary:hover,
+.btn-xs.btn-outline-primary:hover,
+input[type="submit"].btn-outline-primary:hover {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border-color: #000000 !important;
+    text-decoration: none !important;
+}
+
+.btn.btn-xs.btn-outline-primary:disabled,
+.btn-xs.btn-outline-primary:disabled,
+input[type="submit"].btn-outline-primary:disabled {
+    color: #6c757d !important;
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.65 !important;
+}
+
+.btn.btn-xs.btn-outline-primary:focus,
+.btn-xs.btn-outline-primary:focus,
+input[type="submit"].btn-outline-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25) !important;
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+.btn.btn-xs.btn-outline-primary:active,
+.btn-xs.btn-outline-primary:active,
+input[type="submit"].btn-outline-primary:active {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+/* Small form controls */
+.form-control-sm {
+    height: 28px;
+    padding: 3px 6px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Inline pagination styling */
+.pagination-inline {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.pagination-inline .btn {
+    min-width: auto;
+    white-space: nowrap;
+}
+
+.page-info-inline {
+    font-size: 12px;
+    font-weight: bold;
+    color: #495057;
+    margin: 0 8px;
+    white-space: nowrap;
+}
+
+/* Signature section with pagination */
+.Card-space {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap;
+}
+
+/* Button improvements for alignment */
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    border-radius: 3px;
+    min-width: 60px;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+/* Form group improvements */
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 3px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* Button container alignment */
+.button-container {
+    display: flex !important;
+    gap: 5px !important;
+    align-items: stretch !important;
+}
+
+.button-container .btn {
+    flex: 1 !important;
+    height: 34px !important;
     margin: 0 !important;
-    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Form group improvements for consistent height */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 13px;
+    height: 32px; /* Consistent label height */
+}
+
+/* Ensure all form controls have same height */
+.form-control {
+    font-size: 14px;
+    padding: 6px 8px;
+    height: 34px !important;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    transition: border-color 0.2s ease-in-out;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: 0;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Button improvements for alignment */
+.btn-sm {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    border-radius: 3px !important;
+    min-width: 65px !important;
+    font-weight: bold !important;
+    border: 1px solid transparent !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+}
+
+/* Button colors */
+.btn-success {
+    color: #fff !important;
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.btn-success:hover {
+    background-color: #1e7e34 !important;
+    border-color: #1c7430 !important;
+}
+
+.btn-primary {
+    color: #fff !important;
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3 !important;
+    border-color: #004085 !important;
+}
+
+/* Browse button styling with proper text display */
+.btn-grey {
+    color: #ffffff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+    display: inline-block !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    user-select: none !important;
+    border: 1px solid transparent !important;
+    line-height: 1.5 !important;
+    transition: all 0.2s ease-in-out !important;
+    text-decoration: none !important;
+}
+
+.btn-grey:hover {
+    color: #ffffff !important;
+    background-color: #5a6268 !important;
+    border-color: #545b62 !important;
+    text-decoration: none !important;
+}
+
+/* File input styling */
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .button-container {
+        flex-direction: column !important;
+        gap: 3px !important;
+    }
+    
+    .btn-sm {
+        padding: 5px 10px !important;
+        font-size: 11px !important;
+        min-width: auto !important;
+    }
+    
+    .Card-space {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .pagination-inline {
+        margin-top: 10px;
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .btn-xs {
+        padding: 3px 8px !important;
+        font-size: 10px !important;
+    }
 }
