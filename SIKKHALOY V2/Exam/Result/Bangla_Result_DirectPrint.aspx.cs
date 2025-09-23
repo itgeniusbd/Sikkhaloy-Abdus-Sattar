@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -20,19 +21,19 @@ namespace EDUCATION.COM.Exam.Result
     {
         // Pagination properties
         private const int PageSize = 25; // 25 records per page
-        
+
         private int CurrentPageIndex
         {
             get { return ViewState["CurrentPageIndex"] != null ? (int)ViewState["CurrentPageIndex"] : 0; }
             set { ViewState["CurrentPageIndex"] = value; }
         }
-        
+
         private int TotalRecords
         {
             get { return ViewState["TotalRecords"] != null ? (int)ViewState["TotalRecords"] : 0; }
             set { ViewState["TotalRecords"] = value; }
         }
-        
+
         private DataTable AllResultsData
         {
             get { return ViewState["AllResultsData"] as DataTable; }
@@ -103,16 +104,16 @@ namespace EDUCATION.COM.Exam.Result
                 ExamDropDownList.DataBind();
                 UpdateDropdownVisibility();
                 ResultPanel.Visible = false;
-                
+
                 // Reset pagination
                 CurrentPageIndex = 0;
                 AllResultsData = null;
                 TotalRecords = 0;
-                
+
                 // Hide print button when class changes
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintOnClassChange",
                     "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
-                
+
                 // Reset page title when class changes
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleClassChange",
                     "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
@@ -197,7 +198,7 @@ namespace EDUCATION.COM.Exam.Result
                 // Check if Student ID search is being used
                 string studentIDText = StudentIDTextBox.Text.Trim();
                 bool isSearchingByID = !string.IsNullOrEmpty(studentIDText);
-                
+
                 if (isSearchingByID)
                 {
                     // For Student ID search, only Class and Exam are required
@@ -210,7 +211,7 @@ namespace EDUCATION.COM.Exam.Result
                     }
                     else
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "alert", 
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "alert",
                             "alert('For Student ID search, please select both Class and Exam');", true);
                     }
                 }
@@ -252,23 +253,23 @@ namespace EDUCATION.COM.Exam.Result
                 // Check if Student ID search is being used
                 string studentIDText = StudentIDTextBox.Text.Trim();
                 bool isSearchingByID = !string.IsNullOrEmpty(studentIDText);
-                
+
                 string query;
-                
+
                 if (isSearchingByID)
                 {
                     // Parse student IDs from textbox
                     var studentIDs = ParseStudentIDs(studentIDText);
                     if (studentIDs.Count == 0)
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "invalidID", 
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "invalidID",
                             "alert('Please enter valid Student IDs');", true);
                         return;
                     }
 
                     // Create IN clause for student IDs - they are already quoted in ParseStudentIDs
                     string idInClause = string.Join(",", studentIDs);
-                    
+
                     // Modified query for Student ID search - using 'ID' field instead of 'StudentID'
                     query = @"
                         SELECT DISTINCT
@@ -365,7 +366,7 @@ namespace EDUCATION.COM.Exam.Result
                     cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
-                    
+
                     // Only add these parameters for normal search (not ID search)
                     if (!isSearchingByID)
                     {
@@ -387,14 +388,14 @@ namespace EDUCATION.COM.Exam.Result
                         AllResultsData = dt;
                         TotalRecords = dt.Rows.Count;
                         CurrentPageIndex = 0; // Reset to first page
-                        
+
                         // Load signatures separately
                         LoadSignatureImages();
-                        
+
                         // Bind paginated data
                         BindResultsToRepeater(dt);
                         ResultPanel.Visible = true;
-                        
+
                         // Show simple print button when results are available
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "showPrintButton",
                             "document.getElementById('PrintButton').style.display = 'inline-block';", true);
@@ -403,7 +404,7 @@ namespace EDUCATION.COM.Exam.Result
                         int studentCount = dt.Rows.Count;
                         string searchMethod = isSearchingByID ? "AIডি সার্চ" : "সাধারণ সার্চ";
                         string dynamicTitle = $"বাংলা রেজাল্ট কার্ড - মোট শিক্ষার্থী ( {studentCount} ) - {searchMethod}";
-                        
+
                         // Update page title using JavaScript
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "updateTitle",
                             $"document.getElementById('pageTitle').innerHTML = '{dynamicTitle}';", true);
@@ -414,19 +415,19 @@ namespace EDUCATION.COM.Exam.Result
                         TotalRecords = 0;
                         CurrentPageIndex = 0;
                         ResultPanel.Visible = false;
-                        
+
                         // Hide print button when no results
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintButton",
                             "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
-                        
+
                         // Reset page title when no results
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitle",
                             "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
-                        
-                        string noResultsMessage = isSearchingByID ? 
-                            "No results found for the specified Student IDs" : 
+
+                        string noResultsMessage = isSearchingByID ?
+                            "No results found for the specified Student IDs" :
                             "No results found for the selected criteria";
-                        
+
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "nodata",
                             $"alert('{noResultsMessage}');", true);
                     }
@@ -439,22 +440,22 @@ namespace EDUCATION.COM.Exam.Result
             catch (SqlException sqlEx)
             {
                 ResultPanel.Visible = false;
-                
+
                 // Reset title on error
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleError",
                     "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
-                
+
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "sqlerror",
                     "console.error('Database Error: " + sqlEx.Message.Replace("'", "\\'") + "');", true);
             }
             catch (Exception ex)
             {
                 ResultPanel.Visible = false;
-                
+
                 // Reset title on error
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleError2",
                     "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
-                
+
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "dberror",
                     "console.error('Error: " + ex.Message.Replace("'", "\\'") + "');", true);
             }
@@ -481,55 +482,55 @@ namespace EDUCATION.COM.Exam.Result
             // Calculate pagination
             int startIndex = CurrentPageIndex * PageSize;
             int endIndex = Math.Min(startIndex + PageSize, dt.Rows.Count);
-            
+
             // Create a new DataTable with only the current page data
             DataTable pageData = dt.Clone();
             for (int i = startIndex; i < endIndex; i++)
             {
                 pageData.ImportRow(dt.Rows[i]);
             }
-            
+
             // Bind to repeater
             ResultRepeater.DataSource = pageData;
             ResultRepeater.DataBind();
-            
+
             // Update pagination controls
             UpdatePaginationControls();
         }
-        
+
         private void UpdatePaginationControls()
         {
             if (TotalRecords == 0)
             {
                 PaginationInfoLabel.Text = "No students found";
                 PageInfoLabel.Text = "Page 0 of 0";
-                
+
                 FirstPageButton.Enabled = false;
                 PrevPageButton.Enabled = false;
                 NextPageButton.Enabled = false;
                 LastPageButton.Enabled = false;
-                
+
                 // Hide print button when no results
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintButton",
                     "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
                 return;
             }
-            
+
             int totalPages = (int)Math.Ceiling((double)TotalRecords / PageSize);
             int currentPage = CurrentPageIndex + 1;
             int startRecord = (CurrentPageIndex * PageSize) + 1;
             int endRecord = Math.Min(startRecord + PageSize - 1, TotalRecords);
-            
+
             // Update info labels
             PaginationInfoLabel.Text = $"লোড হয়েছে {startRecord} থেকে {endRecord} জন। মোট {TotalRecords} জন শিক্ষার্থী থেকে";
             PageInfoLabel.Text = $"Page {currentPage} of {totalPages}";
-     
+
             // Enable/disable buttons
             FirstPageButton.Enabled = CurrentPageIndex > 0;
             PrevPageButton.Enabled = CurrentPageIndex > 0;
             NextPageButton.Enabled = CurrentPageIndex < (totalPages - 1);
             LastPageButton.Enabled = CurrentPageIndex < (totalPages - 1);
-            
+
             // Show print button when there are results
             Page.ClientScript.RegisterStartupScript(typeof(Page), "showPrintButton",
                 "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'inline-block';", true);
@@ -553,13 +554,13 @@ namespace EDUCATION.COM.Exam.Result
                 BindResultsToRepeater(AllResultsData);
             }
         }
-        
+
         protected void FirstPageButton_Click(object sender, EventArgs e)
         {
             CurrentPageIndex = 0;
             BindResultsToRepeater(AllResultsData);
         }
-        
+
         protected void LastPageButton_Click(object sender, EventArgs e)
         {
             int totalPages = (int)Math.Ceiling((double)TotalRecords / PageSize);
@@ -573,7 +574,7 @@ namespace EDUCATION.COM.Exam.Result
             try
             {
                 System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: Starting for SchoolID: {Session["SchoolID"]}");
-                
+
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
 
@@ -587,23 +588,23 @@ namespace EDUCATION.COM.Exam.Result
                 using (SqlCommand cmd = new SqlCommand(signatureQuery, con))
                 {
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                    
+
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
                         {
                             bool hasTeacherSign = Convert.ToBoolean(reader["HasTeacherSign"]);
                             bool hasPrincipalSign = Convert.ToBoolean(reader["HasPrincipalSign"]);
-                            
+
                             System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: SchoolID: {Session["SchoolID"]}, HasTeacherSign: {hasTeacherSign}, HasPrincipalSign: {hasPrincipalSign}");
-                            
+
                             // Add timestamp to avoid caching issues
                             string timestamp = DateTime.Now.Ticks.ToString();
-                            
+
                             // Set paths to signature handler if signatures exist
-                            HiddenTeacherSign.Value = hasTeacherSign ? 
+                            HiddenTeacherSign.Value = hasTeacherSign ?
                                 $"/Handeler/SignatureHandler.ashx?type=teacher&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
-                            HiddenPrincipalSign.Value = hasPrincipalSign ? 
+                            HiddenPrincipalSign.Value = hasPrincipalSign ?
                                 $"/Handeler/SignatureHandler.ashx?type=principal&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
                         }
                         else
@@ -654,7 +655,7 @@ namespace EDUCATION.COM.Exam.Result
             {
                 // Use the exact same TableAdapter that BanglaResult.aspx uses
                 var tableAdapter = new EDUCATION.COM.Exam_ResultTableAdapters.Exam_Grading_SystemTableAdapter();
-                
+
                 int schoolID = Convert.ToInt32(Session["SchoolID"] ?? 1);
                 int classID = Convert.ToInt32(ClassDropDownList.SelectedValue != "0" ? ClassDropDownList.SelectedValue : "1");
                 int examID = Convert.ToInt32(ExamDropDownList.SelectedValue != "0" ? ExamDropDownList.SelectedValue : "1");
@@ -662,8 +663,8 @@ namespace EDUCATION.COM.Exam.Result
 
                 // Call the same method that BanglaResult.aspx ObjectDataSource calls
                 var gradingData = tableAdapter.GetData(schoolID, classID, examID, educationYearID);
-                
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapter", 
+
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapter",
                     $"console.log('TableAdapter returned {gradingData.Rows.Count} grading rows');", true);
 
                 // If we got data from TableAdapter, return it
@@ -675,22 +676,22 @@ namespace EDUCATION.COM.Exam.Result
                         string grade = row["Grades"]?.ToString() ?? "";
                         string comment = row["Comments"]?.ToString() ?? "";
                         string marks = row["MARKS"]?.ToString() ?? "";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), $"gradingRow{grade}", 
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), $"gradingRow{grade}",
                             $"console.log('TableAdapter Grade: {grade}, Comment: {comment}, Marks: {marks}');", true);
                     }
-                    
+
                     return gradingData;
                 }
                 else
                 {
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradingData", 
+                    Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradingData",
                         $"console.log('No grading data from TableAdapter, using default');", true);
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"TableAdapter GetGradingSystemData error: {ex.Message}");
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapterError", 
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapterError",
                     $"console.error('TableAdapter error: {ex.Message}');", true);
             }
 
@@ -734,7 +735,7 @@ namespace EDUCATION.COM.Exam.Result
             switch (studentGrade.ToUpper())
             {
                 case "A+": return "চমৎকার";
-                case "A": return "ভালো"; 
+                case "A": return "ভালো";
                 case "A-": return "মোটামুটি ভালো";
                 case "B": return "বেশি ভালো নয়";
                 case "C": return "সন্তোষজনক নয়";
@@ -750,34 +751,34 @@ namespace EDUCATION.COM.Exam.Result
             {
                 // Get the same grading data that we use for the chart (which now comes from TableAdapter)
                 DataTable gradingData = GetGradingSystemData();
-                
+
                 foreach (DataRow row in gradingData.Rows)
                 {
                     string gradeFromChart = row["Grades"]?.ToString()?.Trim() ?? "";
                     string commentFromChart = row["Comments"]?.ToString()?.Trim() ?? "";
-                    
+
                     if (string.Equals(gradeFromChart, studentGrade, StringComparison.OrdinalIgnoreCase))
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeFromChart", 
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeFromChart",
                             $"console.log('Found comment from TableAdapter: Grade={gradeFromChart}, Comment={commentFromChart}');", true);
-                        
+
                         if (!string.IsNullOrEmpty(commentFromChart))
                         {
                             return commentFromChart;
                         }
                     }
                 }
-                
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradeFromChart", 
+
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradeFromChart",
                     $"console.log('No comment found in TableAdapter data for grade: {studentGrade}');", true);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"GetCommentFromGradingChart error: {ex.Message}");
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeChartError", 
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeChartError",
                     $"console.error('GetCommentFromGradingChart error: {ex.Message}');", true);
             }
-            
+
             return string.Empty;
         }
 
@@ -797,8 +798,8 @@ namespace EDUCATION.COM.Exam.Result
 
         private decimal GetSafeDecimalValue(DataRow row, string columnName)
         {
-            if (row.Table.Columns.Contains(columnName) && 
-                row[columnName] != DBNull.Value && 
+            if (row.Table.Columns.Contains(columnName) &&
+                row[columnName] != DBNull.Value &&
                 row[columnName] != null)
             {
                 decimal value;
@@ -815,13 +816,13 @@ namespace EDUCATION.COM.Exam.Result
         {
             DataRowView row = (DataRowView)dataItem;
             var passStatus = row["PassStatus_ofStudent"];
-            
+
             // Handle DBNull values
             if (passStatus == DBNull.Value || passStatus == null)
             {
                 return "N/A";
             }
-            
+
             return passStatus.ToString() == "Pass" ? "উত্তীর্ণ" : "অনুত্তীর্ণ";
         }
 
@@ -832,7 +833,7 @@ namespace EDUCATION.COM.Exam.Result
             {
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
-                
+
                 string query = @"
                     SELECT 
                         ISNULL(sub.SubjectName, '') as SubjectName,
@@ -891,7 +892,7 @@ namespace EDUCATION.COM.Exam.Result
             {
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
-                
+
                 // Check if there are any sub-exam marks for this school, education year, class, and exam
                 string query = @"
                     SELECT COUNT(DISTINCT eom.SubExamID) 
@@ -915,9 +916,9 @@ namespace EDUCATION.COM.Exam.Result
                     cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
 
                     int count = Convert.ToInt32(cmd.ExecuteScalar());
-                    
+
                     System.Diagnostics.Debug.WriteLine($"HasSubExams: Found {count} sub-exam types for ClassID: {ClassDropDownList.SelectedValue}, ExamID: {examID}");
-                    
+
                     return count > 0;
                 }
             }
@@ -944,7 +945,7 @@ namespace EDUCATION.COM.Exam.Result
             {
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
-                
+
                 // Use the exact same query as ExamPosition_WithSub.aspx without ExamID filter first
                 string query = @"
                     SELECT 
@@ -974,7 +975,7 @@ namespace EDUCATION.COM.Exam.Result
                     }
 
                     System.Diagnostics.Debug.WriteLine($"GetSubExamMarks: Subject {subjectID}: Found {dt.Rows.Count} sub-exam records for StudentResultID {studentResultID}");
-                    
+
                     // Log the sub-exam details for debugging
                     foreach (DataRow row in dt.Rows)
                     {
@@ -1011,7 +1012,7 @@ namespace EDUCATION.COM.Exam.Result
             {
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
-                
+
                 // Count only sub-exams that have actual data for this class and exam
                 string query = @"
                     SELECT COUNT(DISTINCT esn.SubExamID) 
@@ -1035,9 +1036,9 @@ namespace EDUCATION.COM.Exam.Result
                     cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
 
                     int count = Convert.ToInt32(cmd.ExecuteScalar());
-                    
+
                     System.Diagnostics.Debug.WriteLine($"GetSubExamCount: Found {count} active sub-exams for ClassID: {ClassDropDownList.SelectedValue}, ExamID: {examID}");
-                    
+
                     return count;
                 }
             }
@@ -1064,9 +1065,9 @@ namespace EDUCATION.COM.Exam.Result
             {
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
-                
+
                 int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                
+
                 // Get only sub-exam names that have actual data for this class and exam
                 string query = @"
                     SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN
@@ -1128,21 +1129,21 @@ namespace EDUCATION.COM.Exam.Result
             try
             {
                 int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                
+
                 System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Processing StudentResultID={studentResultID}, SubjectID={subjectID}, ExamID={examID}");
-                
+
                 // Get sub-exam marks for this specific subject and student
                 DataTable subExamMarks = GetSubExamMarks(studentResultID, subjectID, examID);
-                
+
                 System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Found {subExamMarks.Rows.Count} sub-exam marks");
-                
+
                 // Get the ordered sub-exam names for header consistency - only active ones for this class
                 SqlConnection con2 = null;
                 try
                 {
                     con2 = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                     con2.Open();
-                    
+
                     // Get only sub-exam names that have actual data for this class and exam
                     string headerQuery = @"
                         SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN
@@ -1204,13 +1205,13 @@ namespace EDUCATION.COM.Exam.Result
                                 markValue = "অনুপstitut";
                                 hasAbsentMarks = true;
                             }
-                            
+
                             cellsHtml += $"<td>{markValue}</td>";
                             System.Diagnostics.Debug.WriteLine($"  Generated cell for {subExamName}: {markValue}");
-                            
+
                             // Calculate total if it's a valid numeric mark (not absent)
-                            if (!string.IsNullOrEmpty(markValue) && 
-                                markValue != "A" && 
+                            if (!string.IsNullOrEmpty(markValue) &&
+                                markValue != "A" &&
                                 markValue != "অনুপস্থিত" &&
                                 markValue != "-" &&
                                 decimal.TryParse(markValue, out decimal mark))
@@ -1219,10 +1220,10 @@ namespace EDUCATION.COM.Exam.Result
                                 hasValidMarks = true;
                             }
                         }
-                        
+
                         // Format the total marks display
                         string totalCell;
-                        
+
                         // If student has absent marks in sub-exams, show "-" in total
                         if (hasAbsentMarks)
                         {
@@ -1238,10 +1239,10 @@ namespace EDUCATION.COM.Exam.Result
                             string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
                             totalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
                         }
-                        
+
                         System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: HasValidMarks: {hasValidMarks}, HasAbsentMarks: {hasAbsentMarks}, Total: {(hasValidMarks ? totalMarks.ToString() : "N/A")}");
                         System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: CellsHtml: {cellsHtml}");
-                        
+
                         return (cellsHtml, totalCell);
                     }
                 }
@@ -1257,11 +1258,11 @@ namespace EDUCATION.COM.Exam.Result
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForDisplay: {ex.Message}");
-                
+
                 // For error case, check if student is absent and show appropriate total
                 string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
                 string errorTotalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
-                    
+
                 return ("", errorTotalCell);
             }
         }
@@ -1325,7 +1326,7 @@ namespace EDUCATION.COM.Exam.Result
                         </tr>";
                 }
 
-                foreach ( DataRow row in subjects.Rows )
+                foreach (DataRow row in subjects.Rows)
                 {
                     string subjectName = GetSafeColumnValue(row, "SubjectName");
                     string obtainedMark = GetSafeColumnValue(row, "ObtainedMark_ofSubject");
@@ -1345,7 +1346,7 @@ namespace EDUCATION.COM.Exam.Result
                     {
                         // Get dynamic sub-exam marks for this subject
                         var subExamData = GetSubExamMarksForDisplay(studentResultID, subjectID, obtainedMark);
-                        
+
                         html += @"
                             <tr class=""" + rowClass + @""">
                                 <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
@@ -1386,7 +1387,7 @@ namespace EDUCATION.COM.Exam.Result
             {
                 var context = HttpContext.Current;
                 var schoolId = context.Session["SchoolID"];
-                
+
                 if (schoolId == null)
                 {
                     return new { success = false, message = "School ID not found in session" };
@@ -1439,20 +1440,20 @@ namespace EDUCATION.COM.Exam.Result
         private List<string> ParseStudentIDs(string input)
         {
             var studentIDs = new List<string>();
-            
+
             if (string.IsNullOrWhiteSpace(input))
                 return studentIDs;
-            
+
             // Split by comma and parse each ID
             string[] idStrings = input.Split(new char[] { ',', '،' }, StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (string idString in idStrings)
             {
                 string cleanId = idString.Trim();
-                
+
                 // Convert Bengali numbers to English if needed
                 cleanId = ConvertBengaliToEnglish(cleanId);
-                
+
                 // Check if it's a valid ID (can be numeric or alphanumeric)
                 if (!string.IsNullOrEmpty(cleanId) && cleanId.Length > 0)
                 {
@@ -1464,22 +1465,22 @@ namespace EDUCATION.COM.Exam.Result
                     }
                 }
             }
-            
+
             return studentIDs;
         }
-        
+
         // Helper method to convert Bengali numbers to English
         private string ConvertBengaliToEnglish(string bengaliText)
         {
             if (string.IsNullOrEmpty(bengaliText))
                 return bengaliText;
-                
+
             var bengaliToEnglish = new Dictionary<char, char>
             {
                 {'০', '0'}, {'১', '1'}, {'২', '2'}, {'৩', '3'}, {'৪', '4'},
                 {'৫', '5'}, {'৬', '6'}, {'৭', '7'}, {'৮', '8'}, {'৯', '9'}
             };
-            
+
             var result = new StringBuilder();
             foreach (char c in bengaliText)
             {
@@ -1492,7 +1493,7 @@ namespace EDUCATION.COM.Exam.Result
                     result.Append(c);
                 }
             }
-            
+
             return result.ToString();
         }
 
@@ -1501,8 +1502,8 @@ namespace EDUCATION.COM.Exam.Result
         {
             string sectionValue = SectionDropDownList.SelectedValue;
             // Return true only if a specific section is selected (not % or empty)
-            return !string.IsNullOrEmpty(sectionValue) && 
-                   sectionValue != "%" && 
+            return !string.IsNullOrEmpty(sectionValue) &&
+                   sectionValue != "%" &&
                    sectionValue.Trim() != "" &&
                    SectionDropDownList.Visible; // Also check if section dropdown is visible
         }
@@ -1516,16 +1517,16 @@ namespace EDUCATION.COM.Exam.Result
         protected string GetSectionColumnData(object dataItem)
         {
             if (!IsSectionSelected()) return "";
-            
+
             DataRowView row = (DataRowView)dataItem;
             var positionValue = row["Position_InExam_Subsection"];
-            
+
             // Handle DBNull values
             if (positionValue == DBNull.Value || positionValue == null)
             {
                 return "<td>N/A</td>";
             }
-            
+
             return "<td>" + positionValue.ToString() + "</td>";
         }
 
@@ -1547,10 +1548,10 @@ namespace EDUCATION.COM.Exam.Result
         protected string GetGroupRowHtml(object dataItem)
         {
             if (!HasGroupsForClass()) return "";
-            
+
             DataRowView row = (DataRowView)dataItem;
             string groupName = row["GroupName"]?.ToString() ?? "";
-            
+
             return @"
                 <tr>
                     <td>গ্রুপ:</td>
@@ -1564,7 +1565,7 @@ namespace EDUCATION.COM.Exam.Result
         {
             // This method is for when there's no group but there are sections
             if (HasGroupsForClass() || !HasSectionsForClass()) return "";
-            
+
             DataRowView row = (DataRowView)dataItem;
             return @"
                 <tr>
@@ -1578,7 +1579,7 @@ namespace EDUCATION.COM.Exam.Result
         {
             // This method is for when there's neither group nor section
             if (HasGroupsForClass() || HasSectionsForClass()) return "";
-            
+
             return @"
                 <tr style=""display: none;"">
                     <td colspan=""4""></td>
@@ -1589,15 +1590,15 @@ namespace EDUCATION.COM.Exam.Result
         protected string GetDynamicInfoRow(object dataItem)
         {
             DataRowView row = (DataRowView)dataItem;
-            
+
             string className = row["ClassName"]?.ToString() ?? "";
             string groupName = row["GroupName"]?.ToString() ?? "";
             string sectionName = row["SectionName"]?.ToString() ?? "";
-            
+
             // Check if this class has groups and sections
             bool hasGroups = HasGroupsForClass();
             bool hasSections = HasSectionsForClass();
-            
+
             if (hasGroups)
             {
                 // Show Class, Group, and Section
@@ -1638,14 +1639,14 @@ namespace EDUCATION.COM.Exam.Result
         private string GetDynamicInfoRowForPDF(DataRowView dataRow)
         {
             if (dataRow == null) return "<tr><td colspan='6'>Data not available</td></tr>";
-            
+
             string className = dataRow["ClassName"]?.ToString() ?? "";
             string groupName = dataRow["GroupName"]?.ToString() ?? "";
             string sectionName = dataRow["SectionName"]?.ToString() ?? "";
-            
+
             bool hasGroups = HasGroupsForClass();
             bool hasSections = HasSectionsForClass();
-            
+
             if (hasGroups)
             {
                 return $@"
@@ -1684,11 +1685,11 @@ namespace EDUCATION.COM.Exam.Result
         {
             DataTable gradingData = GetGradingSystemData();
             StringBuilder chartHtml = new StringBuilder();
-            
+
             chartHtml.Append(@"
                 <table>
                     <tr><th>মার্ক</th><th>গ্রেড</th><th>পয়েন্ট</th></tr>");
-            
+
             foreach (DataRow row in gradingData.Rows)
             {
                 chartHtml.AppendFormat(@"
@@ -1696,12 +1697,12 @@ namespace EDUCATION.COM.Exam.Result
                         <td>{0}</td>
                         <td>{1}</td>
                         <td>{2:F1}</td>
-                    </tr>", 
-                    row["MARKS"], 
-                    row["Grades"], 
+                    </tr>",
+                    row["MARKS"],
+                    row["Grades"],
                     Convert.ToDecimal(row["Point"]));
             }
-            
+
             chartHtml.Append("</table>");
             return chartHtml.ToString();
         }
@@ -1711,7 +1712,7 @@ namespace EDUCATION.COM.Exam.Result
             try
             {
                 // Simply redirect to print-friendly version
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "printPage", 
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "printPage",
                     "window.open(window.location.href + '?print=1', '_blank');", true);
             }
             catch (Exception ex)

@@ -30,7 +30,7 @@
         width: auto !important; 
         height: auto !important; 
         max-width: none !important;
-        padding: 8mm !important; /* Internal padding */
+        padding: 5mm !important; /* Internal padding */
         page-break-after: always !important; 
         page-break-before: auto !important;
         page-break-inside: avoid !important; 
@@ -133,7 +133,7 @@
 
     /* Info table - smaller text */
     .info-table td {
-        font-size: 14px !important; /* Smaller font */
+        font-size: 17px !important; /* Smaller font */
         padding: 3px 5px !important; /* Reduced padding */
     }
 
@@ -225,7 +225,7 @@ h3 {
 
 .result-card:last-child {
     page-break-after: auto;
-    margin-bottom: 20px; /* Add bottom margin to last card */
+    margin-bottom: 10px; /* Add bottom margin to last card */
 }
 
 .result-card:first-child {
@@ -320,7 +320,7 @@ h3 {
 .info-table td {
     border: 1px solid #0072bc;
     padding: 5px 8px;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: bold;
 }
 
@@ -372,11 +372,11 @@ h3 {
 
 .grade-chart th, .grade-chart td {
     border: 1px solid #0072bc;
-    padding: 3px 4px;
+    padding: 2px 3px;
     text-align: center;
     font-weight: bold;
     font-family: 'Kalpurush', Arial, sans-serif !important;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .grade-chart th {
@@ -680,11 +680,12 @@ input[type="submit"].btn-outline-primary:active {
     font-size: 12px;
 }
 
-/* Button container alignment */
+/* Button container alignment for 3 buttons */
 .button-container {
     display: flex !important;
     gap: 5px !important;
     align-items: stretch !important;
+    flex-wrap: wrap !important;
 }
 
 .button-container .btn {
@@ -694,127 +695,37 @@ input[type="submit"].btn-outline-primary:active {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    min-width: 75px !important;
 }
 
-/* Form group improvements for consistent height */
-.form-group {
-    margin-bottom: 15px;
+/* Warning button for number toggle */
+.btn-warning {
+    color: #212529 !important;
+    background-color: #ffc107 !important;
+    border-color: #ffc107 !important;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    font-size: 13px;
-    height: 32px; /* Consistent label height */
+.btn-warning:hover {
+    color: #212529 !important;
+    background-color: #ffca2c !important;
+    border-color: #ffc720 !important;
 }
 
-/* Ensure all form controls have same height */
-.form-control {
-    font-size: 14px;
-    padding: 6px 8px;
-    height: 34px !important;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    transition: border-color 0.2s ease-in-out;
-    box-sizing: border-box;
-}
-
-.form-control:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    outline: 0;
-}
-
-.form-control.is-invalid {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
-
-/* Button improvements for alignment */
-.btn-sm {
-    padding: 6px 12px !important;
-    font-size: 12px !important;
-    line-height: 1.4 !important;
-    border-radius: 3px !important;
-    min-width: 65px !important;
-    font-weight: bold !important;
-    border: 1px solid transparent !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-}
-
-/* Button colors */
-.btn-success {
+/* Info button when toggled */
+.btn-info {
     color: #fff !important;
-    background-color: #28a745 !important;
-    border-color: #28a745 !important;
+    background-color: #17a2b8 !important;
+    border-color: #17a2b8 !important;
 }
 
-.btn-success:hover {
-    background-color: #1e7e34 !important;
-    border-color: #1c7430 !important;
-}
-
-.btn-primary {
+.btn-info:hover {
     color: #fff !important;
-    background-color: #007bff !important;
-    border-color: #007bff !important;
+    background-color: #138496 !important;
+    border-color: #117a8b !important;
 }
-
-.btn-primary:hover {
-    background-color: #0056b3 !important;
-    border-color: #004085 !important;
-}
-
-/* Browse button styling with proper text display */
-.btn-grey {
-    color: #ffffff !important;
-    background-color: #6c757d !important;
-    border-color: #6c757d !important;
-    padding: 6px 12px !important;
-    font-size: 12px !important;
-    font-weight: bold !important;
-    border-radius: 3px !important;
-    cursor: pointer !important;
-    display: inline-block !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    vertical-align: middle !important;
-    user-select: none !important;
-    border: 1px solid transparent !important;
-    line-height: 1.5 !important;
-    transition: all 0.2s ease-in-out !important;
-    text-decoration: none !important;
-}
-
-.btn-grey:hover {
-    color: #ffffff !important;
-    background-color: #5a6268 !important;
-    border-color: #545b62 !important;
-    text-decoration: none !important;
-}
-
-/* File input styling */
-.btn-file {
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-file input[type=file] {
-    position: absolute;
-    top: 0;
-    right: 0;
-    min-width: 100%;
-    min-height: 100%;
-    font-size: 100px;
-    text-align: right;
-    filter: alpha(opacity=0);
-    opacity: 0;
-    outline: none;
-    background: white;
-    cursor: inherit;
-    display: block;
+.btn-secondary {
+    background-color: #787878 !important;
+    color: #fff !important;
 }
 
 /* Responsive adjustments */
@@ -845,4 +756,5 @@ input[type="submit"].btn-outline-primary:active {
         padding: 3px 8px !important;
         font-size: 10px !important;
     }
+
 }
