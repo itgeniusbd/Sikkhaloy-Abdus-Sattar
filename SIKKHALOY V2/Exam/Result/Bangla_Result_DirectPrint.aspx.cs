@@ -78,6 +78,10 @@ namespace EDUCATION.COM.Exam.Result
                 ExamDropDownList.DataBind();
                 UpdateDropdownVisibility();
                 ResultPanel.Visible = false;
+                
+                // Reset page title when class changes
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleClassChange",
+                    "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
             }
             catch (ThreadAbortException)
             {
@@ -257,10 +261,23 @@ namespace EDUCATION.COM.Exam.Result
                         ResultRepeater.DataSource = dt;
                         ResultRepeater.DataBind();
                         ResultPanel.Visible = true;
+
+                        // Update page title with dynamic student count
+                        int studentCount = dt.Rows.Count;
+                        string dynamicTitle = $"বাংলা রেজাল্ট কার্ড - মোট শিক্ষার্থী ( {studentCount} )";
+                        
+                        // Update page title using JavaScript
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "updateTitle",
+                            $"document.getElementById('pageTitle').innerHTML = '{dynamicTitle}';", true);
                     }
                     else
                     {
                         ResultPanel.Visible = false;
+                        
+                        // Reset page title when no results
+                        Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitle",
+                            "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
+                        
                         Page.ClientScript.RegisterStartupScript(typeof(Page), "nodata",
                             "alert('No results found for the selected criteria');", true);
                     }
@@ -273,12 +290,22 @@ namespace EDUCATION.COM.Exam.Result
             catch (SqlException sqlEx)
             {
                 ResultPanel.Visible = false;
+                
+                // Reset title on error
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleError",
+                    "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
+                
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "sqlerror",
                     "console.error('Database Error: " + sqlEx.Message.Replace("'", "\\'") + "');", true);
             }
             catch (Exception ex)
             {
                 ResultPanel.Visible = false;
+                
+                // Reset title on error
+                Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleError2",
+                    "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
+                
                 Page.ClientScript.RegisterStartupScript(typeof(Page), "dberror",
                     "console.error('Error: " + ex.Message.Replace("'", "\\'") + "');", true);
             }

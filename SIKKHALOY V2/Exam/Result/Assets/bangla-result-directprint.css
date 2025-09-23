@@ -1,0 +1,542 @@
+/* Bangla Result DirectPrint CSS */
+/* Use reliable Google Fonts with local fallbacks */
+* {
+    font-family: 'Noto Sans Bengali', 'SolaimanLipi', 'Kalpurush', Arial, sans-serif !important;
+}
+
+@media print {
+    .NoPrint { display: none !important; }
+    html, body { 
+        font-family: Arial, sans-serif !important; /* Use Arial for better print compatibility */
+        margin: 0 !important; 
+        padding: 0 !important; 
+        background: white !important;
+        height: auto !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    /* Remove problematic font forcing */
+    * {
+        font-family: Arial, sans-serif !important; /* Use Arial instead of Kalpurush for print */
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        text-rendering: auto !important;
+    }
+    
+    .result-card { 
+        margin: 5mm 5mm !important; /* Individual card margins */
+        width: auto !important; 
+        height: auto !important; 
+        max-width: none !important;
+        padding: 8mm !important; /* Internal padding */
+        page-break-after: always !important; 
+        page-break-before: auto !important;
+        page-break-inside: avoid !important; 
+        box-shadow: none !important;
+        border: 2px solid #0072bc !important; /* Individual card border */
+        box-sizing: border-box !important;
+        position: static !important; /* Static positioning for proper flow */
+        top: auto !important;
+        left: auto !important;
+        font-family: Arial, sans-serif !important;
+        background: white !important; /* White background for each card */
+        display: block !important; /* Block display */
+        clear: both !important; /* Clear floats */
+    }
+    
+    .result-card:last-child { 
+        page-break-after: auto !important; 
+        margin: 5mm 5mm !important; /* Bottom margin for last card */
+    }
+    
+    .result-card:first-child { 
+        page-break-before: avoid !important;
+       margin: 5mm 5mm !important; /* Top margin for first card */
+    }
+    
+    #header { display: none !important; }
+    #sidedrawer { display: none !important; }
+    #footer { display: none !important; }
+    #content-wrapper { 
+        margin: 0 !important; 
+        padding: 0 !important; 
+    }
+    #form1 { 
+        margin: 0 !important; 
+        padding: 0 !important; 
+    }
+
+    .header h2 {
+        font-size: 22px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: #0072bc !important; /* School name blue */
+        line-height: 1.2 !important; /* Reduced line height */
+        margin: 5px 0 !important; /* Reduced margin */
+    }
+    
+    .header p {
+        font-size: 13px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: normal !important;
+        color: #000 !important; /* Address and phone black */
+        line-height: 1.1 !important; /* Reduced line height */
+        margin: 2px 0 !important; /* Reduced margin */
+    }
+
+    /* Student photo styles for print - square with rounded corners */
+    .student-photo {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 10px !important; /* Square with rounded corners */
+        object-fit: cover !important;
+        position: absolute !important;
+        right: 0 !important;
+        top: 0 !important;
+        left: auto !important;
+        border: 3px solid #0072bc !important;
+        background: white !important;
+        z-index: 10 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .header img {
+        border-radius: 5px !important; /* Square with rounded corners for logo */
+        border: 2px solid #0072bc !important; /* Same border as student photo */
+        background: white !important; /* Same background as student photo */
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        width: 60px !important; /* Same as student photo */
+        height: 60px !important; /* Same as student photo */
+    }
+    
+    /* Summary table - smaller text for print */
+    .summary-header td {
+        padding: 4px 3px !important; /* Reduced padding */
+        font-size: 12px !important; /* Smaller font for headers */
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color: #333 !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+    }
+    
+    .summary-values td {
+        padding: 4px 3px !important; /* Reduced padding */
+        font-size: 12px !important; /* Smaller font for values */
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+    }
+
+    /* Info table - smaller text */
+    .info-table td {
+        font-size: 14px !important; /* Smaller font */
+        padding: 3px 5px !important; /* Reduced padding */
+    }
+
+    /* Marks table - larger text for print */
+    .marks-table th, .marks-table td {
+        font-size: 16px !important; /* Larger font for marks table */
+        padding: 5px !important; /* More padding */
+        font-family: Arial, sans-serif !important;
+    }
+    
+    .marks-table th {
+        font-size: 18px !important; /* Larger font for headers */
+        background: #d7ede1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Medium subjects table - adjust for print */
+    .marks-table.medium-subjects th, .marks-table.medium-subjects td {
+        font-size: 15px !important; /* Larger than before for print */
+        padding: 3px !important;
+    }
+    
+    .marks-table.medium-subjects th {
+        font-size: 15px !important; /* Larger headers */
+    }
+
+    /* Small subjects table - adjust for print */
+    .marks-table.small-subjects th, .marks-table.small-subjects td {
+        font-size: 14px !important; /* Larger than before for print */
+        padding: 2px !important;
+    }
+    
+    .marks-table.small-subjects th {
+        font-size: 15px !important; /* Larger headers */
+    }
+
+    /* Grade chart - smaller for print */
+    .grade-chart th, .grade-chart td {
+        font-size: 12px !important; /* Smaller font */
+        padding: 2px 3px !important; /* Reduced padding */
+    }
+    
+    .grade-chart th {
+        font-size: 11px !important; /* Slightly larger headers */
+    }
+
+    /* Footer - smaller text */
+    .footer {
+        font-size: 13px !important; /* Smaller font */
+        margin-top: 20px !important; /* Reduced margin */
+        padding: 0 30px !important; /* Reduced padding */
+    }
+}
+
+body {
+    font-family: 'Kalpurush', Arial, sans-serif;
+    background: #fff;
+    margin: 0;
+    padding: 20px; /* Reduced padding around entire page */
+}
+
+h3 {
+    padding: 1rem;
+    border-radius: .25rem;
+    margin-top: 3px;
+    text-transform: uppercase;
+    color: #0f56d1;
+    font-size: 2rem;
+    font-weight: 400;
+    background-color: #fff;
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
+    margin-bottom: 1.5rem !important;
+}
+
+.result-card {
+    border: 2px solid #0072bc;
+    border-radius: 5px;
+    padding: 20px; /* Internal padding inside the card */
+    max-width: 1100px; 
+    margin: 5mm 5mm !important; /* Proper margin around each card */
+    page-break-after: always;
+    page-break-inside: avoid;
+    page-break-before: auto; /* Allow natural page breaks */
+    background: white; /* Ensure white background */
+    box-sizing: border-box; /* Include border in width calculation */
+    display: block; /* Ensure block-level display */
+}
+
+.result-card:last-child {
+    page-break-after: auto;
+    margin-bottom: 20px; /* Add bottom margin to last card */
+}
+
+.result-card:first-child {
+    margin: 5mm 5mm !important; /* Add top margin to first card */
+}
+
+/* Ensure individual card isolation */
+.result-card + .result-card {
+    margin-top: 20px; /* Space between consecutive cards */
+}
+
+.header {
+    text-align: center;
+    border-bottom: 2px solid #0072bc;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    position: relative;
+}
+
+.header h2 {
+    color: #0072bc !important; /* School name blue */
+    line-height: 1.2 !important; /* Reduced line height */
+    margin: 5px 0 !important; /* Reduced margin */
+}
+
+.header p {
+    color: #000 !important; /* Address and phone black */
+    line-height: 1.1 !important; /* Reduced line height */
+    margin: 2px 0 !important; /* Reduced margin */
+}
+
+.header img {
+    width: 60px; /* Same as student photo */
+    height: 60px; /* Same as student photo */
+    border-radius: 5px !important; /* Square with rounded corners */
+    object-fit: cover;
+    position: absolute;
+    left: 0;
+    top: 0;
+    border: 2px solid #0072bc !important; /* Same border as student photo */
+    background: white !important; /* Same background as student photo */
+}
+
+/* Student photo in header - square with rounded corners */
+.student-photo {
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 5px !important; /* Square with rounded corners */
+    object-fit: cover !important;
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    left: auto !important;
+    border: 3px solid #0072bc !important;
+    background: white !important;
+    z-index: 10 !important;
+}
+
+.title {
+    text-align: center;
+    font-weight: bold;
+    margin: 3px 0;
+    color: darkgreen;
+    font-size: 18px;
+}
+
+.Exam_name {            
+     text-align: center;
+    font-weight: bold;
+    margin: 5px 0;
+    color: #0072bc;
+    font-size: 18px;
+}
+
+.top-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.info-summary {
+    width: 72%;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+}
+
+.info-table td {
+    border: 1px solid #0072bc;
+    padding: 5px 8px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.summary {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+    font-family: 'Kalpurush', Arial, sans-serif;
+}
+
+.summary-header {
+    background: #0072bc;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+.summary-header td {
+    padding: 6px 6px !important;
+    font-size: 16px !important;
+    background-color: #f8f9fa !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #333 !important;
+    font-family: Arial, sans-serif !important;
+    font-weight: bold !important;
+}
+
+.summary-values {
+    background: #f9f9f9;
+}
+
+.summary-values td {
+    padding: 6px !important;
+    font-size: 16px !important;
+    font-family: Arial, sans-serif !important;
+    font-weight: bold !important;
+}
+
+.grade-chart {
+    width: 26%;
+}
+
+.grade-chart table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 11px;
+}
+
+.grade-chart th, .grade-chart td {
+    border: 1px solid #0072bc;
+    padding: 3px 4px;
+    text-align: center;
+    font-weight: bold;
+    font-family: 'Kalpurush', Arial, sans-serif !important;
+    font-size: 11px;
+}
+
+.grade-chart th {
+    background: #f0f0f0;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.marks-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+.marks-table th, .marks-table td {
+    border: 1px solid #0072bc;
+    text-align: center;
+    padding: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 'Kalpurush', Arial, sans-serif !important;
+}
+
+.marks-table th {
+    background: #d7ede1;
+    font-size: 18px;
+}
+
+.marks-table th[colspan="2"] {
+    background: #e8f4fd;
+    color: #000;
+    font-weight: bold;
+}
+
+/* Sub-exam marks styling */
+.marks-table .sub-exam-marks {
+    font-size: 14px;
+    font-weight: normal;
+    white-space: nowrap;
+    color: #333;
+    display: inline-block;
+}
+
+/* Total marks column styling */
+.marks-table .total-marks-cell {
+    background: white;
+    font-weight: bold;
+    color: #0072bc;
+}
+
+/* Dynamic font sizes based on subject count - same as print view */
+.marks-table.medium-subjects th, .marks-table.medium-subjects td {
+    font-size: 14px !important; /* Same as print view */
+    padding: 3px !important; /* Same as print view */
+}
+
+.marks-table.medium-subjects th {
+    font-size: 14px !important; /* Same as print view */
+}
+
+.marks-table.medium-subjects .sub-exam-marks {
+    font-size: 13px !important;
+}
+
+.marks-table.small-subjects th, .marks-table.small-subjects td {
+    font-size: 13px !important; /* Same as print view */
+    padding: 2px !important; /* Same as print view */
+}
+
+.marks-table.small-subjects th {
+    font-size: 13px !important; /* Same as print view */
+}
+
+.marks-table.small-subjects .sub-exam-marks {
+    font-size: 12px !important;
+}
+
+.vertical-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-weight: bold;
+    color: blue;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 30px;
+    font-size: 15px;
+    font-weight: bold;
+    font-family: 'Kalpurush', Arial, sans-serif !important;
+    padding: 0 50px;
+}
+
+/* Signature styling */
+.SignTeacher, .SignHead {
+    min-height: 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.SignTeacher img, .SignHead img {
+    max-height: 35px;
+    max-width: 80px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    display: block;
+}
+
+.Teacher, .Head {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 5px;
+    min-width: 120px;
+    font-family: Arial, sans-serif;
+}
+
+.summary td {
+    padding: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid #0072bc;
+}
+
+/* Add the same colors as print view for normal view */
+.summary td:nth-child(1) { background: #ffd966; }
+.summary td:nth-child(2) { background: #f4b183; }
+.summary td:nth-child(3) { background: #a9d08e; }
+.summary td:nth-child(4) { background: #9dc3e6; }
+.summary td:nth-child(5) { background: #c5e0b4; }
+.summary td:nth-child(6) { background: #ffe699; }
+.summary td:nth-child(7) { background: #d9d2e9; }
+
+/* Ensure ResultPanel doesn't interfere with individual card borders */
+#ResultPanel, .result-panel {
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Controls section styling */
+.controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+}
+
+/* Ensure no global borders interfere */
+.container-fluid, .container, .row, .col-md-12 {
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
