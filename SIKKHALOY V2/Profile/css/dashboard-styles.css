@@ -1,0 +1,321 @@
+/* Dashboard Header Styles */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.dashboard-title {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.dashboard-links {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Modern Gradient Link Styles */
+.gradient-link {
+    padding: 12px 24px;
+    border-radius: 30px;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 13px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+/* Shine Effect */
+.gradient-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s;
+}
+
+.gradient-link:hover::before {
+    left: 100%;
+}
+
+/* Hover Effects */
+.gradient-link:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 12px 35px rgba(118, 75, 162, 0.6);
+    color: #fff !important;
+    filter: brightness(1.1) saturate(1.2);
+    animation: none; /* Stop pulsing on hover */
+}
+
+/* Find Student Button */
+.gradient-link.find-student {
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 50%, #ff6b35 100%);
+    box-shadow: 0 8px 25px rgba(255, 65, 108, 0.5);
+}
+
+.gradient-link.find-student:hover {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff4b2b 50%, #ff416c 100%);
+    box-shadow: 0 12px 35px rgba(255, 107, 53, 0.7);
+    transform: translateY(-4px) scale(1.05);
+}
+
+/* Collect Payment Button */
+.gradient-link.collect-payment {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 50%, #00d2ff 100%);
+    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.5);
+}
+
+.gradient-link.collect-payment:hover {
+    background: linear-gradient(135deg, #00d2ff 0%, #38ef7d 50%, #11998e 100%);
+    box-shadow: 0 12px 35px rgba(0, 210, 255, 0.7);
+    transform: translateY(-4px) scale(1.05);
+}
+
+/* Attendance Display Button */
+.gradient-link.attendance-display {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+}
+
+.gradient-link.attendance-display:hover {
+    background: linear-gradient(135deg, #f093fb 0%, #764ba2 50%, #667eea 100%);
+    box-shadow: 0 12px 35px rgba(240, 147, 251, 0.7);
+    transform: translateY(-4px) scale(1.05);
+}
+
+/* Icon Animation */
+.gradient-link i {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.gradient-link:hover i {
+    transform: rotate(360deg) scale(1.2);
+}
+
+/* Pulsing Animations */
+@keyframes pulseRed {
+    0% {
+        box-shadow: 0 8px 25px rgba(255, 65, 108, 0.5);
+    }
+    50% {
+        box-shadow: 0 8px 25px rgba(255, 65, 108, 0.9);
+    }
+    100% {
+        box-shadow: 0 8px 25px rgba(255, 65, 108, 0.5);
+    }
+}
+
+@keyframes pulseGreen {
+    0% {
+        box-shadow: 0 8px 25px rgba(17, 153, 142, 0.5);
+    }
+    50% {
+        box-shadow: 0 8px 25px rgba(17, 153, 142, 0.9);
+    }
+    100% {
+        box-shadow: 0 8px 25px rgba(17, 153, 142, 0.5);
+    }
+}
+
+@keyframes pulsePurple {
+    0% {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+    }
+    50% {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.9);
+    }
+    100% {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+    }
+}
+
+.gradient-link.find-student {
+    animation: pulseRed 2s infinite;
+}
+
+.gradient-link.collect-payment {
+    animation: pulseGreen 2.5s infinite;
+}
+
+.gradient-link.attendance-display {
+    animation: pulsePurple 3s infinite;
+}
+
+/* Card Header Styles */
+.card-header a {
+    color: white !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.card-header a:hover {
+    color: #f0f0f0 !important;
+    text-decoration: none;
+}
+
+.print-link {
+    float: right;
+    text-decoration: none !important;
+    color: white !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.print-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white !important;
+    text-decoration: none;
+}
+
+/* Responsive Design */
+/* Tablet View */
+@media (max-width: 992px) {
+    .dashboard-links {
+        gap: 10px;
+    }
+    
+    .gradient-link {
+        font-size: 12px;
+        padding: 8px 16px;
+    }
+}
+
+/* Mobile View */
+@media (max-width: 768px) {
+    .card-body.dashboard-header {
+        padding: 15px !important;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .dashboard-title {
+        text-align: center;
+        font-size: 18px;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .dashboard-links {
+        justify-content: center;
+        width: 100%;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 8px 5px;
+        align-items: center;
+    }
+    
+    .gradient-link {
+        font-size: 11px;
+        padding: 8px 16px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        border-radius: 20px;
+        gap: 6px;
+        letter-spacing: 0.3px;
+        min-width: auto;
+    }
+    
+    .gradient-link i {
+        font-size: 12px;
+    }
+    
+    .btn-text-full {
+        display: none;
+    }
+    
+    .btn-text-short {
+        display: inline !important;
+    }
+}
+
+/* Small Mobile View */
+@media (max-width: 480px) {
+    .card-body.dashboard-header {
+        padding: 12px !important;
+    }
+    
+    .dashboard-header {
+        gap: 12px;
+    }
+    
+    .dashboard-title {
+        font-size: 16px;
+    }
+    
+    .dashboard-links {
+        gap: 8px;
+        padding: 5px 2px;
+        justify-content: center;
+    }
+    
+    .gradient-link {
+        font-size: 10px;
+        padding: 7px 14px;
+        border-radius: 18px;
+        gap: 5px;
+        letter-spacing: 0.2px;
+    }
+    
+    .gradient-link i {
+        font-size: 11px;
+    }
+}
+
+/* Very Small Mobile View */
+@media (max-width: 360px) {
+    .card-body.dashboard-header {
+        padding: 10px !important;
+    }
+    
+    .dashboard-links {
+        gap: 6px;
+        padding: 3px 0;
+        justify-content: center;
+    }
+    
+    .gradient-link {
+        font-size: 9px;
+        padding: 6px 12px;
+        gap: 4px;
+        border-radius: 15px;
+        letter-spacing: 0.1px;
+    }
+    
+    .gradient-link i {
+        font-size: 10px;
+    }
+}

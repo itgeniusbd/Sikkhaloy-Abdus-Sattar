@@ -1,0 +1,1 @@
+<%@ WebHandler Language="C#" CodeBehind="TestHandler.ashx.cs" Class="EDUCATION.COM.Handeler.TestHandler" %>

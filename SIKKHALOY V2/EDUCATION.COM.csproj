@@ -521,7 +521,7 @@
     <Content Include="Exam\ExmamPositionBangla.aspx" />
     <Content Include="Exam\Input_Exam_Marks_WithSubExam.aspx" />
     <Content Include="Exam\Result\Assets\bangla-result-directprint.css" />
-    <Content Include="Exam\Result\BanglaResult0.aspx" />
+    <Content Include="Exam\Result\BanglaResult_Old.aspx" />
     <Content Include="Exam\Result\BanglaResult.aspx" />
     <Content Include="Exam\Result\Board_Result.aspx" />
     <Content Include="Exam\CSS\Input_Marks.css" />
@@ -569,9 +569,12 @@
     <Content Include="ID_Cards\Student_ID_Cards.aspx" />
     <Content Include="JS\amount-in-word.js" />
     <Content Include="JS\attendance\api-methods.js" />
+    <Content Include="JS\bengali-translations.js" />
     <Content Include="JS\mui.min.js" />
     <Content Include="JS\notify.min.js" />
     <Content Include="JS\ShowHideImage.js" />
+    <Content Include="JS\sikkhaloy-main.js" />
+    <Content Include="JS\translation-engine.js" />
     <Content Include="JS\Zip_File\FileServer.js" />
     <Content Include="googleeb74826106350c63.html" />
     <Content Include="Handeler\Default\Male.png" />
@@ -616,10 +619,12 @@
     <Content Include="Profile\Change_Password.aspx" />
     <Content Include="Profile\css\Admin.css" />
     <Content Include="Profile\css\CallCenter.jpg" />
+    <Content Include="Profile\css\dashboard-styles.css" />
     <Content Include="Profile\css\Invoice.css" />
     <Content Include="Profile\Invoice\Due_Invoice.aspx" />
     <Content Include="Profile\Invoice\Receipt\Invoice_List.aspx" />
     <Content Include="Profile\Invoice\Receipt\Paid_Receipt.aspx" />
+    <Content Include="Profile\js\dashboard-charts.js" />
     <Content Include="Profile\Sub-Admin.aspx" />
     <Content Include="Profile\Support\Support_Ticket.aspx" />
     <Content Include="Profile\Total_Student_List.aspx" />
@@ -718,8 +723,8 @@
     <Content Include="Handeler\Commeti_Photo.ashx" />
     <Content Include="Handeler\Comitee_Image.ashx" />
     <Content Include="Handeler\SignatureHandler.ashx" />
-    <Content Include="Handeler\TestHandler.ashx" />
     <Content Include="NEW_BASIC.Master" />
+    <Content Include="Handeler\TestHandler.ashx" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
     <Content Include="Routines\Modify_Routine.aspx" />
@@ -1994,12 +1999,12 @@
     <Compile Include="Exam\Input_Exam_Marks_WithSubExam.aspx.designer.cs">
       <DependentUpon>Input_Exam_Marks_WithSubExam.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Exam\Result\BanglaResult0.aspx.cs">
-      <DependentUpon>BanglaResult0.aspx</DependentUpon>
+    <Compile Include="Exam\Result\BanglaResult_Old.aspx.cs">
+      <DependentUpon>BanglaResult_Old.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="Exam\Result\BanglaResult0.aspx.designer.cs">
-      <DependentUpon>BanglaResult0.aspx</DependentUpon>
+    <Compile Include="Exam\Result\BanglaResult_Old.aspx.designer.cs">
+      <DependentUpon>BanglaResult_Old.aspx</DependentUpon>
     </Compile>
     <Compile Include="Exam\Result\BanglaResult.aspx.cs">
       <DependentUpon>BanglaResult.aspx</DependentUpon>

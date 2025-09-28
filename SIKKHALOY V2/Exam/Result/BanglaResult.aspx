@@ -9,7 +9,8 @@
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <h3 class="NoPrint" id="pageTitle">বাংলা রেজাল্ট কার্ড</h3>
+    <h3 class="NoPrint" id="pageTitle">বাংলা রেজাল্ট কার্ড     <a href="BanglaResult_Old.aspx"><span class="btn-text-full">Old</span> </a></h3>
+
     
     <div class="controls NoPrint">
         <div class="row">
@@ -920,10 +921,15 @@
                 // Extract base64 data for database save
                 var base64 = readerEvent.target.result.split(',')[1];
 
-                // Save to database
+                // Debug: Log the AJAX URL that will be called
+                var ajaxUrl = window.location.pathname.replace(/[^\/]+$/, 'BanglaResult.aspx/SaveSignature');
+                console.log('AJAX URL will be:', ajaxUrl);
+                console.log('Current page:', window.location.pathname);
+
+                // Save to database with better error handling
                 $.ajax({
                     type: 'POST',
-                    url: 'Bangla_Result_DirectPrint.aspx/SaveSignature',
+                    url: 'BanglaResult.aspx/SaveSignature',
                     data: JSON.stringify({
                         signatureType: signatureType,
                         imageData: base64
@@ -931,15 +937,35 @@
                     contentType: 'application/json; charset=utf-8',
                     dataType: 'json',
                     success: function (response) {
-                        if (response.d.success) {
+                        console.log('AJAX Success Response:', response);
+                        if (response.d && response.d.success) {
                             console.log(signatureType + ' signature saved to database successfully');
+                            // Optional: Show success message
+                            // alert(signatureType + ' signature uploaded successfully!');
                         } else {
-                            alert('Error saving ' + signatureType + ' signature: ' + response.d.message);
+                            console.error('Server returned failure:', response.d);
+                            alert('Error saving ' + signatureType + ' signature: ' + (response.d ? response.d.message : 'Unknown error'));
                         }
                     },
                     error: function (xhr, status, error) {
-                        console.error('Ajax error for ' + signatureType + ':', error);
-                        alert('Error uploading ' + signatureType + ' signature: ' + error);
+                        console.error('AJAX Error Details:', {
+                            status: xhr.status,
+                            statusText: xhr.statusText,
+                            responseText: xhr.responseText,
+                            error: error
+                        });
+                        
+                        var errorMessage = 'Error uploading ' + signatureType + ' signature: ';
+                        
+                        if (xhr.status === 404) {
+                            errorMessage += 'Page method not found. Check if SaveSignature method exists.';
+                        } else if (xhr.status === 500) {
+                            errorMessage += 'Server error: ' + xhr.responseText;
+                        } else {
+                            errorMessage += error + ' (Status: ' + xhr.status + ')';
+                        }
+                        
+                        alert(errorMessage);
                     }
                 });
             };

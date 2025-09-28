@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Exam Result (Bangla)" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="BanglaResult0.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.BanglaResult" %>
+﻿<%@ Page Title="Exam Result (Bangla)" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="BanglaResult_Old.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.BanglaResult" %>
 <%@ Register Assembly="Microsoft.ReportViewer.WebForms, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" Namespace="Microsoft.Reporting.WebForms" TagPrefix="rsweb" %>
 <%@ Register TagPrefix="rsweb" Namespace="Microsoft.Reporting.WebForms" Assembly="Microsoft.ReportViewer.WebForms" %>
 
@@ -6,11 +6,9 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <h3>Exam Result (Bangla)</h3>
+    <h3 class="NoPrint" id="pageTitle">বাংলা রেজাল্ট কার্ড     <a href="BanglaResult.aspx"><span class="btn-text-full">NEW</span> </a></h3>
 
-    <div class="alert alert-info">Without Sub exam set 'Normal' margin</div>
-
-
+   
     <div class="row">
         <div class="col-md-3">
             <div class="form-group">
