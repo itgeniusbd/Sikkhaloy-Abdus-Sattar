@@ -521,8 +521,8 @@
     <Content Include="Exam\ExmamPositionBangla.aspx" />
     <Content Include="Exam\Input_Exam_Marks_WithSubExam.aspx" />
     <Content Include="Exam\Result\Assets\bangla-result-directprint.css" />
+    <Content Include="Exam\Result\BanglaResult0.aspx" />
     <Content Include="Exam\Result\BanglaResult.aspx" />
-    <Content Include="Exam\Result\Bangla_Result_DirectPrint.aspx" />
     <Content Include="Exam\Result\Board_Result.aspx" />
     <Content Include="Exam\CSS\Input_Marks.css" />
     <Content Include="Exam\CSS\ExamPosition.css" />
@@ -1994,19 +1994,19 @@
     <Compile Include="Exam\Input_Exam_Marks_WithSubExam.aspx.designer.cs">
       <DependentUpon>Input_Exam_Marks_WithSubExam.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Exam\Result\BanglaResult0.aspx.cs">
+      <DependentUpon>BanglaResult0.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Exam\Result\BanglaResult0.aspx.designer.cs">
+      <DependentUpon>BanglaResult0.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Exam\Result\BanglaResult.aspx.cs">
       <DependentUpon>BanglaResult.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Exam\Result\BanglaResult.aspx.designer.cs">
       <DependentUpon>BanglaResult.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="Exam\Result\Bangla_Result_DirectPrint.aspx.cs">
-      <DependentUpon>Bangla_Result_DirectPrint.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="Exam\Result\Bangla_Result_DirectPrint.aspx.designer.cs">
-      <DependentUpon>Bangla_Result_DirectPrint.aspx</DependentUpon>
     </Compile>
     <Compile Include="Exam\Result\Board_Result.aspx.designer.cs">
       <DependentUpon>Board_Result.aspx</DependentUpon>
