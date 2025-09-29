@@ -558,6 +558,7 @@
     <Content Include="Exam\WeeklyExam\Edit_Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Results.aspx" />
+    <Content Include="FooterTest.aspx" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
     <Content Include="ID_Cards\Card.aspx" />
@@ -613,6 +614,7 @@
     <Content Include="Default.aspx" />
     <Content Include="JS\TimePicker\mdtimepicker.css" />
     <Content Include="JS\TimePicker\mdtimepicker.js" />
+    <Content Include="LanguageToggleTest.aspx" />
     <Content Include="Login.aspx" />
     <Content Include="Notices\Details.aspx" />
     <Content Include="Profile\Admin.aspx" />
@@ -630,6 +632,7 @@
     <Content Include="Profile\Total_Student_List.aspx" />
     <Content Include="Profile\Update_Info.aspx" />
     <Content Include="Profile_Redirect.aspx" />
+    <Content Include="ResultCardIconTest.aspx" />
     <Content Include="Routines\Assign_Teacher_And_Subject_in_the_Created_Routines.aspx" />
     <Content Include="Routines\Class_Routine.aspx" />
     <Content Include="Routines\Create_Routines_for_Classes.aspx" />
@@ -644,13 +647,13 @@
     <Content Include="API\Attendance_DataSet.xsc">
       <DependentUpon>Attendance_DataSet.xsd</DependentUpon>
     </Content>
-    <Content Include="simple-translation.js" />
     <Content Include="Student\Notice.aspx" />
     <Content Include="Student\OnlinePayment\Success.aspx" />
     <Content Include="Teacher\AddStudentReport.aspx" />
     <Content Include="Teacher\StudentAttendance.aspx" />
     <Content Include="Teacher\StudentNotice.aspx" />
     <Content Include="Teacher\Input_Marks.aspx" />
+    <Content Include="Test_FontAwesome.html" />
     <Content Include="W_Test.aspx" />
     <None Include="API\Attendance_DataSet.xsd">
       <SubType>Designer</SubType>

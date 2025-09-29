@@ -10,8 +10,11 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <link rel="shortcut icon" href="/CSS/Image/MYfavicon.png" type="image/x-icon" />
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <!-- Font Awesome - Updated to latest stable version with fallback -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    <!-- Fallback to older Font Awesome if the latest version fails -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous" />
+    
     <!-- Bootstrap core CSS -->
     <link href="/CSS/bootstrap/bootstrap.css" rel="stylesheet" />
     <!-- Material Design Bootstrap -->
@@ -34,9 +37,372 @@
    <![endif]-->
 
     <style>
-        .sidedrawer-toggle .my-navbar-icon { display: inline-block; width: 1.5em; height: 1.5em; vertical-align: middle; content: ""; background: no-repeat center center; background-size: 100% 100%; background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgb(255, 255, 255)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 8h24M4 16h24M4 24h24'/%3E%3C/svg%3E"); }
+        .sidedrawer-toggle .my-navbar-icon { 
+            display: inline-block; 
+            width: 1.5em; 
+            height: 1.5em; 
+            vertical-align: middle; 
+            content: ""; 
+            background: no-repeat center center; 
+            background-size: 100% 100%; 
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgb(255, 255, 255)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 8h24M4 16h24M4 24h24'/%3E%3C/svg%3E"); 
+        }
 
-        </style>
+        /* Ensure Font Awesome icons are displayed properly */
+        .fa, .fas, .far, .fab, .fal, .fad {
+            font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+        }
+
+        /* Fix specific icon issues */
+        .fa-map-marker::before { content: "\f3c5"; }
+        .fa-phone::before { content: "\f095"; }
+        .fa-envelope-o::before { content: "\f0e0"; }
+        .fa-facebook::before { content: "\f09a"; }
+        .fa-twitter::before { content: "\f099"; }
+        .fa-youtube::before { content: "\f167"; }
+        .fa-language::before { content: "\f1ab"; }
+        .fa-user::before { content: "\f007"; }
+        .fa-lock::before { content: "\f023"; }
+        .fa-paper-plane::before { content: "\f1d8"; }
+        .fa-star::before { content: "\f005"; }
+        .fa-credit-card::before { content: "\f09d"; }
+
+        /* Enhanced Footer Styles */
+        .page-footer {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .footer-action-buttons {
+            background: transparent !important;
+            margin: 0;
+            border-radius: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-footer-action {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            padding: 20px 15px !important;
+            border: 2px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            transition: all 0.3s ease !important;
+            backdrop-filter: blur(10px) !important;
+            position: relative !important;
+            overflow: hidden !important;
+            min-height: 100px !important;
+        }
+
+        .btn-footer-action::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-footer-action:hover::before {
+            left: 100%;
+        }
+
+        .btn-footer-action:hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .btn-footer-action i {
+            font-size: 28px !important;
+            margin-bottom: 8px !important;
+            display: block !important;
+        }
+
+        .btn-footer-action .btn-text {
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            margin-bottom: 2px !important;
+            display: block !important;
+        }
+
+        .btn-footer-action .btn-subtext {
+            font-size: 11px !important;
+            opacity: 0.8 !important;
+            display: block !important;
+        }
+
+        /* Specific button colors - enhanced with transparency */
+        .btn-experience {
+            background: rgba(102, 126, 234, 0.3) !important;
+            border-color: rgba(102, 126, 234, 0.5) !important;
+        }
+
+        .btn-experience:hover {
+            background: rgba(102, 126, 234, 0.5) !important;
+            border-color: rgba(102, 126, 234, 0.8) !important;
+        }
+
+        .btn-support {
+            background: rgba(240, 147, 251, 0.3) !important;
+            border-color: rgba(240, 147, 251, 0.5) !important;
+        }
+
+        .btn-support:hover {
+            background: rgba(240, 147, 251, 0.5) !important;
+            border-color: rgba(240, 147, 251, 0.8) !important;
+        }
+
+        .btn-payment {
+            background: rgba(79, 172, 254, 0.3) !important;
+            border-color: rgba(79, 172, 254, 0.5) !important;
+        }
+
+        .btn-payment:hover {
+            background: rgba(79, 172, 254, 0.5) !important;
+            border-color: rgba(79, 172, 254, 0.8) !important;
+        }
+
+        /* Footer Social Section */
+        .footer-social-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1) !important;
+            position: relative;
+            z-index: 1;
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            padding-left: calc(50vw - 50%);
+            padding-right: calc(50vw - 50%);
+        }
+
+        /* Add subtle background pattern for social section */
+        .footer-social-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%),
+                linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.05) 75%),
+                linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.05) 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Ensure container content is properly positioned */
+        .footer-social-section .container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .social-label {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 16px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .social-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 45px !important;
+            height: 45px !important;
+            border-radius: 50% !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            transition: all 0.3s ease !important;
+            position: relative !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-5px) scale(1.1) !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .social-btn.facebook {
+            background: linear-gradient(135deg, #3b5998, #8b9dc3) !important;
+        }
+
+        .social-btn.facebook:hover {
+            background: linear-gradient(135deg, #8b9dc3, #3b5998) !important;
+            box-shadow: 0 8px 20px rgba(59, 89, 152, 0.5) !important;
+        }
+
+        .social-btn.twitter {
+            background: linear-gradient(135deg, #1da1f2, #0d95e8) !important;
+        }
+
+        .social-btn.twitter:hover {
+            background: linear-gradient(135deg, #0d95e8, #1da1f2) !important;
+            box-shadow: 0 8px 20px rgba(29, 161, 242, 0.5) !important;
+        }
+
+        .social-btn.youtube {
+            background: linear-gradient(135deg, #ff0000, #cc0000) !important;
+        }
+
+        .social-btn.youtube:hover {
+            background: linear-gradient(135deg, #cc0000, #ff0000) !important;
+            box-shadow: 0 8px 20px rgba(255, 0, 0, 0.5) !important;
+        }
+
+        .app-download {
+            transition: all 0.3s ease !important;
+        }
+
+        .app-download img {
+            transition: transform 0.3s ease !important;
+            filter: brightness(0.9) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)) !important;
+            border-radius: 8px !important;
+        }
+
+        .app-download:hover img {
+            transform: scale(1.08) !important;
+            filter: brightness(1) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) !important;
+        }
+
+        /* Copyright Section */
+        .footer-copyright {
+            position: relative;
+            z-index: 1;
+        }
+
+        .copyright-link {
+            color: #4facfe !important;
+            text-decoration: none !important;
+            font-weight: 500 !important;
+            transition: color 0.3s ease !important;
+        }
+
+        .copyright-link:hover {
+            color: #00f2fe !important;
+            text-decoration: underline !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .btn-footer-action {
+                min-height: 80px !important;
+                padding: 15px 10px !important;
+            }
+
+            .btn-footer-action i {
+                font-size: 24px !important;
+                margin-bottom: 5px !important;
+            }
+
+            .btn-footer-action .btn-text {
+                font-size: 14px !important;
+            }
+
+            .btn-footer-action .btn-subtext {
+                font-size: 10px !important;
+            }
+
+            .social-links {
+                justify-content: center !important;
+            }
+
+            .social-label {
+                display: block !important;
+                text-align: center !important;
+                margin-bottom: 15px !important;
+                font-size: 14px !important;
+            }
+
+            .social-btn {
+                width: 40px !important;
+                height: 40px !important;
+                margin: 0 8px !important;
+            }
+
+            .footer-social-section {
+                padding-top: 20px !important;
+                padding-bottom: 20px !important;
+            }
+
+            .app-download {
+                margin-top: 15px !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .footer-action-buttons .row > div {
+                margin-bottom: 10px;
+            }
+
+            .footer-action-buttons .row > div:last-child {
+                margin-bottom: 0;
+            }
+
+            .social-label {
+                font-size: 13px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .social-btn {
+                width: 35px !important;
+                height: 35px !important;
+                margin: 0 5px !important;
+            }
+
+            .app-download img {
+                height: 35px !important;
+            }
+        }
+
+        /* Animation for footer entrance */
+        .page-footer {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 
     <asp:ContentPlaceHolder ID="head" runat="server" />
 </head>
@@ -55,8 +421,8 @@
                             <%# Eval("Name") %>
                         </p>
                         <ul class="dropdown-menu pull-right">
-                            <li><a href="/Profile/Update_Info.aspx" class="dropdown-item"><i class="fa fa-user"></i>Update Info</a></li>
-                            <li><a href="/Profile/Change_Password.aspx" class="dropdown-item"><i class="fa fa-lock"></i>Change Password</a></li>
+                            <li><a href="/Profile/Update_Info.aspx" class="dropdown-item"><i class="fa fa-user icon-fallback" data-fallback="👤"></i>Update Info</a></li>
+                            <li><a href="/Profile/Change_Password.aspx" class="dropdown-item"><i class="fa fa-lock icon-fallback" data-fallback="🔒"></i>Change Password</a></li>
                         </ul>
 
                         <asp:LoginView ID="CustomerLoginView" runat="server">
@@ -111,15 +477,15 @@
                                 <div class="InsInfo text-center text-sm-left">
                                     <a href="/Profile_Redirect.aspx" title="Go Deshboard" class="white-text" id="InstitutionName"><%# Eval("SchoolName") %> <span class="d-print-none">(<%# Eval("EducationYear") %>)</span></a>
                                     <p>
-                                        <i class="fa fa-map-marker mr-1"></i><%#Eval("Address") %>
-                                        <i class="fa fa-phone mx-1"></i><%#Eval("Phone") %>
-                                        <i class="fa fa-envelope-o mx-1"></i><%#Eval("Email") %>
+                                        <i class="fa fa-map-marker mr-1 icon-fallback" data-fallback="📍"></i><%#Eval("Address") %>
+                                        <i class="fa fa-phone mx-1 icon-fallback" data-fallback="📞"></i><%#Eval("Phone") %>
+                                        <i class="fa fa-envelope-o mx-1 icon-fallback" data-fallback="✉️"></i><%#Eval("Email") %>
                                     </p>
                                 </div>
                                 <!-- Language Toggle Button -->
                                 <div class="d-flex align-items-center ml-auto d-print-none">
                                     <button type="button" id="languageToggle" class="btn btn-outline-light btn-sm" title="Toggle Language">
-                                        <i class="fa fa-language"></i> বাংলা
+                                        <i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা
                                     </button>
                                 </div>
                             </div>
@@ -177,47 +543,64 @@
             </div>
         </div>
 
-        <footer style="background-color:#000000" id="footer" class="page-footer mt-4 wow fadeIn bg-main p-0 d-print-none">
+        <footer id="footer" class="page-footer mt-4 wow fadeIn bg-main p-0 d-print-none" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;">
             <div class="container">
-                <ul class="list-unstyled list-inline text-center pt-4">
-                    <li class="list-inline-item">
-                        <button type="button" class="btn btn-outline-white" data-toggle="modal" data-target="#Testimonial">Share Experience</button>
-                    </li>
-                    <li class="list-inline-item">
-                        <a href="/Profile/Support/Support_Ticket.aspx" class="btn btn-outline-white">Call Center Number (Office Time: 10:00 AM - 05:00 PM) Phone: 09638669966 Mobile: 01739144141</a>
-                    </li>
-                    <li class="list-inline-item">
-                        <button type="button" class="btn btn-outline-white" data-toggle="modal" data-target="#PaynemtM">Make Payment</button>
-                    </li>
-                </ul>
-
-                <ul class="list-unstyled list-inline text-center">
-                    <li class="list-inline-item">
-                        <a target="_blank" href="https://www.facebook.com/Sikkhaloy24" class="btn-floating btn-sm rgba-white-slight mx-1 waves-effect waves-light">
-                            <i class="fa fa-facebook"></i>
-                        </a>
-                    </li>
-                    <li class="list-inline-item">
-                        <a class="btn-floating btn-sm rgba-white-slight mx-1 waves-effect waves-light">
-                            <i class="fa fa-twitter"></i>
-                        </a>
-                    </li>
-               
-                    <li class="list-inline-item">
-                        <a target="_blank" href="https://www.youtube.com/channel/UCjyS7P3JSdXwD51IpXGqXAQ" class="btn-floating btn-sm rgba-white-slight mx-1 waves-effect waves-light">
-                            <i class="fa fa-youtube"></i>
-                        </a>
-                    </li>
-                    <li class="list-inline-item">
-                        <a target="_blank" href="https://play.google.com/store/apps/details?id=com.loopsit.sikkhaloy&hl=en&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1">
-                            <img style="width: 160px;" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' />
-                        </a>
-                    </li>
-                </ul>
+                <!-- Enhanced Action Buttons Section -->
+                <div class="footer-action-buttons py-4">
+                    <div class="row align-items-center justify-content-center">
+                        <div class="col-lg-4 col-md-6 col-12 mb-2 mb-lg-0">
+                            <button type="button" class="btn btn-footer-action btn-experience" data-toggle="modal" data-target="#Testimonial">
+                                <i class="fa fa-star icon-fallback" data-fallback="⭐"></i>
+                                <span class="btn-text">Share Experience</span>
+                            </button>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2 mb-lg-0">
+                            <a href="/Profile/Support/Support_Ticket.aspx" class="btn btn-footer-action btn-support">
+                                <i class="fa fa-phone icon-fallback" data-fallback="📞"></i>
+                                <span class="btn-text">Call Center</span>
+                                <small class="btn-subtext">Office Time: 10AM-5PM</small>
+                            </a>
+                        </div>
+                        <div class="col-lg-4 col-md-12 col-12">
+                            <button type="button" class="btn btn-footer-action btn-payment" data-toggle="modal" data-target="#PaynemtM">
+                                <i class="fa fa-credit-card icon-fallback" data-fallback="💳"></i>
+                                <span class="btn-text">Make Payment</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="footer-copyright text-center py-3">
-                © 2015-<span id="CurrentYear"></span>
-                Copyright : <a href="http://itgeniusbd.com/" target="_blank">IT GENIUS.</a>
+
+            <!-- Full Width Social Media Section -->
+            <div class="footer-social-section py-3">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-md-8 col-12 mb-3 mb-md-0">
+                            <div class="social-links d-flex justify-content-center justify-content-md-start align-items-center">
+                                <span class="social-label mr-3">Follow Us:</span>
+                                <a target="_blank" href="https://www.facebook.com/Sikkhaloy24" class="social-btn facebook mr-2" title="Facebook">
+                                    <i class="fa fa-facebook icon-fallback" data-fallback="📘"></i>
+                                </a>
+                                <a href="#" class="social-btn twitter mr-2" title="Twitter">
+                                    <i class="fa fa-twitter icon-fallback" data-fallback="🐦"></i>
+                                </a>
+                                <a target="_blank" href="https://www.youtube.com/channel/UCjyS7P3JSdXwD51IpXGqXAQ" class="social-btn youtube mr-2" title="YouTube">
+                                    <i class="fa fa-youtube icon-fallback" data-fallback="▶️"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-12 text-center text-md-right">
+                            <a target="_blank" href="https://play.google.com/store/apps/details?id=com.loopsit.sikkhaloy&hl=en&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1" class="app-download">
+                                <img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png" alt="Get it on Google Play" style="height: 40px;" />
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Copyright Section -->
+            <div class="footer-copyright text-center py-3" style="border-top: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.2);">
+                © 2015-<span id="CurrentYear"></span> Copyright : <a href="http://itgeniusbd.com/" target="_blank" class="copyright-link">IT GENIUS</a>
             </div>
         </footer>
 
@@ -244,7 +627,7 @@
 
                             <li class="list-group-item justify-content-between">
                                 <h6 class="font-weight-bold" style="color: #89288f">
-                                    <i style="color: #89288f" class="fa fa-paper-plane" aria-hidden="true"></i>
+                                    <i style="color: #89288f" class="fa fa-paper-plane icon-fallback" data-fallback="✈️" aria-hidden="true"></i>
                                     DBBL Rocket</h6>
                                 <p class="m-0">017391441416</p>
                             </li>
@@ -331,7 +714,257 @@
         </div>
 
         <script>
+            // Global variables
+            var isMenuBengali = false;
+
+            // Language Translation Dictionary
+            var menuTranslations = {
+                'Basic Settings': 'প্রাথমিক সেটিংস',
+                'Settings': 'সেটিংস',
+                'Teacher & Staff': 'শিক্ষক ও কর্মচারী',
+                'Admission': 'ভর্তি',
+                'Student Management': 'ছাত্র ব্যবস্থাপনা',
+                'Student\'s Info': 'ছাত্রের তথ্য',
+                'Attendances': 'উপস্থিতি',
+
+                'SMS': 'এসএমএস',
+                'Routines': 'রুটিন',
+                'Committee': 'কমিটি',
+                'SIKKHALOY INVOICE': 'শিক্ষালয় ইনভয়েস',
+                'School Info': 'স্কুলের তথ্য',
+                'Create Class': 'ক্লাস তৈরি',
+                'Create Section': 'শাখা তৈরি',
+                'Create Shift': 'শিফট তৈরি',
+                'Create Subject': 'বিষয় তৈরি',
+                'Create Subject Group': 'বিষয় গ্রুপ তৈরি',
+                'Subject Setting': 'বিষয় সেটিং',
+                'Grading System': 'গ্রেডিং সিস্টেম',
+                'Create Department': 'বিভাগ তৈরি',
+                'Create Designation': 'পদবী তৈরি',
+                'Registration': 'নিবন্ধন',
+                'Teacher Info': 'শিক্ষক তথ্য',
+                'Staff Info': 'কর্মচারী তথ্য',
+                'Entry Form': 'এন্ট্রি ফর্ম',
+                'ID Card': 'আইডি কার্ড',
+                'Online Admission Form': 'অনলাইন ভর্তির ফরম',
+                'Transfer Certificate': 'স্থানান্তর সনদ',
+                'Login Management': 'লগিং ম্যানেজমেন্ট',
+                'All Certificate': 'সকল সার্টিফিকেট',
+                'Student Info': 'ছাত্রের তথ্য',
+                'ID Card Print': 'আইডি কার্ড প্রিন্ট',
+                'Student List': 'ছাত্র তালিকা',
+                'Present Student': 'বর্তমান ছাত্র',
+                'Attendance Entry': 'উপস্থিতি এন্ট্রি',
+                'Attendance Report': 'উপস্থিতির রিপোর্ট',
+                'Monthly Report': 'মাসিক রিপোর্ট',
+                'Income': 'আয় সমূহ',
+                'Monthly Payment': 'মাসিক পেমেন্ট',
+                'Other Payment': 'অন্যান্য পেমেন্ট',
+                'Payment Report': 'পেমেন্ট রিপোর্ট',
+                'Due Report': 'বকেয়া রিপোর্ট',
+                'Create Exam': 'পরীক্ষা তৈরি',
+                'Marks Entry': 'নম্বর এন্ট্রি',
+                'Merit List': 'মেধা তালিকা',
+                'Tabulation Sheet': 'ট্যাবুলেশন শীট',
+                'Send SMS': 'এসএমএস পাঠান',
+                'SMS Report': 'এসএমএস রিপোর্ট',
+                'SMS Settings': 'এসএমএস সেটিংস',
+                'Class Routine': 'ক্লাশ রুটিন',
+                'Exam Routine': 'পরীক্ষার রুটিন',
+                'Teacher Routine': 'শিক্ষক রুটিন',
+                'Managing Committee': 'পরিচালনা কমিটির',
+                'Committee Member': 'কমিটির সদস্য',
+                'Notice': 'নোটিশ',
+                'Class Test': 'ক্লাস টেস্ট',
+                'Home Work': 'বাড়ির কাজ',
+                // Exam types from new screenshot
+                'Individual Exam': 'একক পরীক্ষা',
+                'Publish Result': 'পরীক্ষা পাবলিশ করুন',
+                'Cumulative Exam': 'সমষ্টিগত পরীক্ষা',
+                'Result Card': 'একক নম্বর পত্র',
+                'Merit List of Subject': 'সাবজেক্টের মেধা তিলিকা',
+                'Result Card (Bangla)': 'একক নম্বর পত্র বাংলায়',
+                'Analytical Result': 'রেজাল্ট রিপোর্ট',
+                'Delete Result': 'রেজাল্ট ডিলেট করুন',
+                'Cumulative Result Card': 'সমষ্টিগত রেজাল্ট কার্ড',
+                'Cumulative Merit Position': 'সমষ্টিগত রেজাল্টের মেধা তালিকা',
+                'Weekly Exam': 'সাপ্তাহিক পরীক্ষা',
+                'Input Marks': 'সাপ্তাহিক পরীক্ষার নম্বর ইনপুট',
+                'Edit Marks': 'সাপ্তাহিক পরীক্ষার নম্বর আপডেট',
+                'Results': 'সাপ্তাহিক পরীক্ষার রেজাল্ট',
+                'Seat Plan': 'আসন বিন্যাস',
+                'সংকলন': 'সংকলন',
+                'এসএমএস': 'এসএমএস',
+                'রুটিন': 'রুটিন',
+                'রুটিন তৈরি': 'রুটিন তৈরি',
+                'Assign Routine': 'রুটিন বরাদ্দ',
+                'Modify Routine': 'রুটিন পরিবর্তন',
+                'রুটিন রিপোর্ট': 'রুটিন রিপোর্ট',
+                'কমিটি': 'কমিটি',
+                'Add Member': 'সদস্য যোগ',
+                'Add Donation Category': 'দান ক্যাটাগরি যোগ',
+                'Add Donation': 'দান যোগ',
+                'Donations': 'দান সমূহ',
+                'Collect Donation': 'দান সংগ্রহ',
+                'Payment Record': 'পেমেন্ট রেকর্ড',
+                'Unpaid Receipt': 'রসিদ আনপেইড করুন',
+
+                'এসএমএস পাঠান': 'এসএমএস পাঠান',
+                'শিক্ষালয় ইনভয়েস': 'শিক্ষালয় ইনভয়েস',
+                'Due Invoice': 'বকেয়া ইনভয়েস',
+                'Paid Invoice': 'প্রদত্ত ইনভয়েস',
+                // Menu items visible in the screenshot
+                'Class Management': 'ক্লাস ব্যবস্থাপনা',
+                'Student Information': 'শিক্ষার্থীর তথ্য',
+                'Add Class Group Section Shift': 'ক্লাস গ্রুপ সেকশন শিফট যোগ করুন',
+                'Sub-Admin Management': 'সাব-অ্যাডমিন ব্যবস্থাপনা',
+                'Create Sub-Admin': 'সাব-অ্যাডমিন তৈরি করুন',
+                'Manage Page Access': 'প্রবেশাধিকার ম্যানেজমেন্ট',
+                'Student User ID': 'শিক্ষার্থীর ইউজার আইডি',
+                'Class Based Student List': 'ক্লাশ অনুযায়ী শিক্ষার্থীর তালিকা',
+                'All Student List': 'সকল শিক্ষার্থীর তালিকা',
+                'Active/Deactivate': 'সক্রিয়/নিষ্ক্রিয়',
+                'Add All Subjects': 'সমস্ত বিষয় যোগ করুন',
+                'Create Session': 'সেশন পরিচালনা',
+                'Institution Information': 'প্রতিষ্ঠানের তথ্য',
+                'Specify - Group Section Shift for class': 'গ্রুপ,সেকশন,শিফট জয়েন্ট করুন',
+                'Academic Calendar': 'একাডেমিক ক্যালেন্ডার',
+                'Admit New Student': 'নতুন ছাত্র ভর্তি',
+                'Student': 'শিক্ষার্থী হাজিরা',
+                'Employee': 'কর্মচারী হাজিরা',
+                'Single Re-Admission': 'একক পুনর্ভর্তি',
+                'Multiple Re-Admission': 'একাধিক পুনর্ভর্তি',
+                'Transfer Students': 'ছাত্রীস্থানান্তর',
+                'Bulk Operations': 'বাল্ক অপারেশন',
+                'Specify_group_section_Shift_for_classes': 'ক্লাসের জন্য গ্রুপ সেকশন শিফট নির্ধারণ করুন',
+                // Teacher & Staff sub-items
+                'Add Teacher': 'শিক্ষক যোগ করুন',
+                'Add Staff': 'কর্মচারী যোগ করুন',
+                'Employee List': 'কর্মচারী তালিকা',
+                'Active/Deactivate Teacher': 'শিক্ষক সক্রিয়/নিষ্ক্রিয়',
+                'Teacher Subject Assign': 'শিক্ষক বিষয় বরাদ্দ',
+                'Employee ID Card': 'কর্মচারী আইডি কার্ড',
+                // Accounts sub-items from new screenshot
+                'Add Payment Roles': 'পেমেন্ট রোলস যোগ করুন',
+                'Accounts': 'হিসাব-নিকাশ',
+                'Assign Payment Roles': 'পেমেন্ট রোলস বরাদ্দ করুন',
+                'মাসিক পে-অর্ডার করুন': 'মাসিক পে-অর্ডার করুন',
+                'Remove Pay order': 'পে অর্ডার মুছে ফেলা',
+                'Pay Order': 'পে অর্ডার করুন',
+                'Change Pay order Date': 'পে অর্ডার তারিখ পরিবর্তন',
+                'Money Receipt Check': 'মানি রিসিট চেক',
+                'Account Management': 'অঙ্গীকার ব্যবস্থাপনা',
+                'Unpaid Money Receipt': 'আনপেইড মানি রিসিট',
+                'Payment Collection': 'পেমেন্ট সংগ্রহ',
+                'Payment Collection By Date': 'তারিখ অনুসারে পেমেন্ট সংগ্রহ',
+                'Fee Concession': 'ফি ছাড়',
+                'Others Income': 'অন্যান্য আয়',
+                'Expense': 'খরচ সমূহ',
+                'Edit Expense': 'খরচ ইডিট/আপডেট',
+                'All Session Report': 'সকল সেশনের রিপোর্ট',
+                'Class Based Report': 'ক্লাশ অনুযায়ী রিপোর্ট',
+                'Student Based Report': 'শিক্ষার্থী অনুযায়ী রিপোর্ট',
+                'Paid Report': 'পরিশোধ রিপোর্ট',
+                'Concession Report': 'ছাড়ের রিপোর্ট',
+                'Paid & Due Report': 'পরিশোধ ও বকেয়া রিপোর্ট',
+                'Accounts Summary': 'একাউন্ট সামারী',
+                'Session Based Report': 'বর্তমান সেশনের রিপোর্ট',
+                'Month Based Report': 'মাস ভিত্তিক রিপোর্ট',
+                'Income Report': 'আয়ের রিপোর্ট',
+                'Expense Report': 'খরচ রিপোর্ট',
+                'Income Expense Net': 'আয়/ব্যায় ও ব্যালেন্স',
+                'Current Due': 'পিছনের সকল বকেয়া',
+                'Student Paid Details': 'শিক্ষার্থীর পেইড বিস্তরিত',
+                'Payorder Report': 'পে অর্ডার রিপোর্ট',
+                'My Accounts': 'আমার একাউন্ট',
+                'Account Details': 'একাউন্ট ডিটেইলস',
+                'Accounts Log': 'একাউন্ট কাজের হিস্টরী',
+                // Accounts sub-items (existing)
+                'Allowance': 'ভাতা',
+                'Deduction': 'কর্তন',
+                'Bonus & Fine': 'বোনাস ও জরিমানা',
+                'Pay Order Monthly': 'মাসিক পে-অর্ডার করুন',
+                'Salary Sheet': 'বেতন শীট',
+                'Employee Salary': 'কর্মচারী বেতন ',
+                'Salary Payment': 'বেতন প্রদান করুন',
+                'Paid & Due Salary': 'পরিশোধ ও بকেয়া রিপোর্ট',
+                // Additional menu items from screenshot
+                'Class Change': 'বর্তমান শিক্ষাবর্ষে শ্রেণি পরিবর্তন',
+                'Change Section/Shift/Group': 'সেকশন/শিফট/গ্রুপ পরিবর্তন',
+                'Update Subjects': 'সাবজেক্ট আপডেট করুন',
+                'T.C': 'টিসি বা বিদায় দিন',
+                'Student Details': 'ছাত্রের বিস্তারিত',
+                'Print Admission Form': 'ভর্তির ফরম প্রিন্ট করুন',
+                'Class Change In Current Session': 'বর্তমান শিক্ষাবর্ষে শ্রেণি পরিবর্তন',
+                'Find Students': 'ছাত্র খুঁজুন',
+                'আইডি কার্ড': 'আইডি কার্ড',
+                'Student ID Cards': 'আইডি কার্ড',
+                'Change Roll No/Group/Section/Shift': 'রোল নং/গ্রুপ/সেকশন/শিফট পরিবর্তন',
+                'Change Subject': 'বিষয় পরিবর্তন',
+                // Employee sections
+                'RFID Number Input': 'সময়সূচী ও আরএফআইডি',
+                'Manual Attendance': 'মেন্যুয়াল হাজিরা নিন',
+                'Attendance Records': 'উপস্থিতির রেকর্ড',
+                'Attendance Record': 'উপস্থিতির রেকর্ড',
+                'Attendance Settings': 'হাজিরা সেটিং',
+                'Leave': 'ছুটি',
+                'Attendance Fine Generate': 'উপস্থিতি জরিমানা তৈরি',
+                // Student Management items
+                'Signup / Userid': 'সাইনআপ / ইউজার আইডি',
+                // Additional Admission items
+                'Admission Form': 'ভর্তির ফরম',
+                // Subject Management
+                'Subject': 'বিষয়',
+                // Exam related items
+                'Exam': 'পরীক্ষার কাজ',
+                'Exam Setting': 'পরীক্ষার সেটিংস',
+                'Exam Name': 'পরীক্ষার নাম তৈরী',
+                'Sub-Exam Name': 'সাব পরীক্ষার নাম তৈরী',
+                'Change Pass Marks': 'পাস মার্ক পরিবর্তন করুন',
+                'Marks Distribution': 'নম্বর বন্টন',
+                'Input Exam Marks': 'নম্বর যুক্ত করুন',
+                'Inputted Marks Check': 'নম্বর চেক করুন',
+                'Edit Information': 'শিক্ষার্থীর তথ্য আপডেট করুন',
+                'Marks Collect Paper': 'নম্বর সংগ্রহ পত্র প্রিন্ট',
+                'HW/Notice': 'বাড়ীর কাজ ও নোটিস প্রদান',
+                'Exam Control': 'পরীক্ষা কন্ট্রোল করুন',
+                'Admit Card': 'প্রবেশপত্র',
+                // SMS related items
+                'Send Message': 'এসএমএস পাঠান',
+                'Send SMS From Contact List': 'কন্টাক্ট লিস্ট হতে এসএমএস পাঠান',
+                'Message History': 'এসএমএস রেকর্ড',
+                'SMS Settings': 'এসএমএস সেটিংস',
+                'SMS Balance': 'এসএমএস ব্যালেন্স',
+                'SMS Sent Records': 'পাঠানো SMS এর রেকর্ড',
+                // Committee related items
+                'Committee Information': 'কমিটির তথ্য',
+                'Committee List': 'কমিটির তালিকা',
+                // Routine related items
+                'Create Routine': 'রুটিন তৈরি',
+                'Edit Routine': 'রুটিন ইডিট করুন',
+                'View Routine': 'রুটিন দেখুন',
+                'Print Routine': 'রুটিন প্রিন্ট',
+                'Blocked Unblocked Student': 'সাময়িক ব্লক/আনব্লক',
+                // Additional items from new screenshot
+                'অ্যাকাডেমিক ক্যালেন্ডার': 'একাডেমিক ক্যালেন্ডার',
+                'Admission New Student': 'নতুন ভর্তি',
+                'সাইনআপ / ইউজার আইডি': 'সাইনআপ / ইউজার আইডি',
+                'উপস্থিতি': 'উপস্থিতি',
+                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
+                'Change Roll No,Group,Section,Shift': 'রোল নং, গ্রুপ, সেকশন, শিফট পরিবর্তন',
+
+                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
+                'উপস্থিতির রেকর্ড': 'উপস্থিতির রেকর্ড',
+                'Create Attendance Schedule': 'হাজিরার সময়সূচী',
+                // More specific menu items from screenshot
+                'Change Section,Shift,Group': 'সেকশন, শিফট, গ্রুপ পরিবর্তন',
+
+            };
+
             $(function () {
+                // Check Font Awesome loading first with enhanced method
+                checkFontAwesomeLoadingEnhanced();
+                
                 $("#sidedrawer").niceScroll({
                     cursorcolor: "#394C3A",
                     cursorwidth: "7px",
@@ -429,292 +1062,46 @@
                         }
                     }
                 }, 1000); // Check every 1 second for first 5 seconds
+
+                //different Session
+                $("#content-wrapper").mouseover(function () {
+                    checkUser();
+
+                    if (localStorage._sid) {
+                        const previousId = $(".edu-session-year").val();
+                        const currentId = localStorage._sid;
+
+                        if (previousId !== currentId) {
+                            localStorage._sid = previousId;
+                            location.reload(true);
+                        }
+                    }
+                });
+
+                //Change Session
+                $(".edu-session-year").change(function () {
+                    var id = $(this).val();
+                    if (!id) return;
+
+                    const data = { id: id };
+                    $.ajax({
+                        type: "POST",
+                        url: '/Default.aspx/Session_Change',
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        data: JSON.stringify(data),
+                        success: function (r) {
+                            localStorage._sid = id;
+                            location.reload();
+                        },
+                        error: function (e) {
+                            console.log(`there was an error!${e.d}`);
+                        }
+                    });
+                });
             });
 
-            // Language Translation Dictionary
-            var menuTranslations = {
-                'Basic Settings': 'প্রাথমিক সেটিংস',
-                'Settings': 'সেটিংস',
-                'Teacher & Staff': 'শিক্ষক ও কর্মচারী',
-                'Admission': 'ভর্তি',
-                'Student Management': 'ছাত্র ব্যবস্থাপনা',
-                'Student\'s Info': 'ছাত্রের তথ্য',
-                'Attendances': 'উপস্থিতি',
-            
-                'SMS': 'এসএমএস',
-                'Routines': 'রুটিন',
-                'Committee': 'কমিটি',
-                'SIKKHALOY INVOICE': 'শিক্ষালয় ইনভয়েস',
-                'School Info': 'স্কুলের তথ্য',
-                'Create Class': 'ক্লাস তৈরি',
-                'Create Section': 'শাখা তৈরি',
-                'Create Shift': 'শিফট তৈরি',
-                'Create Subject': 'বিষয় তৈরি',
-                'Create Subject Group': 'বিষয় গ্রুপ তৈরি',
-                'Subject Setting': 'বিষয় সেটিং',
-                'Grading System': 'গ্রেডিং সিস্টেম',
-                'Create Department': 'বিভাগ তৈরি',
-                'Create Designation': 'পদবী তৈরি',
-                'Registration': 'নিবন্ধন',
-                'Teacher Info': 'শিক্ষক তথ্য',
-                'Staff Info': 'কর্মচারী তথ্য',
-                'Entry Form': 'এন্ট্রি ফর্ম',
-                'ID Card': 'আইডি কার্ড',
-                'Online Admission Form': 'অনলাইন ভর্তির ফরম',
-                'Transfer Certificate': 'স্থানান্তর সনদ',
-                'Login Management': 'লগিং ম্যানেজমেন্ট',
-                'All Certificate': 'সকল সার্টিফিকেট',
-                'Student Info': 'ছাত্রের তথ্য',
-                'ID Card Print': 'আইডি কার্ড প্রিন্ট',
-                'Student List': 'ছাত্র তালিকা',
-                'Present Student': 'বর্তমান ছাত্র',
-                'Attendance Entry': 'উপস্থিতি এন্ট্রি',
-                'Attendance Report': 'উপस्थितির রিপোর্ট',
-                'Monthly Report': 'মাসিক রিপোর্ট',
-                'Income': 'আয় সমূহ',
-                'Monthly Payment': 'মাসিক পেমেন্ট',
-                'Other Payment': 'অন্যান্য পেমেন্ট',
-                'Payment Report': 'পেমেন্ট রিপোর্ট',
-                'Due Report': 'বকেয়া রিপোর্ট',
-                'Create Exam': 'পরীক্ষা তৈরি',
-                'Marks Entry': 'নম্বর এন্ট্রি',
-                'Merit List': 'মেধা তালিকা',
-                'Tabulation Sheet': 'ট্যাবুলেশন শীট',
-                'Send SMS': 'এসএমএস পাঠান',
-                'SMS Report': 'এসএমএস রিপোর্ট',
-                'SMS Settings': 'এসএমএস সেটিংস',
-                'Class Routine': 'ক্লাশ রুটিন',
-                'Exam Routine': 'পরীক্ষার রুটিন',
-                'Teacher Routine': 'শিক্ষক রুটিন',
-                'Managing Committee': 'পরিচালনা কমিটি',
-                'Committee Member': 'কমিটির সদস্য',
-                'Notice': 'নোটিশ',
-                'Class Test': 'ক্লাস টেস্ট',
-                'Home Work': 'বাড়ির কাজ',
-                // Exam types from new screenshot
-                'Individual Exam': 'একক পরীক্ষা',
-                'Publish Result': 'পরীক্ষা পাবলিশ করুন',
-                'Cumulative Exam': 'সমষ্টিগত পরীক্ষা',
-                'Result Card': 'একক নম্বর পত্র',
-                'Merit List of Subject': 'সাবজেক্টের মেধা তিলিকা',
-                'Result Card (Bangla)': 'একক নম্বর পত্র বাংলায়',
-                'Analytical Result': 'রেজাল্ট রিপোর্ট',
-                'Delete Result': 'রেজাল্ট ডিলেট করুন',
-                'Cumulative Result Card': 'সমষ্টিগত রেজাল্ট কার্ড',
-                'Cumulative Merit Position': 'সমষ্টিগত রেজাল্টের মেধা তালিকা',
-                'Weekly Exam': 'সাপ্তাহিক পরীক্ষা',
-                'Input Marks': 'সাপ্তাহিক পরীক্ষার নম্বর ইনপুট',
-                'Edit Marks': 'সাপ্তাহিক পরীক্ষার নম্বর আপডেট',
-                'Results': 'সাপ্তাহিক পরীক্ষার রেজাল্ট',
-                'Seat Plan': 'আসন বিন্যাস',
-                'সংকলন': 'সংকলন',
-                'এসএমএস': 'এসএমএস',
-                'রুটিন': 'রুটিন',
-                'রুটিন তৈরি': 'রুটিন তৈরি',
-                'Assign Routine': 'রুটিন বরাদ্দ',
-                'Modify Routine': 'রুটিন পরিবর্তন',
-                'রুটিন রিপোর্ট': 'রুটিন রিপোর্ট',
-                'কমিটি': 'কমিটি',
-                'Add Member': 'সদস্য যোগ',
-                'Add Donation Category': 'দান ক্যাটাগরি যোগ',
-                'Add Donation': 'দান যোগ',
-                'Donations': 'দান সমূহ',
-                'Collect Donation': 'দান সংগ্রহ',
-                'Payment Record': 'পেমেন্ট রেকর্ড',
-                'Unpaid Receipt': 'রসিদ আনপেইড করুন',
-              
-                'এসএমএস পাঠান': 'এসএমএস পাঠান',
-                'শিক্ষালয় ইনভয়েস': 'শিক্ষালয় ইনভয়েস',
-                'Due Invoice': 'বকেয়া ইনভয়েস',
-                'Paid Invoice': 'প্রদত্ত ইনভয়েস',
-                // Menu items visible in the screenshot
-                'Class Management': 'ক্লাস ব্যবস্থাপনা',
-                'Student Information': 'শিক্ষার্থীর তথ্য',
-                'Add Class Group Section Shift': 'ক্লাস গ্রুপ সেকশন শিফট যোগ করুন',
-                'Sub-Admin Management': 'সাব-অ্যাডমিন ব্যবস্থাপনা',
-                'Create Sub-Admin': 'সাব-অ্যাডমিন তৈরি করুন',
-                'Manage Page Access': 'প্রবেশাধিকার ম্যানেজমেন্ট',
-                'Student User ID': 'শিক্ষার্থীর ইউজার আইডি',
-                'Class Based Student List': 'ক্লাশ অনুযায়ী শিক্ষার্থীর তালিকা',
-                'All Student List': 'সকল শিক্ষার্থীর তালিকা',
-                'Active/Deactivate': 'সক্রিয়/নিষ্ক্রিয়',
-                'Add All Subjects': 'সমস্ত বিষয় যোগ করুন',
-                'Create Session': 'সেশন পরিচালনা',
-                'Institution Information': 'প্রতিষ্ঠানের তথ্য',
-                'Specify - Group Section Shift for class': 'গ্রুপ,সেকশন,শিফট জয়েন্ট করুন',
-                'Academic Calendar': 'একাডেমিক ক্যালেন্ডার',
-                'Admit New Student': 'নতুন ছাত্র ভর্তি',
-                'Student': 'শিক্ষার্থী হাজিরা',
-                'Employee': 'কর্মচারী হাজিরা',
-                'Single Re-Admission': 'একক পুনর্ভর্তি',
-                'Multiple Re-Admission': 'একাধিক পুনর্ভর্তি',
-                'Transfer Students': 'ছাত্রীস্থানান্তর',
-                'Bulk Operations': 'বাল্ক অপারেশন',
-                'Specify_group_section_Shift_for_classes': 'ক্লাসের জন্য গ্রুপ সেকশন শিফট নির্ধারণ করুন',
-                // Teacher & Staff sub-items
-                'Add Teacher': 'শিক্ষক যোগ করুন',
-                'Add Staff': 'কর্মচারী যোগ করুন',
-                'Employee List': 'কর্মচারী তালিকা',
-                'Active/Deactivate Teacher': 'শিক্ষক সক্রিয়/নিষ্ক্রিয়',
-                'Teacher Subject Assign': 'শিক্ষক বিষয় বরাদ্দ',
-                'Employee ID Card': 'কর্মচারী আইডি কার্ড',
-                // Accounts sub-items from new screenshot
-                'Add Payment Roles': 'পেমেন্ট রোলস যোগ করুন',
-                'Accounts': 'হিসাব-নিকাশ',
-                'Assign Payment Roles': 'পেমেন্ট রোলস বরাদ্দ করুন',
-                'মাসিক পে-অর্ডার করুন': 'মাসিক পে-অর্ডার করুন',
-                'Remove Pay order': 'পে অর্ডার মুছে ফেলা',
-                'Pay Order': 'পে অর্ডার করুন',
-                'Change Pay order Date': 'পে অর্ডার তারিখ পরিবর্তন',
-                'Money Receipt Check': 'মানি রিসিট চেক',
-                'Account Management': 'অঙ্গীকার ব্যবস্থাপনা',
-                'Unpaid Money Receipt': 'আনপেইড মানি রিসিট',
-                'Payment Collection': 'পেমেন্ট সংগ্রহ',
-                'Payment Collection By Date': 'তারিখ অনুসারে পেমেন্ট সংগ্রহ',
-                'Fee Concession': 'ফি ছাড়',
-                'Others Income': 'অন্যান্য আয়',
-                'Expense': 'খরচ সমূহ',
-                'Edit Expense': 'খরচ ইডিট/আপডেট',
-                'All Session Report': 'সকল সেশনের রিপোর্ট',
-                'Class Based Report': 'ক্লাশ অনুযায়ী রিপোর্ট',
-                'Student Based Report': 'শিক্ষার্থী অনুযায়ী রিপোর্ট',
-                'Paid Report': 'পরিশোধ রিপোর্ট',
-                'Concession Report': 'ছাড়ের রিপোর্ট',
-                'Paid & Due Report': 'পরিশোধ ও বকেয়া রিপোর্ট',
-                'Accounts Summary': 'একাউন্ট সামারী',
-                'Session Based Report': 'বর্তমান সেশনের রিপোর্ট',
-                'Month Based Report': 'মাস ভিত্তিক রিপোর্ট',
-                'Income Report': 'আয়ের রিপোর্ট',
-                'Expense Report': 'খরচ রিপোর্ট',
-                'Income Expense Net': 'আয়/ব্যায় ও ব্যালেন্স',
-                'Current Due': 'পিছনের সকল বকেয়া',
-                'Student Paid Details': 'শিক্ষার্থীর পেইড বিস্তরিত',
-                'Payorder Report': 'পে অর্ডার রিপোর্ট',
-                'My Accounts': 'আমার একাউন্ট',
-                'Account Details': 'একাউন্ট ডিটেইলস',
-                'Accounts Log': 'একাউন্ট কাজের হিস্টরী',
-                // Accounts sub-items (existing)
-                'Allowance': 'ভাতা',
-                'Deduction': 'কর্তন',
-                'Bonus & Fine': 'বোনাস ও জরিমানা',
-                'Pay Order Monthly': 'মাসিক পে-অর্ডার করুন',
-                'Salary Sheet': 'বেতন শীট',
-                'Employee Salary': 'কর্মচারী বেতন ',
-                'Salary Payment': 'বেতন প্রদান করুন',
-                'Paid & Due Salary': 'পরিশোধ ও بকেয়া রিপোর্ট',
-                // Additional menu items from screenshot
-                'Class Change': 'বর্তমান শিক্ষাবর্ষে শ্রেণি পরিবর্তন',
-                'Change Section/Shift/Group': 'সেকশন/শিফট/গ্রুপ পরিবর্তন',
-                'Update Subjects': 'সাবজেক্ট আপডেট করুন',
-                'T.C': 'টিসি বা বিদায় দিন',
-                'Student Details': 'ছাত্রের বিস্তারিত',
-                'Print Admission Form': 'ভর্তির ফরম প্রিন্ট করুন',
-                'Class Change In Current Session': 'বর্তমান শিক্ষাবর্ষে শ্রেণি পরিবর্তন',
-                'Find Students': 'ছাত্র খুঁজুন',
-                'আইডি কার্ড': 'আইডি কার্ড',
-                'Student ID Cards': 'আইডি কার্ড',
-                'Change Roll No/Group/Section/Shift': 'রোল নং/গ্রুপ/সেকশন/শিফট পরিবর্তন',
-                'Change Subject': 'বিষয় পরিবর্তন',
-                // Employee sections
-                'RFID Number Input': 'সময়সূচী ও আরএফআইডি',
-                'Manual Attendance': 'মেন্যুয়াল হাজিরা নিন',
-                'Attendance Records': 'উপস্থিতির রেকর্ড',
-                'Attendance Record': 'উপস্থিতির রেকর্ড',
-                'Attendance Settings': 'হাজিরা সেটিং',
-                'Leave': 'ছুটি',
-                'Attendance Fine Generate': 'উপস্থিতি জরিমানা তৈরি',
-                // Student Management items
-                'Signup / Userid': 'সাইনআপ / ইউজার আইডি',
-                // Additional Admission items
-                'Admission Form': 'ভর্তির ফরম',
-                // Subject Management
-                'Subject': 'বিষয়',
-                // Exam related items
-                'Exam': 'পরীক্ষার কাজ',
-                'Exam Setting': 'পরীক্ষার সেটিংস',
-                'Exam Name': 'পরীক্ষার নাম তৈরী',
-                'Sub-Exam Name': 'সাব পরীক্ষার নাম তৈরী',
-                'Change Pass Marks': 'পাশ মার্ক পরিবর্তন করুন',
-                'Marks Distribution': 'নম্বর বন্টন',
-                'Input Exam Marks': 'নম্বর যুক্ত করুন',
-                'Inputted Marks Check': 'নম্বর চেক করুন',
-                'Edit Information': 'শিক্ষার্থীর তথ্য আপডেট করুন',
-                'Marks Collect Paper': 'নম্বর সংগ্রহ পত্র প্রিন্ট',
-                'HW/Notice': 'বাড়ীর কাজ ও নোটিস প্রদান',
-                'Exam Control': 'পরীক্ষা কন্ট্রোল করুন',
-                'Admit Card': 'প্রবেশপত্র',
-                // SMS related items
-                'Send Message': 'এসএমএস পাঠান',
-                'Send SMS From Contact List': 'কন্টাক্ট লিস্ট হতে এসএমএস পাঠান',
-                'Message History': 'এসএমএস রেকর্ড',
-                'SMS Settings': 'এসএমএস সেটিংস',
-                'SMS Balance': 'এসএমএস ব্যালেন্স',
-                'SMS Sent Records': 'পাঠানো SMS এর রেকর্ড',
-                // Committee related items
-                'Committee Information': 'কমিটির তথ্য',
-                'Committee List': 'কমিটির তালিকা',
-                // Routine related items
-                'Create Routine': 'রুটিন তৈরি',
-                'Edit Routine': 'রুটিন ইডিট করুন',
-                'View Routine': 'রুটিন দেখুন',
-                'Print Routine': 'রুটিন প্রিন্ট',
-                'Blocked Unblocked Student': 'সাময়িক ব্লক/আনব্লক',
-                // Additional items from new screenshot
-                'অ্যাকাডেমিক ক্যালেন্ডার': 'একাডেমিক ক্যালেন্ডার',
-                'Admission New Student': 'নতুন ভর্তি',
-                'সাইনআপ / ইউজার আইডি': 'সাইনআপ / ইউজার আইডি',
-                'উপস্থিতি': 'উপস্থিতি',
-                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
-                 'Change Roll No,Group,Section,Shift': 'রোল নং, গ্রুপ, সেকশন, শিফট পরিবর্তন',
-              
-                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
-                'উপস্থিতির রেকর্ড': 'উপস্থিতির রেকর্ড',
-                'Create Attendance Schedule': 'হাজিরার সময়সূচী',
-                // More specific menu items from screenshot
-                'Change Section,Shift,Group': 'সেকশন, শিফট, গ্রুপ পরিবর্তন',
-            
-            };
-            var isMenuBengali = false;
-            function forceTranslateAll() {
-                if (isMenuBengali) {
-                    console.log('Force translating to Bengali...');
-                    
-                    // Don't clear all data at once - be more selective
-                    
-                    // Wait a moment then translate
-                    setTimeout(function() {
-                        translateMenuToBengali();
-                    }, 50);
-                    
-                    // Second attempt
-                    setTimeout(function() {
-                        translateMenuToBengali();
-                    }, 200);
-                    
-                    // Final attempt  
-                    setTimeout(function() {
-                        translateMenuToBengali();
-                    }, 500);
-                } else {
-                    translateMenuToEnglish();
-                }
-            }
-            
-            function emergencyReset() {
-                console.log('Emergency reset - restoring menu visibility');
-                $('#LinkTreeView').find('*').each(function() {
-                    var $element = $(this);
-                    $element.show(); // Make sure element is visible
-                    $element.removeData('translated');
-                    $element.removeData('original-text');
-                });
-                
-                // Force refresh the TreeView
-                setTimeout(function() {
-                    $('#LinkTreeView').show();
-                }, 100);
-            }
-            
+            // Function to initialize language toggle
             function initializeLanguageToggle() {
                 // Wait a bit for TreeView to fully render
                 setTimeout(function() {
@@ -722,17 +1109,17 @@
                     if (savedLanguage === 'bengali') {
                         isMenuBengali = true;
                         translateMenuToBengali();
-                        $('#languageToggle').html('<i class="fa fa-language"></i> English');
+                        $('#languageToggle').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
                     } else {
                         isMenuBengali = false;
-                        $('#languageToggle').html('<i class="fa fa-language"></i> বাংলা');
+                        $('#languageToggle').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                     }
                     
                     // Set up mutation observer to watch for new content
                     setupTreeViewObserver();
                 }, 500);
                 
-                $('#languageToggle').click(function() {
+                $('#languageToggle').off('click').on('click', function() {
                     // Add loading effect
                     var $btn = $(this);
                     $btn.html('<i class="fa fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
@@ -742,14 +1129,14 @@
                             if (isMenuBengali) {
                                 // Switch to English
                                 translateMenuToEnglish();
-                                $btn.html('<i class="fa fa-language"></i> বাংলা');
+                                $btn.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                                 isMenuBengali = false;
                                 localStorage.setItem('menuLanguage', 'english');
                             } else {
                                 // Switch to Bengali
                                 isMenuBengali = true; // Set this first
                                 localStorage.setItem('menuLanguage', 'bengali');
-                                $btn.html('<i class="fa fa-language"></i> English');
+                                $btn.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
                                 
                                 // Check if TreeView is visible before translating
                                 if ($('#LinkTreeView').is(':visible')) {
@@ -773,50 +1160,13 @@
                 // Add double-click emergency reset
                 $('#languageToggle').dblclick(function() {
                     emergencyReset();
-                    $(this).html('<i class="fa fa-language"></i> বাংলা');
+                    $(this).html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                     isMenuBengali = false;
                     localStorage.setItem('menuLanguage', 'english');
                 });
             }
-            
-            function setupTreeViewObserver() {
-                // Create a mutation observer to watch for changes in the TreeView
-                if (window.MutationObserver) {
-                    var observer = new MutationObserver(function(mutations) {
-                        var shouldTranslate = false;
-                        
-                        mutations.forEach(function(mutation) {
-                            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                                // Check if any text nodes or elements were added
-                                for (var i = 0; i < mutation.addedNodes.length; i++) {
-                                    if (mutation.addedNodes[i].nodeType === 1 || mutation.addedNodes[i].nodeType === 3) {
-                                        shouldTranslate = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        });
-                        
-                        // If new content was added and we're in Bengali mode, translate it
-                        if (shouldTranslate && isMenuBengali) {
-                            setTimeout(function() {
-                                translateMenuToBengali();
-                            }, 50);
-                        }
-                    });
-                    
-                    // Start observing the TreeView for changes
-                    var treeView = document.getElementById('LinkTreeView');
-                    if (treeView) {
-                        observer.observe(treeView, {
-                            childList: true,
-                            subtree: true,
-                            characterData: true
-                        });
-                    }
-                }
-            }
-            
+
+            // Function to translate menu to Bengali
             function translateMenuToBengali() {
                 console.log('Starting Bengali translation...');
                 
@@ -858,27 +1208,10 @@
                     }
                 });
                 
-                // Method 3: Handle direct text nodes only
-                $('#LinkTreeView').find('*').each(function() {
-                    var $element = $(this);
-                    
-                    // Skip if already processed or has child elements
-                    if ($element.data('translated') === 'yes' || $element.children().length > 0) return;
-                    
-                    var text = $element.text().trim();
-                    
-                    // Only translate if we have a direct match
-                    if (text && menuTranslations[text]) {
-                        $element.data('original-text', text);
-                        $element.text(menuTranslations[text]);
-                        $element.data('translated', 'yes');
-                        console.log('Translated (Method 3): ' + text + ' -> ' + menuTranslations[text]);
-                    }
-                });
-                
                 console.log('Bengali translation completed');
             }
-            
+
+            // Function to translate menu to English
             function translateMenuToEnglish() {
                 console.log('Starting English translation...');
                 
@@ -909,43 +1242,85 @@
                 
                 console.log('English translation completed');
             }
-            
-            //different Session
-            $("#content-wrapper").mouseover(function () {
-                checkUser();
 
-                if (localStorage._sid) {
-                    const previousId = $(".edu-session-year").val();
-                    const currentId = localStorage._sid;
+            // Function to force translate all
+            function forceTranslateAll() {
+                if (isMenuBengali) {
+                    console.log('Force translating to Bengali...');
+                    
+                    // Wait a moment then translate
+                    setTimeout(function() {
+                        translateMenuToBengali();
+                    }, 50);
+                    
+                    // Second attempt
+                    setTimeout(function() {
+                        translateMenuToBengali();
+                    }, 200);
+                    
+                    // Final attempt  
+                    setTimeout(function() {
+                        translateMenuToBengali();
+                    }, 500);
+                } else {
+                    translateMenuToEnglish();
+                }
+            }
 
-                    if (previousId !== currentId) {
-                        localStorage._sid = previousId;
-                        location.reload(true);
+            // Function for emergency reset
+            function emergencyReset() {
+                console.log('Emergency reset - restoring menu visibility');
+                $('#LinkTreeView').find('*').each(function() {
+                    var $element = $(this);
+                    $element.show(); // Make sure element is visible
+                    $element.removeData('translated');
+                    $element.removeData('original-text');
+                });
+                
+                // Force refresh the TreeView
+                setTimeout(function() {
+                    $('#LinkTreeView').show();
+                }, 100);
+            }
+
+            // Function to setup TreeView observer
+            function setupTreeViewObserver() {
+                // Create a mutation observer to watch for changes in the TreeView
+                if (window.MutationObserver) {
+                    var observer = new MutationObserver(function(mutations) {
+                        var shouldTranslate = false;
+                        
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                                // Check if any text nodes or elements were added
+                                for (var i = 0; i < mutation.addedNodes.length; i++) {
+                                    if (mutation.addedNodes[i].nodeType === 1 || mutation.addedNodes[i].nodeType === 3) {
+                                        shouldTranslate = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // If new content was added and we're in Bengali mode, translate it
+                        if (shouldTranslate && isMenuBengali) {
+                            setTimeout(function() {
+                                translateMenuToBengali();
+                            }, 50);
+                        }
+                    });
+                    
+                    // Start observing the TreeView for changes
+                    var treeView = document.getElementById('LinkTreeView');
+                    if (treeView) {
+                        observer.observe(treeView, {
+                            childList: true,
+                            subtree: true,
+                            characterData: true
+                        });
                     }
                 }
-            });
-
-            //Change Session
-            $(".edu-session-year").change(function () {
-                var id = $(this).val();
-                if (!id) return;
-
-                const data = { id: id };
-                $.ajax({
-                    type: "POST",
-                    url: '/Default.aspx/Session_Change',
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    data: JSON.stringify(data),
-                    success: function (r) {
-                        localStorage._sid = id;
-                        location.reload();
-                    },
-                    error: function (e) {
-                        console.log(`there was an error!${e.d}`);
-                    }
-                });
-            });
+            }
 
             //check user
             function checkUser() {
@@ -964,6 +1339,137 @@
             function storeUser() {
                 const currentUser = $("[id*=_redIdHidden]").val();
                 localStorage._regId = currentUser;
+            }
+
+            // Function to check Font Awesome loading
+            function checkFontAwesomeLoading() {
+                setTimeout(function() {
+                    // Create a test element with Font Awesome icon
+                    var $testIcon = $('<i class="fa fa-language" style="position: absolute; left: -9999px; font-size: 16px;"></i>');
+                    $('body').append($testIcon);
+                    
+                    // Check if Font Awesome is properly loaded
+                    var iconWidth = $testIcon.width();
+                    var fontFamily = $testIcon.css('font-family');
+                    var isLoaded = fontFamily && (
+                        fontFamily.indexOf('Font Awesome') !== -1 || 
+                        fontFamily.indexOf('FontAwesome') !== -1 ||
+                        iconWidth > 10
+                    );
+                    
+                    $testIcon.remove();
+                    
+                    if (!isLoaded) {
+                        console.warn('Font Awesome may not be loaded properly. Applying fallback styles...');
+                        applyFontAwesomeFallback();
+                    } else {
+                        console.log('Font Awesome is loaded successfully');
+                    }
+                }, 1000);
+            }
+
+            // Function to apply Font Awesome fallback
+            function applyFontAwesomeFallback() {
+                var fallbackStyles = `
+                    <style id="fa-fallback">
+                        .fa { font-style: normal !important; display: inline-block !important; }
+                        .fa-language::before { content: "🌐" !important; font-family: Arial, sans-serif !important; }
+                        .fa-map-marker::before { content: "📍" !important; font-family: Arial, sans-serif !important; }
+                        .fa-phone::before { content: "📞" !important; font-family: Arial, sans-serif !important; }
+                        .fa-envelope-o::before, .fa-envelope::before { content: "✉️" !important; font-family: Arial, sans-serif !important; }
+                        .fa-facebook::before { content: "📘" !important; font-family: Arial, sans-serif !important; }
+                        .fa-twitter::before { content: "🐦" !important; font-family: Arial, sans-serif !important; }
+                        .fa-youtube::before { content: "▶️" !important; font-family: Arial, sans-serif !important; }
+                        .fa-user::before { content: "👤" !important; font-family: Arial, sans-serif !important; }
+                        .fa-lock::before { content: "🔒" !important; font-family: Arial, sans-serif !important; }
+                        .fa-paper-plane::before { content: "✈️" !important; font-family: Arial, sans-serif !important; }
+                        
+                        /* Ensure proper display */
+                        .fa { 
+                            min-width: 14px !important;
+                            text-align: center !important;
+                            font-size: 14px !important;
+                            line-height: 1 !important;
+                        }
+                    </style>
+                `;
+                
+                // Only add if not already added
+                if ($('#fa-fallback').length === 0) {
+                    $('head').append(fallbackStyles);
+                    console.log('Font Awesome fallback styles applied');
+                }
+
+                // Also apply individual icon fallback using data attributes
+                $('.icon-fallback').each(function() {
+                    var $icon = $(this);
+                    var fallbackContent = $icon.data('fallback');
+                    
+                    if (fallbackContent) {
+                        // Test if Font Awesome is working for this icon
+                        var testWidth = $icon.width();
+                        var testFamily = $icon.css('font-family');
+                        
+                        // If Font Awesome isn't working, use the fallback
+                        if (!testFamily || testFamily.indexOf('Font') === -1) {
+                            $icon.html(fallbackContent);
+                            $icon.css({
+                                'font-family': 'Arial, sans-serif',
+                                'font-size': '14px',
+                                'display': 'inline-block'
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Enhanced font loading check with individual icon fallback
+            function checkFontAwesomeLoadingEnhanced() {
+                setTimeout(function() {
+                    var allIconsWorking = true;
+                    
+                    // Test each icon individually
+                    $('.icon-fallback').each(function() {
+                        var $icon = $(this);
+                        var fallbackContent = $icon.data('fallback');
+                        
+                        if (fallbackContent) {
+                            // Create a test clone
+                            var $testIcon = $icon.clone().css({
+                                'position': 'absolute',
+                                'left': '-9999px',
+                                'visibility': 'hidden'
+                            });
+                            $('body').append($testIcon);
+                            
+                            // Check if Font Awesome is working
+                            var iconWidth = $testIcon.width();
+                            var fontFamily = $testIcon.css('font-family');
+                            var isWorking = fontFamily && fontFamily.indexOf('Font') !== -1;
+                            
+                            // Remove test icon
+                            $testIcon.remove();
+                            
+                            // If not working, use fallback
+                            if (!isWorking) {
+                                $icon.html(fallbackContent);
+                                $icon.css({
+                                    'font-family': 'Arial, sans-serif !important',
+                                    'font-size': '14px',
+                                    'display': 'inline-block'
+                                });
+                                allIconsWorking = false;
+                            }
+                        }
+                    });
+                    
+                    if (!allIconsWorking) {
+                        console.log('Some Font Awesome icons failed to load, using individual fallbacks');
+                        applyFontAwesomeFallback();
+                    } else {
+                        console.log('All Font Awesome icons loaded successfully');
+                    }
+                }, 1500); // Wait a bit longer for fonts to load
             }
         </script>
     </form>

@@ -4,6 +4,31 @@
     font-family: 'Noto Sans Bengali', 'SolaimanLipi', 'Kalpurush', Arial, sans-serif !important;
 }
 
+/* Font Awesome Icon Support */
+.fa, .fas, .far, .fab, .fal, .fad {
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+    font-weight: 900 !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    display: inline-block !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    line-height: 1 !important;
+}
+
+/* Specific icon fixes */
+.fa-language::before { content: "\f1ab" !important; }
+.fa-map-marker::before { content: "\f3c5" !important; }
+.fa-phone::before { content: "\f095" !important; }
+.fa-envelope-o::before, .fa-envelope::before { content: "\f0e0" !important; }
+.fa-facebook::before { content: "\f09a" !important; }
+.fa-twitter::before { content: "\f099" !important; }
+.fa-youtube::before { content: "\f167" !important; }
+.fa-user::before { content: "\f007" !important; }
+.fa-lock::before { content: "\f023" !important; }
+.fa-paper-plane::before { content: "\f1d8" !important; }
+
 @media print {
     .NoPrint, .controls, .btn { display: none !important; }
     html, body { 
@@ -83,6 +108,28 @@
         color: #000 !important; /* Address and phone black */
         line-height: 1.1 !important; /* Reduced line height */
         margin: 2px 0 !important; /* Reduced margin */
+    }
+    
+    /* Result card header icons for print */
+    .header i.fa, .header .icon-fallback {
+        font-family: Arial, sans-serif !important;
+        font-size: 12px !important;
+        margin-right: 3px !important;
+        color: #0072bc !important;
+        display: inline-block !important;
+    }
+    
+    /* Icon fallback content for print */
+    .header .fa-map-marker::before, 
+    .header .icon-fallback[data-fallback="??"]::before { 
+        content: "??" !important; 
+        font-family: Arial, sans-serif !important;
+    }
+    
+    .header .fa-phone::before,
+    .header .icon-fallback[data-fallback="??"]::before { 
+        content: "??" !important; 
+        font-family: Arial, sans-serif !important;
     }
 
     /* Student photo styles for print - square with rounded corners */
@@ -243,6 +290,32 @@ h3 {
     padding-bottom: 5px;
     margin-bottom: 5px;
     position: relative;
+}
+
+/* Result card header icon styling */
+.header i.fa {
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+    font-weight: 900 !important;
+    margin-right: 5px;
+    color: #0072bc;
+}
+
+/* Specific icon fixes for result card header */
+.header .fa-map-marker::before { 
+    content: "\f3c5" !important; 
+    font-family: "Font Awesome 6 Free", "FontAwesome" !important;
+}
+
+.header .fa-phone::before { 
+    content: "\f095" !important; 
+    font-family: "Font Awesome 6 Free", "FontAwesome" !important;
+}
+
+/* Fallback for result card icons */
+.header .icon-fallback {
+    font-style: normal !important;
+    display: inline-block !important;
+    margin-right: 5px;
 }
 
 .header h2 {

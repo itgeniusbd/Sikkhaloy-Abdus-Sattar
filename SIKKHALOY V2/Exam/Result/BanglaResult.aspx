@@ -4,8 +4,59 @@
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
     
+    <!-- Additional Font Awesome support for this page -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    
     <!-- External CSS for Bangla Result Direct Print -->
     <link href="Assets/bangla-result-directprint.css" rel="stylesheet" type="text/css" />
+    
+    <style>
+        /* Ensure icons are displayed properly on this page */
+        .fa, .fas, .far, .fab, .fal, .fad {
+            font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+            font-weight: 900 !important;
+            display: inline-block !important;
+        }
+
+        /* Fix specific icon display issues */
+        .fa-language::before { 
+            content: "\f1ab" !important; 
+            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
+            font-weight: 900 !important;
+        }
+
+        .fa-map-marker::before { 
+            content: "\f3c5" !important; 
+            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
+        }
+
+        .fa-phone::before { 
+            content: "\f095" !important; 
+            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
+        }
+
+        .fa-envelope-o::before, .fa-envelope::before { 
+            content: "\f0e0" !important; 
+            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
+        }
+
+        /* Ensure button icons are visible */
+        #languageToggle i {
+            margin-right: 5px !important;
+            font-size: 14px !important;
+        }
+
+        /* Additional fallback styles */
+        .fa {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Test icon visibility */
+        .test-icons {
+            display: none; /* Hidden test element */
+        }
+    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -205,8 +256,8 @@
                         <img src="/Handeler/SchoolLogo.ashx?SLogo=<%# Eval("SchoolID") %>" alt="School Logo" onerror="this.style.display='none';" />
                         <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>" alt="Student Photo" class="student-photo" onerror="this.style.display='none';" />
                         <h2><%# Eval("SchoolName") %></h2>
-                        <p><%# Eval("Address") %></p>
-                        <p>Phone: <%# Eval("Phone") %> </p>
+                        <p><i class="fa fa-map-marker icon-fallback" data-fallback="📍"></i> <%# Eval("Address") %></p>
+                        <p><i class="fa fa-phone icon-fallback" data-fallback="📞"></i> <%# Eval("Phone") %></p>
                     </div>
 
                     <!-- Title Section -->
@@ -296,6 +347,9 @@
 
     <script>
         $(document).ready(function () {
+            // Check if Font Awesome is loaded properly
+            checkAndFixFontAwesome();
+            
             // DON'T convert numbers to Bengali automatically - keep English by default
             // convertNumbersToBengali(); // Commented out - numbers will stay in English by default
 
@@ -322,6 +376,9 @@
                 // Set initial button state to show "বাংলা সংখ্যা" since numbers are in English by default
                 $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
                 isNumbersBengali = false; // Set to false since numbers are in English by default
+                
+                // Fix result card icons on page load if results exist
+                fixResultCardIcons();
             }
 
             // Test browse button functionality - only for debugging
@@ -353,6 +410,9 @@
                         // Set initial button state to show "বাংলা সংখ্যা" since numbers are in English by default
                         $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
                         isNumbersBengali = false; // Numbers are in English by default
+                        
+                        // Fix result card icons after loading
+                        fixResultCardIcons();
                     }
                 }, 1000);
             });
@@ -361,11 +421,11 @@
             $("[id*=StudentIDTextBox]").on('input', function () {
                 var value = $(this).val();
                 // Allow alphanumeric characters, Bengali numbers, commas, and spaces
-                var validChars = /^[a-zA-Z0-9০১২৩৪৫৬৭৮৯,،\s]*$/;
+                var validChars = /^[a-zA-Z0-9৫৬৭৮৯,،\s]*$/;
 
                 if (!validChars.test(value)) {
                     // Remove invalid characters
-                    value = value.replace(/[^a-zA-Z0-9০১২৩৪৫৬৭৮৯,،\s]/g, '');
+                    value = value.replace(/[^a-zA-Z0-9৫৬৭৮৯,،\s]/g, '');
                     $(this).val(value);
                 }
             });
@@ -376,7 +436,7 @@
                 if (value) {
                     // Convert Bengali to English for validation
                     var englishValue = convertBengaliToEnglishJS(value);
-                    var ids = englishValue.split(/[,،]/).map(id => id.trim()).filter(id => id);
+                    var ids = englishValue.split(/[,、]/).map(id => id.trim()).filter(id => id);
 
                     // More flexible validation for alphanumeric IDs
                     var invalidIds = ids.filter(id => !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0);
@@ -390,6 +450,53 @@
                 }
             });
         });
+
+        // Function to check and fix Font Awesome loading
+        function checkAndFixFontAwesome() {
+            // Check if Font Awesome is loaded by testing a known icon
+            setTimeout(function() {
+                var testElement = $('<i class="fa fa-language" style="position: absolute; left: -9999px;"></i>');
+                $('body').append(testElement);
+                
+                var hasIcon = testElement.css('font-family').indexOf('Font') !== -1;
+                testElement.remove();
+                
+                if (!hasIcon) {
+                    console.log('Font Awesome not loaded properly, applying fallback...');
+                    loadFontAwesomeFallback();
+                } else {
+                    console.log('Font Awesome loaded successfully');
+                }
+            }, 500);
+        }
+
+        // Function to load Font Awesome fallback
+        function loadFontAwesomeFallback() {
+            // Add fallback CSS if Font Awesome fails to load
+            var fallbackCSS = `
+                <style>
+                    .fa-language::before { content: "🌐"; font-family: Arial, sans-serif !important; }
+                    .fa-map-marker::before { content: "📍"; font-family: Arial, sans-serif !important; }
+                    .fa-phone::before { content: "📞"; font-family: Arial, sans-serif !important; }
+                    .fa-envelope-o::before, .fa-envelope::before { content: "✉️"; font-family: Arial, sans-serif !important; }
+                    .fa-facebook::before { content: "📘"; font-family: Arial, sans-serif !important; }
+                    .fa-twitter::before { content: "🐦"; font-family: Arial, sans-serif !important; }
+                    .fa-youtube::before { content: "▶️"; font-family: Arial, sans-serif !important; }
+                    .fa-user::before { content: "👤"; font-family: Arial, sans-serif !important; }
+                    .fa-lock::before { content: "🔒"; font-family: Arial, sans-serif !important; }
+                    .fa-paper-plane::before { content: "✈️"; font-family: Arial, sans-serif !important; }
+                    
+                    .fa { 
+                        font-style: normal !important;
+                        font-weight: normal !important;
+                        line-height: 1 !important;
+                        display: inline-block !important;
+                    }
+                </style>
+            `;
+            $('head').append(fallbackCSS);
+            console.log('Font Awesome fallback applied with emoji icons');
+        }
 
         // Function to apply pagination button styles
         function applyPaginationStyles() {
@@ -450,6 +557,9 @@
         }
 
         function convertNumbersAfterPostback() {
+            // Fix result card icons first
+            fixResultCardIcons();
+            
             // Fix absent marks first
             $('.marks-table').each(function () {
                 var $table = $(this);
@@ -979,6 +1089,42 @@
 
             // Start reading the file
             reader.readAsDataURL(file);
+        }
+
+        // Function to fix result card icons after they are loaded
+        function fixResultCardIcons() {
+            console.log('Fixing result card icons...');
+            
+            // Check each result card for icons
+            $('.result-card .header').each(function() {
+                var $header = $(this);
+                
+                // Check for icon-fallback elements in this header
+                $header.find('.icon-fallback').each(function() {
+                    var $icon = $(this);
+                    var fallbackContent = $icon.data('fallback');
+                    
+                    if (fallbackContent) {
+                        // Test if Font Awesome is working for this icon
+                        var testFamily = $icon.css('font-family');
+                        var isWorking = testFamily && testFamily.indexOf('Font') !== -1;
+                        
+                        if (!isWorking) {
+                            console.log('Font Awesome not working for result card icon, using fallback:', fallbackContent);
+                            $icon.html(fallbackContent);
+                            $icon.css({
+                                'font-family': 'Arial, sans-serif',
+                                'font-size': '14px',
+                                'display': 'inline-block',
+                                'margin-right': '5px',
+                                'color': '#0072bc'
+                            });
+                        } else {
+                            console.log('Font Awesome working for result card icon');
+                        }
+                    }
+                });
+            });
         }
     </script>
 </asp:Content>
