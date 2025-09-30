@@ -134,8 +134,8 @@
 
     /* Student photo styles for print - square with rounded corners */
     .student-photo {
-        width: 60px !important;
-        height: 60px !important;
+        width: 70px !important;
+        height: 70px !important;
         border-radius: 10px !important; /* Square with rounded corners */
         object-fit: cover !important;
         position: absolute !important;
@@ -156,7 +156,7 @@
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         width: 60px !important; /* Same as student photo */
-        height: 60px !important; /* Same as student photo */
+        height: 70px !important; /* Same as student photo */
     }
     
     /* Summary table - smaller text for print */
@@ -287,8 +287,8 @@ h3 {
 .header {
     text-align: center;
     border-bottom: 2px solid #0072bc;
-    padding-bottom: 5px;
-    margin-bottom: 5px;
+    padding-bottom: 12px;
+    margin-bottom: 2px;
     position: relative;
 }
 
@@ -331,8 +331,8 @@ h3 {
 }
 
 .header img {
-    width: 60px; /* Same as student photo */
-    height: 60px; /* Same as student photo */
+    width: 70px; /* Same as student photo */
+    height: 70px; /* Same as student photo */
     border-radius: 5px !important; /* Square with rounded corners */
     object-fit: cover;
     position: absolute;
@@ -344,8 +344,8 @@ h3 {
 
 /* Student photo in header - square with rounded corners */
 .student-photo {
-    width: 60px !important;
-    height: 60px !important;
+    width: 70px !important;
+    height: 70px !important;
     border-radius: 5px !important; /* Square with rounded corners */
     object-fit: cover !important;
     position: absolute !important;
@@ -368,7 +368,7 @@ h3 {
 .Exam_name {            
      text-align: center;
     font-weight: bold;
-    margin: 5px 0;
+    margin: 0px 0;
     color: #0072bc;
     font-size: 18px;
 }
@@ -529,10 +529,10 @@ h3 {
 
 .vertical-text {
     writing-mode: vertical-rl;
-    transform: rotate(180deg);
+    transform: rotate(0deg);
     font-weight: bold;
     color: blue;
-    text-align: center;
+    text-align: center !important;
     vertical-align: middle;
 }
 
@@ -801,33 +801,85 @@ input[type="submit"].btn-outline-primary:active {
     color: #fff !important;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .button-container {
-        flex-direction: column !important;
-        gap: 3px !important;
-    }
-    
-    .btn-sm {
-        padding: 5px 10px !important;
-        font-size: 11px !important;
-        min-width: auto !important;
-    }
-    
-    .Card-space {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-    
-    .pagination-inline {
-        margin-top: 10px;
-        justify-content: center;
-        width: 100%;
-    }
-    
-    .btn-xs {
-        padding: 3px 8px !important;
-        font-size: 10px !important;
+/* Comments column specific styling */
+.marks-table .comment-header {
+    background: #e8f4fd !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    font-size: 14px !important;
+    padding: 6px 4px !important;
+    border: 1px solid #0072bc !important;
+}
+
+.marks-table .comment-cell {
+    text-align: center !important;
+    vertical-align: middle !important;
+    padding: 8px 4px !important;
+    font-size: 12px !important;
+    font-weight: normal !important;
+    color: #333 !important;
+    border: 1px solid #0072bc !important;
+}
+
+/* Ensure comment column maintains center alignment in all table sizes */
+.marks-table.medium-subjects .comment-header {
+    font-size: 13px !important;
+    padding: 5px 3px !important;
+}
+
+.marks-table.medium-subjects .comment-cell {
+    font-size: 11px !important;
+    padding: 6px 3px !important;
+}
+
+.marks-table.small-subjects .comment-header {
+    font-size: 12px !important;
+    padding: 4px 2px !important;
+}
+
+.marks-table.small-subjects .comment-cell {
+    font-size: 10px !important;
+    padding: 5px 2px !important;
+}
+
+/* Print view comment styling */
+@media print {
+    .marks-table .comment-header {
+        background: #e8f4fd !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        text-align: center !important;
+        font-size: 12px !important;
+        padding: 4px 3px !important;
     }
 
+    .marks-table .comment-cell {
+        text-align: center !important;
+        font-size: 10px !important;
+        padding: 6px 3px !important;
+        color: #333 !important;
+    }
+
+    .marks-table.medium-subjects .comment-header {
+        font-size: 11px !important;
+        padding: 3px 2px !important;
+    }
+
+    .marks-table.medium-subjects .comment-cell {
+        font-size: 9px !important;
+        padding: 4px 2px !important;
+    }
+
+    .marks-table.small-subjects .comment-header {
+        font-size: 10px !important;
+        padding: 2px 1px !important;
+    }
+
+    .marks-table.small-subjects .comment-cell {
+        font-size: 8px !important;
+        padding: 3px 1px !important;
+    }
 }

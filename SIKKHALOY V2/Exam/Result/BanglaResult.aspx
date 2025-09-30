@@ -3,13 +3,13 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
-    
+
     <!-- Additional Font Awesome support for this page -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
-    
+
     <!-- External CSS for Bangla Result Direct Print -->
     <link href="Assets/bangla-result-directprint.css" rel="stylesheet" type="text/css" />
-    
+
     <style>
         /* Ensure icons are displayed properly on this page */
         .fa, .fas, .far, .fab, .fal, .fad {
@@ -19,24 +19,24 @@
         }
 
         /* Fix specific icon display issues */
-        .fa-language::before { 
-            content: "\f1ab" !important; 
+        .fa-language::before {
+            content: "\f1ab" !important;
             font-family: "Font Awesome 6 Free", "FontAwesome" !important;
             font-weight: 900 !important;
         }
 
-        .fa-map-marker::before { 
-            content: "\f3c5" !important; 
+        .fa-map-marker::before {
+            content: "\f3c5" !important;
             font-family: "Font Awesome 6 Free", "FontAwesome" !important;
         }
 
-        .fa-phone::before { 
-            content: "\f095" !important; 
+        .fa-phone::before {
+            content: "\f095" !important;
             font-family: "Font Awesome 6 Free", "FontAwesome" !important;
         }
 
-        .fa-envelope-o::before, .fa-envelope::before { 
-            content: "\f0e0" !important; 
+        .fa-envelope-o::before, .fa-envelope::before {
+            content: "\f0e0" !important;
             font-family: "Font Awesome 6 Free", "FontAwesome" !important;
         }
 
