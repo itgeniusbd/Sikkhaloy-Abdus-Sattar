@@ -10,6 +10,77 @@
     <link href="Assets/bangla-result-directprint.css" rel="stylesheet" type="text/css" />
 
     <style>
+        /* Attendance Table Styling - Fix positioning and appearance */
+        .attendance-table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 200px;
+            margin: 10px 0;
+            font-size: 11px;
+            background: #f8f9fa;
+            border: 2px solid #333;
+        }
+
+        .attendance-table td {
+            border: 1px solid #333;
+            padding: 4px 6px;
+            text-align: center;
+            font-weight: bold;
+            min-width: 35px;
+        }
+
+        .attendance-table .label {
+            background-color: #ffb3ba;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .attendance-table tr:not(.label) td {
+            background-color: #fff;
+            color: #333;
+        }
+
+        /* New inline attendance/summary table styling */
+        .attendance-inline-complete {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            table-layout: auto;
+            overflow-x: auto;
+        }
+
+        .attendance-inline-complete td {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            text-align: center;
+            font-weight: bold;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        /* Responsive table wrapper for horizontal scrolling */
+        .attendance-table-wrapper {
+            overflow-x: auto;
+            overflow-y: visible;
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        /* Position the attendance table properly in the layout */
+        .info-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .info-table,
+        .attendance-table,
+        .summary {
+            width: 100%;
+        }
+
         /* Ensure icons are displayed properly on this page */
         .fa, .fas, .far, .fab, .fal, .fad {
             font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
@@ -64,7 +135,11 @@
             font-size: 11px;
             min-width: 800px; /* Minimum width to maintain readability */
         }
-
+.marks-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0px;
+}
         .marks-table th,
         .marks-table td {
             border: 1px solid #000;
@@ -125,6 +200,8 @@
             max-width: 50px !important;
             font-size: 10px !important;
         }
+  
+
 
         /* Specific column width adjustments for position columns */
         .marks-table td:nth-last-child(4), /* PC */
@@ -423,10 +500,7 @@
                             id="PrintButton" style="display:none; flex: 1; height: 34px;">
                             PRINT
                         </button>
-                        <button type="button" onclick="toggleNumberLanguage()" class="btn btn-warning btn-sm" 
-                            id="NumberToggleButton" style="display:none; flex: 1; height: 34px; margin-left: 5px;">
-                            Bengali Numbers
-                        </button>
+
                     </div>
                 </div>
             </div>
@@ -501,7 +575,7 @@
 
                     <!-- Top Section with Info and Grade Chart -->
                     <div class="top-section">
-                        <!-- Left: Student Info + Summary -->
+                        <!-- Left: Student Info + Attendance/Summary (Combined) -->
                         <div class="info-summary">
                             <table class="info-table">
                               <tr style="background:#e8f4fd" >
@@ -509,7 +583,7 @@
                                 </tr>
                                 
                                 <%-- Use helper method for dynamic row generation --%>
-                                <%# GetDynamicInfoRow(Container.DataItem) %>
+                                <%# GetDynamicInfoRow(Container.DataItem) %> 
 
                                 <tr>
                                     <td>Roll:</td>
@@ -519,27 +593,9 @@
                                     <td colspan="2"></td>
                                 </tr>
                             </table>
-
-                            <table class="summary">
-                                <tr class="summary-header">
-                                    <td>Obtain Marks</td>
-                                    <td>%</td>
-                                    <td>Average</td>
-                                    <td>Grade</td>
-                                    <td>GPA</td>
-                                    <td>Position of Class</td>
-                                    <%# GetSectionColumnHeader() %>
-                                </tr>
-                                <tr class="summary-values">
-                                    <td><%# Eval("TotalExamObtainedMark_ofStudent") %>/<%# Eval("TotalMark_ofStudent") %></td>
-                                    <td><%# Eval("ObtainedPercentage_ofStudent") == DBNull.Value ? "0.00" : String.Format("{0:F2}", Eval("ObtainedPercentage_ofStudent")) %></td>
-                                    <td><%# Eval("Average") == DBNull.Value ? "0.00" : String.Format("{0:F2}", Eval("Average")) %></td>
-                                    <td><%# Eval("Student_Grade") == DBNull.Value ? "N/A" : Eval("Student_Grade") %></td>
-                                    <td><%# Eval("Student_Point") == DBNull.Value ? "0.0" : String.Format("{0:F1}", Eval("Student_Point")) %></td>
-                                    <td><%# Eval("Position_InExam_Class") == DBNull.Value ? "N/A" : Eval("Position_InExam_Class") %></td>
-                                    <%# GetSectionColumnData(Container.DataItem) %>
-                                </tr>
-                            </table>
+                            
+                            <!-- Combined Attendance and Summary Table in Single Row -->
+                            <%# GetAttendanceTableHtml(Container.DataItem) %>
                         </div>
 
                         <!-- Right: Grade Chart -->
@@ -579,6 +635,213 @@
     </asp:Panel>
 
     <script type="text/javascript">
+        // Missing checkAndFixFontAwesome function - Add this first
+        function checkAndFixFontAwesome() {
+            console.log('Checking Font Awesome icons...');
+            
+            // Test if Font Awesome is loaded
+            var testIcon = $('<i class="fa fa-home"></i>').appendTo('body');
+            var iconWidth = testIcon.width();
+            testIcon.remove();
+            
+            if (iconWidth > 0) {
+                console.log('Font Awesome loaded successfully');
+                fixResultCardIcons();
+            } else {
+                console.warn('Font Awesome not loaded properly, using fallback');
+                // Add fallback Font Awesome if not loaded
+                if (!$('link[href*="font-awesome"]').length) {
+                    $('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">').appendTo('head');
+                    setTimeout(fixResultCardIcons, 500);
+                }
+            }
+            
+            console.log('All Font Awesome icons loaded successfully');
+        }
+
+        // Function to fix result card icons
+        function fixResultCardIcons() {
+            $('.result-card').each(function() {
+                var $card = $(this);
+                
+                // Fix map marker icon
+                $card.find('.fa-map-marker, .fa-map-marker-alt').each(function() {
+                    if ($(this).text().trim() === '' || $(this).is(':empty')) {
+                        $(this).attr('data-fallback', '📍');
+                    }
+                });
+                
+                // Fix phone icon
+                $card.find('.fa-phone').each(function() {
+                    if ($(this).text().trim() === '' || $(this).is(':empty')) {
+                        $(this).attr('data-fallback', '📞');
+                    }
+                });
+                
+                // Fix envelope icon
+                $card.find('.fa-envelope, .fa-envelope-o').each(function() {
+                    if ($(this).text().trim() === '' || $(this).is(':empty')) {
+                        $(this).attr('data-fallback', '✉️');
+                    }
+                });
+            });
+        }
+
+        // Fix absent marks display function
+        function fixAbsentMarksDisplay() {
+            $('.marks-table').each(function() {
+                var $table = $(this);
+                
+                // Process each data row
+                $table.find('tr').each(function() {
+                    var $row = $(this);
+                    
+                    // Skip header rows
+                    if ($row.find('th').length > 0) return;
+                    
+                    // Check each cell for absent marks
+                    $row.find('td').each(function() {
+                        var $cell = $(this);
+                        var cellText = $cell.text().trim();
+                        
+                        // Convert 'A' to 'Abs' for absent marks (but not in grade columns)
+                        if (cellText === 'A' && !$cell.hasClass('grade-cell')) {
+                            $cell.text('Abs').addClass('absent-mark');
+                        }
+                    });
+                });
+            });
+        }
+
+        // Function to load database signatures
+        function loadDatabaseSignatures() {
+            var teacherSignPath = $('[id$="HiddenTeacherSign"]').val();
+            var principalSignPath = $('[id$="HiddenPrincipalSign"]').val();
+            
+            console.log('Loading database signatures:', {
+                teacher: teacherSignPath,
+                principal: principalSignPath
+            });
+            
+            if (teacherSignPath && teacherSignPath.trim() !== '') {
+                $('.SignTeacher').html('<img src="' + teacherSignPath + '" style="max-height: 35px; max-width: 120px;">');
+            }
+            
+            if (principalSignPath && principalSignPath.trim() !== '') {
+                $('.SignHead').html('<img src="' + principalSignPath + '" style="max-height: 35px; max-width: 120px;">');
+            }
+        }
+
+        // Function to update signature texts
+        function updateSignatureTexts() {
+            var teacherText = $('[id$="TeacherSignTextBox"]').val() || 'Class Teacher';
+            var principalText = $('[id$="HeadTeacherSignTextBox"]').val() || 'Principal';
+            
+            $('.Teacher').text(teacherText);
+            $('.Head').text(principalText);
+        }
+
+        // Function to initialize signature upload functionality
+        function initializeSignatureUpload() {
+            console.log('Initializing signature upload functionality...');
+            
+            // Teacher signature upload
+            $('#Tfileupload').off('change').on('change', function(e) {
+                console.log('Teacher file input changed');
+                handleSignatureUpload(e, 'teacher', '.SignTeacher');
+            });
+            
+            // Principal signature upload
+            $('#Hfileupload').off('change').on('change', function(e) {
+                console.log('Principal file input changed');
+                handleSignatureUpload(e, 'principal', '.SignHead');
+            });
+            
+            // Update signature texts when textboxes change
+            $('[id$="TeacherSignTextBox"]').off('input').on('input', function() {
+                var text = $(this).val() || 'Class Teacher';
+                $('.Teacher').text(text);
+            });
+            
+            $('[id$="HeadTeacherSignTextBox"]').off('input').on('input', function() {
+                var text = $(this).val() || 'Principal';
+                $('.Head').text(text);
+            });
+        }
+
+        // Function to handle signature upload
+        function handleSignatureUpload(event, signatureType, targetSelector) {
+            var file = event.target.files[0];
+            if (!file) return;
+            
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file.');
+                return;
+            }
+            
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size should be less than 2MB.');
+                return;
+            }
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var imageData = e.target.result;
+                
+                // Display the image immediately
+                $(targetSelector).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px;">');
+                
+                // Save to database
+                var base64Data = imageData.split(',')[1]; // Remove data:image/...;base64, prefix
+                
+                $.ajax({
+                    type: 'POST',
+                    url: 'Result_Card_English.aspx/SaveSignature',
+                    data: JSON.stringify({
+                        signatureType: signatureType,
+                        imageData: base64Data
+                    }),
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    success: function(response) {
+                        console.log('Signature saved successfully:', response);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error saving signature:', error);
+                        alert('Error saving signature. Please try again.');
+                    }
+                });
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Function to apply pagination styles
+        function applyPaginationStyles() {
+            $('.pagination-inline .btn').each(function() {
+                var $btn = $(this);
+                if ($btn.hasClass('aspNetDisabled') || $btn.prop('disabled')) {
+                    $btn.removeClass('btn-outline-primary').addClass('btn-outline-secondary');
+                } else {
+                    $btn.removeClass('btn-outline-secondary').addClass('btn-outline-primary');
+                }
+            });
+        }
+
+        // Convert Bengali numbers to English
+        function convertBengaliToEnglishJS(text) {
+            var bengaliToEnglish = {
+                '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+                '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+            };
+            
+            return text.replace(/[০-৯]/g, function(match) {
+                return bengaliToEnglish[match] || match;
+            });
+        }
+
         $(document).ready(function () {
             // Check if Font Awesome is loaded properly
             checkAndFixFontAwesome();

@@ -217,7 +217,11 @@
     .marks-table.small-subjects th {
         font-size: 15px !important; /* Larger headers */
     }
-
+    .grade-chart {
+        width: 20%;
+        margin-left: 6px;
+        margin-right: 6px;
+    }
     /* Grade chart - smaller for print */
     .grade-chart th, .grade-chart td {
         font-size: 12px !important; /* Smaller font */
@@ -381,13 +385,13 @@ h3 {
 }
 
 .info-summary {
-    width: 72%;
+    width: 88%;
 }
 
 .info-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 6px;
+    margin-bottom: 2px;
 }
 
 .info-table td {
@@ -434,14 +438,18 @@ h3 {
 }
 
 .grade-chart {
-    width: 26%;
+    width: 20%;
+    margin-left: 6px;
+    margin-right: 6px;
 }
 
-.grade-chart table {
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 11px;
-}
+    .grade-chart table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 11px;
+        margin-left: 6px;
+        margin-right: 6px;
+    }
 
 .grade-chart th, .grade-chart td {
     border: 1px solid #0072bc;
