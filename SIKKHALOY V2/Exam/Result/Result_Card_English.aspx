@@ -1,376 +1,103 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Result_Card_English.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Result_Card_English" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
 
     <!-- Additional Font Awesome support for this page -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
 
-    <!-- External CSS for Bangla Result Direct Print -->
-    <link href="Assets/bangla-result-directprint.css" rel="stylesheet" type="text/css" />
+    <!-- External CSS for English Result Card with cache busting -->
+    <link href="Assets/Result_Card_English.css?v=<%= DateTime.Now.Ticks %>" rel="stylesheet" type="text/css" />
 
     <style>
-        /* Attendance Table Styling - Fix positioning and appearance */
-        .attendance-table {
-            border-collapse: collapse;
-            width: 100%;
-            max-width: 200px;
-            margin: 10px 0;
-            font-size: 11px;
-            background: #f8f9fa;
-            border: 2px solid #333;
+        /* PS Column Visibility Control */
+        .ps-column.ps-hidden {
+            display: none !important;
         }
 
-        .attendance-table td {
-            border: 1px solid #333;
-            padding: 4px 6px;
-            text-align: center;
-            font-weight: bold;
-            min-width: 35px;
+        .ps-column {
+            transition: opacity 0.3s ease;
         }
 
-        .attendance-table .label {
-            background-color: #ffb3ba;
-            font-weight: bold;
-            color: #333;
+        /* Force consistent font sizes between normal and print view */
+        @media screen {
+            .result-card {
+                font-size: 14px !important;
+            }
+            
+            .header h2 {
+                font-size: 22px !important;
+            }
+            
+            .header p {
+                font-size: 14px !important;
+            }
+            
+            .title, .Exam_name {
+                font-size: 16px !important;
+            }
+            
+            .info-table td {
+                font-size: 14px !important;
+            }
+            
+            .summary-header td, .summary-values td {
+                font-size: 14px !important;
+            }
+            
+            .marks-table th, .marks-table td {
+                font-size: 12px !important;
+            }
+            
+            .grade-chart th, .grade-chart td {
+                font-size: 12px !important;
+            }
+            
+            .footer {
+                font-size: 14px !important;
+            }
         }
 
-        .attendance-table tr:not(.label) td {
-            background-color: #fff;
-            color: #333;
-        }
-
-        /* New inline attendance/summary table styling */
-        .attendance-inline-complete {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 8px 0;
-            font-size: 11px;
-            font-family: Arial, sans-serif;
-            table-layout: auto;
-            overflow-x: auto;
-        }
-
-        .attendance-inline-complete td {
-            border: 1px solid #000;
-            padding: 4px 6px;
-            text-align: center;
-            font-weight: bold;
-            white-space: nowrap;
-            vertical-align: middle;
-        }
-
-        /* Responsive table wrapper for horizontal scrolling */
-        .attendance-table-wrapper {
-            overflow-x: auto;
-            overflow-y: visible;
-            width: 100%;
-            margin: 8px 0;
-        }
-
-        /* Position the attendance table properly in the layout */
-        .info-summary {
-            display: flex;
-            flex-direction: column;
-            gap: 1px;
-        }
-
-        .info-table,
-        .attendance-table,
-        .summary {
-            width: 100%;
-        }
-
-        /* Ensure icons are displayed properly on this page */
-        .fa, .fas, .far, .fab, .fal, .fad {
-            font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
-            font-weight: 900 !important;
-            display: inline-block !important;
-        }
-
-        /* Fix specific icon display issues */
-        .fa-language::before {
-            content: "\f1ab" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-            font-weight: 900 !important;
-        }
-
-        .fa-map-marker::before {
-            content: "\f3c5" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-        }
-
-        .fa-phone::before {
-            content: "\f095" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-        }
-
-        .fa-envelope-o::before, .fa-envelope::before {
-            content: "\f0e0" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-        }
-
-        /* Ensure button icons are visible */
-        #languageToggle i {
-            margin-right: 5px !important;
-            font-size: 14px !important;
-        }
-
-        /* Additional fallback styles */
-        .fa {
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Test icon visibility */
-        .test-icons {
-            display: none; /* Hidden test element */
-        }
-
-        /* Enhanced responsive table styles for unlimited sub-exams */
-        .marks-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: auto;
-            font-size: 11px;
-            min-width: 800px; /* Minimum width to maintain readability */
-        }
-.marks-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 0px;
-}
-        .marks-table th,
-        .marks-table td {
-            border: 1px solid #000;
-            padding: 2px;
-            text-align: center;
-            vertical-align: middle;
-            word-wrap: break-word;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .marks-table th:first-child,
-        .marks-table td:first-child {
-            text-align: left;
-            padding-left: 4px;
-            min-width: 80px;
-            max-width: 120px;
-            position: sticky;
-            left: 0;
-            background-color: #fff;
-            z-index: 1;
-        }
-
-        /* Dynamic sizing based on number of columns */
-        .marks-table.many-columns {
-            font-size: 9px;
-        }
-
-        .marks-table.many-columns th,
-        .marks-table.many-columns td {
-            padding: 1px;
-            min-width: 20px;
-            max-width: 30px;
-        }
-
-        .marks-table.many-columns th:first-child,
-        .marks-table.many-columns td:first-child {
-            min-width: 60px;
-            max-width: 80px;
-        }
-
-        /* Horizontal scroll container */
-        .table-container {
-            overflow-x: auto;
-            overflow-y: visible;
-            width: 100%;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        /* Position columns styling - last 4 columns always */
-        .marks-table td:nth-last-child(-n+4),
-        .marks-table th:nth-last-child(-n+4) {
-            background-color: #e8f4fd !important;
-            font-weight: bold !important;
-            min-width: 35px !important;
-            max-width: 50px !important;
-            font-size: 10px !important;
-        }
-  
-
-
-        /* Specific column width adjustments for position columns */
-        .marks-table td:nth-last-child(4), /* PC */
-        .marks-table th:nth-last-child(4) {
-            min-width: 35px !important;
-        }
-
-        .marks-table td:nth-last-child(3), /* PS */
-        .marks-table th:nth-last-child(3) {
-            min-width: 35px !important;
-        }
-
-        .marks-table td:nth-last-child(2), /* HMC */
-        .marks-table th:nth-last-child(2) {
-            min-width: 40px !important;
-        }
-
-        .marks-table td:nth-last-child(1), /* HMS */
-        .marks-table th:nth-last-child(1) {
-            min-width: 40px !important;
-        }
-
-        /* Sub-exam specific adjustments */
-        .marks-table.sub-exam-0 td:nth-last-child(-n+4),
-        .marks-table.sub-exam-0 th:nth-last-child(-n+4) {
-            font-size: 11px !important;
-            min-width: 40px !important;
-        }
-
-        .marks-table.sub-exam-1 td:nth-last-child(-n+4),
-        .marks-table.sub-exam-1 th:nth-last-child(-n+4) {
-            font-size: 11px !important;
-            min-width: 38px !important;
-        }
-
-        .marks-table.sub-exam-2 td:nth-last-child(-n+4),
-        .marks-table.sub-exam-2 th:nth-last-child(-n+4) {
-            font-size: 10px !important;
-            min-width: 36px !important;
-        }
-
-        .marks-table.sub-exam-3 td:nth-last-child(-n+4),
-        .marks-table.sub-exam-3 th:nth-last-child(-n+4) {
-            font-size: 10px !important;
-            min-width: 34px !important;
-        }
-
-        .marks-table.sub-exam-4 td:nth-last-child(-n+4),
-        .marks-table.sub-exam-4 th:nth-last-child(-n+4),
-        .marks-table[class*="sub-exam-"]:not(.sub-exam-0):not(.sub-exam-1):not(.sub-exam-2):not(.sub-exam-3) td:nth-last-child(-n+4),
-        .marks-table[class*="sub-exam-"]:not(.sub-exam-0):not(.sub-exam-1):not(.sub-exam-2):not(.sub-exam-3) th:nth-last-child(-n+4) {
-            font-size: 9px !important;
-            min-width: 32px !important;
-        }
-
-        /* Header background for all table headers */
-        .marks-table tr:first-child th {
-            background-color: #ffb3ba !important;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
-
-        .marks-table tr:nth-child(2) th {
-            background-color: #ffb3ba !important;
-            font-weight: bold;
-            position: sticky;
-            top: 25px; /* Adjust based on first row height */
-            z-index: 2;
-        }
-
-        /* Ensure position columns in header also have proper background */
-        .marks-table tr:first-child th:nth-last-child(-n+4),
-        .marks-table tr:nth-child(2) th:nth-last-child(-n+4) {
-            background-color: #ffb3ba !important;
-        }
-
-        /* Print styles */
         @media print {
-            .marks-table {
-                font-size: 8px !important;
-                min-width: auto !important;
+            .result-card {
+                font-size: 14px !important;
             }
             
-            .marks-table th,
-            .marks-table td {
-                padding: 1px !important;
-                min-width: 18px !important;
-                max-width: 25px !important;
-            }
-
-            .marks-table th:first-child,
-            .marks-table td:first-child {
-                min-width: 50px !important;
-                max-width: 70px !important;
-            }
-
-            .marks-table td:nth-last-child(-n+4),
-            .marks-table th:nth-last-child(-n+4) {
-                font-size: 7px !important;
-                min-width: 25px !important;
-                max-width: 30px !important;
-            }
-
-            .table-container {
-                overflow: visible !important;
-                border: none !important;
-            }
-
-            /* Remove sticky positioning for print */
-            .marks-table th:first-child,
-            .marks-table td:first-child,
-            .marks-table tr:first-child th,
-            .marks-table tr:nth-child(2) th {
-                position: static !important;
-            }
-        }
-
-        /* Mobile responsive */
-        @media screen and (max-width: 768px) {
-            .marks-table {
-                font-size: 8px;
+            .header h2 {
+                font-size: 22px !important;
             }
             
-            .marks-table th,
-            .marks-table td {
-                padding: 1px;
-                min-width: 15px;
-                max-width: 20px;
+            .header p {
+                font-size: 14px !important;
             }
-
-            .marks-table th:first-child,
-            .marks-table td:first-child {
-                min-width: 40px;
-                max-width: 60px;
+            
+            .title, .Exam_name {
+                font-size: 16px !important;
             }
-
-            .marks-table td:nth-last-child(-n+4),
-            .marks-table th:nth-last-child(-n+4) {
-                font-size: 7px;
-                min-width: 25px;
-                max-width: 30px;
+            
+            .info-table td {
+                font-size: 14px !important;
             }
-        }
-
-        /* Tooltip styles for truncated content */
-        .marks-table [title] {
-            cursor: help;
-        }
-
-        /* Styles for failed subjects */
-        .marks-table .failed-row {
-            background-color: #ffe6e6;
-        }
-
-        .marks-table .failed-row td {
-            color: #d32f2f;
-            font-weight: bold;
-        }
-
-        /* Loading indicator for large tables */
-        .table-loading {
-            text-align: center;
-            padding: 20px;
-            font-style: italic;
-            color: #666;
+            
+            .summary-header td, .summary-values td {
+                font-size: 14px !important;
+            }
+            
+            .marks-table th, .marks-table td {
+                font-size: 12px !important;
+            }
+            
+            .grade-chart th, .grade-chart td {
+                font-size: 12px !important;
+            }
+            
+            .footer {
+                font-size: 14px !important;
+            }
         }
     </style>
+
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -638,12 +365,12 @@
         // Missing checkAndFixFontAwesome function - Add this first
         function checkAndFixFontAwesome() {
             console.log('Checking Font Awesome icons...');
-            
+
             // Test if Font Awesome is loaded
             var testIcon = $('<i class="fa fa-home"></i>').appendTo('body');
             var iconWidth = testIcon.width();
             testIcon.remove();
-            
+
             if (iconWidth > 0) {
                 console.log('Font Awesome loaded successfully');
                 fixResultCardIcons();
@@ -655,31 +382,31 @@
                     setTimeout(fixResultCardIcons, 500);
                 }
             }
-            
+
             console.log('All Font Awesome icons loaded successfully');
         }
 
         // Function to fix result card icons
         function fixResultCardIcons() {
-            $('.result-card').each(function() {
+            $('.result-card').each(function () {
                 var $card = $(this);
-                
+
                 // Fix map marker icon
-                $card.find('.fa-map-marker, .fa-map-marker-alt').each(function() {
+                $card.find('.fa-map-marker, .fa-map-marker-alt').each(function () {
                     if ($(this).text().trim() === '' || $(this).is(':empty')) {
                         $(this).attr('data-fallback', '📍');
                     }
                 });
-                
+
                 // Fix phone icon
-                $card.find('.fa-phone').each(function() {
+                $card.find('.fa-phone').each(function () {
                     if ($(this).text().trim() === '' || $(this).is(':empty')) {
                         $(this).attr('data-fallback', '📞');
                     }
                 });
-                
+
                 // Fix envelope icon
-                $card.find('.fa-envelope, .fa-envelope-o').each(function() {
+                $card.find('.fa-envelope, .fa-envelope-o').each(function () {
                     if ($(this).text().trim() === '' || $(this).is(':empty')) {
                         $(this).attr('data-fallback', '✉️');
                     }
@@ -689,21 +416,21 @@
 
         // Fix absent marks display function
         function fixAbsentMarksDisplay() {
-            $('.marks-table').each(function() {
+            $('.marks-table').each(function () {
                 var $table = $(this);
-                
+
                 // Process each data row
-                $table.find('tr').each(function() {
+                $table.find('tr').each(function () {
                     var $row = $(this);
-                    
+
                     // Skip header rows
                     if ($row.find('th').length > 0) return;
-                    
+
                     // Check each cell for absent marks
-                    $row.find('td').each(function() {
+                    $row.find('td').each(function () {
                         var $cell = $(this);
                         var cellText = $cell.text().trim();
-                        
+
                         // Convert 'A' to 'Abs' for absent marks (but not in grade columns)
                         if (cellText === 'A' && !$cell.hasClass('grade-cell')) {
                             $cell.text('Abs').addClass('absent-mark');
@@ -717,16 +444,16 @@
         function loadDatabaseSignatures() {
             var teacherSignPath = $('[id$="HiddenTeacherSign"]').val();
             var principalSignPath = $('[id$="HiddenPrincipalSign"]').val();
-            
+
             console.log('Loading database signatures:', {
                 teacher: teacherSignPath,
                 principal: principalSignPath
             });
-            
+
             if (teacherSignPath && teacherSignPath.trim() !== '') {
                 $('.SignTeacher').html('<img src="' + teacherSignPath + '" style="max-height: 35px; max-width: 120px;">');
             }
-            
+
             if (principalSignPath && principalSignPath.trim() !== '') {
                 $('.SignHead').html('<img src="' + principalSignPath + '" style="max-height: 35px; max-width: 120px;">');
             }
@@ -736,7 +463,7 @@
         function updateSignatureTexts() {
             var teacherText = $('[id$="TeacherSignTextBox"]').val() || 'Class Teacher';
             var principalText = $('[id$="HeadTeacherSignTextBox"]').val() || 'Principal';
-            
+
             $('.Teacher').text(teacherText);
             $('.Head').text(principalText);
         }
@@ -744,26 +471,26 @@
         // Function to initialize signature upload functionality
         function initializeSignatureUpload() {
             console.log('Initializing signature upload functionality...');
-            
+
             // Teacher signature upload
-            $('#Tfileupload').off('change').on('change', function(e) {
+            $('#Tfileupload').off('change').on('change', function (e) {
                 console.log('Teacher file input changed');
                 handleSignatureUpload(e, 'teacher', '.SignTeacher');
             });
-            
+
             // Principal signature upload
-            $('#Hfileupload').off('change').on('change', function(e) {
+            $('#Hfileupload').off('change').on('change', function (e) {
                 console.log('Principal file input changed');
                 handleSignatureUpload(e, 'principal', '.SignHead');
             });
-            
+
             // Update signature texts when textboxes change
-            $('[id$="TeacherSignTextBox"]').off('input').on('input', function() {
+            $('[id$="TeacherSignTextBox"]').off('input').on('input', function () {
                 var text = $(this).val() || 'Class Teacher';
                 $('.Teacher').text(text);
             });
-            
-            $('[id$="HeadTeacherSignTextBox"]').off('input').on('input', function() {
+
+            $('[id$="HeadTeacherSignTextBox"]').off('input').on('input', function () {
                 var text = $(this).val() || 'Principal';
                 $('.Head').text(text);
             });
@@ -773,29 +500,29 @@
         function handleSignatureUpload(event, signatureType, targetSelector) {
             var file = event.target.files[0];
             if (!file) return;
-            
+
             // Validate file type
             if (!file.type.match('image.*')) {
                 alert('Please select an image file.');
                 return;
             }
-            
+
             // Validate file size (max 2MB)
             if (file.size > 2 * 1024 * 1024) {
                 alert('File size should be less than 2MB.');
                 return;
             }
-            
+
             var reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 var imageData = e.target.result;
-                
+
                 // Display the image immediately
                 $(targetSelector).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px;">');
-                
+
                 // Save to database
                 var base64Data = imageData.split(',')[1]; // Remove data:image/...;base64, prefix
-                
+
                 $.ajax({
                     type: 'POST',
                     url: 'Result_Card_English.aspx/SaveSignature',
@@ -805,22 +532,22 @@
                     }),
                     contentType: 'application/json; charset=utf-8',
                     dataType: 'json',
-                    success: function(response) {
+                    success: function (response) {
                         console.log('Signature saved successfully:', response);
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         console.error('Error saving signature:', error);
                         alert('Error saving signature. Please try again.');
                     }
                 });
             };
-            
+
             reader.readAsDataURL(file);
         }
 
         // Function to apply pagination styles
         function applyPaginationStyles() {
-            $('.pagination-inline .btn').each(function() {
+            $('.pagination-inline .btn').each(function () {
                 var $btn = $(this);
                 if ($btn.hasClass('aspNetDisabled') || $btn.prop('disabled')) {
                     $btn.removeClass('btn-outline-primary').addClass('btn-outline-secondary');
@@ -836,8 +563,8 @@
                 '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
                 '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
             };
-            
-            return text.replace(/[০-৯]/g, function(match) {
+
+            return text.replace(/[০-৯]/g, function (match) {
                 return bengaliToEnglish[match] || match;
             });
         }
@@ -845,7 +572,7 @@
         $(document).ready(function () {
             // Check if Font Awesome is loaded properly
             checkAndFixFontAwesome();
-            
+
             // DON'T convert numbers to Bengali automatically - keep English by default
             // convertNumbersToBengali(); // Commented out - numbers will stay in English by default
 
@@ -872,10 +599,10 @@
                 // Set initial button state to show "Bengali Numbers" since numbers are in English by default
                 $('#NumberToggleButton').html('Bengali Numbers').removeClass('btn-info').addClass('btn-warning');
                 isNumbersBengali = false; // Set to false since numbers are in English by default
-                
+
                 // Fix result card icons on page load if results exist
                 fixResultCardIcons();
-                
+
                 // Fix position columns alignment
                 fixPositionColumnsAlignment();
             }
@@ -909,10 +636,10 @@
                         // Set initial button state to show "Bengali Numbers" since numbers are in English by default
                         $('#NumberToggleButton').html('Bengali Numbers').removeClass('btn-info').addClass('btn-warning');
                         isNumbersBengali = false; // Numbers are in English by default
-                        
+
                         // Fix result card icons after loading
                         fixResultCardIcons();
-                        
+
                         // Fix position columns alignment after loading results
                         fixPositionColumnsAlignment();
                     }
@@ -938,10 +665,10 @@
                 if (value) {
                     // Convert Bengali to English for validation
                     var englishValue = convertBengaliToEnglishJS(value);
-                    var ids = englishValue.split(/[,]/).map(function(id) { return id.trim(); }).filter(function(id) { return id; });
+                    var ids = englishValue.split(/[,]/).map(function (id) { return id.trim(); }).filter(function (id) { return id; });
 
                     // More flexible validation for alphanumeric IDs
-                    var invalidIds = ids.filter(function(id) { return !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0; });
+                    var invalidIds = ids.filter(function (id) { return !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0; });
                     if (invalidIds.length > 0) {
                         $(this).addClass('is-invalid');
                         $(this).attr('title', 'Invalid IDs: ' + invalidIds.join(', '));
@@ -956,38 +683,38 @@
         // Function to fix position columns alignment based on actual sub-exam count
         function fixPositionColumnsAlignment() {
             console.log('Fixing position columns alignment...');
-            
-            $('.marks-table').each(function() {
+
+            $('.marks-table').each(function () {
                 var $table = $(this);
                 var $firstRow = $table.find('tr').first();
-                
+
                 // Count actual columns by examining the first data row (not header)
-                var $dataRow = $table.find('tr').filter(function() {
+                var $dataRow = $table.find('tr').filter(function () {
                     return $(this).find('td').length > 0;
                 }).first();
-                
+
                 if ($dataRow.length === 0) return;
-                
+
                 var totalCells = $dataRow.find('td').length;
                 console.log('Table has', totalCells, 'total columns');
-                
+
                 // Position columns are always the last 4 columns: PC, PS, HMC, HMS
                 var pcIndex = totalCells - 4;  // Position Class
                 var psIndex = totalCells - 3;  // Position Section  
                 var hmcIndex = totalCells - 2; // Highest Marks Class
                 var hmsIndex = totalCells - 1; // Highest Marks Section
-                
-                console.log('Position column indices:', {pc: pcIndex, ps: psIndex, hmc: hmcIndex, hms: hmsIndex});
-                
+
+                console.log('Position column indices:', { pc: pcIndex, ps: psIndex, hmc: hmcIndex, hms: hmsIndex });
+
                 // Apply classes to header cells
-                $table.find('tr').each(function() {
+                $table.find('tr').each(function () {
                     var $row = $(this);
                     var $cells = $row.find('th, td');
-                    
+
                     if ($cells.length >= totalCells) {
                         // Remove existing position classes
                         $cells.removeClass('position-col-pc position-col-ps position-col-hmc position-col-hms');
-                        
+
                         // Add correct position classes
                         if ($cells.eq(pcIndex).length > 0) $cells.eq(pcIndex).addClass('position-col-pc');
                         if ($cells.eq(psIndex).length > 0) $cells.eq(psIndex).addClass('position-col-ps');
@@ -995,25 +722,25 @@
                         if ($cells.eq(hmsIndex).length > 0) $cells.eq(hmsIndex).addClass('position-col-hms');
                     }
                 });
-                
+
                 // Apply dynamic styling for position columns
-                var columnWidth = Math.max(28, Math.min(40, Math.floor(100/totalCells)));
+                var columnWidth = Math.max(28, Math.min(40, Math.floor(100 / totalCells)));
                 var rightOffset = columnWidth;
-                
+
                 $table.find('.position-col-hms').css({
                     'right': '0px',
                     'min-width': columnWidth + 'px',
                     'background-color': '#f8f9fa',
                     'font-weight': 'bold'
                 });
-                
+
                 $table.find('.position-col-hmc').css({
                     'right': rightOffset + 'px',
                     'min-width': columnWidth + 'px',
                     'background-color': '#f8f9fa',
                     'font-weight': 'bold'
                 });
-                
+
                 rightOffset += columnWidth;
                 $table.find('.position-col-ps').css({
                     'right': rightOffset + 'px',
@@ -1021,7 +748,7 @@
                     'background-color': '#f8f9fa',
                     'font-weight': 'bold'
                 });
-                
+
                 rightOffset += columnWidth;
                 $table.find('.position-col-pc').css({
                     'right': rightOffset + 'px',
@@ -1029,7 +756,7 @@
                     'background-color': '#f8f9fa',
                     'font-weight': 'bold'
                 });
-                
+
                 console.log('Applied position column styling with width:', columnWidth);
             });
         }
@@ -1037,10 +764,10 @@
         function convertNumbersAfterPostback() {
             // Fix result card icons first
             fixResultCardIcons();
-            
+
             // Fix position columns alignment after postback
             fixPositionColumnsAlignment();
-            
+
             // Fix absent marks first
             $('.marks-table').each(function () {
                 var $table = $(this);

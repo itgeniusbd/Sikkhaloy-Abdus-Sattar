@@ -40,6 +40,7 @@
         overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        font-size: 12px !important; /* Standard base font size for print */
     }
     
     /* Remove problematic font forcing */
@@ -48,6 +49,7 @@
         -webkit-font-smoothing: auto !important;
         -moz-osx-font-smoothing: auto !important;
         text-rendering: auto !important;
+        font-size: inherit !important; /* Inherit font size from parent */
     }
     
     .result-card { 
@@ -68,6 +70,7 @@
         background: white !important; /* White background for each card */
         display: block !important; /* Block display */
         clear: both !important; /* Clear floats */
+        font-size: 12px !important; /* Standard font size for cards */
     }
     
     .result-card:last-child { 
@@ -93,7 +96,7 @@
     }
 
     .header h2 {
-        font-size: 22px !important;
+        font-size: 18px !important; /* Standardized school name size */
         font-family: Arial, sans-serif !important;
         font-weight: bold !important;
         color: #0072bc !important; /* School name blue */
@@ -102,7 +105,7 @@
     }
     
     .header p {
-        font-size: 13px !important;
+        font-size: 12px !important; /* Standardized header text size */
         font-family: Arial, sans-serif !important;
         font-weight: normal !important;
         color: #000 !important; /* Address and phone black */
@@ -110,10 +113,28 @@
         margin: 2px 0 !important; /* Reduced margin */
     }
     
+    .title {
+        font-size: 14px !important; /* Standardized title size */
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: darkgreen !important;
+        text-align: center !important;
+        margin: 3px 0 !important;
+    }
+
+    .Exam_name {
+        font-size: 14px !important; /* Standardized exam name size */
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: #0072bc !important;
+        text-align: center !important;
+        margin: 0px 0 !important;
+    }
+    
     /* Result card header icons for print */
     .header i.fa, .header .icon-fallback {
         font-family: Arial, sans-serif !important;
-        font-size: 12px !important;
+        font-size: 11px !important; /* Standardized icon size */
         margin-right: 3px !important;
         color: #0072bc !important;
         display: inline-block !important;
@@ -159,10 +180,18 @@
         height: 70px !important; /* Same as student photo */
     }
     
-    /* Summary table - smaller text for print */
+    /* Info table - standardized text */
+    .info-table td {
+        font-size: 12px !important; /* Standardized font size */
+        padding: 3px 5px !important; /* Reduced padding */
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+    }
+
+    /* Summary table - standardized text for print */
     .summary-header td {
         padding: 4px 3px !important; /* Reduced padding */
-        font-size: 12px !important; /* Smaller font for headers */
+        font-size: 14px !important; /* Standardized font size for screen */
         background-color: #f8f9fa !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -173,70 +202,95 @@
     
     .summary-values td {
         padding: 4px 3px !important; /* Reduced padding */
-        font-size: 12px !important; /* Smaller font for values */
+        font-size: 14px !important; /* Standardized font size for screen */
         font-family: Arial, sans-serif !important;
         font-weight: bold !important;
     }
 
-    /* Info table - smaller text */
-    .info-table td {
-        font-size: 17px !important; /* Smaller font */
-        padding: 3px 5px !important; /* Reduced padding */
-    }
-
-    /* Marks table - larger text for print */
+    /* Marks table - standardized text for print */
     .marks-table th, .marks-table td {
-        font-size: 16px !important; /* Larger font for marks table */
-        padding: 5px !important; /* More padding */
+        font-size: 14px !important; /* Standardized font size for all marks table content */
+        padding: 3px !important; /* Standardized padding */
         font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
     }
     
     .marks-table th {
-        font-size: 18px !important; /* Larger font for headers */
+        font-size: 14px !important; /* Same size for headers to maintain consistency */
         background: #d7ede1 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    /* Medium subjects table - adjust for print */
-    .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-        font-size: 15px !important; /* Larger than before for print */
-        padding: 3px !important;
-    }
-    
-    .marks-table.medium-subjects th {
-        font-size: 15px !important; /* Larger headers */
-    }
-
-    /* Small subjects table - adjust for print */
+    /* All table variations use same font size for consistency */
+    .marks-table.medium-subjects th, .marks-table.medium-subjects td,
     .marks-table.small-subjects th, .marks-table.small-subjects td {
-        font-size: 14px !important; /* Larger than before for print */
-        padding: 2px !important;
+        font-size: 14px !important; /* Same standardized font size */
+        padding: 3px !important; /* Same padding */
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
     }
     
+    .marks-table.medium-subjects th,
     .marks-table.small-subjects th {
-        font-size: 15px !important; /* Larger headers */
-    }
-    .grade-chart {
-        width: 20%;
-        margin-left: 6px;
-        margin-right: 6px;
-    }
-    /* Grade chart - smaller for print */
-    .grade-chart th, .grade-chart td {
-        font-size: 12px !important; /* Smaller font */
-        padding: 2px 3px !important; /* Reduced padding */
+        font-size: 14px !important; /* Same header size */
     }
     
-    .grade-chart th {
-        font-size: 11px !important; /* Slightly larger headers */
+    .marks-table.medium-subjects .sub-exam-marks {
+        font-size: 13px; /* Slightly smaller for sub-exam marks */
+        font-weight: normal;
+        white-space: nowrap;
+        color: #333;
+        display: inline-block;
     }
 
-    /* Footer - smaller text */
+    .marks-table.small-subjects .sub-exam-marks {
+        font-size: 13px; /* Slightly smaller for sub-exam marks */
+        font-weight: normal;
+        white-space: nowrap;
+        color: #333;
+        display: inline-block;
+    }
+
+    /* Footer - standardized text */
     .footer {
-        font-size: 13px !important; /* Smaller font */
+        font-size: 12px !important; /* Standardized footer size */
         margin-top: 20px !important; /* Reduced margin */
         padding: 0 30px !important; /* Reduced padding */
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+    }
+
+    /* Comments column specific styling for print */
+    .marks-table .comment-header {
+        background: #e8f4fd !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        text-align: center !important;
+        font-size: 14px !important; /* Standardized comment header size */
+        padding: 3px !important; /* Standardized padding */
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+    }
+
+    .marks-table .comment-cell {
+        text-align: center !important;
+        font-size: 14px !important; /* Standardized comment cell size */
+        padding: 3px !important; /* Standardized padding */
+        color: #333 !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: normal !important;
+    }
+
+    /* All comment variations use same standardized size */
+    .marks-table.medium-subjects .comment-header,
+    .marks-table.small-subjects .comment-header,
+    .marks-table.medium-subjects .comment-cell,
+    .marks-table.small-subjects .comment-cell {
+        font-size: 14px !important; /* Same standardized size */
+        padding: 3px !important; /* Same padding */
+        font-family: Arial, sans-serif !important;
     }
 }
 
@@ -244,7 +298,7 @@ body {
     font-family: 'Kalpurush', Arial, sans-serif;
     background: #fff;
     margin: 0;
-    padding: 20px; /* Reduced padding around entire page */
+    font-size: 14px; /* Base font size for screen view */
 }
 
 h3 {
@@ -272,6 +326,7 @@ h3 {
     background: white; /* Ensure white background */
     box-sizing: border-box; /* Include border in width calculation */
     display: block; /* Ensure block-level display */
+    font-size: 14px; /* Base font size for cards */
 }
 
 .result-card:last-child {
@@ -302,6 +357,7 @@ h3 {
     font-weight: 900 !important;
     margin-right: 5px;
     color: #0072bc;
+    font-size: 14px; /* Standardized icon size for screen */
 }
 
 /* Specific icon fixes for result card header */
@@ -320,18 +376,22 @@ h3 {
     font-style: normal !important;
     display: inline-block !important;
     margin-right: 5px;
+    font-size: 14px; /* Standardized fallback icon size */
 }
 
 .header h2 {
     color: #0072bc !important; /* School name blue */
     line-height: 1.2 !important; /* Reduced line height */
     margin: 5px 0 !important; /* Reduced margin */
+    font-size: 22px; /* Standardized school name size for screen */
+    font-weight: bold;
 }
 
 .header p {
     color: #000 !important; /* Address and phone black */
     line-height: 1.1 !important; /* Reduced line height */
     margin: 2px 0 !important; /* Reduced margin */
+    font-size: 14px; /* Standardized header text size for screen */
 }
 
 .header img {
@@ -366,15 +426,15 @@ h3 {
     font-weight: bold;
     margin: 3px 0;
     color: darkgreen;
-    font-size: 18px;
+    font-size: 16px; /* Standardized title size for screen */
 }
 
 .Exam_name {            
-     text-align: center;
+    text-align: center;
     font-weight: bold;
     margin: 0px 0;
     color: #0072bc;
-    font-size: 18px;
+    font-size: 16px; /* Standardized exam name size for screen */
 }
 
 .top-section {
@@ -397,7 +457,7 @@ h3 {
 .info-table td {
     border: 1px solid #0072bc;
     padding: 5px 8px;
-    font-size: 17px;
+    font-size: 14px; /* Standardized info table size for screen */
     font-weight: bold;
 }
 
@@ -417,7 +477,7 @@ h3 {
 
 .summary-header td {
     padding: 6px 6px !important;
-    font-size: 16px !important;
+    font-size: 14px !important; /* Standardized summary header size for screen */
     background-color: #f8f9fa !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -432,7 +492,7 @@ h3 {
 
 .summary-values td {
     padding: 6px !important;
-    font-size: 16px !important;
+    font-size: 14px !important; /* Standardized summary values size for screen */
     font-family: Arial, sans-serif !important;
     font-weight: bold !important;
 }
@@ -443,27 +503,27 @@ h3 {
     margin-right: 6px;
 }
 
-    .grade-chart table {
-        border-collapse: collapse;
-        width: 100%;
-        font-size: 11px;
-        margin-left: 6px;
-        margin-right: 6px;
-    }
-
-.grade-chart th, .grade-chart td {
-    border: 1px solid #0072bc;
-    padding: 2px 3px;
-    text-align: center;
-    font-weight: bold;
-    font-family: 'Kalpurush', Arial, sans-serif !important;
-    font-size: 12px;
+.grade-chart table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px; /* Standardized grade chart table size */
+    margin-left: 6px;
+    margin-right: 6px;
 }
+
+    .grade-chart th, .grade-chart td {
+        border: 1px solid #0072bc;
+        padding: 1.7px 2px;
+        text-align: center;
+        font-weight: bold;
+        font-family: 'Kalpurush', Arial, sans-serif !important;
+        font-size: 11.2px;
+    }
 
 .grade-chart th {
     background: #f0f0f0;
     font-weight: bold;
-    font-size: 11px;
+    font-size: 12px; /* Same size for grade chart headers */
 }
 
 .marks-table {
@@ -476,14 +536,14 @@ h3 {
     border: 1px solid #0072bc;
     text-align: center;
     padding: 4px;
-    font-size: 16px;
+    font-size: 14px; /* Standardized marks table size for screen */
     font-weight: bold;
     font-family: 'Kalpurush', Arial, sans-serif !important;
 }
 
 .marks-table th {
     background: #d7ede1;
-    font-size: 18px;
+    font-size: 14px; /* Same size for marks table headers */
 }
 
 .marks-table th[colspan="2"] {
@@ -494,7 +554,15 @@ h3 {
 
 /* Sub-exam marks styling */
 .marks-table .sub-exam-marks {
-    font-size: 14px;
+    font-size: 13px; /* Slightly smaller for sub-exam marks */
+    font-weight: normal;
+    white-space: nowrap;
+    color: #333;
+    display: inline-block;
+}
+
+.marks-table.small-subjects .sub-exam-marks {
+    font-size: 13px; /* Slightly smaller for sub-exam marks */
     font-weight: normal;
     white-space: nowrap;
     color: #333;
@@ -508,31 +576,31 @@ h3 {
     color: #0072bc;
 }
 
-/* Dynamic font sizes based on subject count - same as print view */
+/* All table variations use standardized sizes for consistency */
 .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-    font-size: 14px !important; /* Same as print view */
-    padding: 3px !important; /* Same as print view */
+    font-size: 14px !important; /* Same standardized size */
+    padding: 4px !important; /* Same padding */
 }
 
 .marks-table.medium-subjects th {
-    font-size: 14px !important; /* Same as print view */
+    font-size: 14px !important; /* Same header size */
 }
 
 .marks-table.medium-subjects .sub-exam-marks {
-    font-size: 13px !important;
+    font-size: 13px; /* Slightly smaller for sub-exam marks */
 }
 
 .marks-table.small-subjects th, .marks-table.small-subjects td {
-    font-size: 13px !important; /* Same as print view */
-    padding: 2px !important; /* Same as print view */
+    font-size: 14px !important; /* Same standardized size */
+    padding: 4px !important; /* Same padding */
 }
 
 .marks-table.small-subjects th {
-    font-size: 13px !important; /* Same as print view */
+    font-size: 14px !important; /* Same header size */
 }
 
 .marks-table.small-subjects .sub-exam-marks {
-    font-size: 12px !important;
+    font-size: 13px; /* Slightly smaller for sub-exam marks */
 }
 
 .vertical-text {
@@ -549,7 +617,7 @@ h3 {
     justify-content: space-between;
     align-items: flex-end;
     margin-top: 30px;
-    font-size: 15px;
+    font-size: 14px; /* Standardized footer size for screen */
     font-weight: bold;
     font-family: 'Kalpurush', Arial, sans-serif !important;
     padding: 0 50px;
@@ -577,11 +645,12 @@ h3 {
     margin-top: 5px;
     min-width: 120px;
     font-family: Arial, sans-serif;
+    font-size: 14px; /* Standardized signature text size */
 }
 
 .summary td {
     padding: 4px;
-    font-size: 16px;
+    font-size: 14px; /* Standardized summary cell size */
     font-weight: bold;
     text-align: center;
     border: 1px solid #0072bc;
@@ -816,7 +885,7 @@ input[type="submit"].btn-outline-primary:active {
     font-weight: bold !important;
     text-align: center !important;
     vertical-align: middle !important;
-    font-size: 14px !important;
+    font-size: 14px !important; /* Standardized comment header size for screen */
     padding: 6px 4px !important;
     border: 1px solid #0072bc !important;
 }
@@ -825,31 +894,23 @@ input[type="submit"].btn-outline-primary:active {
     text-align: center !important;
     vertical-align: middle !important;
     padding: 8px 4px !important;
-    font-size: 12px !important;
+    font-size: 14px !important; /* Standardized comment cell size for screen */
     font-weight: normal !important;
     color: #333 !important;
     border: 1px solid #0072bc !important;
 }
 
-/* Ensure comment column maintains center alignment in all table sizes */
-.marks-table.medium-subjects .comment-header {
-    font-size: 13px !important;
-    padding: 5px 3px !important;
-}
-
-.marks-table.medium-subjects .comment-cell {
-    font-size: 11px !important;
-    padding: 6px 3px !important;
-}
-
+/* Ensure comment column maintains consistency in all table sizes */
+.marks-table.medium-subjects .comment-header,
 .marks-table.small-subjects .comment-header {
-    font-size: 12px !important;
-    padding: 4px 2px !important;
+    font-size: 14px !important; /* Same standardized size */
+    padding: 6px 4px !important; /* Same padding */
 }
 
+.marks-table.medium-subjects .comment-cell,
 .marks-table.small-subjects .comment-cell {
-    font-size: 10px !important;
-    padding: 5px 2px !important;
+    font-size: 14px !important; /* Same standardized size */
+    padding: 8px 4px !important; /* Same padding */
 }
 
 /* Print view comment styling */
