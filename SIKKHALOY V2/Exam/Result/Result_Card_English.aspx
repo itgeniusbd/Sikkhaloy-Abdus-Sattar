@@ -1,4 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Result_Card_English.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Result_Card_English" %>
+﻿﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Result_Card_English.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Result_Card_English" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
 
     <!-- Use Google Fonts for better reliability -->
