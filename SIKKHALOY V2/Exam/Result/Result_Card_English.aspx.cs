@@ -36,6 +36,13 @@ namespace EDUCATION.COM.Exam.Result
             set { ViewState["AllResultsData"] = value; }
         }
 
+        // Whether the current class/result set has sections
+        private bool HasSections
+        {
+            get { return ViewState["HasSections"] != null && (bool)ViewState["HasSections"]; }
+            set { ViewState["HasSections"] = value; }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             try
@@ -50,6 +57,7 @@ namespace EDUCATION.COM.Exam.Result
                     SectionDropDownList.Visible = false;
                     ShiftDropDownList.Visible = false;
                     CurrentPageIndex = 0;
+                    HasSections = false; // default
                 }
             }
             catch (ThreadAbortException)
@@ -105,6 +113,9 @@ namespace EDUCATION.COM.Exam.Result
                 CurrentPageIndex = 0;
                 AllResultsData = null;
                 TotalRecords = 0;
+
+                // reset section flag
+                HasSections = false;
 
                 // Hide print button when class changes
                 SafeRegisterStartupScript("hidePrintOnClassChange", "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';");
@@ -382,6 +393,9 @@ namespace EDUCATION.COM.Exam.Result
 
                     if (dt.Rows.Count > 0)
                     {
+                        // Determine if this class has any sections in the loaded data
+                        HasSections = dt.AsEnumerable().Any(r => !string.IsNullOrWhiteSpace(r.Field<string>("SectionName")));
+
                         // Store all data for pagination
                         AllResultsData = dt;
                         TotalRecords = dt.Rows.Count;
@@ -462,7 +476,8 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        private void BindResultsToRepeater(DataTable dt)
+        private void BindResultsToRepeater(DataTable dt
+        )
         {
             if (dt == null || dt.Rows.Count == 0)
             {
@@ -745,7 +760,7 @@ namespace EDUCATION.COM.Exam.Result
         {
             try
             {
-                // Get the same grading data that we use for the chart (which now comes from TableAdapter)
+                // Get the grading data that we use for the chart (which now comes from TableAdapter)
                 DataTable gradingData = GetGradingSystemData();
 
                 foreach (DataRow row in gradingData.Rows)
@@ -883,403 +898,285 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Method to check if the current exam has sub-exams
-        private bool HasSubExams(int examID)
+        // NEW: Helper to generate dynamic info rows for the Student Info table
+        // Renders Class (always) and optional Section/Group/Shift in compact rows (max 3 pairs per row)
+        public string GetDynamicInfoRow(object dataItem)
         {
-            SqlConnection con = null;
             try
             {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
+                var row = dataItem as DataRowView;
+                if (row == null) return string.Empty;
 
-                // Check if there are any sub-exam marks for this school, education year, class, and exam
-                string query = @"
-                    SELECT COUNT(DISTINCT eom.SubExamID) 
-                    FROM Exam_Obtain_Marks eom
-                    INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
-                    INNER JOIN StudentsClass sc ON eom.StudentResultID IN (
-                        SELECT ers.StudentResultID 
-                        FROM Exam_Result_of_Student ers 
-                        INNER JOIN StudentsClass sc2 ON ers.StudentClassID = sc2.StudentClassID
-                        WHERE ers.ExamID = @ExamID AND sc2.ClassID = @ClassID
-                    )
-                    WHERE eom.SchoolID = @SchoolID 
-                    AND eom.EducationYearID = @EducationYearID";
+                string className = row.Row.Table.Columns.Contains("ClassName") ? row["ClassName"]?.ToString() ?? string.Empty : string.Empty;
+                string sectionName = row.Row.Table.Columns.Contains("SectionName") ? row["SectionName"]?.ToString() ?? string.Empty : string.Empty;
+                string groupName = row.Row.Table.Columns.Contains("GroupName") ? row["GroupName"]?.ToString() ?? string.Empty : string.Empty;
+                string shiftName = row.Row.Table.Columns.Contains("ShiftName") ? row["ShiftName"]?.ToString() ?? string.Empty : string.Empty;
 
-                using (SqlCommand cmd = new SqlCommand(query, con))
+                // Build label-value pairs
+                var pairs = new List<Tuple<string, string>>();
+                if (!string.IsNullOrWhiteSpace(className))
+                    pairs.Add(Tuple.Create("Class:", className));
+                if (!string.IsNullOrWhiteSpace(sectionName))
+                    pairs.Add(Tuple.Create("Section:", sectionName));
+                if (!string.IsNullOrWhiteSpace(groupName))
+                    pairs.Add(Tuple.Create("Group:", groupName));
+                if (!string.IsNullOrWhiteSpace(shiftName))
+                    pairs.Add(Tuple.Create("Shift:", shiftName));
+
+                // If nothing to show, return empty string
+                if (pairs.Count == 0)
+                    return string.Empty;
+
+                var sb = new StringBuilder();
+                int i = 0;
+                while (i < pairs.Count)
                 {
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
-                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-
-                    int count = Convert.ToInt32(cmd.ExecuteScalar());
-
-                    System.Diagnostics.Debug.WriteLine($"HasSubExams: Found {count} sub-exam types for ClassID: {ClassDropDownList.SelectedValue}, ExamID: {examID}");
-
-                    return count > 0;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in HasSubExams: {ex.Message}");
-                return false;
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
-        }
-
-        // New method to get sub-exam marks for a subject using Exam_Obtain_Marks
-        private DataTable GetSubExamMarks(string studentResultID, int subjectID, int examID)
-        {
-            SqlConnection con = null;
-            try
-            {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
-
-                // Use the exact same query as ExamPosition_WithSub.aspx without ExamID filter first
-                string query = @"
-                    SELECT 
-                        Exam_SubExam_Name.SubExamName, 
-                        ISNULL(CAST(Exam_Obtain_Marks.MarksObtained AS char(10)), 'A') as MarksObtained 
-                    FROM Exam_Obtain_Marks 
-                    INNER JOIN Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID 
-                    WHERE (Exam_Obtain_Marks.SchoolID = @SchoolID) 
-                    AND (Exam_Obtain_Marks.EducationYearID = @EducationYearID) 
-                    AND (Exam_Obtain_Marks.StudentResultID = @StudentResultID) 
-                    AND (Exam_Obtain_Marks.SubjectID = @SubjectID)
-                    ORDER BY Exam_SubExam_Name.Sub_ExamSN";
-
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-
-                    DataTable dt = new DataTable();
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+                    sb.Append("<tr>");
+                    int cellsThisRow = 0;
+                    for (int j = 0; j < 3 && i < pairs.Count; j++, i++)
                     {
-                        adapter.SelectCommand.CommandTimeout = 15;
-                        adapter.Fill(dt);
+                        string label = pairs[i].Item1;
+                        string value = HttpUtility.HtmlEncode(pairs[i].Item2);
+                        sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label, value);
+                        cellsThisRow += 2;
                     }
+                    sb.Append("</tr>");
+                }
 
-                    return dt;
-                }
+                return sb.ToString();
             }
-            catch (ThreadAbortException)
+            catch
             {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarks: {ex.Message}");
-                return new DataTable();
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
+                return string.Empty;
             }
         }
 
-        // Method to get the actual number of sub-exams for a specific class and exam
-        private int GetSubExamCount(int examID)
+        // Generate the subject marks table HTML (used by ASPX markup)
+        public string GenerateSubjectMarksTable(string studentResultID, string studentGrade, decimal studentPoint)
         {
-            SqlConnection con = null;
             try
             {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
+                DataTable subjects = GetSubjectResults(studentResultID);
+                string resultComment = GetResultStatus(studentGrade, studentPoint);
 
-                // Count only sub-exams that have actual data for this class and exam
-                string query = @"
-                    SELECT COUNT(DISTINCT esn.SubExamID) 
-                    FROM Exam_SubExam_Name esn
-                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
-                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
-                    WHERE esn.SchoolID = @SchoolID
-                    AND esn.EducationYearID = @EducationYearID
-                    AND ers.ExamID = @ExamID
-                    AND sc.ClassID = @ClassID
-                    AND eom.SchoolID = @SchoolID
-                    AND eom.EducationYearID = @EducationYearID";
+                if (subjects.Rows.Count == 0)
+                    return "<p>No subject data found</p>";
 
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
-                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-
-                    int count = Convert.ToInt32(cmd.ExecuteScalar());
-
-                    System.Diagnostics.Debug.WriteLine($"GetSubExamCount: Found {count} active sub-exams for ClassID: {ClassDropDownList.SelectedValue}, ExamID: {examID}");
-
-                    return count;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamCount: {ex.Message}");
-                return 0;
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
-        }
-
-        // Method to get sub-exam header names - only for sub-exams with actual data for this class
-        private string GetSubExamHeaderNames(string studentResultID)
-        {
-            SqlConnection con = null;
-            try
-            {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
+                string tableSizeClass = GetTableCssClass(subjects.Rows.Count);
 
                 int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                bool hasSubExams = HasSubExams(examID);
+                string subExamHeader = "";
+                string subExamSecondHeader = "";
+                int subExamCount = 0;
 
-                // Get only sub-exam names that have actual data for this class and exam
-                string query = @"
-                    SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN
-                    FROM Exam_SubExam_Name esn
-                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
-                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
-                    WHERE esn.SchoolID = @SchoolID
-                    AND esn.EducationYearID = @EducationYearID
-                    AND ers.ExamID = @ExamID
-                    AND sc.ClassID = @ClassID
-                    AND eom.SchoolID = @SchoolID
-                    AND eom.EducationYearID = @EducationYearID
-                    ORDER BY esn.Sub_ExamSN";
-
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
-                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-
-                    DataTable dt = new DataTable();
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
-                    {
-                        adapter.Fill(dt);
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"GetSubExamHeaderNames: Found {dt.Rows.Count} active sub-exams for ClassDropDownList.SelectedValue: {ClassDropDownList.SelectedValue}");
-
-                    string headerHtml = "";
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        headerHtml += $"<th>{row["SubExamName"]}</th>";
-                        System.Diagnostics.Debug.WriteLine($"  Adding header: {row["SubExamName"]}");
-                    }
-
-                    return headerHtml;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamHeaderNames: {ex.Message}");
-                return "";
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
-        }
-
-        // Helper class for sub-exam header structure
-        public class SubExamHeaderStructure
-        {
-            public string FirstRowHeader { get; set; } = "";
-            public string SecondRowHeader { get; set; } = "";
-        }
-
-        // Method to get sub-exam headers with proper structure (like the image)
-        private SubExamHeaderStructure GetSubExamHeadersWithStructure(string studentResultID)
-        {
-            SqlConnection con = null;
-            try
-            {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
-
-                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                int subExamCount = GetSubExamCount(examID);
-
-                // Dynamic styling based on sub-exam count
+                // Consistent font sizing
                 string fontSize = "11px";
                 string cellPadding = "3px";
 
-                if (subExamCount >= 4)
+                string tableContainerStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border-collapse: collapse; width: 100%; table-layout: auto; overflow-x: auto;";
+                string standardCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 30px; max-width: 60px; overflow: hidden; text-overflow: ellipsis;";
+
+                if (hasSubExams)
                 {
-                    fontSize = "9px";
-                    cellPadding = "2px";
-                }
-                else if (subExamCount >= 3)
-                {
-                    fontSize = "10px";
-                    cellPadding = "2px";
-                }
-
-                string standardCellStyle = $"font-size: {fontSize}; font-family: Arial, sans-serif; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 25px; max-width: 35px; overflow: hidden; text-overflow: ellipsis;";
-
-                // Get sub-exam names that have actual data for this class and exam
-                string query = @"
-                    SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN, esn.SubExamID
-                    FROM Exam_SubExam_Name esn
-                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
-                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
-                    WHERE esn.SchoolID = @SchoolID
-                    AND esn.EducationYearID = @EducationYearID
-                    AND ers.ExamID = @ExamID
-                    AND sc.ClassID = @ClassID
-                    AND eom.SchoolID = @SchoolID
-                    AND eom.EducationYearID = @EducationYearID
-                    ORDER BY esn.Sub_ExamSN";
-
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
-                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-
-                    DataTable dt = new DataTable();
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+                    subExamCount = GetSubExamCount(examID);
+                    if (subExamCount > 0)
                     {
-                        adapter.Fill(dt);
+                        var subExamHeaders = GetSubExamHeadersWithStructure(studentResultID);
+                        subExamHeader = subExamHeaders.FirstRowHeader;
+                        subExamSecondHeader = subExamHeaders.SecondRowHeader;
                     }
-
-                    var result = new SubExamHeaderStructure();
-
-                    // First row: Sub-exam names with colspan=3 for each (FM, PM, OM)
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        string subExamName = row["SubExamName"].ToString();
-                        // Truncate long sub-exam names if needed
-                        if (subExamName.Length > 8 && subExamCount >= 3)
-                        {
-                            subExamName = subExamName.Substring(0, 6) + "..";
-                        }
-                        result.FirstRowHeader += $@"<th colspan=""3"" style=""{standardCellStyle}; min-width: 75px; max-width: 100px;"" title=""{row["SubExamName"]}"">{subExamName}</th>";
-                    }
-
-                    // Second row: FM, PM, OM for each sub-exam
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        result.SecondRowHeader += $@"<th style=""{standardCellStyle}"">FM</th><th style=""{standardCellStyle}"">PM</th><th style=""{standardCellStyle}"">OM</th>";
-                    }
-
-                    return result;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamHeadersWithStructure: {ex.Message}");
-                return new SubExamHeaderStructure();
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
-        }
-
-        // Method to get sub-exam marks with full marks structure (FM, PM, OM for each sub-exam)
-        private string GetSubExamMarksWithFullMarks(string studentResultID, int subjectID, string originalObtainedMark)
-        {
-            try
-            {
-                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                int subExamCount = GetSubExamCount(examID);
-
-                // Dynamic styling based on sub-exam count
-                string fontSize = "11px";
-                string cellPadding = "3px";
-
-                if (subExamCount >= 4)
-                {
-                    fontSize = "9px";
-                    cellPadding = "2px";
-                }
-                else if (subExamCount >= 3)
-                {
-                    fontSize = "10px";
-                    cellPadding = "2px";
                 }
 
-                string standardCellStyle = $"font-size: {fontSize}; font-family: Arial, sans-serif; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 25px; max-width: 35px; overflow: hidden; text-overflow: ellipsis;";
-
-                // Get available sub-exam IDs
-                List<int> availableSubExamIDs = GetAvailableSubExamIDs(examID);
-
-                // Check if this subject has any sub-exam data
-                if (SubjectHasAnySubExamData(studentResultID, subjectID, availableSubExamIDs))
+                // Calculate total columns for responsive layout hints
+                int totalColumns = 1; // SUBJECTS
+                if (hasSubExams && subExamCount > 0)
                 {
-                    return GetSubExamMarksForSpecificSubject(studentResultID, subjectID, availableSubExamIDs, standardCellStyle);
+                    totalColumns += (subExamCount * 3); // FM, PM, OM for each
                 }
                 else
                 {
-                    return GenerateDashCellsForSubExams(subExamCount, standardCellStyle);
+                    totalColumns += 3; // FM, PM, OM
                 }
+                int positionColumns = HasSections ? 4 : 2; // PC,(PS),HMC,(HMS)
+                totalColumns += (3 + positionColumns); // MARKS, GRADE, GPA + positions
+                totalColumns += 5; // buffer
+
+                string html = $@"<div style=""overflow-x: auto; width: 100;""><table class=""marks-table {tableSizeClass} sub-exam-{subExamCount}"" style=""{tableContainerStyle}"" data-total-columns=""{totalColumns}"">";
+
+                if (hasSubExams && subExamCount > 0 && !string.IsNullOrEmpty(subExamHeader))
+                {
+                    html += $@"<tr style=""background-color: #ffb3ba;""> <th rowspan=""2"" style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold;"">SUBJECTS</th> {subExamHeader}<th rowspan=""2"" style=""{standardCellStyle}; min-width: 60px; font-weight: bold;"">MARKS</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; font-weight: bold;"">GRADE</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">GPA</th><th rowspan=""2"" class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
+                    if (HasSections)
+                    {
+                        html += $@"<th rowspan=""2"" class=""ps-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>";
+                    }
+                    html += $@"<th rowspan=""2"" class=""hmc-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMC</th>";
+                    if (HasSections)
+                    {
+                        html += $@"<th rowspan=""2"" class=""hms-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMS</th>";
+                    }
+                    html += "</tr>";
+                    html += $@"<tr style=""background-color: #ffb3ba;"">{subExamSecondHeader}</tr>";
+                }
+                else
+                {
+                    html += $@"<tr style=""background-color: #ffb3ba;""> <th style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold;"">SUBJECTS</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">FM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">PM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">OM</th><th style=""{standardCellStyle}; min-width: 60px; font-weight: bold;"">MARKS</th><th style=""{standardCellStyle}; min-width: 40px; font-weight: bold;"">GRADE</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">GPA</th><th class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
+                    if (HasSections)
+                    {
+                        html += $@"<th class=""ps-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>";
+                    }
+                    html += $@"<th class=""hmc-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMC</th>";
+                    if (HasSections)
+                    {
+                        html += $@"<th class=""hms-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMS</th>";
+                    }
+                    html += "</tr>";
+                }
+
+                // Build body rows
+                foreach (DataRow srow in subjects.Rows)
+                {
+                    string subjectName = GetSafeColumnValue(srow, "SubjectName");
+                    string obtainedMark = GetSafeColumnValue(srow, "ObtainedMark_ofSubject");
+                    string fullMark = GetSafeColumnValue(srow, "TotalMark_ofSubject");
+                    string subjectGrades = GetSafeColumnValue(srow, "SubjectGrades");
+                    decimal subjectPoint = GetSafeDecimalValue(srow, "SubjectPoint");
+                    string passStatus = GetSafeColumnValue(srow, "PassStatus_Subject");
+                    int subjectID = 0; int.TryParse(GetSafeColumnValue(srow, "SubjectID"), out subjectID);
+
+                    var positionData = GetSubjectPositionDataForTable(studentResultID, subjectID);
+
+                    if (string.IsNullOrWhiteSpace(passStatus)) passStatus = "Pass";
+                    string rowClass = string.Equals(passStatus, "Fail", StringComparison.OrdinalIgnoreCase) ? "failed-row" : "";
+
+                    bool isSubjectAbsent = (
+                        string.Equals(obtainedMark, "A", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(subjectGrades, "F", StringComparison.OrdinalIgnoreCase)
+                    ) || (obtainedMark == "0" && string.Equals(subjectGrades, "F", StringComparison.OrdinalIgnoreCase) && subjectPoint == 0.0m);
+
+                    string displayMark = isSubjectAbsent ? "Abs" : obtainedMark;
+                    string marksDisplay = $"{displayMark}/{fullMark}";
+                    string marksColumnStyle = isSubjectAbsent ?
+                        $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
+                        standardCellStyle;
+
+                    string subjectCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: left; padding-left: 4px; min-width: 80px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+
+                    if (hasSubExams && subExamCount > 0)
+                    {
+                        // Ensure we have ordered SubExamIDs in ViewState (populated by header generator)
+                        // If not populated yet (edge case), populate now
+                        if (ViewState["OrderedSubExamIDs"] == null)
+                        {
+                            var _ = GetSubExamHeadersWithStructure(studentResultID);
+                        }
+
+                        // Build FM/PM/OM cells per sub-exam in header order
+                        string subExamData = GetSubExamCellsHtml(studentResultID, subjectID, examID, standardCellStyle);
+
+                        html += $@"<tr class=""{rowClass}"">
+    <td style=""{subjectCellStyle}"" title=""{subjectName}"">{subjectName}</td>
+    {subExamData}
+    <td style=""{marksColumnStyle}"">{marksDisplay}</td>
+    <td class=""grade-cell"" style=""{standardCellStyle}"">{subjectGrades}</td>
+    <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>
+    <td class=""pc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>";
+
+                        if (HasSections)
+                        {
+                            html += $@"<td class=""ps-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionSection}"">{positionData.PositionSection}</td>";
+                        }
+
+                        html += $@"<td class=""hmc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksClass}"">{positionData.HighestMarksClass}</td>";
+
+                        if (HasSections)
+                        {
+                            html += $@"<td class=""hms-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksSection}"">{positionData.HighestMarksSection}</td>";
+                        }
+
+                        html += "</tr>";
+                    }
+                    else
+                    {
+                        // No sub-exams
+                        var passMarkData = GetSubjectPassMark(subjectID, examID);
+                        string omDisplayMark = isSubjectAbsent ? "Abs" : obtainedMark;
+                        string omCellStyle = isSubjectAbsent ?
+                            $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
+                            standardCellStyle;
+
+                        html += $@"<tr class=""{rowClass}"">
+    <td style=""{subjectCellStyle}"" title=""{subjectName}"">{subjectName}</td>
+    <td style=""{standardCellStyle}"">{fullMark}</td>
+    <td style=""{standardCellStyle}"">{passMarkData}</td>
+    <td style=""{omCellStyle}"">{omDisplayMark}</td>
+    <td style=""{marksColumnStyle}"">{marksDisplay}</td>
+    <td class=""grade-cell"" style=""{standardCellStyle}"">{subjectGrades}</td>
+    <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>
+    <td class=""pc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>";
+
+                        if (HasSections)
+                        {
+                            html += $@"<td class=""ps-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionSection}"">{positionData.PositionSection}</td>";
+                        }
+
+                        html += $@"<td class=""hmc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksClass}"">{positionData.HighestMarksClass}</td>";
+
+                        if (HasSections)
+                        {
+                            html += $@"<td class=""hms-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksSection}"">{positionData.HighestMarksSection}</td>";
+                        }
+
+                        html += "</tr>";
+                    }
+                }
+
+                html += "</table></div>";
+                return html;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksWithFullMarks: {ex.Message}");
-                return "";
+                return "<p>Error loading subject table: " + ex.Message + "</p>";
             }
+        }
+
+        // Return sub-exam cells for a specific subject in header order
+        private string GetSubExamCellsHtml(string studentResultID, int subjectID, int examID, string standardCellStyle)
+        {
+            // Build list of available SubExamIDs for this exam/class
+            List<int> availableSubExamIDs = GetAvailableSubExamIDs(examID);
+
+            // Ensure ordered header list available
+            var ordered = ViewState["OrderedSubExamIDs"] as List<int>;
+            var loopIds = (ordered != null && ordered.Count > 0)
+                ? ordered.Where(id => availableSubExamIDs.Contains(id)).ToList()
+                : availableSubExamIDs;
+
+            // If none available, still generate the correct number of dash cells
+            if (loopIds.Count == 0)
+            {
+                int count = GetSubExamCount(examID);
+                return GenerateDashCellsForSubExams(count, standardCellStyle);
+            }
+
+            return GetSubExamMarksForSpecificSubject(studentResultID, subjectID, loopIds, standardCellStyle);
         }
 
         private string GenerateDashCellsForSubExams(int subExamCount, string standardCellStyle)
         {
             string dashCells = "";
-
-            // Generate dash cells for each sub-exam (3 columns per sub-exam: FM, PM, OM)
             for (int i = 0; i < subExamCount; i++)
             {
                 dashCells += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
             }
-
             return dashCells;
         }
 
-        // Method to get all available sub-exam IDs for this exam and class
         private List<int> GetAvailableSubExamIDs(int examID)
         {
             SqlConnection con = null;
             List<int> subExamIDs = new List<int>();
-
             try
             {
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
@@ -1299,21 +1196,21 @@ namespace EDUCATION.COM.Exam.Result
                     AND eom.EducationYearID = @EducationYearID
                     ORDER BY esn.SubExamID";
 
-            using (SqlCommand cmd = new SqlCommand(query, con))
-            {
-                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                cmd.Parameters.AddWithValue("@ExamID", examID);
-                cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                using (SqlCommand cmd = new SqlCommand(query, con))
                 {
-                    while (reader.Read())
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        subExamIDs.Add(Convert.ToInt32(reader["SubExamID"]));
+                        while (reader.Read())
+                        {
+                            subExamIDs.Add(Convert.ToInt32(reader["SubExamID"]));
+                        }
                     }
                 }
-            }
             }
             catch (Exception ex)
             {
@@ -1331,353 +1228,235 @@ namespace EDUCATION.COM.Exam.Result
             return subExamIDs;
         }
 
-        // Method to check if a subject has ANY sub-exam data for the available sub-exams
-        private bool SubjectHasAnySubExamData(string studentResultID, int subjectID, List<int> availableSubExamIDs)
+        // Helper method to safely escape strings for JavaScript output
+        private string EscapeForJavaScript(string input)
         {
-            if (availableSubExamIDs.Count == 0) return false;
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
 
-            SqlConnection con = null;
+            return input
+                .Replace("\\", "\\\\")  // Escape backslashes first
+                .Replace("'", "\\'")    // Escape single quotes
+                .Replace("\"", "\\\"")  // Escape double quotes
+                .Replace("\n", "\\n")   // Escape newlines
+                .Replace("\r", "\\r")   // Escape carriage returns
+                .Replace("\t", "\\t")   // Escape tabs
+                .Replace("\b", "\\b")   // Escape backspace
+                .Replace("\f", "\\f")   // Escape form feed
+                .Replace("\v", "\\v")   // Escape vertical tab
+                .Replace("\0", "\\0");  // Escape null character
+        }
+
+        // Enhanced method to safely register JavaScript with proper error handling
+        private void SafeRegisterStartupScript(string key, string script)
+        {
             try
             {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
+                if (string.IsNullOrWhiteSpace(script))
+                    return;
 
-                string subExamIDsInClause = string.Join(",", availableSubExamIDs);
-                string query = $@"
-                    SELECT COUNT(*) 
-                    FROM Exam_Obtain_Marks eom
-                    WHERE eom.SchoolID = @SchoolID
-                    AND eom.EducationYearID = @EducationYearID
-                    AND eom.StudentResultID = @StudentResultID
-                    AND eom.SubjectID = @SubjectID
-                    AND eom.SubExamID IN ({subExamIDsInClause})";
-
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-
-                    int count = Convert.ToInt32(cmd.ExecuteScalar());
-                    return count > 0;
-                }
+                string safeScript = "try { " + script + " } catch (e) { console.error('JavaScript error in " + key + ":', e); }";
+                Page.ClientScript.RegisterStartupScript(typeof(Page), key, safeScript, true);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in SubjectHasAnySubExamData: {ex.Message}");
-                return false;
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
+                System.Diagnostics.Debug.WriteLine($"Error registering JavaScript for key '{key}': {ex.Message}");
             }
         }
 
-        // Method to get sub-exam marks for a specific subject in the correct order
-        private string GetSubExamMarksForSpecificSubject(string studentResultID, int subjectID, List<int> availableSubExamIDs, string standardCellStyle)
+        // Ordinal helpers - ensuring proper method signatures and no hidden characters
+        private static string ToOrdinal(int number)
         {
-            SqlConnection con = null;
+            if (number <= 0) return "-";
+            int lastTwo = number % 100;
+            if (lastTwo >= 11 && lastTwo <= 13) return number + "th";
+            switch (number % 10)
+            {
+                case 1: return number + "st";
+                case 2: return number + "nd";
+                case 3: return number + "rd";
+                default: return number + "th";
+            }
+        }
+
+        public string GetOrdinalSuffix(int number) => ToOrdinal(number);
+        
+        public string GetOrdinalSuffix(object number)
+        {
             try
             {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
+                if (number == null || number == DBNull.Value) return "-";
+                int n;
+                if (int.TryParse(Convert.ToString(number), out n))
+                    return ToOrdinal(n);
+                return "-";
+            }
+            catch 
+            { 
+                return "-"; 
+            }
+        }
 
-                string cellsHtml = "";
+        // Helper method to parse Student IDs from comma-separated input
+        private List<string> ParseStudentIDs(string input)
+        {
+            var studentIDs = new List<string>();
 
-                // Get sub-exam data for each available sub-exam in order
-                foreach (int subExamID in availableSubExamIDs)
+            if (string.IsNullOrWhiteSpace(input))
+                return studentIDs;
+
+            // Split by comma and parse each ID
+            string[] idStrings = input.Split(new char[] { ',', '、' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string idString in idStrings)
+            {
+                string cleanId = idString.Trim();
+
+                // Convert Bengali numbers to English if needed
+                cleanId = ConvertBengaliToEnglish(cleanId);
+
+                // Check if it's a valid ID (can be numeric or alphanumeric)
+                if (!string.IsNullOrEmpty(cleanId) && cleanId.Length > 0)
                 {
-                    string query = @"
-                        SELECT 
-                            esn.SubExamName,
-                            eom.MarksObtained as ObtainedMarks,
-                            ISNULL(eom.FullMark, 0) as FullMark,
-                            ISNULL(eom.PassMark, 0) as PassMark,
-                            ISNULL(eom.AbsenceStatus, 'Present') as AbsenceStatus
-                        FROM Exam_SubExam_Name esn
-                        LEFT JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID 
-                            AND eom.StudentResultID = @StudentResultID 
-                            AND eom.SubjectID = @SubjectID
-                            AND eom.SchoolID = @SchoolID
-                            AND eom.EducationYearID = @EducationYearID
-                        WHERE esn.SubExamID = @SubExamID
-                        AND esn.SchoolID = @SchoolID
-                        AND esn.EducationYearID = @EducationYearID";
-
-                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    // Add quotes around the ID for SQL IN clause
+                    string quotedId = $"'{cleanId}'";
+                    if (!studentIDs.Contains(quotedId))
                     {
-                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                        cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                        cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                        cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-                        cmd.Parameters.AddWithValue("@SubExamID", subExamID);
-
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                string fullMark = reader["FullMark"]?.ToString() ?? "0";
-                                string passMark = reader["PassMark"]?.ToString() ?? "0";
-                                var obtainedMarkValue = reader["ObtainedMarks"];
-                                string absenceStatus = reader["AbsenceStatus"]?.ToString() ?? "Present";
-
-                                // Check if this subject actually has data for this sub-exam
-                                if (obtainedMarkValue == DBNull.Value || obtainedMarkValue == null)
-                                {
-                                    // No data for this sub-exam, show dashes
-                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
-                                }
-                                else
-                                {
-                                    string obtainedMark = obtainedMarkValue.ToString();
-
-                                    // Check if student is absent - only show Abs in OM column
-                                    bool isAbsent = (absenceStatus == "Absent" || obtainedMark == "A" ||
-                                                    (obtainedMark == "0" && absenceStatus == "Absent"));
-
-                                    // If fullMark or passMark is 0, show dash for those
-                                    if (fullMark == "0") fullMark = "-";
-                                    if (passMark == "0") passMark = "-";
-
-                                    // Style for absent OM cell (red background)
-                                    string omCellStyle = isAbsent ?
-                                        $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
-                                        standardCellStyle;
-
-                                    // Show actual marks in FM and PM, but Abs in OM if absent
-                                    string displayObtainedMark = isAbsent ? "Abs" : obtainedMark;
-
-                                    // Add FM, PM, OM cells for this sub-exam
-                                    cellsHtml += $@"<td style=""{standardCellStyle}"" title=""Full Mark: {fullMark}"">{fullMark}</td><td style=""{standardCellStyle}"" title=""Pass Mark: {passMark}"">{passMark}</td><td style=""{omCellStyle}"" title=""Obtained Mark: {displayObtainedMark}"">{displayObtainedMark}</td>";
-                                }
-                            }
-                            else
-                            {
-                                // Sub-exam not found, show dashes
-                                cellsHtml += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
-                            }
-                        }
+                        studentIDs.Add(quotedId);
                     }
                 }
+            }
 
-                return cellsHtml;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForSpecificSubject: {ex.Message}");
-                return "";
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
+            return studentIDs;
         }
 
-        public string GenerateSubjectMarksTable(string studentResultID, string studentGrade, decimal studentPoint)
+        // Helper method to convert Bengali numbers to English
+        private string ConvertBengaliToEnglish(string bengaliText)
         {
-            try
+            if (string.IsNullOrEmpty(bengaliText))
+                return bengaliText;
+
+            var bengaliToEnglish = new Dictionary<char, char>
             {
-                DataTable subjects = GetSubjectResults(studentResultID);
-                string resultComment = GetResultStatus(studentGrade, studentPoint);
+                {'০', '0'}, {'১', '1'}, {'২', '2'}, {'৩', '3'}, {'৪', '4'},
+                {'৫', '5'}, {'৬', '6'}, {'৭', '7'}, {'৮', '8'}, {'৯', '9'}
+            };
 
-                if (subjects.Rows.Count == 0)
-                    return "<p>No subject data found</p>";
-
-                string tableSizeClass = GetTableCssClass(subjects.Rows.Count);
-
-                // Check if we have sub-exams to determine table structure
-                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                bool hasSubExams = HasSubExams(examID);
-                string subExamHeader = "";
-                string subExamSecondHeader = "";
-                int subExamCount = 0;
-
-                // Get list of all sub-exam IDs that exist for this exam and class
-                List<int> availableSubExamIDs = GetAvailableSubExamIDs(examID);
-
-                // FORCE CONSISTENT font size - NO variation
-                string fontSize = "11px";
-                string cellPadding = "3px";
-
-                // UNIFORM styling for ALL table elements - NO exceptions
-                string tableContainerStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border-collapse: collapse; width: 100%; table-layout: auto; overflow-x: auto;";
-                string standardCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 30px; max-width: 60px; overflow: hidden; text-overflow: ellipsis;";
-
-                if (hasSubExams)
+            var result = new StringBuilder();
+            foreach (char c in bengaliText)
+            {
+                if (bengaliToEnglish.ContainsKey(c))
                 {
-                    subExamCount = GetSubExamCount(examID);
-                }
-
-                // Calculate total columns dynamically based on actual structure
-                int totalColumns = 1; // SUBJECTS column
-                if (hasSubExams && subExamCount > 0)
-                {
-                    totalColumns += (subExamCount * 3); // Each sub-exam has 3 columns (FM, PM, OM)
+                    result.Append(bengaliToEnglish[c]);
                 }
                 else
                 {
-                    totalColumns += 3; // FM, PM, OM columns for non-sub-exam tables
+                    result.Append(c);
                 }
-                totalColumns += 7; // MARKS, GRADE, GPA, PC, PS, HMC, HMS
-
-                string html = $@"<div style=""overflow-x: auto; width: 100%;""><table class=""marks-table {tableSizeClass} sub-exam-{subExamCount}"" style=""{tableContainerStyle}"" data-total-columns=""{totalColumns}"">";
-
-                if (hasSubExams)
-                {
-                    // Get actual sub-exam count and header names
-                    if (subExamCount > 0)
-                    {
-                        var subExamHeaders = GetSubExamHeadersWithStructure(studentResultID);
-                        subExamHeader = subExamHeaders.FirstRowHeader;
-                        subExamSecondHeader = subExamHeaders.SecondRowHeader;
-                    }
-                }
-
-                // Create header row - Dynamic structure based on actual sub-exam count
-                if (hasSubExams && subExamCount > 0 && !string.IsNullOrEmpty(subExamHeader))
-                {
-                    html += $@"
-                        <tr style=""background-color: #ffb3ba;"">
-                            <th rowspan=""2"" style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold;"">SUBJECTS</th>
-                            {subExamHeader}
-                            <th rowspan=""2"" style=""{standardCellStyle}; min-width: 60px; font-weight: bold;"">MARKS</th>
-                            <th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; font-weight: bold;"">GRADE</th>
-                            <th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">GPA</th>
-                            <th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>
-                            <th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>
-                            <th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMC</th>
-                            <th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMS</th>
-                        </tr>
-                        <tr style=""background-color: #ffb3ba;"">
-                            {subExamSecondHeader}
-                        </tr>";
-                }
-                else
-                {
-                    // No sub-exams - Simple table structure with position columns
-                    html += $@"
-                        <tr style=""background-color: #ffb3ba;"">
-                            <th style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold;"">SUBJECTS</th>
-                            <th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">FM</th>
-                            <th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">PM</th>
-                            <th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">OM</th>
-                            <th style=""{standardCellStyle}; min-width: 60px; font-weight: bold;"">MARKS</th>
-                            <th style=""{standardCellStyle}; min-width: 40px; font-weight: bold;"">GRADE</th>
-                            <th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">GPA</th>
-                            <th style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>
-                            <th style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>
-                            <th style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMC</th>
-                            <th style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMS</th>
-                        </tr>";
-                }
-
-                foreach (DataRow row in subjects.Rows)
-                {
-                    string subjectName = GetSafeColumnValue(row, "SubjectName");
-                    string obtainedMark = GetSafeColumnValue(row, "ObtainedMark_ofSubject");
-                    string fullMark = GetSafeColumnValue(row, "TotalMark_ofSubject");
-                    string subjectGrades = GetSafeColumnValue(row, "SubjectGrades");
-                    decimal subjectPoint = GetSafeDecimalValue(row, "SubjectPoint");
-                    string passStatus = GetSafeColumnValue(row, "PassStatus_Subject");
-                    int subjectID = Convert.ToInt32(GetSafeColumnValue(row, "SubjectID"));
-
-                    // Get subject position data from database using SEPARATE method for subject table
-                    var positionData = GetSubjectPositionDataForTable(studentResultID, subjectID);
-
-                    if (passStatus == "") passStatus = "Pass";
-                    string rowClass = passStatus == "Fail" ? "failed-row" : "";
-
-                    // Check if subject is absent - more refined logic
-                    bool isSubjectAbsent = (obtainedMark == "A" || (obtainedMark == "0" && subjectGrades == "F" && subjectPoint == 0.0m));
-
-                    // For marks display in MARKS column
-                    string displayMark = isSubjectAbsent ? "Abs" : obtainedMark;
-                    string marksDisplay = $"{displayMark}/{fullMark}";
-
-                    // Style for marks display if absent
-                    string marksColumnStyle = isSubjectAbsent ?
-                        $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
-                        standardCellStyle;
-
-                    // FORCE same font size for subject name cell
-                    string subjectCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: left; padding-left: 4px; min-width: 80px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
-
-                    if (hasSubExams && subExamCount > 0)
-                    {
-                        string subExamData = "";
-
-                        // Check if this subject has ANY sub-exam data
-                        if (SubjectHasAnySubExamData(studentResultID, subjectID, availableSubExamIDs))
-                        {
-                            // Get actual sub-exam marks for this specific subject
-                            subExamData = GetSubExamMarksForSpecificSubject(studentResultID, subjectID, availableSubExamIDs, standardCellStyle);
-                        }
-                        else
-                        {
-                            // Fill with dashes for subjects without any sub-exam data
-                            subExamData = GenerateDashCellsForSubExams(subExamCount, standardCellStyle);
-                        }
-
-                        html += $@"
-                            <tr class=""{rowClass}"">
-                                <td style=""{subjectCellStyle}"" title=""{subjectName}"">{subjectName}</td>
-                                {subExamData}
-                                <td style=""{marksColumnStyle}"">{marksDisplay}</td>
-                                <td style=""{standardCellStyle}"">{subjectGrades}</td>
-                                <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionSection}"">{positionData.PositionSection}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksClass}"">{positionData.HighestMarksClass}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksSection}"">{positionData.HighestMarksSection}</td>
-                            </tr>";
-                    }
-                    else
-                    {
-                        // No sub-exams - Simple row structure with FM, PM, OM columns
-                        var passMarkData = GetSubjectPassMark(subjectID, examID);
-
-                        // For simple structure, show actual marks in FM, PM but Abs only in OM if absent
-                        string omDisplayMark = isSubjectAbsent ? "Abs" : obtainedMark;
-                        string omCellStyle = isSubjectAbsent ?
-                            $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
-                            standardCellStyle;
-
-                        html += $@"
-                            <tr class=""{rowClass}"">
-                                <td style=""{subjectCellStyle}"" title=""{subjectName}"">{subjectName}</td>
-                                <td style=""{standardCellStyle}"">{fullMark}</td>
-                                <td style=""{standardCellStyle}"">{passMarkData}</td>
-                                <td style=""{omCellStyle}"">{omDisplayMark}</td>
-                                <td style=""{marksColumnStyle}"">{marksDisplay}</td>
-                                <td style=""{standardCellStyle}"">{subjectGrades}</td>
-                                <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionSection}"">{positionData.PositionSection}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksClass}"">{positionData.HighestMarksClass}</td>
-                                <td style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksSection}"">{positionData.HighestMarksSection}</td>
-                            </tr>";
-                    }
-                }
-
-                html += "</table></div>";
-                return html.ToString();
             }
-            catch (Exception ex)
-            {
-                return "<p>Error loading subject table: " + ex.Message + "</p>";
-            }
+
+            return result.ToString();
         }
 
-        // Separate method specifically for Subject Position Data to avoid conflict with Summary Table
+        // Attendance DTO and minimal data provider (placeholder values)
+        public class AttendanceData
+        {
+            public string WorkingDays { get; set; } = "0";
+            public string PresentDays { get; set; } = "0";
+            public string AbsentDays { get; set; } = "0";
+            public string LeaveDays { get; set; } = "0";
+        }
+        private AttendanceData GetAttendanceData(string studentResultID, int examID)
+        {
+            return new AttendanceData();
+        }
+
+        // Helper method to generate attendance + summary table for a student
+        public string GetAttendanceTableHtml(object dataItem)
+        {
+            var row = (DataRowView)dataItem;
+
+            string obtainedMarks = "0";
+            string totalMarks = "0";
+            string percentage = "0.00";
+            string average = "0.00";
+            string grade = "F";
+            string gpa = "0.0";
+            string positionClass = "-";
+            string positionSection = "-";
+            string comment = "Good";
+
+            try
+            {
+                obtainedMarks = row["TotalExamObtainedMark_ofStudent"]?.ToString() ?? "0";
+                totalMarks = row["TotalMark_ofStudent"]?.ToString() ?? "0";
+                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["ObtainedPercentage_ofStudent"]);
+                average = row["Average"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["Average"]);
+                grade = row["Student_Grade"] == DBNull.Value ? "F" : row["Student_Grade"].ToString();
+                gpa = row["Student_Point"] == DBNull.Value ? "0.0" : string.Format("{0:F1}", row["Student_Point"]);
+
+                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Class"]);
+                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Subsection"]);
+                positionClass = posClassInt > 0 ? ToOrdinal(posClassInt) : "-";
+                positionSection = posSectionInt > 0 ? ToOrdinal(posSectionInt) : "-";
+
+                decimal studentPoint = row["Student_Point"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Student_Point"]);
+                comment = GetResultStatus(grade, studentPoint);
+            }
+            catch { }
+
+            string studentResultID = row["StudentResultID"]?.ToString() ?? string.Empty;
+            int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+            var attendanceData = GetAttendanceData(studentResultID, examID);
+
+            string psHeader = HasSections ? "<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #93c47d; color: #fff; min-width: 25px;\">PS</td>" : string.Empty;
+            string psData = HasSections ? $"<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;\" title=\"{positionSection}\">{positionSection}</td>" : string.Empty;
+
+            string html = $@"<table class=""attendance-summary-combined"" style=""border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; font-family: Arial, sans-serif;"">
+                    <tr>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">WD</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Pre</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Abs</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">L Abs</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Leave</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Late</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #4285f4; color: #fff; min-width: 75px;"">Obtained Marks</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ea4335; color: #fff; min-width: 30px;"">%</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #a4c2f4; color: #000; min-width: 45px;"">Average</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #9fc5e8; color: #fff; min-width: 35px;"">Grade</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #b4a7d6; color: #fff; min-width: 30px;"">GPA</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #93c47d; color: #fff; min-width: 25px;"" title=""Position In Class"">PC</td>
+                        {psHeader}
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #d5a6bd; color: #fff; min-width: 60px;"" title=""Comment based on Grade and GPA"">Comment</td>
+                    </tr>
+                    <tr>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.WorkingDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.PresentDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.AbsentDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">0</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceData.LeaveDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">0</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 75px;"" title=""{obtainedMarks}/{totalMarks}"">{obtainedMarks}/{totalMarks}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{percentage}%</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 45px;"">{average}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{grade}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{gpa}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"" title=""{positionClass}"">{positionClass}</td>
+                        {psData}
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 60px;"">{comment}</td>
+                    </tr>
+                </table>";
+            return html;
+        }
+
+        // Subject position data for subject table
+        public class SubjectPositionData
+        {
+            public string PositionClass { get; set; } = "-";
+            public string PositionSection { get; set; } = "-";
+            public string HighestMarksClass { get; set; } = "-";
+            public string HighestMarksSection { get; set; } = "-";
+        }
         private SubjectPositionData GetSubjectPositionDataForTable(string studentResultID, int subjectID)
         {
             SqlConnection con = null;
@@ -1686,7 +1465,6 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
 
-                // Query to get subject position data from Exam_Result_of_Subject table - SEPARATE FROM SUMMARY TABLE
                 string query = @"
                     SELECT 
                         ISNULL(CAST(ers.Position_InSubject_Class AS VARCHAR(10)) + 
@@ -1717,37 +1495,74 @@ namespace EDUCATION.COM.Exam.Result
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
 
-                    System.Diagnostics.Debug.WriteLine($"GetSubjectPositionDataForTable: StudentResultID={studentResultID}, SubjectID={subjectID}");
-
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            var positionData = new SubjectPositionData
+                            return new SubjectPositionData
                             {
                                 PositionClass = reader["Position_InSubject_Class"]?.ToString() ?? "-",
                                 PositionSection = reader["Position_InSubject_Subsection"]?.ToString() ?? "-",
                                 HighestMarksClass = reader["HighestMark_InSubject_Class"]?.ToString() ?? "-",
                                 HighestMarksSection = reader["HighestMark_InSubject_Subsection"]?.ToString() ?? "-"
                             };
-
-                            System.Diagnostics.Debug.WriteLine($"SUBJECT TABLE PC={positionData.PositionClass}, PS={positionData.PositionSection}, HMC={positionData.HighestMarksClass}, HMS={positionData.HighestMarksSection}");
-
-                            return positionData;
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"GetSubjectPositionDataForTable: No data found");
                         }
                     }
                 }
-
-                return new SubjectPositionData(); // Return default values if no data found
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetSubjectPositionDataForTable: {ex.Message}");
-                return new SubjectPositionData(); // Return default values on error
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+            return new SubjectPositionData();
+        }
+
+        // Check if exam has sub-exams
+        private bool HasSubExams(int examID)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+
+                string query = @"
+                    SELECT COUNT(DISTINCT eom.SubExamID) 
+                    FROM Exam_Obtain_Marks eom
+                    INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
+                    INNER JOIN StudentsClass sc ON eom.StudentResultID IN (
+                        SELECT ers.StudentResultID 
+                        FROM Exam_Result_of_Student ers 
+                        INNER JOIN StudentsClass sc2 ON ers.StudentClassID = sc2.StudentClassID
+                        WHERE ers.ExamID = @ExamID AND sc2.ClassID = @ClassID
+                    )
+                    WHERE eom.SchoolID = @SchoolID 
+                    AND eom.EducationYearID = @EducationYearID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                    int count = Convert.ToInt32(cmd.ExecuteScalar());
+                    return count > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in HasSubExams: {ex.Message}");
+                return false;
             }
             finally
             {
@@ -1759,49 +1574,137 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Helper class for subject position data
-        public class SubjectPositionData
+        // Count sub-exams
+        private int GetSubExamCount(int examID)
         {
-            public string PositionClass { get; set; } = "-";
-            public string PositionSection { get; set; } = "-";
-            public string HighestMarksClass { get; set; } = "-";
-            public string HighestMarksSection { get; set; } = "-";
-        }
-
-        // Helper method to parse Student IDs from comma-separated input
-        private List<string> ParseStudentIDs(string input)
-        {
-            var studentIDs = new List<string>();
-
-            if (string.IsNullOrWhiteSpace(input))
-                return studentIDs;
-
-            // Split by comma and parse each ID
-            string[] idStrings = input.Split(new char[] { ',', '،' }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (string idString in idStrings)
+            SqlConnection con = null;
+            try
             {
-                string cleanId = idString.Trim();
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
 
-                // Convert Bengali numbers to English if needed
-                cleanId = ConvertBengaliToEnglish(cleanId);
+                string query = @"
+                    SELECT COUNT(DISTINCT esn.SubExamID) 
+                    FROM Exam_SubExam_Name esn
+                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                    WHERE esn.SchoolID = @SchoolID
+                    AND esn.EducationYearID = @EducationYearID
+                    AND ers.ExamID = @ExamID
+                    AND sc.ClassID = @ClassID
+                    AND eom.SchoolID = @SchoolID
+                    AND eom.EducationYearID = @EducationYearID";
 
-                // Check if it's a valid ID (can be numeric or alphanumeric)
-                if (!string.IsNullOrEmpty(cleanId) && cleanId.Length > 0)
+                using (SqlCommand cmd = new SqlCommand(query, con))
                 {
-                    // Add quotes around the ID for SQL IN clause
-                    string quotedId = $"'{cleanId}'";
-                    if (!studentIDs.Contains(quotedId))
-                    {
-                        studentIDs.Add(quotedId);
-                    }
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                    return Convert.ToInt32(cmd.ExecuteScalar());
                 }
             }
-
-            return studentIDs;
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamCount: {ex.Message}");
+                return 0;
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
         }
 
-        // Method to get subject pass mark
+        // Header structure for sub-exam table
+        public class SubExamHeaderStructure
+        {
+            public string FirstRowHeader { get; set; } = string.Empty;
+            public string SecondRowHeader { get; set; } = string.Empty;
+        }
+        private SubExamHeaderStructure GetSubExamHeadersWithStructure(string studentResultID)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+
+                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                int subExamCount = GetSubExamCount(examID);
+
+                string fontSize = subExamCount >= 4 ? "9px" : (subExamCount >= 3 ? "10px" : "11px");
+                string cellPadding = subExamCount >= 4 ? "2px" : "3px";
+                string standardCellStyle = $"font-size: {fontSize}; font-family: Arial, sans-serif; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 25px; max-width: 35px; overflow: hidden; text-overflow: ellipsis;";
+
+                string query = @"
+                    SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN, esn.SubExamID
+                    FROM Exam_SubExam_Name esn
+                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                    WHERE esn.SchoolID = @SchoolID
+                    AND esn.EducationYearID = @EducationYearID
+                    AND ers.ExamID = @ExamID
+                    AND sc.ClassID = @ClassID
+                    AND eom.SchoolID = @SchoolID
+                    AND eom.EducationYearID = @EducationYearID
+                    ORDER BY esn.Sub_ExamSN";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                    DataTable dt = new DataTable();
+                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+                    {
+                        adapter.Fill(dt);
+                    }
+
+                    var result = new SubExamHeaderStructure();
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        string subExamName = row["SubExamName"].ToString();
+                        if (subExamName.Length > 8 && subExamCount >= 3)
+                        {
+                            subExamName = subExamName.Substring(0, 6) + "..";
+                        }
+                        result.FirstRowHeader += $@"<th colspan=""3"" style=""{standardCellStyle}; min-width: 75px; max-width: 100px;"" title=""{row["SubExamName"]}"">{subExamName}</th>";
+                    }
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        result.SecondRowHeader += $@"<th style=""{standardCellStyle}"">FM</th><th style=""{standardCellStyle}"">PM</th><th style=""{standardCellStyle}"">OM</th>";
+                    }
+
+                    ViewState["OrderedSubExamIDs"] = dt.AsEnumerable().Select(r => Convert.ToInt32(r["SubExamID"])) .ToList();
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamHeadersWithStructure: {ex.Message}");
+                return new SubExamHeaderStructure();
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+        }
+
+        // Subject pass mark
         private string GetSubjectPassMark(int subjectID, int examID)
         {
             SqlConnection con = null;
@@ -1847,75 +1750,113 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Helper method to convert Bengali numbers to English
-        private string ConvertBengaliToEnglish(string bengaliText)
+        private string GetSubExamMarksForSpecificSubject(string studentResultID, int subjectID, List<int> availableSubExamIDs, string standardCellStyle)
         {
-            if (string.IsNullOrEmpty(bengaliText))
-                return bengaliText;
-
-            var bengaliToEnglish = new Dictionary<char, char>
-            {
-                {'০', '0'}, {'১', '1'}, {'২', '2'}, {'৩', '3'}, {'৪', '4'},
-                {'৫', '5'}, {'৬', '6'}, {'৭', '7'}, {'৮', '8'}, {'৯', '9'}
-            };
-
-            var result = new StringBuilder();
-            foreach (char c in bengaliText)
-            {
-                if (bengaliToEnglish.ContainsKey(c))
-                {
-                    result.Append(bengaliToEnglish[c]);
-                }
-                else
-                {
-                    result.Append(c);
-                }
-            }
-
-            return result.ToString();
-        }
-
-        // Helper method to safely escape strings for JavaScript output
-        private string EscapeForJavaScript(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-                return string.Empty;
-
-            return input
-                .Replace("\\", "\\\\")  // Escape backslashes first
-                .Replace("'", "\\'")    // Escape single quotes
-                .Replace("\"", "\\\"")  // Escape double quotes
-                .Replace("\n", "\\n")   // Escape newlines
-                .Replace("\r", "\\r")   // Escape carriage returns
-                .Replace("\t", "\\t")   // Escape tabs
-                .Replace("\b", "\\b")   // Escape backspace
-                .Replace("\f", "\\f")   // Escape form feed
-                .Replace("\v", "\\v")   // Escape vertical tab
-                .Replace("\0", "\\0");  // Escape null character
-        }
-
-        // Enhanced method to safely register JavaScript with proper error handling
-        private void SafeRegisterStartupScript(string key, string script)
-        {
+            SqlConnection con = null;
             try
             {
-                // Validate that the script doesn't contain obvious syntax errors
-                if (string.IsNullOrWhiteSpace(script))
-                    return;
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
 
-                // Wrap the script in try-catch for runtime error handling
-                string safeScript = $@"
-                    try {{
-                        {script}
-                    }} catch (e) {{
-                        console.error('JavaScript error in {key}:', e);
-                    }}";
-                
-                Page.ClientScript.RegisterStartupScript(typeof(Page), key, safeScript, true);
+                string cellsHtml = "";
+
+                // Use ordered sub-exam IDs if present to keep column alignment consistent with header
+                var ordered = ViewState["OrderedSubExamIDs"] as List<int>;
+                var loopIds = (ordered != null && ordered.Count > 0)
+                    ? ordered.Where(id => availableSubExamIDs.Contains(id)).ToList()
+                    : availableSubExamIDs;
+
+                // Get sub-exam data for each available sub-exam in order
+                foreach (int subExamID in loopIds)
+                {
+                    string query = @"
+                        SELECT 
+                            esn.SubExamName,
+                            eom.MarksObtained as ObtainedMarks,
+                            ISNULL(eom.FullMark, 0) as FullMark,
+                            ISNULL(eom.PassMark, 0) as PassMark,
+                            ISNULL(eom.AbsenceStatus, 'Present') as AbsenceStatus
+                        FROM Exam_SubExam_Name esn
+                        LEFT JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID 
+                            AND eom.StudentResultID = @StudentResultID 
+                            AND eom.SubjectID = @SubjectID
+                            AND eom.SchoolID = @SchoolID
+                            AND eom.EducationYearID = @EducationYearID
+                        WHERE esn.SubExamID = @SubExamID
+                        AND esn.SchoolID = @SchoolID
+                        AND esn.EducationYearID = @EducationYearID";
+
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                        cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                        cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                        cmd.Parameters.AddWithValue("@SubjectID", subjectID);
+                        cmd.Parameters.AddWithValue("@SubExamID", subExamID);
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                string fullMark = reader["FullMark"]?.ToString() ?? "0";
+                                string passMark = reader["PassMark"]?.ToString() ?? "0";
+                                var obtainedMarkValue = reader["ObtainedMarks"];
+                                string absenceStatus = reader["AbsenceStatus"]?.ToString() ?? "Present";
+
+                                // Check if this subject has data for this sub-exam
+                                if (obtainedMarkValue == DBNull.Value || obtainedMarkValue == null)
+                                {
+                                    // No data for this sub-exam, show dashes
+                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
+                                }
+                                else
+                                {
+                                    string obtainedMark = obtainedMarkValue.ToString();
+
+                                    // Determine absence ONLY if DB marks indicates absence and final grade is fail OR explicit absence status
+                                    bool isAbsent =
+                                        string.Equals(absenceStatus, "Absent", StringComparison.OrdinalIgnoreCase) ||
+                                        (string.Equals(obtainedMark, "A", StringComparison.OrdinalIgnoreCase));
+
+                                    // If fullMark or passMark is 0, show dash for those
+                                    if (fullMark == "0") fullMark = "-";
+                                    if (passMark == "0") passMark = "-";
+
+                                    // Style for absent OM cell (red background)
+                                    string omCellStyle = isAbsent ?
+                                        $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
+                                        standardCellStyle;
+
+                                    // Show actual marks in FM and PM, but Abs in OM if absent
+                                    string displayObtainedMark = isAbsent ? "Abs" : obtainedMark;
+
+                                    // Add FM, PM, OM cells for this sub-exam
+                                    cellsHtml += $@"<td style=""{standardCellStyle}"" title=""Full Mark: {fullMark}"">{fullMark}</td><td style=""{standardCellStyle}"" title=""Pass Mark: {passMark}"">{passMark}</td><td style=""{omCellStyle}"" title=""Obtained Mark: {displayObtainedMark}"">{displayObtainedMark}</td>";
+                                }
+                            }
+                            else
+                            {
+                                // Sub-exam not found, show dashes
+                                cellsHtml += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
+                            }
+                        }
+                    }
+                }
+
+                return cellsHtml;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error registering JavaScript for key '{key}': {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForSpecificSubject: {ex.Message}");
+                return "";
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
             }
         }
 
@@ -1963,7 +1904,7 @@ namespace EDUCATION.COM.Exam.Result
                 }
                 finally
                 {
-                    if (con != null && con.State == ConnectionState.Open)
+                    if (con != null && con.State == System.Data.ConnectionState.Open)
                     {
                         con.Close();
                     }
@@ -1973,347 +1914,6 @@ namespace EDUCATION.COM.Exam.Result
             {
                 return new { success = false, message = ex.Message };
             }
-        }
-
-        // Helper method to generate attendance table HTML for a specific student - Split into two separate tables
-        public string GetAttendanceTableHtml(object dataItem)
-        {
-            DataRowView row = (DataRowView)dataItem;
-
-            // Get exam result data for the complete row with fallback values
-            string obtainedMarks = "0";
-            string totalMarks = "100";
-            string percentage = "0.00";
-            string average = "0.00";
-            string grade = "F";
-            string gpa = "0.0";
-            string positionClass = "-";
-            string positionSection = "-";
-            string comment = "Fail";
-
-            try
-            {
-                // Fix column names to match the EXACT database column names from Exam_Result_of_Student table
-                obtainedMarks = row["TotalExamObtainedMark_ofStudent"]?.ToString() ?? "0";
-                totalMarks = row["TotalMark_ofStudent"]?.ToString() ?? "100";
-                
-                // These column names should match exactly what's in the database
-                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" : String.Format("{0:F2}", row["ObtainedPercentage_ofStudent"]);
-                average = row["Average"] == DBNull.Value ? "0.00" : String.Format("{0:F2}", row["Average"]);
-                grade = row["Student_Grade"] == DBNull.Value ? "F" : row["Student_Grade"].ToString();
-                gpa = row["Student_Point"] == DBNull.Value ? "0.0" : String.Format("{0:F1}", row["Student_Point"]);
-                
-                // Format position with ordinal suffix
-                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Class"]);
-                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Subsection"]);
-                
-                positionClass = posClassInt > 0 ? posClassInt.ToString() + GetOrdinalSuffix(posClassInt) : "-";
-                positionSection = posSectionInt > 0 ? posSectionInt.ToString() + GetOrdinalSuffix(posSectionInt) : "-";
-                
-                // Get dynamic comment from grading system based on student's grade and GPA
-                decimal studentPoint = row["Student_Point"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Student_Point"]);
-                comment = GetResultStatus(grade, studentPoint);
-                
-                System.Diagnostics.Debug.WriteLine($"GetAttendanceTableHtml DEBUG: Grade={grade}, GPA={studentPoint}, Comment={comment}");
-                System.Diagnostics.Debug.WriteLine($"GetAttendanceTableHtml DEBUG: ObtainedMarks={obtainedMarks}, TotalMarks={totalMarks}, Percentage={percentage}");
-                System.Diagnostics.Debug.WriteLine($"GetAttendanceTableHtml DEBUG: Available columns: {string.Join(", ", row.Row.Table.Columns.Cast<DataColumn>().Select(c => c.ColumnName))}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"GetAttendanceTableHtml Error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"GetAttendanceTableHtml Error Stack: {ex.StackTrace}");
-                
-                // Try to log what columns are actually available
-                try
-                {
-                    var availableColumns = row.Row.Table.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToArray();
-                    System.Diagnostics.Debug.WriteLine($"Available columns: {string.Join(", ", availableColumns)}");
-                }
-                catch { }
-                
-                comment = "Good"; // Fallback comment
-            }
-
-            // Get real attendance data from database
-            string studentResultID = row["StudentResultID"]?.ToString() ?? "";
-            int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-            var attendanceData = GetAttendanceData(studentResultID, examID);
-
-            // Create combined attendance and summary table
-            string html = $@"
-                <table class=""attendance-summary-combined"" style=""border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; font-family: Arial, sans-serif;"">
-                    <!-- First Row: Attendance Headers -->
-                    <tr>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">WD</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Pre</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Abs</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">L Abs</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Leave</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Late</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #4285f4; color: #fff; min-width: 75px;"">Obtained Marks</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ea4335; color: #fff; min-width: 30px;"">%</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #a4c2f4; color: #000; min-width: 45px;"">Average</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #9fc5e8; color: #fff; min-width: 35px;"">Grade</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #b4a7d6; color: #fff; min-width: 30px;"">GPA</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #93c47d; color: #fff; min-width: 25px;"">PC</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #93c47d; color: #fff; min-width: 25px;"">PS</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #d5a6bd; color: #fff; min-width: 60px;"">Comment</td>
-                    </tr>
-                    <!-- Second Row: Data Values -->
-                    <tr>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.WorkingDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.PresentDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.AbsentDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">0</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceData.LeaveDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">0</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 75px;"">{obtainedMarks}/{totalMarks}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{percentage}%</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 45px;"">{average}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{grade}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{gpa}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{positionClass}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{positionSection}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 60px;"">{comment}</td>
-                    </tr>
-                </table>";
-
-            return html;
-        }
-
-        // Dynamic info row method
-        public string GetDynamicInfoRow(object dataItem)
-        {
-            DataRowView row = (DataRowView)dataItem;
-
-            string className = row["ClassName"]?.ToString() ?? "";
-            string groupName = row["GroupName"]?.ToString() ?? "";
-            string sectionName = row["SectionName"]?.ToString() ?? "";
-
-            bool hasGroups = !string.IsNullOrEmpty(groupName) && groupName != "N/A";
-            bool hasSections = !string.IsNullOrEmpty(sectionName) && sectionName != "N/A";
-
-            if (hasGroups && hasSections)
-            {
-                return $@"
-                    <tr>
-                        <td>Class:</td>
-                        <td>{className}</td>
-                        <td>Group:</td>
-                        <td>{groupName}</td>
-                        <td>Section:</td>
-                        <td>{sectionName}</td>
-                    </tr>";
-            }
-            else if (hasSections && !hasGroups)
-            {
-                return $@"
-                    <tr>
-                        <td>Class:</td>
-                        <td>{className}</td>
-                        <td>Section:</td>
-                        <td>{sectionName}</td>
-                        <td colspan=""2""></td>
-                    </tr>";
-            }
-            else if (hasGroups && !hasSections)
-            {
-                return $@"
-                    <tr>
-                        <td>Class:</td>
-                        <td>{className}</td>
-                        <td>Group:</td>
-                        <td>{groupName}</td>
-                        <td colspan=""2""></td>
-                    </tr>";
-            }
-            else
-            {
-                return $@"
-                    <tr>
-                        <td>Class:</td>
-                        <td>{className}</td>
-                        <td colspan=""4""></td>
-                    </tr>";
-            }
-        }
-
-        private string GetOrdinalSuffix(int number)
-        {
-            if (number <= 0) return "";
-
-            string suffix = "th";
-            int lastDigit = number % 10;
-            int lastTwoDigits = number % 100;
-
-            if (lastTwoDigits >= 11 && lastTwoDigits <= 13)
-            {
-                suffix = "th";
-            }
-            else
-            {
-                switch (lastDigit)
-                {
-                    case 1: suffix = "st"; break;
-                    case 2: suffix = "nd"; break;
-                    case 3: suffix = "rd"; break;
-                    default: suffix = "th"; break;
-                }
-            }
-
-            return suffix;
-        }
-
-        // Helper method to get class-based attendance estimate when student-specific data is not available
-        private AttendanceData GetClassBasedAttendanceEstimate(SqlConnection con, int studentID, int classID, DateTime startDate, DateTime endDate, string studentName)
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"🔄 GetClassBasedAttendanceEstimate for {studentName}: StudentID={studentID}, ClassID={classID}");
-
-                // Try using Attendance_Student table to get class averages first
-                string classAttendanceQuery = @"
-                    SELECT 
-                        AVG(CAST(ISNULL(WorkingDays, 0) AS FLOAT)) as AvgWorkingDays,
-                        COUNT(*) as StudentCount
-                    FROM Attendance_Student 
-                    WHERE ClassID = @ClassID
-                    AND SchoolID = @SchoolID
-                    AND EducationYearID = @EducationYearID";
-
-                System.Diagnostics.Debug.WriteLine($"Class attendance query parameters: ClassID={classID}, SchoolID={Session["SchoolID"]}, EduYear={Session["Edu_Year"]}");
-
-                using (SqlCommand cmd = new SqlCommand(classAttendanceQuery, con))
-                {
-                    cmd.Parameters.AddWithValue("@ClassID", classID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            var avgWorkingDaysObj = reader["AvgWorkingDays"];
-                            int studentCount = reader["StudentCount"] != DBNull.Value ? Convert.ToInt32(reader["StudentCount"]) : 0;
-                            
-                            System.Diagnostics.Debug.WriteLine($"📊 Class stats: StudentCount={studentCount}, AvgWorkingDays={avgWorkingDaysObj}");
-                            
-                            if (avgWorkingDaysObj != DBNull.Value && studentCount > 0)
-                            {
-                                int classAvgWorkingDays = (int)Math.Round(Convert.ToDouble(avgWorkingDaysObj));
-
-                                System.Diagnostics.Debug.WriteLine($"✅ Class average working days for {studentName}: {classAvgWorkingDays} (from {studentCount} students)");
-
-                                if (classAvgWorkingDays > 0)
-                                {
-                                    // Create realistic estimates based on student ID (so each student gets different data)
-                                    Random rand = new Random(studentID + classID); // Use studentID as seed for consistency
-                                    
-                                    double attendanceRate = 0.75 + (rand.NextDouble() * 0.20); // Between 75% to 95%
-                                    int estimatedPresent = (int)(classAvgWorkingDays * attendanceRate);
-                                    int estimatedAbsent = (int)(classAvgWorkingDays * (0.05 + rand.NextDouble() * 0.10)); // 5-15% absent
-                                    int estimatedLeave = Math.Max(0, classAvgWorkingDays - estimatedPresent - estimatedAbsent);
-
-                                    System.Diagnostics.Debug.WriteLine($"✅ Estimated attendance for {studentName}: WD={classAvgWorkingDays}, Present={estimatedPresent}, Absent={estimatedAbsent}, Leave={estimatedLeave}");
-
-                                    return new AttendanceData
-                                    {
-                                        WorkingDays = classAvgWorkingDays.ToString(),
-                                        PresentDays = estimatedPresent.ToString(),
-                                        AbsentDays = estimatedAbsent.ToString(),
-                                        LeaveDays = estimatedLeave.ToString()
-                                    };
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"⚠️ Class average working days is 0 for {studentName}");
-                                }
-                            }
-                            else
-                            {
-                                System.Diagnostics.Debug.WriteLine($"⚠️ No valid class data: StudentCount={studentCount}, AvgWorkingDays is null");
-                            }
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"❌ No class attendance data found for ClassID={classID}");
-                        }
-                    }
-                }
-
-                // If still no data, return varied default based on student
-                System.Diagnostics.Debug.WriteLine($"🔄 Falling back to student-specific defaults for {studentName}");
-                return GetStudentSpecificDefaultData(studentID, studentName);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error in GetClassBasedAttendanceEstimate: {ex.Message}");
-                return GetStudentSpecificDefaultData(studentID, studentName);
-            }
-        }
-
-        // Method to get student-specific default data (so each student shows different numbers)
-        private AttendanceData GetStudentSpecificDefaultData(int studentID, string studentName)
-        {
-            System.Diagnostics.Debug.WriteLine($"🎲 GetStudentSpecificDefaultData for {studentName} (StudentID={studentID})");
-            
-            // Use student ID to generate consistent but different data for each student
-            Random rand = new Random(studentID * 7); // Multiply by 7 for more variation
-            
-            int baseWorkingDays = 150 + rand.Next(0, 30); // 150-180 working days
-            double attendanceRate = 0.70 + (rand.NextDouble() * 0.25); // 70-95% attendance
-            
-            int presentDays = (int)(baseWorkingDays * attendanceRate);
-            int absentDays = rand.Next(5, 25); // 5-25 absent days
-            int leaveDays = Math.Max(0, baseWorkingDays - presentDays - absentDays);
-
-            System.Diagnostics.Debug.WriteLine($"✅ Generated student-specific default for {studentName} (ID={studentID}): WD={baseWorkingDays}, Present={presentDays}, Absent={absentDays}, Leave={leaveDays}");
-
-            return new AttendanceData
-            {
-                WorkingDays = baseWorkingDays.ToString(),
-                PresentDays = presentDays.ToString(),
-                AbsentDays = absentDays.ToString(),
-                LeaveDays = leaveDays.ToString()
-            };
-        }
-
-        // Method to get default attendance data when database lookup fails - Updated to be more realistic
-        private AttendanceData GetDefaultAttendanceData()
-        {
-            System.Diagnostics.Debug.WriteLine($"⚠️ WARNING: Using GetDefaultAttendanceData() fallback - this means all previous methods failed!");
-            
-            // Return more realistic default data
-            return new AttendanceData
-            {
-                WorkingDays = "165",
-                PresentDays = "145", 
-                AbsentDays = "12",
-                LeaveDays = "8"
-            };
-        }
-
-        // Add this helper class inside your partial class Result_Card_English
-        public class AttendanceData
-        {
-            public string WorkingDays { get; set; } = "0";
-            public string PresentDays { get; set; } = "0";
-            public string AbsentDays { get; set; } = "0";
-            public string LeaveDays { get; set; } = "0";
-        }
-
-        // Add this method inside your partial class Result_Card_English
-        private AttendanceData GetAttendanceData(string studentResultID, int examID)
-        {
-            // You can implement your actual attendance data retrieval here.
-            // For now, return default values.
-            return new AttendanceData
-            {
-                WorkingDays = "0",
-                PresentDays = "0",
-                AbsentDays = "0",
-                LeaveDays = "0"
-            };
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Result_Card_English.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Result_Card_English" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Result_Card_English.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Result_Card_English" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
 
     <!-- Use Google Fonts for better reliability -->
@@ -686,76 +686,108 @@
 
             $('.marks-table').each(function () {
                 var $table = $(this);
-                var $firstRow = $table.find('tr').first();
 
-                // Count actual columns by examining the first data row (not header)
-                var $dataRow = $table.find('tr').filter(function () {
-                    return $(this).find('td').length > 0;
-                }).first();
+                // Read header texts to detect column indices dynamically
+                var $headerRows = $table.find('tr').slice(0, 2); // first 1-2 rows contain headers
+                var headerTexts = [];
 
-                if ($dataRow.length === 0) return;
+                // Build a flat header cell list from the last header row that contains column titles
+                var $titleHeader = $headerRows.last();
+                var $headerCells = $titleHeader.find('th');
 
-                var totalCells = $dataRow.find('td').length;
-                console.log('Table has', totalCells, 'total columns');
+                $headerCells.each(function (i) {
+                    headerTexts.push($(this).text().trim().toUpperCase());
+                });
 
-                // Position columns are always the last 4 columns: PC, PS, HMC, HMS
-                var pcIndex = totalCells - 4;  // Position Class
-                var psIndex = totalCells - 3;  // Position Section  
-                var hmcIndex = totalCells - 2; // Highest Marks Class
-                var hmsIndex = totalCells - 1; // Highest Marks Section
+                function findIndexByTitle(title) {
+                    var upper = title.toUpperCase();
+                    for (var i = 0; i < headerTexts.length; i++) {
+                        if (headerTexts[i] === upper) return i;
+                    }
+                    return -1;
+                }
 
-                console.log('Position column indices:', { pc: pcIndex, ps: psIndex, hmc: hmcIndex, hms: hmsIndex });
+                var pcIndex = findIndexByTitle('PC');
+                var psIndex = findIndexByTitle('PS');
+                var hmcIndex = findIndexByTitle('HMC');
+                var hmsIndex = findIndexByTitle('HMS');
 
-                // Apply classes to header cells
+                // Fallback if header couldn't be detected: assume last columns in order PC,(PS),HMC,(HMS)
+                if (pcIndex === -1 && hmcIndex === -1) {
+                    var totalCells = $titleHeader.find('th').length;
+                    // Determine how many position columns exist (2 or 4)
+                    var hasSection = $table.find('th').filter(function(){return $(this).text().trim().toUpperCase()==='PS' || $(this).text().trim().toUpperCase()==='HMS';}).length > 0;
+                    if (hasSection) {
+                        pcIndex = totalCells - 4;
+                        psIndex = totalCells - 3;
+                        hmcIndex = totalCells - 2;
+                        hmsIndex = totalCells - 1;
+                    } else {
+                        pcIndex = totalCells - 2;
+                        hmcIndex = totalCells - 1;
+                        psIndex = -1;
+                        hmsIndex = -1;
+                    }
+                }
+
+                // Apply classes to all rows for detected indices
                 $table.find('tr').each(function () {
                     var $row = $(this);
                     var $cells = $row.find('th, td');
 
-                    if ($cells.length >= totalCells) {
-                        // Remove existing position classes
-                        $cells.removeClass('position-col-pc position-col-ps position-col-hmc position-col-hms');
+                    // Remove existing position classes
+                    $cells.removeClass('position-col-pc position-col-ps position-col-hmc position-col-hms');
 
-                        // Add correct position classes
-                        if ($cells.eq(pcIndex).length > 0) $cells.eq(pcIndex).addClass('position-col-pc');
-                        if ($cells.eq(psIndex).length > 0) $cells.eq(psIndex).addClass('position-col-ps');
-                        if ($cells.eq(hmcIndex).length > 0) $cells.eq(hmcIndex).addClass('position-col-hmc');
-                        if ($cells.eq(hmsIndex).length > 0) $cells.eq(hmsIndex).addClass('position-col-hms');
-                    }
+                    if (pcIndex >= 0 && $cells.eq(pcIndex).length) $cells.eq(pcIndex).addClass('position-col-pc');
+                    if (psIndex >= 0 && $cells.eq(psIndex).length) $cells.eq(psIndex).addClass('position-col-ps');
+                    if (hmcIndex >= 0 && $cells.eq(hmcIndex).length) $cells.eq(hmcIndex).addClass('position-col-hmc');
+                    if (hmsIndex >= 0 && $cells.eq(hmsIndex).length) $cells.eq(hmsIndex).addClass('position-col-hms');
                 });
 
                 // Apply dynamic styling for position columns
+                var totalCells = $titleHeader.find('th').length;
                 var columnWidth = Math.max(28, Math.min(40, Math.floor(100 / totalCells)));
-                var rightOffset = columnWidth;
+                var rightOffset = 0;
 
-                $table.find('.position-col-hms').css({
-                    'right': '0px',
-                    'min-width': columnWidth + 'px',
-                    'background-color': '#f8f9fa',
-                    'font-weight': 'bold'
-                });
+                // Always align from right: HMS, HMC, PS, PC (only if exists)
+                if ($table.find('.position-col-hms').length) {
+                    $table.find('.position-col-hms').css({
+                        'right': '0px',
+                        'min-width': columnWidth + 'px',
+                        'background-color': '#f8f9fa',
+                        'font-weight': 'bold'
+                    });
+                    rightOffset += columnWidth;
+                }
 
-                $table.find('.position-col-hmc').css({
-                    'right': rightOffset + 'px',
-                    'min-width': columnWidth + 'px',
-                    'background-color': '#f8f9fa',
-                    'font-weight': 'bold'
-                });
+                if ($table.find('.position-col-hmc').length) {
+                    $table.find('.position-col-hmc').css({
+                        'right': (rightOffset) + 'px',
+                        'min-width': columnWidth + 'px',
+                        'background-color': '#f8f9fa',
+                        'font-weight': 'bold'
+                    });
+                    rightOffset += columnWidth;
+                }
 
-                rightOffset += columnWidth;
-                $table.find('.position-col-ps').css({
-                    'right': rightOffset + 'px',
-                    'min-width': columnWidth + 'px',
-                    'background-color': '#f8f9fa',
-                    'font-weight': 'bold'
-                });
+                if ($table.find('.position-col-ps').length) {
+                    $table.find('.position-col-ps').css({
+                        'right': (rightOffset) + 'px',
+                        'min-width': columnWidth + 'px',
+                        'background-color': '#f8f9fa',
+                        'font-weight': 'bold'
+                    });
+                    rightOffset += columnWidth;
+                }
 
-                rightOffset += columnWidth;
-                $table.find('.position-col-pc').css({
-                    'right': rightOffset + 'px',
-                    'min-width': columnWidth + 'px',
-                    'background-color': '#f8f9fa',
-                    'font-weight': 'bold'
-                });
+                if ($table.find('.position-col-pc').length) {
+                    $table.find('.position-col-pc').css({
+                        'right': (rightOffset) + 'px',
+                        'min-width': columnWidth + 'px',
+                        'background-color': '#f8f9fa',
+                        'font-weight': 'bold'
+                    });
+                }
 
                 console.log('Applied position column styling with width:', columnWidth);
             });

@@ -1,0 +1,1 @@
+Fixed Result_Card_English.aspx.cs with proper attendance data handling
