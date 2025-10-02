@@ -729,7 +729,7 @@ namespace EDUCATION.COM.Exam.Result
             return dt;
         }
 
-        // Updated to fetch dynamic comments from database based on student's grade, school, exam settings
+        // UPDATED: to fetch dynamic comments from database based on student's grade, school, exam settings
         public string GetResultStatus(string studentGrade, decimal gpa)
         {
             if (string.IsNullOrEmpty(studentGrade))
@@ -898,6 +898,59 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
+        // NEW: Get pass mark for subjects without sub-exams
+        private string GetMainExamPassMark(int subjectID, int examID)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+
+                string query = @"
+                    SELECT TOP 1 
+                        CASE 
+                            WHEN TotalMark_ofSubject > 0 THEN CAST(TotalMark_ofSubject * 0.33 AS INT)
+                            ELSE 33
+                        END as CalculatedPassMark
+                    FROM Exam_Result_of_Subject ers
+                    INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
+                    INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
+                    WHERE ers.SubjectID = @SubjectID 
+                    AND erst.ExamID = @ExamID 
+                    AND sc.ClassID = @ClassID
+                    AND ers.SchoolID = @SchoolID 
+                    AND ers.EducationYearID = @EducationYearID
+                    AND ers.TotalMark_ofSubject > 0
+                    ORDER BY ers.TotalMark_ofSubject DESC";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+
+                    var result = cmd.ExecuteScalar();
+                    return result?.ToString() ?? "33";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetMainExamPassMark: {ex.Message}");
+                return "33";
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+        }
+
         // NEW: Helper to generate dynamic info rows for the Student Info table
         // Renders Class (always) and optional Section/Group/Shift in compact rows (max 3 pairs per row)
         public string GetDynamicInfoRow(object dataItem)
@@ -932,14 +985,27 @@ namespace EDUCATION.COM.Exam.Result
                 while (i < pairs.Count)
                 {
                     sb.Append("<tr>");
-                    int cellsThisRow = 0;
-                    for (int j = 0; j < 3 && i < pairs.Count; j++, i++)
+                    
+                    // Add first pair
+                    string label1 = pairs[i].Item1;
+                    string value1 = HttpUtility.HtmlEncode(pairs[i].Item2);
+                    sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label1, value1);
+                    i++;
+
+                    // Add second pair if it exists
+                    if (i < pairs.Count)
                     {
-                        string label = pairs[i].Item1;
-                        string value = HttpUtility.HtmlEncode(pairs[i].Item2);
-                        sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label, value);
-                        cellsThisRow += 2;
+                        string label2 = pairs[i].Item1;
+                        string value2 = HttpUtility.HtmlEncode(pairs[i].Item2);
+                        sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label2, value2);
+                        i++;
                     }
+                    else
+                    {
+                        // If only one pair in the row, add empty cells to complete the 4-column layout
+                        sb.Append("<td></td><td></td>");
+                    }
+                    
                     sb.Append("</tr>");
                 }
 
@@ -1099,8 +1165,8 @@ namespace EDUCATION.COM.Exam.Result
                     }
                     else
                     {
-                        // No sub-exams
-                        var passMarkData = GetSubjectPassMark(subjectID, examID);
+                        // No sub-exams - use the new method for correct pass marks
+                        var passMarkData = GetMainExamPassMark(subjectID, examID);
                         string omDisplayMark = isSubjectAbsent ? "Abs" : obtainedMark;
                         string omCellStyle = isSubjectAbsent ?
                             $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
@@ -1145,13 +1211,13 @@ namespace EDUCATION.COM.Exam.Result
         private string GetSubExamCellsHtml(string studentResultID, int subjectID, int examID, string standardCellStyle)
         {
             // Build list of available SubExamIDs for this exam/class
-            List<int> availableSubExamIDs = GetAvailableSubExamIDs(examID);
+            List<int> subExamIDs = GetAvailableSubExamIDs(examID);
 
             // Ensure ordered header list available
             var ordered = ViewState["OrderedSubExamIDs"] as List<int>;
             var loopIds = (ordered != null && ordered.Count > 0)
-                ? ordered.Where(id => availableSubExamIDs.Contains(id)).ToList()
-                : availableSubExamIDs;
+                ? ordered.Where(id => subExamIDs.Contains(id)).ToList()
+                : subExamIDs;
 
             // If none available, still generate the correct number of dash cells
             if (loopIds.Count == 0)
@@ -1280,7 +1346,7 @@ namespace EDUCATION.COM.Exam.Result
         }
 
         public string GetOrdinalSuffix(int number) => ToOrdinal(number);
-        
+
         public string GetOrdinalSuffix(object number)
         {
             try
@@ -1291,9 +1357,9 @@ namespace EDUCATION.COM.Exam.Result
                     return ToOrdinal(n);
                 return "-";
             }
-            catch 
-            { 
-                return "-"; 
+            catch
+            {
+                return "-";
             }
         }
 
@@ -1685,7 +1751,7 @@ namespace EDUCATION.COM.Exam.Result
                         result.SecondRowHeader += $@"<th style=""{standardCellStyle}"">FM</th><th style=""{standardCellStyle}"">PM</th><th style=""{standardCellStyle}"">OM</th>";
                     }
 
-                    ViewState["OrderedSubExamIDs"] = dt.AsEnumerable().Select(r => Convert.ToInt32(r["SubExamID"])) .ToList();
+                    ViewState["OrderedSubExamIDs"] = dt.AsEnumerable().Select(r => Convert.ToInt32(r["SubExamID"])).ToList();
                     return result;
                 }
             }
@@ -1715,7 +1781,7 @@ namespace EDUCATION.COM.Exam.Result
 
                 string query = @"
                     SELECT ISNULL(AVG(PassMark), 0) as AveragePassMark
-                    FROM Exam_Full_Marks 
+                    FROM Exam_Subject_Marks_PassMark 
                     WHERE SubjectID = @SubjectID 
                     AND ExamID = @ExamID 
                     AND SchoolID = @SchoolID 

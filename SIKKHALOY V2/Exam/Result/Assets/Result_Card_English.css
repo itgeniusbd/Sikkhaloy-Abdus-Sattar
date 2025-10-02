@@ -16,7 +16,14 @@
     text-rendering: auto !important;
     line-height: 1 !important;
 }
-
+.note {
+    margin-top: 14px;
+    margin-bottom: -1rem;
+    font-size: 9px;
+    text-align: center;
+    color: green;
+    font-weight:bold;
+}
 /* Specific icon fixes */
 .fa-language::before {
     content: "\f1ab" !important;
@@ -229,6 +236,61 @@
         font-family: Arial, sans-serif !important;
         font-weight: bold !important;
     }
+
+    /* Info table specific styling for better column alignment */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2px;
+        table-layout: fixed; /* Fixed layout for consistent column widths */
+    }
+
+        .info-table td {
+            border: 1px solid #0072bc;
+            padding: 5px 8px;
+            font-size: 14px; /* Standardized info table size for screen */
+            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Define consistent column widths - 6 columns total */
+        .info-table td:nth-child(1) {
+            width: 5%; /* Labels like "Name:", "Class:", etc */
+            text-align: right;
+        }
+
+        .info-table td:nth-child(2) {
+            width: 20%; /* Values for first column */
+            text-align: left;
+        }
+
+        .info-table td:nth-child(3) {
+            width: 5%; /* Labels for second column */
+            text-align: right;
+        }
+
+        .info-table td:nth-child(4) {
+            width: 20%; /* Values for second column */
+            text-align: left;
+        }
+
+        .info-table td:nth-child(5) {
+            width: 15%; /* Labels for third column */
+            text-align: left;
+        }
+
+        .info-table td:nth-child(6) {
+            width: 15%; /* Values for third column or empty space */
+            text-align: left;
+        }
+
+        /* Special styling for the name row which spans multiple columns */
+        .info-table td[colspan="5"] {
+            text-align: left;
+            font-weight: bold;
+        }
 
     /* Summary table - match normal view text for print */
     .summary-header td {
@@ -501,7 +563,65 @@ h3 {
         padding: 5px 8px;
         font-size: 14px; /* Standardized info table size for screen */
         font-weight: bold;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
+
+    /* Info table specific styling for better column alignment */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2px;
+        table-layout: fixed; /* Fixed layout for consistent column widths */
+    }
+
+        .info-table td {
+            border: 1px solid #0072bc;
+            padding: 5px 8px;
+            font-size: 14px; /* Standardized info table size for screen */
+            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Define consistent column widths - 6 columns total */
+        .info-table td:nth-child(1) {
+            width: 5%; /* Labels like "Name:", "Class:", etc */
+            text-align: right;
+        }
+
+        .info-table td:nth-child(2) {
+            width: 20%; /* Values for first column */
+            text-align: left;
+        }
+
+        .info-table td:nth-child(3) {
+            width: 5%; /* Labels for second column */
+            text-align: right;
+        }
+
+        .info-table td:nth-child(4) {
+            width: 20%; /* Values for second column */
+            text-align: left;
+        }
+
+        .info-table td:nth-child(5) {
+            width: 15%; /* Labels for third column */
+            text-align: left;
+        }
+
+        .info-table td:nth-child(6) {
+            width: 15%; /* Values for third column or empty space */
+            text-align: left;
+        }
+
+        /* Special styling for the name row which spans multiple columns */
+        .info-table td[colspan="5"] {
+            text-align: left;
+            font-weight: bold;
+        }
 
 .summary {
     width: 100%;
@@ -987,7 +1107,14 @@ h3 {
         font-size: 12px !important;
         padding: 4px 3px !important;
     }
-
+    .note {
+        margin-top: 14px;
+        margin-bottom: -1rem;
+        font-size: 9px;
+        text-align: center;
+        color: green;
+        font-weight: bold;
+    }
     .marks-table .comment-cell {
         text-align: center !important;
         font-size: 12px !important;

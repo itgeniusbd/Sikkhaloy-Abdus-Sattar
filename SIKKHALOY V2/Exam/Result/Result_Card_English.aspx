@@ -305,19 +305,17 @@
                         <!-- Left: Student Info + Attendance/Summary (Combined) -->
                         <div class="info-summary">
                             <table class="info-table">
-                              <tr style="background:#e8f4fd" >
-                           <td> Name:</td> <td colspan="6"><b><%# Eval("StudentsName") %></b></td>
+                                <tr>
+                                    <td>Name:</td>
+                                    <td colspan="3"><b><%# Eval("StudentsName") %></b></td>
                                 </tr>
-                                
                                 <%-- Use helper method for dynamic row generation --%>
-                                <%# GetDynamicInfoRow(Container.DataItem) %> 
-
+                                <%# GetDynamicInfoRow(Container.DataItem) %>
                                 <tr>
                                     <td>Roll:</td>
                                     <td><%# Eval("RollNo") %></td>
                                     <td>ID:</td>
                                     <td><%# Eval("ID") %></td>
-                                    <td colspan="2"></td>
                                 </tr>
                             </table>
                             
@@ -356,6 +354,7 @@
                             <div class="Head" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">Principal</div>
                         </div>
                     </div>
+                    <p class="note">WD: Working Days.PM: Pass Marks. FM: Full Marks. OM: Obtained Marks. PC: Position in Class. PS: Position in Section.HMC: Highest Marks in Class. HMS: Highest Marks in Section</p>
                 </div>
             </ItemTemplate>
         </asp:Repeater>
