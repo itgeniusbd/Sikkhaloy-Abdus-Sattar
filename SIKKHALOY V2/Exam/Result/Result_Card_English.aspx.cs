@@ -476,6 +476,84 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
+        // Helper method to generate attendance + summary table for a student
+        public string GetAttendanceTableHtml(object dataItem)
+        {
+            var row = (DataRowView)dataItem;
+
+            string obtainedMarks = "0";
+            string totalMarks = "0";
+            string percentage = "0.00";
+            string average = "0.00";
+            string grade = "F";
+            string gpa = "0.0";
+            string positionClass = "-";
+            string positionSection = "-";
+            string comment = "Good";
+
+            try
+            {
+                obtainedMarks = row["TotalExamObtainedMark_ofStudent"]?.ToString() ?? "0";
+                totalMarks = row["TotalMark_ofStudent"]?.ToString() ?? "0";
+                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["ObtainedPercentage_ofStudent"]);
+                average = row["Average"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["Average"]);
+                grade = row["Student_Grade"] == DBNull.Value ? "F" : row["Student_Grade"].ToString();
+                gpa = row["Student_Point"] == DBNull.Value ? "0.0" : string.Format("{0:F1}", row["Student_Point"]);
+
+                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Class"]);
+                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Subsection"]);
+                positionClass = posClassInt > 0 ? ToOrdinal(posClassInt) : "-";
+                positionSection = posSectionInt > 0 ? ToOrdinal(posSectionInt) : "-";
+
+                decimal studentPoint = row["Student_Point"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Student_Point"]);
+                comment = GetResultStatus(grade, studentPoint);
+            }
+            catch { }
+
+            string studentResultID = row["StudentResultID"]?.ToString() ?? string.Empty;
+            int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+            var attendanceInfo = GetAttendanceData(studentResultID, examID);
+
+            string psHeader = HasSections ? "<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #339f03; color: #fff; min-width: 25px;\">PS</td>" : string.Empty;
+            string psData = HasSections ? $"<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;\" title=\"{positionSection}\">{positionSection}</td>" : string.Empty;
+
+            string html = $@"<table class=""attendance-summary-combined"" style=""border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; font-family: Arial, sans-serif;"">
+                    <tr>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">WD</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Pre</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Abs</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">L Abs</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Leave</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Late</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #4285f4; color: #fff; min-width: 75px;"">Obtained Marks</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ea4335; color: #fff; min-width: 30px;"">%</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #009974; color: #fff; min-width: 45px;"">Average</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ed4695; color: #fff; min-width: 35px;"">Grade</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #805ddd; color: #fff; min-width: 30px;"">GPA</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #e19511; color: #fff; min-width: 25px;"" title=""Position In Class"">PC</td>
+                        {psHeader}
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #a71a5f; color: #fff; min-width: 60px;"" title=""Comment based on Grade and GPA"">Comment</td>
+                    </tr>
+                    <tr>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceInfo.WorkingDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceInfo.PresentDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceInfo.AbsentDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceInfo.LateAbsDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceInfo.LeaveDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceInfo.LateDays}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 75px;"" title=""{obtainedMarks}/{totalMarks}"">{obtainedMarks}/{totalMarks}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{percentage}%</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 45px;"">{average}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{grade}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{gpa}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"" title=""{positionClass}"">{positionClass}</td>
+                        {psData}
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 60px;"">{comment}</td>
+                    </tr>
+                </table>";
+            return html;
+        }
+
         private void BindResultsToRepeater(DataTable dt
         )
         {
@@ -1255,7 +1333,8 @@ namespace EDUCATION.COM.Exam.Result
                     INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
                     INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
                     WHERE esn.SchoolID = @SchoolID
-                    AND esn.EducationYearID = @EducationYearID
+                    AND eom.SchoolID = @SchoolID
+                    AND eom.EducationYearID = @EducationYearID
                     AND ers.ExamID = @ExamID
                     AND sc.ClassID = @ClassID
                     AND eom.SchoolID = @SchoolID
@@ -1292,6 +1371,248 @@ namespace EDUCATION.COM.Exam.Result
             }
 
             return subExamIDs;
+        }
+
+        // Subject position data for subject table
+        public class SubjectPositionInfo
+        {
+            public string PositionClass { get; set; } = "-";
+            public string PositionSection { get; set; } = "-";
+            public string HighestMarksClass { get; set; } = "-";
+            public string HighestMarksSection { get; set; } = "-";
+        }
+        private SubjectPositionInfo GetSubjectPositionDataForTable(string studentResultID, int subjectID)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+
+                string query = @"
+                    SELECT 
+                        ISNULL(CAST(ers.Position_InSubject_Class AS VARCHAR(10)) + 
+                            CASE WHEN ers.Position_InSubject_Class % 100 IN (11, 12, 13) 
+                            THEN 'th' WHEN ers.Position_InSubject_Class % 10 = 1 THEN 'st' 
+                            WHEN ers.Position_InSubject_Class % 10 = 2 THEN 'nd' 
+                            WHEN ers.Position_InSubject_Class % 10 = 3 THEN 'rd' 
+                            ELSE 'th' END, '-') AS Position_InSubject_Class,
+                        ISNULL(CAST(ers.Position_InSubject_Subsection AS VARCHAR(10)) + 
+                            CASE WHEN ers.Position_InSubject_Subsection % 100 IN (11, 12, 13) 
+                            THEN 'th' WHEN ers.Position_InSubject_Subsection % 10 = 1 THEN 'st' 
+                            WHEN ers.Position_InSubject_Subsection % 10 = 2 THEN 'nd' 
+                            WHEN ers.Position_InSubject_Subsection % 10 = 3 THEN 'rd' 
+                            ELSE 'th' END, '-') AS Position_InSubject_Subsection,
+                        ISNULL(CAST(ers.HighestMark_InSubject_Class AS VARCHAR(10)), '-') AS HighestMark_InSubject_Class,
+                        ISNULL(CAST(ers.HighestMark_InSubject_Subsection AS VARCHAR(10)), '-') AS HighestMark_InSubject_Subsection
+                    FROM Exam_Result_of_Subject ers
+                    WHERE ers.StudentResultID = @StudentResultID 
+                    AND ers.SubjectID = @SubjectID
+                    AND ers.SchoolID = @SchoolID
+                    AND ers.EducationYearID = @EducationYearID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.CommandTimeout = 15;
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new SubjectPositionInfo
+                            {
+                                PositionClass = reader["Position_InSubject_Class"]?.ToString() ?? "-",
+                                PositionSection = reader["Position_InSubject_Subsection"]?.ToString() ?? "-",
+                                HighestMarksClass = reader["HighestMark_InSubject_Class"]?.ToString() ?? "-",
+                                HighestMarksSection = reader["HighestMark_InSubject_Subsection"]?.ToString() ?? "-"
+                            };
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetSubjectPositionDataForTable: {ex.Message}");
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+            return new SubjectPositionInfo();
+        }
+
+        [System.Web.Services.WebMethod]
+        public static object SaveSignature(string signatureType, string imageData)
+        {
+            try
+            {
+                var context = HttpContext.Current;
+                var schoolId = context.Session["SchoolID"];
+
+                if ( schoolId == null)
+                {
+                    return new { success = false, message = "School ID not found in session" };
+                }
+
+                // Convert base64 to byte array
+                byte[] imageBytes = Convert.FromBase64String(imageData);
+
+                SqlConnection con = null;
+                try
+                {
+                    con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                    con.Open();
+
+                    string column = signatureType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
+                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@ImageData", imageBytes);
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            return new { success = true, message = "Signature saved successfully", schoolId = schoolId };
+                        }
+                        else
+                        {
+                            return new { success = false, message = "No rows updated" };
+                        }
+                    }
+                }
+                finally
+                {
+                    if (con != null && con.State == System.Data.ConnectionState.Open)
+                    {
+                        con.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, message = ex.Message };
+            }
+        }
+
+        // Attendance DTO and minimal data provider
+        public class AttendanceData
+        {
+            public string WorkingDays { get; set; } = "0";
+            public string PresentDays { get; set; } = "0";
+            public string AbsentDays { get; set; } = "0";
+            public string LeaveDays { get; set; } = "0";
+            public string LateAbsDays { get; set; } = "0";
+            public string LateDays { get; set; } = "0";
+        }
+        
+        private AttendanceData GetAttendanceData(string studentResultID, int examID)
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+
+                // First, get the StudentClassID from the result
+                string getStudentClassQuery = @"
+                    SELECT sc.StudentID, ers.StudentClassID, sc.ClassID
+                    FROM Exam_Result_of_Student ers
+                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                    WHERE ers.StudentResultID = @StudentResultID";
+
+                int studentID = 0;
+                int studentClassID = 0;
+                int classID = 0;
+
+                using (SqlCommand cmd = new SqlCommand(getStudentClassQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            studentID = Convert.ToInt32(reader["StudentID"]);
+                            studentClassID = Convert.ToInt32(reader["StudentClassID"]);
+                            classID = Convert.ToInt32(reader["ClassID"]);
+                        }
+                        else
+                        {
+                            return new AttendanceData(); // Return default if no student found
+                        }
+                    }
+                }
+
+                // Now get attendance data from Attendance_Student table
+                string attendanceQuery = @"
+                    SELECT 
+                        ISNULL(WorkingDays, 0) as WorkingDays,
+                        ISNULL(TotalPresent, 0) as TotalPresent,
+                        ISNULL(TotalAbsent, 0) as TotalAbsent,
+                        ISNULL(TotalLeave, 0) as TotalLeave,
+                        ISNULL(TotalLate, 0) as TotalLate,
+                        ISNULL(TotalLateAbs, 0) as TotalLateAbs
+                    FROM Attendance_Student 
+                    WHERE StudentID = @StudentID
+                    AND ExamID = @ExamID
+                    AND ClassID = @ClassID
+                    AND StudentClassID = @StudentClassID
+                    AND SchoolID = @SchoolID
+                    AND EducationYearID = @EducationYearID";
+
+                using (SqlCommand cmd = new SqlCommand(attendanceQuery, con))
+                {
+                    cmd.Parameters.AddWithValue("@StudentID", studentID);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ClassID", classID);
+                    cmd.Parameters.AddWithValue("@StudentClassID", studentClassID);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new AttendanceData
+                            {
+                                WorkingDays = reader["WorkingDays"]?.ToString() ?? "0",
+                                PresentDays = reader["TotalPresent"]?.ToString() ?? "0",
+                                AbsentDays = reader["TotalAbsent"]?.ToString() ?? "0",
+                                LeaveDays = reader["TotalLeave"]?.ToString() ?? "0",
+                                LateAbsDays = reader["TotalLateAbs"]?.ToString() ?? "0",
+                                LateDays = reader["TotalLate"]?.ToString() ?? "0"
+                            };
+                        }
+                    }
+                }
+
+                // If no specific attendance record found, return default values
+                return new AttendanceData();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetAttendanceData: {ex.Message}");
+                // Return default values if error occurs
+                return new AttendanceData();
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
         }
 
         // Helper method to safely escape strings for JavaScript output
@@ -1342,24 +1663,6 @@ namespace EDUCATION.COM.Exam.Result
                 case 2: return number + "nd";
                 case 3: return number + "rd";
                 default: return number + "th";
-            }
-        }
-
-        public string GetOrdinalSuffix(int number) => ToOrdinal(number);
-
-        public string GetOrdinalSuffix(object number)
-        {
-            try
-            {
-                if (number == null || number == DBNull.Value) return "-";
-                int n;
-                if (int.TryParse(Convert.ToString(number), out n))
-                    return ToOrdinal(n);
-                return "-";
-            }
-            catch
-            {
-                return "-";
             }
         }
 
@@ -1424,173 +1727,6 @@ namespace EDUCATION.COM.Exam.Result
             return result.ToString();
         }
 
-        // Attendance DTO and minimal data provider (placeholder values)
-        public class AttendanceData
-        {
-            public string WorkingDays { get; set; } = "0";
-            public string PresentDays { get; set; } = "0";
-            public string AbsentDays { get; set; } = "0";
-            public string LeaveDays { get; set; } = "0";
-        }
-        private AttendanceData GetAttendanceData(string studentResultID, int examID)
-        {
-            return new AttendanceData();
-        }
-
-        // Helper method to generate attendance + summary table for a student
-        public string GetAttendanceTableHtml(object dataItem)
-        {
-            var row = (DataRowView)dataItem;
-
-            string obtainedMarks = "0";
-            string totalMarks = "0";
-            string percentage = "0.00";
-            string average = "0.00";
-            string grade = "F";
-            string gpa = "0.0";
-            string positionClass = "-";
-            string positionSection = "-";
-            string comment = "Good";
-
-            try
-            {
-                obtainedMarks = row["TotalExamObtainedMark_ofStudent"]?.ToString() ?? "0";
-                totalMarks = row["TotalMark_ofStudent"]?.ToString() ?? "0";
-                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["ObtainedPercentage_ofStudent"]);
-                average = row["Average"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["Average"]);
-                grade = row["Student_Grade"] == DBNull.Value ? "F" : row["Student_Grade"].ToString();
-                gpa = row["Student_Point"] == DBNull.Value ? "0.0" : string.Format("{0:F1}", row["Student_Point"]);
-
-                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Class"]);
-                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Subsection"]);
-                positionClass = posClassInt > 0 ? ToOrdinal(posClassInt) : "-";
-                positionSection = posSectionInt > 0 ? ToOrdinal(posSectionInt) : "-";
-
-                decimal studentPoint = row["Student_Point"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Student_Point"]);
-                comment = GetResultStatus(grade, studentPoint);
-            }
-            catch { }
-
-            string studentResultID = row["StudentResultID"]?.ToString() ?? string.Empty;
-            int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-            var attendanceData = GetAttendanceData(studentResultID, examID);
-
-            string psHeader = HasSections ? "<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #93c47d; color: #fff; min-width: 25px;\">PS</td>" : string.Empty;
-            string psData = HasSections ? $"<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;\" title=\"{positionSection}\">{positionSection}</td>" : string.Empty;
-
-            string html = $@"<table class=""attendance-summary-combined"" style=""border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; font-family: Arial, sans-serif;"">
-                    <tr>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">WD</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Pre</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">Abs</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">L Abs</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Leave</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 35px;"">Late</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #4285f4; color: #fff; min-width: 75px;"">Obtained Marks</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ea4335; color: #fff; min-width: 30px;"">%</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #a4c2f4; color: #000; min-width: 45px;"">Average</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #9fc5e8; color: #fff; min-width: 35px;"">Grade</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #b4a7d6; color: #fff; min-width: 30px;"">GPA</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #93c47d; color: #fff; min-width: 25px;"" title=""Position In Class"">PC</td>
-                        {psHeader}
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #d5a6bd; color: #fff; min-width: 60px;"" title=""Comment based on Grade and GPA"">Comment</td>
-                    </tr>
-                    <tr>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.WorkingDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.PresentDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"">{attendanceData.AbsentDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">0</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceData.LeaveDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">0</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 75px;"" title=""{obtainedMarks}/{totalMarks}"">{obtainedMarks}/{totalMarks}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{percentage}%</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 45px;"">{average}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{grade}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{gpa}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"" title=""{positionClass}"">{positionClass}</td>
-                        {psData}
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 60px;"">{comment}</td>
-                    </tr>
-                </table>";
-            return html;
-        }
-
-        // Subject position data for subject table
-        public class SubjectPositionData
-        {
-            public string PositionClass { get; set; } = "-";
-            public string PositionSection { get; set; } = "-";
-            public string HighestMarksClass { get; set; } = "-";
-            public string HighestMarksSection { get; set; } = "-";
-        }
-        private SubjectPositionData GetSubjectPositionDataForTable(string studentResultID, int subjectID)
-        {
-            SqlConnection con = null;
-            try
-            {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
-
-                string query = @"
-                    SELECT 
-                        ISNULL(CAST(ers.Position_InSubject_Class AS VARCHAR(10)) + 
-                            CASE WHEN ers.Position_InSubject_Class % 100 IN (11, 12, 13) 
-                            THEN 'th' WHEN ers.Position_InSubject_Class % 10 = 1 THEN 'st' 
-                            WHEN ers.Position_InSubject_Class % 10 = 2 THEN 'nd' 
-                            WHEN ers.Position_InSubject_Class % 10 = 3 THEN 'rd' 
-                            ELSE 'th' END, '-') AS Position_InSubject_Class,
-                        ISNULL(CAST(ers.Position_InSubject_Subsection AS VARCHAR(10)) + 
-                            CASE WHEN ers.Position_InSubject_Subsection % 100 IN (11, 12, 13) 
-                            THEN 'th' WHEN ers.Position_InSubject_Subsection % 10 = 1 THEN 'st' 
-                            WHEN ers.Position_InSubject_Subsection % 10 = 2 THEN 'nd' 
-                            WHEN ers.Position_InSubject_Subsection % 10 = 3 THEN 'rd' 
-                            ELSE 'th' END, '-') AS Position_InSubject_Subsection,
-                        ISNULL(CAST(ers.HighestMark_InSubject_Class AS VARCHAR(10)), '-') AS HighestMark_InSubject_Class,
-                        ISNULL(CAST(ers.HighestMark_InSubject_Subsection AS VARCHAR(10)), '-') AS HighestMark_InSubject_Subsection
-                    FROM Exam_Result_of_Subject ers
-                    WHERE ers.StudentResultID = @StudentResultID 
-                    AND ers.SubjectID = @SubjectID
-                    AND ers.SchoolID = @SchoolID
-                    AND ers.EducationYearID = @EducationYearID";
-
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            return new SubjectPositionData
-                            {
-                                PositionClass = reader["Position_InSubject_Class"]?.ToString() ?? "-",
-                                PositionSection = reader["Position_InSubject_Subsection"]?.ToString() ?? "-",
-                                HighestMarksClass = reader["HighestMark_InSubject_Class"]?.ToString() ?? "-",
-                                HighestMarksSection = reader["HighestMark_InSubject_Subsection"]?.ToString() ?? "-"
-                            };
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubjectPositionDataForTable: {ex.Message}");
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
-            return new SubjectPositionData();
-        }
-
         // Check if exam has sub-exams
         private bool HasSubExams(int examID)
         {
@@ -1602,15 +1738,16 @@ namespace EDUCATION.COM.Exam.Result
 
                 string query = @"
                     SELECT COUNT(DISTINCT eom.SubExamID) 
-                    FROM Exam_Obtain_Marks eom
-                    INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
-                    INNER JOIN StudentsClass sc ON eom.StudentResultID IN (
-                        SELECT ers.StudentResultID 
-                        FROM Exam_Result_of_Student ers 
-                        INNER JOIN StudentsClass sc2 ON ers.StudentClassID = sc2.StudentClassID
-                        WHERE ers.ExamID = @ExamID AND sc2.ClassID = @ClassID
-                    )
-                    WHERE eom.SchoolID = @SchoolID 
+                    FROM Exam_SubExam_Name esn
+                    INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                    INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                    INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                    WHERE esn.SchoolID = @SchoolID 
+                    AND eom.SchoolID = @SchoolID 
+                    AND eom.EducationYearID = @EducationYearID
+                    AND ers.ExamID = @ExamID
+                    AND sc.ClassID = @ClassID
+                    AND eom.SchoolID = @SchoolID
                     AND eom.EducationYearID = @EducationYearID";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
@@ -1656,7 +1793,8 @@ namespace EDUCATION.COM.Exam.Result
                     INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
                     INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
                     WHERE esn.SchoolID = @SchoolID
-                    AND esn.EducationYearID = @EducationYearID
+                    AND eom.SchoolID = @SchoolID
+                    AND eom.EducationYearID = @EducationYearID
                     AND ers.ExamID = @ExamID
                     AND sc.ClassID = @ClassID
                     AND eom.SchoolID = @SchoolID
@@ -1694,6 +1832,7 @@ namespace EDUCATION.COM.Exam.Result
             public string FirstRowHeader { get; set; } = string.Empty;
             public string SecondRowHeader { get; set; } = string.Empty;
         }
+        
         private SubExamHeaderStructure GetSubExamHeadersWithStructure(string studentResultID)
         {
             SqlConnection con = null;
@@ -1759,52 +1898,6 @@ namespace EDUCATION.COM.Exam.Result
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetSubExamHeadersWithStructure: {ex.Message}");
                 return new SubExamHeaderStructure();
-            }
-            finally
-            {
-                if (con != null && con.State == ConnectionState.Open)
-                {
-                    con.Close();
-                    con.Dispose();
-                }
-            }
-        }
-
-        // Subject pass mark
-        private string GetSubjectPassMark(int subjectID, int examID)
-        {
-            SqlConnection con = null;
-            try
-            {
-                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                con.Open();
-
-                string query = @"
-                    SELECT ISNULL(AVG(PassMark), 0) as AveragePassMark
-                    FROM Exam_Subject_Marks_PassMark 
-                    WHERE SubjectID = @SubjectID 
-                    AND ExamID = @ExamID 
-                    AND SchoolID = @SchoolID 
-                    AND EducationYearID = @EducationYearID
-                    AND ClassID = @ClassID";
-
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-
-                    var result = cmd.ExecuteScalar();
-                    decimal passMark = Convert.ToDecimal(result ?? 0);
-                    return passMark.ToString("F0");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubjectPassMark: {ex.Message}");
-                return "0";
             }
             finally
             {
@@ -1923,62 +2016,6 @@ namespace EDUCATION.COM.Exam.Result
                     con.Close();
                     con.Dispose();
                 }
-            }
-        }
-
-        [System.Web.Services.WebMethod]
-        public static object SaveSignature(string signatureType, string imageData)
-        {
-            try
-            {
-                var context = HttpContext.Current;
-                var schoolId = context.Session["SchoolID"];
-
-                if (schoolId == null)
-                {
-                    return new { success = false, message = "School ID not found in session" };
-                }
-
-                // Convert base64 to byte array
-                byte[] imageBytes = Convert.FromBase64String(imageData);
-
-                SqlConnection con = null;
-                try
-                {
-                    con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                    con.Open();
-
-                    string column = signatureType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
-                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
-
-                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
-                    {
-                        cmd.Parameters.AddWithValue("@ImageData", imageBytes);
-                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
-
-                        int rowsAffected = cmd.ExecuteNonQuery();
-
-                        if (rowsAffected > 0)
-                        {
-                            return new { success = true, message = "Signature saved successfully", schoolId = schoolId };
-                        }
-                        else
-                        {
-                            return new { success = false, message = "No rows updated" };
-                        }
-                    }
-                }
-                finally
-                {
-                    if (con != null && con.State == System.Data.ConnectionState.Open)
-                    {
-                        con.Close();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return new { success = false, message = ex.Message };
             }
         }
     }
