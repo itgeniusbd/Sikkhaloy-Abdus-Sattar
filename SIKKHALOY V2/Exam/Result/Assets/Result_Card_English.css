@@ -1,451 +1,27 @@
-﻿/* Bangla Result DirectPrint CSS */
-/* Use reliable Google Fonts with local fallbacks */
+﻿/* Simple Result Card CSS - Working Version */
 * {
-    font-family: 'Noto Sans Bengali', 'SolaimanLipi', 'Kalpurush', Arial, sans-serif !important;
-}
-
-/* Font Awesome Icon Support */
-.fa, .fas, .far, .fab, .fal, .fad {
-    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
-    font-weight: 900 !important;
-    -webkit-font-smoothing: antialiased !important;
-    -moz-osx-font-smoothing: grayscale !important;
-    display: inline-block !important;
-    font-style: normal !important;
-    font-variant: normal !important;
-    text-rendering: auto !important;
-    line-height: 1 !important;
-}
-.note {
-    margin-top: 14px;
-    margin-bottom: -1rem;
-    font-size: 9px;
-    text-align: center;
-    color: green;
-    font-weight:bold;
-}
-/* Specific icon fixes */
-.fa-language::before {
-    content: "\f1ab" !important;
-}
-
-.fa-map-marker::before {
-    content: "\f3c5" !important;
-}
-
-.fa-phone::before {
-    content: "\f095" !important;
-}
-
-.fa-envelope-o::before, .fa-envelope::before {
-    content: "\f0e0" !important;
-}
-
-.fa-facebook::before {
-    content: "\f09a" !important;
-}
-
-.fa-twitter::before {
-    content: "\f099" !important;
-}
-
-.fa-youtube::before {
-    content: "\f167" !important;
-}
-
-.fa-user::before {
-    content: "\f007" !important;
-}
-
-.fa-lock::before {
-    content: "\f023" !important;
-}
-
-.fa-paper-plane::before {
-    content: "\f1d8" !important;
-}
-
-@media print {
-    .NoPrint, .controls, .btn {
-        display: none !important;
-    }
-
-    html, body {
-        font-family: Arial, sans-serif !important; /* Use Arial for better print compatibility */
-        margin: 0 !important;
-        padding: 0 !important;
-        background: white !important;
-        height: auto !important;
-        overflow: visible !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        font-size: 14px !important; /* Match normal view base font size */
-    }
-
-    /* Remove problematic font forcing */
-    * {
-        font-family: Arial, sans-serif !important; /* Use Arial instead of Kalpurush for print */
-        -webkit-font-smoothing: auto !important;
-        -moz-osx-font-smoothing: auto !important;
-        text-rendering: auto !important;
-        font-size: inherit !important; /* Inherit font size from parent */
-    }
-
-    .result-card {
-        margin: 5mm !important; /* Individual card margins */
-        width: auto !important;
-        height: auto !important;
-        max-width: none !important;
-        padding: 5mm !important; /* Internal padding */
-        page-break-after: always !important;
-        page-break-before: auto !important;
-        page-break-inside: avoid !important;
-        border: 2px solid #0072bc !important; /* Individual card border */
-        box-sizing: border-box !important;
-        position: static !important; /* Static positioning for proper flow */
-        top: auto !important;
-        left: auto !important;
-        font-family: Arial, sans-serif !important;
-        background: white !important; /* White background for each card */
-        display: block !important; /* Block display */
-        clear: both !important; /* Clear floats */
-        font-size: 14px !important; /* Match normal view font size */
-    }
-
-        .result-card:last-child {
-            page-break-after: auto !important;
-            margin: 5mm 5mm !important; /* Bottom margin for last card */
-        }
-
-        .result-card:first-child {
-            page-break-before: avoid !important;
-            margin: 5mm 5mm !important; /* Top margin for first card */
-        }
-
-    #header {
-        display: none !important;
-    }
-
-    #sidedrawer {
-        display: none !important;
-    }
-
-    #footer {
-        display: none !important;
-    }
-
-    #content-wrapper {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    #form1 {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    .header h2 {
-        font-size: 22px !important; /* Match normal view school name size */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-        color: #0072bc !important; /* School name blue */
-        line-height: 1.2 !important; /* Reduced line height */
-        margin: 5px 0 !important; /* Reduced margin */
-    }
-
-    .header p {
-        font-size: 14px !important; /* Match normal view header text size */
-        font-family: Arial, sans-serif !important;
-        font-weight: normal !important;
-        color: #000 !important; /* Address and phone black */
-        line-height: 1.1 !important; /* Reduced line height */
-        margin: 2px 0 !important; /* Reduced margin */
-    }
-
-    .title {
-        font-size: 16px !important; /* Match normal view title size */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-        color: darkgreen !important;
-        text-align: center !important;
-        margin: 3px 0 !important;
-    }
-
-    .Exam_name {
-        font-size: 16px !important; /* Match normal view exam name size */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-        color: #0072bc !important;
-        text-align: center !important;
-        margin: 0px 0 !important;
-    }
-
-    /* Result card header icons for print */
-    .header i.fa, .header .icon-fallback {
-        font-family: Arial, sans-serif !important;
-        font-size: 14px !important; /* Match normal view icon size */
-        margin-right: 3px !important;
-        color: #0072bc !important;
-        display: inline-block !important;
-    }
-
-        /* Icon fallback content for print */
-        .header .fa-map-marker::before,
-        .header .icon-fallback[data-fallback="📍"]::before {
-            content: "📍" !important;
-            font-family: Arial, sans-serif !important;
-        }
-
-        .header .fa-phone::before,
-        .header .icon-fallback[data-fallback="📞"]::before {
-            content: "📞" !important;
-            font-family: Arial, sans-serif !important;
-        }
-
-    /* Student photo styles for print - square with rounded corners */
-    .student-photo {
-        width: 70px !important;
-        height: 70px !important;
-        border-radius: 5px !important; /* Match normal view rounded corners */
-        object-fit: cover !important;
-        position: absolute !important;
-        right: 0 !important;
-        top: 0 !important;
-        left: auto !important;
-        border: 3px solid #0072bc !important;
-        background: white !important;
-        z-index: 10 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    .header img {
-        border-radius: 5px !important; /* Match normal view rounded corners */
-        border: 2px solid #0072bc !important; /* Same border as student photo */
-        background: white !important; /* Same background as student photo */
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        width: 70px !important; /* Match normal view */
-        height: 70px !important; /* Match normal view */
-    }
-
-    /* Info table - match normal view text */
-    .info-table td {
-        font-size: 14px !important; /* Match normal view font size */
-        padding: 5px 8px !important; /* Match normal view padding */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    /* Info table specific styling for better column alignment */
-    .info-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 2px;
-        table-layout: fixed; /* Fixed layout for consistent column widths */
-    }
-
-        .info-table td {
-            border: 1px solid #0072bc;
-            padding: 5px 8px;
-            font-size: 14px; /* Standardized info table size for screen */
-            font-weight: bold;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        /* Define consistent column widths - 6 columns total */
-        .info-table td:nth-child(1) {
-            width: 5%; /* Labels like "Name:", "Class:", etc */
-            text-align: right;
-        }
-
-        .info-table td:nth-child(2) {
-            width: 20%; /* Values for first column */
-            text-align: left;
-        }
-
-        .info-table td:nth-child(3) {
-            width: 5%; /* Labels for second column */
-            text-align: right;
-        }
-
-        .info-table td:nth-child(4) {
-            width: 20%; /* Values for second column */
-            text-align: left;
-        }
-
-        .info-table td:nth-child(5) {
-            width: 15%; /* Labels for third column */
-            text-align: left;
-        }
-
-        .info-table td:nth-child(6) {
-            width: 15%; /* Values for third column or empty space */
-            text-align: left;
-        }
-
-        /* Special styling for the name row which spans multiple columns */
-        .info-table td[colspan="5"] {
-            text-align: left;
-            font-weight: bold;
-        }
-
-    /* Summary table - match normal view text for print */
-    .summary-header td {
-        padding: 6px 6px !important; /* Match normal view padding */
-        font-size: 14px !important; /* Match normal view font size */
-        background-color: #f8f9fa !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color: #333 !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    .summary-values td {
-        padding: 6px !important; /* Match normal view padding */
-        font-size: 14px !important; /* Match normal view font size */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    /* Marks table - match normal view text for print */
-    .marks-table th, .marks-table td {
-        font-size: 12px !important; /* Match normal view font size */
-        padding: 3px !important; /* Match normal view padding */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    .marks-table th {
-        font-size: 12px !important; /* Match normal view header size */
-        background: #d7ede1 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    /* All table variations use same font size for consistency */
-    .marks-table.medium-subjects th, .marks-table.medium-subjects td,
-    .marks-table.small-subjects th, .marks-table.small-subjects td {
-        font-size: 12px !important; /* Match normal view font size */
-        padding: 3px !important; /* Match normal view padding */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    .marks-table.medium-subjects th,
-    .marks-table.small-subjects th {
-        font-size: 12px !important; /* Match normal view header size */
-    }
-
-    .marks-table.medium-subjects .sub-exam-marks {
-        font-size: 12px !important; /* Match normal view sub-exam marks */
-        font-weight: normal;
-        white-space: nowrap;
-        color: #333;
-        display: inline-block;
-    }
-
-    .marks-table.small-subjects .sub-exam-marks {
-        font-size: 12px !important; /* Match normal view sub-exam marks */
-        font-weight: normal;
-        white-space: nowrap;
-        color: #333;
-        display: inline-block;
-    }
-
-    /* Footer - match normal view text */
-    .footer {
-        font-size: 14px !important; /* Match normal view footer size */
-        margin-top: 30px !important; /* Match normal view margin */
-        padding: 0 50px !important; /* Match normal view padding */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    /* Comments column specific styling for print */
-    .marks-table .comment-header {
-        background: #e8f4fd !important;
-        color: #000 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        text-align: center !important;
-        font-size: 14px !important; /* Match normal view comment header size */
-        padding: 6px 4px !important; /* Match normal view padding */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    .marks-table .comment-cell {
-        text-align: center !important;
-        font-size: 14px !important; /* Match normal view comment cell size */
-        padding: 8px 4px !important; /* Match normal view padding */
-        color: #333 !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: normal !important;
-    }
-
-    /* All comment variations use same standardized size */
-    .marks-table.medium-subjects .comment-header,
-    .marks-table.small-subjects .comment-header,
-    .marks-table.medium-subjects .comment-cell,
-    .marks-table.small-subjects .comment-cell {
-        font-size: 14px !important; /* Match normal view size */
-        padding: 6px 4px !important; /* Match normal view padding */
-        font-family: Arial, sans-serif !important;
-    }
+    font-family: Arial, sans-serif !important;
 }
 
 body {
-    font-family: 'Kalpurush', Arial, sans-serif;
+    font-family: Arial, sans-serif !important;
     background: #fff;
     margin: 0;
-    font-size: 14px; /* Base font size for screen view */
-}
-
-h3 {
-    padding: 1rem;
-    border-radius: .25rem;
-    margin-top: 3px;
-    text-transform: uppercase;
-    color: #0f56d1;
-    font-size: 2rem;
-    font-weight: 400;
-    background-color: #fff;
-    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .16), 0 2px 10px 0 rgba(0, 0, 0, .12);
-    margin-bottom: 1.5rem !important;
+    font-size: 14px;
 }
 
 .result-card {
     border: 2px solid #0072bc;
     border-radius: 5px;
-    padding: 20px; /* Internal padding inside the card */
+    padding: 20px;
     max-width: 1100px;
-    margin: 5mm 5mm !important; /* Proper margin around each card */
-    page-break-after: always;
-    page-break-inside: avoid;
-    page-break-before: auto; /* Allow natural page breaks */
-    background: white; /* Ensure white background */
-    box-sizing: border-box; /* Include border in width calculation */
-    display: block; /* Ensure block-level display */
-    font-size: 14px; /* Base font size for cards */
+    margin: 20px auto;
+    background: white;
+    box-sizing: border-box;
+    display: block;
+    font-size: 14px;
+    font-family: Arial, sans-serif !important;
 }
-
-    .result-card:last-child {
-        page-break-after: auto;
-        margin-bottom: 10px; /* Add bottom margin to last card */
-    }
-
-    .result-card:first-child {
-        margin: 5mm 5mm !important; /* Add top margin to first card */
-    }
-
-    /* Ensure individual card isolation */
-    .result-card + .result-card {
-        margin-top: 20px; /* Space between consecutive cards */
-    }
 
 .header {
     text-align: center;
@@ -453,68 +29,42 @@ h3 {
     padding-bottom: 19px;
     margin-bottom: 5px;
     position: relative;
+    font-family: Arial, sans-serif !important;
 }
 
-    /* Result card header icon styling */
-    .header i.fa {
-        font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
-        font-weight: 900 !important;
-        margin-right: 5px;
-        color: #0072bc;
-        font-size: 14px; /* Standardized icon size for screen */
-    }
+.header h2 {
+    color: #0072bc !important;
+    line-height: 1.2 !important;
+    margin: 5px 0 !important;
+    font-size: 22px;
+    font-weight: bold;
+    font-family: Arial, sans-serif !important;
+}
 
-    /* Specific icon fixes for result card header */
-    .header .fa-map-marker::before {
-        content: "\f3c5" !important;
-        font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-    }
+.header p {
+    color: #000 !important;
+    line-height: 1.1 !important;
+    margin: 2px 0 !important;
+    font-size: 14px;
+    font-family: Arial, sans-serif !important;
+}
 
-    .header .fa-phone::before {
-        content: "\f095" !important;
-        font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-    }
+.header img {
+    width: 70px;
+    height: 70px;
+    border-radius: 5px !important;
+    object-fit: cover;
+    position: absolute;
+    left: 0;
+    top: 0;
+    border: 2px solid #0072bc !important;
+    background: white !important;
+}
 
-    /* Fallback for result card icons */
-    .header .icon-fallback {
-        font-style: normal !important;
-        display: inline-block !important;
-        margin-right: 5px;
-        font-size: 14px; /* Standardized fallback icon size */
-    }
-
-    .header h2 {
-        color: #0072bc !important; /* School name blue */
-        line-height: 1.2 !important; /* Reduced line height */
-        margin: 5px 0 !important; /* Reduced margin */
-        font-size: 22px; /* Standardized school name size for screen */
-        font-weight: bold;
-    }
-
-    .header p {
-        color: #000 !important; /* Address and phone black */
-        line-height: 1.1 !important; /* Reduced line height */
-        margin: 2px 0 !important; /* Reduced margin */
-        font-size: 14px; /* Standardized header text size for screen */
-    }
-
-    .header img {
-        width: 70px; /* Same as student photo */
-        height: 70px; /* Same as student photo */
-        border-radius: 5px !important; /* Square with rounded corners */
-        object-fit: cover;
-        position: absolute;
-        left: 0;
-        top: 0;
-        border: 2px solid #0072bc !important; /* Same border as student photo */
-        background: white !important; /* Same background as student photo */
-    }
-
-/* Student photo in header - square with rounded corners */
 .student-photo {
     width: 70px !important;
     height: 70px !important;
-    border-radius: 5px !important; /* Square with rounded corners */
+    border-radius: 5px !important;
     object-fit: cover !important;
     position: absolute !important;
     right: 0 !important;
@@ -530,7 +80,8 @@ h3 {
     font-weight: bold;
     margin: 3px 0;
     color: darkgreen;
-    font-size: 16px; /* Standardized title size for screen */
+    font-size: 16px;
+    font-family: Arial, sans-serif !important;
 }
 
 .Exam_name {
@@ -538,7 +89,8 @@ h3 {
     font-weight: bold;
     margin: 0px 0;
     color: #0072bc;
-    font-size: 16px; /* Standardized exam name size for screen */
+    font-size: 16px;
+    font-family: Arial, sans-serif !important;
 }
 
 .top-section {
@@ -549,229 +101,113 @@ h3 {
 }
 
 .info-summary {
-    width: 88%;
+    width: 79%;
 }
 
 .info-table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 2px;
+    table-layout: fixed;
+    font-family: Arial, sans-serif !important;
 }
 
-    .info-table td {
-        border: 1px solid #0072bc;
-        padding: 5px 8px;
-        font-size: 14px; /* Standardized info table size for screen */
-        font-weight: bold;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Info table specific styling for better column alignment */
-    .info-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 2px;
-        table-layout: fixed; /* Fixed layout for consistent column widths */
-    }
-
-        .info-table td {
-            border: 1px solid #0072bc;
-            padding: 5px 8px;
-            font-size: 14px; /* Standardized info table size for screen */
-            font-weight: bold;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        /* Define consistent column widths - 6 columns total */
-        .info-table td:nth-child(1) {
-            width: 5%; /* Labels like "Name:", "Class:", etc */
-            text-align: right;
-        }
-
-        .info-table td:nth-child(2) {
-            width: 20%; /* Values for first column */
-            text-align: left;
-        }
-
-        .info-table td:nth-child(3) {
-            width: 5%; /* Labels for second column */
-            text-align: right;
-        }
-
-        .info-table td:nth-child(4) {
-            width: 20%; /* Values for second column */
-            text-align: left;
-        }
-
-        .info-table td:nth-child(5) {
-            width: 15%; /* Labels for third column */
-            text-align: left;
-        }
-
-        .info-table td:nth-child(6) {
-            width: 15%; /* Values for third column or empty space */
-            text-align: left;
-        }
-
-        /* Special styling for the name row which spans multiple columns */
-        .info-table td[colspan="5"] {
-            text-align: left;
-            font-weight: bold;
-        }
-
-.summary {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 5px;
-    font-family: 'Kalpurush', Arial, sans-serif;
-}
-
-.summary-header {
-    background: #0072bc;
-    color: white;
+.info-table td {
+    border: 1px solid #0072bc;
+    padding: 5px 8px;
+    font-size: 14px;
     font-weight: bold;
-    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: Arial, sans-serif !important;
 }
-
-    .summary-header td {
-        padding: 6px 6px !important;
-        font-size: 14px !important; /* Standardized summary header size for screen */
-        background-color: #f8f9fa !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color: #333 !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-.summary-values {
-    background: #f9f9f9;
-}
-
-    .summary-values td {
-        padding: 6px !important;
-        font-size: 14px !important; /* Standardized summary values size for screen */
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
 
 .grade-chart {
     width: 20%;
-    margin-left: 6px;
-    margin-right: 6px;
 }
 
-    .grade-chart table {
-        border-collapse: collapse;
-        width: 100%;
-        font-size: 12px; /* Changed from 11.2px to match other tables */
-        margin-left: 6px;
-        margin-right: 6px;
-    }
+.grade-chart table {
+    width: 100%;
+}
 
-    .grade-chart th, .grade-chart td {
-        border: 1px solid #0072bc;
-        padding: 1.3px 2px;
-        text-align: center;
-        font-weight: bold;
-        font-family: 'Kalpurush', Arial, sans-serif !important;
-        font-size: 12px; /* Changed from 11.2px to match other tables */
-    }
-
-    .grade-chart th {
-        background: #f0f0f0;
-        font-weight: bold;
-        font-size: 12px; /* Changed from 11.2px to match other tables */
-    }
+.grade-chart th, .grade-chart td {
+    border: 1px solid #0072bc;
+    padding: 4px 4px;
+    text-align: center;
+    font-weight: bold;
+    font-family: Arial, sans-serif !important;
+    font-size: 9px;
+    line-height: 1;
+}
 
 .marks-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1px;
+    table-layout: auto;
+    font-size: 12px;
+    min-width: 800px;
+    font-family: Arial, sans-serif !important;
 }
 
-    .marks-table th, .marks-table td {
-        border: 1px solid #0072bc;
-        text-align: center;
-        padding: 3px;
-        font-size: 12px; /* Standardized marks table size for screen */
-        font-weight: bold;
-        font-family: 'Kalpurush', Arial, sans-serif !important;
-    }
-
-    .marks-table th {
-        background: #d7ede1;
-        font-size: 12px; /* Same size for marks table headers */
-    }
-
-        .marks-table th[colspan="2"] {
-            background: #e8f4fd;
-            color: #000;
-            font-weight: bold;
-        }
-
-    /* Sub-exam marks styling */
-    .marks-table .sub-exam-marks {
-        font-size: 12px; /* Slightly smaller for sub-exam marks */
-        font-weight: normal;
-        white-space: nowrap;
-        color: #333;
-        display: inline-block;
-    }
-
-    .marks-table.small-subjects .sub-exam-marks {
-        font-size: 12px; /* Slightly smaller for sub-exam marks */
-        font-weight: normal;
-        white-space: nowrap;
-        color: #333;
-        display: inline-block;
-    }
-
-    /* Total marks column styling */
-    .marks-table .total-marks-cell {
-        background: white;
-        font-weight: bold;
-        color: #0072bc;
-    }
-
-    /* All table variations use standardized sizes for consistency */
-    .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-        font-size: 12px !important; /* Same standardized size */
-        padding: 3px !important; /* Same padding */
-    }
-
-    .marks-table.medium-subjects th {
-        font-size: 12px !important; /* Same header size */
-    }
-
-    .marks-table.medium-subjects .sub-exam-marks {
-        font-size: 12px; /* Slightly smaller for sub-exam marks */
-    }
-
-    .marks-table.small-subjects th, .marks-table.small-subjects td {
-        font-size: 12px !important; /* Same standardized size */
-        padding: 3px !important; /* Same padding */
-    }
-
-    .marks-table.small-subjects th {
-        font-size: 12px !important; /* Same header size */
-    }
-
-    .marks-table.small-subjects .sub-exam-marks {
-        font-size: 12px; /* Slightly smaller for sub-exam marks */
-    }
-
-.vertical-text {
-    writing-mode: vertical-rl;
-    transform: rotate(0deg);
-    font-weight: bold;
-    color: blue;
-    text-align: center !important;
+.marks-table th,
+.marks-table td {
+    border: 1px solid #000;
+    padding: 3px;
+    text-align: center;
     vertical-align: middle;
+    word-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: Arial, sans-serif !important;
+}
+
+/* Hide negative values and dashes in PC and PS columns */
+.marks-table td:nth-child(11),  /* PC column */
+.marks-table td:nth-child(12) { /* PS column */
+    text-indent: -9999px;
+}
+
+.marks-table td:nth-child(11):empty::after,
+.marks-table td:nth-child(12):empty::after {
+    content: "";
+    text-indent: 0;
+}
+
+.marks-table td:nth-child(11):not(:empty)::after,
+.marks-table td:nth-child(12):not(:empty)::after {
+    content: attr(data-value);
+    text-indent: 0;
+}
+
+/* Show only positive values in PC and PS columns */
+.marks-table td:nth-child(11):not([data-negative]),
+.marks-table td:nth-child(12):not([data-negative]) {
+    text-indent: 0;
+}
+
+.marks-table th {
+    background-color: #c8e6c9 !important;
+}
+
+.marks-table th:first-child,
+.marks-table td:first-child {
+    text-align: left;
+    padding-left: 4px;
+    min-width: 80px;
+    max-width: 120px;
+    position: sticky;
+    left: 0;
+    background-color: #fff;
+    z-index: 1;
+    font-size: 12px;
+}
+
+.marks-table th:first-child {
+    background-color: #c8e6c9 !important;
 }
 
 .footer {
@@ -779,682 +215,139 @@ h3 {
     justify-content: space-between;
     align-items: flex-end;
     margin-top: 30px;
-    font-size: 14px; /* Standardized footer size for screen */
-    font-weight: bold;
-    font-family: 'Kalpurush', Arial, sans-serif !important;
     padding: 0 50px;
-}
-
-/* Signature styling */
-.SignTeacher, .SignHead {
-    min-height: 40px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-
-    .SignTeacher img, .SignHead img {
-        max-height: 35px;
-        max-width: 80px;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        display: block;
-    }
-
-.Teacher, .Head {
-    text-align: center;
-    font-weight: bold;
-    margin-top: 5px;
-    min-width: 120px;
-    font-family: Arial, sans-serif;
-    font-size: 14px; /* Standardized signature text size */
-}
-
-.summary td {
-    padding: 4px;
-    font-size: 14px; /* Standardized summary cell size */
-    font-weight: bold;
-    text-align: center;
-    border: 1px solid #0072bc;
-}
-
-    /* Add the same colors as print view for normal view */
-    .summary td:nth-child(1) {
-        background: #ffd966;
-    }
-
-    .summary td:nth-child(2) {
-        background: #f4b183;
-    }
-
-    .summary td:nth-child(3) {
-        background: #a9d08e;
-    }
-
-    .summary td:nth-child(4) {
-        background: #9dc3e6;
-    }
-
-    .summary td:nth-child(5) {
-        background: #c5e0b4;
-    }
-
-    .summary td:nth-child(6) {
-        background: #ffe699;
-    }
-
-    .summary td:nth-child(7) {
-        background: #d9d2e9;
-    }
-
-/* Ensure ResultPanel doesn't interfere with individual card borders */
-#ResultPanel, .result-panel {
-    border: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-/* Controls section styling */
-.controls {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 5px;
-    border: 1px solid #dee2e6;
-}
-
-/* Button styling improvements */
-.btn {
-    display: inline-block;
-    padding: 8px 16px;
-    margin: 2px;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 1.5;
-    text-align: center;
-    text-decoration: none;
-    vertical-align: middle;
-    cursor: pointer;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    transition: all 0.2s ease-in-out;
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 12px;
-    line-height: 1.4;
-    border-radius: 3px;
-    min-width: 65px;
-    font-weight: bold;
-}
-
-/* Extra small buttons */
-.btn-xs {
-    padding: 2px 6px;
-    font-size: 11px;
-    line-height: 1.3;
-    border-radius: 2px;
-}
-
-    /* Pagination buttons with black background and white text - Higher specificity */
-    .btn.btn-xs.btn-outline-primary,
-    .btn-xs.btn-outline-primary,
-    input[type="submit"].btn-outline-primary {
-        color: #ffffff !important;
-        background-color: #000000 !important;
-        border-color: #000000 !important;
-        font-weight: bold !important;
-        padding: 2px 6px !important;
-        font-size: 11px !important;
-        line-height: 1.3 !important;
-        border-radius: 2px !important;
-        text-decoration: none !important;
-    }
-
-        .btn.btn-xs.btn-outline-primary:hover,
-        .btn-xs.btn-outline-primary:hover,
-        input[type="submit"].btn-outline-primary:hover {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-            border-color: #000000 !important;
-            text-decoration: none !important;
-        }
-
-        .btn.btn-xs.btn-outline-primary:disabled,
-        .btn-xs.btn-outline-primary:disabled,
-        input[type="submit"].btn-outline-primary:disabled {
-            color: #6c757d !important;
-            background-color: #f8f9fa !important;
-            border-color: #dee2e6 !important;
-            cursor: not-allowed !important;
-            opacity: 0.65 !important;
-        }
-
-        .btn.btn-xs.btn-outline-primary:focus,
-        .btn-xs.btn-outline-primary:focus,
-        input[type="submit"].btn-outline-primary:focus {
-            box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25) !important;
-            color: #ffffff !important;
-            background-color: #000000 !important;
-            border-color: #000000 !important;
-        }
-
-        .btn.btn-xs.btn-outline-primary:active,
-        .btn-xs.btn-outline-primary:active,
-        input[type="submit"].btn-outline-primary:active {
-            color: #ffffff !important;
-            background-color: #000000 !important;
-            border-color: #000000 !important;
-        }
-
-/* Small form controls */
-.form-control-sm {
-    height: 28px;
-    padding: 3px 6px;
-    font-size: 12px;
-    line-height: 1.4;
-}
-
-/* Inline pagination styling */
-.pagination-inline {
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-}
-
-    .pagination-inline .btn {
-        min-width: auto;
-        white-space: nowrap;
-    }
-
-.page-info-inline {
-    font-size: 12px;
-    font-weight: bold;
-    color: #495057;
-    margin: 0 8px;
-    white-space: nowrap;
-}
-
-/* Signature section with pagination */
-.Card-space {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    flex-wrap: wrap;
-}
-
-/* Button improvements for alignment */
-.btn-sm {
-    padding: 4px 8px;
-    font-size: 12px;
-    line-height: 1.4;
-    border-radius: 3px;
-    min-width: 60px;
-}
-
-.btn-block {
-    display: block;
-    width: 100%;
-}
-
-/* Form group improvements */
-.form-group {
-    margin-bottom: 10px;
-}
-
-    .form-group label {
-        display: block;
-        margin-bottom: 3px;
-        font-weight: bold;
-        font-size: 12px;
-    }
-
-/* Button container alignment for 3 buttons */
-.button-container {
-    display: flex !important;
-    gap: 5px !important;
-    align-items: stretch !important;
-    flex-wrap: wrap !important;
-}
-
-    .button-container .btn {
-        flex: 1 !important;
-        height: 34px !important;
-        margin: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        min-width: 75px !important;
-    }
-
-/* Warning button for number toggle */
-.btn-warning {
-    color: #212529 !important;
-    background-color: #ffc107 !important;
-    border-color: #ffc107 !important;
-}
-
-    .btn-warning:hover {
-        color: #212529 !important;
-        background-color: #ffca2c !important;
-        border-color: #ffc720 !important;
-    }
-
-/* Info button when toggled */
-.btn-info {
-    color: #fff !important;
-    background-color: #17a2b8 !important;
-    border-color: #17a2b8 !important;
-}
-
-    .btn-info:hover {
-        color: #fff !important;
-        background-color: #138496 !important;
-        border-color: #117a8b !important;
-    }
-
-.btn-secondary {
-    background-color: #787878 !important;
-    color: #fff !important;
-}
-
-/* Comments column specific styling */
-.marks-table .comment-header {
-    background: #e8f4fd !important;
-    color: #000 !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 14px !important;
     font-weight: bold !important;
-    text-align: center !important;
-    vertical-align: middle !important;
-    font-size: 14px !important; /* Standardized comment header size for screen */
-    padding: 6px 4px !important;
-    border: 1px solid #0072bc !important;
 }
 
-.marks-table .comment-cell {
-    text-align: center !important;
-    vertical-align: middle !important;
-    padding: 8px 4px !important;
-    font-size: 14px !important; /* Standardized comment cell size for screen */
-    font-weight: normal !important;
-    color: #333 !important;
-    border: 1px solid #0072bc !important;
+.note {
+    margin-top: 14px;
+    margin-bottom: -1rem;
+    font-size: 12px;
+    text-align: center;
+    color: green;
+    font-weight: bold;
+    font-family: Arial, sans-serif !important;
+    line-height: 1;
+    white-space: nowrap;
 }
 
-/* Ensure comment column maintains consistency in all table sizes */
-.marks-table.medium-subjects .comment-header,
-.marks-table.small-subjects .comment-header {
-    font-size: 14px !important; /* Same standardized size */
-    padding: 6px 4px !important; /* Same padding */
-}
-
-.marks-table.medium-subjects .comment-cell,
-.marks-table.small-subjects .comment-cell {
-    font-size: 14px !important; /* Same standardized size */
-    padding: 8px 4px !important; /* Same padding */
-}
-
-/* Print view comment styling */
+/* Print Styles - Copied from Working Bangla CSS */
 @media print {
-    .marks-table .comment-header {
-        background: #e8f4fd !important;
-        color: #000 !important;
+    .NoPrint, .controls, .btn {
+        display: none !important;
+    }
+
+    html, body {
+        font-family: Arial, sans-serif !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        height: auto !important;
+        overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        text-align: center !important;
         font-size: 12px !important;
-        padding: 4px 3px !important;
     }
+
+    /* Remove problematic font forcing */
+    * {
+        font-family: Arial, sans-serif !important;
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        text-rendering: auto !important;
+        font-size: inherit !important;
+    }
+
+    .result-card {
+        margin: 5mm !important;
+        width: auto !important;
+        height: auto !important;
+        max-width: none !important;
+        padding: 5mm !important;
+        page-break-after: always !important;
+        page-break-before: auto !important;
+        page-break-inside: avoid !important;
+        border: 2px solid #0072bc !important;
+        box-sizing: border-box !important;
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        font-family: Arial, sans-serif !important;
+        background: white !important;
+        display: block !important;
+        clear: both !important;
+        font-size: 12px !important;
+    }
+
+    .result-card:last-child {
+        page-break-after: auto !important;
+        margin: 5mm 5mm !important;
+    }
+
+    .result-card:first-child {
+        page-break-before: avoid !important;
+        margin: 5mm 5mm !important;
+    }
+
+    #header { display: none !important; }
+    #sidedrawer { display: none !important; }
+    #footer { display: none !important; }
+    #content-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    #form1 {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .header h2 {
+        font-size: 18px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: #0072bc !important;
+        line-height: 1.2 !important;
+        margin: 5px 0 !important;
+    }
+
+    .header p {
+        font-size: 12px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: normal !important;
+        color: #000 !important;
+        line-height: 1.1 !important;
+        margin: 2px 0 !important;
+    }
+
+    .title {
+        font-size: 14px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: darkgreen !important;
+        text-align: center !important;
+        margin: 3px 0 !important;
+    }
+
+    .Exam_name {
+        font-size: 14px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: #0072bc !important;
+        text-align: center !important;
+        margin: 0px 0 !important;
+    }
+
+    .marks-table th {
+        background-color: #c8e6c9 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
     .note {
-        margin-top: 14px;
-        margin-bottom: -1rem;
-        font-size: 9px;
-        text-align: center;
-        color: green;
-        font-weight: bold;
+        font-size: 10px !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
     }
-    .marks-table .comment-cell {
-        text-align: center !important;
-        font-size: 12px !important;
-        padding: 4px 3px !important;
-        color: #333 !important;
-    }
-
-    .marks-table.medium-subjects .comment-header {
-        font-size: 11px !important;
-        padding: 3px 2px !important;
-    }
-
-    .marks-table.medium-subjects .comment-cell {
-        font-size: 11px !important;
-        padding: 4px 2px !important;
-    }
-
-    .marks-table.small-subjects .comment-header {
-        font-size: 11px !important;
-        padding: 2px 1px !important;
-    }
-
-    .marks-table.small-subjects .comment-cell {
-        font-size: 11px !important;
-        padding: 3px 1px !important;
-    }
-}
-
-
-
-/* Attendance Table Styling - Fix positioning and appearance */
-.attendance-table {
-    border-collapse: collapse;
-    width: 100%;
-    max-width: 200px;
-    margin: 10px 0;
-    font-size: 11px;
-    background: #f8f9fa;
-    border: 2px solid #333;
-}
-
-    .attendance-table td {
-        border: 1px solid #333;
-        padding: 4px 6px;
-        text-align: center;
-        font-weight: bold;
-        min-width: 35px;
-    }
-
-    .attendance-table .label {
-        background-color: #ffb3ba;
-        font-weight: bold;
-        color: #333;
-    }
-
-    .attendance-table tr:not(.label) td {
-        background-color: #fff;
-        color: #333;
-    }
-
-/* New inline attendance/summary table styling */
-.attendance-inline-complete {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 8px 0;
-    font-size: 11px;
-    font-family: Arial, sans-serif;
-    table-layout: auto;
-    overflow-x: auto;
-}
-
-    .attendance-inline-complete td {
-        border: 1px solid #000;
-        padding: 4px 6px;
-        text-align: center;
-        font-weight: bold;
-        white-space: nowrap;
-        vertical-align: middle;
-    }
-
-/* Responsive table wrapper for horizontal scrolling */
-.attendance-table-wrapper {
-    overflow-x: auto;
-    overflow-y: visible;
-    width: 100%;
-    margin: 8px 0;
-}
-
-/* Position the attendance table properly in the layout */
-.info-summary {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-}
-
-.info-table,
-.attendance-table,
-.summary {
-    width: 100%;
-}
-
-/* Ensure icons are displayed properly on this page */
-.fa, .fas, .far, .fab, .fal, .fad {
-    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
-    font-weight: 900 !important;
-    display: inline-block !important;
-}
-
-/* Fix specific icon display issues */
-.fa-language::before {
-    content: "\f1ab" !important;
-    font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-    font-weight: 900 !important;
-}
-
-.fa-map-marker::before {
-    content: "\f3c5" !important;
-    font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-}
-
-.fa-phone::before {
-    content: "\f095" !important;
-    font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-}
-
-.fa-envelope-o::before, .fa-envelope::before {
-    content: "\f0e0" !important;
-    font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-}
-
-/* Ensure button icons are visible */
-#languageToggle i {
-    margin-right: 5px !important;
-    font-size: 14px !important;
-}
-
-/* Additional fallback styles */
-.fa {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* Test icon visibility */
-.test-icons {
-    display: none; /* Hidden test element */
-}
-
-/* Enhanced responsive table styles for unlimited sub-exams */
-.marks-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: auto;
-    font-size: 12px; /* Match normal view font size */
-    min-width: 800px; /* Minimum width to maintain readability */
-}
-
-    .marks-table th,
-    .marks-table td {
-        border: 1px solid #000;
-        padding: 3px; /* Match normal view padding */
-        text-align: center;
-        vertical-align: middle;
-        word-wrap: break-word;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 12px; /* Match normal view font size */
-        font-weight: bold;
-    }
-
-        .marks-table th:first-child,
-        .marks-table td:first-child {
-            text-align: left;
-            padding-left: 4px;
-            min-width: 80px;
-            max-width: 120px;
-            position: sticky;
-            left: 0;
-            background-color: #fff;
-            z-index: 1;
-            font-size: 12px; /* Match normal view font size */
-        }
-
-    /* Dynamic sizing based on number of columns - but keep consistent with normal view */
-    .marks-table.many-columns {
-        font-size: 12px; /* Keep same as normal view */
-    }
-
-        .marks-table.many-columns th,
-        .marks-table.many-columns td {
-            padding: 3px; /* Keep same as normal view */
-            min-width: 20px;
-            max-width: 30px;
-            font-size: 12px; /* Keep same as normal view */
-        }
-
-            .marks-table.many-columns th:first-child,
-            .marks-table.many-columns td:first-child {
-                min-width: 80px; /* Match normal view */
-                max-width: 120px; /* Match normal view */
-                font-size: 12px; /* Keep same as normal view */
-            }
-
-/* Horizontal scroll container */
-.table-container {
-    overflow-x: auto;
-    overflow-y: visible;
-    width: 100%;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-/* Position columns styling - last 4 columns always */
-.marks-table td:nth-last-child(-n+4),
-.marks-table th:nth-last-child(-n+4) {
-    background-color: #e8f4fd !important;
-    font-weight: bold !important;
-    min-width: 35px !important;
-    max-width: 50px !important;
-    font-size: 12px !important; /* Match normal view font size */
-}
-
-/* Specific column width adjustments for position columns */
-.marks-table td:nth-last-child(4), /* PC */
-.marks-table th:nth-last-child(4) {
-    min-width: 35px !important;
-    font-size: 12px !important; /* Match normal view font size */
-}
-
-.marks-table td:nth-last-child(3), /* PS */
-.marks-table th:nth-last-child(3) {
-    min-width: 35px !important;
-    font-size: 12px !important; /* Match normal view font size */
-}
-
-.marks-table td:nth-last-child(2), /* HMC */
-.marks-table th:nth-last-child(2) {
-    min-width: 40px !important;
-    font-size: 12px !important; /* Match normal view font size */
-}
-
-.marks-table td:nth-last-child(1), /* HMS */
-.marks-table th:nth-last-child(1) {
-    min-width: 40px !important;
-    font-size: 12px !important; /* Match normal view font size */
-}
-
-/* Sub-exam specific adjustments - keep consistent with normal view */
-.marks-table.sub-exam-0 td:nth-last-child(-n+4),
-.marks-table.sub-exam-0 th:nth-last-child(-n+4),
-.marks-table.sub-exam-1 td:nth-last-child(-n+4),
-.marks-table.sub-exam-1 th:nth-last-child(-n+4),
-.marks-table.sub-exam-2 td:nth-last-child(-n+4),
-.marks-table.sub-exam-2 th:nth-last-child(-n+4),
-.marks-table.sub-exam-3 td:nth-last-child(-n+4),
-.marks-table.sub-exam-3 th:nth-last-child(-n+4),
-.marks-table.sub-exam-4 td:nth-last-child(-n+4),
-.marks-table.sub-exam-4 th:nth-last-child(-n+4),
-.marks-table[class*="sub-exam-"]:not(.sub-exam-0):not(.sub-exam-1):not(.sub-exam-2):not(.sub-exam-3) td:nth-last-child(-n+4),
-.marks-table[class*="sub-exam-"]:not(.sub-exam-0):not(.sub-exam-1):not(.sub-exam-2):not(.sub-exam-3) th:nth-last-child(-n+4) {
-    font-size: 12px !important; /* Keep consistent with normal view */
-    min-width: 35px !important;
-}
-
-/* Header background for all table headers */
-.marks-table tr:first-child th {
-    background-color: #ffb3ba !important;
-    font-weight: bold;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    font-size: 12px !important; /* Match normal view font size */
-}
-
-.marks-table tr:nth-child(2) th {
-    background-color: #ffb3ba !important;
-    font-weight: bold;
-    position: sticky;
-    top: 25px; /* Adjust based on first row height */
-    z-index: 2;
-    font-size: 12px !important; /* Match normal view font size */
-}
-
-    /* Ensure position columns in header also have proper background */
-    .marks-table tr:first-child th:nth-last-child(-n+4),
-    .marks-table tr:nth-child(2) th:nth-last-child(-n+4) {
-        background-color: #ffb3ba !important;
-        font-size: 12px !important; /* Match normal view font size */
-    }
-
-/* Mobile responsive */
-@media screen and (max-width: 768px) {
-    .marks-table {
-        font-size: 12px; /* Keep consistent with normal view */
-    }
-
-        .marks-table th,
-        .marks-table td {
-            padding: 3px; /* Keep consistent with normal view */
-            min-width: 15px;
-            max-width: 20px;
-            font-size: 12px; /* Keep consistent with normal view */
-        }
-
-            .marks-table th:first-child,
-            .marks-table td:first-child {
-                min-width: 80px; /* Match normal view */
-                max-width: 120px; /* Match normal view */
-                font-size: 12px; /* Keep consistent with normal view */
-            }
-
-            .marks-table td:nth-last-child(-n+4),
-            .marks-table th:nth-last-child(-n+4) {
-                font-size: 12px; /* Keep consistent with normal view */
-                min-width: 35px;
-                max-width: 50px;
-            }
-}
-
-/* Tooltip styles for truncated content */
-.marks-table [title] {
-    cursor: help;
-}
-
-/* Styles for failed subjects */
-.marks-table .failed-row {
-    background-color: #ffe6e6;
-}
-
-    .marks-table .failed-row td {
-        color: #d32f2f;
-        font-weight: bold;
-        font-size: 12px; /* Keep consistent with normal view */
-    }
-
-/* Loading indicator for large tables */
-.table-loading {
-    text-align: center;
-    padding: 20px;
-    font-style: italic;
-    color: #666;
-    font-size: 12px; /* Keep consistent with normal view */
 }

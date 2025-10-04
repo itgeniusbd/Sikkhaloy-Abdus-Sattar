@@ -493,26 +493,48 @@ namespace EDUCATION.COM.Exam.Result
 
             try
             {
-                obtainedMarks = row["TotalExamObtainedMark_ofStudent"]?.ToString() ?? "0";
-                totalMarks = row["TotalMark_ofStudent"]?.ToString() ?? "0";
-                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["ObtainedPercentage_ofStudent"]);
-                average = row["Average"] == DBNull.Value ? "0.00" : string.Format("{0:F2}", row["Average"]);
+                // Get values from the row with proper null checking
+                obtainedMarks = row["TotalExamObtainedMark_ofStudent"] == DBNull.Value ? "0" : 
+                    Convert.ToDecimal(row["TotalExamObtainedMark_ofStudent"]).ToString("F1");
+                
+                totalMarks = row["TotalMark_ofStudent"] == DBNull.Value ? "0" : 
+                    Convert.ToDecimal(row["TotalMark_ofStudent"]).ToString("F0");
+                
+                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" : 
+                    Convert.ToDecimal(row["ObtainedPercentage_ofStudent"]).ToString("F2");
+                
+                average = row["Average"] == DBNull.Value ? "0.00" : 
+                    Convert.ToDecimal(row["Average"]).ToString("F2");
+                
                 grade = row["Student_Grade"] == DBNull.Value ? "F" : row["Student_Grade"].ToString();
-                gpa = row["Student_Point"] == DBNull.Value ? "0.0" : string.Format("{0:F1}", row["Student_Point"]);
+                
+                gpa = row["Student_Point"] == DBNull.Value ? "0.0" : 
+                    Convert.ToDecimal(row["Student_Point"]).ToString("F1");
 
-                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Class"]);
-                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 : Convert.ToInt32(row["Position_InExam_Subsection"]);
+                // Position calculations
+                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 : 
+                    Convert.ToInt32(row["Position_InExam_Class"]);
+                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 : 
+                    Convert.ToInt32(row["Position_InExam_Subsection"]);
+                
                 positionClass = posClassInt > 0 ? ToOrdinal(posClassInt) : "-";
                 positionSection = posSectionInt > 0 ? ToOrdinal(posSectionInt) : "-";
 
+                // Get comment based on grade and GPA
                 decimal studentPoint = row["Student_Point"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Student_Point"]);
                 comment = GetResultStatus(grade, studentPoint);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error parsing student data: {ex.Message}");
+            }
 
             string studentResultID = row["StudentResultID"]?.ToString() ?? string.Empty;
             int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
             var attendanceInfo = GetAttendanceData(studentResultID, examID);
+
+            // Create proper marks display (obtained/total)
+            string marksDisplay = $"{obtainedMarks}/{totalMarks}";
 
             string psHeader = HasSections ? "<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #339f03; color: #fff; min-width: 25px;\">PS</td>" : string.Empty;
             string psData = HasSections ? $"<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;\" title=\"{positionSection}\">{positionSection}</td>" : string.Empty;
@@ -541,7 +563,7 @@ namespace EDUCATION.COM.Exam.Result
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceInfo.LateAbsDays}</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceInfo.LeaveDays}</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{attendanceInfo.LateDays}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 75px;"" title=""{obtainedMarks}/{totalMarks}"">{obtainedMarks}/{totalMarks}</td>
+                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 75px;"" title=""{marksDisplay}"">{marksDisplay}</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{percentage}%</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 45px;"">{average}</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{grade}</td>
@@ -1063,7 +1085,7 @@ namespace EDUCATION.COM.Exam.Result
                 while (i < pairs.Count)
                 {
                     sb.Append("<tr>");
-                    
+
                     // Add first pair
                     string label1 = pairs[i].Item1;
                     string value1 = HttpUtility.HtmlEncode(pairs[i].Item2);
@@ -1083,7 +1105,7 @@ namespace EDUCATION.COM.Exam.Result
                         // If only one pair in the row, add empty cells to complete the 4-column layout
                         sb.Append("<td></td><td></td>");
                     }
-                    
+
                     sb.Append("</tr>");
                 }
 
@@ -1150,7 +1172,7 @@ namespace EDUCATION.COM.Exam.Result
 
                 if (hasSubExams && subExamCount > 0 && !string.IsNullOrEmpty(subExamHeader))
                 {
-                    html += $@"<tr style=""background-color: #ffb3ba;""> <th rowspan=""2"" style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold;"">SUBJECTS</th> {subExamHeader}<th rowspan=""2"" style=""{standardCellStyle}; min-width: 60px; font-weight: bold;"">MARKS</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; font-weight: bold;"">GRADE</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">GPA</th><th rowspan=""2"" class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
+                    html += $@"<tr style=""background-color: #c8e6c9 !important;""> <th rowspan=""2"" style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold; background-color: #c8e6c9 !important;"">SUBJECTS</th> {subExamHeader}<th rowspan=""2"" style=""{standardCellStyle}; min-width: 60px; font-weight: bold; background-color: #c8e6c9 !important;"">MARKS</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; font-weight: bold; background-color: #c8e6c9 !important;"">GRADE</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">GPA</th><th rowspan=""2"" class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
                     if (HasSections)
                     {
                         html += $@"<th rowspan=""2"" class=""ps-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>";
@@ -1161,11 +1183,11 @@ namespace EDUCATION.COM.Exam.Result
                         html += $@"<th rowspan=""2"" class=""hms-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMS</th>";
                     }
                     html += "</tr>";
-                    html += $@"<tr style=""background-color: #ffb3ba;"">{subExamSecondHeader}</tr>";
+                    html += $@"<tr style=""background-color: #c8e6c9 !important;"">{subExamSecondHeader}</tr>";
                 }
                 else
                 {
-                    html += $@"<tr style=""background-color: #ffb3ba;""> <th style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold;"">SUBJECTS</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">FM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">PM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">OM</th><th style=""{standardCellStyle}; min-width: 60px; font-weight: bold;"">MARKS</th><th style=""{standardCellStyle}; min-width: 40px; font-weight: bold;"">GRADE</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold;"">GPA</th><th class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
+                    html += $@"<tr style=""background-color: #c8e6c9 !important;""> <th style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold; background-color: #c8e6c9 !important;"">SUBJECTS</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">FM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">PM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">OM</th><th style=""{standardCellStyle}; min-width: 60px; font-weight: bold; background-color: #c8e6c9 !important;"">MARKS</th><th style=""{standardCellStyle}; min-width: 40px; font-weight: bold; background-color: #c8e6c9 !important;"">GRADE</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">GPA</th><th class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
                     if (HasSections)
                     {
                         html += $@"<th class=""ps-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>";
@@ -1202,7 +1224,7 @@ namespace EDUCATION.COM.Exam.Result
                     string displayMark = isSubjectAbsent ? "Abs" : obtainedMark;
                     string marksDisplay = $"{displayMark}/{fullMark}";
                     string marksColumnStyle = isSubjectAbsent ?
-                        $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
+                        $"{standardCellStyle}; background-color: #ffcccc !important; color: #d32f2f; font-weight: bold;" :
                         standardCellStyle;
 
                     string subjectCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: left; padding-left: 4px; min-width: 80px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
@@ -1247,7 +1269,7 @@ namespace EDUCATION.COM.Exam.Result
                         var passMarkData = GetMainExamPassMark(subjectID, examID);
                         string omDisplayMark = isSubjectAbsent ? "Abs" : obtainedMark;
                         string omCellStyle = isSubjectAbsent ?
-                            $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
+                            $"{standardCellStyle}; background-color: #ffcccc !important; color: #d32f2f; font-weight: bold;" :
                             standardCellStyle;
 
                         html += $@"<tr class=""{rowClass}"">
@@ -1457,7 +1479,7 @@ namespace EDUCATION.COM.Exam.Result
                 var context = HttpContext.Current;
                 var schoolId = context.Session["SchoolID"];
 
-                if ( schoolId == null)
+                if (schoolId == null)
                 {
                     return new { success = false, message = "School ID not found in session" };
                 }
@@ -1515,7 +1537,7 @@ namespace EDUCATION.COM.Exam.Result
             public string LateAbsDays { get; set; } = "0";
             public string LateDays { get; set; } = "0";
         }
-        
+
         private AttendanceData GetAttendanceData(string studentResultID, int examID)
         {
             SqlConnection con = null;
@@ -1832,7 +1854,7 @@ namespace EDUCATION.COM.Exam.Result
             public string FirstRowHeader { get; set; } = string.Empty;
             public string SecondRowHeader { get; set; } = string.Empty;
         }
-        
+
         private SubExamHeaderStructure GetSubExamHeadersWithStructure(string studentResultID)
         {
             SqlConnection con = null;
@@ -1846,7 +1868,7 @@ namespace EDUCATION.COM.Exam.Result
 
                 string fontSize = subExamCount >= 4 ? "9px" : (subExamCount >= 3 ? "10px" : "11px");
                 string cellPadding = subExamCount >= 4 ? "2px" : "3px";
-                string standardCellStyle = $"font-size: {fontSize}; font-family: Arial, sans-serif; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 25px; max-width: 35px; overflow: hidden; text-overflow: ellipsis;";
+                string standardCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 25px; max-width: 35px; overflow: hidden; text-overflow: ellipsis;";
 
                 string query = @"
                     SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN, esn.SubExamID
@@ -1883,11 +1905,11 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             subExamName = subExamName.Substring(0, 6) + "..";
                         }
-                        result.FirstRowHeader += $@"<th colspan=""3"" style=""{standardCellStyle}; min-width: 75px; max-width: 100px;"" title=""{row["SubExamName"]}"">{subExamName}</th>";
+                        result.FirstRowHeader += $@"<th colspan=""3"" style=""{standardCellStyle}; min-width: 75px; max-width: 100px; background-color: #c8e6c9 !important;"" title=""{row["SubExamName"]}"">{subExamName}</th>";
                     }
                     foreach (DataRow row in dt.Rows)
                     {
-                        result.SecondRowHeader += $@"<th style=""{standardCellStyle}"">FM</th><th style=""{standardCellStyle}"">PM</th><th style=""{standardCellStyle}"">OM</th>";
+                        result.SecondRowHeader += $@"<th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">FM</th><th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">PM</th><th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">OM</th>";
                     }
 
                     ViewState["OrderedSubExamIDs"] = dt.AsEnumerable().Select(r => Convert.ToInt32(r["SubExamID"])).ToList();
@@ -1983,7 +2005,7 @@ namespace EDUCATION.COM.Exam.Result
 
                                     // Style for absent OM cell (red background)
                                     string omCellStyle = isAbsent ?
-                                        $"{standardCellStyle}; background-color: #ffcccc; color: #d32f2f; font-weight: bold;" :
+                                        $"{standardCellStyle}; background-color: #ffcccc !important; color: #d32f2f; font-weight: bold;" :
                                         standardCellStyle;
 
                                     // Show actual marks in FM and PM, but Abs in OM if absent

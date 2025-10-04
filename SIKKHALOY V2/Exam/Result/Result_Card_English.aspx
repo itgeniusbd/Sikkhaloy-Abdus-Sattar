@@ -96,12 +96,324 @@
                 font-size: 14px !important;
             }
         }
+
+        /* Enhanced Loading Overlay Styles for Dynamic Progress */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+            backdrop-filter: blur(3px);
+        }
+
+        .loading-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 35px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            min-width: 450px;
+            max-width: 550px;
+            border: 2px solid #0072bc;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        .loading-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #0072bc;
+            margin-bottom: 20px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 24px;
+            background: linear-gradient(to right, #e9ecef, #f8f9fa);
+            border-radius: 12px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #dee2e6;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #2E7D32 100%);
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            overflow: hidden;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                transparent 35%, 
+                rgba(255, 255, 255, 0.3) 50%, 
+                transparent 65%);
+            animation: progressShine 2s infinite;
+        }
+
+        .progress-bar.animate {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 25%, #4CAF50 50%, #2E7D32 75%, #4CAF50 100%);
+            background-size: 200% 200%;
+            animation: progressPulse 2s ease-in-out infinite;
+        }
+
+        .progress-percentage {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0 10px 0;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-message {
+            font-size: 16px;
+            margin: 10px 0;
+            font-weight: 600;
+            color: #0072bc;
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-details {
+            font-size: 14px;
+            margin: 8px 0;
+            color: #6c757d;
+            min-height: 20px;
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            margin: 20px 0 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 4px solid rgba(0, 114, 188, 0.2);
+            border-top: 4px solid #0072bc;
+            border-radius: 50%;
+            animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        /* Enhanced Animations */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes progressPulse {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes progressShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Success and Error States */
+        .progress-bar.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4);
+        }
+
+        .progress-bar.error {
+            background: linear-gradient(135deg, #dc3545 0%, #e74c3c 50%, #c82333 100%);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 768px) {
+            .loading-container {
+                min-width: 300px;
+                max-width: 90%;
+                padding: 25px 20px;
+                margin: 0 15px;
+            }
+            
+            .loading-title {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+            
+            .progress-bar-container {
+                height: 20px;
+                margin: 15px 0;
+            }
+            
+            .progress-percentage {
+                font-size: 16px;
+            }
+            
+            .progress-message {
+                font-size: 14px;
+            }
+            
+            .progress-details {
+                font-size: 12px;
+            }
+            
+            .spinner {
+                width: 28px;
+                height: 28px;
+                border-width: 3px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .loading-container {
+                min-width: 280px;
+                padding: 20px 15px;
+            }
+            
+            .loading-title {
+                font-size: 16px;
+            }
+        }
+
+        /* Hide during print */
+        @media print {
+            .loading-overlay {
+                display: none !important;
+            }
+        }
+
+        /* Dark theme variant */
+        .loading-overlay.dark-theme {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .loading-overlay.dark-theme .loading-container {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #ecf0f1;
+            border-color: #3498db;
+        }
+
+        .loading-overlay.dark-theme .loading-title {
+            color: #3498db;
+        }
+
+        .loading-overlay.dark-theme .progress-message {
+            color: #3498db;
+        }
+
+        .loading-overlay.dark-theme .progress-details {
+            color: #bdc3c7;
+        }
+
+        .loading-overlay.dark-theme .progress-bar-container {
+            background: linear-gradient(to right, #34495e, #2c3e50);
+            border-color: #34495e;
+        }
+
+        .loading-overlay.dark-theme .spinner {
+            border-color: rgba(52, 152, 219, 0.2);
+            border-top-color: #3498db;
+        }
+
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            .loading-container {
+                background: #ffffff;
+                border: 3px solid #000000;
+            }
+            
+            .loading-title {
+                color: #000000;
+            }
+            
+            .progress-bar {
+                background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            }
+        }
+
+        /* Reduced motion accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            .progress-bar {
+                transition: none;
+            }
+            
+            .progress-bar.animate {
+                animation: none;
+            }
+            
+            .spinner {
+                animation-duration: 3s;
+            }
+            
+            .progress-bar::before {
+                animation: none;
+            }
+        }
     </style>
 
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <h3 class="NoPrint" id="pageTitle">English Result Card     <a href="BanglaResult_Old.aspx"><span class="btn-text-full">Old</span> </a></h3>
+    <!-- Progress Bar Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-container">
+            <div class="loading-title">Loading Result Cards</div>
+            <div class="progress-bar-container">
+                <div id="progressBar" class="progress-bar animate"></div>
+            </div>
+            <div id="progressPercentage" class="progress-percentage">0%</div>
+            <div id="progressMessage" class="progress-message">Preparing to load results...</div>
+            <div id="progressDetails" class="progress-details">Please wait while we fetch the data</div>
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="NoPrint" id="pageTitle">English Result Card     
+        <a href="BanglaResult_Old.aspx"><span class="btn-text-full">Old</span></a>
+    </h3>
 
     
     <div class="controls NoPrint">
@@ -361,11 +673,460 @@
     </asp:Panel>
 
     <script type="text/javascript">
-        // Missing checkAndFixFontAwesome function - Add this first
+        // Enhanced Progress Bar Control Object with Dynamic Server Integration
+        var ProgressBarManager = {
+            // Configuration
+            config: {
+                polling: {
+                    interval: 300, // Check every 300ms
+                    maxAttempts: 200, // Maximum 60 seconds (200 * 300ms)
+                    currentAttempt: 0
+                },
+                baseMessages: [
+                    { step: 1, message: "Connecting to database...", detail: "Establishing secure connection", duration: 1000 },
+                    { step: 2, message: "Validating parameters...", detail: "Checking class, exam and student selections", duration: 800 },
+                    { step: 3, message: "Loading class configuration...", detail: "Fetching class, section, group information", duration: 600 },
+                    { step: 4, message: "Counting students...", detail: "Determining total number of students", duration: 1200 },
+                    { step: 5, message: "Processing student data...", detail: "Loading student information and photos", duration: 0 }, // Dynamic
+                    { step: 6, message: "Calculating exam results...", detail: "Processing marks and grades", duration: 0 }, // Dynamic
+                    { step: 7, message: "Generating result cards...", detail: "Formatting and preparing display", duration: 0 }, // Dynamic
+                    { step: 8, message: "Finalizing...", detail: "Preparing final output", duration: 500 }
+                ]
+            },
+            
+            // State management
+            state: {
+                isRunning: false,
+                currentStep: 0,
+                estimatedStudentCount: 0,
+                actualStudentCount: 0,
+                startTime: 0,
+                pollingTimer: null,
+                stepTimer: null
+            },
+
+            // Show progress overlay
+            show: function() {
+                $('#loadingOverlay').css('display', 'flex');
+                this.state.isRunning = true;
+                this.state.currentStep = 0;
+                this.state.startTime = Date.now();
+                this.state.pollingTimer = null;
+                this.state.stepTimer = null;
+                this.config.polling.currentAttempt = 0;
+                this.reset();
+                this.startDynamicProgress();
+            },
+
+            // Hide progress overlay
+            hide: function() {
+                var self = this;
+                setTimeout(function() {
+                    $('#loadingOverlay').fadeOut(300, function() {
+                        self.cleanup();
+                    });
+                }, 500);
+            },
+
+            // Cleanup timers and state
+            cleanup: function() {
+                this.state.isRunning = false;
+                if (this.state.pollingTimer) {
+                    clearInterval(this.state.pollingTimer);
+                    this.state.pollingTimer = null;
+                }
+                if (this.state.stepTimer) {
+                    clearTimeout(this.state.stepTimer);
+                    this.state.stepTimer = null;
+                }
+            },
+
+            // Reset progress bar
+            reset: function() {
+                $('#progressBar').css('width', '0%');
+                $('#progressPercentage').text('0%');
+                $('#progressMessage').text('Preparing to load results...');
+                $('#progressDetails').text('Please wait while we fetch the data');
+            },
+
+            // Start dynamic progress with server monitoring
+            startDynamicProgress: function() {
+                var self = this;
+                
+                // Start initial steps (before server processing)
+                self.processInitialSteps();
+                
+                // Start polling for server completion after initial steps
+                setTimeout(function() {
+                    self.startServerPolling();
+                }, 2500); // Start polling after initial 2.5 seconds
+            },
+            
+            // Process initial steps (database connection, validation, etc.)
+            processInitialSteps: function() {
+                var self = this;
+                var initialSteps = self.config.baseMessages.slice(0, 4); // First 4 steps
+                
+                function processStep(stepIndex) {
+                    if (stepIndex >= initialSteps.length || !self.state.isRunning) {
+                        return;
+                    }
+                    
+                    var step = initialSteps[stepIndex];
+                    self.state.currentStep = step.step;
+                    
+                    $('#progressMessage').text(step.message);
+                    $('#progressDetails').text(step.detail);
+                    
+                    // Calculate progress for initial steps (0-40%)
+                    var progress = ((stepIndex + 1) / initialSteps.length) * 40;
+                    self.animateProgressTo(progress);
+                    
+                    // Schedule next step
+                    if (stepIndex < initialSteps.length - 1) {
+                        self.state.stepTimer = setTimeout(function() {
+                            processStep(stepIndex + 1);
+                        }, step.duration);
+                    }
+                }
+                
+                processStep(0);
+            },
+            
+            // Start polling server for completion status
+            startServerPolling: function() {
+                var self = this;
+                
+                // Update message to show we're processing
+                $('#progressMessage').text('Processing student data...');
+                $('#progressDetails').text('Loading and calculating results');
+                
+                self.state.pollingTimer = setInterval(function() {
+                    self.checkServerStatus();
+                }, self.config.polling.interval);
+            },
+            
+            // Check if results are loaded on server
+            checkServerStatus: function() {
+                var self = this;
+                self.config.polling.currentAttempt++;
+                
+                // Calculate elapsed time
+                var elapsedTime = Date.now() - self.state.startTime;
+                var elapsedSeconds = Math.floor(elapsedTime / 1000);
+                
+                // Progressive progress updates while polling
+                var baseProgress = 40; // Starting from 40% after initial steps
+                var pollingProgress = Math.min(50, (self.config.polling.currentAttempt / self.config.polling.maxAttempts) * 50);
+                var currentProgress = baseProgress + pollingProgress;
+                
+                // Update progress and details
+                self.animateProgressTo(Math.min(currentProgress, 90));
+                $('#progressDetails').text(`Processing... (${elapsedSeconds}s elapsed)`);
+                
+                // Check if results panel is visible (indicates completion)
+                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
+                var hasResults = false;
+                
+                if (resultPanel) {
+                    hasResults = $(resultPanel).is(':visible') && $('.result-card').length > 0;
+                }
+                
+                if (hasResults) {
+                    // Results found - complete immediately
+                    self.state.actualStudentCount = $('.result-card').length;
+                    self.completeWithResults();
+                    return;
+                }
+                
+                // Check for timeout
+                if (self.config.polling.currentAttempt >= self.config.polling.maxAttempts) {
+                    // Timeout reached - check one more time then complete
+                    setTimeout(function() {
+                        var finalCheck = $('.result-card').length > 0;
+                        if (finalCheck) {
+                            self.state.actualStudentCount = $('.result-card').length;
+                            self.completeWithResults();
+                        } else {
+                            self.completeWithTimeout();
+                        }
+                    }, 500);
+                    
+                    if (self.state.pollingTimer) {
+                        clearInterval(self.state.pollingTimer);
+                        self.state.pollingTimer = null;
+                    }
+                }
+            },
+            
+            // Complete progress when results are loaded
+            completeWithResults: function() {
+                var self = this;
+                
+                // Stop polling
+                if (self.state.pollingTimer) {
+                    clearInterval(self.state.pollingTimer);
+                    self.state.pollingTimer = null;
+                }
+                
+                // Show completion messages
+                $('#progressMessage').text('Results loaded successfully!');
+                $('#progressDetails').text(`Displaying ${self.state.actualStudentCount} result card(s)`);
+                
+                // Animate to 100%
+                self.animateProgressTo(100);
+                
+                // Hide after showing completion
+                setTimeout(function() {
+                    self.hide();
+                    
+                    // Show success notification
+                    console.log(`✅ Results loaded: ${self.state.actualStudentCount} students in ${Math.floor((Date.now() - self.state.startTime) / 1000)} seconds`);
+                    
+                    // Ensure print button is visible
+                    setTimeout(function() {
+                        var printBtn = document.getElementById('PrintButton');
+                        if (printBtn && $('.result-card').length > 0) {
+                            printBtn.style.display = 'inline-block';
+                        }
+                    }, 100);
+                    
+                }, 800);
+            },
+            
+            // Handle timeout case
+            completeWithTimeout: function() {
+                var self = this;
+                
+                $('#progressMessage').text('Loading completed');
+                $('#progressDetails').text('Processing finished');
+                self.animateProgressTo(100);
+                
+                setTimeout(function() {
+                    self.hide();
+                }, 1000);
+            },
+
+            // Animate progress bar to target percentage
+            animateProgressTo: function(targetPercentage) {
+                var $progressBar = $('#progressBar');
+                var $progressPercentage = $('#progressPercentage');
+                
+                $progressBar.css('width', Math.min(targetPercentage, 100) + '%');
+                $progressPercentage.text(Math.round(Math.min(targetPercentage, 100)) + '%');
+                
+                // Add pulse effect for active progress
+                if (targetPercentage < 95) {
+                    $progressBar.addClass('animate');
+                } else {
+                    $progressBar.removeClass('animate');
+                }
+            },
+
+            // Force completion (called externally when we know results are ready)
+            forceComplete: function() {
+                if (!this.state.isRunning) return;
+                
+                this.state.actualStudentCount = $('.result-card').length;
+                this.completeWithResults();
+            },
+            
+            // Manual completion with custom message
+            completeWithMessage: function(message, detail) {
+                var self = this;
+                
+                if (self.state.pollingTimer) {
+                    clearInterval(self.state.pollingTimer);
+                    self.state.pollingTimer = null;
+                }
+                
+                $('#progressMessage').text(message || 'Loading completed');
+                $('#progressDetails').text(detail || 'Process finished');
+                self.animateProgressTo(100);
+                
+                setTimeout(function() {
+                    self.hide();
+                }, 800);
+            }
+        };
+
+        // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
+        $(document).ready(function() {
+            // Check if Font Awesome is loaded properly
+            checkAndFixFontAwesome();
+
+            // Fix absent marks display
+            fixAbsentMarksDisplay();
+
+            // Load database signatures when page loads
+            loadDatabaseSignatures();
+
+            // Initialize teacher and head teacher text
+            updateSignatureTexts();
+
+            // Initialize signature upload functionality
+            initializeSignatureUpload();
+
+            // Apply pagination button styles
+            applyPaginationStyles();
+
+            // Show toggle button if results are already loaded
+            if ($('.result-card').length > 0) {
+                $('#NumberToggleButton').show();
+                $('#PrintButton').show();
+                $('#NumberToggleButton').html('Bengali Numbers').removeClass('btn-info').addClass('btn-warning');
+                isNumbersBengali = false;
+                fixResultCardIcons();
+                fixPositionColumnsAlignment();
+            }
+
+            // Handle Enter key press in Student ID textbox
+            $("[id*=StudentIDTextBox]").keypress(function (e) {
+                if (e.which == 13) { // Enter key
+                    e.preventDefault();
+                    $("[id*=LoadResultsButton]").click();
+                }
+            });
+
+            // Clear Student ID textbox when Class dropdown changes
+            $("[id*=ClassDropDownList]").change(function () {
+                $("[id*=StudentIDTextBox]").val('');
+            });
+
+            // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
+            $("[id*=LoadResultsButton]").off('click').on('click', function (e) {
+                console.log('🚀 Load Results button clicked - starting dynamic progress monitoring');
+                
+                // Test if progress bar manager exists
+                if (typeof ProgressBarManager === 'undefined') {
+                    console.error('❌ ProgressBarManager is not defined!');
+                    alert('Progress bar system not loaded properly. Please refresh the page.');
+                    return false;
+                }
+                
+                // Test if jQuery is loaded
+                if (typeof $ === 'undefined') {
+                    console.error('❌ jQuery is not loaded!');
+                    alert('jQuery not loaded. Please refresh the page.');
+                    return false;
+                }
+                
+                console.log('✅ Dependencies check passed');
+                
+                // Check if required selections are made
+                var classValue = $("[id*=ClassDropDownList]").val();
+                var examValue = $("[id*=ExamDropDownList]").val();
+                
+                console.log('📋 Form values:', { class: classValue, exam: examValue });
+                
+                if (!classValue || classValue === "0") {
+                    alert("Please select a class first!");
+                    e.preventDefault();
+                    return false;
+                }
+                
+                if (!examValue || examValue === "0") {
+                    alert("Please select an exam first!");
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Hide any existing results during new load
+                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
+                if (resultPanel) {
+                    $(resultPanel).hide();
+                }
+                $('.result-card').remove();
+
+                // Test progress bar show function
+                console.log('🎯 About to show progress bar...');
+                
+                try {
+                    // Show dynamic progress bar
+                    ProgressBarManager.show();
+                    console.log('✅ Progress bar show() called successfully');
+                } catch (error) {
+                    console.error('❌ Error showing progress bar:', error);
+                    alert('Error starting progress bar: ' + error.message);
+                }
+                
+                // Add debug logging
+                console.log('📊 Progress tracking started with dynamic server monitoring');
+                console.log(`📋 Loading results for Class: ${classValue}, Exam: ${examValue}`);
+                
+                // Let the postback continue normally
+                return true;
+            });
+
+            // Add input validation for Student ID textbox
+            $("[id*=StudentIDTextBox]").on('input', function () {
+                var value = $(this).val();
+                var validChars = /^[a-zA-Z0-9,\s]*$/;
+
+                if (!validChars.test(value)) {
+                    value = value.replace(/[^a-zA-Z0-9,\s]/g, '');
+                    $(this).val(value);
+                }
+            });
+
+            // Add helpful tooltips and validation feedback
+            $("[id*=StudentIDTextBox]").on('blur', function () {
+                var value = $(this).val().trim();
+                if (value) {
+                    var englishValue = convertBengaliToEnglishJS(value);
+                    var ids = englishValue.split(/[,]/).map(function (id) { return id.trim(); }).filter(function (id) { return id; });
+
+                    var invalidIds = ids.filter(function (id) { return !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0; });
+                    if (invalidIds.length > 0) {
+                        $(this).addClass('is-invalid');
+                        $(this).attr('title', 'Invalid IDs: ' + invalidIds.join(', '));
+                    } else {
+                        $(this).removeClass('is-invalid');
+                        $(this).attr('title', 'Valid IDs: ' + ids.length + ' student(s)');
+                    }
+                }
+            });
+        });
+
+        // Enhanced pageLoad function for ASP.NET postbacks
+        function pageLoad(sender, args) {
+            console.log('📄 Page loaded - checking for results...');
+            
+            if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
+                // Partial postback
+                setTimeout(function () {
+                    convertNumbersAfterPostback();
+                    applyPaginationStyles();
+                    fixPositionColumnsAlignment();
+                    
+                    // Check if progress bar is running and complete it if results are loaded
+                    if (ProgressBarManager.state.isRunning && $('.result-card').length > 0) {
+                        console.log('✅ Partial postback completed with results - completing progress bar');
+                        ProgressBarManager.forceComplete();
+                    }
+                }, 100);
+            } else {
+                // Full postback
+                setTimeout(function () {
+                    var resultCount = $('.result-card').length;
+                    console.log(`📊 Full postback completed - found ${resultCount} result cards`);
+                    
+                    if (ProgressBarManager && ProgressBarManager.state && ProgressBarManager.state.isRunning) {
+                        if (resultCount > 0) {
+                            console.log('✅ Full postback completed with results - completing progress bar');
+                            ProgressBarManager.forceComplete();
+                        } else {
+                            console.log('⚠️ Full postback completed but no results found');
+                            ProgressBarManager.completeWithMessage('No results found', 'Please check your selections and try again');
+                        }
+                    }
+                }, 500);
+            }
+        }
+
+        // Function implementations (keeping existing functions)
         function checkAndFixFontAwesome() {
             console.log('Checking Font Awesome icons...');
-
-            // Test if Font Awesome is loaded
             var testIcon = $('<i class="fa fa-home"></i>').appendTo('body');
             var iconWidth = testIcon.width();
             testIcon.remove();
@@ -375,36 +1136,26 @@
                 fixResultCardIcons();
             } else {
                 console.warn('Font Awesome not loaded properly, using fallback');
-                // Add fallback Font Awesome if not loaded
                 if (!$('link[href*="font-awesome"]').length) {
                     $('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">').appendTo('head');
                     setTimeout(fixResultCardIcons, 500);
                 }
             }
-
-            console.log('All Font Awesome icons loaded successfully');
         }
 
-        // Function to fix result card icons
         function fixResultCardIcons() {
             $('.result-card').each(function () {
                 var $card = $(this);
-
-                // Fix map marker icon
                 $card.find('.fa-map-marker, .fa-map-marker-alt').each(function () {
                     if ($(this).text().trim() === '' || $(this).is(':empty')) {
                         $(this).attr('data-fallback', '📍');
                     }
                 });
-
-                // Fix phone icon
                 $card.find('.fa-phone').each(function () {
                     if ($(this).text().trim() === '' || $(this).is(':empty')) {
                         $(this).attr('data-fallback', '📞');
                     }
                 });
-
-                // Fix envelope icon
                 $card.find('.fa-envelope, .fa-envelope-o').each(function () {
                     if ($(this).text().trim() === '' || $(this).is(':empty')) {
                         $(this).attr('data-fallback', '✉️');
@@ -413,24 +1164,15 @@
             });
         }
 
-        // Fix absent marks display function
         function fixAbsentMarksDisplay() {
             $('.marks-table').each(function () {
                 var $table = $(this);
-
-                // Process each data row
                 $table.find('tr').each(function () {
                     var $row = $(this);
-
-                    // Skip header rows
                     if ($row.find('th').length > 0) return;
-
-                    // Check each cell for absent marks
                     $row.find('td').each(function () {
                         var $cell = $(this);
                         var cellText = $cell.text().trim();
-
-                        // Convert 'A' to 'Abs' for absent marks (but not in grade columns)
                         if (cellText === 'A' && !$cell.hasClass('grade-cell')) {
                             $cell.text('Abs').addClass('absent-mark');
                         }
@@ -439,7 +1181,6 @@
             });
         }
 
-        // Function to load database signatures
         function loadDatabaseSignatures() {
             var teacherSignPath = $('[id$="HiddenTeacherSign"]').val();
             var principalSignPath = $('[id$="HiddenPrincipalSign"]').val();
@@ -458,7 +1199,6 @@
             }
         }
 
-        // Function to update signature texts
         function updateSignatureTexts() {
             var teacherText = $('[id$="TeacherSignTextBox"]').val() || 'Class Teacher';
             var principalText = $('[id$="HeadTeacherSignTextBox"]').val() || 'Principal';
@@ -467,23 +1207,19 @@
             $('.Head').text(principalText);
         }
 
-        // Function to initialize signature upload functionality
         function initializeSignatureUpload() {
             console.log('Initializing signature upload functionality...');
-
-            // Teacher signature upload
+            
             $('#Tfileupload').off('change').on('change', function (e) {
                 console.log('Teacher file input changed');
                 handleSignatureUpload(e, 'teacher', '.SignTeacher');
             });
 
-            // Principal signature upload
             $('#Hfileupload').off('change').on('change', function (e) {
                 console.log('Principal file input changed');
                 handleSignatureUpload(e, 'principal', '.SignHead');
             });
 
-            // Update signature texts when textboxes change
             $('[id$="TeacherSignTextBox"]').off('input').on('input', function () {
                 var text = $(this).val() || 'Class Teacher';
                 $('.Teacher').text(text);
@@ -495,18 +1231,15 @@
             });
         }
 
-        // Function to handle signature upload
         function handleSignatureUpload(event, signatureType, targetSelector) {
             var file = event.target.files[0];
             if (!file) return;
 
-            // Validate file type
             if (!file.type.match('image.*')) {
                 alert('Please select an image file.');
                 return;
             }
 
-            // Validate file size (max 2MB)
             if (file.size > 2 * 1024 * 1024) {
                 alert('File size should be less than 2MB.');
                 return;
@@ -515,12 +1248,9 @@
             var reader = new FileReader();
             reader.onload = function (e) {
                 var imageData = e.target.result;
-
-                // Display the image immediately
                 $(targetSelector).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px;">');
 
-                // Save to database
-                var base64Data = imageData.split(',')[1]; // Remove data:image/...;base64, prefix
+                var base64Data = imageData.split(',')[1];
 
                 $.ajax({
                     type: 'POST',
@@ -544,7 +1274,6 @@
             reader.readAsDataURL(file);
         }
 
-        // Function to apply pagination styles
         function applyPaginationStyles() {
             $('.pagination-inline .btn').each(function () {
                 var $btn = $(this);
@@ -556,7 +1285,6 @@
             });
         }
 
-        // Convert Bengali numbers to English
         function convertBengaliToEnglishJS(text) {
             var bengaliToEnglish = {
                 '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
@@ -568,129 +1296,13 @@
             });
         }
 
-        $(document).ready(function () {
-            // Check if Font Awesome is loaded properly
-            checkAndFixFontAwesome();
-
-            // DON'T convert numbers to Bengali automatically - keep English by default
-            // convertNumbersToBengali(); // Commented out - numbers will stay in English by default
-
-            // Fix absent marks display
-            fixAbsentMarksDisplay();
-
-            // Load database signatures when page loads
-            loadDatabaseSignatures();
-
-            // Initialize teacher and head teacher text
-            updateSignatureTexts();
-
-            // Initialize signature upload functionality - only once
-            console.log('About to initialize signature upload...');
-            initializeSignatureUpload();
-
-            // Apply pagination button styles
-            applyPaginationStyles();
-
-            // Show toggle button if results are already loaded
-            if ($('.result-card').length > 0) {
-                $('#NumberToggleButton').show();
-                $('#PrintButton').show();
-                // Set initial button state to show "Bengali Numbers" since numbers are in English by default
-                $('#NumberToggleButton').html('Bengali Numbers').removeClass('btn-info').addClass('btn-warning');
-                isNumbersBengali = false; // Set to false since numbers are in English by default
-
-                // Fix result card icons on page load if results exist
-                fixResultCardIcons();
-
-                // Fix position columns alignment
-                fixPositionColumnsAlignment();
-            }
-
-            // Test browse button functionality - only for debugging
-            console.log('Testing browse button elements:');
-            console.log('Teacher file input:', $('#Tfileupload').length);
-            console.log('Principal file input:', $('#Hfileupload').length);
-            console.log('Teacher browse label:', $('label[for="Tfileupload"]').length);
-            console.log('Principal browse label:', $('label[for="Hfileupload"]').length);
-
-            // Handle Enter key press in Student ID textbox
-            $("[id*=StudentIDTextBox]").keypress(function (e) {
-                if (e.which == 13) { // Enter key
-                    e.preventDefault();
-                    $("[id*=LoadResultsButton]").click();
-                }
-            });
-
-            // Clear Student ID textbox when Class dropdown changes
-            $("[id*=ClassDropDownList]").change(function () {
-                $("[id*=StudentIDTextBox]").val('');
-            });
-
-            // Show toggle button after LOAD button is clicked and results are loaded
-            $("[id*=LoadResultsButton]").click(function () {
-                setTimeout(function () {
-                    if ($('.result-card').length > 0) {
-                        $('#NumberToggleButton').show();
-                        $('#PrintButton').show();
-                        // Set initial button state to show "Bengali Numbers" since numbers are in English by default
-                        $('#NumberToggleButton').html('Bengali Numbers').removeClass('btn-info').addClass('btn-warning');
-                        isNumbersBengali = false; // Numbers are in English by default
-
-                        // Fix result card icons after loading
-                        fixResultCardIcons();
-
-                        // Fix position columns alignment after loading results
-                        fixPositionColumnsAlignment();
-                    }
-                }, 1000);
-            });
-
-            // Add input validation for Student ID textbox - allow alphanumeric
-            $("[id*=StudentIDTextBox]").on('input', function () {
-                var value = $(this).val();
-                // Allow alphanumeric characters, commas, and spaces
-                var validChars = /^[a-zA-Z0-9,\s]*$/;
-
-                if (!validChars.test(value)) {
-                    // Remove invalid characters
-                    value = value.replace(/[^a-zA-Z0-9,\s]/g, '');
-                    $(this).val(value);
-                }
-            });
-
-            // Add helpful tooltips and validation feedback
-            $("[id*=StudentIDTextBox]").on('blur', function () {
-                var value = $(this).val().trim();
-                if (value) {
-                    // Convert Bengali to English for validation
-                    var englishValue = convertBengaliToEnglishJS(value);
-                    var ids = englishValue.split(/[,]/).map(function (id) { return id.trim(); }).filter(function (id) { return id; });
-
-                    // More flexible validation for alphanumeric IDs
-                    var invalidIds = ids.filter(function (id) { return !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0; });
-                    if (invalidIds.length > 0) {
-                        $(this).addClass('is-invalid');
-                        $(this).attr('title', 'Invalid IDs: ' + invalidIds.join(', '));
-                    } else {
-                        $(this).removeClass('is-invalid');
-                        $(this).attr('title', 'Valid IDs: ' + ids.length + ' student(s)');
-                    }
-                }
-            });
-        });
-
-        // Function to fix position columns alignment based on actual sub-exam count
         function fixPositionColumnsAlignment() {
             console.log('Fixing position columns alignment...');
 
             $('.marks-table').each(function () {
                 var $table = $(this);
-
-                // Read header texts to detect column indices dynamically
-                var $headerRows = $table.find('tr').slice(0, 2); // first 1-2 rows contain headers
+                var $headerRows = $table.find('tr').slice(0, 2);
                 var headerTexts = [];
-
-                // Build a flat header cell list from the last header row that contains column titles
                 var $titleHeader = $headerRows.last();
                 var $headerCells = $titleHeader.find('th');
 
@@ -711,11 +1323,12 @@
                 var hmcIndex = findIndexByTitle('HMC');
                 var hmsIndex = findIndexByTitle('HMS');
 
-                // Fallback if header couldn't be detected: assume last columns in order PC,(PS),HMC,(HMS)
                 if (pcIndex === -1 && hmcIndex === -1) {
                     var totalCells = $titleHeader.find('th').length;
-                    // Determine how many position columns exist (2 or 4)
-                    var hasSection = $table.find('th').filter(function(){return $(this).text().trim().toUpperCase()==='PS' || $(this).text().trim().toUpperCase()==='HMS';}).length > 0;
+                    var hasSection = $table.find('th').filter(function () { 
+                        return $(this).text().trim().toUpperCase() === 'PS' || $(this).text().trim().toUpperCase() === 'HMS'; 
+                    }).length > 0;
+                    
                     if (hasSection) {
                         pcIndex = totalCells - 4;
                         psIndex = totalCells - 3;
@@ -729,12 +1342,9 @@
                     }
                 }
 
-                // Apply classes to all rows for detected indices
                 $table.find('tr').each(function () {
                     var $row = $(this);
                     var $cells = $row.find('th, td');
-
-                    // Remove existing position classes
                     $cells.removeClass('position-col-pc position-col-ps position-col-hmc position-col-hms');
 
                     if (pcIndex >= 0 && $cells.eq(pcIndex).length) $cells.eq(pcIndex).addClass('position-col-pc');
@@ -743,12 +1353,10 @@
                     if (hmsIndex >= 0 && $cells.eq(hmsIndex).length) $cells.eq(hmsIndex).addClass('position-col-hms');
                 });
 
-                // Apply dynamic styling for position columns
                 var totalCells = $titleHeader.find('th').length;
                 var columnWidth = Math.max(28, Math.min(40, Math.floor(100 / totalCells)));
                 var rightOffset = 0;
 
-                // Always align from right: HMS, HMC, PS, PC (only if exists)
                 if ($table.find('.position-col-hms').length) {
                     $table.find('.position-col-hms').css({
                         'right': '0px',
@@ -793,63 +1401,47 @@
         }
 
         function convertNumbersAfterPostback() {
-            // Fix result card icons first
             fixResultCardIcons();
-
-            // Fix position columns alignment after postback
             fixPositionColumnsAlignment();
 
-            // Fix absent marks first
             $('.marks-table').each(function () {
                 var $table = $(this);
-
-                // Get header cells for column identification - define this at table level
                 var $headerRow = $table.find('tr').first();
                 var $headerCells = $headerRow.find('th');
 
-                // Process each row in the table
                 $table.find('tr').each(function (rowIndex) {
                     var $row = $(this);
-
-                    // Skip header rows
                     if ($row.find('th').length > 0) {
                         return;
                     }
 
-                    // Process each cell in the row
                     $row.find('td').each(function (cellIndex) {
                         var $cell = $(this);
                         var cellText = $cell.text().trim();
-
-                        // Get the header for this column
                         var columnHeader = '';
+                        
                         if (cellIndex < $headerCells.length) {
                             columnHeader = $headerCells.eq(cellIndex).text().trim();
                         }
 
-                        // Only convert 'A' to 'Abs' in marks columns, NOT in grade columns
                         if (cellText === 'A') {
-                            // Check if this is a grade column - if so, don't convert
                             if (columnHeader === 'Grade' || columnHeader.indexOf('Grade') !== -1) {
-                                return; // Skip grade columns
+                                return;
                             }
 
-                            // Convert A to Abs in marks columns only
                             if (columnHeader === 'Obtain Marks' ||
                                 columnHeader.indexOf('Number') !== -1 ||
                                 columnHeader === 'Midterm' ||
                                 columnHeader === 'Periodical' ||
                                 columnHeader === 'Subjective' ||
                                 columnHeader === 'Objective' ||
-                                cellIndex <= 2) { // First few columns are usually marks columns
+                                cellIndex <= 2) {
 
                                 $cell.text('Abs');
                             }
                         }
-                        // Convert '0' to '-' in total marks column (if it's likely absent)
                         else if (cellText === '0' && $cell.hasClass('total-marks-cell')) {
                             var hasAbsentMarks = false;
-
                             $row.find('td').each(function () {
                                 var siblingText = $(this).text().trim();
                                 if (siblingText === 'Abs') {
@@ -866,27 +1458,10 @@
                 });
             });
 
-            // DON'T convert numbers to Bengali after postback - keep them in English by default
-            // convertNumbersToBengali(); // Commented out - keep numbers in English by default
-
-            // Reset button state to show "Bengali Numbers" since numbers are in English
             if ($('#NumberToggleButton').length > 0) {
                 $('#NumberToggleButton').html('Bengali Numbers').removeClass('btn-info').addClass('btn-warning');
                 isNumbersBengali = false;
             }
         }
-
-        // Convert numbers when new data is loaded via postback - using proper ASP.NET approach
-        function pageLoad(sender, args) {
-            if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
-                setTimeout(function () {
-                    convertNumbersAfterPostback();
-                    // Reapply pagination styles after postback
-                    applyPaginationStyles();
-                    // Fix position columns alignment after partial postback
-                    fixPositionColumnsAlignment();
-                }, 100);
-            }
-        }
     </script>
-</asp:Content>
+    </asp:Content>
