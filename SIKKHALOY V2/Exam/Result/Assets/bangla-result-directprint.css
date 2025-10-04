@@ -833,9 +833,10 @@ input[type="submit"].btn-outline-primary:active {
 /* Button container alignment for 3 buttons */
 .button-container {
     display: flex !important;
-    gap: 5px !important;
+    gap: 3px !important;
     align-items: stretch !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
 }
 
 .button-container .btn {
@@ -845,110 +846,56 @@ input[type="submit"].btn-outline-primary:active {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-width: 75px !important;
-}
-
-/* Warning button for number toggle */
-.btn-warning {
-    color: #212529 !important;
-    background-color: #ffc107 !important;
-    border-color: #ffc107 !important;
-}
-
-.btn-warning:hover {
-    color: #212529 !important;
-    background-color: #ffca2c !important;
-    border-color: #ffc720 !important;
-}
-
-/* Info button when toggled */
-.btn-info {
-    color: #fff !important;
-    background-color: #17a2b8 !important;
-    border-color: #17a2b8 !important;
-}
-
-.btn-info:hover {
-    color: #fff !important;
-    background-color: #138496 !important;
-    border-color: #117a8b !important;
-}
-.btn-secondary {
-    background-color: #787878 !important;
-    color: #fff !important;
-}
-
-/* Comments column specific styling */
-.marks-table .comment-header {
-    background: #e8f4fd !important;
-    color: #000 !important;
-    font-weight: bold !important;
+    min-width: 60px !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+    padding: 2px 4px !important;
+    line-height: 1.2 !important;
     text-align: center !important;
-    vertical-align: middle !important;
-    font-size: 14px !important; /* Standardized comment header size for screen */
-    padding: 6px 4px !important;
-    border: 1px solid #0072bc !important;
 }
 
-.marks-table .comment-cell {
-    text-align: center !important;
-    vertical-align: middle !important;
-    padding: 8px 4px !important;
-    font-size: 14px !important; /* Standardized comment cell size for screen */
-    font-weight: normal !important;
-    color: #333 !important;
-    border: 1px solid #0072bc !important;
-}
-
-/* Ensure comment column maintains consistency in all table sizes */
-.marks-table.medium-subjects .comment-header,
-.marks-table.small-subjects .comment-header {
-    font-size: 14px !important; /* Same standardized size */
-    padding: 6px 4px !important; /* Same padding */
-}
-
-.marks-table.medium-subjects .comment-cell,
-.marks-table.small-subjects .comment-cell {
-    font-size: 14px !important; /* Same standardized size */
-    padding: 8px 4px !important; /* Same padding */
-}
-
-/* Print view comment styling */
-@media print {
-    .marks-table .comment-header {
-        background: #e8f4fd !important;
-        color: #000 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        text-align: center !important;
-        font-size: 12px !important;
-        padding: 4px 3px !important;
-    }
-
-    .marks-table .comment-cell {
-        text-align: center !important;
-        font-size: 10px !important;
-        padding: 6px 3px !important;
-        color: #333 !important;
-    }
-
-    .marks-table.medium-subjects .comment-header {
+/* Responsive button container for smaller screens */
+@media screen and (max-width: 1200px) {
+    .button-container .btn {
         font-size: 11px !important;
-        padding: 3px 2px !important;
+        padding: 1px 2px !important;
+        min-width: 50px !important;
     }
-
-    .marks-table.medium-subjects .comment-cell {
-        font-size: 9px !important;
-        padding: 4px 2px !important;
-    }
-
-    .marks-table.small-subjects .comment-header {
+    
+    .button-container #NumberToggleButton {
+        min-width: 70px !important;
         font-size: 10px !important;
-        padding: 2px 1px !important;
+        padding: 1px 1px !important;
     }
+}
 
-    .marks-table.small-subjects .comment-cell {
+@media screen and (max-width: 992px) {
+    .button-container .btn {
+        font-size: 10px !important;
+        padding: 1px 1px !important;
+        min-width: 45px !important;
+        height: 30px !important;
+    }
+    
+    .button-container #NumberToggleButton {
+        min-width: 65px !important;
+        font-size: 9px !important;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .button-container {
+        gap: 2px !important;
+    }
+    
+    .button-container .btn {
+        font-size: 9px !important;
+        min-width: 40px !important;
+        height: 28px !important;
+    }
+    
+    .button-container #NumberToggleButton {
+        min-width: 60px !important;
         font-size: 8px !important;
-        padding: 3px 1px !important;
     }
 }

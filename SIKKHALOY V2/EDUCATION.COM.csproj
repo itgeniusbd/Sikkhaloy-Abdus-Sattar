@@ -550,8 +550,8 @@
     <Content Include="Exam\Result\CSS\Cumulative_Position.css" />
     <Content Include="Exam\Result\CSS\Analytical_Smart_Result.css" />
     <Content Include="Exam\Result\Delete_Exam_And_Result.aspx" />
+    <Content Include="Exam\Result\Individual_Result_For_Class_old.aspx" />
     <Content Include="Exam\Result\Individual_Result_For_Class.aspx" />
-    <Content Include="Exam\Result\Result_Card_English.aspx" />
     <Content Include="Exam\SeatPlan\SeatPlan.aspx" />
     <Content Include="Exam\Input_Exam_Marks.aspx" />
     <Content Include="Exam\SeatPlan\SeatPlanWithoutPhoto.aspx" />
@@ -2152,19 +2152,19 @@
     <Compile Include="Exam\Result\Delete_Exam_And_Result.aspx.designer.cs">
       <DependentUpon>Delete_Exam_And_Result.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Exam\Result\Individual_Result_For_Class_old.aspx.cs">
+      <DependentUpon>Individual_Result_For_Class_old.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Exam\Result\Individual_Result_For_Class_old.aspx.designer.cs">
+      <DependentUpon>Individual_Result_For_Class_old.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Exam\Result\Individual_Result_For_Class.aspx.cs">
       <DependentUpon>Individual_Result_For_Class.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Exam\Result\Individual_Result_For_Class.aspx.designer.cs">
       <DependentUpon>Individual_Result_For_Class.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="Exam\Result\Result_Card_English.aspx.cs">
-      <DependentUpon>Result_Card_English.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="Exam\Result\Result_Card_English.aspx.designer.cs">
-      <DependentUpon>Result_Card_English.aspx</DependentUpon>
     </Compile>
     <Compile Include="Exam\SeatPlan\SeatPlan.aspx.cs">
       <DependentUpon>SeatPlan.aspx</DependentUpon>

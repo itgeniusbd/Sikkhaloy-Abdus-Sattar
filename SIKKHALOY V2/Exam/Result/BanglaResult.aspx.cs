@@ -1,6 +1,4 @@
-﻿
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -111,13 +109,11 @@ namespace EDUCATION.COM.Exam.Result
                 AllResultsData = null;
                 TotalRecords = 0;
 
-                // Hide print button when class changes
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintOnClassChange",
-                    "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
+                // Hide print button when class changes using safe JavaScript
+                SafeRegisterStartupScript("hidePrintOnClassChange", "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';");
 
-                // Reset page title when class changes
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleClassChange",
-                    "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
+                // Reset page title when class changes using safe JavaScript
+                SafeRegisterStartupScript("resetTitleClassChange", "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';");
             }
             catch (ThreadAbortException)
             {
@@ -125,8 +121,9 @@ namespace EDUCATION.COM.Exam.Result
             }
             catch (Exception ex)
             {
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "error",
-                    "console.error('Class selection error: " + ex.Message.Replace("'", "\\'") + "');", true);
+                // Use safe JavaScript registration for class selection errors
+                string safeErrorMessage = EscapeForJavaScript(ex.Message);
+                SafeRegisterStartupScript("error", $"console.error('Class selection error: {safeErrorMessage}');");
             }
         }
 
@@ -205,15 +202,17 @@ namespace EDUCATION.COM.Exam.Result
                     // For Student ID search, only Class and Exam are required
                     if (ExamDropDownList.SelectedValue != "0" && ClassDropDownList.SelectedValue != "0")
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "debug1",
-                            $"console.log('Loading results for Student IDs: {studentIDText}, Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');", true);
+                        // Use safe JavaScript registration
+                        string escapedStudentIDText = EscapeForJavaScript(studentIDText);
+
+                        SafeRegisterStartupScript("debug1",
+                            $"console.log('Loading results for Student IDs: {escapedStudentIDText}, Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');");
 
                         LoadResultsData();
                     }
                     else
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "alert",
-                            "alert('For Student ID search, please select both Class and Exam');", true);
+                        SafeRegisterStartupScript("alert", "alert('Student ID অনুসন্ধানের জন্য, দয়া করে ক্লাস এবং পরীক্ষা উভয়ই নির্বাচন করুন');");
                     }
                 }
                 else
@@ -221,14 +220,14 @@ namespace EDUCATION.COM.Exam.Result
                     // For normal search, Class and Exam are required
                     if (ExamDropDownList.SelectedValue != "0" && ClassDropDownList.SelectedValue != "0")
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "debug1",
-                            $"console.log('Loading results for Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');", true);
+                        SafeRegisterStartupScript("debug1",
+                            $"console.log('Loading results for Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');");
 
                         LoadResultsData();
                     }
                     else
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "alert", "alert('Please select both Class and Exam');", true);
+                        SafeRegisterStartupScript("alert", "alert('দয়া করে ক্লাস এবং পরীক্ষা উভয়ই নির্বাচন করুন');");
                     }
                 }
             }
@@ -238,8 +237,9 @@ namespace EDUCATION.COM.Exam.Result
             }
             catch (Exception ex)
             {
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "error",
-                    "console.error('LoadResults Error: " + ex.Message.Replace("'", "\\'") + "');", true);
+                // Use safe JavaScript registration for errors
+                string safeErrorMessage = EscapeForJavaScript(ex.Message);
+                SafeRegisterStartupScript("error", $"console.error('LoadResults Error: {safeErrorMessage}');");
             }
         }
 
@@ -263,8 +263,7 @@ namespace EDUCATION.COM.Exam.Result
                     var studentIDs = ParseStudentIDs(studentIDText);
                     if (studentIDs.Count == 0)
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "invalidID",
-                            "alert('Please enter valid Student IDs');", true);
+                        SafeRegisterStartupScript("invalidID", "alert('দয়া করে বৈধ Student ID প্রদান করুন');");
                         return;
                     }
 
@@ -398,17 +397,15 @@ namespace EDUCATION.COM.Exam.Result
                         ResultPanel.Visible = true;
 
                         // Show simple print button when results are available
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "showPrintButton",
-                            "document.getElementById('PrintButton').style.display = 'inline-block';", true);
+                        SafeRegisterStartupScript("showPrintButton", "document.getElementById('PrintButton').style.display = 'inline-block';");
 
-                        // Update page title with dynamic student count
+                        // Update page title with dynamic student count - use safe JavaScript
                         int studentCount = dt.Rows.Count;
-                        string searchMethod = isSearchingByID ? "AIডি সার্চ" : "সাধারণ সার্চ";
-                        string dynamicTitle = $"বাংলা রেজাল্ট কার্ড - মোট শিক্ষার্থী ( {studentCount} ) - {searchMethod}";
+                        string searchMethod = isSearchingByID ? "আইডি সার্চ" : "সাধারণ সার্চ";
+                        string dynamicTitle = EscapeForJavaScript($"বাংলা রেজাল্ট কার্ড - মোট শিক্ষার্থী ( {studentCount} ) - {searchMethod}");
 
                         // Update page title using JavaScript
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "updateTitle",
-                            $"document.getElementById('pageTitle').innerHTML = '{dynamicTitle}';", true);
+                        SafeRegisterStartupScript("updateTitle", $"document.getElementById('pageTitle').innerHTML = '{dynamicTitle}';");
                     }
                     else
                     {
@@ -418,19 +415,16 @@ namespace EDUCATION.COM.Exam.Result
                         ResultPanel.Visible = false;
 
                         // Hide print button when no results
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintButton",
-                            "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
+                        SafeRegisterStartupScript("hidePrintButton", "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';");
 
                         // Reset page title when no results
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitle",
-                            "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
+                        SafeRegisterStartupScript("resetTitle", "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';");
 
                         string noResultsMessage = isSearchingByID ?
-                            "No results found for the specified Student IDs" :
-                            "No results found for the selected criteria";
+                            "নির্দিষ্ট Student ID এর জন্য কোন ফলাফল পাওয়া যায়নি" :
+                            "নির্বাচিত শর্তের জন্য কোন ফলাফল পাওয়া যায়নি";
 
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "nodata",
-                            $"alert('{noResultsMessage}');", true);
+                        SafeRegisterStartupScript("nodata", $"alert('{EscapeForJavaScript(noResultsMessage)}');");
                     }
                 }
             }
@@ -443,22 +437,22 @@ namespace EDUCATION.COM.Exam.Result
                 ResultPanel.Visible = false;
 
                 // Reset title on error
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleError",
-                    "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
+                SafeRegisterStartupScript("resetTitleError", "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';");
 
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "sqlerror",
-                    "console.error('Database Error: " + sqlEx.Message.Replace("'", "\\'") + "');", true);
+                // Use safe JavaScript registration for SQL errors
+                string safeErrorMessage = EscapeForJavaScript(sqlEx.Message);
+                SafeRegisterStartupScript("sqlerror", $"console.error('Database Error: {safeErrorMessage}');");
             }
             catch (Exception ex)
             {
                 ResultPanel.Visible = false;
 
                 // Reset title on error
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "resetTitleError2",
-                    "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';", true);
+                SafeRegisterStartupScript("resetTitleError2", "document.getElementById('pageTitle').innerHTML = 'বাংলা রেজাল্ট কার্ড';");
 
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "dberror",
-                    "console.error('Error: " + ex.Message.Replace("'", "\\'") + "');", true);
+                // Use safe JavaScript registration for general errors
+                string safeErrorMessage = EscapeForJavaScript(ex.Message);
+                SafeRegisterStartupScript("dberror", $"console.error('Error: {safeErrorMessage}');");
             }
             finally
             {
@@ -511,9 +505,8 @@ namespace EDUCATION.COM.Exam.Result
                 NextPageButton.Enabled = false;
                 LastPageButton.Enabled = false;
 
-                // Hide print button when no results
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "hidePrintButton",
-                    "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';", true);
+                // Hide print button when no results using safe JavaScript
+                SafeRegisterStartupScript("hidePrintButton", "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'none';");
                 return;
             }
 
@@ -523,7 +516,7 @@ namespace EDUCATION.COM.Exam.Result
             int endRecord = Math.Min(startRecord + PageSize - 1, TotalRecords);
 
             // Update info labels
-            PaginationInfoLabel.Text = $"লোড হয়েছে {startRecord} থেকে {endRecord} জন। মোট {TotalRecords} জন শিক্ষার্থী থেকে";
+            PaginationInfoLabel.Text = $"লোড হয়েছে {startRecord} থেকে {endRecord} জন। মোট {TotalRecords} জন শিক্ষার্থী থেকে";
             PageInfoLabel.Text = $"Page {currentPage} of {totalPages}";
 
             // Enable/disable buttons
@@ -532,9 +525,8 @@ namespace EDUCATION.COM.Exam.Result
             NextPageButton.Enabled = CurrentPageIndex < (totalPages - 1);
             LastPageButton.Enabled = CurrentPageIndex < (totalPages - 1);
 
-            // Show print button when there are results
-            Page.ClientScript.RegisterStartupScript(typeof(Page), "showPrintButton",
-                "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'inline-block';", true);
+            // Show print button when there are results using safe JavaScript
+            SafeRegisterStartupScript("showPrintButton", "var btn = document.getElementById('PrintButton'); if(btn) btn.style.display = 'inline-block';");
         }
 
         protected void NextPageButton_Click(object sender, EventArgs e)
@@ -665,8 +657,7 @@ namespace EDUCATION.COM.Exam.Result
                 // Call the same method that BanglaResult.aspx ObjectDataSource calls
                 var gradingData = tableAdapter.GetData(schoolID, classID, examID, educationYearID);
 
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapter",
-                    $"console.log('TableAdapter returned {gradingData.Rows.Count} grading rows');", true);
+                SafeRegisterStartupScript("gradingTableAdapter", $"console.log('TableAdapter returned {gradingData.Rows.Count} grading rows');");
 
                 // If we got data from TableAdapter, return it
                 if (gradingData.Rows.Count > 0)
@@ -674,26 +665,24 @@ namespace EDUCATION.COM.Exam.Result
                     // Log what we found
                     foreach (System.Data.DataRow row in gradingData.Rows)
                     {
-                        string grade = row["Grades"]?.ToString() ?? "";
-                        string comment = row["Comments"]?.ToString() ?? "";
-                        string marks = row["MARKS"]?.ToString() ?? "";
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), $"gradingRow{grade}",
-                            $"console.log('TableAdapter Grade: {grade}, Comment: {comment}, Marks: {marks}');", true);
+                        string grade = EscapeForJavaScript(row["Grades"]?.ToString() ?? "");
+                        string comment = EscapeForJavaScript(row["Comments"]?.ToString() ?? "");
+                        string marks = EscapeForJavaScript(row["MARKS"]?.ToString() ?? "");
+                        SafeRegisterStartupScript($"gradingRow{grade}", $"console.log('TableAdapter Grade: {grade}, Comment: {comment}, Marks: {marks}');");
                     }
 
                     return gradingData;
                 }
                 else
                 {
-                    Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradingData",
-                        $"console.log('No grading data from TableAdapter, using default');", true);
+                    SafeRegisterStartupScript("noGradingData", "console.log('No grading data from TableAdapter, using default');");
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"TableAdapter GetGradingSystemData error: {ex.Message}");
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradingTableAdapterError",
-                    $"console.error('TableAdapter error: {ex.Message}');", true);
+                string safeErrorMessage = EscapeForJavaScript(ex.Message);
+                SafeRegisterStartupScript("gradingTableAdapterError", $"console.error('TableAdapter error: {safeErrorMessage}');");
             }
 
             // Fallback to default grading data if TableAdapter fails
@@ -742,7 +731,7 @@ namespace EDUCATION.COM.Exam.Result
                 case "C": return "সন্তোষজনক নয়";
                 case "D": return "খুব খারাপ";
                 case "F": return "অকৃতকার্য";
-                default: return gpa >= 4.0m ? "চমৎকার" : "ভালো";
+                default: return gpa >= 4.0m ? "চিত্তাকর্ষক" : "ভালো";
             }
         }
 
@@ -760,8 +749,9 @@ namespace EDUCATION.COM.Exam.Result
 
                     if (string.Equals(gradeFromChart, studentGrade, StringComparison.OrdinalIgnoreCase))
                     {
-                        Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeFromChart",
-                            $"console.log('Found comment from TableAdapter: Grade={gradeFromChart}, Comment={commentFromChart}');", true);
+                        string safeGrade = EscapeForJavaScript(gradeFromChart);
+                        string safeComment = EscapeForJavaScript(commentFromChart);
+                        SafeRegisterStartupScript("gradeFromChart", $"console.log('Found comment from TableAdapter: Grade={safeGrade}, Comment={safeComment}');");
 
                         if (!string.IsNullOrEmpty(commentFromChart))
                         {
@@ -770,14 +760,14 @@ namespace EDUCATION.COM.Exam.Result
                     }
                 }
 
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "noGradeFromChart",
-                    $"console.log('No comment found in TableAdapter data for grade: {studentGrade}');", true);
+                string safeStudentGrade = EscapeForJavaScript(studentGrade);
+                SafeRegisterStartupScript("noGradeFromChart", $"console.log('No comment found in TableAdapter data for grade: {safeStudentGrade}');");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"GetCommentFromGradingChart error: {ex.Message}");
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "gradeChartError",
-                    $"console.error('GetCommentFromGradingChart error: {ex.Message}');", true);
+                string safeErrorMessage = EscapeForJavaScript(ex.Message);
+                SafeRegisterStartupScript("gradeChartError", $"console.error('GetCommentFromGradingChart error: {safeErrorMessage}');");
             }
 
             return string.Empty;
@@ -1203,7 +1193,7 @@ namespace EDUCATION.COM.Exam.Result
                             }
                             else if (markValue == "0")
                             {
-                                markValue = "অনুপstitut";
+                                markValue = "অনুপস্থিত";
                                 hasAbsentMarks = true;
                             }
 
@@ -1712,14 +1702,13 @@ namespace EDUCATION.COM.Exam.Result
         {
             try
             {
-                // Simply redirect to print-friendly version
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "printPage",
-                    "window.open(window.location.href + '?print=1', '_blank');", true);
+                // Simply redirect to print-friendly version using safe JavaScript
+                SafeRegisterStartupScript("printPage", "window.open(window.location.href + '?print=1', '_blank');");
             }
             catch (Exception ex)
             {
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "error",
-                    $"alert('Error: {ex.Message}');", true);
+                string safeErrorMessage = EscapeForJavaScript(ex.Message);
+                SafeRegisterStartupScript("error", $"alert('Error: {safeErrorMessage}');");
             }
         }
 
@@ -1728,8 +1717,8 @@ namespace EDUCATION.COM.Exam.Result
         {
             if (Request.QueryString["print"] == "1")
             {
-                // Hide unnecessary elements for printing
-                Page.ClientScript.RegisterStartupScript(typeof(Page), "autoPrint", @"
+                // Hide unnecessary elements for printing using safe JavaScript
+                SafeRegisterStartupScript("autoPrint", @"
                     document.addEventListener('DOMContentLoaded', function() {
                         // Hide buttons and unnecessary elements
                         var buttons = document.querySelectorAll('.btn, .form-control');
@@ -1740,7 +1729,43 @@ namespace EDUCATION.COM.Exam.Result
                             window.print();
                         }, 1000);
                     });
-                ", true);
+                ");
+            }
+        }
+
+        // Helper method to safely escape strings for JavaScript output
+        private string EscapeForJavaScript(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            return input
+                .Replace("\\", "\\\\")  // Escape backslashes first
+                .Replace("'", "\\'")    // Escape single quotes
+                .Replace("\"", "\\\"")  // Escape double quotes
+                .Replace("\n", "\\n")   // Escape newlines
+                .Replace("\r", "\\r")   // Escape carriage returns
+                .Replace("\t", "\\t")   // Escape tabs
+                .Replace("\b", "\\b")   // Escape backspace
+                .Replace("\f", "\\f")   // Escape form feed
+                .Replace("\v", "\\v")   // Escape vertical tab
+                .Replace("\0", "\\0");  // Escape null character
+        }
+
+        // Enhanced method to safely register JavaScript with proper error handling
+        private void SafeRegisterStartupScript(string key, string script)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(script))
+                    return;
+
+                string safeScript = "try { " + script + " } catch (e) { console.error('JavaScript error in " + key + ":', e); }";
+                Page.ClientScript.RegisterStartupScript(typeof(Page), key, safeScript, true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error registering JavaScript for key '{key}': {ex.Message}");
             }
         }
     }
