@@ -3,373 +3,12 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
-
-    <!-- Additional Font Awesome support for this page -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
-
+    
     <!-- External CSS for Bangla Result Direct Print -->
     <link href="Assets/bangla-result-directprint.css" rel="stylesheet" type="text/css" />
-
-    <style>
-        /* Ensure icons are displayed properly on this page */
-        .fa, .fas, .far, .fab, .fal, .fad {
-            font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
-            font-weight: 900 !important;
-            display: inline-block !important;
-        }
-
-        /* Fix specific icon display issues */
-        .fa-language::before {
-            content: "\f1ab" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-            font-weight: 900 !important;
-        }
-
-        .fa-map-marker::before {
-            content: "\f3c5" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-        }
-
-        .fa-phone::before {
-            content: "\f095" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-        }
-
-        .fa-envelope-o::before, .fa-envelope::before {
-            content: "\f0e0" !important;
-            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
-        }
-
-        /* Ensure button icons are visible */
-        #languageToggle i {
-            margin-right: 5px !important;
-            font-size: 14px !important;
-        }
-
-        /* Additional fallback styles */
-        .fa {
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Test icon visibility */
-        .test-icons {
-            display: none; /* Hidden test element */
-        }
-
-        /* Enhanced Loading Overlay Styles for Dynamic Progress */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            font-family: Arial, sans-serif;
-            backdrop-filter: blur(3px);
-        }
-
-        .loading-container {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            padding: 35px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
-            min-width: 450px;
-            max-width: 550px;
-            border: 2px solid #0072bc;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .loading-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 3s infinite;
-        }
-
-        .loading-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #0072bc;
-            margin-bottom: 20px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            height: 24px;
-            background: linear-gradient(to right, #e9ecef, #f8f9fa);
-            border-radius: 12px;
-            margin: 20px 0;
-            overflow: hidden;
-            position: relative;
-            border: 2px solid #dee2e6;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #2E7D32 100%);
-            width: 0%;
-            border-radius: 10px;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-            overflow: hidden;
-        }
-
-        .progress-bar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, 
-                transparent 35%, 
-                rgba(255, 255, 255, 0.3) 50%, 
-                transparent 65%);
-            animation: progressShine 2s infinite;
-        }
-
-        .progress-bar.animate {
-            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 25%, #4CAF50 50%, #2E7D32 75%, #4CAF50 100%);
-            background-size: 200% 200%;
-            animation: progressPulse 2s ease-in-out infinite;
-        }
-
-        .progress-percentage {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 15px 0 10px 0;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress-message {
-            font-size: 16px;
-            margin: 10px 0;
-            font-weight: 600;
-            color: #0072bc;
-            min-height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .progress-details {
-            font-size: 14px;
-            margin: 8px 0;
-            color: #6c757d;
-            min-height: 20px;
-            font-style: italic;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .loading-spinner {
-            margin: 20px 0 10px 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .spinner {
-            width: 32px;
-            height: 32px;
-            border: 4px solid rgba(0, 114, 188, 0.2);
-            border-top: 4px solid #0072bc;
-            border-radius: 50%;
-            animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-
-        /* Enhanced Animations */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes progressPulse {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        @keyframes progressShine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        /* Success and Error States */
-        .progress-bar.success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
-            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4);
-        }
-
-        .progress-bar.error {
-            background: linear-gradient(135deg, #dc3545 0%, #e74c3c 50%, #c82333 100%);
-            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
-        }
-
-        /* Responsive Design */
-        @media screen and (max-width: 768px) {
-            .loading-container {
-                min-width: 300px;
-                max-width: 90%;
-                padding: 25px 20px;
-                margin: 0 15px;
-            }
-            
-            .loading-title {
-                font-size: 18px;
-                margin-bottom: 15px;
-            }
-            
-            .progress-bar-container {
-                height: 20px;
-                margin: 15px 0;
-            }
-            
-            .progress-percentage {
-                font-size: 16px;
-            }
-            
-            .progress-message {
-                font-size: 14px;
-            }
-            
-            .progress-details {
-                font-size: 12px;
-            }
-            
-            .spinner {
-                width: 28px;
-                height: 28px;
-                border-width: 3px;
-            }
-        }
-
-        @media screen and (max-width: 480px) {
-            .loading-container {
-                min-width: 280px;
-                padding: 20px 15px;
-            }
-            
-            .loading-title {
-                font-size: 16px;
-            }
-        }
-
-        /* Hide during print */
-        @media print {
-            .loading-overlay {
-                display: none !important;
-            }
-        }
-
-        /* Dark theme variant */
-        .loading-overlay.dark-theme {
-            background: rgba(0, 0, 0, 0.9);
-        }
-
-        .loading-overlay.dark-theme .loading-container {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: #ecf0f1;
-            border-color: #3498db;
-        }
-
-        .loading-overlay.dark-theme .loading-title {
-            color: #3498db;
-        }
-
-        .loading-overlay.dark-theme .progress-message {
-            color: #3498db;
-        }
-
-        .loading-overlay.dark-theme .progress-details {
-            color: #bdc3c7;
-        }
-
-        .loading-overlay.dark-theme .progress-bar-container {
-            background: linear-gradient(to right, #34495e, #2c3e50);
-            border-color: #34495e;
-        }
-
-        .loading-overlay.dark-theme .spinner {
-            border-color: rgba(52, 152, 219, 0.2);
-            border-top-color: #3498db;
-        }
-
-        /* High contrast mode */
-        @media (prefers-contrast: high) {
-            .loading-container {
-                background: #ffffff;
-                border: 3px solid #000000;
-            }
-            
-            .loading-title {
-                color: #000000;
-            }
-            
-            .progress-bar {
-                background: linear-gradient(135deg, #000000 0%, #333333 100%);
-            }
-        }
-
-        /* Reduced motion accessibility */
-        @media (prefers-reduced-motion: reduce) {
-            .progress-bar {
-                transition: none;
-            }
-            
-            .progress-bar.animate {
-                animation: none;
-            }
-            
-            .spinner {
-                animation-duration: 3s;
-            }
-            
-            .progress-bar::before {
-                animation: none;
-            }
-        }
-    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <!-- Progress Bar Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-container">
-            <div class="loading-title">রেজাল্ট কার্ড লোড হচ্ছে</div>
-            <div class="progress-bar-container">
-                <div id="progressBar" class="progress-bar animate"></div>
-            </div>
-            <div id="progressPercentage" class="progress-percentage">0%</div>
-            <div id="progressMessage" class="progress-message">রেজাল্ট লোড করার প্রস্তুতি...</div>
-            <div id="progressDetails" class="progress-details">দয়া করে অপেক্ষা করুন</div>
-            <div class="loading-spinner">
-                <div class="spinner"></div>
-            </div>
-        </div>
-    </div>
-
     <h3 class="NoPrint" id="pageTitle">বাংলা রেজাল্ট কার্ড     <a href="BanglaResult_Old.aspx"><span class="btn-text-full">Old</span> </a></h3>
 
     
@@ -492,16 +131,16 @@
             <div class="col-md-2">
                 <div class="form-group">
                     <label>&nbsp;</label>
-                    <div class="button-container" style="display: flex; gap: 3px; margin-top: 5px; flex-wrap: nowrap;">
+                    <div class="button-container" style="display: flex; gap: 5px; margin-top: 5px;">
                         <asp:Button ID="LoadResultsButton" runat="server" Text="LOAD" 
                             CssClass="btn btn-success btn-sm" OnClick="LoadResultsButton_Click" 
-                            style="flex: 1; height: 34px; min-width: 60px; white-space: nowrap;" />
+                            style="flex: 1; height: 34px;" />
                         <button type="button" onclick="window.print()" class="btn btn-primary btn-sm" 
-                            id="PrintButton" style="display:none; flex: 1; height: 34px; min-width: 60px; white-space: nowrap;">
+                            id="PrintButton" style="display:none; flex: 1; height: 34px;">
                             PRINT
                         </button>
                         <button type="button" onclick="toggleNumberLanguage()" class="btn btn-warning btn-sm" 
-                            id="NumberToggleButton" style="display:none; flex: 1; height: 34px; min-width: 80px; white-space: nowrap; font-size: 11px;">
+                            id="NumberToggleButton" style="display:none; flex: 1; height: 34px; margin-left: 5px;">
                             বাংলা সংখ্যা
                         </button>
                     </div>
@@ -532,7 +171,7 @@
         </div>
                 <div class="pagination-inline NoPrint" style="margin-bottom: 15px; text-align: center;">
             <asp:Label ID="PaginationInfoLabel" runat="server" CssClass="pagination-label" 
-                Text="লোড হয়েছে 0 থেকে 0 জন। মোট 0 শিক্ষার্থী থেকে"></asp:Label>
+                Text="লোড হয়েছে 0 থেকে 0 জন। মোট 0 শিক্ষার্থী থেকে"></asp:Label>
         </div>
         <!-- Pagination Controls -->
         <div class="pagination-inline NoPrint" style="display: flex; align-items: center;">
@@ -566,8 +205,8 @@
                         <img src="/Handeler/SchoolLogo.ashx?SLogo=<%# Eval("SchoolID") %>" alt="School Logo" onerror="this.style.display='none';" />
                         <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>" alt="Student Photo" class="student-photo" onerror="this.style.display='none';" />
                         <h2><%# Eval("SchoolName") %></h2>
-                        <p><i class="fa fa-map-marker icon-fallback" data-fallback="📍"></i> <%# Eval("Address") %></p>
-                        <p><i class="fa fa-phone icon-fallback" data-fallback="📞"></i> <%# Eval("Phone") %></p>
+                        <p><%# Eval("Address") %></p>
+                        <p>Phone: <%# Eval("Phone") %> </p>
                     </div>
 
                     <!-- Title Section -->
@@ -656,287 +295,7 @@
     </asp:Panel>
 
     <script>
-        // Enhanced Progress Bar Control Object with Dynamic Server Integration (Bengali Version)
-        var ProgressBarManager = {
-            // Configuration
-            config: {
-                polling: {
-                    interval: 300, // Check every 300ms
-                    maxAttempts: 200, // Maximum 60 seconds (200 * 300ms)
-                    currentAttempt: 0
-                },
-                baseMessages: [
-                    { step: 1, message: "ডাটাবেসে সংযোগ স্থাপন...", detail: "নিরাপদ সংযোগ স্থাপন করা হচ্ছে", duration: 1000 },
-                    { step: 2, message: "প্যারামিটার যাচাই...", detail: "ক্লাস, পরীক্ষা এবং শিক্ষার্থী নির্বাচন পরীক্ষা", duration: 800 },
-                    { step: 3, message: "ক্লাস কনফিগারেশন লোড...", detail: "ক্লাস, বিভাগ, গ্রুপের তথ্য আনা হচ্ছে", duration: 600 },
-                    { step: 4, message: "শিক্ষার্থী গণনা...", detail: "মোট শিক্ষার্থী সংখ্যা নির্ধারণ", duration: 1200 },
-                    { step: 5, message: "শিক্ষার্থী তথ্য প্রক্রিয়াকরণ...", detail: "শিক্ষার্থীর তথ্য এবং ছবি লোড", duration: 0 }, // Dynamic
-                    { step: 6, message: "পরীক্ষার ফলাফল গণনা...", detail: "নম্বর এবং গ্রেড প্রক্রিয়াকরণ", duration: 0 }, // Dynamic
-                    { step: 7, message: "রেজাল্ট কার্ড তৈরি...", detail: "ফরম্যাটিং এবং প্রদর্শনের প্রস্তুতি", duration: 0 }, // Dynamic
-                    { step: 8, message: "চূড়ান্তকরণ...", detail: "চূড়ান্ত আউটপুট প্রস্তুত", duration: 500 }
-                ]
-            },
-            
-            // State management
-            state: {
-                isRunning: false,
-                currentStep: 0,
-                estimatedStudentCount: 0,
-                actualStudentCount: 0,
-                startTime: 0,
-                pollingTimer: null,
-                stepTimer: null
-            },
-
-            // Show progress overlay
-            show: function() {
-                $('#loadingOverlay').css('display', 'flex');
-                this.state.isRunning = true;
-                this.state.currentStep = 0;
-                this.state.startTime = Date.now();
-                this.state.pollingTimer = null;
-                this.state.stepTimer = null;
-                this.config.polling.currentAttempt = 0;
-                this.reset();
-                this.startDynamicProgress();
-            },
-
-            // Hide progress overlay
-            hide: function() {
-                var self = this;
-                setTimeout(function() {
-                    $('#loadingOverlay').fadeOut(300, function() {
-                        self.cleanup();
-                    });
-                }, 500);
-            },
-
-            // Cleanup timers and state
-            cleanup: function() {
-                this.state.isRunning = false;
-                if (this.state.pollingTimer) {
-                    clearInterval(this.state.pollingTimer);
-                    this.state.pollingTimer = null;
-                }
-                if (this.state.stepTimer) {
-                    clearTimeout(this.state.stepTimer);
-                    this.state.stepTimer = null;
-                }
-            },
-
-            // Reset progress bar
-            reset: function() {
-                $('#progressBar').css('width', '0%');
-                $('#progressPercentage').text('0%');
-                $('#progressMessage').text('রেজাল্ট লোড করার প্রস্তুতি...');
-                $('#progressDetails').text('দয়া করে অপেক্ষা করুন');
-            },
-
-            // Start dynamic progress with server monitoring
-            startDynamicProgress: function() {
-                var self = this;
-                
-                // Start initial steps (database connection, validation, etc.)
-                self.processInitialSteps();
-                
-                // Start polling for server completion after initial steps
-                setTimeout(function() {
-                    self.startServerPolling();
-                }, 2500); // Start polling after initial 2.5 seconds
-            },
-            
-            // Process initial steps (database connection, validation, etc.)
-            processInitialSteps: function() {
-                var self = this;
-                var initialSteps = self.config.baseMessages.slice(0, 4); // First 4 steps
-                
-                function processStep(stepIndex) {
-                    if (stepIndex >= initialSteps.length || !self.state.isRunning) {
-                        return;
-                    }
-                    
-                    var step = initialSteps[stepIndex];
-                    self.state.currentStep = step.step;
-                    
-                    $('#progressMessage').text(step.message);
-                    $('#progressDetails').text(step.detail);
-                    
-                    // Calculate progress for initial steps (0-40%)
-                    var progress = ((stepIndex + 1) / initialSteps.length) * 40;
-                    self.animateProgressTo(progress);
-                    
-                    // Schedule next step
-                    if (stepIndex < initialSteps.length - 1) {
-                        self.state.stepTimer = setTimeout(function() {
-                            processStep(stepIndex + 1);
-                        }, step.duration);
-                    }
-                }
-                
-                processStep(0);
-            },
-            
-            // Start polling server for completion status
-            startServerPolling: function() {
-                var self = this;
-                
-                // Update message to show we're processing
-                $('#progressMessage').text('শিক্ষার্থী তথ্য প্রক্রিয়াকরণ...');
-                $('#progressDetails').text('ফলাফল লোড এবং গণনা');
-                
-                self.state.pollingTimer = setInterval(function() {
-                    self.checkServerStatus();
-                }, self.config.polling.interval);
-            },
-            
-            // Check if results are loaded on server
-            checkServerStatus: function() {
-                var self = this;
-                self.config.polling.currentAttempt++;
-                
-                // Calculate elapsed time
-                var elapsedTime = Date.now() - self.state.startTime;
-                var elapsedSeconds = Math.floor(elapsedTime / 1000);
-                
-                // Progressive progress updates while polling
-                var baseProgress = 40; // Starting from 40% after initial steps
-                var pollingProgress = Math.min(50, (self.config.polling.currentAttempt / self.config.polling.maxAttempts) * 50);
-                var currentProgress = baseProgress + pollingProgress;
-                
-                // Update progress and details
-                self.animateProgressTo(Math.min(currentProgress, 90));
-                $('#progressDetails').text('প্রক্রিয়াকরণ... (' + elapsedSeconds + 'সে অতিবাহিত)');
-                
-                // Check if results panel is visible (indicates completion)
-                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
-                var hasResults = false;
-                
-                if (resultPanel) {
-                    hasResults = $(resultPanel).is(':visible') && $('.result-card').length > 0;
-                }
-                
-                if (hasResults) {
-                    // Results found - complete immediately
-                    self.state.actualStudentCount = $('.result-card').length;
-                    self.completeWithResults();
-                    return;
-                }
-                
-                // Check for timeout
-                if (self.config.polling.currentAttempt >= self.config.polling.maxAttempts) {
-                    // Timeout reached - check one more time then complete
-                    setTimeout(function() {
-                        var finalCheck = $('.result-card').length > 0;
-                        if (finalCheck) {
-                            self.state.actualStudentCount = $('.result-card').length;
-                            self.completeWithResults();
-                        } else {
-                            self.completeWithTimeout();
-                        }
-                    }, 500);
-                    
-                    if (self.state.pollingTimer) {
-                        clearInterval(self.state.pollingTimer);
-                        self.state.pollingTimer = null;
-                    }
-                }
-            },
-            
-            // Complete progress when results are loaded
-            completeWithResults: function() {
-                var self = this;
-                
-                // Stop polling
-                if (self.state.pollingTimer) {
-                    clearInterval(self.state.pollingTimer);
-                    self.state.pollingTimer = null;
-                }
-                
-                // Show completion messages
-                $('#progressMessage').text('ফলাফল সফলভাবে লোড হয়েছে!');
-                $('#progressDetails').text(`${self.state.actualStudentCount}টি রেজাল্ট কার্ড প্রদর্শন`);
-                
-                // Animate to 100%
-                self.animateProgressTo(100);
-                
-                // Hide after showing completion
-                setTimeout(function() {
-                    self.hide();
-                    
-                    // Show success notification
-                    console.log(`✅ ফলাফল লোড: ${self.state.actualStudentCount} শিক্ষার্থী ${Math.floor((Date.now() - self.state.startTime) / 1000)} সেকেন্ডে`);
-                    
-                    // Ensure print button is visible
-                    setTimeout(function() {
-                        var printBtn = document.getElementById('PrintButton');
-                        if (printBtn && $('.result-card').length > 0) {
-                            printBtn.style.display = 'inline-block';
-                        }
-                    }, 100);
-                    
-                }, 800);
-            },
-            
-            // Handle timeout case
-            completeWithTimeout: function() {
-                var self = this;
-                
-                $('#progressMessage').text('লোডিং সম্পন্ন');
-                $('#progressDetails').text('প্রক্রিয়াকরণ শেষ');
-                self.animateProgressTo(100);
-                
-                setTimeout(function() {
-                    self.hide();
-                }, 1000);
-            },
-
-            // Animate progress bar to target percentage
-            animateProgressTo: function(targetPercentage) {
-                var $progressBar = $('#progressBar');
-                var $progressPercentage = $('#progressPercentage');
-                
-                $progressBar.css('width', Math.min(targetPercentage, 100) + '%');
-                $progressPercentage.text(Math.round(Math.min(targetPercentage, 100)) + '%');
-                
-                // Add pulse effect for active progress
-                if (targetPercentage < 95) {
-                    $progressBar.addClass('animate');
-                } else {
-                    $progressBar.removeClass('animate');
-                }
-            },
-
-            // Force completion (called externally when we know results are ready)
-            forceComplete: function() {
-                if (!this.state.isRunning) return;
-                
-                this.state.actualStudentCount = $('.result-card').length;
-                this.completeWithResults();
-            },
-            
-            // Manual completion with custom message
-            completeWithMessage: function(message, detail) {
-                var self = this;
-                
-                if (self.state.pollingTimer) {
-                    clearInterval(self.state.pollingTimer);
-                    self.state.pollingTimer = null;
-                }
-                
-                $('#progressMessage').text(message || 'লোডিং সম্পন্ন');
-                $('#progressDetails').text(detail || 'প্রক্রিয়া শেষ');
-                self.animateProgressTo(100);
-                
-                setTimeout(function() {
-                    self.hide();
-                }, 800);
-            }
-        };
-
         $(document).ready(function () {
-            // Check if Font Awesome is loaded properly
-            checkAndFixFontAwesome();
-            
             // DON'T convert numbers to Bengali automatically - keep English by default
             // convertNumbersToBengali(); // Commented out - numbers will stay in English by default
 
@@ -963,9 +322,6 @@
                 // Set initial button state to show "বাংলা সংখ্যা" since numbers are in English by default
                 $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
                 isNumbersBengali = false; // Set to false since numbers are in English by default
-                
-                // Fix result card icons on page load if results exist
-                fixResultCardIcons();
             }
 
             // Test browse button functionality - only for debugging
@@ -988,81 +344,28 @@
                 $("[id*=StudentIDTextBox]").val('');
             });
 
-            // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
-            $("[id*=LoadResultsButton]").off('click').on('click', function (e) {
-                console.log('🚀 Load Results button clicked - starting dynamic progress monitoring');
-                
-                // Test if progress bar manager exists
-                if (typeof ProgressBarManager === 'undefined') {
-                    console.error('❌ ProgressBarManager is not defined!');
-                    alert('প্রগ্রেস বার সিস্টেম সঠিকভাবে লোড হয়নি। পৃষ্ঠা রিফ্রেশ করুন।');
-                    return false;
-                }
-                
-                // Test if jQuery is loaded
-                if (typeof $ === 'undefined') {
-                    console.error('❌ jQuery is not loaded!');
-                    alert('jQuery লোড হয়নি। পৃষ্ঠা রিফ্রেশ করুন।');
-                    return false;
-                }
-                
-                console.log('✅ Dependencies check passed');
-                
-                // Check if required selections are made
-                var classValue = $("[id*=ClassDropDownList]").val();
-                var examValue = $("[id*=ExamDropDownList]").val();
-                
-                console.log('📋 Form values:', { class: classValue, exam: examValue });
-                
-                if (!classValue || classValue === "0") {
-                    alert("দয়া করে প্রথমে একটি ক্লাস নির্বাচন করুন!");
-                    e.preventDefault();
-                    return false;
-                }
-                
-                if (!examValue || examValue === "0") {
-                    alert("দয়া করে প্রথমে একটি পরীক্ষা নির্বাচন করুন!");
-                    e.preventDefault();
-                    return false;
-                }
-
-                // Hide any existing results during new load
-                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
-                if (resultPanel) {
-                    $(resultPanel).hide();
-                }
-                $('.result-card').remove();
-
-                // Test progress bar show function
-                console.log('🎯 About to show progress bar...');
-                
-                try {
-                    // Show dynamic progress bar
-                    ProgressBarManager.show();
-                    console.log('✅ Progress bar show() called successfully');
-                } catch (error) {
-                    console.error('❌ Error showing progress bar:', error);
-                    alert('প্রগ্রেস বার শুরু করতে ত্রুটি: ' + error.message);
-                    return false;
-                }
-                
-                // Add debug logging
-                console.log('📊 Progress tracking started with dynamic server monitoring');
-                console.log('📋 Loading results for Class: ' + classValue + ', Exam: ' + examValue);
-                
-                // Let the postback continue normally
-                return true;
+            // Show toggle button after LOAD button is clicked and results are loaded
+            $("[id*=LoadResultsButton]").click(function () {
+                setTimeout(function () {
+                    if ($('.result-card').length > 0) {
+                        $('#NumberToggleButton').show();
+                        $('#PrintButton').show();
+                        // Set initial button state to show "বাংলা সংখ্যা" since numbers are in English by default
+                        $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
+                        isNumbersBengali = false; // Numbers are in English by default
+                    }
+                }, 1000);
             });
 
             // Add input validation for Student ID textbox - allow alphanumeric
             $("[id*=StudentIDTextBox]").on('input', function () {
                 var value = $(this).val();
                 // Allow alphanumeric characters, Bengali numbers, commas, and spaces
-                var validChars = /^[a-zA-Z0-9০-৯,،\s]*$/;
+                var validChars = /^[a-zA-Z0-9০১২৩৪৫৬৭৮৯,،\s]*$/;
 
                 if (!validChars.test(value)) {
                     // Remove invalid characters
-                    value = value.replace(/[^a-zA-Z0-9০-৯,،\s]/g, '');
+                    value = value.replace(/[^a-zA-Z0-9০১২৩৪৫৬৭৮৯,،\s]/g, '');
                     $(this).val(value);
                 }
             });
@@ -1073,141 +376,20 @@
                 if (value) {
                     // Convert Bengali to English for validation
                     var englishValue = convertBengaliToEnglishJS(value);
-                    var ids = englishValue.split(/[,、]/).map(id => id.trim()).filter(id => id);
+                    var ids = englishValue.split(/[,،]/).map(id => id.trim()).filter(id => id);
 
                     // More flexible validation for alphanumeric IDs
                     var invalidIds = ids.filter(id => !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0);
                     if (invalidIds.length > 0) {
                         $(this).addClass('is-invalid');
-                        $(this).attr('title', 'অবৈধ ID: ' + invalidIds.join(', '));
+                        $(this).attr('title', 'Invalid IDs: ' + invalidIds.join(', '));
                     } else {
                         $(this).removeClass('is-invalid');
-                        $(this).attr('title', 'বৈধ ID: ' + ids.length + ' শিক্ষার্থী');
+                        $(this).attr('title', 'Valid IDs: ' + ids.length + ' student(s)');
                     }
                 }
             });
-
-            // Add a test function for progress bar
-            window.testProgressBar = function() {
-                console.log('🧪 Testing progress bar...');
-                if (typeof ProgressBarManager !== 'undefined') {
-                    ProgressBarManager.show();
-                    
-                    // Auto complete after 3 seconds for test
-                    setTimeout(function() {
-                        ProgressBarManager.completeWithMessage('পরীক্ষা সম্পন্ন', 'প্রগ্রেস বার সঠিকভাবে কাজ করছে');
-                    }, 3000);
-                } else {
-                    alert('ProgressBarManager পাওয়া যায়নি!');
-                }
-            };
-
-            // Add test button to page (for debugging)
-            if (window.location.search.indexOf('debug=1') !== -1) {
-                $('body').prepend('<button onclick="testProgressBar()" style="position:fixed;top:10px;right:10px;z-index:99999;background:red;color:white;padding:10px;">Test Progress Bar</button>');
-            }
         });
-
-        // Enhanced pageLoad function for ASP.NET postbacks
-        function pageLoad(sender, args) {
-            console.log('📄 Page loaded - checking for results...');
-            
-            // Initialize everything on each page load
-            try {
-                // Re-initialize signature upload
-                initializeSignatureUpload();
-                
-                // Load signatures from database
-                loadDatabaseSignatures();
-                
-                // Update signature texts
-                updateSignatureTexts();
-                
-                // Apply pagination styles
-                applyPaginationStyles();
-                
-                console.log('✅ Page initialization completed successfully');
-            } catch (error) {
-                console.error('❌ Error during page initialization:', error);
-            }
-            
-            if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
-                // Partial postback
-                setTimeout(function () {
-                    convertNumbersAfterPostback();
-                    applyPaginationStyles();
-                    
-                    // Check if progress bar is running and complete it if results are loaded
-                    if (ProgressBarManager && ProgressBarManager.state && ProgressBarManager.state.isRunning && $('.result-card').length > 0) {
-                        console.log('✅ Partial postback completed with results - completing progress bar');
-                        ProgressBarManager.forceComplete();
-                    }
-                }, 100);
-            } else {
-                // Full postback
-                setTimeout(function () {
-                    var resultCount = $('.result-card').length;
-                    console.log('📊 Full postback completed - found ' + resultCount + ' result cards');
-                    
-                    if (ProgressBarManager && ProgressBarManager.state && ProgressBarManager.state.isRunning) {
-                        if (resultCount > 0) {
-                            console.log('✅ Full postback completed with results - completing progress bar');
-                            ProgressBarManager.forceComplete();
-                        } else {
-                            console.log('⚠️ Full postback completed but no results found');
-                            ProgressBarManager.completeWithMessage('কোন ফলাফল পাওয়া যায়নি', 'অনুগ্রহ করে আপনার নির্বাচন পরীক্ষা করুন এবং আবার চেষ্টা করুন');
-                        }
-                    }
-                }, 500);
-            }
-        }
-
-        // Function to check and fix Font Awesome loading
-        function checkAndFixFontAwesome() {
-            // Check if Font Awesome is loaded by testing a known icon
-            setTimeout(function() {
-                var testElement = $('<i class="fa fa-language" style="position: absolute; left: -9999px;"></i>');
-                $('body').append(testElement);
-                
-                var hasIcon = testElement.css('font-family').indexOf('Font') !== -1;
-                testElement.remove();
-                
-                if (!hasIcon) {
-                    console.log('Font Awesome not loaded properly, applying fallback...');
-                    loadFontAwesomeFallback();
-                } else {
-                    console.log('Font Awesome loaded successfully');
-                }
-            }, 500);
-        }
-
-        // Function to load Font Awesome fallback
-        function loadFontAwesomeFallback() {
-            // Add fallback CSS if Font Awesome fails to load
-            var fallbackCSS = `
-                <style>
-                    .fa-language::before { content: "🌐"; font-family: Arial, sans-serif !important; }
-                    .fa-map-marker::before { content: "📍"; font-family: Arial, sans-serif !important; }
-                    .fa-phone::before { content: "📞"; font-family: Arial, sans-serif !important; }
-                    .fa-envelope-o::before, .fa-envelope::before { content: "✉️"; font-family: Arial, sans-serif !important; }
-                    .fa-facebook::before { content: "📘"; font-family: Arial, sans-serif !important; }
-                    .fa-twitter::before { content: "🐦"; font-family: Arial, sans-serif !important; }
-                    .fa-youtube::before { content: "▶️"; font-family: Arial, sans-serif !important; }
-                    .fa-user::before { content: "👤"; font-family: Arial, sans-serif !important; }
-                    .fa-lock::before { content: "🔒"; font-family: Arial, sans-serif !important; }
-                    .fa-paper-plane::before { content: "✈️"; font-family: Arial, sans-serif !important; }
-                    
-                    .fa { 
-                        font-style: normal !important;
-                        font-weight: normal !important;
-                        line-height: 1 !important;
-                        display: inline-block !important;
-                    }
-                </style>
-            `;
-            $('head').append(fallbackCSS);
-            console.log('Font Awesome fallback applied with emoji icons');
-        }
 
         // Function to apply pagination button styles
         function applyPaginationStyles() {
@@ -1256,10 +438,18 @@
             }
         }
 
+        // Convert numbers when new data is loaded via postback - using proper ASP.NET approach
+        function pageLoad(sender, args) {
+            if (args.get_isPartialLoad()) {
+                setTimeout(function () {
+                    convertNumbersAfterPostback();
+                    // Reapply pagination styles after postback
+                    applyPaginationStyles();
+                }, 100);
+            }
+        }
+
         function convertNumbersAfterPostback() {
-            // Fix result card icons first
-            fixResultCardIcons();
-            
             // Fix absent marks first
             $('.marks-table').each(function () {
                 var $table = $(this);
@@ -1568,8 +758,12 @@
                             });
 
                             // If most non-grade cells are absent, convert 0 to -'
-                            if (absentCells > (totalCells - absentCells) && absentCells > 1) {
-                                $cell.text('-');
+                            if (absentCells > totalCells / 3) { // More conservative threshold
+                                // But make sure this isn't a grade column
+                                if (columnHeader !== 'গ্রেড' && columnHeader.indexOf('গ্রেড') === -1 &&
+                                    columnHeader !== 'পয়েন্ট' && columnHeader.indexOf('পয়েন্ট') === -1) {
+                                    $cell.text('-');
+                                }
                             }
                         }
                     });
@@ -1699,7 +893,7 @@
 
             // Validate file type
             if (!file.type.match(/image\/.*/)) {
-                alert('দয়া করে একটি বৈধ ইমেজ ফাইল নির্বাচন করুন (JPG, PNG, GIF, ইত্যাদি)।');
+                alert('Please select a valid image file (JPG, PNG, GIF, etc.).');
                 console.log('Invalid file type selected:', file.type);
                 // Clear the input
                 e.target.value = '';
@@ -1708,7 +902,7 @@
 
             // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                alert('ফাইলের আকার খুব বড়। ৫MB এর চেয়ে ছোট ইমেজ নির্বাচন করুন।');
+                alert('File size too large. Please select an image smaller than 5MB.');
                 console.log('File size too large:', file.size);
                 // Clear the input
                 e.target.value = '';
@@ -1747,10 +941,10 @@
                         if (response.d && response.d.success) {
                             console.log(signatureType + ' signature saved to database successfully');
                             // Optional: Show success message
-                            // alert(signatureType + ' স্বাক্ষর সফলভাবে আপলোড হয়েছে!');
+                            // alert(signatureType + ' signature uploaded successfully!');
                         } else {
                             console.error('Server returned failure:', response.d);
-                            alert(signatureType + ' স্বাক্ষর সংরক্ষণে ত্রুটি: ' + (response.d ? response.d.message : 'অজানা ত্রুটি'));
+                            alert('Error saving ' + signatureType + ' signature: ' + (response.d ? response.d.message : 'Unknown error'));
                         }
                     },
                     error: function (xhr, status, error) {
@@ -1760,17 +954,17 @@
                             responseText: xhr.responseText,
                             error: error
                         });
-                        
-                        var errorMessage = signatureType + ' স্বাক্ষর আপলোডে ত্রুটি: ';
-                        
+
+                        var errorMessage = 'Error uploading ' + signatureType + ' signature: ';
+
                         if (xhr.status === 404) {
-                            errorMessage += 'পেইজ মেথড পাওয়া যায়নি। SaveSignature মেথড আছে কিনা পরীক্ষা করুন।';
+                            errorMessage += 'Page method not found. Check if SaveSignature method exists.';
                         } else if (xhr.status === 500) {
-                            errorMessage += 'সার্ভার ত্রুটি: ' + xhr.responseText;
+                            errorMessage += 'Server error: ' + xhr.responseText;
                         } else {
                             errorMessage += error + ' (Status: ' + xhr.status + ')';
                         }
-                        
+
                         alert(errorMessage);
                     }
                 });
@@ -1778,49 +972,13 @@
 
             reader.onerror = function (readerEvent) {
                 console.error('File read error for ' + signatureType + ':', readerEvent);
-                alert('ফাইল পড়তে ত্রুটি। আবার চেষ্টা করুন।');
+                alert('Error reading file. Please try again.');
                 // Clear the input
                 e.target.value = '';
             };
 
             // Start reading the file
             reader.readAsDataURL(file);
-        }
-
-        // Function to fix result card icons after they are loaded
-        function fixResultCardIcons() {
-            console.log('Fixing result card icons...');
-            
-            // Check each result card for icons
-            $('.result-card .header').each(function() {
-                var $header = $(this);
-                
-                // Check for icon-fallback elements in this header
-                $header.find('.icon-fallback').each(function() {
-                    var $icon = $(this);
-                    var fallbackContent = $icon.data('fallback');
-                    
-                    if (fallbackContent) {
-                        // Test if Font Awesome is working for this icon
-                        var testFamily = $icon.css('font-family');
-                        var isWorking = testFamily && testFamily.indexOf('Font') !== -1;
-                        
-                        if (!isWorking) {
-                            console.log('Font Awesome not working for result card icon, using fallback:', fallbackContent);
-                            $icon.html(fallbackContent);
-                            $icon.css({
-                                'font-family': 'Arial, sans-serif',
-                                'font-size': '14px',
-                                'display': 'inline-block',
-                                'margin-right': '5px',
-                                'color': '#0072bc'
-                            });
-                        } else {
-                            console.log('Font Awesome working for result card icon');
-                        }
-                    }
-                });
-            });
         }
     </script>
 </asp:Content>

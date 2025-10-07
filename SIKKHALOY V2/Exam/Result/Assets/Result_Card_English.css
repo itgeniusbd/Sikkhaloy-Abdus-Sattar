@@ -111,7 +111,10 @@ body {
     table-layout: fixed;
     font-family: Arial, sans-serif !important;
 }
-
+.btn-secondary {
+    background-color: #60d1db !important;
+    color: #fff !important;
+}
 .info-table td {
     border: 1px solid #0072bc;
     padding: 5px 8px;
@@ -131,16 +134,15 @@ body {
     width: 100%;
 }
 
-.grade-chart th, .grade-chart td {
-    border: 1px solid #0072bc;
-    padding: 4px 4px;
-    text-align: center;
-    font-weight: bold;
-    font-family: Arial, sans-serif !important;
-    font-size: 9px;
-    line-height: 1;
-}
-
+    .grade-chart th, .grade-chart td {
+        border: 1px solid #0072bc;
+        padding: 5px 4px;
+        text-align: center;
+        font-weight: bold;
+        font-family: Arial, sans-serif !important;
+        font-size: 10px;
+        line-height: 1;
+    }
 .marks-table {
     width: 100%;
     border-collapse: collapse;
@@ -337,6 +339,15 @@ body {
         color: #0072bc !important;
         text-align: center !important;
         margin: 0px 0 !important;
+    }
+    .grade-chart th, .grade-chart td {
+        border: 1px solid #0072bc;
+        padding: 5px 4px !important;
+        text-align: center;
+        font-weight: bold;
+        font-family: Arial, sans-serif !important;
+        font-size: 10px !important;
+        line-height: 1;
     }
 
     .marks-table th {

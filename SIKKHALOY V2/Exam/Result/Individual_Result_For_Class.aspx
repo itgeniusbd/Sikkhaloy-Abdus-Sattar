@@ -50,9 +50,7 @@
                 font-size: 12px !important;
             }
             
-            .grade-chart th, .grade-chart td {
-                font-size: 12px !important;
-            }
+  
             
             .footer {
                 font-size: 14px !important;
@@ -88,9 +86,7 @@
                 font-size: 12px !important;
             }
             
-            .grade-chart th, .grade-chart td {
-                font-size: 12px !important;
-            }
+
             
             .footer {
                 font-size: 14px !important;
