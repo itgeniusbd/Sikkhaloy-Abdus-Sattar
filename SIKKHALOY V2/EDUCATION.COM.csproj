@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -560,7 +560,6 @@
     <Content Include="Exam\WeeklyExam\Edit_Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Results.aspx" />
-    <Content Include="FooterTest.aspx" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
     <Content Include="ID_Cards\Card.aspx" />
@@ -616,7 +615,6 @@
     <Content Include="Default.aspx" />
     <Content Include="JS\TimePicker\mdtimepicker.css" />
     <Content Include="JS\TimePicker\mdtimepicker.js" />
-    <Content Include="LanguageToggleTest.aspx" />
     <Content Include="Login.aspx" />
     <Content Include="Notices\Details.aspx" />
     <Content Include="Profile\Admin.aspx" />
@@ -634,7 +632,6 @@
     <Content Include="Profile\Total_Student_List.aspx" />
     <Content Include="Profile\Update_Info.aspx" />
     <Content Include="Profile_Redirect.aspx" />
-    <Content Include="ResultCardIconTest.aspx" />
     <Content Include="Routines\Assign_Teacher_And_Subject_in_the_Created_Routines.aspx" />
     <Content Include="Routines\Class_Routine.aspx" />
     <Content Include="Routines\Create_Routines_for_Classes.aspx" />

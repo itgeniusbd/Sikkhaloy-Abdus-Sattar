@@ -25,33 +25,33 @@
             .result-card {
                 font-size: 14px !important;
             }
-            
+
             .header h2 {
                 font-size: 22px !important;
             }
-            
+
             .header p {
                 font-size: 14px !important;
             }
-            
+
             .title, .Exam_name {
                 font-size: 16px !important;
             }
-            
+
             .info-table td {
                 font-size: 14px !important;
             }
-            
+
             .summary-header td, .summary-values td {
                 font-size: 14px !important;
             }
-            
+
             .marks-table th, .marks-table td {
                 font-size: 12px !important;
             }
-            
-  
-            
+
+
+
             .footer {
                 font-size: 14px !important;
             }
@@ -61,33 +61,33 @@
             .result-card {
                 font-size: 14px !important;
             }
-            
+
             .header h2 {
                 font-size: 22px !important;
             }
-            
+
             .header p {
                 font-size: 14px !important;
             }
-            
+
             .title, .Exam_name {
                 font-size: 16px !important;
             }
-            
+
             .info-table td {
                 font-size: 14px !important;
             }
-            
+
             .summary-header td, .summary-values td {
                 font-size: 14px !important;
             }
-            
+
             .marks-table th, .marks-table td {
                 font-size: 12px !important;
             }
-            
 
-            
+
+
             .footer {
                 font-size: 14px !important;
             }
@@ -122,16 +122,16 @@
             overflow: hidden;
         }
 
-        .loading-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 3s infinite;
-        }
+            .loading-container::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+                animation: shimmer 3s infinite;
+            }
 
         .loading-title {
             font-size: 20px;
@@ -164,25 +164,22 @@
             overflow: hidden;
         }
 
-        .progress-bar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, 
-                transparent 35%, 
-                rgba(255, 255, 255, 0.3) 50%, 
-                transparent 65%);
-            animation: progressShine 2s infinite;
-        }
+            .progress-bar::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(45deg, transparent 35%, rgba(255, 255, 255, 0.3) 50%, transparent 65%);
+                animation: progressShine 2s infinite;
+            }
 
-        .progress-bar.animate {
-            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 25%, #4CAF50 50%, #2E7D32 75%, #4CAF50 100%);
-            background-size: 200% 200%;
-            animation: progressPulse 2s ease-in-out infinite;
-        }
+            .progress-bar.animate {
+                background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 25%, #4CAF50 50%, #2E7D32 75%, #4CAF50 100%);
+                background-size: 200% 200%;
+                animation: progressPulse 2s ease-in-out infinite;
+            }
 
         .progress-percentage {
             font-size: 18px;
@@ -232,24 +229,47 @@
 
         /* Enhanced Animations */
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         @keyframes progressPulse {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         @keyframes progressShine {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
         }
 
         @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
         }
 
         /* Success and Error States */
@@ -271,29 +291,29 @@
                 padding: 25px 20px;
                 margin: 0 15px;
             }
-            
+
             .loading-title {
                 font-size: 18px;
                 margin-bottom: 15px;
             }
-            
+
             .progress-bar-container {
                 height: 20px;
                 margin: 15px 0;
             }
-            
+
             .progress-percentage {
                 font-size: 16px;
             }
-            
+
             .progress-message {
                 font-size: 14px;
             }
-            
+
             .progress-details {
                 font-size: 12px;
             }
-            
+
             .spinner {
                 width: 28px;
                 height: 28px;
@@ -306,7 +326,7 @@
                 min-width: 280px;
                 padding: 20px 15px;
             }
-            
+
             .loading-title {
                 font-size: 16px;
             }
@@ -324,33 +344,33 @@
             background: rgba(0, 0, 0, 0.9);
         }
 
-        .loading-overlay.dark-theme .loading-container {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: #ecf0f1;
-            border-color: #3498db;
-        }
+            .loading-overlay.dark-theme .loading-container {
+                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                color: #ecf0f1;
+                border-color: #3498db;
+            }
 
-        .loading-overlay.dark-theme .loading-title {
-            color: #3498db;
-        }
+            .loading-overlay.dark-theme .loading-title {
+                color: #3498db;
+            }
 
-        .loading-overlay.dark-theme .progress-message {
-            color: #3498db;
-        }
+            .loading-overlay.dark-theme .progress-message {
+                color: #3498db;
+            }
 
-        .loading-overlay.dark-theme .progress-details {
-            color: #bdc3c7;
-        }
+            .loading-overlay.dark-theme .progress-details {
+                color: #bdc3c7;
+            }
 
-        .loading-overlay.dark-theme .progress-bar-container {
-            background: linear-gradient(to right, #34495e, #2c3e50);
-            border-color: #34495e;
-        }
+            .loading-overlay.dark-theme .progress-bar-container {
+                background: linear-gradient(to right, #34495e, #2c3e50);
+                border-color: #34495e;
+            }
 
-        .loading-overlay.dark-theme .spinner {
-            border-color: rgba(52, 152, 219, 0.2);
-            border-top-color: #3498db;
-        }
+            .loading-overlay.dark-theme .spinner {
+                border-color: rgba(52, 152, 219, 0.2);
+                border-top-color: #3498db;
+            }
 
         /* High contrast mode */
         @media (prefers-contrast: high) {
@@ -358,11 +378,11 @@
                 background: #ffffff;
                 border: 3px solid #000000;
             }
-            
+
             .loading-title {
                 color: #000000;
             }
-            
+
             .progress-bar {
                 background: linear-gradient(135deg, #000000 0%, #333333 100%);
             }
@@ -373,15 +393,15 @@
             .progress-bar {
                 transition: none;
             }
-            
-            .progress-bar.animate {
-                animation: none;
-            }
-            
+
+                .progress-bar.animate {
+                    animation: none;
+                }
+
             .spinner {
                 animation-duration: 3s;
             }
-            
+
             .progress-bar::before {
                 animation: none;
             }
@@ -689,7 +709,7 @@
                     { step: 8, message: "Finalizing...", detail: "Preparing final output", duration: 500 }
                 ]
             },
-            
+
             // State management
             state: {
                 isRunning: false,
@@ -702,7 +722,7 @@
             },
 
             // Show progress overlay
-            show: function() {
+            show: function () {
                 $('#loadingOverlay').css('display', 'flex');
                 this.state.isRunning = true;
                 this.state.currentStep = 0;
@@ -715,17 +735,17 @@
             },
 
             // Hide progress overlay
-            hide: function() {
+            hide: function () {
                 var self = this;
-                setTimeout(function() {
-                    $('#loadingOverlay').fadeOut(300, function() {
+                setTimeout(function () {
+                    $('#loadingOverlay').fadeOut(300, function () {
                         self.cleanup();
                     });
                 }, 500);
             },
 
             // Cleanup timers and state
-            cleanup: function() {
+            cleanup: function () {
                 this.state.isRunning = false;
                 if (this.state.pollingTimer) {
                     clearInterval(this.state.pollingTimer);
@@ -738,7 +758,7 @@
             },
 
             // Reset progress bar
-            reset: function() {
+            reset: function () {
                 $('#progressBar').css('width', '0%');
                 $('#progressPercentage').text('0%');
                 $('#progressMessage').text('Preparing to load results...');
@@ -746,99 +766,99 @@
             },
 
             // Start dynamic progress with server monitoring
-            startDynamicProgress: function() {
+            startDynamicProgress: function () {
                 var self = this;
-                
+
                 // Start initial steps (before server processing)
                 self.processInitialSteps();
-                
+
                 // Start polling for server completion after initial steps
-                setTimeout(function() {
+                setTimeout(function () {
                     self.startServerPolling();
                 }, 2500); // Start polling after initial 2.5 seconds
             },
-            
+
             // Process initial steps (database connection, validation, etc.)
-            processInitialSteps: function() {
+            processInitialSteps: function () {
                 var self = this;
                 var initialSteps = self.config.baseMessages.slice(0, 4); // First 4 steps
-                
+
                 function processStep(stepIndex) {
                     if (stepIndex >= initialSteps.length || !self.state.isRunning) {
                         return;
                     }
-                    
+
                     var step = initialSteps[stepIndex];
                     self.state.currentStep = step.step;
-                    
+
                     $('#progressMessage').text(step.message);
                     $('#progressDetails').text(step.detail);
-                    
+
                     // Calculate progress for initial steps (0-40%)
                     var progress = ((stepIndex + 1) / initialSteps.length) * 40;
                     self.animateProgressTo(progress);
-                    
+
                     // Schedule next step
                     if (stepIndex < initialSteps.length - 1) {
-                        self.state.stepTimer = setTimeout(function() {
+                        self.state.stepTimer = setTimeout(function () {
                             processStep(stepIndex + 1);
                         }, step.duration);
                     }
                 }
-                
+
                 processStep(0);
             },
-            
+
             // Start polling server for completion status
-            startServerPolling: function() {
+            startServerPolling: function () {
                 var self = this;
-                
+
                 // Update message to show we're processing
                 $('#progressMessage').text('Processing student data...');
                 $('#progressDetails').text('Loading and calculating results');
-                
-                self.state.pollingTimer = setInterval(function() {
+
+                self.state.pollingTimer = setInterval(function () {
                     self.checkServerStatus();
                 }, self.config.polling.interval);
             },
-            
+
             // Check if results are loaded on server
-            checkServerStatus: function() {
+            checkServerStatus: function () {
                 var self = this;
                 self.config.polling.currentAttempt++;
-                
+
                 // Calculate elapsed time
                 var elapsedTime = Date.now() - self.state.startTime;
                 var elapsedSeconds = Math.floor(elapsedTime / 1000);
-                
+
                 // Progressive progress updates while polling
                 var baseProgress = 40; // Starting from 40% after initial steps
                 var pollingProgress = Math.min(50, (self.config.polling.currentAttempt / self.config.polling.maxAttempts) * 50);
                 var currentProgress = baseProgress + pollingProgress;
-                
+
                 // Update progress and details
                 self.animateProgressTo(Math.min(currentProgress, 90));
                 $('#progressDetails').text(`Processing... (${elapsedSeconds}s elapsed)`);
-                
+
                 // Check if results panel is visible (indicates completion)
                 var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
                 var hasResults = false;
-                
+
                 if (resultPanel) {
                     hasResults = $(resultPanel).is(':visible') && $('.result-card').length > 0;
                 }
-                
+
                 if (hasResults) {
                     // Results found - complete immediately
                     self.state.actualStudentCount = $('.result-card').length;
                     self.completeWithResults();
                     return;
                 }
-                
+
                 // Check for timeout
                 if (self.config.polling.currentAttempt >= self.config.polling.maxAttempts) {
                     // Timeout reached - check one more time then complete
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var finalCheck = $('.result-card').length > 0;
                         if (finalCheck) {
                             self.state.actualStudentCount = $('.result-card').length;
@@ -847,70 +867,70 @@
                             self.completeWithTimeout();
                         }
                     }, 500);
-                    
+
                     if (self.state.pollingTimer) {
                         clearInterval(self.state.pollingTimer);
                         self.state.pollingTimer = null;
                     }
                 }
             },
-            
+
             // Complete progress when results are loaded
-            completeWithResults: function() {
+            completeWithResults: function () {
                 var self = this;
-                
+
                 // Stop polling
                 if (self.state.pollingTimer) {
                     clearInterval(self.state.pollingTimer);
                     self.state.pollingTimer = null;
                 }
-                
+
                 // Show completion messages
                 $('#progressMessage').text('Results loaded successfully!');
                 $('#progressDetails').text(`Displaying ${self.state.actualStudentCount} result card(s)`);
-                
+
                 // Animate to 100%
                 self.animateProgressTo(100);
-                
+
                 // Hide after showing completion
-                setTimeout(function() {
+                setTimeout(function () {
                     self.hide();
-                    
+
                     // Show success notification
                     console.log(`✅ Results loaded: ${self.state.actualStudentCount} students in ${Math.floor((Date.now() - self.state.startTime) / 1000)} seconds`);
-                    
+
                     // Ensure print button is visible
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var printBtn = document.getElementById('PrintButton');
                         if (printBtn && $('.result-card').length > 0) {
                             printBtn.style.display = 'inline-block';
                         }
                     }, 100);
-                    
+
                 }, 800);
             },
-            
+
             // Handle timeout case
-            completeWithTimeout: function() {
+            completeWithTimeout: function () {
                 var self = this;
-                
+
                 $('#progressMessage').text('Loading completed');
                 $('#progressDetails').text('Processing finished');
                 self.animateProgressTo(100);
-                
-                setTimeout(function() {
+
+                setTimeout(function () {
                     self.hide();
                 }, 1000);
             },
 
             // Animate progress bar to target percentage
-            animateProgressTo: function(targetPercentage) {
+            animateProgressTo: function (targetPercentage) {
                 var $progressBar = $('#progressBar');
                 var $progressPercentage = $('#progressPercentage');
-                
+
                 $progressBar.css('width', Math.min(targetPercentage, 100) + '%');
                 $progressPercentage.text(Math.round(Math.min(targetPercentage, 100)) + '%');
-                
+
                 // Add pulse effect for active progress
                 if (targetPercentage < 95) {
                     $progressBar.addClass('animate');
@@ -920,34 +940,34 @@
             },
 
             // Force completion (called externally when we know results are ready)
-            forceComplete: function() {
+            forceComplete: function () {
                 if (!this.state.isRunning) return;
-                
+
                 this.state.actualStudentCount = $('.result-card').length;
                 this.completeWithResults();
             },
-            
+
             // Manual completion with custom message
-            completeWithMessage: function(message, detail) {
+            completeWithMessage: function (message, detail) {
                 var self = this;
-                
+
                 if (self.state.pollingTimer) {
                     clearInterval(self.state.pollingTimer);
                     self.state.pollingTimer = null;
                 }
-                
+
                 $('#progressMessage').text(message || 'Loading completed');
                 $('#progressDetails').text(detail || 'Process finished');
                 self.animateProgressTo(100);
-                
-                setTimeout(function() {
+
+                setTimeout(function () {
                     self.hide();
                 }, 800);
             }
         };
 
         // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Check if Font Awesome is loaded properly
             checkAndFixFontAwesome();
 
@@ -992,35 +1012,35 @@
             // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
             $("[id*=LoadResultsButton]").off('click').on('click', function (e) {
                 console.log('🚀 Load Results button clicked - starting dynamic progress monitoring');
-                
+
                 // Test if progress bar manager exists
                 if (typeof ProgressBarManager === 'undefined') {
                     console.error('❌ ProgressBarManager is not defined!');
                     alert('Progress bar system not loaded properly. Please refresh the page.');
                     return false;
                 }
-                
+
                 // Test if jQuery is loaded
                 if (typeof $ === 'undefined') {
                     console.error('❌ jQuery is not loaded!');
                     alert('jQuery not loaded. Please refresh the page.');
                     return false;
                 }
-                
+
                 console.log('✅ Dependencies check passed');
-                
+
                 // Check if required selections are made
                 var classValue = $("[id*=ClassDropDownList]").val();
                 var examValue = $("[id*=ExamDropDownList]").val();
-                
+
                 console.log('📋 Form values:', { class: classValue, exam: examValue });
-                
+
                 if (!classValue || classValue === "0") {
                     alert("Please select a class first!");
                     e.preventDefault();
                     return false;
                 }
-                
+
                 if (!examValue || examValue === "0") {
                     alert("Please select an exam first!");
                     e.preventDefault();
@@ -1036,7 +1056,7 @@
 
                 // Test progress bar show function
                 console.log('🎯 About to show progress bar...');
-                
+
                 try {
                     // Show dynamic progress bar
                     ProgressBarManager.show();
@@ -1045,11 +1065,11 @@
                     console.error('❌ Error showing progress bar:', error);
                     alert('Error starting progress bar: ' + error.message);
                 }
-                
+
                 // Add debug logging
                 console.log('📊 Progress tracking started with dynamic server monitoring');
                 console.log(`📋 Loading results for Class: ${classValue}, Exam: ${examValue}`);
-                
+
                 // Let the postback continue normally
                 return true;
             });
@@ -1087,14 +1107,14 @@
         // Enhanced pageLoad function for ASP.NET postbacks
         function pageLoad(sender, args) {
             console.log('📄 Page loaded - checking for results...');
-            
+
             if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
                 // Partial postback
                 setTimeout(function () {
                     convertNumbersAfterPostback();
                     applyPaginationStyles();
                     fixPositionColumnsAlignment();
-                    
+
                     // Check if progress bar is running and complete it if results are loaded
                     if (ProgressBarManager.state.isRunning && $('.result-card').length > 0) {
                         console.log('✅ Partial postback completed with results - completing progress bar');
@@ -1106,7 +1126,7 @@
                 setTimeout(function () {
                     var resultCount = $('.result-card').length;
                     console.log(`📊 Full postback completed - found ${resultCount} result cards`);
-                    
+
                     if (ProgressBarManager && ProgressBarManager.state && ProgressBarManager.state.isRunning) {
                         if (resultCount > 0) {
                             console.log('✅ Full postback completed with results - completing progress bar');
@@ -1205,7 +1225,7 @@
 
         function initializeSignatureUpload() {
             console.log('Initializing signature upload functionality...');
-            
+
             $('#Tfileupload').off('change').on('change', function (e) {
                 console.log('Teacher file input changed');
                 handleSignatureUpload(e, 'teacher', '.SignTeacher');
@@ -1321,10 +1341,10 @@
 
                 if (pcIndex === -1 && hmcIndex === -1) {
                     var totalCells = $titleHeader.find('th').length;
-                    var hasSection = $table.find('th').filter(function () { 
-                        return $(this).text().trim().toUpperCase() === 'PS' || $(this).text().trim().toUpperCase() === 'HMS'; 
+                    var hasSection = $table.find('th').filter(function () {
+                        return $(this).text().trim().toUpperCase() === 'PS' || $(this).text().trim().toUpperCase() === 'HMS';
                     }).length > 0;
-                    
+
                     if (hasSection) {
                         pcIndex = totalCells - 4;
                         psIndex = totalCells - 3;
@@ -1415,7 +1435,7 @@
                         var $cell = $(this);
                         var cellText = $cell.text().trim();
                         var columnHeader = '';
-                        
+
                         if (cellIndex < $headerCells.length) {
                             columnHeader = $headerCells.eq(cellIndex).text().trim();
                         }

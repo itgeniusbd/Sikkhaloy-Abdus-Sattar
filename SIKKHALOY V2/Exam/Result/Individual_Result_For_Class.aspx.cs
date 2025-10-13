@@ -494,29 +494,29 @@ namespace EDUCATION.COM.Exam.Result
             try
             {
                 // Get values from the row with proper null checking
-                obtainedMarks = row["TotalExamObtainedMark_ofStudent"] == DBNull.Value ? "0" : 
+                obtainedMarks = row["TotalExamObtainedMark_ofStudent"] == DBNull.Value ? "0" :
                     Convert.ToDecimal(row["TotalExamObtainedMark_ofStudent"]).ToString("F1");
-                
-                totalMarks = row["TotalMark_ofStudent"] == DBNull.Value ? "0" : 
+
+                totalMarks = row["TotalMark_ofStudent"] == DBNull.Value ? "0" :
                     Convert.ToDecimal(row["TotalMark_ofStudent"]).ToString("F0");
-                
-                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" : 
+
+                percentage = row["ObtainedPercentage_ofStudent"] == DBNull.Value ? "0.00" :
                     Convert.ToDecimal(row["ObtainedPercentage_ofStudent"]).ToString("F2");
-                
-                average = row["Average"] == DBNull.Value ? "0.00" : 
+
+                average = row["Average"] == DBNull.Value ? "0.00" :
                     Convert.ToDecimal(row["Average"]).ToString("F2");
-                
+
                 grade = row["Student_Grade"] == DBNull.Value ? "F" : row["Student_Grade"].ToString();
-                
-                gpa = row["Student_Point"] == DBNull.Value ? "0.0" : 
+
+                gpa = row["Student_Point"] == DBNull.Value ? "0.0" :
                     Convert.ToDecimal(row["Student_Point"]).ToString("F1");
 
                 // Position calculations
-                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 : 
+                int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 :
                     Convert.ToInt32(row["Position_InExam_Class"]);
-                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 : 
+                int posSectionInt = row["Position_InExam_Subsection"] == DBNull.Value ? 0 :
                     Convert.ToInt32(row["Position_InExam_Subsection"]);
-                
+
                 positionClass = posClassInt > 0 ? ToOrdinal(posClassInt) : "-";
                 positionSection = posSectionInt > 0 ? ToOrdinal(posSectionInt) : "-";
 
@@ -958,9 +958,20 @@ namespace EDUCATION.COM.Exam.Result
                         ISNULL(ERS.SubjectGrades, '') as SubjectGrades,
                         ISNULL(ERS.SubjectPoint, 0) as SubjectPoint,
                         ISNULL(ERS.PassStatus_Subject, 'Pass') as PassStatus_Subject,
-                        ISNULL(ERS.IS_Add_InExam, 1) as IS_Add_InExam
+                        ISNULL(ERS.IS_Add_InExam, 1) as IS_Add_InExam,
+                        CASE 
+                            WHEN sr.SubjectType = 'Optional' THEN 'Optional'
+                            WHEN sr.SubjectType = 'Compulsory' THEN 'Compulsory' 
+                            ELSE 'Regular'
+                        END as SubjectType
                     FROM Exam_Result_of_Subject ers
                     INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
+                    INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
+                    INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
+                    LEFT JOIN StudentRecord sr ON sc.StudentID = sr.StudentID 
+                        AND ers.SubjectID = sr.SubjectID 
+                        AND sr.SchoolID = @SchoolID 
+                        AND sr.EducationYearID = @EducationYearID
                     WHERE ers.StudentResultID = @StudentResultID
                     AND ISNULL(ers.IS_Add_InExam, 1) = 1
                     ORDER BY ISNULL(sub.SN, 999), sub.SubjectName";
@@ -969,6 +980,8 @@ namespace EDUCATION.COM.Exam.Result
                 {
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
 
                     DataTable dt = new DataTable();
                     using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
@@ -1210,6 +1223,13 @@ namespace EDUCATION.COM.Exam.Result
                     decimal subjectPoint = GetSafeDecimalValue(srow, "SubjectPoint");
                     string passStatus = GetSafeColumnValue(srow, "PassStatus_Subject");
                     int subjectID = 0; int.TryParse(GetSafeColumnValue(srow, "SubjectID"), out subjectID);
+                    string subjectType = GetSafeColumnValue(srow, "SubjectType");
+
+                    // Add "(4th)" for optional subjects
+                    if (string.Equals(subjectType, "Optional", StringComparison.OrdinalIgnoreCase))
+                    {
+                        subjectName += " (4th)";
+                    }
 
                     var positionData = GetSubjectPositionDataForTable(studentResultID, subjectID);
 
@@ -1877,7 +1897,8 @@ namespace EDUCATION.COM.Exam.Result
                     INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
                     INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
                     WHERE esn.SchoolID = @SchoolID
-                    AND esn.EducationYearID = @EducationYearID
+                    AND eom.SchoolID = @SchoolID
+                    AND eom.EducationYearID = @EducationYearID
                     AND ers.ExamID = @ExamID
                     AND sc.ClassID = @ClassID
                     AND eom.SchoolID = @SchoolID
