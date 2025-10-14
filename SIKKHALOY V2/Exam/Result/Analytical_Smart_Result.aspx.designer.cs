@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Exam.Result {
-    
-    
-    public partial class Analytical_Smart_Result {
-        
+namespace EDUCATION.COM.Exam.Result
+{
+
+
+    public partial class Analytical_Smart_Result
+    {
+
         /// <summary>
         /// ClassDropDownList control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ClassDropDownList;
-        
+
         /// <summary>
         /// ClassSQL control.
         /// </summary>
@@ -29,7 +31,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ClassSQL;
-        
+
         /// <summary>
         /// ExamDropDownList control.
         /// </summary>
@@ -38,7 +40,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ExamDropDownList;
-        
+
         /// <summary>
         /// ExamNameSQl control.
         /// </summary>
@@ -47,52 +49,70 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ExamNameSQl;
-        
+
         /// <summary>
-        /// SchoolInfoODS control.
+        /// SchoolNameLabel control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource SchoolInfoODS;
-        
+        protected global::System.Web.UI.WebControls.Label SchoolNameLabel;
+
         /// <summary>
-        /// Examinee_Vs_GradeRV control.
+        /// ClassExamLabel control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::Microsoft.Reporting.WebForms.ReportViewer Examinee_Vs_GradeRV;
-        
+        protected global::System.Web.UI.WebControls.Label ClassExamLabel;
+
         /// <summary>
-        /// Examinee_Vs_GradeODS control.
+        /// GradeChartLiteral control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource Examinee_Vs_GradeODS;
-        
+        protected global::System.Web.UI.WebControls.Literal GradeChartLiteral;
+
         /// <summary>
-        /// Individual_SubjectRV control.
+        /// GradeGridView control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::Microsoft.Reporting.WebForms.ReportViewer Individual_SubjectRV;
-        
+        protected global::System.Web.UI.WebControls.GridView GradeGridView;
+
         /// <summary>
-        /// Individual_SubjectODS control.
+        /// GradeDataSource control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource Individual_SubjectODS;
-        
+        protected global::System.Web.UI.WebControls.SqlDataSource GradeDataSource;
+
+        /// <summary>
+        /// SubjectGridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView SubjectGridView;
+
+        /// <summary>
+        /// SubjectDataSource control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource SubjectDataSource;
+
         /// <summary>
         /// UnSummaryGridView control.
         /// </summary>
@@ -101,7 +121,7 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView UnSummaryGridView;
-        
+
         /// <summary>
         /// UnSummarySQL control.
         /// </summary>
@@ -110,41 +130,32 @@ namespace EDUCATION.COM.Exam.Result {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource UnSummarySQL;
-        
+
         /// <summary>
-        /// UnsuccessfulRV control.
+        /// DynamicTableLiteral control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::Microsoft.Reporting.WebForms.ReportViewer UnsuccessfulRV;
-        
+        protected global::System.Web.UI.WebControls.Literal DynamicTableLiteral;
+
         /// <summary>
-        /// UnsuccessfulODS control.
+        /// PassFailGridView control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource UnsuccessfulODS;
-        
+        protected global::System.Web.UI.WebControls.GridView PassFailGridView;
+
         /// <summary>
-        /// Pass_FailRV control.
+        /// PassFailDataSource control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::Microsoft.Reporting.WebForms.ReportViewer Pass_FailRV;
-        
-        /// <summary>
-        /// Pass_FailODS control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource Pass_FailODS;
+        protected global::System.Web.UI.WebControls.SqlDataSource PassFailDataSource;
     }
 }

@@ -1999,6 +1999,10 @@
     <Compile Include="Exam\Input_Exam_Marks_WithSubExam.aspx.designer.cs">
       <DependentUpon>Input_Exam_Marks_WithSubExam.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Exam\Result\Analytical_Smart_Result.aspx.cs">
+      <DependentUpon>Analytical_Smart_Result.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
     <Compile Include="Exam\Result\BanglaResult_Old.aspx.cs">
       <DependentUpon>BanglaResult_Old.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -2134,10 +2138,6 @@
     </Compile>
     <Compile Include="Exam\Publish_Result.aspx.designer.cs">
       <DependentUpon>Publish_Result.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="Exam\Result\Analytical_Smart_Result.aspx.cs">
-      <DependentUpon>Analytical_Smart_Result.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Exam\Result\Analytical_Smart_Result.aspx.designer.cs">
       <DependentUpon>Analytical_Smart_Result.aspx</DependentUpon>
