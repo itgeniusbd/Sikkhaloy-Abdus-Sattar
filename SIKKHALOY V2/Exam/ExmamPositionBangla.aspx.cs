@@ -263,14 +263,15 @@ namespace EDUCATION.COM.Exam
                 else
                     orderByClause += " ASC";
 
-                // Step 3: Dynamic PIVOT query with sorting - Fixed structure
+                // Step 3: Dynamic PIVOT query with sorting - Fixed structure with ID field
                 string query = $@"
-        SELECT StudentID, RollNo, StudentsName, Total, Student_Grade, Student_Point, 
+        SELECT StudentID, ID, RollNo, StudentsName, Total, Student_Grade, Student_Point, 
                Position_InExam_Class, Position_InExam_Subsection, Average, {pivotColumns}
         FROM
         (
-            SELECT 
+            SELECT
               s.StudentID,
+              s.ID,
               sc.RollNo,
               s.StudentsName,
               translate(ers.TotalExamObtainedMark_ofStudent, N'0123456789', N'০১২৩৪৫৬৭৮৯') AS Total,
@@ -316,7 +317,7 @@ namespace EDUCATION.COM.Exam
                 StudentsGridView.Columns.Clear();
 
                 // ID
-                BoundField bfID = new BoundField { DataField = "StudentID", HeaderText = "আইডি" };
+                BoundField bfID = new BoundField { DataField = "ID", HeaderText = "আইডি" };
                 StudentsGridView.Columns.Add(bfID);
 
                 // Roll No with sorting

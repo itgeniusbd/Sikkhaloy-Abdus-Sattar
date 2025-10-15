@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -18,10 +18,10 @@ namespace EDUCATION.COM.Exam.Result
             if (!IsPostBack)
             {
                 LoadSchoolName();
-                // ???? ????? ??? ??? ????, ???? ???? ??
+                // শুধু স্কুল নাম লোড করবো, অন্য কিছু না
                 UpdateClassExamLabel();
             }
-            // Page_PreRender ? ???????? ????? ??????? ???, ????? ?? ????? ???
+            // Page_PreRender এ ডাইনামিক টেবিল জেনারেট হবে, এখানে আর দরকার নেই
         }
 
         private void LoadSchoolName()
@@ -85,69 +85,69 @@ namespace EDUCATION.COM.Exam.Result
 
         protected void ExamDropDownList_DataBound(object sender, EventArgs e)
         {
-            // ???? ????? ????? ????, ???? ???? ??
+            // শুধু লেবেল আপডেট করবো, অন্য কিছু না
             UpdateClassExamLabel();
         }
 
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // ????? ?? ????? ??????? ???? ??? ???
+            // এখানে সব ধরনের রিপোর্ট ডেটা লোড হবে
             UpdateClassExamLabel();
             
-            // ???? ??? ????? ??? ?????? ????? ??????? ????? ??? ???? ??? ????
+            // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে তখন ডেটা লোড করবো
             if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0)
             {
-                System.Diagnostics.Debug.WriteLine("?? Loading all report data after exam selection");
+                System.Diagnostics.Debug.WriteLine("🎯 Loading all report data after exam selection");
                 LoadGradeChartData();
-                // ???????? ????? Page_PreRender ? ??????? ???
+                // ডাইনামিক টেবিল Page_PreRender এ জেনারেট হবে
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("?? Class or Exam not properly selected, skipping data load");
-                // ???? ???????? ???
+                System.Diagnostics.Debug.WriteLine("⚠️ Class or Exam not properly selected, skipping data load");
+                // ডেটা ক্লিয়ার করি
                 ClearReportData();
             }
         }
 
         protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // ????? ??????? ???? ???? ????? ????? ???? ??? ?????? ???????? ????? ????
+            // ক্লাশ সিলেক্ট করলে শুধু লেবেল আপডেট করবো এবং এক্সাম ড্রপডাউন রিসেট করবো
             UpdateClassExamLabel();
             
-            // ?????? ???????? ????? ??? ???? ???? ??????? ?????? ????? ???
+            // এক্সাম ড্রপডাউন রিসেট করি যাতে নতুন ক্লাসের এক্সাম লিস্ট আসে
             if (ExamDropDownList.Items.Count > 0)
             {
-                ExamDropDownList.SelectedIndex = 0; // ????? ????? ??????? ??? ([ SELECT EXAM ] ???? empty)
+                ExamDropDownList.SelectedIndex = 0; // প্রথম আইটেম সিলেক্ট করি ([ SELECT EXAM ] অথবা empty)
             }
             
-            // ??????? ???? ???????? ??? ???? ???? ?????? ??????? ?????
+            // রিপোর্ট ডেটা ক্লিয়ার করি কারণ এখনো এক্সাম সিলেক্ট হয়নি
             ClearReportData();
             
-            System.Diagnostics.Debug.WriteLine($"?? Class changed to: {ClassDropDownList.SelectedItem?.Text}, Exam dropdown reset");
+            System.Diagnostics.Debug.WriteLine($"🏫 Class changed to: {ClassDropDownList.SelectedItem?.Text}, Exam dropdown reset");
         }
 
         protected void Page_PreRender(object sender, EventArgs e)
         {
-            // ???? ??? ????? ??? ?????? ????? ??????? ????? ??? ???????? ????? ??????? ????
+            // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে তখন ডাইনামিক টেবিল জেনারেট করবো
             if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0)
             {
-                System.Diagnostics.Debug.WriteLine("?? Generating dynamic table in Page_PreRender");
+                System.Diagnostics.Debug.WriteLine("🎯 Generating dynamic table in Page_PreRender");
                 GenerateDynamicUnsuccessfulStudentsTable();
             }
         }
 
-        // ???? ???? - ??????? ???? ???????? ???? ????
+        // নতুন মেথড - রিপোর্ট ডেটা ক্লিয়ার করার জন্য
         private void ClearReportData()
         {
             try
             {
-                // ????? ????? ???????? ???
+                // গ্রেড চার্ট ক্লিয়ার করি
                 if (GradeChartLiteral != null)
                 {
                     GradeChartLiteral.Text = "";
                 }
 
-                // ???????? ????? ???????? ???
+                // ডাইনামিক টেবিল ক্লিয়ার করি
                 Literal literalControl = FindControl("DynamicTableLiteral") as Literal;
                 if (literalControl == null)
                 {
@@ -159,7 +159,7 @@ namespace EDUCATION.COM.Exam.Result
                     literalControl.Text = "";
                 }
                 
-                System.Diagnostics.Debug.WriteLine("?? Report data cleared");
+                System.Diagnostics.Debug.WriteLine("🧹 Report data cleared");
             }
             catch (Exception ex)
             {
@@ -186,7 +186,7 @@ namespace EDUCATION.COM.Exam.Result
                 }
 
                 GradeChartLiteral.Text = chartHtml.ToString();
-                System.Diagnostics.Debug.WriteLine($"?? Grade chart loaded with {gradeData.Count} grades");
+                System.Diagnostics.Debug.WriteLine($"📊 Grade chart loaded with {gradeData.Count} grades");
             }
             catch (Exception ex)
             {
@@ -262,7 +262,7 @@ namespace EDUCATION.COM.Exam.Result
 
                 if (literalControl == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("? Could not find DynamicTableLiteral control");
+                    System.Diagnostics.Debug.WriteLine("❌ Could not find DynamicTableLiteral control");
                     return;
                 }
 
@@ -270,20 +270,20 @@ namespace EDUCATION.COM.Exam.Result
                 var failedStudentsWithFailedSubjects = GetStudentsWithOnlyFailedSubjects();
 
                 // Add debugging information
-                System.Diagnostics.Debug.WriteLine($"?? Found {failedStudentsWithFailedSubjects.Count} students with failed subjects");
+                System.Diagnostics.Debug.WriteLine($"🔍 Found {failedStudentsWithFailedSubjects.Count} students with failed subjects");
 
                 foreach (var student in failedStudentsWithFailedSubjects)
                 {
-                    System.Diagnostics.Debug.WriteLine($"????? Student: {student.StudentName} (ID: {student.StudentID}) - Failed in {student.FailedSubjects.Count} subjects");
+                    System.Diagnostics.Debug.WriteLine($"👨‍🎓 Student: {student.StudentName} (ID: {student.StudentID}) - Failed in {student.FailedSubjects.Count} subjects");
                     foreach (var failedSubject in student.FailedSubjects)
                     {
-                        System.Diagnostics.Debug.WriteLine($"   ?? Failed Subject: {failedSubject.SubjectName}");
+                        System.Diagnostics.Debug.WriteLine($"   📘 Failed Subject: {failedSubject.SubjectName}");
                     }
                 }
 
                 if (failedStudentsWithFailedSubjects.Count == 0)
                 {
-                    literalControl.Text = "<div class='no-data-message' style='text-align: center; padding: 40px; color: #28a745; font-size: 16px; font-weight: bold; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; margin: 20px;'>?? Great! No unsuccessful students found in this class and exam.</div>";
+                    literalControl.Text = "<div class='no-data-message' style='text-align: center; padding: 40px; color: #28a745; font-size: 16px; font-weight: bold; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; margin: 20px;'>🎉 Great! No unsuccessful students found in this class and exam.</div>";
                     return;
                 }
 
@@ -415,9 +415,9 @@ namespace EDUCATION.COM.Exam.Result
                 int summaryFontSize = uniqueFailedSubjects.Count <= 5 ? 11 : 10;
                 int calculatedTotalColumns = uniqueFailedSubjects.Sum(s => s.SubExams.Count * 2) + 2;
                 tableHtml.Append($"<div style='font-size: {summaryFontSize}px; color: #495057; margin-top: 8px; text-align: center; font-weight: 500'>");
-                tableHtml.Append($"?? Showing <strong>{uniqueFailedSubjects.Count}</strong> subjects with failed students | ");
-                tableHtml.Append($"?? <strong>{failedStudentsWithFailedSubjects.Count}</strong> unsuccessful students | ");
-                tableHtml.Append($"?? Total <strong>{calculatedTotalColumns}</strong> data columns");
+                tableHtml.Append($"📊 Showing <strong>{uniqueFailedSubjects.Count}</strong> subjects with failed students | ");
+                tableHtml.Append($"👥 <strong>{failedStudentsWithFailedSubjects.Count}</strong> unsuccessful students | ");
+                tableHtml.Append($"📋 Total <strong>{calculatedTotalColumns}</strong> data columns");
                 tableHtml.Append("</div>");
 
                 literalControl.Text = tableHtml.ToString();
@@ -425,7 +425,7 @@ namespace EDUCATION.COM.Exam.Result
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("? Error in GenerateDynamicUnsuccessfulStudentsTable: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("❌ Error in GenerateDynamicUnsuccessfulStudentsTable: " + ex.Message);
 
                 var literalControl = FindControl("DynamicTableLiteral") as Literal;
                 if (literalControl == null)
@@ -436,7 +436,7 @@ namespace EDUCATION.COM.Exam.Result
                 if (literalControl != null)
                 {
                     literalControl.Text = "<div style='background-color: #f8d7da; padding: 15px; margin: 15px; border: 1px solid #f5c6cb; border-radius: 6px; color: #721c24;'>" +
-                                  "<h5 style='margin: 0 0 8px 0; font-size: 14px;'>?? Error loading unsuccessful students data</h5>" +
+                                  "<h5 style='margin: 0 0 8px 0; font-size: 14px;'>⚠️ Error loading unsuccessful students data</h5>" +
                                   "<p style='margin: 0; font-size: 12px;'>Please try refreshing the page or contact system administrator.</p>" +
                                   "</div>";
                 }
@@ -490,11 +490,11 @@ namespace EDUCATION.COM.Exam.Result
 
             // Subject names row - enhanced sizing
             tableHtml.Append("<tr style='background-color: #2c3e50; color: white;'>");
-            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px;'>SL</th>",
+            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: Black; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px;'> Student ID</th>",
                 padding, headerFontSize, subjectCount <= 5 ? 40 : 30);
 
             int nameColumnWidth = subjectCount <= 3 ? 140 : (subjectCount <= 5 ? 120 : (subjectCount <= 8 ? 100 : 80));
-            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px; max-width: {3}px;'>Student Name</th>",
+            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: Black; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px; max-width: {3}px;'>Student Name</th>",
                 padding, headerFontSize, nameColumnWidth, nameColumnWidth + 20);
 
             foreach (var subject in subjects)
@@ -557,42 +557,43 @@ namespace EDUCATION.COM.Exam.Result
                 dataFontSize = 11;
                 nameFontSize = 12;
                 padding = "4px 3px";
-                nameLimit = 25;
+                nameLimit = 35;
             }
             else if (subjectCount <= 5)
             {
-                dataFontSize = 10;
-                nameFontSize = 11;
-                padding = "3px 2px";
-                nameLimit = 20;
+                dataFontSize = 11;
+                nameFontSize = 12;
+                padding = "1px 1px";
+                nameLimit = 25;
             }
             else if (subjectCount <= 8)
             {
-                dataFontSize = 9;
-                nameFontSize = 10;
-                padding = "2px 1px";
-                nameLimit = 15;
+                dataFontSize = 10;
+                nameFontSize = 11;
+                padding = "1px 1px";
+                nameLimit = 20;
             }
             else if (subjectCount <= 12)
             {
-                dataFontSize = 8;
-                nameFontSize = 9;
-                padding = "2px 1px";
-                nameLimit = 12;
+                dataFontSize = 9;
+                nameFontSize = 10;
+                padding = "1px 1px";
+                nameLimit = 18;
             }
             else
             {
-                dataFontSize = 7;
-                nameFontSize = 8;
-                padding = "1px";
-                nameLimit = 10;
+                dataFontSize = 9;
+                nameFontSize = 10;
+                padding = "0px";
+                nameLimit = 15;
             }
 
             tableHtml.Append("<tr style='background-color: #ecf0f1;'>");
 
-            // Student ID - enhanced
+            // Student ID (ID field from Student table) - enhanced
+            string displayID = !string.IsNullOrEmpty(student.StudentIDString) ? student.StudentIDString : student.StudentID.ToString();
             tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; font-weight: bold; color: #2c3e50; background-color: #ffffff; font-size: {1}px;'>{2}</td>",
-                padding, dataFontSize, student.StudentID);
+                padding, dataFontSize, displayID);
 
             // Student Name - much better visibility
             string displayName;
@@ -729,11 +730,12 @@ namespace EDUCATION.COM.Exam.Result
 
             try
             {
-                // Get students who failed in specific sub-exams
+                // Get students who failed in specific sub-exams - Modified to include s.ID
                 string query = @"
                     SELECT DISTINCT
                         sc.StudentID,
                         s.StudentsName,
+                        s.ID as StudentIDString,
                         sub.SubjectName,
                         sub.SubjectID
                     FROM Exam_Obtain_Marks eom
@@ -775,6 +777,7 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             int studentId = Convert.ToInt32(reader["StudentID"]);
                             string studentName = reader["StudentsName"]?.ToString() ?? "";
+                            string studentIDString = reader["StudentIDString"]?.ToString() ?? studentId.ToString();
                             string subjectName = reader["SubjectName"]?.ToString() ?? "";
                             int subjectId = Convert.ToInt32(reader["SubjectID"]);
 
@@ -783,6 +786,7 @@ namespace EDUCATION.COM.Exam.Result
                                 studentDict[studentId] = new FailedStudentData
                                 {
                                     StudentID = studentId,
+                                    StudentIDString = studentIDString,
                                     StudentName = studentName,
                                     FailedSubjects = new List<FailedSubjectData>()
                                 };
@@ -830,11 +834,12 @@ namespace EDUCATION.COM.Exam.Result
 
             try
             {
-                // First, get all students with their total marks for subjects without sub-exams
+                // First, get all students with their total marks for subjects without sub-exams - Modified to include s.ID
                 string query = @"
                     SELECT DISTINCT
                         sc.StudentID,
                         s.StudentsName,
+                        s.ID as StudentIDString,
                         sub.SubjectName,
                         sub.SubjectID,
                         ers.ObtainedMark_ofSubject as TotalMarks,
@@ -878,6 +883,7 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             int studentId = Convert.ToInt32(reader["StudentID"]);
                             string studentName = reader["StudentsName"]?.ToString() ?? "";
+                            string studentIDString = reader["StudentIDString"]?.ToString() ?? studentId.ToString();
                             string subjectName = reader["SubjectName"]?.ToString() ?? "";
                             int subjectId = Convert.ToInt32(reader["SubjectID"]);
                             string totalMarks = reader["TotalMarks"]?.ToString() ?? "";
@@ -946,13 +952,14 @@ namespace EDUCATION.COM.Exam.Result
                             // Only add if student actually failed
                             if (isFailed)
                             {
-                                System.Diagnostics.Debug.WriteLine($"?? Student {studentName} failed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
+                                System.Diagnostics.Debug.WriteLine($"🔍 Student {studentName} failed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
 
                                 if (!studentDict.ContainsKey(studentId))
                                 {
                                     studentDict[studentId] = new FailedStudentData
                                     {
                                         StudentID = studentId,
+                                        StudentIDString = studentIDString,
                                         StudentName = studentName,
                                         FailedSubjects = new List<FailedSubjectData>()
                                     };
@@ -980,7 +987,7 @@ namespace EDUCATION.COM.Exam.Result
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"? Student {studentName} passed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
+                                System.Diagnostics.Debug.WriteLine($"✅ Student {studentName} passed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
                             }
                         }
 
@@ -1099,14 +1106,14 @@ namespace EDUCATION.COM.Exam.Result
                                 ObtainedMarks = failedSubject.TotalMarks
                             });
                             
-                            System.Diagnostics.Debug.WriteLine($"?? Added Total sub-exam for failed subject {failedSubject.SubjectName} with dynamic PassMarks={totalPassMarks}");
+                            System.Diagnostics.Debug.WriteLine($"🎯 Added Total sub-exam for failed subject {failedSubject.SubjectName} with dynamic PassMarks={totalPassMarks}");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"? Error getting sub-exams for failed subject {failedSubject.SubjectID}: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine($"❌ Error getting sub-exams for failed subject {failedSubject.SubjectID}: " + ex.Message);
                 
                 // Use dynamic pass marks even in error case
                 decimal totalPassMarks = GetDynamicPassMarksForSubject(failedSubject.SubjectID, failedSubject.SubjectName);
@@ -1164,7 +1171,7 @@ namespace EDUCATION.COM.Exam.Result
                             if (maxMarks > 0)
                             {
                                 decimal passMarks = Math.Round(maxMarks * 0.33m, 0);
-                                System.Diagnostics.Debug.WriteLine($"?? Dynamic PassMarks for {subjectName} (ID:{subjectId}): MaxMarks={maxMarks}, PassMarks={passMarks}");
+                                System.Diagnostics.Debug.WriteLine($"🎯 Dynamic PassMarks for {subjectName} (ID:{subjectId}): MaxMarks={maxMarks}, PassMarks={passMarks}");
                                 return passMarks;
                             }
                         }
@@ -1185,7 +1192,7 @@ namespace EDUCATION.COM.Exam.Result
             // Enhanced fallback: use subject-specific pass marks based on subject name patterns
             var lowerName = subjectName.ToLower();
             if (lowerName.Contains("drawing") || lowerName.Contains("art"))
-                return 17; // Typically drawing subjects have 50 total marks, so 33% = 16.5 ? 17
+                return 17; // Typically drawing subjects have 50 total marks, so 33% = 16.5 ≈ 17
             else if (lowerName.Contains("ict") || lowerName.Contains("computer"))
                 return 17; // ICT subjects often have 50 total marks
             else if (lowerName.Contains("work") || lowerName.Contains("education"))
@@ -1237,7 +1244,7 @@ namespace EDUCATION.COM.Exam.Result
                 decimal lack = Math.Max(0, passMarks - marks);
                 
                 // Debug output to see what's happening
-                System.Diagnostics.Debug.WriteLine($"?? CalculateLack - Obtained: {obtainedMarks}, PassMarks: {passMarks}, Lack: {lack}");
+                System.Diagnostics.Debug.WriteLine($"🔍 CalculateLack - Obtained: {obtainedMarks}, PassMarks: {passMarks}, Lack: {lack}");
                 
                 return lack;
             }
@@ -1334,6 +1341,7 @@ namespace EDUCATION.COM.Exam.Result
     public class FailedStudentData
     {
         public int StudentID { get; set; }
+        public string StudentIDString { get; set; } // Added for ID field from Student table
         public string StudentName { get; set; }
         public List<FailedSubjectData> FailedSubjects { get; set; }
     }

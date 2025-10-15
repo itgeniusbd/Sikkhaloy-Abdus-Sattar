@@ -167,7 +167,7 @@
         }
         
         .nav-tabs .nav-link {
-            color: #495057;
+            color: #c6c9cd !important;
             font-weight: 500;
             border: 1px solid transparent;
             border-top-left-radius: 8px;
