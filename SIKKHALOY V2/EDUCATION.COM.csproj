@@ -549,9 +549,11 @@
     <Content Include="Exam\Result\Analytical_Smart_Result.aspx" />
     <Content Include="Exam\Result\CSS\Cumulative_Position.css" />
     <Content Include="Exam\Result\CSS\Analytical_Smart_Result.css" />
+    <Content Include="Exam\Result\Debug_Failed_Subjects.aspx" />
     <Content Include="Exam\Result\Delete_Exam_And_Result.aspx" />
     <Content Include="Exam\Result\Individual_Result_For_Class_old.aspx" />
     <Content Include="Exam\Result\Individual_Result_For_Class.aspx" />
+    <Content Include="Exam\Result\Test_Query_Debug.aspx" />
     <Content Include="Exam\SeatPlan\SeatPlan.aspx" />
     <Content Include="Exam\Input_Exam_Marks.aspx" />
     <Content Include="Exam\SeatPlan\SeatPlanWithoutPhoto.aspx" />

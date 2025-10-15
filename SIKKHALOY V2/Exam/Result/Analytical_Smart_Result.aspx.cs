@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -226,21 +226,33 @@ namespace EDUCATION.COM.Exam.Result
 
                 if (literalControl == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("❌ Could not find DynamicTableLiteral control");
+                    System.Diagnostics.Debug.WriteLine("? Could not find DynamicTableLiteral control");
                     return;
                 }
 
-                // Get all subjects and their sub-exams
-                var subjectsWithSubExams = GetAllSubjectsWithSubExams();
+                // Get actual failed students with only their failed subjects
+                var failedStudentsWithFailedSubjects = GetStudentsWithOnlyFailedSubjects();
 
-                // Get unsuccessful students data with sub-exam details
-                var unsuccessfulStudents = GetUnsuccessfulStudentsDataWithSubExams();
+                // Add debugging information
+                System.Diagnostics.Debug.WriteLine($"?? Found {failedStudentsWithFailedSubjects.Count} students with failed subjects");
 
-                if (subjectsWithSubExams.Count == 0 || unsuccessfulStudents.Count == 0)
+                foreach (var student in failedStudentsWithFailedSubjects)
                 {
-                    literalControl.Text = "<div class='no-data-message' style='text-align: center; padding: 40px; color: #28a745; font-size: 16px; font-weight: bold; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; margin: 20px;'>🎉 Great! No unsuccessful students found in this class and exam.</div>";
+                    System.Diagnostics.Debug.WriteLine($"????? Student: {student.StudentName} (ID: {student.StudentID}) - Failed in {student.FailedSubjects.Count} subjects");
+                    foreach (var failedSubject in student.FailedSubjects)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   ?? Failed Subject: {failedSubject.SubjectName}");
+                    }
+                }
+
+                if (failedStudentsWithFailedSubjects.Count == 0)
+                {
+                    literalControl.Text = "<div class='no-data-message' style='text-align: center; padding: 40px; color: #28a745; font-size: 16px; font-weight: bold; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; margin: 20px;'>?? Great! No unsuccessful students found in this class and exam.</div>";
                     return;
                 }
+
+                // Get unique failed subjects across all students
+                var uniqueFailedSubjects = GetUniqueFailedSubjects(failedStudentsWithFailedSubjects);
 
                 // Generate enhanced table with smaller text and padding
                 StringBuilder tableHtml = new StringBuilder();
@@ -350,26 +362,26 @@ namespace EDUCATION.COM.Exam.Result
                 tableHtml.Append("<table class='dynamic-unsuccessful-table'>");
 
                 // Create responsive headers
-                GenerateCompactTableHeaders(tableHtml, subjectsWithSubExams);
+                GenerateFailedSubjectsTableHeaders(tableHtml, uniqueFailedSubjects);
 
                 // Create data rows for each unsuccessful student
                 tableHtml.Append("<tbody>");
-                foreach (var student in unsuccessfulStudents)
+                foreach (var student in failedStudentsWithFailedSubjects)
                 {
-                    GenerateCompactStudentRow(tableHtml, student, subjectsWithSubExams);
+                    GenerateFailedStudentRow(tableHtml, student, uniqueFailedSubjects);
                 }
                 tableHtml.Append("</tbody>");
 
                 tableHtml.Append("</table>");
                 tableHtml.Append("</div>");
 
-                // Add enhanced summary info with proper variable scope
-                int summaryFontSize = subjectsWithSubExams.Count <= 5 ? 11 : 10;
-                int calculatedTotalColumns = subjectsWithSubExams.Sum(s => GetFailedSubExamsForSubject(s).Count * 2) + 2;
+                // Add enhanced summary info
+                int summaryFontSize = uniqueFailedSubjects.Count <= 5 ? 11 : 10;
+                int calculatedTotalColumns = uniqueFailedSubjects.Sum(s => s.SubExams.Count * 2) + 2;
                 tableHtml.Append($"<div style='font-size: {summaryFontSize}px; color: #495057; margin-top: 8px; text-align: center; font-weight: 500'>");
-                tableHtml.Append($"📊 Showing <strong>{subjectsWithSubExams.Count}</strong> subjects with failed students | ");
-                tableHtml.Append($"👥 <strong>{unsuccessfulStudents.Count}</strong> unsuccessful students | ");
-                tableHtml.Append($"📋 Total <strong>{calculatedTotalColumns}</strong> data columns");
+                tableHtml.Append($"?? Showing <strong>{uniqueFailedSubjects.Count}</strong> subjects with failed students | ");
+                tableHtml.Append($"?? <strong>{failedStudentsWithFailedSubjects.Count}</strong> unsuccessful students | ");
+                tableHtml.Append($"?? Total <strong>{calculatedTotalColumns}</strong> data columns");
                 tableHtml.Append("</div>");
 
                 literalControl.Text = tableHtml.ToString();
@@ -377,7 +389,7 @@ namespace EDUCATION.COM.Exam.Result
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("❌ Error in GenerateDynamicUnsuccessfulStudentsTable: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("? Error in GenerateDynamicUnsuccessfulStudentsTable: " + ex.Message);
 
                 var literalControl = FindControl("DynamicTableLiteral") as Literal;
                 if (literalControl == null)
@@ -388,14 +400,14 @@ namespace EDUCATION.COM.Exam.Result
                 if (literalControl != null)
                 {
                     literalControl.Text = "<div style='background-color: #f8d7da; padding: 15px; margin: 15px; border: 1px solid #f5c6cb; border-radius: 6px; color: #721c24;'>" +
-                                  "<h5 style='margin: 0 0 8px 0; font-size: 14px;'>⚠️ Error loading unsuccessful students data</h5>" +
+                                  "<h5 style='margin: 0 0 8px 0; font-size: 14px;'>?? Error loading unsuccessful students data</h5>" +
                                   "<p style='margin: 0; font-size: 12px;'>Please try refreshing the page or contact system administrator.</p>" +
                                   "</div>";
                 }
             }
         }
 
-        private void GenerateCompactTableHeaders(StringBuilder tableHtml, List<SubjectWithSubExams> subjects)
+        private void GenerateFailedSubjectsTableHeaders(StringBuilder tableHtml, List<SubjectWithSubExams> subjects)
         {
             // Calculate enhanced font sizes based on number of subjects
             int subjectCount = subjects.Count;
@@ -442,7 +454,7 @@ namespace EDUCATION.COM.Exam.Result
 
             // Subject names row - enhanced sizing
             tableHtml.Append("<tr style='background-color: #2c3e50; color: white;'>");
-            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px;'>SL",
+            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px;'>SL</th>",
                 padding, headerFontSize, subjectCount <= 5 ? 40 : 30);
 
             int nameColumnWidth = subjectCount <= 3 ? 140 : (subjectCount <= 5 ? 120 : (subjectCount <= 8 ? 100 : 80));
@@ -451,10 +463,9 @@ namespace EDUCATION.COM.Exam.Result
 
             foreach (var subject in subjects)
             {
-                var failedSubExams = GetFailedSubExamsForSubject(subject);
-                if (failedSubExams.Count > 0)
+                if (subject.SubExams.Count > 0)
                 {
-                    int totalCols = failedSubExams.Count * 2;
+                    int totalCols = subject.SubExams.Count * 2;
                     int subjectNameLength = subjectCount <= 5 ? 15 : (subjectCount <= 8 ? 12 : 10);
                     string subjectName = subject.SubjectName.Length > subjectNameLength ? subject.SubjectName.Substring(0, subjectNameLength) + ".." : subject.SubjectName;
 
@@ -468,8 +479,7 @@ namespace EDUCATION.COM.Exam.Result
             tableHtml.Append("<tr style='background-color: #34495e; color: white;'>");
             foreach (var subject in subjects)
             {
-                var failedSubExams = GetFailedSubExamsForSubject(subject);
-                foreach (var subExam in failedSubExams)
+                foreach (var subExam in subject.SubExams)
                 {
                     int subExamNameLength = subjectCount <= 5 ? 12 : (subjectCount <= 8 ? 10 : 8);
                     string subExamName = subExam.SubExamType.Length > subExamNameLength ? subExam.SubExamType.Substring(0, subExamNameLength) + ".." : subExam.SubExamType;
@@ -484,8 +494,7 @@ namespace EDUCATION.COM.Exam.Result
             tableHtml.Append("<tr style='background-color: #95a5a6; color: white;'>");
             foreach (var subject in subjects)
             {
-                var failedSubExams = GetFailedSubExamsForSubject(subject);
-                foreach (var subExam in failedSubExams)
+                foreach (var subExam in subject.SubExams)
                 {
                     int minColWidth = subjectCount <= 5 ? 30 : (subjectCount <= 8 ? 25 : 20);
                     tableHtml.AppendFormat("<th style='border: 1px solid #34495e; padding: {0}; text-align: center; background-color: #f39c12; color: white; font-weight: bold; font-size: {1}px; min-width: {2}px;'>OM</th>",
@@ -499,7 +508,7 @@ namespace EDUCATION.COM.Exam.Result
             tableHtml.Append("</thead>");
         }
 
-        private void GenerateCompactStudentRow(StringBuilder tableHtml, UnsuccessfulStudentDataEnhanced student, List<SubjectWithSubExams> subjects)
+        private void GenerateFailedStudentRow(StringBuilder tableHtml, FailedStudentData student, List<SubjectWithSubExams> subjects)
         {
             // Calculate enhanced responsive sizing
             int subjectCount = subjects.Count;
@@ -512,7 +521,7 @@ namespace EDUCATION.COM.Exam.Result
                 dataFontSize = 11;
                 nameFontSize = 12;
                 padding = "4px 3px";
-                nameLimit = 25; // Much longer names for few subjects
+                nameLimit = 25;
             }
             else if (subjectCount <= 5)
             {
@@ -564,22 +573,23 @@ namespace EDUCATION.COM.Exam.Result
             tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: left; font-weight: 600; color: #2c3e50; background-color: #ffffff; font-size: {1}px; min-width: {2}px; max-width: {3}px; word-wrap: break-word; overflow: hidden;' title='{4}'>{5}</td>",
                 padding, nameFontSize, nameColumnWidth, nameColumnWidth + 20, student.StudentName, displayName);
 
-            // Subject data with enhanced visibility
+            // Subject data - only show data for subjects where student has actually failed
             foreach (var subject in subjects)
             {
-                var failedSubExams = GetFailedSubExamsForSubject(subject);
-
-                foreach (var subExam in failedSubExams)
+                foreach (var subExam in subject.SubExams)
                 {
-                    if (student.SubjectSubExamData.ContainsKey(subject.SubjectName))
-                    {
-                        var subjectData = student.SubjectSubExamData[subject.SubjectName];
-                        SubExamMarks marksData = GetSubExamMarks(subjectData, subExam.SubExamType);
+                    // Find this student's failed subject data
+                    var studentFailedSubject = student.FailedSubjects.FirstOrDefault(fs => fs.SubjectName == subject.SubjectName);
 
-                        if (marksData != null && IsFailingMark(marksData.ObtainedMarks, subExam.PassMarks))
+                    if (studentFailedSubject != null)
+                    {
+                        // Find the specific sub-exam data
+                        var studentSubExam = studentFailedSubject.SubExams.FirstOrDefault(se => se.SubExamType == subExam.SubExamType);
+
+                        if (studentSubExam != null)
                         {
-                            string obtainedMarks = marksData.ObtainedMarks;
-                            decimal lackMarks = CalculateLack(obtainedMarks, subExam.PassMarks);
+                            string obtainedMarks = studentSubExam.ObtainedMarks;
+                            decimal lackMarks = CalculateLack(obtainedMarks, studentSubExam.PassMarks);
 
                             // OM Column - enhanced
                             string omCellColor = obtainedMarks?.ToUpper() == "A" ? "#e74c3c" : "#dc3545";
@@ -595,16 +605,16 @@ namespace EDUCATION.COM.Exam.Result
                         }
                         else
                         {
-                            // Pass - empty cells
+                            // Student failed this subject but not this specific sub-exam - empty cells
                             tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; background-color: #e8f5e8;'></td>", padding);
                             tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; background-color: #e8f5e8;'></td>", padding);
                         }
                     }
                     else
                     {
-                        // No data - empty cells
-                        tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; background-color: #f5f5f5;'></td>", padding);
-                        tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; background-color: #f5f5f5;'></td>", padding);
+                        // Student didn't fail this subject - empty cells
+                        tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; background-color: #e8f5e8;'></td>", padding);
+                        tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; background-color: #e8f5e8;'></td>", padding);
                     }
                 }
             }
@@ -612,10 +622,9 @@ namespace EDUCATION.COM.Exam.Result
             tableHtml.Append("</tr>");
         }
 
-        // All other methods remain the same...
-        private List<SubjectWithSubExams> GetAllSubjectsWithSubExams()
+        private List<FailedStudentData> GetStudentsWithOnlyFailedSubjects()
         {
-            var subjects = new List<SubjectWithSubExams>();
+            var failedStudents = new List<FailedStudentData>();
 
             try
             {
@@ -623,56 +632,335 @@ namespace EDUCATION.COM.Exam.Result
                 {
                     con.Open();
 
-                    string subjectQuery = @"
-                        SELECT DISTINCT s.SubjectID, s.SubjectName, ISNULL(s.SN, 999) as SortOrder
-                        FROM Subject s
-                        INNER JOIN Exam_Result_of_Subject ers ON s.SubjectID = ers.SubjectID
-                        INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
-                        WHERE ers.SchoolID = @SchoolID 
-                            AND ers.EducationYearID = @EducationYearID 
-                            AND erst.ClassID = @ClassID 
-                            AND erst.ExamID = @ExamID
-                            AND ISNULL(ers.IS_Add_InExam, 1) = 1
-                        ORDER BY SortOrder, s.SubjectName";
+                    // First, get students who failed in subjects with sub-exams (by sub-exam failure)
+                    var studentsFailedBySubExam = GetStudentsFailedBySubExam(con);
 
-                    using (SqlCommand cmd = new SqlCommand(subjectQuery, con))
+                    // Second, get students who failed in subjects without sub-exams (by total marks)
+                    var studentsFailedByTotalMarks = GetStudentsFailedByTotalMarks(con);
+
+                    // Merge both results
+                    var allFailedStudents = new Dictionary<int, FailedStudentData>();
+
+                    // Add sub-exam failed students
+                    foreach (var student in studentsFailedBySubExam)
                     {
-                        cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
-                        cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
-                        cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
-                        cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
-
-                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        if (!allFailedStudents.ContainsKey(student.StudentID))
                         {
-                            while (reader.Read())
-                            {
-                                var subject = new SubjectWithSubExams
-                                {
-                                    SubjectID = Convert.ToInt32(reader["SubjectID"]),
-                                    SubjectName = reader["SubjectName"]?.ToString() ?? "",
-                                    SubExams = new List<SubExamInfo>()
-                                };
+                            allFailedStudents[student.StudentID] = student;
+                        }
+                        else
+                        {
+                            // Merge failed subjects
+                            allFailedStudents[student.StudentID].FailedSubjects.AddRange(student.FailedSubjects);
+                        }
+                    }
 
-                                subjects.Add(subject);
+                    // Add total marks failed students
+                    foreach (var student in studentsFailedByTotalMarks)
+                    {
+                        if (!allFailedStudents.ContainsKey(student.StudentID))
+                        {
+                            allFailedStudents[student.StudentID] = student;
+                        }
+                        else
+                        {
+                            // Merge failed subjects
+                            foreach (var failedSubject in student.FailedSubjects)
+                            {
+                                // Only add if not already exists
+                                if (!allFailedStudents[student.StudentID].FailedSubjects.Any(fs => fs.SubjectID == failedSubject.SubjectID))
+                                {
+                                    allFailedStudents[student.StudentID].FailedSubjects.Add(failedSubject);
+                                }
                             }
                         }
                     }
 
-                    foreach (var subject in subjects)
+                    failedStudents = allFailedStudents.Values.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error getting students with only failed subjects: " + ex.Message);
+            }
+
+            return failedStudents;
+        }
+
+        private List<FailedStudentData> GetStudentsFailedBySubExam(SqlConnection con)
+        {
+            var failedStudents = new List<FailedStudentData>();
+
+            try
+            {
+                // Get students who failed in specific sub-exams
+                string query = @"
+                    SELECT DISTINCT
+                        sc.StudentID,
+                        s.StudentsName,
+                        sub.SubjectName,
+                        sub.SubjectID
+                    FROM Exam_Obtain_Marks eom
+                    INNER JOIN Subject sub ON eom.SubjectID = sub.SubjectID
+                    INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
+                    INNER JOIN Exam_Result_of_Student erst ON eom.StudentResultID = erst.StudentResultID
+                    INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
+                    INNER JOIN Student s ON sc.StudentID = s.StudentID
+                    WHERE eom.SchoolID = @SchoolID 
+                        AND eom.EducationYearID = @EducationYearID 
+                        AND erst.ClassID = @ClassID 
+                        AND erst.ExamID = @ExamID
+                        AND s.Status = 'Active'
+                        AND esn.SchoolID = @SchoolID
+                        AND esn.EducationYearID = @EducationYearID
+                        AND (
+                            UPPER(LTRIM(RTRIM(ISNULL(eom.AbsenceStatus, '')))) = 'ABSENT'
+                            OR UPPER(LTRIM(RTRIM(ISNULL(eom.MarksObtained, '')))) IN ('A', 'ABS', 'ABSENT')
+                            OR (
+                                ISNUMERIC(ISNULL(eom.MarksObtained, '')) = 1 
+                                AND LTRIM(RTRIM(ISNULL(eom.MarksObtained, ''))) NOT IN ('', 'A', 'ABS', 'ABSENT')
+                                AND CONVERT(FLOAT, LTRIM(RTRIM(eom.MarksObtained))) < ISNULL(eom.PassMark, 33)
+                            )
+                        )
+                    ORDER BY sc.StudentID, sub.SubjectName";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
+                    cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
+                    cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
+                    cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        GetSubExamsForSubjectFromDatabase(subject, con);
+                        var studentDict = new Dictionary<int, FailedStudentData>();
+
+                        while (reader.Read())
+                        {
+                            int studentId = Convert.ToInt32(reader["StudentID"]);
+                            string studentName = reader["StudentsName"]?.ToString() ?? "";
+                            string subjectName = reader["SubjectName"]?.ToString() ?? "";
+                            int subjectId = Convert.ToInt32(reader["SubjectID"]);
+
+                            if (!studentDict.ContainsKey(studentId))
+                            {
+                                studentDict[studentId] = new FailedStudentData
+                                {
+                                    StudentID = studentId,
+                                    StudentName = studentName,
+                                    FailedSubjects = new List<FailedSubjectData>()
+                                };
+                            }
+
+                            // Check if this subject is already added
+                            if (!studentDict[studentId].FailedSubjects.Any(fs => fs.SubjectID == subjectId))
+                            {
+                                var failedSubject = new FailedSubjectData
+                                {
+                                    SubjectID = subjectId,
+                                    SubjectName = subjectName,
+                                    TotalMarks = "",
+                                    SubExams = new List<SubExamInfo>()
+                                };
+
+                                studentDict[studentId].FailedSubjects.Add(failedSubject);
+                            }
+                        }
+
+                        failedStudents = studentDict.Values.ToList();
+                    }
+                }
+
+                // Get sub-exam details for each failed subject
+                foreach (var student in failedStudents)
+                {
+                    foreach (var failedSubject in student.FailedSubjects)
+                    {
+                        GetSubExamsForFailedSubject(failedSubject, student.StudentID, con);
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Error getting subjects with sub-exams: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Error getting students failed by sub-exam: " + ex.Message);
             }
 
-            return subjects;
+            return failedStudents;
         }
 
-        private void GetSubExamsForSubjectFromDatabase(SubjectWithSubExams subject, SqlConnection con)
+        private List<FailedStudentData> GetStudentsFailedByTotalMarks(SqlConnection con)
+        {
+            var failedStudents = new List<FailedStudentData>();
+
+            try
+            {
+                // First, get all students with their total marks for subjects without sub-exams
+                string query = @"
+                    SELECT DISTINCT
+                        sc.StudentID,
+                        s.StudentsName,
+                        sub.SubjectName,
+                        sub.SubjectID,
+                        ers.ObtainedMark_ofSubject as TotalMarks,
+                        ers.TotalMark_ofSubject as FullMarks
+                    FROM Exam_Result_of_Subject ers
+                    INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
+                    INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
+                    INNER JOIN Student s ON sc.StudentID = s.StudentID
+                    INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
+                    WHERE ers.SchoolID = @SchoolID 
+                        AND ers.EducationYearID = @EducationYearID 
+                        AND erst.ClassID = @ClassID 
+                        AND erst.ExamID = @ExamID
+                        AND s.Status = 'Active'
+                        AND ISNULL(ers.IS_Add_InExam, 1) = 1
+                        -- Only include subjects that don't have sub-exam data
+                        AND NOT EXISTS (
+                            SELECT 1 FROM Exam_Obtain_Marks eom2 
+                            INNER JOIN Exam_SubExam_Name esn2 ON eom2.SubExamID = esn2.SubExamID
+                            WHERE eom2.StudentResultID = ers.StudentResultID 
+                                AND eom2.SubjectID = ers.SubjectID
+                                AND eom2.SchoolID = @SchoolID
+                                AND eom2.EducationYearID = @EducationYearID
+                                AND esn2.SchoolID = @SchoolID
+                                AND esn2.EducationYearID = @EducationYearID
+                        )
+                    ORDER BY sc.StudentID, sub.SubjectName";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
+                    cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
+                    cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
+                    cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        var studentDict = new Dictionary<int, FailedStudentData>();
+
+                        while (reader.Read())
+                        {
+                            int studentId = Convert.ToInt32(reader["StudentID"]);
+                            string studentName = reader["StudentsName"]?.ToString() ?? "";
+                            string subjectName = reader["SubjectName"]?.ToString() ?? "";
+                            int subjectId = Convert.ToInt32(reader["SubjectID"]);
+                            string totalMarks = reader["TotalMarks"]?.ToString() ?? "";
+                            string fullMarks = reader["FullMarks"]?.ToString() ?? "";
+
+                            // Calculate correct pass marks
+                            decimal passMarks = 33; // default
+                            if (decimal.TryParse(fullMarks, out decimal fullMarksValue) && fullMarksValue > 0)
+                            {
+                                passMarks = Math.Round(fullMarksValue * 0.33m, 0);
+                            }
+                            else
+                            {
+                                // Use dynamic calculation if full marks not available
+                                passMarks = GetDynamicPassMarksForSubject(subjectId, subjectName);
+                            }
+
+                            // Check if student actually failed based on calculated pass marks
+                            bool isFailed = false;
+                            if (totalMarks?.ToUpper() == "A" || totalMarks?.ToUpper() == "ABS" || totalMarks?.ToUpper() == "ABSENT")
+                            {
+                                isFailed = true;
+                            }
+                            else if (decimal.TryParse(totalMarks, out decimal obtainedMarks))
+                            {
+                                isFailed = obtainedMarks < passMarks;
+                            }
+                            else
+                            {
+                                // Check grade-based failure
+                                string gradeQuery = @"
+                                    SELECT ers.SubjectGrades, ers.PassStatus_Subject 
+                                    FROM Exam_Result_of_Subject ers
+                                    INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
+                                    INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
+                                    WHERE sc.StudentID = @StudentID AND ers.SubjectID = @SubjectID
+                                        AND ers.SchoolID = @SchoolID AND ers.EducationYearID = @EducationYearID 
+                                        AND erst.ClassID = @ClassID AND erst.ExamID = @ExamID";
+
+                                using (SqlConnection con2 = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                                {
+                                    con2.Open();
+                                    using (SqlCommand gradeCmd = new SqlCommand(gradeQuery, con2))
+                                    {
+                                        gradeCmd.Parameters.AddWithValue("@StudentID", studentId);
+                                        gradeCmd.Parameters.AddWithValue("@SubjectID", subjectId);
+                                        gradeCmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
+                                        gradeCmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
+                                        gradeCmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
+                                        gradeCmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
+
+                                        using (SqlDataReader gradeReader = gradeCmd.ExecuteReader())
+                                        {
+                                            if (gradeReader.Read())
+                                            {
+                                                string grade = gradeReader["SubjectGrades"]?.ToString()?.Trim().ToUpper() ?? "";
+                                                string passStatus = gradeReader["PassStatus_Subject"]?.ToString()?.Trim().ToUpper() ?? "";
+                                                
+                                                isFailed = grade == "F" || passStatus == "FAIL" || passStatus == "F";
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Only add if student actually failed
+                            if (isFailed)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"?? Student {studentName} failed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
+
+                                if (!studentDict.ContainsKey(studentId))
+                                {
+                                    studentDict[studentId] = new FailedStudentData
+                                    {
+                                        StudentID = studentId,
+                                        StudentName = studentName,
+                                        FailedSubjects = new List<FailedSubjectData>()
+                                    };
+                                }
+
+                                // Add this failed subject
+                                var failedSubject = new FailedSubjectData
+                                {
+                                    SubjectID = subjectId,
+                                    SubjectName = subjectName,
+                                    TotalMarks = totalMarks,
+                                    SubExams = new List<SubExamInfo>
+                                    {
+                                        new SubExamInfo
+                                        {
+                                            SubExamType = "Total",
+                                            SubExamID = 0,
+                                            PassMarks = passMarks,
+                                            ObtainedMarks = totalMarks
+                                        }
+                                    }
+                                };
+
+                                studentDict[studentId].FailedSubjects.Add(failedSubject);
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine($"? Student {studentName} passed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
+                            }
+                        }
+
+                        failedStudents = studentDict.Values.ToList();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error getting students failed by total marks: " + ex.Message);
+            }
+
+            return failedStudents;
+        }
+
+        private void GetSubExamsForFailedSubject(FailedSubjectData failedSubject, int studentId, SqlConnection con)
         {
             try
             {
@@ -681,7 +969,9 @@ namespace EDUCATION.COM.Exam.Result
                         esn.SubExamName,
                         esn.SubExamID,
                         esn.Sub_ExamSN,
-                        AVG(CAST(ISNULL(eom.PassMark, 33) AS DECIMAL)) as PassMark
+                        eom.MarksObtained,
+                        ISNULL(eom.PassMark, 33) as PassMark,
+                        ISNULL(eom.AbsenceStatus, 'Present') as AbsenceStatus
                     FROM Exam_SubExam_Name esn
                     INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
                     INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
@@ -692,14 +982,15 @@ namespace EDUCATION.COM.Exam.Result
                         AND ers.ExamID = @ExamID
                         AND sc.ClassID = @ClassID
                         AND eom.SubjectID = @SubjectID
+                        AND sc.StudentID = @StudentID
                         AND esn.SchoolID = @SchoolID
                         AND esn.EducationYearID = @EducationYearID
-                    GROUP BY esn.SubExamName, esn.SubExamID, esn.Sub_ExamSN
                     ORDER BY esn.Sub_ExamSN, esn.SubExamName";
 
                 using (SqlCommand cmd = new SqlCommand(subExamQuery, con))
                 {
-                    cmd.Parameters.AddWithValue("@SubjectID", subject.SubjectID);
+                    cmd.Parameters.AddWithValue("@SubjectID", failedSubject.SubjectID);
+                    cmd.Parameters.AddWithValue("@StudentID", studentId);
                     cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
                     cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
                     cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
@@ -711,91 +1002,164 @@ namespace EDUCATION.COM.Exam.Result
                         while (reader.Read())
                         {
                             var subExamName = reader["SubExamName"]?.ToString();
+                            var marksObtainedValue = reader["MarksObtained"];
                             var passMarkValue = reader["PassMark"];
+                            string absenceStatus = reader["AbsenceStatus"]?.ToString() ?? "Present";
 
                             if (!string.IsNullOrEmpty(subExamName))
                             {
+                                string marksObtained = "0";
+                                if (marksObtainedValue != null && marksObtainedValue != DBNull.Value)
+                                {
+                                    marksObtained = marksObtainedValue.ToString();
+                                }
+
+                                bool isAbsent = string.Equals(absenceStatus, "Absent", StringComparison.OrdinalIgnoreCase) ||
+                                              string.Equals(marksObtained, "A", StringComparison.OrdinalIgnoreCase);
+
+                                if (isAbsent)
+                                {
+                                    marksObtained = "A";
+                                }
+
                                 decimal passMark = 0;
                                 if (passMarkValue != null && passMarkValue != DBNull.Value)
                                 {
                                     decimal.TryParse(passMarkValue.ToString(), out passMark);
                                 }
 
-                                subject.SubExams.Add(new SubExamInfo
+                                // Use dynamic calculation for better accuracy
+                                if (passMark <= 0)
                                 {
-                                    SubExamType = subExamName,
-                                    SubExamID = Convert.ToInt32(reader["SubExamID"]),
-                                    PassMarks = passMark > 0 ? passMark : GetDefaultPassMark(subExamName)
-                                });
-                                hasSubExams = true;
+                                    passMark = GetDefaultPassMark(subExamName);
+                                }
+
+                                // Only add if this sub-exam is actually failed
+                                if (IsFailingMark(marksObtained, passMark))
+                                {
+                                    failedSubject.SubExams.Add(new SubExamInfo
+                                    {
+                                        SubExamType = subExamName,
+                                        SubExamID = Convert.ToInt32(reader["SubExamID"]),
+                                        PassMarks = passMark,
+                                        ObtainedMarks = marksObtained
+                                    });
+                                    hasSubExams = true;
+                                }
                             }
                         }
 
+                        // If no sub-exams found or no failed sub-exams, add total marks as failed
                         if (!hasSubExams)
                         {
-                            CheckForTotalMarksOnly(subject, con);
+                            // Use dynamic pass marks for total marks
+                            decimal totalPassMarks = GetDynamicPassMarksForSubject(failedSubject.SubjectID, failedSubject.SubjectName);
+                            
+                            failedSubject.SubExams.Add(new SubExamInfo
+                            {
+                                SubExamType = "Total",
+                                SubExamID = 0,
+                                PassMarks = totalPassMarks,
+                                ObtainedMarks = failedSubject.TotalMarks
+                            });
+                            
+                            System.Diagnostics.Debug.WriteLine($"?? Added Total sub-exam for failed subject {failedSubject.SubjectName} with dynamic PassMarks={totalPassMarks}");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error getting sub-exams from database for subject {subject.SubjectID}: " + ex.Message);
-                subject.SubExams.Add(new SubExamInfo
+                System.Diagnostics.Debug.WriteLine($"? Error getting sub-exams for failed subject {failedSubject.SubjectID}: " + ex.Message);
+                
+                // Use dynamic pass marks even in error case
+                decimal totalPassMarks = GetDynamicPassMarksForSubject(failedSubject.SubjectID, failedSubject.SubjectName);
+                
+                failedSubject.SubExams.Add(new SubExamInfo
                 {
                     SubExamType = "Total",
                     SubExamID = 0,
-                    PassMarks = 33
+                    PassMarks = totalPassMarks,
+                    ObtainedMarks = failedSubject.TotalMarks
                 });
             }
         }
 
-        private void CheckForTotalMarksOnly(SubjectWithSubExams subject, SqlConnection con)
+        // Enhanced method to get accurate pass marks for subjects without sub-exams
+        private decimal GetDynamicPassMarksForSubject(int subjectId, string subjectName)
         {
             try
             {
-                string totalMarksQuery = @"
-                    SELECT COUNT(*) as HasData
-                    FROM Exam_Result_of_Subject ers
-                    INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
-                    WHERE ers.SubjectID = @SubjectID
-                        AND ers.SchoolID = @SchoolID 
-                        AND ers.EducationYearID = @EducationYearID 
-                        AND erst.ClassID = @ClassID 
-                        AND erst.ExamID = @ExamID
-                        AND ISNULL(ers.IS_Add_InExam, 1) = 1";
-
-                using (SqlCommand cmd = new SqlCommand(totalMarksQuery, con))
+                using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
                 {
-                    cmd.Parameters.AddWithValue("@SubjectID", subject.SubjectID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
-                    cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
-                    cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
-                    cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
+                    con.Open();
+                    
+                    // Get the maximum total marks for this subject to calculate pass marks
+                    string query = @"
+                        SELECT MAX(CASE 
+                            WHEN ISNUMERIC(ers.TotalMark_ofSubject) = 1 
+                            THEN CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2))
+                            ELSE 0 
+                        END) as MaxTotalMarks
+                        FROM Exam_Result_of_Subject ers
+                        INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
+                        WHERE ers.SubjectID = @SubjectID
+                            AND ers.SchoolID = @SchoolID
+                            AND ers.EducationYearID = @EducationYearID
+                            AND erst.ClassID = @ClassID
+                            AND erst.ExamID = @ExamID
+                            AND ISNULL(ers.IS_Add_InExam, 1) = 1
+                            AND ers.TotalMark_ofSubject IS NOT NULL 
+                            AND ers.TotalMark_ofSubject != ''
+                            AND ISNUMERIC(ers.TotalMark_ofSubject) = 1";
 
-                    var hasData = Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
-
-                    if (hasData > 0)
+                    using (SqlCommand cmd = new SqlCommand(query, con))
                     {
-                        subject.SubExams.Add(new SubExamInfo
+                        cmd.Parameters.AddWithValue("@SubjectID", subjectId);
+                        cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
+                        cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
+                        cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
+                        cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
+
+                        var result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
                         {
-                            SubExamType = "Total",
-                            SubExamID = 0,
-                            PassMarks = 33
-                        });
+                            decimal maxMarks = Convert.ToDecimal(result);
+                            if (maxMarks > 0)
+                            {
+                                decimal passMarks = Math.Round(maxMarks * 0.33m, 0);
+                                System.Diagnostics.Debug.WriteLine($"?? Dynamic PassMarks for {subjectName} (ID:{subjectId}): MaxMarks={maxMarks}, PassMarks={passMarks}");
+                                return passMarks;
+                            }
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ Error checking total marks for {subject.SubjectName}: " + ex.Message);
-                subject.SubExams.Add(new SubExamInfo
-                {
-                    SubExamType = "Total",
-                    SubExamID = 0,
-                    PassMarks = 33
-                });
+                System.Diagnostics.Debug.WriteLine($"Error getting dynamic pass marks for {subjectName}: " + ex.Message);
             }
+
+            // Fallback to static method
+            return GetActualPassMarksForSubject(subjectName, "");
+        }
+
+        private decimal GetActualPassMarksForSubject(string subjectName, string totalMarks)
+        {
+            // Enhanced fallback: use subject-specific pass marks based on subject name patterns
+            var lowerName = subjectName.ToLower();
+            if (lowerName.Contains("drawing") || lowerName.Contains("art"))
+                return 17; // Typically drawing subjects have 50 total marks, so 33% = 16.5 ? 17
+            else if (lowerName.Contains("ict") || lowerName.Contains("computer"))
+                return 17; // ICT subjects often have 50 total marks
+            else if (lowerName.Contains("work") || lowerName.Contains("education"))
+                return 17; // Work & Life Oriented Education
+            else if (lowerName.Contains("religion") || lowerName.Contains("islam") || lowerName.Contains("hindu") || lowerName.Contains("christian") || lowerName.Contains("buddhist"))
+                return 33; // Religion subjects typically have 100 total marks
+            else if (lowerName.Contains("physical") || lowerName.Contains("sports"))
+                return 17; // Physical Education
+            else
+                return 33; // Default for major subjects (Bangla, English, Math, Science, etc.)
         }
 
         private decimal GetDefaultPassMark(string subExamName)
@@ -805,327 +1169,24 @@ namespace EDUCATION.COM.Exam.Result
 
             var lowerName = subExamName.ToLower();
 
+            // For sub-exams
             if (lowerName.Contains("creative"))
-                return 15;
+                return 15; // Creative questions typically have 45 marks, 33% = 15
             else if (lowerName.Contains("mcq"))
-                return 10;
+                return 10; // MCQ typically has 30 marks, 33% = 10
             else if (lowerName.Contains("cq"))
-                return 8;
+                return 8; // CQ typically has 25 marks, 33% = 8
             else if (lowerName.Contains("structured"))
-                return 20;
+                return 20; // Structured questions typically have 60 marks, 33% = 20
             else if (lowerName.Contains("practical"))
-                return 20;
-            else
+                return 20; // Practical typically has 60 marks, 33% = 20
+            else if (lowerName.Contains("total"))
+            {
+                // For total marks, return default - will be overridden by dynamic calculation
                 return 33;
-        }
-
-        private List<UnsuccessfulStudentDataEnhanced> GetUnsuccessfulStudentsDataWithSubExams()
-        {
-            var students = new List<UnsuccessfulStudentDataEnhanced>();
-
-            try
-            {
-                using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-                {
-                    con.Open();
-
-                    string query = @"
-                        SELECT DISTINCT
-                            sc.StudentID,
-                            s.StudentsName
-                        FROM Exam_Result_of_Subject ers
-                        INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
-                        INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
-                        INNER JOIN Student s ON sc.StudentID = s.StudentID
-                        WHERE ers.SchoolID = @SchoolID 
-                            AND ers.EducationYearID = @EducationYearID 
-                            AND erst.ClassID = @ClassID 
-                            AND erst.ExamID = @ExamID
-                            AND s.Status = 'Active'
-                            AND (
-                                UPPER(LTRIM(RTRIM(ISNULL(ers.SubjectGrades, '')))) = 'F'
-                                OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F')
-                                OR UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS', 'ABSENT')
-                                OR (
-                                    ISNUMERIC(ISNULL(ERS.ObtainedMark_ofSubject, '')) = 1 
-                                    AND LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, ''))) NOT IN ('', 'A', 'ABS', 'ABSENT')
-                                    AND CONVERT(FLOAT, LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) < 33
-                                )
-                            )
-                        ORDER BY sc.StudentID";
-
-                    using (SqlCommand cmd = new SqlCommand(query, con))
-                    {
-                        cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
-                        cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
-                        cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
-                        cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
-
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                var student = new UnsuccessfulStudentDataEnhanced
-                                {
-                                    StudentID = Convert.ToInt32(reader["StudentID"]),
-                                    StudentName = reader["StudentsName"]?.ToString() ?? "",
-                                    SubjectSubExamData = new Dictionary<string, SubExamMarksData>()
-                                };
-
-                                students.Add(student);
-                            }
-                        }
-                    }
-
-                    foreach (var student in students)
-                    {
-                        GetSubExamDetailsForStudentFromDatabase(student, con);
-                    }
-                }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Error getting unsuccessful students with sub-exams: " + ex.Message);
-            }
-
-            return students;
-        }
-
-        private void GetSubExamDetailsForStudentFromDatabase(UnsuccessfulStudentDataEnhanced student, SqlConnection con)
-        {
-            try
-            {
-                string query = @"
-                    SELECT 
-                        s.SubjectName,
-                        esn.SubExamName,
-                        eom.MarksObtained,
-                        ISNULL(eom.PassMark, 33) as PassMark,
-                        ISNULL(eom.AbsenceStatus, 'Present') as AbsenceStatus,
-                        ers.ObtainedMark_ofSubject as TotalMarks
-                    FROM Exam_Obtain_Marks eom
-                    INNER JOIN Subject s ON eom.SubjectID = s.SubjectID
-                    INNER JOIN Exam_SubExam_Name esn ON eom.SubExamID = esn.SubExamID
-                    INNER JOIN Exam_Result_of_Student erst ON eom.StudentResultID = erst.StudentResultID
-                    INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
-                    INNER JOIN Exam_Result_of_Subject ers ON ers.StudentResultID = erst.StudentResultID AND ers.SubjectID = s.SubjectID
-                    WHERE sc.StudentID = @StudentID
-                        AND eom.SchoolID = @SchoolID 
-                        AND eom.EducationYearID = @EducationYearID 
-                        AND erst.ClassID = @ClassID 
-                        AND erst.ExamID = @ExamID
-                        AND esn.SchoolID = @SchoolID
-                        AND esn.EducationYearID = @EducationYearID
-                        AND (
-                            UPPER(LTRIM(RTRIM(ISNULL(ers.SubjectGrades, '')))) = 'F'
-                            OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F')
-                            OR UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS', 'ABSENT')
-                            OR (
-                                ISNUMERIC(ISNULL(ers.ObtainedMark_ofSubject, '')) = 1 
-                                AND LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, ''))) NOT IN ('', 'A', 'ABS', 'ABSENT')
-                                AND CONVERT(FLOAT, LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) < 33
-                            )
-                        )
-                    ORDER BY s.SubjectName, esn.Sub_ExamSN";
-
-                using (SqlCommand cmd = new SqlCommand(query, con))
-                {
-                    cmd.Parameters.AddWithValue("@StudentID", student.StudentID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
-                    cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
-                    cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
-                    cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        var subjectData = new Dictionary<string, Dictionary<string, SubExamMarks>>();
-
-                        while (reader.Read())
-                        {
-                            string subjectName = reader["SubjectName"]?.ToString() ?? "";
-                            string subExamName = reader["SubExamName"]?.ToString() ?? "";
-                            var marksObtainedValue = reader["MarksObtained"];
-                            decimal passMark = Convert.ToDecimal(reader["PassMark"] ?? 33);
-                            string absenceStatus = reader["AbsenceStatus"]?.ToString() ?? "Present";
-
-                            string marksObtained = "0";
-                            if (marksObtainedValue != null && marksObtainedValue != DBNull.Value)
-                            {
-                                marksObtained = marksObtainedValue.ToString();
-                            }
-
-                            bool isAbsent = string.Equals(absenceStatus, "Absent", StringComparison.OrdinalIgnoreCase) ||
-                                          string.Equals(marksObtained, "A", StringComparison.OrdinalIgnoreCase);
-
-                            if (isAbsent)
-                            {
-                                marksObtained = "A";
-                            }
-
-                            if (!subjectData.ContainsKey(subjectName))
-                            {
-                                subjectData[subjectName] = new Dictionary<string, SubExamMarks>();
-                            }
-
-                            subjectData[subjectName][subExamName] = new SubExamMarks
-                            {
-                                ObtainedMarks = marksObtained,
-                                PassMarks = passMark
-                            };
-                        }
-
-                        foreach (var kvp in subjectData)
-                        {
-                            var subExamMarksData = new SubExamMarksData();
-
-                            foreach (var subExamKvp in kvp.Value)
-                            {
-                                string subExamName = subExamKvp.Key;
-                                SubExamMarks marksData = subExamKvp.Value;
-
-                                var lowerName = subExamName.ToLower();
-                                if (lowerName.Contains("creative"))
-                                {
-                                    subExamMarksData.Creative = marksData;
-                                }
-                                else if (lowerName.Contains("mcq"))
-                                {
-                                    subExamMarksData.MCQ = marksData;
-                                }
-                                else if (lowerName.Contains("cq"))
-                                {
-                                    subExamMarksData.CQ = marksData;
-                                }
-                                else if (lowerName.Contains("structured"))
-                                {
-                                    subExamMarksData.Structured = marksData;
-                                }
-                                else if (lowerName.Contains("practical"))
-                                {
-                                    subExamMarksData.Practical = marksData;
-                                }
-                                else
-                                {
-                                    subExamMarksData.Total = marksData;
-                                }
-                            }
-
-                            student.SubjectSubExamData[kvp.Key] = subExamMarksData;
-                        }
-
-                        if (subjectData.Count == 0)
-                        {
-                            GetTotalMarksForFailedStudent(student, con);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting sub-exam details from database for student {student.StudentID}: " + ex.Message);
-                GetTotalMarksForFailedStudent(student, con);
-            }
-        }
-
-        private void GetTotalMarksForFailedStudent(UnsuccessfulStudentDataEnhanced student, SqlConnection con)
-        {
-            try
-            {
-                string totalQuery = @"
-                    SELECT 
-                        s.SubjectName,
-                        ers.ObtainedMark_ofSubject as TotalMarks
-                    FROM Exam_Result_of_Subject ers
-                    INNER JOIN Subject s ON ers.SubjectID = s.SubjectID
-                    INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
-                    INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
-                    WHERE sc.StudentID = @StudentID
-                        AND ers.SchoolID = @SchoolID 
-                        AND ers.EducationYearID = @EducationYearID 
-                        AND erst.ClassID = @ClassID 
-                        AND erst.ExamID = @ExamID
-                        AND ISNULL(ers.IS_Add_InExam, 1) = 1
-                        AND (
-                            UPPER(LTRIM(RTRIM(ISNULL(ers.SubjectGrades, '')))) = 'F'
-                            OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F')
-                            OR UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS', 'ABSENT')
-                            OR (
-                                ISNUMERIC(ISNULL(ers.ObtainedMark_ofSubject, '')) = 1 
-                                AND LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, ''))) NOT IN ('', 'A', 'ABS', 'ABSENT')
-                                AND CONVERT(FLOAT, LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) < 33
-                            )
-                        )
-                    ORDER BY s.SubjectName";
-
-                using (SqlCommand cmd = new SqlCommand(totalQuery, con))
-                {
-                    cmd.Parameters.AddWithValue("@StudentID", student.StudentID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
-                    cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
-                    cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
-                    cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
-
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            string subjectName = reader["SubjectName"]?.ToString() ?? "";
-                            string totalMarks = reader["TotalMarks"]?.ToString() ?? "0";
-
-                            var subExamMarksData = new SubExamMarksData
-                            {
-                                Total = new SubExamMarks
-                                {
-                                    ObtainedMarks = totalMarks,
-                                    PassMarks = 33
-                                }
-                            };
-
-                            student.SubjectSubExamData[subjectName] = subExamMarksData;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting total marks for student {student.StudentID}: " + ex.Message);
-            }
-        }
-
-        private SubExamMarks GetSubExamMarks(SubExamMarksData data, string subExamType)
-        {
-            if (data != null)
-            {
-                var lowerSubExamType = subExamType.ToLower();
-
-                if (subExamType == "Total" && data.Total != null)
-                    return data.Total;
-
-                if (lowerSubExamType.Contains("creative") && data.Creative != null)
-                    return data.Creative;
-                else if (lowerSubExamType.Contains("mcq") && data.MCQ != null)
-                    return data.MCQ;
-                else if (lowerSubExamType.Contains("cq") && data.CQ != null)
-                    return data.CQ;
-                else if (lowerSubExamType.Contains("structured") && data.Structured != null)
-                    return data.Structured;
-                else if (lowerSubExamType.Contains("practical") && data.Practical != null)
-                    return data.Practical;
-
-                if (data.Creative != null) return data.Creative;
-                if (data.MCQ != null) return data.MCQ;
-                if (data.CQ != null) return data.CQ;
-                if (data.Structured != null) return data.Structured;
-                if (data.Practical != null) return data.Practical;
-                if (data.Total != null) return data.Total;
-            }
-
-            return null;
-        }
-
-        private List<SubExamInfo> GetFailedSubExamsForSubject(SubjectWithSubExams subject)
-        {
-            return subject.SubExams; // Simplified - return all sub-exams
+            else
+                return 33; // Default
         }
 
         private decimal CalculateLack(string obtainedMarks, decimal passMarks)
@@ -1137,7 +1198,12 @@ namespace EDUCATION.COM.Exam.Result
 
             if (decimal.TryParse(obtainedMarks, out decimal marks))
             {
-                return Math.Max(0, passMarks - marks);
+                decimal lack = Math.Max(0, passMarks - marks);
+                
+                // Debug output to see what's happening
+                System.Diagnostics.Debug.WriteLine($"?? CalculateLack - Obtained: {obtainedMarks}, PassMarks: {passMarks}, Lack: {lack}");
+                
+                return lack;
             }
 
             return passMarks;
@@ -1172,6 +1238,41 @@ namespace EDUCATION.COM.Exam.Result
 
             return null;
         }
+
+        private List<SubjectWithSubExams> GetUniqueFailedSubjects(List<FailedStudentData> failedStudents)
+        {
+            var uniqueSubjects = new Dictionary<int, SubjectWithSubExams>();
+
+            foreach (var student in failedStudents)
+            {
+                foreach (var failedSubject in student.FailedSubjects)
+                {
+                    if (!uniqueSubjects.ContainsKey(failedSubject.SubjectID))
+                    {
+                        uniqueSubjects[failedSubject.SubjectID] = new SubjectWithSubExams
+                        {
+                            SubjectID = failedSubject.SubjectID,
+                            SubjectName = failedSubject.SubjectName,
+                            SubExams = failedSubject.SubExams.ToList()
+                        };
+                    }
+                    else
+                    {
+                        // Merge sub-exams if needed
+                        var existingSubject = uniqueSubjects[failedSubject.SubjectID];
+                        foreach (var subExam in failedSubject.SubExams)
+                        {
+                            if (!existingSubject.SubExams.Any(se => se.SubExamType == subExam.SubExamType))
+                            {
+                                existingSubject.SubExams.Add(subExam);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return uniqueSubjects.Values.OrderBy(s => s.SubjectName).ToList();
+        }
     }
 
     // Helper Classes
@@ -1189,31 +1290,24 @@ namespace EDUCATION.COM.Exam.Result
         public string SubExamType { get; set; }
         public int SubExamID { get; set; }
         public decimal PassMarks { get; set; }
+        public string ObtainedMarks { get; set; } // Added for failed subject tracking
     }
 
+    // New classes for precise failed student tracking
     [Serializable]
-    public class UnsuccessfulStudentDataEnhanced
+    public class FailedStudentData
     {
         public int StudentID { get; set; }
         public string StudentName { get; set; }
-        public Dictionary<string, SubExamMarksData> SubjectSubExamData { get; set; }
+        public List<FailedSubjectData> FailedSubjects { get; set; }
     }
 
     [Serializable]
-    public class SubExamMarksData
+    public class FailedSubjectData
     {
-        public SubExamMarks Creative { get; set; }
-        public SubExamMarks MCQ { get; set; }
-        public SubExamMarks CQ { get; set; }
-        public SubExamMarks Structured { get; set; }
-        public SubExamMarks Practical { get; set; }
-        public SubExamMarks Total { get; set; }
-    }
-
-    [Serializable]
-    public class SubExamMarks
-    {
-        public string ObtainedMarks { get; set; }
-        public decimal PassMarks { get; set; }
+        public int SubjectID { get; set; }
+        public string SubjectName { get; set; }
+        public string TotalMarks { get; set; }
+        public List<SubExamInfo> SubExams { get; set; }
     }
 }

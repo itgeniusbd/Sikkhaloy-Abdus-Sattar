@@ -1,4 +1,5 @@
 ﻿<%@ Page Title="Analytical Smart Result" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Analytical_Smart_Result.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Analytical_Smart_Result" %>
+
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="CSS/Analytical_Smart_Result.css?v=5" rel="stylesheet" />
     <style>
@@ -1098,7 +1099,7 @@
         $(function () {
             // Initialize tooltips and other UI enhancements
             if (typeof $ !== 'undefined') {
-                
+
                 // Set dynamic school name from InstitutionName element (like old code)
                 if ($("#InstitutionName").length > 0) {
                     var schoolName = $("#InstitutionName").text().trim();
@@ -1108,14 +1109,14 @@
                         if (schoolNameLabel.length > 0) {
                             schoolNameLabel.text(schoolName);
                         }
-                        
+
                         // Also update any other school name displays
                         $('.school-name-display').text(schoolName);
                     }
                 }
-                
+
                 // Add loading state for dropdowns
-                $('[id*=ClassDropDownList], [id*=ExamDropDownList]').change(function() {
+                $('[id*=ClassDropDownList], [id*=ExamDropDownList]').change(function () {
                     if ($(this).val() !== "0") {
                         $(this).addClass('loading');
                         setTimeout(() => {
@@ -1126,7 +1127,7 @@
 
                 // Highlight zero values in statistics table
                 function highlightZeroValues() {
-                    $('.report-table td').each(function() {
+                    $('.report-table td').each(function () {
                         var cellText = $(this).text().trim();
                         if (cellText === '0' || cellText === '0.00') {
                             $(this).addClass('zero-value');
@@ -1141,11 +1142,11 @@
 
                 // Enhanced function for unsuccessful students table
                 function enhanceUnsuccessfulTable() {
-                    $('.unsuccessful-table tr').each(function() {
+                    $('.unsuccessful-table tr').each(function () {
                         var failedSubjectsCell = $(this).find('td:last-child');
                         var gradeCell = $(this).find('td:nth-child(4)'); // Updated position due to new Student ID column
                         var failedCountCell = $(this).find('td:nth-child(5)'); // Updated position due to new Student ID column
-                        
+
                         // Keep failed subjects as simple comma-separated text (no pills)
                         if (failedSubjectsCell.length > 0) {
                             var failedText = failedSubjectsCell.text().trim();
@@ -1154,12 +1155,12 @@
                             }
                             // Remove the pill formatting - keep as simple text
                         }
-                        
+
                         // Style grade cell
                         if (gradeCell.text().trim() === 'F') {
                             gradeCell.addClass('grade-f');
                         }
-                        
+
                         // Style failed count cell
                         if (failedCountCell.length > 0) {
                             var count = parseInt(failedCountCell.text().trim());
@@ -1185,35 +1186,35 @@
                 // Enhanced function for detailed unsuccessful students table
                 function enhanceDetailedUnsuccessfulTable() {
                     // Handle the new detailed table structure
-                    $('.unsuccessful-students-detailed tr').each(function() {
+                    $('.unsuccessful-students-detailed tr').each(function () {
                         var studentIdCell = $(this).find('.student-id-col');
                         var studentNameCell = $(this).find('.student-name-col');
-                        
+
                         // Enhance student ID and name cells
                         if (studentIdCell.length > 0) {
                             studentIdCell.prepend('<i class="fa fa-id-badge" style="margin-right: 4px; color: #495057;"></i>');
                         }
-                        
+
                         if (studentNameCell.length > 0) {
                             studentNameCell.prepend('<i class="fa fa-user" style="margin-right: 4px; color: #495057;"></i>');
                         }
-                        
+
                         // Add hover effects to subject detail tables
                         $(this).find('.subject-detail-table tr').hover(
-                            function() {
+                            function () {
                                 $(this).css('background-color', '#e3f2fd');
                             },
-                            function() {
+                            function () {
                                 $(this).css('background-color', '');
                             }
                         );
-                        
+
                         // Add tooltips to OM and Lack cells
                         $(this).find('.om-cell').attr('title', 'Obtained Marks in this subject');
                         $(this).find('.lack-cell').attr('title', 'Shortage from required pass marks (33)');
-                        
+
                         // Highlight high shortage values
-                        $(this).find('.lack-cell').each(function() {
+                        $(this).find('.lack-cell').each(function () {
                             var lackValue = parseFloat($(this).text().trim());
                             if (lackValue >= 20) {
                                 $(this).css({
@@ -1226,9 +1227,9 @@
                                 });
                             }
                         });
-                        
+
                         // Highlight very low marks
-                        $(this).find('.om-cell').each(function() {
+                        $(this).find('.om-cell').each(function () {
                             var omValue = parseFloat($(this).text().trim());
                             if (omValue <= 10 && omValue > 0) {
                                 $(this).css({
@@ -1238,7 +1239,7 @@
                             }
                         });
                     });
-                    
+
                     // Make the detailed table horizontally scrollable on mobile
                     if ($(window).width() < 768) {
                         $('.subject-detail-table').wrap('<div style="overflow-x: auto; white-space: nowrap;"></div>');
@@ -1248,23 +1249,23 @@
                 // Enhanced function for dynamic unsuccessful students table
                 function enhanceDynamicUnsuccessfulTable() {
                     // Handle the new dynamic table structure
-                    $('.dynamic-unsuccessful-table tr').each(function() {
+                    $('.dynamic-unsuccessful-table tr').each(function () {
                         // Add hover effects
                         $(this).hover(
-                            function() {
+                            function () {
                                 $(this).css('background-color', '#f0f8ff');
                             },
-                            function() {
+                            function () {
                                 $(this).css('background-color', '');
                             }
                         );
-                        
+
                         // Enhance OM and Lack cells
-                        $(this).find('.om-cell').each(function() {
+                        $(this).find('.om-cell').each(function () {
                             var omValue = $(this).text().trim();
                             if (omValue !== '') {
                                 $(this).attr('title', 'Obtained Marks: ' + omValue);
-                                
+
                                 // Highlight very low marks
                                 var marks = parseFloat(omValue);
                                 if (!isNaN(marks) && marks <= 10) {
@@ -1275,12 +1276,12 @@
                                 }
                             }
                         });
-                        
-                        $(this).find('.lack-cell').each(function() {
+
+                        $(this).find('.lack-cell').each(function () {
                             var lackValue = $(this).text().trim();
                             if (lackValue !== '') {
                                 $(this).attr('title', 'Shortage from pass marks (33): ' + lackValue);
-                                
+
                                 // Highlight high shortage values
                                 var lack = parseFloat(lackValue);
                                 if (!isNaN(lack)) {
@@ -1300,17 +1301,17 @@
                             }
                         });
                     });
-                    
+
                     // Add subject column hover effects
                     $('.dynamic-unsuccessful-table .subject-header').hover(
-                        function() {
+                        function () {
                             var index = $(this).index();
                             // Highlight corresponding OM and Lack columns
-                            $('.dynamic-unsuccessful-table tr').each(function() {
+                            $('.dynamic-unsuccessful-table tr').each(function () {
                                 $(this).find('td:eq(' + (index) + '), td:eq(' + (index + 1) + ')').css('background-color', '#e3f2fd');
                             });
                         },
-                        function() {
+                        function () {
                             $('.dynamic-unsuccessful-table td').css('background-color', '');
                         }
                     );
@@ -1323,7 +1324,7 @@
                 }, 500);
 
                 // Re-apply enhancements after postbacks
-                $(document).ajaxComplete(function() {
+                $(document).ajaxComplete(function () {
                     setTimeout(() => {
                         highlightZeroValues();
                         enhanceDynamicUnsuccessfulTable(); // New function name
@@ -1331,19 +1332,19 @@
                 });
 
                 // Enhanced print functionality - show all tabs when printing
-                $('button[onclick*="print"]').off('click').on('click', function(e) {
+                $('button[onclick*="print"]').off('click').on('click', function (e) {
                     e.preventDefault();
-                    
+
                     // Store current active tab
                     var activeTab = $('.tab-pane.active').attr('id');
-                    
+
                     // Show all tabs for printing
                     $('.tab-pane').addClass('show active');
-                    
+
                     // Add a small delay to ensure content is rendered
                     setTimeout(() => {
                         window.print();
-                        
+
                         // Restore original tab state after printing
                         setTimeout(() => {
                             $('.tab-pane').removeClass('show active');
@@ -1353,18 +1354,18 @@
                 });
 
                 // Enhanced tab navigation with animation
-                $('.nav-tabs .nav-link').on('click', function(e) {
+                $('.nav-tabs .nav-link').on('click', function (e) {
                     e.preventDefault();
-                    
+
                     var targetTab = $(this).attr('href');
-                    
+
                     // Remove active classes from all tabs and content
                     $('.nav-tabs .nav-link').removeClass('active');
                     $('.tab-pane').removeClass('show active');
-                    
+
                     // Add active class to clicked tab
                     $(this).addClass('active');
-                    
+
                     // Show target content with animation
                     setTimeout(() => {
                         $(targetTab).addClass('show active');
