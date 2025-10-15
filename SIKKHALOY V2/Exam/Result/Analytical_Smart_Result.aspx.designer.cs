@@ -51,6 +51,15 @@ namespace EDUCATION.COM.Exam.Result
         protected global::System.Web.UI.WebControls.SqlDataSource ExamNameSQl;
 
         /// <summary>
+        /// SchoolInfoODS control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.ObjectDataSource SchoolInfoODS;
+
+        /// <summary>
         /// SchoolNameLabel control.
         /// </summary>
         /// <remarks>

@@ -283,7 +283,7 @@ namespace EDUCATION.COM.Exam.Result
                     query = @"
                         SELECT DISTINCT
                             ers.StudentResultID,
-                            ers.TotalExamObtainedMark_ofStudent,
+                            ers.ObtainedMark_ofStudent,
                             ers.Student_Grade,
                             ers.Student_Point,
                             ers.Average,
@@ -327,7 +327,7 @@ namespace EDUCATION.COM.Exam.Result
                     query = @"
                         SELECT DISTINCT
                             ers.StudentResultID,
-                            ers.TotalExamObtainedMark_ofStudent,
+                            ers.ObtainedMark_ofStudent,
                             ers.Student_Grade,
                             ers.Student_Point,
                             ers.Average,
@@ -494,8 +494,8 @@ namespace EDUCATION.COM.Exam.Result
             try
             {
                 // Get values from the row with proper null checking
-                obtainedMarks = row["TotalExamObtainedMark_ofStudent"] == DBNull.Value ? "0" :
-                    Convert.ToDecimal(row["TotalExamObtainedMark_ofStudent"]).ToString("F1");
+                obtainedMarks = row["ObtainedMark_ofStudent"] == DBNull.Value ? "0" :
+                    Convert.ToDecimal(row["ObtainedMark_ofStudent"]).ToString("F1");
 
                 totalMarks = row["TotalMark_ofStudent"] == DBNull.Value ? "0" :
                     Convert.ToDecimal(row["TotalMark_ofStudent"]).ToString("F0");
@@ -1550,12 +1550,12 @@ namespace EDUCATION.COM.Exam.Result
         // Attendance DTO and minimal data provider
         public class AttendanceData
         {
-            public string WorkingDays { get; set; } = "0";
-            public string PresentDays { get; set; } = "0";
-            public string AbsentDays { get; set; } = "0";
-            public string LeaveDays { get; set; } = "0";
-            public string LateAbsDays { get; set; } = "0";
-            public string LateDays { get; set; } = "0";
+            public string WorkingDays { get; set; } = "";
+            public string PresentDays { get; set; } = "";
+            public string AbsentDays { get; set; } = "";
+            public string LeaveDays { get; set; } = "";
+            public string LateAbsDays { get; set; } = "";
+            public string LateDays { get; set; } = "";
         }
 
         private AttendanceData GetAttendanceData(string studentResultID, int examID)

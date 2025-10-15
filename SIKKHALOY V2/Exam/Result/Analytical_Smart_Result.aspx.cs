@@ -442,11 +442,11 @@ namespace EDUCATION.COM.Exam.Result
 
             // Subject names row - enhanced sizing
             tableHtml.Append("<tr style='background-color: #2c3e50; color: white;'>");
-            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px;'>SL", 
+            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px;'>SL",
                 padding, headerFontSize, subjectCount <= 5 ? 40 : 30);
-            
+
             int nameColumnWidth = subjectCount <= 3 ? 140 : (subjectCount <= 5 ? 120 : (subjectCount <= 8 ? 100 : 80));
-            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px; max-width: {3}px;'>Student Name</th>", 
+            tableHtml.AppendFormat("<th rowspan='3' style='border: 1px solid #34495e; padding: {0}; text-align: center; color: white; font-weight: bold; font-size: {1}px; vertical-align: middle; min-width: {2}px; max-width: {3}px;'>Student Name</th>",
                 padding, headerFontSize, nameColumnWidth, nameColumnWidth + 20);
 
             foreach (var subject in subjects)
@@ -457,8 +457,8 @@ namespace EDUCATION.COM.Exam.Result
                     int totalCols = failedSubExams.Count * 2;
                     int subjectNameLength = subjectCount <= 5 ? 15 : (subjectCount <= 8 ? 12 : 10);
                     string subjectName = subject.SubjectName.Length > subjectNameLength ? subject.SubjectName.Substring(0, subjectNameLength) + ".." : subject.SubjectName;
-                    
-                    tableHtml.AppendFormat("<th colspan='{0}' style='border: 1px solid #34495e; padding: {1}; text-align: center; background-color: #e74c3c; color: white; font-weight: bold; font-size: {2}px;' title='{3}'>{4}</th>", 
+
+                    tableHtml.AppendFormat("<th colspan='{0}' style='border: 1px solid #34495e; padding: {1}; text-align: center; background-color: #e74c3c; color: white; font-weight: bold; font-size: {2}px;' title='{3}'>{4}</th>",
                         totalCols, padding, headerFontSize, subject.SubjectName, subjectName);
                 }
             }
@@ -473,8 +473,8 @@ namespace EDUCATION.COM.Exam.Result
                 {
                     int subExamNameLength = subjectCount <= 5 ? 12 : (subjectCount <= 8 ? 10 : 8);
                     string subExamName = subExam.SubExamType.Length > subExamNameLength ? subExam.SubExamType.Substring(0, subExamNameLength) + ".." : subExam.SubExamType;
-                    
-                    tableHtml.AppendFormat("<th colspan='2' style='border: 1px solid #34495e; padding: {0}; text-align: center; background-color: #3498db; color: white; font-weight: bold; font-size: {1}px;' title='{2}'>{3}</th>", 
+
+                    tableHtml.AppendFormat("<th colspan='2' style='border: 1px solid #34495e; padding: {0}; text-align: center; background-color: #3498db; color: white; font-weight: bold; font-size: {1}px;' title='{2}'>{3}</th>",
                         padding, subHeaderFontSize, subExam.SubExamType, subExamName);
                 }
             }
@@ -488,9 +488,9 @@ namespace EDUCATION.COM.Exam.Result
                 foreach (var subExam in failedSubExams)
                 {
                     int minColWidth = subjectCount <= 5 ? 30 : (subjectCount <= 8 ? 25 : 20);
-                    tableHtml.AppendFormat("<th style='border: 1px solid #34495e; padding: {0}; text-align: center; background-color: #f39c12; color: white; font-weight: bold; font-size: {1}px; min-width: {2}px;'>OM</th>", 
+                    tableHtml.AppendFormat("<th style='border: 1px solid #34495e; padding: {0}; text-align: center; background-color: #f39c12; color: white; font-weight: bold; font-size: {1}px; min-width: {2}px;'>OM</th>",
                         padding, omLackFontSize, minColWidth);
-                    tableHtml.AppendFormat("<th style='border: 1px solid #34495e; padding: {0}; text-align: center; background-color: #e67e22; color: white; font-weight: bold; font-size: {1}px; min-width: {2}px;'>Lack</th>", 
+                    tableHtml.AppendFormat("<th style='border: 1px solid #34495e; padding: {0}; text-align: center; background-color: #e67e22; color: white; font-weight: bold; font-size: {1}px; min-width: {2}px;'>Lack</th>",
                         padding, omLackFontSize, minColWidth);
                 }
             }
@@ -546,7 +546,7 @@ namespace EDUCATION.COM.Exam.Result
             tableHtml.Append("<tr style='background-color: #ecf0f1;'>");
 
             // Student ID - enhanced
-            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; font-weight: bold; color: #2c3e50; background-color: #ffffff; font-size: {1}px;'>{2}</td>", 
+            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; font-weight: bold; color: #2c3e50; background-color: #ffffff; font-size: {1}px;'>{2}</td>",
                 padding, dataFontSize, student.StudentID);
 
             // Student Name - much better visibility
@@ -561,7 +561,7 @@ namespace EDUCATION.COM.Exam.Result
             }
 
             int nameColumnWidth = subjectCount <= 3 ? 140 : (subjectCount <= 5 ? 120 : (subjectCount <= 8 ? 100 : 80));
-            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: left; font-weight: 600; color: #2c3e50; background-color: #ffffff; font-size: {1}px; min-width: {2}px; max-width: {3}px; word-wrap: break-word; overflow: hidden;' title='{4}'>{5}</td>", 
+            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: left; font-weight: 600; color: #2c3e50; background-color: #ffffff; font-size: {1}px; min-width: {2}px; max-width: {3}px; word-wrap: break-word; overflow: hidden;' title='{4}'>{5}</td>",
                 padding, nameFontSize, nameColumnWidth, nameColumnWidth + 20, student.StudentName, displayName);
 
             // Subject data with enhanced visibility
@@ -584,13 +584,13 @@ namespace EDUCATION.COM.Exam.Result
                             // OM Column - enhanced
                             string omCellColor = obtainedMarks?.ToUpper() == "A" ? "#e74c3c" : "#dc3545";
                             string omBackgroundColor = obtainedMarks?.ToUpper() == "A" ? "#ffebee" : "#fff5f5";
-                            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; color: {1}; font-weight: bold; font-size: {2}px; background-color: {3};'>{4}</td>", 
+                            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; color: {1}; font-weight: bold; font-size: {2}px; background-color: {3};'>{4}</td>",
                                 padding, omCellColor, dataFontSize, omBackgroundColor, obtainedMarks);
 
                             // Lack Column - enhanced
                             string lackCellColor = lackMarks > 0 ? "#d32f2f" : "#388e3c";
                             string lackBackgroundColor = lackMarks > 0 ? "#ffcdd2" : "#c8e6c9";
-                            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; color: {1}; font-weight: bold; font-size: {2}px; background-color: {3};'>{4}</td>", 
+                            tableHtml.AppendFormat("<td style='border: 1px solid #bdc3c7; padding: {0}; text-align: center; color: {1}; font-weight: bold; font-size: {2}px; background-color: {3};'>{4}</td>",
                                 padding, lackCellColor, dataFontSize, lackBackgroundColor, lackMarks > 0 ? lackMarks.ToString("0") : "");
                         }
                         else
