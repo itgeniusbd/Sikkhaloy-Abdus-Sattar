@@ -948,9 +948,14 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
 
+                // Updated query to include SubjectType from SubjectForGroup and mark optional subjects with *
                 string query = @"
                     SELECT 
-                        ISNULL(sub.SubjectName, '') as SubjectName,
+                        CASE 
+                            WHEN ISNULL(sfg.SubjectType, '') = 'Optional' 
+                            THEN ISNULL(sub.SubjectName, '') + ' *'
+                            ELSE ISNULL(sub.SubjectName, '') 
+                        END as SubjectName,
                         sub.SubjectID,
                         ISNULL(sub.SN, 999) as SubjectSN,
                         ISNULL(ERS.ObtainedMark_ofSubject, 0) as ObtainedMark_ofSubject,
@@ -958,20 +963,15 @@ namespace EDUCATION.COM.Exam.Result
                         ISNULL(ERS.SubjectGrades, '') as SubjectGrades,
                         ISNULL(ERS.SubjectPoint, 0) as SubjectPoint,
                         ISNULL(ERS.PassStatus_Subject, 'Pass') as PassStatus_Subject,
-                        ISNULL(ERS.IS_Add_InExam, 1) as IS_Add_InExam,
-                        CASE 
-                            WHEN sr.SubjectType = 'Optional' THEN 'Optional'
-                            WHEN sr.SubjectType = 'Compulsory' THEN 'Compulsory' 
-                            ELSE 'Regular'
-                        END as SubjectType
+                        ISNULL(ERS.IS_Add_InExam, 1) as IS_Add_InExam
                     FROM Exam_Result_of_Subject ers
                     INNER JOIN Subject sub ON ers.SubjectID = sub.SubjectID
                     INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
                     INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
-                    LEFT JOIN StudentRecord sr ON sc.StudentID = sr.StudentID 
-                        AND ers.SubjectID = sr.SubjectID 
-                        AND sr.SchoolID = @SchoolID 
-                        AND sr.EducationYearID = @EducationYearID
+                    LEFT JOIN SubjectForGroup sfg ON sub.SubjectID = sfg.SubjectID 
+                        AND sc.ClassID = sfg.ClassID 
+                        AND sc.SubjectGroupID = sfg.SubjectGroupID
+                        AND ers.SchoolID = sfg.SchoolID
                     WHERE ers.StudentResultID = @StudentResultID
                     AND ISNULL(ers.IS_Add_InExam, 1) = 1
                     ORDER BY ISNULL(sub.SN, 999), sub.SubjectName";
@@ -980,8 +980,6 @@ namespace EDUCATION.COM.Exam.Result
                 {
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
 
                     DataTable dt = new DataTable();
                     using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
@@ -1154,7 +1152,7 @@ namespace EDUCATION.COM.Exam.Result
                 string cellPadding = "3px";
 
                 string tableContainerStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border-collapse: collapse; width: 100%; table-layout: auto; overflow-x: auto;";
-                string standardCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 30px; max-width: 60px; overflow: hidden; text-overflow: ellipsis;";
+                string standardCellStyle = $"font-size: {fontSize} !important; font-family: Arial, sans-serif !important; border: 1px solid #000; padding: {cellPadding}; text-align: center; white-space: nowrap; min-width: 25px; max-width: 35px; overflow: hidden; text-overflow: ellipsis;";
 
                 if (hasSubExams)
                 {
@@ -1223,13 +1221,6 @@ namespace EDUCATION.COM.Exam.Result
                     decimal subjectPoint = GetSafeDecimalValue(srow, "SubjectPoint");
                     string passStatus = GetSafeColumnValue(srow, "PassStatus_Subject");
                     int subjectID = 0; int.TryParse(GetSafeColumnValue(srow, "SubjectID"), out subjectID);
-                    string subjectType = GetSafeColumnValue(srow, "SubjectType");
-
-                    // Add "(4th)" for optional subjects
-                    if (string.Equals(subjectType, "Optional", StringComparison.OrdinalIgnoreCase))
-                    {
-                        subjectName += " (4th)";
-                    }
 
                     var positionData = GetSubjectPositionDataForTable(studentResultID, subjectID);
 
