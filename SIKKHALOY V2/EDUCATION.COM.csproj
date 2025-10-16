@@ -520,6 +520,7 @@
     <Content Include="Exam\Admit_Card\Old_AdmitCardWithoutPhoto.aspx" />
     <Content Include="Exam\ExmamPositionBangla.aspx" />
     <Content Include="Exam\Input_Exam_Marks_WithSubExam.aspx" />
+    <Content Include="Exam\Result\Assets\Analytical_Result.css" />
     <Content Include="Exam\Result\Assets\bangla-result-directprint.css" />
     <Content Include="Exam\Result\Assets\Result_Card_English.css" />
     <Content Include="Exam\Result\BanglaResult_Old.aspx" />

@@ -85,6 +85,12 @@ namespace EDUCATION.COM.Exam.Result
 
         protected void ExamDropDownList_DataBound(object sender, EventArgs e)
         {
+            // Ensure the default "SELECT EXAM" item is always selected
+            if (ExamDropDownList.Items.Count > 0)
+            {
+                ExamDropDownList.SelectedIndex = 0; // Select the first item which is "[ SELECT EXAM ]"
+            }
+            
             // শুধু লেবেল আপডেট করবো, অন্য কিছু না
             UpdateClassExamLabel();
         }
@@ -94,8 +100,9 @@ namespace EDUCATION.COM.Exam.Result
             // এখানে সব ধরনের রিপোর্ট ডেটা লোড হবে
             UpdateClassExamLabel();
             
-            // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে তখন ডেটা লোড করবো
-            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0)
+            // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে এবং এক্সাম ভ্যালু 0 না হয় তখন ডেটা লোড করবো
+            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 && 
+                ExamDropDownList.SelectedValue != "0")
             {
                 System.Diagnostics.Debug.WriteLine("🎯 Loading all report data after exam selection");
                 LoadGradeChartData();
@@ -114,22 +121,23 @@ namespace EDUCATION.COM.Exam.Result
             // ক্লাশ সিলেক্ট করলে শুধু লেবেল আপডেট করবো এবং এক্সাম ড্রপডাউন রিসেট করবো
             UpdateClassExamLabel();
             
-            // এক্সাম ড্রপডাউন রিসেট করি যাতে নতুন ক্লাসের এক্সাম লিস্ট আসে
+            // Force exam dropdown to rebind by clearing selection first
             if (ExamDropDownList.Items.Count > 0)
             {
-                ExamDropDownList.SelectedIndex = 0; // প্রথম আইটেম সিলেক্ট করি ([ SELECT EXAM ] অথবা empty)
+                ExamDropDownList.ClearSelection();
             }
             
             // রিপোর্ট ডেটা ক্লিয়ার করি কারণ এখনো এক্সাম সিলেক্ট হয়নি
             ClearReportData();
             
-            System.Diagnostics.Debug.WriteLine($"🏫 Class changed to: {ClassDropDownList.SelectedItem?.Text}, Exam dropdown reset");
+            System.Diagnostics.Debug.WriteLine($"🏫 Class changed to: {ClassDropDownList.SelectedItem?.Text}, Exam dropdown will be reset after rebind");
         }
 
         protected void Page_PreRender(object sender, EventArgs e)
         {
-            // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে তখন ডাইনামিক টেবিল জেনারেট করবো
-            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0)
+            // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে এবং এক্সাম ভ্যালু 0 না হয় তখন ডাইনামিক টেবিল জেনারেট করবো
+            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 && 
+                ExamDropDownList.SelectedValue != "0")
             {
                 System.Diagnostics.Debug.WriteLine("🎯 Generating dynamic table in Page_PreRender");
                 GenerateDynamicUnsuccessfulStudentsTable();
