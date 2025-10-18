@@ -5,18 +5,316 @@
         .mGrid { text-align: left; }
         .Invaid_Ins td { color: #ff2b2b; }
         .Invaid_Ins td a { color: #ff2b2b; }
+        
+        /* Enhanced Search Panel Styles */
+        .search-filters {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-filters h6 {
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-filters h6 i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+
+        /* Form Row Styles */
+        .filter-row {
+            margin-bottom: 15px;
+        }
+        
+        .filter-row:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Enhanced Form Controls */
+        .search-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 15px;
+        }
+        
+        .search-col {
+            flex: 1;
+            min-width: 180px;
+        }
+        
+        .search-col-auto {
+            flex: 0 0 auto;
+            min-width: 280px;
+        }
+
+        /* Enhanced Input Styles */
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: #fff;
+        }
+        
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+
+        /* Date Input Enhancement */
+        .date-input-group {
+            position: relative;
+        }
+        
+        .date-input-group .form-control {
+            padding-left: 40px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23666" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5 0zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: 12px center;
+        }
+
+        /* Label Styles */
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 13px;
+        }
+
+        /* Button Enhancements */
+        .btn {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+        }
+        
+        .btn-cyan {
+            background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);
+            color: white;
+        }
+
+        /* Summary Styles */
+        .search-summary {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-summary h6 {
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-summary h6 i {
+            margin-right: 8px;
+            color: #17a2b8;
+        }
+
+        .summary-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .summary-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 18px;
+            background-color: #fff;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            font-weight: 500;
+            min-width: 120px;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .summary-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .summary-item i {
+            margin-right: 6px;
+        }
+        
+        .summary-item.valid {
+            border-color: #28a745;
+            color: #28a745;
+            background: linear-gradient(135deg, #fff 0%, #f8fff9 100%);
+        }
+        
+        .summary-item.invalid {
+            border-color: #dc3545;
+            color: #dc3545;
+            background: linear-gradient(135deg, #fff 0%, #fff8f8 100%);
+        }
+        
+        .summary-item.total {
+            border-color: #007bff;
+            color: #007bff;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fff 0%, #f8fbff 100%);
+        }
+
+        .date-range-info {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .date-range-info small {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .search-col {
+                min-width: 150px;
+            }
+            
+            .search-col-auto {
+                min-width: 250px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .search-row {
+                flex-direction: column;
+            }
+            
+            .search-col {
+                min-width: 100%;
+            }
+            
+            .search-col-auto {
+                min-width: 100%;
+            }
+            
+            .search-col-auto div {
+                justify-content: center !important;
+            }
+            
+            .summary-row {
+                flex-direction: column;
+            }
+            
+            .summary-item {
+                min-width: 100%;
+            }
+        }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <div class="form-inline">
-        <div class="md-form">
-            <asp:TextBox ID="SearchTextBox" placeholder="Institution, Username" CssClass="form-control" runat="server"></asp:TextBox>
+    <!-- Enhanced Search Filters Panel -->
+    <div class="search-filters">
+        <h6><i class="fa fa-search" aria-hidden="true"></i> Search & Filter Options</h6>
+        
+        <!-- Single Row with All Controls -->
+        <div class="search-row">
+            <div class="search-col">
+                <label class="form-label">Search Text</label>
+                <asp:TextBox ID="SearchTextBox" placeholder="🔍 Institution, Username, Phone, School ID" CssClass="form-control" runat="server"></asp:TextBox>
+            </div>
+            <div class="search-col">
+                <label class="form-label">Validation Status</label>
+                <asp:DropDownList ID="ValidationFilter" runat="server" CssClass="form-control">
+                    <asp:ListItem Value="" Text="📋 All Status"></asp:ListItem>
+                    <asp:ListItem Value="Valid" Text="✅ Valid Only"></asp:ListItem>
+                    <asp:ListItem Value="Invalid" Text="❌ Invalid Only"></asp:ListItem>
+                </asp:DropDownList>
+            </div>
+            <div class="search-col">
+                <label class="form-label">Registration Date From</label>
+                <div class="date-input-group">
+                    <asp:TextBox ID="StartDateTextBox" placeholder="📅 Start Date (e.g., 01 Jan 2025)" autocomplete="off" runat="server" CssClass="form-control datepicker"></asp:TextBox>
+                </div>
+            </div>
+            <div class="search-col">
+                <label class="form-label">Registration Date To</label>
+                <div class="date-input-group">
+                    <asp:TextBox ID="EndDateTextBox" placeholder="📅 End Date (e.g., 31 Dec 2025)" autocomplete="off" runat="server" CssClass="form-control datepicker"></asp:TextBox>
+                </div>
+            </div>
+            <div class="search-col-auto">
+                <label class="form-label" style="visibility: hidden;">Actions</label>
+                <div style="display: flex; gap: 10px;">
+                    <asp:Button ID="FIndButton" runat="server" Text="🔍 Search" CssClass="btn btn-primary" OnClick="FIndButton_Click" />
+                    <asp:Button ID="ClearButton" runat="server" Text="🗑️ Clear All" CssClass="btn btn-secondary" OnClick="ClearButton_Click" />
+                    <button type="button" class="btn btn-cyan" data-toggle="modal" data-target="#exampleModal">
+                        <i class="fa fa-bullhorn mr-1" aria-hidden="true"></i> Add Notice
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="md-form">
-            <asp:Button ID="FIndButton" runat="server" Text="Find" CssClass="btn btn-primary btn-sm" />
+    </div>
+
+    <!-- Enhanced Search Results Summary -->
+    <div class="search-summary" id="searchSummary" runat="server" visible="false">
+        <h6><i class="fa fa-chart-bar" aria-hidden="true"></i> Search Results Summary</h6>
+        <div class="summary-row">
+            <div class="summary-item total">
+                <i class="fa fa-database" aria-hidden="true"></i>
+                <strong>Total Institution Found: <asp:Label ID="TotalCountLabel" runat="server" Text="0"></asp:Label></strong>
+            </div>
+            <div class="summary-item valid">
+                <i class="fa fa-check-circle" aria-hidden="true"></i>
+                Valid: <asp:Label ID="ValidCountLabel" runat="server" Text="0"></asp:Label>
+            </div>
+            <div class="summary-item invalid">
+                <i class="fa fa-times-circle" aria-hidden="true"></i>
+                Invalid: <asp:Label ID="InvalidCountLabel" runat="server" Text="0"></asp:Label>
+            </div>
         </div>
-        <div class="md-form">
-            <button type="button" class="btn btn-cyan btn-sm" data-toggle="modal" data-target="#exampleModal"><i class="fa fa-bullhorn mr-1" aria-hidden="true"></i>Add Notice</button>
+        <div class="date-range-info">
+            <small>
+                <i class="fa fa-calendar" aria-hidden="true"></i>
+                <strong>Date Range:</strong> <asp:Label ID="DateRangeLabel" runat="server" Text="All Time"></asp:Label>
+            </small>
         </div>
     </div>
 
@@ -28,6 +326,7 @@
                 <asp:BoundField DataField="UserName" HeaderText="User id" SortExpression="UserName" />
                 <asp:BoundField DataField="Phone" HeaderText="Phone" SortExpression="Phone" />
                 <asp:BoundField DataField="Validation" HeaderText="Validation" SortExpression="Validation" />
+                <asp:BoundField DataField="Date" HeaderText="Registration Date" SortExpression="Date" DataFormatString="{0:dd MMM yyyy}" />
                 <asp:TemplateField HeaderText="Act. Session" SortExpression="EducationYear">
                     <ItemTemplate>
                         <asp:HiddenField ID="SchoolIDHF" runat="server" Value='<%#Eval("SchoolID") %>' />
@@ -57,11 +356,7 @@
                 No Found !
             </EmptyDataTemplate>
         </asp:GridView>
-        <asp:SqlDataSource ID="InstitutionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SchoolID, SchoolName, Phone, Validation, Date, UserName FROM SchoolInfo AS Sch ORDER BY SchoolID"
-            FilterExpression="SchoolName like '{0}%' OR UserName like '{0}%'">
-            <FilterParameters>
-                <asp:ControlParameter ControlID="SearchTextBox" Name="Find" PropertyName="Text" />
-            </FilterParameters>
+        <asp:SqlDataSource ID="InstitutionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SchoolID, SchoolName, Phone, Validation, Date, UserName FROM SchoolInfo AS Sch ORDER BY SchoolID">
         </asp:SqlDataSource>
     </div>
 

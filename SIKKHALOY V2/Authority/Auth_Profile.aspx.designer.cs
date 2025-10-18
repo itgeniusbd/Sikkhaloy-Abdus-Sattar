@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Authority {
-    
-    
-    public partial class Auth_Profile {
-        
+namespace EDUCATION.COM.Authority
+{
+
+
+    public partial class Auth_Profile
+    {
+
         /// <summary>
         /// SearchTextBox control.
         /// </summary>
@@ -20,7 +22,34 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox SearchTextBox;
-        
+
+        /// <summary>
+        /// ValidationFilter control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ValidationFilter;
+
+        /// <summary>
+        /// StartDateTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox StartDateTextBox;
+
+        /// <summary>
+        /// EndDateTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox EndDateTextBox;
+
         /// <summary>
         /// FIndButton control.
         /// </summary>
@@ -29,7 +58,61 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button FIndButton;
-        
+
+        /// <summary>
+        /// ClearButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button ClearButton;
+
+        /// <summary>
+        /// searchSummary control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl searchSummary;
+
+        /// <summary>
+        /// TotalCountLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label TotalCountLabel;
+
+        /// <summary>
+        /// ValidCountLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label ValidCountLabel;
+
+        /// <summary>
+        /// InvalidCountLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label InvalidCountLabel;
+
+        /// <summary>
+        /// DateRangeLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label DateRangeLabel;
+
         /// <summary>
         /// SchoolGridView control.
         /// </summary>
@@ -38,7 +121,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView SchoolGridView;
-        
+
         /// <summary>
         /// InstitutionSQL control.
         /// </summary>
@@ -47,7 +130,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource InstitutionSQL;
-        
+
         /// <summary>
         /// UpdatePanel1 control.
         /// </summary>
@@ -56,7 +139,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel1;
-        
+
         /// <summary>
         /// RequiredFieldValidator1 control.
         /// </summary>
@@ -65,7 +148,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator1;
-        
+
         /// <summary>
         /// Notice_TitleTextBox control.
         /// </summary>
@@ -74,7 +157,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox Notice_TitleTextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator2 control.
         /// </summary>
@@ -83,7 +166,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator2;
-        
+
         /// <summary>
         /// ShowFromDateTextBox control.
         /// </summary>
@@ -92,7 +175,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox ShowFromDateTextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator3 control.
         /// </summary>
@@ -101,7 +184,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator3;
-        
+
         /// <summary>
         /// ShowToDateTextBox control.
         /// </summary>
@@ -110,7 +193,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox ShowToDateTextBox;
-        
+
         /// <summary>
         /// NoticeTextBox control.
         /// </summary>
@@ -119,7 +202,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox NoticeTextBox;
-        
+
         /// <summary>
         /// SubmitButton control.
         /// </summary>
@@ -128,7 +211,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button SubmitButton;
-        
+
         /// <summary>
         /// NoticeSQL control.
         /// </summary>
@@ -137,7 +220,7 @@ namespace EDUCATION.COM.Authority {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource NoticeSQL;
-        
+
         /// <summary>
         /// Notice_GridView control.
         /// </summary>
