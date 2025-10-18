@@ -196,6 +196,10 @@
                             <asp:TableCell><li><input type="color" class="getfontColor" /></li></asp:TableCell>
                         </asp:TableRow>
                     </asp:Table>
+                    <li class="divider"></li>
+                    <li style="text-align: center">
+                        <button type="button" class="btn btn-sm btn-warning" id="resetColorsBtn">Reset Colors</button>
+                    </li>
                 </ul>
             </div>
 
@@ -352,21 +356,6 @@
 
 
     <script>
-
-        //var canvas = document.getElementById("canvas_3");
-        //var input = document.getElementById("colorpic");
-        //var colorCode = document.getElementById("colorCode");
-
-        //input.addEventListener("input", setColor);
-        //function setColor() {
-        //    canvas.style.backgroundColor = input.value;
-        //    colorCode.innerHTML = input.value;
-        //}
-        //setColor();
-
-
-
-
         /*Sign Upload*/
         //Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (e, f) {
         $(function () {
@@ -420,7 +409,7 @@
 
                             //Save to server
                             $.ajax({
-                                url: "Multiple_Admit_Card.aspx/Teacher_Sign",
+                                url: "AdmitCard_WithoutPhoto.aspx/Teacher_Sign",
                                 data: JSON.stringify({ 'Image': canvas.toDataURL().split(",")[1] }),
                                 dataType: "json",
                                 type: "POST",
@@ -465,7 +454,7 @@
 
                             //Save to server
                             $.ajax({
-                                url: "Multiple_Admit_Card.aspx/Principal_Sign",
+                                url: "AdmitCard_WithoutPhoto.aspx/Principal_Sign",
                                 data: JSON.stringify({ 'Image': canvas.toDataURL().split(",")[1] }),
                                 dataType: "json",
                                 type: "POST",
@@ -510,12 +499,16 @@
                 if (this.value == 3) {
                     $(".card-header h4").css('font-size', '1rem !important');
                 }
-
-
+                
+                // Reapply colors after layout change
+                setTimeout(function() {
+                    if (typeof applySavedColors === 'function') {
+                        applySavedColors();
+                    }
+                }, 50);
             });
 
-            //Chane Color
-
+            //Change Color
             $('#colorPanel').ColorPanel({
                 styleSheet: '#DefaultCSS',
                 animateContainer: '#wrapper',
@@ -525,6 +518,44 @@
                     '#4285F4': 'css/skin3.css?v=4'
                 }
             });
+
+            // Apply saved colors after all initialization
+            setTimeout(function() {
+                if (typeof applySavedColors === 'function') {
+                    applySavedColors();
+                }
+            }, 300);
+            
+            // Set up MutationObserver to reapply colors when DOM changes
+            if (typeof MutationObserver !== 'undefined') {
+                var observer = new MutationObserver(function(mutations) {
+                    var shouldReapply = false;
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                            for (var i = 0; i < mutation.addedNodes.length; i++) {
+                                var node = mutation.addedNodes[i];
+                                if (node.nodeType === 1 && (node.classList.contains('color-output') || node.classList.contains('idcardborder'))) {
+                                    shouldReapply = true;
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                    
+                    if (shouldReapply) {
+                        setTimeout(function() {
+                            if (typeof applySavedColors === 'function') {
+                                applySavedColors();
+                            }
+                        }, 100);
+                    }
+                });
+                
+                observer.observe(document.getElementById('wrapper'), {
+                    childList: true,
+                    subtree: true
+                });
+            }
         });
     </script>
 
@@ -534,27 +565,119 @@
         }
 
         // Background Color
-
-        $(".getColor").on("change", function () {
+        $(document).on("change", ".getColor", function () {
             //Get Color
             var color = $(".getColor").val();
-            //apply cuurent color to div
+            
+            // Update window variable
+            window.savedBgColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('admitCard_bgColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to div
             $(".color-output").css("background", color);
             $(".idcardborder").css("border-color", color);
             $(".headcolor").css("background", color);
-        })
+            
+            // Save color to session
+            $.ajax({
+                url: "AdmitCard_WithoutPhoto.aspx/SaveBackgroundColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Background color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving background color: " + err.message);
+                }
+            });
+        });
 
-
-        //  forcolor
-
-        $(".getfontColor").on("change", function () {
+        //  Font Color
+        $(document).on("change", ".getfontColor", function () {
             //Get Color
             var color = $(".getfontColor").val();
-            //apply cuurent color to font
+            
+            // Update window variable
+            window.savedFontColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('admitCard_fontColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to font
             $(".color-output").css("color", color);
+            
+            // Save font color to session
+            $.ajax({
+                url: "AdmitCard_WithoutPhoto.aspx/SaveFontColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Font color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving font color: " + err.message);
+                }
+            });
+        });
 
-        })
-
+        // Reset Colors functionality
+        $(document).on("click", "#resetColorsBtn", function (e) {
+            e.preventDefault();
+            
+            // Update window variables
+            window.savedBgColor = "#0075d2";
+            window.savedFontColor = "#ffffff";
+            
+            // Clear localStorage
+            try {
+                localStorage.removeItem('admitCard_bgColor_' + window.userColorKey);
+                localStorage.removeItem('admitCard_fontColor_' + window.userColorKey);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            // Reset colors to default
+            $(".getColor").val("#0075d2");
+            $(".getfontColor").val("#ffffff");
+            
+            // Apply default colors
+            $(".color-output").css("background", "#0075d2");
+            $(".idcardborder").css("border-color", "#0075d2");
+            $(".headcolor").css("background", "#0075d2");
+            $(".color-output").css("color", "#ffffff");
+            
+            // Clear session colors
+            $.ajax({
+                url: "AdmitCard_WithoutPhoto.aspx/ResetColors",
+                data: JSON.stringify({}),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Colors reset successfully");
+                    alert("Colors have been reset to default!");
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error resetting colors: " + err.message);
+                }
+            });
+        });
     </script>
-
 </asp:Content>

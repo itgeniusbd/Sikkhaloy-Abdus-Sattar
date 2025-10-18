@@ -1,115 +1,7 @@
 ﻿<%@ Page Title="ID Cards" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="All_ID_Cards.aspx.cs" Inherits="EDUCATION.COM.ID_CARDS.All_ID_Cards" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <style>
-        #wrapper {
-            display: grid;
-            grid-gap: 45px 30px;
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-            #wrapper > div {
-                position: relative;
-                border: 2px solid #0075d2; /*width: 323.52px; height: 204px;*/
-            }
-
-        #grid_Header {
-            margin-bottom: 8px;
-            background-color: #0075d2;
-            border-bottom: 2px solid #006bc8;
-            color: #fff;
-            text-align: center;
-            display: grid;
-            grid-template-columns: 40px 1fr;
-        }
-
-            #grid_Header img {
-                height: 30px;
-                border-radius: 3px;
-            }
-
-        .Hidden_Ins_Name {
-            position: absolute;
-            visibility: hidden;
-            height: auto;
-            width: auto;
-            white-space: nowrap;
-        }
-
-        .Institution_Dialog {
-            font-size: 11px;
-            letter-spacing: 3.3px;
-            line-height: 14px;
-            text-align: center;
-        }
-
-        .iCard-title {
-            margin: auto;
-            background-color: #0075d2;
-            border-radius: 3px;
-            color: #fff;
-            font-size: 15px;
-            padding: 1px 10px;
-            text-align: center;
-            width: 126px;
-        }
-
-        #user-info {
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: 90px 1fr;
-        }
-
-            #user-info img {
-                height: 85px;
-                width: 85px;
-            }
-
-            #user-info ul {
-                margin: 5px 0 0 0;
-                padding-left: 5px;
-            }
-
-                #user-info ul li {
-                    list-style: none;
-                    font-size: 12px;
-                    line-height: 1.5;
-                    color: #000;
-                }
-
-        .c-user-name {
-            font-weight: bold;
-        }
-
-        .c-address {
-            position: absolute;
-            bottom: 0;
-            background-color: #0075d2;
-            font-size: 12px;
-            text-align: center;
-            color: #fff;
-            width: 100%;
-        }
-
-        .sign {
-            position: absolute;
-            right: 5px;
-            bottom: 18px;
-            font-weight: normal;
-            margin-bottom: 0;
-            font-size: 8.5pt;
-        }
-
-        @page {
-            margin: 15px;
-        }
-
-        @media print {
-            #header, h3 {
-                display: none;
-            }
-        }
-    </style>
+    <link href="CSS/IDCardMordern.css" rel="stylesheet" />
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -166,22 +58,55 @@
             </asp:SqlDataSource>
         </div>
         <div class="form-group">
-            <asp:TextBox ID="Find_ID_TextBox" runat="server" CssClass="form-control" placeholder="Separate the ID by comma"></asp:TextBox>
+            <asp:TextBox ID="Find_ID_TextBox" runat="server" CssClass="form-control modern-input" placeholder="🔍 Search by Student ID (comma separated)"></asp:TextBox>
         </div>
         <div class="form-group">
-            <asp:Button ID="FindButton" runat="server" Text="Find" class="btn btn-primary" OnClick="FindButton_Click" />
+            <asp:Button ID="FindButton" runat="server" Text="🔍 Find Students" CssClass="btn btn-search modern-btn" OnClick="FindButton_Click" />
         </div>
         <div class="form-group">
-            <label class="btn btn-white" style="font-size: .81rem">
-                Signature Browse
-                    <input id="Hfileupload" type="file" style="display: none;" />
+            <label class="btn btn-upload modern-btn" style="margin-bottom: 0;">
+                📝 Upload Signature
+                <input id="Hfileupload" type="file" style="display: none;" />
             </label>
         </div>
         <div class="form-group">
-            <input onclick="window.print()" type="button" value="Print" class="btn btn-primary" />
+            <button type="button" onclick="window.print()" class="btn btn-print modern-btn">
+                🖨️ Print Cards
+            </button>
         </div>
         <div class="form-group">
-            <input id="HeadlineText" type="text" placeholder="Change Title" class="form-control" />
+            <input id="HeadlineText" type="text" placeholder="✏️ Customize Card Title" class="form-control modern-input" />
+        </div>
+        <div class="form-group">
+            <div class="dropdown">
+                <button class="btn btn-color modern-btn" type="button" data-toggle="dropdown">
+                    🎨 Choose Colors
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu modern-dropdown">
+                    <li style="text-align: center" class="dropdown-header"><strong>🎨 Background Colors</strong></li>
+                    <li class="divider"></li>
+                    <asp:Table runat="server" CssClass="table color-table">
+                        <asp:TableRow>
+                            <asp:TableCell CssClass="color-label">Card Elements</asp:TableCell>
+                            <asp:TableCell><li class="color-input-wrapper"><input type="color" class="getColor modern-color-picker" /></li></asp:TableCell>
+                        </asp:TableRow>
+                    </asp:Table>
+                    <li class="divider"></li>
+                    <li style="text-align: center" class="dropdown-header"><strong>✒️ Font Colors</strong></li>
+                    <li class="divider"></li>
+                    <asp:Table runat="server" CssClass="table color-table">
+                        <asp:TableRow>
+                            <asp:TableCell CssClass="color-label">Card Elements</asp:TableCell>
+                            <asp:TableCell><li class="color-input-wrapper"><input type="color" class="getfontColor modern-color-picker" /></li></asp:TableCell>
+                        </asp:TableRow>
+                    </asp:Table>
+                    <li class="divider"></li>
+                    <li style="text-align: center">
+                        <button type="button" class="btn btn-reset modern-btn" id="resetColorsBtn">🔄 Reset Colors</button>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -192,7 +117,7 @@
         <asp:Repeater ID="IDCardRepeater" runat="server">
             <ItemTemplate>
                 <div>
-                    <div id="grid_Header">
+                    <div class="grid_Header">
                         <div style="padding: 5px 0;">
                             <img alt="No Logo" src="/Handeler/SchoolLogo.ashx?SLogo=<%#Eval("SchoolID") %>" />
                         </div>
@@ -279,6 +204,40 @@
                 $('.Hidden_Ins_Name').hide();
             }
 
+            // Force apply button styles after page load
+            setTimeout(function() {
+                // Apply modern button styles
+                $('.btn-search').css({
+                    'background': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'color': 'white',
+                    'border': 'none'
+                });
+                
+                $('.btn-upload').css({
+                    'background': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'color': 'white',
+                    'border': 'none'
+                });
+                
+                $('.btn-print').css({
+                    'background': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    'color': 'white',
+                    'border': 'none'
+                });
+                
+                $('.btn-color').css({
+                    'background': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                    'color': 'white',
+                    'border': 'none'
+                });
+                
+                $('.btn-reset').css({
+                    'background': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                    'color': '#8b5cf6',
+                    'border': '1px solid #f59e0b'
+                });
+            }, 100);
+
             // Sign upload
             $("#Hfileupload").change(function () {
                 if (typeof (FileReader) != "undefined") {
@@ -321,6 +280,166 @@
             else {
                 $(".iCard-title").text("Student ID Card");
             }
+
+            // Apply saved colors after all initialization
+            setTimeout(function() {
+                if (typeof applySavedColors === 'function') {
+                    applySavedColors();
+                }
+            }, 300);
+            
+            // Set up MutationObserver to reapply colors when DOM changes
+            if (typeof MutationObserver !== 'undefined') {
+                var observer = new MutationObserver(function(mutations) {
+                    var shouldReapply = false;
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                            for (var i = 0; i < mutation.addedNodes.length; i++) {
+                                var node = mutation.addedNodes[i];
+                                if (node.nodeType === 1 && (node.classList.contains('grid_Header') || node.classList.contains('iCard-title'))) {
+                                    shouldReapply = true;
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                    
+                    if (shouldReapply) {
+                        setTimeout(function() {
+                            if (typeof applySavedColors === 'function') {
+                                applySavedColors();
+                            }
+                        }, 100);
+                    }
+                });
+                
+                observer.observe(document.getElementById('wrapper'), {
+                    childList: true,
+                    subtree: true
+                });
+            }
+        });
+
+        // Background Color
+        $(document).on("change", ".getColor", function () {
+            //Get Color
+            var color = $(".getColor").val();
+            
+            // Update window variable
+            window.savedBgColor = color;
+            
+            // Save to localStorage (using same ID Card key system)
+            try {
+                localStorage.setItem('idCard_bgColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to elements - Fixed selectors
+            $("#wrapper .grid_Header").css("background-color", color);
+            $("#wrapper .iCard-title").css("background-color", color);
+            $("#wrapper .c-address").css("background-color", color);
+            $("#wrapper > div").css("border-color", color);
+            
+            // Save color to session
+            $.ajax({
+                url: "All_ID_Cards.aspx/SaveBackgroundColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Background color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving background color: " + err.message);
+                }
+            });
+        });
+
+        // Font Color
+        $(document).on("change", ".getfontColor", function () {
+            //Get Color
+            var color = $(".getfontColor").val();
+            
+            // Update window variable
+            window.savedFontColor = color;
+            
+            // Save to localStorage (using same ID Card key system)
+            try {
+                localStorage.setItem('idCard_fontColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to font elements - Fixed selectors
+            $("#wrapper .grid_Header").css("color", color);
+            $("#wrapper .iCard-title").css("color", color);
+            $("#wrapper .c-address").css("color", color);
+            
+            // Save color to session
+            $.ajax({
+                url: "All_ID_Cards.aspx/SaveFontColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Font color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving font color: " + err.message);
+                }
+            });
+        });
+
+        // Reset Colors functionality
+        $(document).on("click", "#resetColorsBtn", function (e) {
+            e.preventDefault();
+            
+            // Update window variables to default
+            window.savedBgColor = "#0075d2";
+            window.savedFontColor = "#ffffff";
+            
+            // Clear localStorage (using same ID Card key system)
+            try {
+                localStorage.removeItem('idCard_bgColor_' + window.userColorKey);
+                localStorage.removeItem('idCard_fontColor_' + window.userColorKey);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            // Reset color inputs to default
+            $(".getColor").val("#0075d2");
+            $(".getfontColor").val("#ffffff");
+            
+            // Apply default colors - Fixed selectors
+            $("#wrapper .grid_Header").css("background-color", "#0075d2");
+            $("#wrapper .iCard-title").css("background-color", "#0075d2");
+            $("#wrapper .c-address").css("background-color", "#0075d2");
+            $("#wrapper > div").css("border-color", "#0075d2");
+            $("#wrapper .grid_Header").css("color", "#ffffff");
+            $("#wrapper .iCard-title").css("color", "#ffffff");
+            $("#wrapper .c-address").css("color", "#ffffff");
+            
+            // Clear session colors
+            $.ajax({
+                url: "All_ID_Cards.aspx/ResetColors",
+                data: JSON.stringify({}),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Colors reset successfully");
+                    alert("Colors have been reset to default!");
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error resetting colors: " + err.message);
+                }
+            });
         });
     </script>
 </asp:Content>

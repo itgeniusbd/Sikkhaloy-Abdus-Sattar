@@ -1,0 +1,355 @@
+﻿
+#wrapper {
+    display: grid;
+    grid-gap: 45px 30px;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+#wrapper > div {
+    position: relative;
+    border: 2px solid #0075d2; /*width: 323.52px; height: 204px;*/
+}
+
+#grid_Header {
+    margin-bottom: 8px;
+    background-color: #0075d2;
+    border-bottom: 2px solid #006bc8;
+    color: #fff;
+    text-align: center;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+}
+
+.grid_Header {
+    margin-bottom: 8px;
+    background-color: #0075d2;
+    border-bottom: 2px solid #006bc8;
+    color: #fff;
+    text-align: center;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+}
+
+    #grid_Header img, .grid_Header img {
+        height: 30px;
+        border-radius: 3px;
+    }
+
+.Hidden_Ins_Name {
+    position: absolute;
+    visibility: hidden;
+    height: auto;
+    width: auto;
+    white-space: nowrap;
+}
+
+.Institution_Dialog {
+    font-size: 11px;
+    letter-spacing: 3.3px;
+    line-height: 14px;
+    text-align: center;
+}
+
+.iCard-title {
+    margin: auto;
+    background-color: #0075d2;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 15px;
+    padding: 1px 10px;
+    text-align: center;
+    width: 126px;
+}
+
+#user-info {
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 90px 1fr;
+}
+
+    #user-info img {
+        height: 85px;
+        width: 85px;
+    }
+
+    #user-info ul {
+        margin: 5px 0 0 0;
+        padding-left: 5px;
+    }
+
+        #user-info ul li {
+            list-style: none;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #000;
+        }
+
+.c-user-name {
+    font-weight: bold;
+}
+
+.c-address {
+    position: absolute;
+    bottom: 0;
+    background-color: #0075d2;
+    font-size: 12px;
+    text-align: center;
+    color: #fff;
+    width: 100%;
+}
+
+.sign {
+    position: absolute;
+    right: 5px;
+    bottom: 18px;
+    font-weight: normal;
+    margin-bottom: 0;
+    font-size: 8.5pt;
+}
+
+@page {
+    margin: 15px;
+}
+
+@media print {
+    #header, h3 {
+        display: none;
+    }
+}
+
+/* Modern Button Styles */
+.modern-btn {
+    position: relative;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 10px;
+    margin-bottom: 5px;
+}
+
+    .modern-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        text-decoration: none;
+    }
+
+    .modern-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .modern-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    }
+
+/* Button Variants */
+.btn-search {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+    .btn-search:hover {
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+        color: white !important;
+    }
+
+.btn-upload {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+    .btn-upload:hover {
+        background: linear-gradient(135deg, #ec77ab 0%, #ef4444 100%) !important;
+        color: white !important;
+    }
+
+.btn-print {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+    .btn-print:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%) !important;
+        color: white !important;
+    }
+
+.btn-color {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+    .btn-color:hover {
+        background: linear-gradient(135deg, #f472b6 0%, #fbbf24 100%) !important;
+        color: white !important;
+    }
+
+.btn-reset {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%) !important;
+    color: #8b5cf6 !important;
+    border: 1px solid #f59e0b !important;
+}
+
+    .btn-reset:hover {
+        background: linear-gradient(135deg, #fed7aa 0%, #f97316 100%) !important;
+        color: white !important;
+    }
+
+/* Override Bootstrap default button styles */
+.btn.btn-search,
+.btn.btn-upload,
+.btn.btn-print,
+.btn.btn-color,
+.btn.btn-reset {
+    background-image: none;
+    text-shadow: none;
+    border: none;
+}
+
+/* Ensure label styling for upload button */
+label.btn-upload {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+/* Override any conflicting Bootstrap styles */
+.form-group .btn {
+    margin-right: 10px;
+}
+
+/* Modern Input Styles */
+.modern-input {
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+}
+
+    .modern-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        background: white;
+        outline: none;
+    }
+
+    .modern-input::placeholder {
+        color: #94a3b8;
+        font-weight: 400;
+    }
+
+/* Modern Dropdown Styles */
+.modern-dropdown {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    padding: 10px 0;
+    background: white;
+    min-width: 280px;
+}
+
+    .modern-dropdown .dropdown-header {
+        color: #4338ca;
+        font-weight: 700;
+        padding: 8px 20px;
+        background: #f8fafc;
+        margin: 0 10px;
+        border-radius: 6px;
+    }
+
+    .modern-dropdown .divider {
+        margin: 8px 20px;
+        border-color: #e2e8f0;
+    }
+
+/* Color Picker Styles */
+.color-table {
+    margin: 0 20px;
+    background: transparent;
+}
+
+    .color-table td {
+        border: none;
+        padding: 8px 0;
+    }
+
+.color-label {
+    font-weight: 600;
+    color: #374151;
+    padding-right: 15px;
+}
+
+.color-input-wrapper {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.modern-color-picker {
+    width: 50px;
+    height: 35px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+    .modern-color-picker:hover {
+        border-color: #667eea;
+        transform: scale(1.05);
+    }
+
+/* Form Group Styling */
+.form-inline .form-group {
+    margin-right: 15px;
+    margin-bottom: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .modern-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        margin-right: 5px;
+    }
+
+    .form-inline .form-group {
+        margin-right: 10px;
+        margin-bottom: 8px;
+    }
+}
+
+/* Animation for buttons */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    }
+}
+
+.btn-search:focus {
+    animation: pulse 1.5s infinite;
+}
+
+

@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Configuration;
 using System.Data;
+using System.Web;
+using System.Web.Services;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -19,6 +22,118 @@ namespace EDUCATION.COM.ID_CARDS
                 SectionDropDownList.Visible = false;
                 ShiftDropDownList.Visible = false;
             }
+
+            // Load saved colors from session on every page load
+            LoadSavedColors();
+        }
+
+        private void LoadSavedColors()
+        {
+            // Create JavaScript variables for saved colors (using same ID Card color system)
+            string bgColor = GetSavedBackgroundColor();
+            string fontColor = GetSavedFontColor();
+            
+            // Set default colors if no saved colors exist
+            if (string.IsNullOrEmpty(bgColor)) bgColor = "#0075d2";
+            if (string.IsNullOrEmpty(fontColor)) fontColor = "#ffffff";
+            
+            string userKey = Session["SchoolID"]?.ToString() + "_" + Session["UserID"]?.ToString();
+            
+            // Register client script to apply saved colors
+            string script = $@"
+                window.savedBgColor = '{bgColor}';
+                window.savedFontColor = '{fontColor}';
+                window.userColorKey = '{userKey}';
+                
+                function loadColorsFromStorage() {{
+                    try {{
+                        var storedBgColor = localStorage.getItem('idCard_bgColor_' + window.userColorKey);
+                        var storedFontColor = localStorage.getItem('idCard_fontColor_' + window.userColorKey);
+                        
+                        if (storedBgColor) {{
+                            window.savedBgColor = storedBgColor;
+                        }}
+                        if (storedFontColor) {{
+                            window.savedFontColor = storedFontColor;
+                        }}
+                    }} catch(e) {{
+                        console.log('LocalStorage not available');
+                    }}
+                }}
+                
+                function applySavedColors() {{
+                    loadColorsFromStorage();
+                    
+                    if (window.savedBgColor) {{
+                        $('.getColor').val(window.savedBgColor);
+                        $('#wrapper .grid_Header').css('background-color', window.savedBgColor);
+                        $('#wrapper .iCard-title').css('background-color', window.savedBgColor);
+                        $('#wrapper .c-address').css('background-color', window.savedBgColor);
+                        $('#wrapper > div').css('border-color', window.savedBgColor);
+                    }}
+                    
+                    if (window.savedFontColor) {{
+                        $('.getfontColor').val(window.savedFontColor);
+                        $('#wrapper .grid_Header').css('color', window.savedFontColor);
+                        $('#wrapper .iCard-title').css('color', window.savedFontColor);
+                        $('#wrapper .c-address').css('color', window.savedFontColor);
+                    }}
+                }}
+                
+                $(document).ready(function() {{
+                    setTimeout(function() {{
+                        applySavedColors();
+                    }}, 200);
+                }});
+                
+                // Also apply colors after any postback
+                if (typeof Sys !== 'undefined' && Sys.WebForms && Sys.WebForms.PageRequestManager) {{
+                    Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function() {{
+                        setTimeout(function() {{
+                            applySavedColors();
+                        }}, 100);
+                    }});
+                }}
+            ";
+            
+            ScriptManager.RegisterStartupScript(this, GetType(), "LoadSavedColors", script, true);
+        }
+
+        private string GetSavedBackgroundColor()
+        {
+            string userKey = Session["SchoolID"]?.ToString() + "_" + Session["UserID"]?.ToString();
+            return Session["IDCard_BgColor_" + userKey]?.ToString() ?? "";
+        }
+
+        private string GetSavedFontColor()
+        {
+            string userKey = Session["SchoolID"]?.ToString() + "_" + Session["UserID"]?.ToString();
+            return Session["IDCard_FontColor_" + userKey]?.ToString() ?? "";
+        }
+
+        // Save Background Color to Session (using same ID Card system)
+        [WebMethod]
+        public static void SaveBackgroundColor(string color)
+        {
+            string userKey = HttpContext.Current.Session["SchoolID"]?.ToString() + "_" + HttpContext.Current.Session["UserID"]?.ToString();
+            HttpContext.Current.Session["IDCard_BgColor_" + userKey] = color;
+        }
+
+        // Save Font Color to Session (using same ID Card system)
+        [WebMethod]
+        public static void SaveFontColor(string color)
+        {
+            string userKey = HttpContext.Current.Session["SchoolID"]?.ToString() + "_" + HttpContext.Current.Session["UserID"]?.ToString();
+            HttpContext.Current.Session["IDCard_FontColor_" + userKey] = color;
+        }
+
+        // Reset Colors to Default (using same ID Card system)
+        [WebMethod]
+        public static void ResetColors()
+        {
+            string userKey = HttpContext.Current.Session["SchoolID"]?.ToString() + "_" + HttpContext.Current.Session["UserID"]?.ToString();
+            HttpContext.Current.Session["IDCard_BgColor_" + userKey] = null;
+            HttpContext.Current.Session["IDCard_FontColor_" + userKey] = null;
         }
 
         protected void view()

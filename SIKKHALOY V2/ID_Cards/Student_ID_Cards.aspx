@@ -291,6 +291,10 @@
                             <asp:TableCell><li><input type="color" class="getfontaddressColor" /></li></asp:TableCell>
                         </asp:TableRow>
                     </asp:Table>
+                    <li class="divider"></li>
+                    <li style="text-align: center">
+                        <button type="button" class="btn btn-sm btn-warning" id="resetColorsBtn">Reset Colors</button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -433,54 +437,316 @@
             else {
                 $(".iCard-title").text("Student ID :");
             }
+
+            // Apply saved colors after all initialization
+            setTimeout(function() {
+                if (typeof applySavedColors === 'function') {
+                    applySavedColors();
+                }
+            }, 300);
+            
+            // Set up MutationObserver to reapply colors when DOM changes
+            if (typeof MutationObserver !== 'undefined') {
+                var observer = new MutationObserver(function(mutations) {
+                    var shouldReapply = false;
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                            for (var i = 0; i < mutation.addedNodes.length; i++) {
+                                var node = mutation.addedNodes[i];
+                                if (node.nodeType === 1 && (node.classList.contains('color-output') || node.classList.contains('idcardborder'))) {
+                                    shouldReapply = true;
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                    
+                    if (shouldReapply) {
+                        setTimeout(function() {
+                            if (typeof applySavedColors === 'function') {
+                                applySavedColors();
+                            }
+                        }, 100);
+                    }
+                });
+                
+                observer.observe(document.getElementById('wrapper'), {
+                    childList: true,
+                    subtree: true
+                });
+            }
         });
 
-        // Background Color
-
-        $(".getColor").on("change", function () {
+        // Background Color - Head
+        $(document).on("change", ".getColor", function () {
             //Get Color
             var color = $(".getColor").val();
-            //apply cuurent color to div
+            
+            // Update window variable
+            window.savedBgColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('idCard_bgColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to div
             $(".color-output").css("background", color);
             $(".idcardborder").css("border-color", color);
             $(".headcolor").css("background", color);
-        })
-        $(".getnameColor").on("change", function () {
+            
+            // Save color to session
+            $.ajax({
+                url: "Student_ID_Cards.aspx/SaveBackgroundColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Background color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving background color: " + err.message);
+                }
+            });
+        });
+
+        // Background Color - Name
+        $(document).on("change", ".getnameColor", function () {
             //Get Color
             var color = $(".getnameColor").val();
-            //apply cuurent color to div
+            
+            // Update window variable
+            window.savedNameColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('idCard_nameColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to div
             $(".name-color-output").css("background", color);
-        })
-        $(".getaddressColor").on("change", function () {
+            
+            // Save color to session
+            $.ajax({
+                url: "Student_ID_Cards.aspx/SaveNameColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Name color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving name color: " + err.message);
+                }
+            });
+        });
+
+        // Background Color - Address
+        $(document).on("change", ".getaddressColor", function () {
             //Get Color
             var color = $(".getaddressColor").val();
-            //apply cuurent color to div
+            
+            // Update window variable
+            window.savedAddressColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('idCard_addressColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to div
             $(".add-color-output").css("background", color);
-        })
+            
+            // Save color to session
+            $.ajax({
+                url: "Student_ID_Cards.aspx/SaveAddressColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Address color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving address color: " + err.message);
+                }
+            });
+        });
 
-        //  forcolor
-
-        $(".getfontColor").on("change", function () {
+        // Font Color - Head
+        $(document).on("change", ".getfontColor", function () {
             //Get Color
             var color = $(".getfontColor").val();
-            //apply cuurent color to font
+            
+            // Update window variable
+            window.savedFontColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('idCard_fontColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to font
             $(".color-output").css("color", color);
+            
+            // Save color to session
+            $.ajax({
+                url: "Student_ID_Cards.aspx/SaveFontColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Font color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving font color: " + err.message);
+                }
+            });
+        });
 
-        })
-        $(".getfontnameColor").on("change", function () {
+        // Font Color - Name
+        $(document).on("change", ".getfontnameColor", function () {
             //Get Color
             var color = $(".getfontnameColor").val();
-            //apply cuurent color to student Name
+            
+            // Update window variable
+            window.savedFontNameColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('idCard_fontNameColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to student Name
             $(".name-color-output").css("color", color);
-        })
-        $(".getfontaddressColor").on("change", function () {
+            
+            // Save color to session
+            $.ajax({
+                url: "Student_ID_Cards.aspx/SaveFontNameColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Font name color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving font name color: " + err.message);
+                }
+            });
+        });
+
+        // Font Color - Address
+        $(document).on("change", ".getfontaddressColor", function () {
             //Get Color
             var color = $(".getfontaddressColor").val();
-            //apply cuurent color to Address
+            
+            // Update window variable
+            window.savedFontAddressColor = color;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('idCard_fontAddressColor_' + window.userColorKey, color);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            //apply current color to Address
             $(".add-color-output").css("color", color);
-        })
+            
+            // Save color to session
+            $.ajax({
+                url: "Student_ID_Cards.aspx/SaveFontAddressColor",
+                data: JSON.stringify({ 'color': color }),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Font address color saved: " + color);
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error saving font address color: " + err.message);
+                }
+            });
+        });
 
-
-
+        // Reset Colors functionality
+        $(document).on("click", "#resetColorsBtn", function (e) {
+            e.preventDefault();
+            
+            // Update window variables to default
+            window.savedBgColor = "#0075d2";
+            window.savedNameColor = "#0075d2";
+            window.savedAddressColor = "#0075d2";
+            window.savedFontColor = "#ffffff";
+            window.savedFontNameColor = "#ffffff";
+            window.savedFontAddressColor = "#ffffff";
+            
+            // Clear localStorage
+            try {
+                localStorage.removeItem('idCard_bgColor_' + window.userColorKey);
+                localStorage.removeItem('idCard_nameColor_' + window.userColorKey);
+                localStorage.removeItem('idCard_addressColor_' + window.userColorKey);
+                localStorage.removeItem('idCard_fontColor_' + window.userColorKey);
+                localStorage.removeItem('idCard_fontNameColor_' + window.userColorKey);
+                localStorage.removeItem('idCard_fontAddressColor_' + window.userColorKey);
+            } catch(e) {
+                console.log('LocalStorage not available');
+            }
+            
+            // Reset color inputs to default
+            $(".getColor").val("#0075d2");
+            $(".getnameColor").val("#0075d2");
+            $(".getaddressColor").val("#0075d2");
+            $(".getfontColor").val("#ffffff");
+            $(".getfontnameColor").val("#ffffff");
+            $(".getfontaddressColor").val("#ffffff");
+            
+            // Apply default colors
+            $(".color-output").css("background", "#0075d2");
+            $(".idcardborder").css("border-color", "#0075d2");
+            $(".headcolor").css("background", "#0075d2");
+            $(".name-color-output").css("background", "#0075d2");
+            $(".add-color-output").css("background", "#0075d2");
+            $(".color-output").css("color", "#ffffff");
+            $(".name-color-output").css("color", "#ffffff");
+            $(".add-color-output").css("color", "#ffffff");
+            
+            // Clear session colors
+            $.ajax({
+                url: "Student_ID_Cards.aspx/ResetColors",
+                data: JSON.stringify({}),
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                success: function (response) {
+                    console.log("Colors reset successfully");
+                    alert("Colors have been reset to default!");
+                },
+                error: function (xhr) {
+                    var err = JSON.parse(xhr.responseText);
+                    console.log("Error resetting colors: " + err.message);
+                }
+            });
+        });
     </script>
 </asp:Content>

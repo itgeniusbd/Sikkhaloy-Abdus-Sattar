@@ -566,6 +566,7 @@
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
     <Content Include="ID_Cards\Card.aspx" />
+    <Content Include="ID_Cards\CSS\IDCardMordern.css" />
     <Content Include="ID_Cards\CSS\image\card.jpg" />
     <Content Include="ID_Cards\CSS\image\card.PNG" />
     <Content Include="ID_Cards\CSS\image\Student_Card.jpg" />
