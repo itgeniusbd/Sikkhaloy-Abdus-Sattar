@@ -47,6 +47,190 @@ namespace EDUCATION.COM
             _redIdHidden.Value = Session["RegistrationID"].ToString();
         }
 
+        protected void Page_PreRender(object sender, EventArgs e)
+        {
+            // Force check school name logo on every page load
+            if (Session["SchoolID"] != null && LogoFormView.CurrentMode == FormViewMode.ReadOnly)
+            {
+                int schoolId = Convert.ToInt32(Session["SchoolID"]);
+                bool hasSchoolNameLogo = CheckSchoolNameLogoExists(schoolId);
+                
+                var schoolNameLogoPanel = LogoFormView.FindControl("SchoolNameLogoPanel") as Panel;
+                var traditionalHeaderPanel = LogoFormView.FindControl("TraditionalHeaderPanel") as Panel;
+                
+                if (schoolNameLogoPanel != null && traditionalHeaderPanel != null)
+                {
+                    if (hasSchoolNameLogo)
+                    {
+                        // Show school name logo panel, hide traditional header
+                        schoolNameLogoPanel.CssClass = "school-name-logo-wrapper show-panel";
+                        schoolNameLogoPanel.Style.Add("display", "block");
+                        schoolNameLogoPanel.Style.Add("visibility", "visible");
+                        
+                        var schoolNameLogoImage = LogoFormView.FindControl("SchoolNameLogoImage") as System.Web.UI.WebControls.Image;
+                        if (schoolNameLogoImage != null)
+                        {
+                            schoolNameLogoImage.ImageUrl = string.Format("/Handeler/SchoolNameLogo.ashx?SchoolID={0}&t={1}", schoolId, DateTime.Now.Ticks);
+                        }
+                        
+                        traditionalHeaderPanel.CssClass = "hide-panel";
+                        traditionalHeaderPanel.Style.Add("display", "none");
+                        traditionalHeaderPanel.Style.Add("visibility", "hidden");
+                    }
+                    else
+                    {
+                        // Show traditional header, hide school name logo panel
+                        schoolNameLogoPanel.CssClass = "school-name-logo-wrapper hide-panel";
+                        schoolNameLogoPanel.Style.Add("display", "none");
+                        schoolNameLogoPanel.Style.Add("visibility", "hidden");
+                        
+                        traditionalHeaderPanel.CssClass = "show-panel";
+                        traditionalHeaderPanel.Style.Add("display", "block");
+                        traditionalHeaderPanel.Style.Add("visibility", "visible");
+                    }
+                }
+            }
+        }
+
+        protected void LogoFormView_ItemDataBound(object sender, EventArgs e)
+        {
+            if (LogoFormView.CurrentMode != FormViewMode.ReadOnly) return;
+            
+            if (Session["SchoolID"] == null) return;
+            
+            int schoolId = Convert.ToInt32(Session["SchoolID"]);
+            
+            // Check if School Name Logo exists
+            bool hasSchoolNameLogo = CheckSchoolNameLogoExists(schoolId);
+            
+            // DEBUG: Log to check what's happening
+            System.Diagnostics.Debug.WriteLine($"=== LogoFormView_ItemDataBound ===");
+            System.Diagnostics.Debug.WriteLine($"SchoolID: {schoolId}");
+            System.Diagnostics.Debug.WriteLine($"HasSchoolNameLogo: {hasSchoolNameLogo}");
+            
+            // Get the panels
+            var schoolNameLogoPanel = LogoFormView.FindControl("SchoolNameLogoPanel") as Panel;
+            var traditionalHeaderPanel = LogoFormView.FindControl("TraditionalHeaderPanel") as Panel;
+            
+            System.Diagnostics.Debug.WriteLine($"SchoolNameLogoPanel found: {schoolNameLogoPanel != null}");
+            System.Diagnostics.Debug.WriteLine($"TraditionalHeaderPanel found: {traditionalHeaderPanel != null}");
+            
+            // Add a CSS class to indicate which panel should be visible
+            if (hasSchoolNameLogo)
+            {
+                System.Diagnostics.Debug.WriteLine("Setting SchoolNameLogo to SHOW");
+                
+                // Show school name logo panel, hide traditional header
+                if (schoolNameLogoPanel != null)
+                {
+                    // Remove hide-panel and add show-panel
+                    schoolNameLogoPanel.CssClass = "school-name-logo-wrapper show-panel";
+                    schoolNameLogoPanel.Style.Add("display", "block");
+                    schoolNameLogoPanel.Style.Add("visibility", "visible");
+                    
+                    // Set the image source
+                    var schoolNameLogoImage = LogoFormView.FindControl("SchoolNameLogoImage") as System.Web.UI.WebControls.Image;
+                    if (schoolNameLogoImage != null)
+                    {
+                        schoolNameLogoImage.ImageUrl = string.Format("/Handeler/SchoolNameLogo.ashx?SchoolID={0}&t={1}", schoolId, DateTime.Now.Ticks);
+                        schoolNameLogoImage.Style.Add("max-height", "120px");
+                        schoolNameLogoImage.Style.Add("max-width", "90%");
+                        schoolNameLogoImage.Style.Add("height", "auto");
+                        
+                        System.Diagnostics.Debug.WriteLine($"Image URL set: {schoolNameLogoImage.ImageUrl}");
+                    }
+                }
+                
+                if (traditionalHeaderPanel != null)
+                {
+                    traditionalHeaderPanel.CssClass = "hide-panel";
+                    traditionalHeaderPanel.Style.Add("display", "none");
+                    traditionalHeaderPanel.Style.Add("visibility", "hidden");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("Setting TraditionalHeader to SHOW");
+                
+                // Show traditional header, hide school name logo panel
+                if (schoolNameLogoPanel != null)
+                {
+                    schoolNameLogoPanel.CssClass = "school-name-logo-wrapper hide-panel";
+                    schoolNameLogoPanel.Style.Add("display", "none");
+                    schoolNameLogoPanel.Style.Add("visibility", "hidden");
+                }
+                
+                if (traditionalHeaderPanel != null)
+                {
+                    traditionalHeaderPanel.CssClass = "show-panel";
+                    traditionalHeaderPanel.Style.Add("display", "block");
+                    traditionalHeaderPanel.Style.Add("visibility", "visible");
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine("=================================");
+        }
+
+        private bool CheckSchoolNameLogoExists(int schoolId)
+        {
+            try
+            {
+                var constr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                using (var con = new SqlConnection(constr))
+                {
+                    con.Open();
+                    
+                    // First check if column exists
+                    using (var checkCmd = new SqlCommand(
+                        @"IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SchoolInfo]') AND name = 'SchoolNameLogo')
+                          SELECT 1 ELSE SELECT 0", con))
+                    {
+                        int columnExists = (int)checkCmd.ExecuteScalar();
+                        
+                        System.Diagnostics.Debug.WriteLine($"SchoolNameLogo column exists: {columnExists == 1}");
+                        
+                        if (columnExists == 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine("Column does not exist, returning false");
+                            return false;
+                        }
+                    }
+                    
+                    // If column exists, check if logo exists for this school
+                    using (var cmd = new SqlCommand("SELECT SchoolNameLogo FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                        
+                        var result = cmd.ExecuteScalar();
+                        
+                        System.Diagnostics.Debug.WriteLine($"Query result: {(result == null ? "NULL" : result == DBNull.Value ? "DBNull" : "Has Data")}");
+                        
+                        // Check if logo exists and is not null/empty
+                        if (result != null && result != DBNull.Value)
+                        {
+                            byte[] logoData = result as byte[];
+                            var hasData = logoData != null && logoData.Length > 0;
+                            
+                            System.Diagnostics.Debug.WriteLine($"Logo data length: {(logoData != null ? logoData.Length : 0)} bytes");
+                            System.Diagnostics.Debug.WriteLine($"Returning: {hasData}");
+                            
+                            return hasData;
+                        }
+                        
+                        System.Diagnostics.Debug.WriteLine("No logo data found, returning false");
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the error if needed
+                System.Diagnostics.Debug.WriteLine("Error checking school name logo: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Stack trace: " + ex.StackTrace);
+                return false;
+            }
+        }
+
         private void CategoryTreeView(DataTable dtParent)
         {
             foreach (DataRow row in dtParent.Rows)

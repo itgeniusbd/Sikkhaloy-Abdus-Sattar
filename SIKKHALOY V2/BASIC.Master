@@ -45,12 +45,64 @@
             content: ""; 
             background: no-repeat center center; 
             background-size: 100% 100%; 
-            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgb(255, 255, 255)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 8h24M4 16h24M4 24h24'/%3E%3C/svg%3E"); 
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/1999/xhtml'%3E%3Cpath stroke='rgb(255, 255, 255)' stroke-width='3' stroke-linecap='round' stroke-miterlimit='10' d='M4 8h24M4 16h24M4 24h24'/%3E%3C/svg%3E"); 
         }
 
-        /* Ensure Font Awesome icons are displayed properly */
-        .fa, .fas, .far, .fab, .fal, .fad {
-            font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+        /* School Name Logo Full Width Styles */
+        .school-name-logo-wrapper {
+            text-align: center;
+            padding: 15px 0;
+        }
+
+        .school-name-logo-wrapper img {
+            max-width: 90%;
+            max-height: 120px;
+            height: auto;
+            display: inline-block;
+        }
+
+        .school-name-logo-wrapper .session-info {
+            color: #ffffff;
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        /* Show/Hide Panel Classes */
+        .show-panel {
+            display: block !important;
+            visibility: visible !important;
+            height: auto !important;
+            overflow: visible !important;
+            position: relative !important;
+        }
+        
+        .hide-panel {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            left: -9999px !important;
+            max-height: 0 !important;
+        }
+
+        /* Ensure hidden panels are completely hidden */
+        [style*="display: none"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            left: -9999px !important;
+        }
+        
+        /* Additional specificity for traditional header hiding */
+        .bg-main .container-fluid > div[style*="display: none"] {
+            display: none !important;
+            visibility: hidden !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
         }
 
         /* Fix specific icon issues */
@@ -464,32 +516,69 @@
         <div id="header">
             <asp:HiddenField ID="_redIdHidden" runat="server" />
             <div class="bg-main z-depth-1">
-                <asp:FormView ID="LogoFormView" runat="server" DataKeyNames="SchoolID" DataSourceID="Logo" Width="100%">
+                <asp:FormView ID="LogoFormView" runat="server" DataKeyNames="SchoolID" DataSourceID="Logo" Width="100%" OnItemDataBound="LogoFormView_ItemDataBound">
                     <ItemTemplate>
-                        <div class="container-fluid">
-                            <div class="d-flex flex-sm-row flex-column">
-                                <a class="sidedrawer-toggle d-md-none js-show-sidedrawer d-print-none"><span class="my-navbar-icon"></span></a>
-                                <a class="sidedrawer-toggle d-none d-md-inline-block js-hide-sidedrawer d-print-none"><span class="my-navbar-icon"></span></a>
-
-                                <div class="logo-waper text-center text-sm-left">
-                                    <img class="rounded" src="/Handeler/SchoolLogo.ashx?SLogo=<%#Eval("SchoolID") %>" style="height: 50px; max-width: 60px" alt="No logo" />
-                                </div>
-                                <div class="InsInfo text-center text-sm-left">
-                                    <a href="/Profile_Redirect.aspx" title="Go Deshboard" class="white-text" id="InstitutionName"><%# Eval("SchoolName") %> <span class="d-print-none">(<%# Eval("EducationYear") %>)</span></a>
-                                    <p>
-                                        <i class="fa fa-map-marker mr-1 icon-fallback" data-fallback="📍"></i><%#Eval("Address") %>
-                                        <i class="fa fa-phone mx-1 icon-fallback" data-fallback="📞"></i><%#Eval("Phone") %>
-                                        <i class="fa fa-envelope-o mx-1 icon-fallback" data-fallback="✉️"></i><%#Eval("Email") %>
-                                    </p>
-                                </div>
-                                <!-- Language Toggle Button -->
-                                <div class="d-flex align-items-center ml-auto d-print-none">
-                                    <button type="button" id="languageToggle" class="btn btn-outline-light btn-sm" title="Toggle Language">
-                                        <i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা
-                                    </button>
+                        <!-- School Name Logo Display (Full Width) -->
+                        <asp:Panel ID="SchoolNameLogoPanel" runat="server" CssClass="school-name-logo-wrapper hide-panel">
+                            <div class="container-fluid">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a class="sidedrawer-toggle d-md-none js-show-sidedrawer d-print-none">
+                                        <i class="fa fa-bars" style="font-size: 24px; color: white;"></i>
+                                    </a>
+                                    <a class="sidedrawer-toggle d-none d-md-inline-block js-hide-sidedrawer d-print-none">
+                                        <i class="fa fa-bars" style="font-size: 24px; color: white;"></i>
+                                    </a>
+                                    
+                                    <div class="flex-grow-1 text-center">
+                                        <a href="/Profile_Redirect.aspx" title="Go Dashboard">
+                                            <asp:Image ID="SchoolNameLogoImage" runat="server" AlternateText="School Name" CssClass="img-fluid" />
+                                        </a>
+                                    </div>
+                                    
+                                    <!-- Language Toggle Button -->
+                                    <div class="d-print-none">
+                                        <button type="button" id="languageToggle" class="btn btn-outline-light btn-sm" title="Toggle Language">
+                                            <i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </asp:Panel>
+
+                        <!-- Traditional Header Display (When No School Name Logo) -->
+                        <asp:Panel ID="TraditionalHeaderPanel" runat="server" CssClass="show-panel">
+                            <div class="container-fluid">
+                                <div class="d-flex flex-sm-row flex-column">
+                                    <a class="sidedrawer-toggle d-md-none js-show-sidedrawer d-print-none">
+                                        <i class="fa fa-bars" style="font-size: 24px; color: white;"></i>
+                                    </a>
+                                    <a class="sidedrawer-toggle d-none d-md-inline-block js-hide-sidedrawer d-print-none">
+                                        <i class="fa fa-bars" style="font-size: 24px; color: white;"></i>
+                                    </a>
+
+                                    <div class="logo-waper text-center text-sm-left">
+                                        <img class="rounded" src="/Handeler/SchoolLogo.ashx?SLogo=<%#Eval("SchoolID") %>" style="height: 50px; max-width: 60px" alt="No logo" />
+                                    </div>
+                                    <div class="InsInfo text-center text-sm-left">
+                                        <a href="/Profile_Redirect.aspx" title="Go Deshboard" class="white-text" id="InstitutionName">
+                                            <%# Eval("SchoolName") %>
+                                            <span class="d-print-none">(<%# Eval("EducationYear") %>)</span>
+                                        </a>
+                                        <p>
+                                            <i class="fa fa-map-marker mr-1 icon-fallback" data-fallback="📍"></i><%#Eval("Address") %>
+                                            <i class="fa fa-phone mx-1 icon-fallback" data-fallback="📞"></i><%#Eval("Phone") %>
+                                            <i class="fa fa-envelope-o mx-1 icon-fallback" data-fallback="✉️"></i><%#Eval("Email") %>
+                                        </p>
+                                    </div>
+                                    <!-- Language Toggle Button -->
+                                    <div class="d-flex align-items-center ml-auto d-print-none">
+                                        <button type="button" id="languageToggle2" class="btn btn-outline-light btn-sm" title="Toggle Language">
+                                            <i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </asp:Panel>
                     </ItemTemplate>
                 </asp:FormView>
                 <asp:SqlDataSource ID="Logo" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
@@ -530,7 +619,7 @@
                 <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
                 <script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
                 <!-- Bootstrap Date-Picker Plugin -->
-                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.4.1/js/bootstrap-datepicker.min.js"></script>
+                <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajaxlibs/bootstrap-datepicker/1.4.1/js/bootstrap-datepicker.min.js"></script>
                 <!--Autocomplete-->
                 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
                 <!--Canvas Resize Image-->
@@ -726,12 +815,11 @@
                 'Student Management': 'শিক্ষার্থী ব্যবস্থাপনা',
                 'Student\'s Info': 'শিক্ষার্থীর তথ্য',
                 'Attendances': 'উপস্থিতি',
-
                 'SMS': 'এস এম এস',
                 'Routines': 'রুটিন',
                 'Committee': 'কমিটি',
                 'SIKKHALOY INVOICE': 'শিক্ষালয় ইনভয়েস',
-                'School Info': 'বিদ্যালয়ের তথ্য',
+                'School Info': 'বিদ‍্যালয়ের তথ্য',
                 'Create Class': 'ক্লাস তৈরি',
                 'Create Section': 'শাখা তৈরি',
                 'Create Shift': 'শিফট তৈরি',
@@ -777,194 +865,30 @@
                 'Notice': 'নোটিশ',
                 'Class Test': 'ক্লাস টেস্ট',
                 'Home Work': 'বাড়ির কাজ',
-                // Exam types from new screenshot
                 'Individual Exam': 'একক পরীক্ষা',
                 'Publish Result': 'ফলাফল প্রকাশ করুন',
                 'Cumulative Exam': 'সমষ্টিগত পরীক্ষা',
                 'Result Card': 'একক রেজাল্ট কার্ড',
-                'Merit List of Subject': 'সাবজেক্টের মেধা তিলিকা',
-                'Result Card (Bangla)': 'একক রেজাল্ট কার্ড বাংলায়',
-                'Analytical Result': 'ফলাফল বিশ্লেষণ',
-                'Delete Result': 'রেজাল্ট ডিলেট করুন',
-                'Cumulative Result Card': 'সমষ্টিগত রেজাল্ট কার্ড',
-                'Cumulative Merit Position': 'সমষ্টিগত রেজাল্টের মেধা তালিকা',
-                'Weekly Exam': 'সাপ্তাহিক পরীক্ষা',
-                'Input Marks': 'সাপ্তাহিক পরীক্ষার নাম্বার ইনপুট',
-                'Edit Marks': 'সাপ্তাহিক পরীক্ষার নাম্বার আপডেট',
-                'Results': 'সাপ্তাহিক পরীক্ষার রেজাল্ট',
-                'Seat Plan': 'আসন বিন্যাস',
-                'সংকলন': 'সংকলন',
-                'এসএমএস': 'এস এম এস',
-                'রুটিন': 'রুটিন',
-                'রুটিন তৈরি': 'রুটিন তৈরি',
-                'Assign Routine': 'রুটিন বরাদ্দ',
-                'Modify Routine': 'রুটিন পরিবর্তন',
-                'রুটিন রিপোর্ট': 'রুটিন রিপোর্ট',
-                'কমিটি': 'কমিটি',
-                'Add Member': 'সদস্য যোগ',
-                'Add Donation Category': 'দান ক্যাটাগরি যোগ',
-                'Add Donation': 'দান যোগ',
-                'Donations': 'দান সমূহ',
-                'Collect Donation': 'দান সংগ্রহ',
-                'Payment Record': 'পেমেন্ট রেকর্ড',
-                'Unpaid Receipt': 'রসিদ আনপেইড করুন',
-
-                'এসএমএস পাঠান': 'এস এম এস পাঠান',
-                'শিক্ষালয় ইনভয়েস': 'শিক্ষালয় ইনভয়েস',
-                'Due Invoice': 'বকেয়া ইনভয়েস',
-                'Paid Invoice': 'প্রদত্ত ইনভয়েস',
-                // Menu items visible in the screenshot
                 'Class Management': 'শ্রেণী ব্যবস্থাপনা',
-                'Student Information': 'শিক্ষার্থীর তথ্য',
-                'Add Class Group Section Shift': 'ক্লাস গ্রুপ সেকশন শিফট যোগ করুন',
                 'Sub-Admin Management': 'সাব-অ্যাডমিন ব্যবস্থাপনা',
                 'Create Sub-Admin': 'সাব-অ্যাডমিন তৈরি করুন',
                 'Manage Page Access': 'পেজে প্রবেশাধিকার প্রদান',
-                'Student User ID': 'শিক্ষার্থীর ইউজার আইডি',
-                'Class Based Student List': 'শ্রেণী অনুযায়ী শিক্ষার্থীর তালিকা',
-                'All Student List': 'সকল শিক্ষার্থীর তালিকা',
-                'Active/Deactivate': 'সক্রিয়/নিষ্ক্রিয়',
-                'Add All Subjects': 'সমস্ত বিষয় যোগ করুন',
-                'Create Session': 'সেশন তৈরী',
-                'Institution Information': 'প্রতিষ্ঠানের তথ্য',
-                'Specify - Group Section Shift for class': 'গ্রুপ,সেকশন,শিফট জয়েন্ট করুন',
-                'Academic Calendar': 'একাডেমিক বর্ষপঞ্জিকা',
-                'Admit New Student': 'নতুন ছাত্র ভর্তি',
-                'Student': 'শিক্ষার্থীর হাজিরা',
-                'Employee': 'কর্মচারীর হাজিরা',
-                'Single Re-Admission': 'একক পুনঃর্ভর্তি',
-                'Multiple Re-Admission': 'একাধিক পুনঃর্ভর্তি',
-                'Transfer Students': 'শিক্ষার্থীর স্থানান্তর',
-                'Bulk Operations': 'বাল্ক অপারেশন',
-                'Specify_group_section_Shift_for_classes': 'ক্লাসের জন্য গ্রুপ সেকশন শিফট নির্ধারণ করুন',
-                // Teacher & Staff sub-items
                 'Add Teacher': 'শিক্ষক যোগ করুন',
                 'Add Staff': 'কর্মচারী যোগ করুন',
                 'Employee List': 'কর্মচারী তালিকা',
-                'Active/Deactivate Teacher': 'শিক্ষক সক্রিয়/নিষ্ক্রিয়',
-                'Teacher Subject Assign': 'শিক্ষক বিষয় বরাদ্দ',
-                'Employee ID Card': 'কর্মচারী আইডি কার্ড',
-                // Accounts sub-items from new screenshot
-                'Add Payment Roles': 'পেমেন্টের খাতসমূহ যোগ করুন',
                 'Accounts': 'হিসাব-নিকাশ',
-                'Assign Payment Roles': 'পেমেন্টের খাতসমূহ বরাদ্দ করুন',
-                'মাসিক পে-অর্ডার করুন': 'মাসিক পে-অর্ডার করুন',
-                'Remove Pay order': 'পে অর্ডার মুছে ফেলা',
-                'Pay Order': 'পে অর্ডার করুন',
-                'Change Pay order Date': 'পে অর্ডার তারিখ পরিবর্তন',
-                'Money Receipt Check': 'মানি রিসিট চেক',
-                'Account Management': 'হিসাব ব্যবস্থাপনা',
-                'Unpaid Money Receipt': 'আনপেইড মানি রিসিট',
                 'Payment Collection': 'পেমেন্ট সংগ্রহ',
-                'Payment Collection By Date': 'তারিখ অনুসারে পেমেন্ট সংগ্রহ',
-                'Fee Concession': 'ফি ছাড় প্রদান',
-                'Others Income': 'অন্যান্য আয়সমূহ',
-                'Expense': 'খরচসমূহ',
-                'Edit Expense': 'খরচ ইডিট/সংশোধন',
-                'All Session Report': 'সকল সেশনের রিপোর্ট',
-                'Class Based Report': 'ক্লাশ অনুযায়ী রিপোর্ট',
-                'Student Based Report': 'শিক্ষার্থী অনুযায়ী রিপোর্ট',
-                'Paid Report': 'পরিশোধ রিপোর্ট',
-                'Concession Report': 'ছাড়ের রিপোর্ট',
-                'Paid & Due Report': 'পরিশোধ ও বকেয়া রিপোর্ট',
-                'Accounts Summary': 'একাউন্টস সামারী',
-                'Session Based Report': 'সেশন অনুযায়ী রিপোর্ট',
-                'Month Based Report': 'মাস ভিত্তিক রিপোর্ট',
-                'Income Report': 'আয়ের রিপোর্ট',
-                'Expense Report': 'খরচের রিপোর্ট',
-                'Income Expense Net': 'আয়-ব্যায় ও অবশিষ্ট ব্যালেন্স',
-                'Current Due': 'বর্তমান পর্যন্ত সকল বকেয়া',
-                'Student Paid Details': 'শিক্ষার্থীর প্রদানকৃত বিস্তারিত',
-                'Payorder Report': 'পে অর্ডার রিপোর্ট',
-                'My Accounts': 'আমার একাউন্ট',
-                'Account Details': 'বিস্তারিত হিসাব',
-                'Accounts Log': 'একাউন্ট কাজের হিস্টরী',
-                // Accounts sub-items (existing)
-                'Allowance': 'ভাতা',
-                'Deduction': 'কর্তন',
-                'Bonus & Fine': 'বোনাস ও জরিমানা',
-                'Pay Order Monthly': 'মাসিক পে-অর্ডার করুন',
-                'Salary Sheet': 'বেতন শীট',
-                'Employee Salary': 'কর্মচারী বেতন ',
-                'Salary Payment': 'বেতন প্রদান করুন',
-                'Paid & Due Salary': ' বেতন পরিশোধ ও বকেয়া রিপোর্ট',
-                // Additional menu items from screenshot
-                'Class Change': 'বর্তমান শিক্ষাবর্ষে শ্রেণি পরিবর্তন',
-                'Change Section/Shift/Group': 'সেকশন/শিফট/গ্রুপ পরিবর্তন',
-                'Update Subjects': 'সাবজেক্ট আপডেট করুন',
-                'T.C': 'টিসি বা বিদায় দিন',
-                'Student Details': 'ছাত্রের বিস্তারিত',
-                'Print Admission Form': 'ভর্তির ফরম প্রিন্ট করুন',
-                'Class Change In Current Session':'বর্তমান শিক্ষাবর্ষে শ্রেণি পরিবর্তন',
-                'Find Students': 'শিক্ষার্থী খুঁজুন',
-                'আইডি কার্ড': 'আইডি কার্ড',
-                'Student ID Cards': 'আইডি কার্ড',
-                'Change Roll No/Group/Section/Shift': 'রোল নং/গ্রুপ/সেকশন/শিফট পরিবর্তন',
-                'Change Subject': 'বিষয় পরিবর্তন',
-                // Employee sections
-                'RFID Number Input': 'সময়সূচী ও আরএফআইডি',
-                'Manual Attendance': 'মেন্যুয়াল হাজিরা নিন',
-                'Attendance Records': 'উপস্থিতির রেকর্ড',
-                'Attendance Record': 'উপস্থিতির রেকর্ড',
-                'Attendance Settings': 'হাজিরা সেটিং',
-                'Leave': 'ছুটি',
-                'Attendance Fine Generate': 'উপস্থিতি জরিমানা তৈরি',
-                // Student Management items
-                'Signup / Userid': 'সাইনআপ / ইউজার আইডি',
-                // Additional Admission items
-                'Admission Form': 'ভর্তির ফরম',
-                // Subject Management
-                'Subject': 'বিষয়',
-                // Exam related items
                 'Exam': 'পরীক্ষার কাজ',
-                'Exam Setting': 'পরীক্ষার সেটিংস',
-                'Exam Name': 'পরীক্ষার নাম তৈরী',
-                'Sub-Exam Name': 'সাব পরীক্ষার নাম তৈরী',
-                'Change Pass Marks': 'পাশ মার্ক পরিবর্তন করুন',
-                'Marks Distribution': 'নাম্বার বন্টন',
-                'Input Exam Marks': 'নাম্বার যুক্ত করুন',
-                'Inputted Marks Check': 'নাম্বার চেক করুন',
-                'Edit Information': 'শিক্ষার্থীর তথ্য আপডেট করুন',
-                'Marks Collect Paper': 'নাম্বার সংগ্রহ পত্র প্রিন্ট',
-                'HW/Notice': 'বাড়ীর কাজ ও নোটিস প্রদান',
-                'Exam Control': 'পরীক্ষা কন্ট্রোল করুন',
-                'Admit Card': 'প্রবেশপত্র',
-                // SMS related items
-                'Send Message': 'এস এম এস পাঠান',
-                'Send SMS From Contact List': 'কন্টাক্ট লিস্ট হতে এস এম এস পাঠান',
-                'Message History': 'এস এম এস রেকর্ড',
-                'SMS Settings': 'এস এম এস সেটিংস',
-                'SMS Balance': 'এস এম এস ব্যালেন্স',
-                'SMS Sent Records': 'পাঠানো এস এম এস এর রেকর্ড',
-                // Committee related items
-                'Committee Information': 'কমিটির তথ্য',
-                'Committee List': 'কমিটির তালিকা',
-                // Routine related items
-                'Create Routine': 'রুটিন তৈরি',
-                'Edit Routine': 'রুটিন ইডিট করুন',
-                'View Routine': 'রুটিন দেখুন',
-                'Print Routine': 'রুটিন প্রিন্ট',
-                'Blocked Unblocked Student': 'সাময়িক ব্লক/আনব্লক',
-                // Additional items from new screenshot
-                'একাডেমিক ক্যালেন্ডার': 'একাডেমিক ক্যালেন্ডার',
-                'Admission New Student': 'নতুন শিক্ষার্থী ভর্তি',
-                'সাইনআপ / ইউজার আইডি': 'সাইনআপ / ইউজার আইডি',
-                'উপস্থিতি': 'উপস্থিতি',
-                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
-                'Change Roll No,Group,Section,Shift': 'রোল নং, গ্রুপ, সেকশন, শিফট পরিবর্তন',
-
-                'সময়সূচী ও আরএফআইডি': 'সময়সূচী ও আরএফআইডি',
-                'উপস্থিতির রেকর্ড': 'উপস্থিতির রেকর্ড',
-                'Create Attendance Schedule': 'হাজিরার সময়সূচী',
-                // More specific menu items from screenshot
-                'Change Section,Shift,Group': 'সেকশন, শিফট, গ্রুপ পরিবর্তন',
-
+                'Subject': 'বিষয়',
+                'Admission Form': 'ভর্তির ফরম',
+                'Create Session': 'সেশন তৈরী',
+                'Institution Information': 'প্রতিষ্ঠানের তথ্য',
+                'Academic Calendar': 'একাডেমিক বর্ষপঞ্জিকা',
+                'Admit New Student': 'নতুন ছাত্র ভর্তি',
+                'Change Section,Shift,Group': 'সেকশন, শিফট, গ্রুপ পরিবর্তন'
             };
 
             $(function () {
-                // Check Font Awesome loading first with enhanced method
-                checkFontAwesomeLoadingEnhanced();
-                
                 $("#sidedrawer").niceScroll({
                     cursorcolor: "#394C3A",
                     cursorwidth: "7px",
@@ -972,11 +896,15 @@
                     cursorborderradius: "3px",
                     emulatetouch: true
                 });
+                
                 $("#sidedrawer").mouseover(function () {
                     $("#sidedrawer").getNiceScroll().resize();
                 });
+                
                 new WOW().init();
+                
                 $('body').append('<div id="toTop" class="btn btn-info d-print-none"><span class="glyphicon glyphicon-chevron-up"></span> TOP</div>');
+                
                 $(window).scroll(function () {
                     if ($(this).scrollTop() !== 0) {
                         $('#toTop').fadeIn();
@@ -984,84 +912,86 @@
                         $('#toTop').fadeOut();
                     }
                 });
+                
                 $('#toTop').click(function () {
                     $("html, body").animate({ scrollTop: 0 }, 600);
                     return false;
                 });
+                
                 $("#CurrentYear").text((new Date).getFullYear());
+                
                 $('a[href$=_SkipLink]').each(function () {
                     $(this).remove();
                 });
+                
                 storeUser();
+                
                 // Initialize language system
                 initializeLanguageToggle();
-                
-                // Handle TreeView expansion/collapse events with multiple event types - More conservative
-                $('#LinkTreeView').on('click', 'a, img, span', function() {
-                    // Only re-translate if we're in Bengali mode and the element is visible
+
+                // Handle TreeView expansion/collapse events
+                $('#LinkTreeView').on('click', 'a, img, span', function () {
                     if (isMenuBengali) {
-                        setTimeout(function() {
-                            // Only translate visible elements
+                        setTimeout(function () {
                             var visibleElements = $('#LinkTreeView').find('*').filter(':visible');
                             if (visibleElements.length > 0) {
                                 translateMenuToBengali();
                             }
                         }, 100);
-                        
-                        setTimeout(function() {
+
+                        setTimeout(function () {
                             if (isMenuBengali) {
                                 translateMenuToBengali();
                             }
                         }, 500);
                     }
                 });
-                
-                // Periodic check to ensure all content is translated - More conservative
+
+                // Periodic check to ensure all content is translated
                 if (typeof window.translationInterval !== 'undefined') {
                     clearInterval(window.translationInterval);
                 }
-                
-                window.translationInterval = setInterval(function() {
+
+                window.translationInterval = setInterval(function () {
                     if (isMenuBengali) {
-                        // Only check for visible elements to avoid issues
                         var hasUntranslated = false;
                         var untranslatedItems = [];
-                        
-                        $('#LinkTreeView').find('a, span, td').filter(':visible').each(function() {
+
+                        $('#LinkTreeView').find('a, span, td').filter(':visible').each(function () {
                             var text = $(this).text().trim();
                             if (text && menuTranslations[text] && !$(this).data('translated')) {
                                 hasUntranslated = true;
                                 untranslatedItems.push(text);
                             }
                         });
-                        
-                        if (hasUntranslated && untranslatedItems.length < 10) { // Only translate if reasonable number
+
+                        if (hasUntranslated && untranslatedItems.length < 10) {
                             console.log('Found untranslated items:', untranslatedItems);
                             translateMenuToBengali();
                         }
                     }
-                }, 2000); // Back to 2 seconds for stability
-                
+                }, 2000);
+
                 // Quick check only for first few seconds
                 var quickCheckCount = 0;
-                var quickInterval = setInterval(function() {
+                var quickInterval = setInterval(function () {
                     quickCheckCount++;
-                    if (quickCheckCount >= 5 || !isMenuBengali) { // Reduce to 5 checks
+                    if (quickCheckCount >= 5 || !isMenuBengali) {
                         clearInterval(quickInterval);
                         return;
                     }
-                    
+
                     if (isMenuBengali) {
-                        var visibleUntranslated = $('#LinkTreeView').find('a, span').filter(':visible').filter(function() {
+                        var visibleUntranslated = $('#LinkTreeView').find('a, span').filter(':visible').filter(function () {
                             var text = $(this).text().trim();
                             return text && menuTranslations[text] && !$(this).data('translated');
                         });
-                        
+
                         if (visibleUntranslated.length > 0 && visibleUntranslated.length < 5) {
                             translateMenuToBengali();
                         }
                     }
-                }, 1000); // Check every 1 second for first 5 seconds
+                }, 1000);
 
                 //different Session
                 $("#content-wrapper").mouseover(function () {
@@ -1103,46 +1033,40 @@
 
             // Function to initialize language toggle
             function initializeLanguageToggle() {
-                // Wait a bit for TreeView to fully render
-                setTimeout(function() {
+                setTimeout(function () {
                     var savedLanguage = localStorage.getItem('menuLanguage');
                     if (savedLanguage === 'bengali') {
                         isMenuBengali = true;
                         translateMenuToBengali();
-                        $('#languageToggle').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
+                        $('#languageToggle, #languageToggle2').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
                     } else {
                         isMenuBengali = false;
-                        $('#languageToggle').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
+                        $('#languageToggle, #languageToggle2').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                     }
-                    
-                    // Set up mutation observer to watch for new content
+
                     setupTreeViewObserver();
                 }, 500);
-                
-                $('#languageToggle').off('click').on('click', function() {
-                    // Add loading effect
+
+                $('#languageToggle, #languageToggle2').off('click').on('click', function () {
                     var $btn = $(this);
-                    $btn.html('<i class="fa fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
-                    
-                    setTimeout(function() {
+                    var $allBtns = $('#languageToggle, #languageToggle2');
+                    $allBtns.html('<i class="fa fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
+
+                    setTimeout(function () {
                         try {
                             if (isMenuBengali) {
-                                // Switch to English
                                 translateMenuToEnglish();
-                                $btn.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
+                                $allBtns.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                                 isMenuBengali = false;
                                 localStorage.setItem('menuLanguage', 'english');
                             } else {
-                                // Switch to Bengali
-                                isMenuBengali = true; // Set this first
+                                isMenuBengali = true;
                                 localStorage.setItem('menuLanguage', 'bengali');
-                                $btn.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
-                                
-                                // Check if TreeView is visible before translating
+                                $allBtns.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
+
                                 if ($('#LinkTreeView').is(':visible')) {
                                     forceTranslateAll();
                                 } else {
-                                    // Emergency reset if TreeView is not visible
                                     emergencyReset();
                                     setTimeout(forceTranslateAll, 200);
                                 }
@@ -1151,16 +1075,14 @@
                             console.error('Translation error:', error);
                             emergencyReset();
                         }
-                        
-                        // Re-enable button
-                        $btn.prop('disabled', false);
+
+                        $allBtns.prop('disabled', false);
                     }, 100);
                 });
-                
-                // Add double-click emergency reset
-                $('#languageToggle').dblclick(function() {
+
+                $('#languageToggle, #languageToggle2').dblclick(function () {
                     emergencyReset();
-                    $(this).html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
+                    $('#languageToggle, #languageToggle2').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                     isMenuBengali = false;
                     localStorage.setItem('menuLanguage', 'english');
                 });
@@ -1169,16 +1091,13 @@
             // Function to translate menu to Bengali
             function translateMenuToBengali() {
                 console.log('Starting Bengali translation...');
-                
-                // Method 1: Handle anchor tags and leaf nodes - More careful approach
-                $('#LinkTreeView').find('a, span').each(function() {
+
+                $('#LinkTreeView').find('a, span').each(function () {
                     var $element = $(this);
                     var text = $element.text().trim();
-                    
-                    // Skip if empty or already translated
+
                     if (!text || $element.data('translated') === 'yes') return;
-                    
-                    // Check for exact match
+
                     if (menuTranslations[text]) {
                         $element.data('original-text', text);
                         $element.text(menuTranslations[text]);
@@ -1187,18 +1106,15 @@
                         return;
                     }
                 });
-                
-                // Method 2: Handle table cells - More conservative approach
-                $('#LinkTreeView').find('td').each(function() {
+
+                $('#LinkTreeView').find('td').each(function () {
                     var $element = $(this);
-                    
-                    // Skip if already processed
+
                     if ($element.data('translated') === 'yes') return;
-                    
-                    // Only process leaf nodes (no child elements except text)
+
                     if ($element.children().length === 0) {
                         var text = $element.text().trim();
-                        
+
                         if (text && menuTranslations[text]) {
                             $element.data('original-text', text);
                             $element.text(menuTranslations[text]);
@@ -1207,39 +1123,35 @@
                         }
                     }
                 });
-                
+
                 console.log('Bengali translation completed');
             }
 
             // Function to translate menu to English
             function translateMenuToEnglish() {
                 console.log('Starting English translation...');
-                
-                // Restore all translated elements to their original text
-                $('#LinkTreeView').find('*').each(function() {
+
+                $('#LinkTreeView').find('*').each(function () {
                     var $element = $(this);
                     var originalText = $element.data('original-text');
-                    
+
                     if (originalText && $element.data('translated') === 'yes') {
-                        // Check if this element contains only text or has text nodes
                         if ($element.children().length === 0) {
-                            // Simple case: element contains only text
                             $element.text(originalText);
                         } else {
-                            // Complex case: element has child elements, restore text nodes
-                            $element.contents().filter(function() {
+                            $element.contents().filter(function () {
                                 return this.nodeType === 3;
-                            }).each(function() {
+                            }).each(function () {
                                 $(this).replaceWith(originalText);
                             });
                         }
-                        
+
                         $element.removeData('translated');
                         $element.removeData('original-text');
                         console.log('Restored: ' + originalText);
                     }
                 });
-                
+
                 console.log('English translation completed');
             }
 
@@ -1247,19 +1159,16 @@
             function forceTranslateAll() {
                 if (isMenuBengali) {
                     console.log('Force translating to Bengali...');
-                    
-                    // Wait a moment then translate
-                    setTimeout(function() {
+
+                    setTimeout(function () {
                         translateMenuToBengali();
                     }, 50);
-                    
-                    // Second attempt
-                    setTimeout(function() {
+
+                    setTimeout(function () {
                         translateMenuToBengali();
                     }, 200);
-                    
-                    // Final attempt  
-                    setTimeout(function() {
+
+                    setTimeout(function () {
                         translateMenuToBengali();
                     }, 500);
                 } else {
@@ -1270,29 +1179,26 @@
             // Function for emergency reset
             function emergencyReset() {
                 console.log('Emergency reset - restoring menu visibility');
-                $('#LinkTreeView').find('*').each(function() {
+                $('#LinkTreeView').find('*').each(function () {
                     var $element = $(this);
-                    $element.show(); // Make sure element is visible
+                    $element.show();
                     $element.removeData('translated');
                     $element.removeData('original-text');
                 });
-                
-                // Force refresh the TreeView
-                setTimeout(function() {
+
+                setTimeout(function () {
                     $('#LinkTreeView').show();
                 }, 100);
             }
 
             // Function to setup TreeView observer
             function setupTreeViewObserver() {
-                // Create a mutation observer to watch for changes in the TreeView
                 if (window.MutationObserver) {
-                    var observer = new MutationObserver(function(mutations) {
+                    var observer = new MutationObserver(function (mutations) {
                         var shouldTranslate = false;
-                        
-                        mutations.forEach(function(mutation) {
+
+                        mutations.forEach(function (mutation) {
                             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                                // Check if any text nodes or elements were added
                                 for (var i = 0; i < mutation.addedNodes.length; i++) {
                                     if (mutation.addedNodes[i].nodeType === 1 || mutation.addedNodes[i].nodeType === 3) {
                                         shouldTranslate = true;
@@ -1301,16 +1207,14 @@
                                 }
                             }
                         });
-                        
-                        // If new content was added and we're in Bengali mode, translate it
+
                         if (shouldTranslate && isMenuBengali) {
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 translateMenuToBengali();
                             }, 50);
                         }
                     });
-                    
-                    // Start observing the TreeView for changes
+
                     var treeView = document.getElementById('LinkTreeView');
                     if (treeView) {
                         observer.observe(treeView, {
@@ -1339,137 +1243,6 @@
             function storeUser() {
                 const currentUser = $("[id*=_redIdHidden]").val();
                 localStorage._regId = currentUser;
-            }
-
-            // Function to check Font Awesome loading
-            function checkFontAwesomeLoading() {
-                setTimeout(function() {
-                    // Create a test element with Font Awesome icon
-                    var $testIcon = $('<i class="fa fa-language" style="position: absolute; left: -9999px; font-size: 16px;"></i>');
-                    $('body').append($testIcon);
-                    
-                    // Check if Font Awesome is properly loaded
-                    var iconWidth = $testIcon.width();
-                    var fontFamily = $testIcon.css('font-family');
-                    var isLoaded = fontFamily && (
-                        fontFamily.indexOf('Font Awesome') !== -1 || 
-                        fontFamily.indexOf('FontAwesome') !== -1 ||
-                        iconWidth > 10
-                    );
-                    
-                    $testIcon.remove();
-                    
-                    if (!isLoaded) {
-                        console.warn('Font Awesome may not be loaded properly. Applying fallback styles...');
-                        applyFontAwesomeFallback();
-                    } else {
-                        console.log('Font Awesome is loaded successfully');
-                    }
-                }, 1000);
-            }
-
-            // Function to apply Font Awesome fallback
-            function applyFontAwesomeFallback() {
-                var fallbackStyles = `
-                    <style id="fa-fallback">
-                        .fa { font-style: normal !important; display: inline-block !important; }
-                        .fa-language::before { content: "🌐" !important; font-family: Arial, sans-serif !important; }
-                        .fa-map-marker::before { content: "📍" !important; font-family: Arial, sans-serif !important; }
-                        .fa-phone::before { content: "📞" !important; font-family: Arial, sans-serif !important; }
-                        .fa-envelope-o::before, .fa-envelope::before { content: "✉️" !important; font-family: Arial, sans-serif !important; }
-                        .fa-facebook::before { content: "📘" !important; font-family: Arial, sans-serif !important; }
-                        .fa-twitter::before { content: "🐦" !important; font-family: Arial, sans-serif !important; }
-                        .fa-youtube::before { content: "▶️" !important; font-family: Arial, sans-serif !important; }
-                        .fa-user::before { content: "👤" !important; font-family: Arial, sans-serif !important; }
-                        .fa-lock::before { content: "🔒" !important; font-family: Arial, sans-serif !important; }
-                        .fa-paper-plane::before { content: "✈️" !important; font-family: Arial, sans-serif !important; }
-                        
-                        /* Ensure proper display */
-                        .fa { 
-                            min-width: 14px !important;
-                            text-align: center !important;
-                            font-size: 14px !important;
-                            line-height: 1 !important;
-                        }
-                    </style>
-                `;
-                
-                // Only add if not already added
-                if ($('#fa-fallback').length === 0) {
-                    $('head').append(fallbackStyles);
-                    console.log('Font Awesome fallback styles applied');
-                }
-
-                // Also apply individual icon fallback using data attributes
-                $('.icon-fallback').each(function() {
-                    var $icon = $(this);
-                    var fallbackContent = $icon.data('fallback');
-                    
-                    if (fallbackContent) {
-                        // Test if Font Awesome is working for this icon
-                        var testWidth = $icon.width();
-                        var testFamily = $icon.css('font-family');
-                        
-                        // If Font Awesome isn't working, use the fallback
-                        if (!testFamily || testFamily.indexOf('Font') === -1) {
-                            $icon.html(fallbackContent);
-                            $icon.css({
-                                'font-family': 'Arial, sans-serif',
-                                'font-size': '14px',
-                                'display': 'inline-block'
-                            });
-                        }
-                    }
-                });
-            }
-
-            // Enhanced font loading check with individual icon fallback
-            function checkFontAwesomeLoadingEnhanced() {
-                setTimeout(function() {
-                    var allIconsWorking = true;
-                    
-                    // Test each icon individually
-                    $('.icon-fallback').each(function() {
-                        var $icon = $(this);
-                        var fallbackContent = $icon.data('fallback');
-                        
-                        if (fallbackContent) {
-                            // Create a test clone
-                            var $testIcon = $icon.clone().css({
-                                'position': 'absolute',
-                                'left': '-9999px',
-                                'visibility': 'hidden'
-                            });
-                            $('body').append($testIcon);
-                            
-                            // Check if Font Awesome is working
-                            var iconWidth = $testIcon.width();
-                            var fontFamily = $testIcon.css('font-family');
-                            var isWorking = fontFamily && fontFamily.indexOf('Font') !== -1;
-                            
-                            // Remove test icon
-                            $testIcon.remove();
-                            
-                            // If not working, use fallback
-                            if (!isWorking) {
-                                $icon.html(fallbackContent);
-                                $icon.css({
-                                    'font-family': 'Arial, sans-serif !important',
-                                    'font-size': '14px',
-                                    'display': 'inline-block'
-                                });
-                                allIconsWorking = false;
-                            }
-                        }
-                    });
-                    
-                    if (!allIconsWorking) {
-                        console.log('Some Font Awesome icons failed to load, using individual fallbacks');
-                        applyFontAwesomeFallback();
-                    } else {
-                        console.log('All Font Awesome icons loaded successfully');
-                    }
-                }, 1500); // Wait a bit longer for fonts to load
             }
         </script>
     </form>

@@ -14,12 +14,30 @@
         .mGrid td {
             text-align: left;
         }
+        
+        .logo-preview {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        
+        .logo-preview img {
+            max-height: 60px;
+            max-width: 100%;
+        }
     </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <h3>Institution Info</h3>
 
+    <!-- DEBUG LABEL -->
+    <div class="alert alert-info" id="debugInfo" runat="server" visible="true">
+        <strong>Debug Info:</strong>
+        <asp:Label ID="DebugLabel" runat="server" Text=""></asp:Label>
+    </div>
 
     <div class="form-group d-print-none">
         <h4>Payment Button SMS Active & Deactive</h4>
@@ -39,12 +57,38 @@
     </UpdateParameters>
 </asp:SqlDataSource>
                
-
-    <asp:FormView ID="PImgFormView" runat="server" DataKeyNames="SchoolID" DataSourceID="ImgSQL">
-        <ItemTemplate>
-            <img alt="No Logo" src="/Handeler/SchoolLogo.ashx?SLogo=<%#Eval("SchoolID") %>" style="height: 60px" />
-        </ItemTemplate>
-    </asp:FormView>
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Current Logo</h5>
+            <asp:FormView ID="PImgFormView" runat="server" DataKeyNames="SchoolID" DataSourceID="ImgSQL">
+                <ItemTemplate>
+                    <div class="logo-preview">
+                        <img alt="No Logo" src="/Handeler/SchoolLogo.ashx?SLogo=<%#Eval("SchoolID") %>" style="height: 60px" />
+                    </div>
+                </ItemTemplate>
+            </asp:FormView>
+        </div>
+        <div class="col-md-6">
+            <h5>Current School Name Logo</h5>
+            <asp:FormView ID="SchoolNameImgFormView" runat="server" DataKeyNames="SchoolID" DataSourceID="ImgSQL">
+                <ItemTemplate>
+                    <div class="logo-preview">
+                        <img alt="No School Name Logo" src="/Handeler/SchoolNameLogo.ashx?SchoolID=<%#Eval("SchoolID") %>" 
+                             style="max-height: 60px; max-width: 100%;" 
+                             onerror="this.parentElement.innerHTML='<em class=\'text-muted\'>No school name logo uploaded yet</em>';" />
+                    </div>
+                    <div class="mt-2">
+                        <asp:Button ID="DeleteSchoolNameLogoButton" runat="server" 
+                                    Text="🗑️ Delete School Name Logo" 
+                                    CssClass="btn btn-danger btn-sm" 
+                                    OnClick="DeleteSchoolNameLogoButton_Click"
+                                    OnClientClick="return confirm('Are you sure you want to delete the school name logo? The traditional header will be shown instead.');" />
+                    </div>
+                </ItemTemplate>
+            </asp:FormView>
+        </div>
+    </div>
+    
     <asp:SqlDataSource ID="ImgSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
         SelectCommand="SELECT * FROM SchoolInfo WHERE (SchoolID = @SchoolID)">
         <SelectParameters>
@@ -73,6 +117,26 @@
             <asp:TemplateField HeaderText="Logo">
                 <EditItemTemplate>
                     <asp:FileUpload ID="LogoFileUpload" runat="server" />
+                    <br />
+                    <small class="text-muted">Upload institution logo (square format recommended)</small>
+                </EditItemTemplate>
+            </asp:TemplateField>
+            <asp:TemplateField HeaderText="School Name Logo/Nameplate">
+                <EditItemTemplate>
+                    <asp:FileUpload ID="SchoolNameLogoFileUpload" runat="server" />
+                    <br />
+                    <div class="alert alert-info mt-2" style="font-size: 12px;">
+                        <strong>📏 Image Guidelines:</strong>
+                        <ul class="mb-0" style="padding-left: 20px;">
+                            <li><strong>Format:</strong> PNG (recommended) or JPEG</li>
+                            <li><strong>Size:</strong> 1200-1800 pixels wide × 150-250 pixels height</li>
+                            <li><strong>Aspect Ratio:</strong> 6:1 or 7:1 (wide format)</li>
+                            <li><strong>Resolution:</strong> 300 DPI for best quality</li>
+                            <li><strong>Max File Size:</strong> 1 MB</li>
+                            <li><strong>Example:</strong> 1500px × 200px works great!</li>
+                        </ul>
+                        <small class="text-muted">💡 Tip: Use PNG format with transparent background for best results. High resolution prevents pixelation.</small>
+                    </div>
                 </EditItemTemplate>
             </asp:TemplateField>
             <asp:TemplateField ShowHeader="False">

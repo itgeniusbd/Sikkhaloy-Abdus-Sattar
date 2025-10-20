@@ -444,6 +444,7 @@
     <Content Include="Authority\Reference\School_Reference.aspx" />
     <Content Include="Authority\SignUp_Institution.aspx" />
     <Content Include="Authority\SmsSetting.aspx" />
+    <Content Include="BASIC_Master_Fix.txt" />
     <Content Include="Committee\DonationAdd.aspx" />
     <Content Include="Committee\DonationCategory.aspx" />
     <Content Include="Committee\DonationCollect.aspx" />
@@ -730,6 +731,7 @@
     <Content Include="Handeler\Comitee_Image.ashx" />
     <Content Include="Handeler\SignatureHandler.ashx" />
     <Content Include="Handeler\TestHandler.ashx" />
+    <Content Include="Handeler\SchoolNameLogo.ashx" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
     <Content Include="Routines\Modify_Routine.aspx" />
