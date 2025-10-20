@@ -1,0 +1,874 @@
+﻿/* Simple Result Card CSS - A4 Landscape Optimized - Bigger Font, Narrower Columns */
+* {
+    font-family: Arial, sans-serif !important;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif !important;
+    background: #fff;
+    margin: 0;
+    font-size: 13px;
+}
+
+.result-card {
+    border: 2px solid #0072bc;
+    border-radius: 5px;
+    padding: 8px;
+    max-width: 1100px;
+    margin: 20px auto;
+    background: white;
+    box-sizing: border-box;
+    display: block;
+    font-size: 13px;
+    font-family: Arial, sans-serif !important;
+}
+
+.header {
+    text-align: center;
+    border-bottom: 2px solid #0072bc;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    position: relative;
+    font-family: Arial, sans-serif !important;
+}
+
+    .header h2 {
+        color: #0072bc !important;
+        line-height: 1.1 !important;
+        margin: 3px 0 !important;
+        font-size: 19px;
+        font-weight: bold;
+        font-family: Arial, sans-serif !important;
+    }
+
+    .header p {
+        color: #000 !important;
+        line-height: 1.2 !important;
+        margin: 1px 0 !important;
+        font-size: 12px;
+        font-family: Arial, sans-serif !important;
+    }
+
+    .header img {
+        width: 58px;
+        height: 58px;
+        border-radius: 5px !important;
+        object-fit: cover;
+        position: absolute;
+        left: 0;
+        top: 0;
+        border: 2px solid #0072bc !important;
+        background: white !important;
+    }
+
+.student-photo {
+    width: 58px !important;
+    height: 58px !important;
+    border-radius: 5px !important;
+    object-fit: cover !important;
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    left: auto !important;
+    border: 3px solid #0072bc !important;
+    background: white !important;
+    z-index: 10 !important;
+}
+
+.title {
+    text-align: center;
+    font-weight: bold;
+    margin: 2px 0;
+    color: darkgreen;
+    font-size: 15px;
+    font-family: Arial, sans-serif !important;
+}
+
+.Exam_name {
+    text-align: center;
+    font-weight: bold;
+    margin: 0px 0;
+    color: #0072bc;
+    font-size: 15px;
+    font-family: Arial, sans-serif !important;
+}
+
+.top-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+}
+
+.info-summary {
+    width: 79%;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2px;
+    table-layout: fixed;
+    font-family: Arial, sans-serif !important;
+}
+
+.btn-secondary {
+    background-color: #60d1db !important;
+    color: #fff !important;
+}
+
+.info-table td {
+    border: 1px solid #0072bc;
+    padding: 1.5px 2px;
+    font-size: 13px;
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: Arial, sans-serif !important;
+    text-align:center;
+}
+
+.grade-chart {
+    width: 20%;
+}
+
+    .grade-chart table {
+        width: 100%;
+    }
+
+    .grade-chart th, .grade-chart td {
+        border: 1px solid #0072bc;
+        padding: 3px 1px;
+        text-align: center;
+        font-weight: bold;
+        font-family: Arial, sans-serif !important;
+        font-size: 11px;
+        line-height: 1;
+    }
+
+.marks-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 11px;
+    font-family: Arial, sans-serif !important;
+}
+
+    .marks-table th,
+    .marks-table td {
+        border: 1px solid #000;
+        padding: 2px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 11px;
+        font-weight: bold;
+        font-family: Arial, sans-serif !important;
+    }
+
+        /* Hide negative values and dashes in PC and PS columns */
+        .marks-table td:nth-child(11), /* PC column */
+        .marks-table td:nth-child(12) { /* PS column */
+            text-indent: -9999px;
+        }
+
+            .marks-table td:nth-child(11):empty::after,
+            .marks-table td:nth-child(12):empty::after {
+                content: "";
+                text-indent: 0;
+            }
+
+            .marks-table td:nth-child(11):not(:empty)::after,
+            .marks-table td:nth-child(12):not(:empty)::after {
+                content: attr(data-value);
+                text-indent: 0;
+            }
+
+            /* Show only positive values in PC and PS columns */
+            .marks-table td:nth-child(11):not([data-negative]),
+            .marks-table td:nth-child(12):not([data-negative]) {
+                text-indent: 0;
+            }
+
+    /* Header cells - allow wrapping for exam names */
+    .marks-table th {
+        background-color: #c8e6c9 !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        line-height: 1.3 !important;
+        height: auto !important;
+        min-height: 35px !important;
+        padding: 3px 2px !important;
+        overflow: visible !important;
+    }
+
+        /* Subject column - increased width significantly */
+        .marks-table th:first-child,
+        .marks-table td:first-child {
+            text-align: left;
+            padding-left: 6px;
+            padding-right: 6px;
+            min-width: 100px;
+            max-width: 130px;
+            width: 110px;
+            position: sticky;
+            left: 0;
+            background-color: #fff;
+            z-index: 1;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+            vertical-align: middle;
+            height: auto;
+        }
+
+        .marks-table th:first-child {
+            background-color: #c8e6c9 !important;
+            font-weight: bold;
+            text-align:center;
+        }
+
+        /* Data columns - compact */
+        .marks-table th:nth-child(n+2),
+        .marks-table td:nth-child(n+2) {
+            max-width: 30px;
+            min-width: 24px;
+            padding: 2px 1px;
+        }
+        
+        /* Force data cells to stay single line */
+        .marks-table td:nth-child(n+2) {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 25px;
+    padding: 0 40px;
+    font-family: Arial, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    min-height: 50px;
+}
+
+.note {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 10px;
+    text-align: center;
+    color: green;
+    font-weight: bold;
+    font-family: Arial, sans-serif !important;
+    line-height: 1.2;
+    white-space: nowrap;
+    clear: both;
+    padding-top: 5px;
+}
+
+/* Print Styles - A4 Landscape Optimized */
+@media print {
+    .NoPrint, .controls, .btn {
+        display: none !important;
+    }
+
+    @page {
+        size: A4 landscape;
+        margin: 8mm 10mm;
+    }
+
+    html, body {
+        font-family: Arial, sans-serif !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        height: auto !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-size: 12px !important;
+    }
+
+    /* Remove problematic font forcing */
+    * {
+        font-family: Arial, sans-serif !important;
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        text-rendering: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    .result-card {
+        margin: 0 !important;
+        width: 277mm !important;
+        max-width: 277mm !important;
+        height: auto !important;
+        max-height: 190mm !important;
+        padding: 6mm !important;
+        page-break-after: always !important;
+        page-break-before: auto !important;
+        page-break-inside: avoid !important;
+        border: 1.5px solid #0072bc !important;
+        box-sizing: border-box !important;
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        font-family: Arial, sans-serif !important;
+        background: white !important;
+        display: block !important;
+        clear: both !important;
+        font-size: 11px !important;
+    }
+
+        .result-card:last-child {
+            page-break-after: auto !important;
+        }
+
+        .result-card:first-child {
+            page-break-before: avoid !important;
+        }
+
+    #header {
+        display: none !important;
+    }
+
+    #sidedrawer {
+        display: none !important;
+    }
+
+    #footer {
+        display: none !important;
+    }
+
+    #content-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    #form1 {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .header {
+        padding-bottom: 8px !important;
+        margin-bottom: 3px !important;
+    }
+
+    .header h2 {
+        font-size: 17px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: #0072bc !important;
+        line-height: 1.1 !important;
+        margin: 2px 0 !important;
+    }
+
+    .header p {
+        font-size: 11px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: normal !important;
+        color: #000 !important;
+        line-height: 1.1 !important;
+        margin: 1px 0 !important;
+    }
+
+    .header img {
+        width: 52px !important;
+        height: 52px !important;
+    }
+
+    .student-photo {
+        width: 52px !important;
+        height: 52px !important;
+    }
+
+    .title {
+        font-size: 13px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: darkgreen !important;
+        text-align: center !important;
+        margin: 2px 0 !important;
+    }
+
+    .Exam_name {
+        font-size: 13px !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        color: #0072bc !important;
+        text-align: center !important;
+        margin: 0px 0 !important;
+    }
+
+    .top-section {
+        margin-bottom: 3px !important;
+    }
+
+    .info-table td {
+        border: 1px solid #0072bc;
+        padding: 1.5px 2px;
+        font-size: 13px;
+        font-weight: bold;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: Arial, sans-serif !important;
+        text-align:center;
+    }
+
+    .grade-chart th, .grade-chart td {
+        border: 1px solid #0072bc;
+        padding: 3px 1px !important;
+        text-align: center;
+        font-weight: bold;
+        font-family: Arial, sans-serif !important;
+        font-size: 11px !important;
+        line-height: 1;
+    }
+
+    .marks-table {
+        font-size: 10px !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+    .marks-table th,
+    .marks-table td {
+        padding: 2px !important;
+        font-size: 10px !important;
+        border: 1px solid #000 !important;
+    }
+
+    /* Header cells in print - allow wrapping */
+    .marks-table th {
+        background-color: #c8e6c9 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        line-height: 1.3 !important;
+        height: auto !important;
+        min-height: 32px !important;
+        padding: 3px 2px !important;
+        overflow: visible !important;
+        vertical-align: middle !important;
+    }
+
+    /* Subject column in print - wider */
+    .marks-table th:first-child,
+    .marks-table td:first-child {
+        min-width: 85px !important;
+        max-width: 110px !important;
+        width: 95px !important;
+        font-size: 10px !important;
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+        text-align: left;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        vertical-align: middle !important;
+        line-height: 1.3 !important;
+        height: auto !important;
+    }
+
+    /* Data columns in print - compact */
+    .marks-table th:nth-child(n+2),
+    .marks-table td:nth-child(n+2) {
+        max-width: 26px !important;
+        min-width: 20px !important;
+        padding: 4px 1px !important;
+    }
+    
+    /* Force data cells to stay single line in print */
+    .marks-table td:nth-child(n+2) {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .footer {
+        margin-top: 20px !important;
+        padding: 0 30px !important;
+        font-size: 11px !important;
+        min-height: 55px !important;
+    }
+
+    .note {
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        margin-top: 12px !important;
+        margin-bottom: 5px !important;
+        padding-top: 5px !important;
+        clear: both !important;
+    }
+}
+
+/* Additional responsive adjustments for screen view */
+@media screen and (max-width: 1200px) {
+    .result-card {
+        max-width: 95%;
+        padding: 8px;
+    }
+
+    .marks-table {
+        font-size: 10px;
+    }
+
+    .marks-table th,
+    .marks-table td {
+        padding: 3.5px;
+    }
+}
+
+/* PS Column Visibility Control */
+.ps-column.ps-hidden {
+    display: none !important;
+}
+
+.ps-column {
+    transition: opacity 0.3s ease;
+}
+
+/* Force exam header names to wrap - Override any conflicting styles */
+.marks-table th {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow: visible !important;
+    line-height: 1.3 !important;
+    height: auto !important;
+    min-height: 35px !important;
+    padding: 3px 2px !important;
+    vertical-align: middle !important;
+}
+
+/* Keep data cells single line */
+.marks-table td {
+    white-space: nowrap !important;
+}
+
+/* Enhanced Loading Overlay Styles for Dynamic Progress */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    font-family: Arial, sans-serif;
+    backdrop-filter: blur(3px);
+}
+
+.loading-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    padding: 35px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    min-width: 450px;
+    max-width: 550px;
+    border: 2px solid #0072bc;
+    position: relative;
+    overflow: hidden;
+}
+
+    .loading-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        animation: shimmer 3s infinite;
+    }
+
+.loading-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #0072bc;
+    margin-bottom: 20px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 24px;
+    background: linear-gradient(to right, #e9ecef, #f8f9fa);
+    border-radius: 12px;
+    margin: 20px 0;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid #dee2e6;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #2E7D32 100%);
+    width: 0%;
+    border-radius: 10px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    overflow: hidden;
+}
+
+    .progress-bar::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 35%, rgba(255, 255, 255, 0.3) 50%, transparent 65%);
+        animation: progressShine 2s infinite;
+    }
+
+    .progress-bar.animate {
+        background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 25%, #4CAF50 50%, #2E7D32 75%, #4CAF50 100%);
+        background-size: 200% 200%;
+        animation: progressPulse 2s ease-in-out infinite;
+    }
+
+.progress-percentage {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 15px 0 10px 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.progress-message {
+    font-size: 16px;
+    margin: 10px 0;
+    font-weight: 600;
+    color: #0072bc;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-details {
+    font-size: 14px;
+    margin: 8px 0;
+    color: #6c757d;
+    min-height: 20px;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-spinner {
+    margin: 20px 0 10px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 4px solid rgba(0, 114, 188, 0.2);
+    border-top: 4px solid #0072bc;
+    border-radius: 50%;
+    animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Enhanced Animations */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes progressPulse {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes progressShine {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+/* Success and Error States */
+.progress-bar.success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4);
+}
+
+.progress-bar.error {
+    background: linear-gradient(135deg, #dc3545 0%, #e74c3c 50%, #c82333 100%);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    .loading-container {
+        min-width: 300px;
+        max-width: 90%;
+        padding: 25px 20px;
+        margin: 0 15px;
+    }
+
+    .loading-title {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+
+    .progress-bar-container {
+        height: 20px;
+        margin: 15px 0;
+    }
+
+    .progress-percentage {
+        font-size: 16px;
+    }
+
+    .progress-message {
+        font-size: 14px;
+    }
+
+    .progress-details {
+        font-size: 12px;
+    }
+
+    .spinner {
+        width: 28px;
+        height: 28px;
+        border-width: 3px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .loading-container {
+        min-width: 280px;
+        padding: 20px 15px;
+    }
+
+    .loading-title {
+        font-size: 16px;
+    }
+}
+
+/* Hide during print */
+@media print {
+    .loading-overlay {
+        display: none !important;
+    }
+}
+
+/* Dark theme variant */
+.loading-overlay.dark-theme {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+    .loading-overlay.dark-theme .loading-container {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: #ecf0f1;
+        border-color: #3498db;
+    }
+
+    .loading-overlay.dark-theme .loading-title {
+        color: #3498db;
+    }
+
+    .loading-overlay.dark-theme .progress-message {
+        color: #3498db;
+    }
+
+    .loading-overlay.dark-theme .progress-details {
+        color: #bdc3c7;
+    }
+
+    .loading-overlay.dark-theme .progress-bar-container {
+        background: linear-gradient(to right, #34495e, #2c3e50);
+        border-color: #34495e;
+    }
+
+    .loading-overlay.dark-theme .spinner {
+        border-color: rgba(52, 152, 219, 0.2);
+        border-top-color: #3498db;
+    }
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .loading-container {
+        background: #ffffff;
+        border: 3px solid #000000;
+    }
+
+    .loading-title {
+        color: #000000;
+    }
+
+    .progress-bar {
+        background: linear-gradient(135deg, #000000 0%, #333333 100%);
+    }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .progress-bar {
+        transition: none;
+    }
+
+        .progress-bar.animate {
+            animation: none;
+        }
+
+    .spinner {
+        animation-duration: 3s;
+    }
+
+    .progress-bar::before {
+        animation: none;
+    }
+}
+
