@@ -281,13 +281,13 @@
 
                     <!-- Footer -->
                     <div class="footer">
-                        <div style="text-align: center; flex: 1;">
+                        <div>
                             <div class="SignTeacher" style="height: 45px; margin-bottom: 5px;"></div>
-                            <div class="Teacher" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold; margin-top: 5px;">Class Teacher</div>
+                            <div class="Teacher">Class Teacher</div>
                         </div>
-                        <div style="text-align: center; flex: 1;">
+                        <div>
                             <div class="SignHead" style="height: 45px; margin-bottom: 5px;"></div>
-                            <div class="Head" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold; margin-top: 5px;">Principal</div>
+                            <div class="Head">Principal</div>
                         </div>
                     </div>
                     <p class="note">WD: Working Days.PM: Pass Marks. FM: Full Marks. OM: Obtained Marks. PC: Position in Class. PS: Position in Section.HMC: Highest Marks in Class. HMS: Highest Marks in Section</p>

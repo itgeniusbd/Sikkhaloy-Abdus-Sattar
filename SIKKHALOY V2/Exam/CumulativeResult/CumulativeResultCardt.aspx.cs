@@ -868,96 +868,121 @@ namespace EDUCATION.COM.Exam.CumulativeResult
 
         private void LoadSignatures()
         {
+            SqlConnection con = null;
             try
             {
-                using (var connection = new SqlConnection(connectionString))
+                con = new SqlConnection(connectionString);
+                con.Open();
+
+                string signatureQuery = @"
+                    SELECT 
+                        CASE WHEN Teacher_Sign IS NOT NULL AND DATALENGTH(Teacher_Sign) > 0 THEN 1 ELSE 0 END as HasTeacherSign,
+                        CASE WHEN Principal_Sign IS NOT NULL AND DATALENGTH(Principal_Sign) > 0 THEN 1 ELSE 0 END as HasPrincipalSign
+                    FROM SchoolInfo 
+                    WHERE SchoolID = @SchoolID";
+
+                using (SqlCommand cmd = new SqlCommand(signatureQuery, con))
                 {
-                    connection.Open();
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
 
-                    var query = @"
-                        SELECT TeacherSignature, PrincipalSignature
-                        FROM SchoolInfo
-                        WHERE SchoolID = @SchoolID";
-
-                    using (var command = new SqlCommand(query, connection))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        command.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-
-                        using (var reader = command.ExecuteReader())
+                        if (reader.Read())
                         {
-                            if (reader.Read())
-                            {
-                                var teacherSig = reader["TeacherSignature"]?.ToString() ?? "";
-                                var principalSig = reader["PrincipalSignature"]?.ToString() ?? "";
+                            bool hasTeacherSign = Convert.ToBoolean(reader["HasTeacherSign"]);
+                            bool hasPrincipalSign = Convert.ToBoolean(reader["HasPrincipalSign"]);
 
-                                HiddenTeacherSign.Value = teacherSig;
-                                HiddenPrincipalSign.Value = principalSig;
-                            }
+                            System.Diagnostics.Debug.WriteLine($"LoadSignatures: SchoolID: {Session["SchoolID"]}, HasTeacherSign: {hasTeacherSign}, HasPrincipalSign: {hasPrincipalSign}");
+
+                            // Add timestamp to avoid caching issues
+                            string timestamp = DateTime.Now.Ticks.ToString();
+
+                            // Set paths to signature handler if signatures exist
+                            HiddenTeacherSign.Value = hasTeacherSign ?
+                                $"/Handeler/SignatureHandler.ashx?type=teacher&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
+                            HiddenPrincipalSign.Value = hasPrincipalSign ?
+                                $"/Handeler/SignatureHandler.ashx?type=principal&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"LoadSignatures: No SchoolInfo record found for SchoolID: {Session["SchoolID"]}");
+                            HiddenTeacherSign.Value = "";
+                            HiddenPrincipalSign.Value = "";
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Don't break the page for signature loading errors
-                System.Diagnostics.Debug.WriteLine("Error loading signatures: " + ex.Message);
+                // Log error but don't stop the main process
+                System.Diagnostics.Debug.WriteLine($"LoadSignatures error: {ex.Message}\nStack: {ex.StackTrace}");
+                // Set empty values if error occurs
+                HiddenTeacherSign.Value = "";
+                HiddenPrincipalSign.Value = "";
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                }
             }
         }
 
         [System.Web.Services.WebMethod]
-        public static string SaveSignature(string signatureType, string imageData)
+        public static object SaveSignature(string signatureType, string imageData)
         {
             try
             {
-                var schoolID = HttpContext.Current.Session["SchoolID"];
-                if (schoolID == null)
-                    return "Error: User not logged in";
+                var context = HttpContext.Current;
+                var schoolId = context.Session["SchoolID"];
 
-                var connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
-                var imagePath = SaveSignatureImage(imageData, signatureType, schoolID.ToString());
-
-                using (var connection = new SqlConnection(connectionString))
+                if (schoolId == null)
                 {
-                    connection.Open();
-
-                    var columnName = signatureType == "teacher" ? "TeacherSignature" : "PrincipalSignature";
-                    var query = $"UPDATE SchoolInfo SET {columnName} = @ImagePath WHERE SchoolID = @SchoolID";
-
-                    using (var command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@ImagePath", imagePath);
-                        command.Parameters.AddWithValue("@SchoolID", schoolID);
-                        command.ExecuteNonQuery();
-                    }
+                    return new { success = false, message = "School ID not found in session" };
                 }
 
-                return "Success";
+                // Convert base64 to byte array
+                byte[] imageBytes = Convert.FromBase64String(imageData);
+
+                SqlConnection con = null;
+                try
+                {
+                    string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                    con = new SqlConnection(connectionString);
+                    con.Open();
+
+                    string column = signatureType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
+                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@ImageData", imageBytes);
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            return new { success = true, message = "Signature saved successfully", schoolId = schoolId };
+                        }
+                        else
+                        {
+                            return new { success = false, message = "No rows updated" };
+                        }
+                    }
+                }
+                finally
+                {
+                    if (con != null && con.State == System.Data.ConnectionState.Open)
+                    {
+                        con.Close();
+                    }
+                }
             }
             catch (Exception ex)
             {
-                return "Error: " + ex.Message;
-            }
-        }
-
-        private static string SaveSignatureImage(string base64Data, string signatureType, string schoolID)
-        {
-            try
-            {
-                var imageBytes = Convert.FromBase64String(base64Data);
-                var fileName = $"{signatureType}_signature_{schoolID}_{DateTime.Now.Ticks}.png";
-                var uploadPath = HttpContext.Current.Server.MapPath("~/Uploads/Signatures/");
-                
-                if (!System.IO.Directory.Exists(uploadPath))
-                    System.IO.Directory.CreateDirectory(uploadPath);
-
-                var filePath = System.IO.Path.Combine(uploadPath, fileName);
-                System.IO.File.WriteAllBytes(filePath, imageBytes);
-
-                return "/Uploads/Signatures/" + fileName;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Error saving signature image: " + ex.Message);
+                return new { success = false, message = ex.Message };
             }
         }
 
@@ -1381,7 +1406,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             // Merged Cumulative Result header spanning 8 columns
             html.Append("<th colspan='8' style='background-color: #E6E6FA;'>Cumulative Result</th>");
             html.Append("</tr>");
-
+            
             // Second header row - FM and OM labels for exams, then individual cumulative columns
             html.Append("<tr>");
             
