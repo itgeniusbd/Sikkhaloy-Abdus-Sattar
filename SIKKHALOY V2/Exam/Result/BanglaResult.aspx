@@ -635,7 +635,7 @@
                 var $progressPercentage = $('#progressPercentage');
 
                 $progressBar.css('width', Math.min(targetPercentage, 100) + '%');
-                
+
                 // Convert percentage to Bengali numbers
                 var bengaliPercentage = this.convertToBengaliNumber(Math.round(Math.min(targetPercentage, 100))) + '%';
                 $progressPercentage.text(bengaliPercentage);
@@ -695,22 +695,22 @@
                     console.warn('Date picker not found');
                     return;
                 }
-                
+
                 // Set default to today's date if empty
                 if (!datePicker.value) {
                     var today = new Date();
-                    var dateString = today.getFullYear() + '-' + 
-                                   String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                                   String(today.getDate()).padStart(2, '0');
+                    var dateString = today.getFullYear() + '-' +
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(today.getDate()).padStart(2, '0');
                     datePicker.value = dateString;
                 }
-                
+
                 // Add change event listener
-                $(datePicker).off('change').on('change', function() {
+                $(datePicker).off('change').on('change', function () {
                     console.log('Date picker changed to:', this.value);
                     updateResultDate();
                 });
-                
+
                 console.log('Date picker initialized with value:', datePicker.value);
             } catch (error) {
                 console.error('Error initializing date picker:', error);
@@ -724,38 +724,38 @@
                     console.warn('Date picker not available or has no value');
                     return;
                 }
-                
+
                 // Parse the date
                 var dateValue = new Date(datePicker.value);
                 if (isNaN(dateValue.getTime())) {
                     console.warn('Invalid date value');
                     return;
                 }
-                
+
                 // Format date in Bengali
                 var bengaliDate = formatDateInBengali(dateValue);
-                
+
                 console.log('Updating date displays with:', bengaliDate);
-                
+
                 // Update all date display elements
                 var dateDisplays = document.querySelectorAll('.date-text-display');
                 console.log('Found date display elements:', dateDisplays.length);
-                
-                dateDisplays.forEach(function(element, index) {
+
+                dateDisplays.forEach(function (element, index) {
                     element.textContent = bengaliDate;
                     console.log('Updated date display', index, ':', element.textContent);
-                    
+
                     // Check if this date display is in School Name Logo header or Footer
                     var schoolNameLogoParent = element.closest('.result-date-display');
                     var footerDateParent = element.closest('.footer-date-display');
-                    
+
                     if (schoolNameLogoParent) {
                         // This is for School Name Logo header
                         schoolNameLogoParent.style.display = 'block';
                         schoolNameLogoParent.style.visibility = 'visible';
                         schoolNameLogoParent.style.opacity = '1';
                     }
-                    
+
                     if (footerDateParent) {
                         // This is for Traditional Header (in footer)
                         footerDateParent.style.display = 'block';
@@ -763,25 +763,25 @@
                         footerDateParent.style.opacity = '1';
                     }
                 });
-                
+
                 // Additional jQuery approach for safety
                 $('.date-text-display').text(bengaliDate);
-                
+
                 // Show/hide date displays based on which header is visible
-                $('.result-card').each(function() {
+                $('.result-card').each(function () {
                     var card = $(this);
                     var schoolNameLogoPanel = card.find('#SchoolNameLogoHeaderPanel, [id*="SchoolNameLogoHeaderPanel"]');
                     var traditionalHeaderPanel = card.find('#TraditionalHeaderPanel, [id*="TraditionalHeaderPanel"]');
                     var footerDateDisplay = card.find('.footer-date-display');
                     var schoolNameLogoDateDisplay = card.find('.result-date-display');
-                    
+
                     // Check which panel is visible
-                    var isSchoolNameLogoVisible = schoolNameLogoPanel.length > 0 && 
-                        (schoolNameLogoPanel.hasClass('show-panel') || 
-                         schoolNameLogoPanel.css('display') !== 'none');
-                    
+                    var isSchoolNameLogoVisible = schoolNameLogoPanel.length > 0 &&
+                        (schoolNameLogoPanel.hasClass('show-panel') ||
+                            schoolNameLogoPanel.css('display') !== 'none');
+
                     console.log('School Name Logo visible:', isSchoolNameLogoVisible);
-                    
+
                     if (isSchoolNameLogoVisible) {
                         // Show date in School Name Logo header, hide in footer
                         schoolNameLogoDateDisplay.css({
@@ -804,7 +804,7 @@
                         });
                     }
                 });
-                
+
                 console.log('Date update completed');
             } catch (error) {
                 console.error('Error updating result date:', error);
@@ -816,18 +816,18 @@
                 var day = date.getDate();
                 var month = date.getMonth() + 1;
                 var year = date.getFullYear();
-                
+
                 // Bengali month names
                 var bengaliMonths = [
                     'জানুয়ারী', 'ফেব্রুয়ারী', 'মার্চ', 'এপ্রি্েল', 'মে', 'জুন',
                     'জুলাই', 'আগষ্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
                 ];
-                
+
                 // Convert to Bengali numbers
                 var bengaliDay = convertToBengaliNumber(day);
                 var bengaliYear = convertToBengaliNumber(year);
                 var bengaliMonth = bengaliMonths[month - 1];
-                
+
                 return bengaliDay + ' ' + bengaliMonth + ', ' + bengaliYear;
             } catch (error) {
                 console.error('Error formatting date in Bengali:', error);
@@ -837,20 +837,20 @@
 
         function convertToBengaliNumber(number) {
             var bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-            return String(number).split('').map(function(digit) {
+            return String(number).split('').map(function (digit) {
                 return bengaliDigits[parseInt(digit)] || digit;
             }).join('');
         }
 
         function convertBengaliToEnglishJS(bengaliText) {
             if (!bengaliText) return bengaliText;
-            
+
             var bengaliToEnglish = {
                 '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
                 '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
             };
-            
-            return bengaliText.split('').map(function(char) {
+
+            return bengaliText.split('').map(function (char) {
                 return bengaliToEnglish[char] || char;
             }).join('');
         }
@@ -858,7 +858,7 @@
         // Helper functions for signature and other features
         function fixAbsentMarksDisplay() {
             // Fix display of absent marks
-            $('.marks-table td').each(function() {
+            $('.marks-table td').each(function () {
                 var text = $(this).text().trim();
                 if (text === 'A' || text === '0') {
                     // Already handled in server-side code
@@ -870,7 +870,7 @@
             // Update signature text displays
             var teacherText = $("[id*=TeacherSignTextBox]").val();
             var headText = $("[id*=HeadTeacherSignTextBox]").val();
-            
+
             if (teacherText) {
                 $('.Teacher').text(teacherText);
             }
@@ -881,121 +881,74 @@
 
         function initializeSignatureUpload() {
             console.log('Initializing signature upload functionality');
-            
+
             // Teacher signature upload
-            $('#Tfileupload').off('change').on('change', function(e) {
+            $('#Tfileupload').off('change').on('change', function (e) {
                 console.log('Teacher file selected');
                 handleSignatureUpload(e, 'teacher');
             });
-            
+
             // Principal signature upload
-            $('#Hfileupload').off('change').on('change', function(e) {
+            $('#Hfileupload').off('change').on('change', function (e) {
                 console.log('Principal file selected');
                 handleSignatureUpload(e, 'principal');
             });
-            
+
             // Teacher text change event
-            $("[id*=TeacherSignTextBox]").off('input').on('input', function() {
+            $("[id*=TeacherSignTextBox]").off('input').on('input', function () {
                 $('.Teacher').text($(this).val());
             });
-            
+
             // Head teacher text change event
-            $("[id*=HeadTeacherSignTextBox]").off('input').on('input', function() {
+            $("[id*=HeadTeacherSignTextBox]").off('input').on('input', function () {
                 $('.Head').text($(this).val());
             });
         }
 
-        function handleSignatureUpload(event, signatureType) {
-            var file = event.target.files[0];
-            if (!file) return;
-            
-            console.log('Processing signature upload:', signatureType, file.name);
-            
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var imageData = e.target.result.split(',')[1]; // Get base64 data
-                
-                // Save to database via WebMethod
-                $.ajax({
-                    type: "POST",
-                    url: "BanglaResult.aspx/SaveSignature",
-                    data: JSON.stringify({ 
-                        signatureType: signatureType, 
-                        imageData: imageData 
-                    }),
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    success: function(response) {
-                        console.log('Signature saved:', response);
-                        // Reload signatures
-                        loadDatabaseSignatures();
-                    },
-                    error: function(error) {
-                        console.error('Error saving signature:', error);
-                    }
-                });
-            };
-            reader.readAsDataURL(file);
-        }
+        // ============================================
+        // SIGNATURE LOADING - COMPLETE WORKING VERSION
+        // ============================================
 
         function loadSignatureImage(imagePath, signatureType) {
-            var targetElement = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
+            var targetClass = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
+            if (!imagePath) { console.log('No path for', signatureType); return; }
 
-            console.log('Loading signature for:', signatureType, 'Target:', targetElement, 'Path:', imagePath);
-            console.log('Target element count:', $(targetElement).length);
-
-            if (!imagePath || imagePath.trim() === '') {
-                console.log('No signature path provided for:', signatureType);
-                return;
-            }
-
-            // Create image with error handling and retry logic
             var img = new Image();
-            var retryCount = 0;
-            var maxRetries = 3;
-
             img.onload = function () {
-                console.log('✅ Signature loaded successfully for', signatureType);
-                var $img = $("<img />");
-                $img.attr("style", "height:35px;width:80px;object-fit:contain;");
-                $img.attr("src", imagePath);
-                $img.attr("alt", signatureType + " signature");
-                
-                // Clear existing content and add new image
-                $(targetElement).empty().html($img);
-                console.log('Image injected into', targetElement);
-                
-                // Force visibility
-                $(targetElement).css({
-                    'display': 'block',
-                    'visibility': 'visible',
-                    'opacity': '1',
-                    'min-height': '40px'
+                $(targetClass).each(function () {
+                    $(this).empty().append($('<img>').attr({
+                        'src': imagePath,
+                        'style': 'height:35px;width:80px;object-fit:contain;'
+                    })).css({
+                        'display': 'flex',
+                        'visibility': 'visible',
+                        'min-height': '40px'
+                    });
                 });
+                console.log('?', signatureType, 'loaded -', $(targetClass + ' img').length, 'images');
             };
+            img.onerror = function () { console.error('? Failed:', signatureType); };
+            img.src = imagePath + (imagePath.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now();
+        }
 
-            img.onerror = function() {
-                retryCount++;
-                console.error('❌ Failed to load signature:', imagePath, 'Retry:', retryCount);
-                
-                if (retryCount < maxRetries) {
-                    // Retry with cache-busting parameter
-                    setTimeout(function() {
-                        var timestamp = new Date().getTime();
-                        var newPath = imagePath + (imagePath.indexOf('?') > -1 ? '&' : '?') + 't=' + timestamp;
-                        console.log('Retrying with path:', newPath);
-                        img.src = newPath;
-                    }, 500 * retryCount);
-                } else {
-                    console.error('Max retries reached for signature:', signatureType);
-                }
-            };
+        function loadDatabaseSignatures() {
+            console.log('?? Loading signatures...');
+            try {
+                var logoSrc = $('img[src*="SchoolLogo"]').first().attr('src');
+                var schoolId = logoSrc ? logoSrc.match(/SLogo=(\d+)/)?.[1] : null;
+                if (!schoolId) { console.error('? No SchoolID'); return; }
+                console.log('?? SchoolID:', schoolId);
 
-            // Add cache-busting parameter for first load
-            var timestamp = new Date().getTime();
-            var loadPath = imagePath + (imagePath.indexOf('?') > -1 ? '&' : '?') + 't=' + timestamp;
-            console.log('Initial load path:', loadPath);
-            img.src = loadPath;
+                var teacherPath = $("[id$='HiddenTeacherSign']").val() || '/Handeler/Sign_Teacher.ashx?sign=' + schoolId;
+                var principalPath = $("[id$='HiddenPrincipalSign']").val() || '/Handeler/Sign_Principal.ashx?sign=' + schoolId;
+
+                loadSignatureImage(teacherPath, 'teacher');
+                loadSignatureImage(principalPath, 'principal');
+
+                setTimeout(function () {
+                    console.log('?? Teacher:', $('.SignTeacher img').length, 'Principal:', $('.SignHead img').length);
+                }, 2000);
+            } catch (error) { console.error('? Error:', error); }
         }
 
         // Number language toggle functionality
@@ -1003,13 +956,66 @@
 
         function toggleNumberLanguage() {
             isNumbersBengali = !isNumbersBengali;
-            
+
             if (isNumbersBengali) {
                 convertNumbersToBengali();
                 $('#NumberToggleButton').html('<i class="fa fa-language"></i> English সংখ্যা').removeClass('btn-warning').addClass('btn-info');
             } else {
                 convertNumbersToEnglish();
                 $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
+            }
+        }
+
+        function convertNumbersToBengali() {
+            console.log('Converting numbers to Bengali...');
+            
+            var bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+            
+            $('.result-card').find('td, th, span, div, p').not('.date-text-display').each(function() {
+                var $element = $(this);
+                
+                // Skip if already converted or has child elements
+                if ($element.data('original-number') || $element.children().length > 0) return;
+                
+                var text = $element.text();
+                var originalText = text;
+                
+                // Convert English digits to Bengali
+                var convertedText = text.replace(/[0-9]/g, function(digit) {
+                    return bengaliDigits[parseInt(digit)];
+                });
+                
+                if (originalText !== convertedText) {
+                    $element.data('original-number', originalText);
+                    $element.text(convertedText);
+                }
+            });
+            
+            console.log('✅ Numbers converted to Bengali');
+        }
+
+        function convertNumbersToEnglish() {
+            console.log('Converting numbers to English...');
+            
+            $('.result-card').find('td, th, span, div, p').each(function() {
+                var $element = $(this);
+                var originalNumber = $element.data('original-number');
+                
+                if (originalNumber) {
+                    $element.text(originalNumber);
+                    $element.removeData('original-number');
+                }
+            });
+            
+            console.log('✅ Numbers converted to English');
+        }
+
+        function convertNumbersAfterPostback() {
+            // Auto-apply conversion after postback if toggle is in Bengali mode
+            if (isNumbersBengali) {
+                setTimeout(function() {
+                    convertNumbersToBengali();
+                }, 200);
             }
         }
 
@@ -1020,22 +1026,22 @@
                 console.log('Print already in progress, ignoring duplicate call');
                 return false;
             }
-            
+
             isPrinting = true;
             console.log('🖨️ Print initiated');
-            
+
             try {
                 window.print();
             } catch (error) {
                 console.error('Print error:', error);
             }
-            
+
             // Reset flag after print dialog closes
-            setTimeout(function() {
+            setTimeout(function () {
                 isPrinting = false;
                 console.log('Print flag reset');
             }, 1000);
-            
+
             return false;
         }
 
@@ -1044,17 +1050,17 @@
             console.log('📄 Page loaded - checking for results...');
 
             // Re-initialize date picker after postback and update date display
-            setTimeout(function() {
+            setTimeout(function () {
                 initializeDatePicker();
                 updateResultDate();
-                
+
                 // Force display of all date elements after postback
                 $('.result-date-display, .footer-date-display').css({
                     'display': 'block',
                     'visibility': 'visible',
                     'opacity': '1'
                 });
-                
+
                 console.log('Date elements after postback:', {
                     resultDateDisplay: $('.result-date-display').length,
                     footerDisplay: $('.footer-date-display').length,
@@ -1063,29 +1069,29 @@
             }, 100);
 
             var hasResults = $('.result-card').length > 0;
-            
+
             console.log('Results found:', hasResults, 'Count:', $('.result-card').length);
 
             if (hasResults) {
                 console.log('✅ Results detected - showing controls');
-                
+
                 // Show print and toggle buttons with Font Awesome icons
                 $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
                 $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').show();
-                
+
                 // Reset number toggle to English
                 $('#NumberToggleButton').removeClass('btn-info').addClass('btn-warning');
                 isNumbersBengali = false;
 
                 // Load database signatures
-                setTimeout(function() {
+                setTimeout(function () {
                     loadDatabaseSignatures();
                 }, 200);
 
                 // Apply postback conversions
                 if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
                     console.log('Partial postback detected - applying conversions');
-                    setTimeout(function() {
+                    setTimeout(function () {
                         convertNumbersAfterPostback();
                         updateSignatureTexts();
                     }, 300);
@@ -1106,9 +1112,9 @@
             // ============================================
             console.log('Step 1: Initializing date picker...');
             initializeDatePicker();
-            
+
             // Force initial date update after a short delay
-            setTimeout(function() {
+            setTimeout(function () {
                 updateResultDate();
                 // Force display of all date elements
                 $('.result-date-display, .footer-date-display').css({
@@ -1131,7 +1137,7 @@
             // ============================================
             if ($('.result-card').length > 0) {
                 console.log('Step 3: Results already loaded, loading signatures...');
-                setTimeout(function() {
+                setTimeout(function () {
                     loadDatabaseSignatures();
                     console.log('✅ Database signatures loaded');
                 }, 300);
@@ -1155,27 +1161,27 @@
             // ============================================
             $("[id*=LoadResultsButton]").click(function () {
                 console.log('🔄 LOAD button clicked - showing progress bar...');
-                
+
                 // Show progress bar
                 ProgressBarManager.show();
 
                 // After postback, check for results with increased delay
                 setTimeout(function () {
                     console.log('Checking for results after delay...');
-                    
+
                     if ($('.result-card').length > 0) {
                         console.log('✅ Results loaded successfully, count:', $('.result-card').length);
-                        
+
                         // Show controls with Font Awesome icons
                         $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা')
                             .removeClass('btn-info').addClass('btn-warning').show();
                         $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
                         isNumbersBengali = false;
-                        
+
                         // Update date display after results load
-                        setTimeout(function() {
+                        setTimeout(function () {
                             updateResultDate();
-                            
+
                             // Force display of date elements
                             $('.result-date-display, .footer-date-display').css({
                                 'display': 'block',
@@ -1185,16 +1191,16 @@
                         }, 300);
 
                         // Load database signatures with delay to ensure DOM is ready
-                        setTimeout(function() {
+                        setTimeout(function () {
                             console.log('Loading signatures...');
                             loadDatabaseSignatures();
-                            
+
                             // Double-check signature loading after a short delay
-                            setTimeout(function() {
+                            setTimeout(function () {
                                 var teacherCount = $('.SignTeacher img').length;
                                 var principalCount = $('.SignHead img').length;
                                 console.log('Signature check - Teacher:', teacherCount, 'Principal:', principalCount);
-                                
+
                                 if (teacherCount === 0 || principalCount === 0) {
                                     console.log('Signatures missing, retrying...');
                                     loadDatabaseSignatures();
@@ -1203,7 +1209,7 @@
                         }, 500);
 
                         // Force complete progress bar with additional delay
-                        setTimeout(function() {
+                        setTimeout(function () {
                             console.log('Completing progress bar...');
                             ProgressBarManager.forceComplete();
                         }, 3500); // Increased to 3.5 seconds for full loading
@@ -1217,7 +1223,7 @@
             // ============================================
             // 6. Date Picker Change Handler
             // ============================================
-            $('#ResultDatePicker').on('change', function() {
+            $('#ResultDatePicker').on('change', function () {
                 console.log('📅 Date changed:', this.value);
                 updateResultDate();
             });

@@ -722,7 +722,7 @@ h3 {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        min-width: 75px !important;
+        min-width: 90px !important;
     }
 
 /* Warning button for number toggle */
