@@ -1,6 +1,14 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="BanglaResult.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Bangla_Result_DirectPrint" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+    <!-- Font Awesome CDN - Latest Version with Fallback -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Fallback to Font Awesome 4.7 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" 
+          crossorigin="anonymous" />
+    
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
     
@@ -8,6 +16,35 @@
     <link href="Assets/bangla-result-directprint.css" rel="stylesheet" type="text/css" />
 
     <style>
+        /* Font Awesome icon fallback fix */
+        .fa, .fas, .far, .fal, .fab {
+            font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome !important;
+            font-weight: 900;
+        }
+        
+        /* Ensure icons are visible */
+        .btn i.fa, .btn i.fas {
+            margin-right: 5px;
+            display: inline-block;
+            font-style: normal;
+        }
+        
+        /* Signature display fix */
+        .SignTeacher, .SignHead {
+            min-height: 40px !important;
+            display: flex !important;
+            align-items: flex-end !important;
+            justify-content: center !important;
+            visibility: visible !important;
+        }
+        
+        .SignTeacher img, .SignHead img {
+            max-height: 35px !important;
+            max-width: 80px !important;
+            object-fit: contain !important;
+            display: block !important;
+            visibility: visible !important;
+        }
     </style>
 </asp:Content>
 
@@ -155,13 +192,13 @@
                         <asp:Button ID="LoadResultsButton" runat="server" Text="LOAD" 
                             CssClass="btn btn-success btn-sm" OnClick="LoadResultsButton_Click" 
                             style="flex: 1; height: 34px;" />
-                        <button type="button" onclick="window.print()" class="btn btn-primary btn-sm" 
+                        <button type="button" onclick="printResults()" class="btn btn-primary btn-sm" 
                             id="PrintButton" style="display:none; flex: 1; height: 34px;">
-                            PRINT
+                            <i class="fa fa-print"></i> PRINT
                         </button>
                         <button type="button" onclick="toggleNumberLanguage()" class="btn btn-warning btn-sm" 
                             id="NumberToggleButton" style="display:none; flex: 1; height: 34px; margin-left: 5px;">
-                            বাংলা সংখ্যা
+                            <i class="fa fa-language"></i> বাংলা সংখ্যা
                         </button>
                     </div>
                 </div>
@@ -782,7 +819,7 @@
                 
                 // Bengali month names
                 var bengaliMonths = [
-                    'জানুয়ারী', 'ফেব্রুয়ারী', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
+                    'জানুয়ারী', 'ফেব্রুয়ারী', 'মার্চ', 'এপ্রি্েল', 'মে', 'জুন',
                     'জুলাই', 'আগষ্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
                 ];
                 
@@ -904,22 +941,61 @@
         function loadSignatureImage(imagePath, signatureType) {
             var targetElement = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
 
-            console.log('Loading signature for:', signatureType, 'Target:', targetElement, 'Count:', $(targetElement).length);
+            console.log('Loading signature for:', signatureType, 'Target:', targetElement, 'Path:', imagePath);
+            console.log('Target element count:', $(targetElement).length);
 
+            if (!imagePath || imagePath.trim() === '') {
+                console.log('No signature path provided for:', signatureType);
+                return;
+            }
+
+            // Create image with error handling and retry logic
             var img = new Image();
+            var retryCount = 0;
+            var maxRetries = 3;
+
             img.onload = function () {
+                console.log('✅ Signature loaded successfully for', signatureType);
                 var $img = $("<img />");
                 $img.attr("style", "height:35px;width:80px;object-fit:contain;");
                 $img.attr("src", imagePath);
-                $(targetElement).html($img);
-                console.log('Signature loaded successfully for', signatureType);
+                $img.attr("alt", signatureType + " signature");
+                
+                // Clear existing content and add new image
+                $(targetElement).empty().html($img);
+                console.log('Image injected into', targetElement);
+                
+                // Force visibility
+                $(targetElement).css({
+                    'display': 'block',
+                    'visibility': 'visible',
+                    'opacity': '1',
+                    'min-height': '40px'
+                });
             };
 
             img.onerror = function() {
-                console.error('Failed to load signature image:', imagePath);
+                retryCount++;
+                console.error('❌ Failed to load signature:', imagePath, 'Retry:', retryCount);
+                
+                if (retryCount < maxRetries) {
+                    // Retry with cache-busting parameter
+                    setTimeout(function() {
+                        var timestamp = new Date().getTime();
+                        var newPath = imagePath + (imagePath.indexOf('?') > -1 ? '&' : '?') + 't=' + timestamp;
+                        console.log('Retrying with path:', newPath);
+                        img.src = newPath;
+                    }, 500 * retryCount);
+                } else {
+                    console.error('Max retries reached for signature:', signatureType);
+                }
             };
 
-            img.src = imagePath;
+            // Add cache-busting parameter for first load
+            var timestamp = new Date().getTime();
+            var loadPath = imagePath + (imagePath.indexOf('?') > -1 ? '&' : '?') + 't=' + timestamp;
+            console.log('Initial load path:', loadPath);
+            img.src = loadPath;
         }
 
         // Number language toggle functionality
@@ -930,97 +1006,37 @@
             
             if (isNumbersBengali) {
                 convertNumbersToBengali();
-                $('#NumberToggleButton').html('English সংখ্যা').removeClass('btn-warning').addClass('btn-info');
+                $('#NumberToggleButton').html('<i class="fa fa-language"></i> English সংখ্যা').removeClass('btn-warning').addClass('btn-info');
             } else {
                 convertNumbersToEnglish();
-                $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
+                $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
             }
         }
 
-        function convertNumbersToBengali() {
-            $('.result-card').each(function() {
-                $(this).find('td, th, p, span, .summary-values td, .info-table td').each(function() {
-                    var $element = $(this);
-                    var text = $element.text();
-                    if (text && /\d/.test(text)) {
-                        var bengaliText = text.replace(/\d/g, function(match) {
-                            return convertEnglishToBengaliDigit(match);
-                        });
-                        $element.text(bengaliText);
-                    }
-                });
-            });
-        }
-
-        function convertNumbersToEnglish() {
-            $('.result-card').each(function() {
-                $(this).find('td, th, p, span, .summary-values td, .info-table td').each(function() {
-                    var $element = $(this);
-                    var text = $element.text();
-                    if (text && /[০-৯]/.test(text)) {
-                        var englishText = text.replace(/[০-৯]/g, function(match) {
-                            return convertBengaliToEnglishDigit(match);
-                        });
-                        $element.text(englishText);
-                    }
-                });
-            });
-        }
-
-        function convertEnglishToBengaliDigit(digit) {
-            var bengaliDigits = {
-                '0': '০', '1': '১', '2': '২', '3': '৩', '৪': '৪',
-                '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
-            };
-            return bengaliDigits[digit] || digit;
-        }
-
-        function convertBengaliToEnglishDigit(digit) {
-            var englishDigits = {
-                '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
-                '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
-            };
-            return englishDigits[digit] || digit;
-        }
-
-        function convertNumbersAfterPostback() {
-            // Apply number conversion if toggle is active
-            if (typeof isNumbersBengali !== 'undefined' && isNumbersBengali) {
-                convertNumbersToBengali();
+        // Print function to prevent double-click issue
+        var isPrinting = false;
+        function printResults() {
+            if (isPrinting) {
+                console.log('Print already in progress, ignoring duplicate call');
+                return false;
             }
-        }
-
-        // ============================================
-        // NEW: Core Initialization Functions
-        // ============================================
-
-        function loadDatabaseSignatures() {
+            
+            isPrinting = true;
+            console.log('🖨️ Print initiated');
+            
             try {
-                console.log('Loading database signatures...');
-                
-                // Get signature paths from hidden fields
-                var teacherSignPath = $("[id*=HiddenTeacherSign]").val();
-                var principalSignPath = $("[id*=HiddenPrincipalSign]").val();
-                
-                console.log('Teacher signature path:', teacherSignPath);
-                console.log('Principal signature path:', principalSignPath);
-                
-                // Load teacher signature if available
-                if (teacherSignPath && teacherSignPath.trim() !== '') {
-                    loadSignatureImage(teacherSignPath, 'teacher');
-                } else {
-                    console.log('No teacher signature in database');
-                }
-                
-                // Load principal signature if available
-                if (principalSignPath && principalSignPath.trim() !== '') {
-                    loadSignatureImage(principalSignPath, 'principal');
-                } else {
-                    console.log('No principal signature in database');
-                }
+                window.print();
             } catch (error) {
-                console.error('Error loading database signatures:', error);
+                console.error('Print error:', error);
             }
+            
+            // Reset flag after print dialog closes
+            setTimeout(function() {
+                isPrinting = false;
+                console.log('Print flag reset');
+            }, 1000);
+            
+            return false;
         }
 
         // ASP.NET Postback Handler
@@ -1053,12 +1069,12 @@
             if (hasResults) {
                 console.log('✅ Results detected - showing controls');
                 
-                // Show print and toggle buttons
-                $('#PrintButton').show();
-                $('#NumberToggleButton').show();
+                // Show print and toggle buttons with Font Awesome icons
+                $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
+                $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').show();
                 
                 // Reset number toggle to English
-                $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
+                $('#NumberToggleButton').removeClass('btn-info').addClass('btn-warning');
                 isNumbersBengali = false;
 
                 // Load database signatures
@@ -1126,10 +1142,10 @@
             // ============================================
             if ($('.result-card').length > 0) {
                 console.log('Step 4: Showing control buttons...');
-                $('#NumberToggleButton').show();
-                $('#PrintButton').show();
+                $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').show();
+                $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
                 // Set initial button state
-                $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
+                $('#NumberToggleButton').removeClass('btn-info').addClass('btn-warning');
                 isNumbersBengali = false;
                 console.log('✅ Control buttons shown');
             }
@@ -1143,43 +1159,59 @@
                 // Show progress bar
                 ProgressBarManager.show();
 
-                // After postback, check for results
+                // After postback, check for results with increased delay
                 setTimeout(function () {
                     console.log('Checking for results after delay...');
                     
                     if ($('.result-card').length > 0) {
-                        console.log('✅ Results loaded successfully');
+                        console.log('✅ Results loaded successfully, count:', $('.result-card').length);
                         
-                        // Show controls
-                        $('#NumberToggleButton').show();
-                        $('#PrintButton').show();
-                        
-                        // Set initial button state
-                        $('#NumberToggleButton').html('বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
+                        // Show controls with Font Awesome icons
+                        $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা')
+                            .removeClass('btn-info').addClass('btn-warning').show();
+                        $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
                         isNumbersBengali = false;
                         
                         // Update date display after results load
-                        updateResultDate();
-                        
-                        // Force display of date elements
-                        $('.result-date-display, .footer-date-display').css({
-                            'display': 'block',
-                            'visibility': 'visible',
-                            'opacity': '1'
-                        });
-
-                        // Load database signatures
                         setTimeout(function() {
-                            loadDatabaseSignatures();
-                        }, 200);
+                            updateResultDate();
+                            
+                            // Force display of date elements
+                            $('.result-date-display, .footer-date-display').css({
+                                'display': 'block',
+                                'visibility': 'visible',
+                                'opacity': '1'
+                            });
+                        }, 300);
 
-                        // Force complete progress bar
-                        ProgressBarManager.forceComplete();
+                        // Load database signatures with delay to ensure DOM is ready
+                        setTimeout(function() {
+                            console.log('Loading signatures...');
+                            loadDatabaseSignatures();
+                            
+                            // Double-check signature loading after a short delay
+                            setTimeout(function() {
+                                var teacherCount = $('.SignTeacher img').length;
+                                var principalCount = $('.SignHead img').length;
+                                console.log('Signature check - Teacher:', teacherCount, 'Principal:', principalCount);
+                                
+                                if (teacherCount === 0 || principalCount === 0) {
+                                    console.log('Signatures missing, retrying...');
+                                    loadDatabaseSignatures();
+                                }
+                            }, 1000);
+                        }, 500);
+
+                        // Force complete progress bar with additional delay
+                        setTimeout(function() {
+                            console.log('Completing progress bar...');
+                            ProgressBarManager.forceComplete();
+                        }, 3500); // Increased to 3.5 seconds for full loading
                     } else {
                         console.log('❌ No results found');
                         ProgressBarManager.completeWithMessage('লোডিং সম্পন্ন', 'কোন ফলাফল পাওয়া যায়নি');
                     }
-                }, 1000);
+                }, 4000); // Increased main delay to 4 seconds for server processing
             });
 
             // ============================================
@@ -1191,12 +1223,9 @@
             });
 
             // ============================================
-            // 7. Print Button Handler
+            // 7. Print Button - Remove inline handler, use dedicated function
             // ============================================
-            $('#PrintButton').click(function() {
-                console.log('🖨️ Print button clicked');
-                window.print();
-            });
+            // Print function is now handled by printResults() function
 
             console.log('✅ All initialization complete!');
         });
