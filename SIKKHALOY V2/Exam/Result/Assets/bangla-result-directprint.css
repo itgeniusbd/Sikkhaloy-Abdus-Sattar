@@ -954,26 +954,25 @@ h3 {
         }
 
         /* School Name Logo Header Styles - Full Width Center */
-        .school-name-logo-header {
-            width: 100%;
-            text-align: center;
-            padding: 10px 0;
-            position: relative;
-            min-height: 130px;
-            display: block;
-            background: transparent;
-        }
-
-        .school-name-logo-img {
-            max-width: 70%;
-            max-height: 110px;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-            object-fit: contain;
-            position: relative;
-            z-index: 1;
-        }
+.school-name-logo-header {
+    width: 100% 1057.78px;
+    text-align: center;
+    padding: 5px 0;
+    position: relative;
+    min-height: 100px;
+    display: block;
+    background: transparent;
+}
+.school-name-logo-img {
+    max-width: 64%;
+    max-height: 90px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
 
         .student-photo-logo {
             position: absolute;
