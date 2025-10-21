@@ -300,11 +300,15 @@ h3 {
 }
 
 .Exam_name {
-    text-align: center;
     font-weight: bold;
-    margin: 5px 0;
+    margin: 0px 470px;
     color: #0072bc;
-    font-size: 18px;
+    font-size: 22px;
+    background: #cee1a2;
+    max-width: 20%;
+    text-align: center;
+    border-radius: 5px;
+    padding: 2px;
 }
 
 .top-section {

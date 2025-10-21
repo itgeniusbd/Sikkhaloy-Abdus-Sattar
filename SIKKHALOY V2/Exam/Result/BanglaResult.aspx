@@ -297,7 +297,7 @@
 
                     <!-- Title Section -->
                     <div >
-                       <p class="Exam_name">Result Card</p>
+                       <p class="Exam_name">নম্বর পত্র</p>
                         <p class="title"><%# Eval("ExamName") %></p>
                     </div>
 
