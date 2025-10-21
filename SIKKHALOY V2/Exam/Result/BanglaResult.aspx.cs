@@ -631,12 +631,78 @@ namespace EDUCATION.COM.Exam.Result
         {
             if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
             {
+                // Bind grading system data
                 Repeater gradingSystemRepeater = (Repeater)e.Item.FindControl("GradingSystemRepeater");
                 if (gradingSystemRepeater != null)
                 {
                     DataTable gradingData = GetGradingSystemData();
                     gradingSystemRepeater.DataSource = gradingData;
                     gradingSystemRepeater.DataBind();
+                }
+
+                // Handle dynamic header display based on School Name Logo
+                if (Session["SchoolID"] != null)
+                {
+                    int schoolId = Convert.ToInt32(Session["SchoolID"]);
+                    bool hasSchoolNameLogo = CheckSchoolNameLogoExists(schoolId);
+
+                    System.Diagnostics.Debug.WriteLine($"BanglaResult ItemDataBound - SchoolID: {schoolId}, HasLogo: {hasSchoolNameLogo}");
+
+                    var schoolNameLogoPanel = e.Item.FindControl("SchoolNameLogoHeaderPanel") as Panel;
+                    var traditionalHeaderPanel = e.Item.FindControl("TraditionalHeaderPanel") as Panel;
+
+                    if (schoolNameLogoPanel != null && traditionalHeaderPanel != null)
+                    {
+                        if (hasSchoolNameLogo)
+                        {
+                            System.Diagnostics.Debug.WriteLine("BanglaResult - Showing School Name Logo, Hiding Traditional Header");
+
+                            // Show school name logo panel - full width center
+                            schoolNameLogoPanel.CssClass = "show-panel";
+                            schoolNameLogoPanel.Style.Clear();
+                            schoolNameLogoPanel.Style.Add("display", "block");
+                            schoolNameLogoPanel.Style.Add("visibility", "visible");
+                            schoolNameLogoPanel.Style.Add("width", "100%");
+
+                            // Set the school name logo image
+                            var schoolNameLogoImage = e.Item.FindControl("SchoolNameLogoImage") as System.Web.UI.HtmlControls.HtmlImage;
+                            if (schoolNameLogoImage != null)
+                            {
+                                schoolNameLogoImage.Src = string.Format("/Handeler/SchoolNameLogo.ashx?SchoolID={0}&t={1}", schoolId, DateTime.Now.Ticks);
+                                System.Diagnostics.Debug.WriteLine($"BanglaResult - School Name Logo Image URL: {schoolNameLogoImage.Src}");
+                            }
+
+                            // Completely hide traditional header
+                            traditionalHeaderPanel.CssClass = "hide-panel";
+                            traditionalHeaderPanel.Style.Clear();
+                            traditionalHeaderPanel.Style.Add("display", "none");
+                            traditionalHeaderPanel.Style.Add("visibility", "hidden");
+                            traditionalHeaderPanel.Style.Add("position", "absolute");
+                            traditionalHeaderPanel.Style.Add("left", "-9999px");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("BanglaResult - Showing Traditional Header, Hiding School Name Logo");
+
+                            // Completely hide school name logo panel
+                            schoolNameLogoPanel.CssClass = "hide-panel";
+                            schoolNameLogoPanel.Style.Clear();
+                            schoolNameLogoPanel.Style.Add("display", "none");
+                            schoolNameLogoPanel.Style.Add("visibility", "hidden");
+                            schoolNameLogoPanel.Style.Add("position", "absolute");
+                            schoolNameLogoPanel.Style.Add("left", "-9999px");
+
+                            // Show traditional header
+                            traditionalHeaderPanel.CssClass = "show-panel";
+                            traditionalHeaderPanel.Style.Clear();
+                            traditionalHeaderPanel.Style.Add("display", "block");
+                            traditionalHeaderPanel.Style.Add("visibility", "visible");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"BanglaResult - Panel controls not found. SchoolNameLogoPanel: {schoolNameLogoPanel != null}, TraditionalHeaderPanel: {traditionalHeaderPanel != null}");
+                    }
                 }
             }
         }
@@ -1193,7 +1259,7 @@ namespace EDUCATION.COM.Exam.Result
                             }
                             else if (markValue == "0")
                             {
-                                markValue = "অনুপস্থিত";
+                                markValue = "অনুপাতিত";
                                 hasAbsentMarks = true;
                             }
 
@@ -1203,7 +1269,7 @@ namespace EDUCATION.COM.Exam.Result
                             // Calculate total if it's a valid numeric mark (not absent)
                             if (!string.IsNullOrEmpty(markValue) &&
                                 markValue != "A" &&
-                                markValue != "অনুপস্থিত" &&
+                                markValue != "অনুপাতিত" &&
                                 markValue != "-" &&
                                 decimal.TryParse(markValue, out decimal mark))
                             {
@@ -1436,7 +1502,7 @@ namespace EDUCATION.COM.Exam.Result
                 return studentIDs;
 
             // Split by comma and parse each ID
-            string[] idStrings = input.Split(new char[] { ',', '،' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] idStrings = input.Split(new char[] { ',', '۔' }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (string idString in idStrings)
             {
@@ -1766,6 +1832,74 @@ namespace EDUCATION.COM.Exam.Result
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error registering JavaScript for key '{key}': {ex.Message}");
+            }
+        }
+
+        // Method to check if School Name Logo exists for dynamic header display
+        private bool CheckSchoolNameLogoExists(int schoolId)
+        {
+            SqlConnection con = null;
+            try
+            {
+                var constr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                con = new SqlConnection(constr);
+                con.Open();
+
+                // First check if column exists
+                using (var checkCmd = new SqlCommand(
+                    @"IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SchoolInfo]') AND name = 'SchoolNameLogo')
+                      SELECT 1 ELSE SELECT 0", con))
+                {
+                    int columnExists = (int)checkCmd.ExecuteScalar();
+
+                    System.Diagnostics.Debug.WriteLine($"BanglaResult - SchoolNameLogo column exists: {columnExists == 1}");
+
+                    if (columnExists == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine("BanglaResult - Column does not exist, returning false");
+                        return false;
+                    }
+                }
+
+                // If column exists, check if logo exists for this school
+                using (var cmd = new SqlCommand("SELECT SchoolNameLogo FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                    var result = cmd.ExecuteScalar();
+
+                    System.Diagnostics.Debug.WriteLine($"BanglaResult - Query result: {(result == null ? "NULL" : result == DBNull.Value ? "DBNull" : "Has Data")}");
+
+                    // Check if logo exists and is not null/empty
+                    if (result != null && result != DBNull.Value)
+                    {
+                        byte[] logoData = result as byte[];
+                        var hasData = logoData != null && logoData.Length > 0;
+
+                        System.Diagnostics.Debug.WriteLine($"BanglaResult - Logo data length: {(logoData != null ? logoData.Length : 0)} bytes");
+                        System.Diagnostics.Debug.WriteLine($"BanglaResult - Returning: {hasData}");
+
+                        return hasData;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine("BanglaResult - No logo data found, returning false");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the error if needed
+                System.Diagnostics.Debug.WriteLine("BanglaResult - Error checking school name logo: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("BanglaResult - Stack trace: " + ex.StackTrace);
+                return false;
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
             }
         }
     }
