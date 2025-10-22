@@ -422,7 +422,7 @@ namespace EDUCATION.COM.Exam.Result
 
                         string noResultsMessage = isSearchingByID ?
                             "নির্দিষ্ট Student ID এর জন্য কোন ফলাফল পাওয়া যায়নি" :
-                            "নির্বাচিত শর্তের জন্য কোন ফলাফল পাওয়া যায়নি";
+                            "নির্বাচিত শর্তের জন্য কোন ফলাফল পাওয়া যাচ্ছেনা";
 
                         SafeRegisterStartupScript("nodata", $"alert('{EscapeForJavaScript(noResultsMessage)}');");
                     }
@@ -1016,31 +1016,25 @@ namespace EDUCATION.COM.Exam.Result
                     AND (Exam_Obtain_Marks.SubjectID = @SubjectID)
                     ORDER BY Exam_SubExam_Name.Sub_ExamSN";
 
-                using (SqlCommand cmd = new SqlCommand(query, con))
+            using (SqlCommand cmd = new SqlCommand(query, con))
+            {
+                cmd.CommandTimeout = 15;
+                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                cmd.Parameters.AddWithValue("@SubjectID", subjectID);
+
+                DataTable dt = new DataTable();
+                using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
                 {
-                    cmd.CommandTimeout = 15;
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                    cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-
-                    DataTable dt = new DataTable();
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
-                    {
-                        adapter.SelectCommand.CommandTimeout = 15;
-                        adapter.Fill(dt);
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"GetSubExamMarks: Subject {subjectID}: Found {dt.Rows.Count} sub-exam records for StudentResultID {studentResultID}");
-
-                    // Log the sub-exam details for debugging
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  Sub-exam: {row["SubExamName"]} = {row["MarksObtained"]}");
-                    }
-
-                    return dt;
+                    adapter.SelectCommand.CommandTimeout = 15;
+                    adapter.Fill(dt);
                 }
+
+                System.Diagnostics.Debug.WriteLine($"GetSubExamMarks: Subject {subjectID}: Found {dt.Rows.Count} records for StudentResultID {studentResultID}");
+
+                return dt;
+            }
             }
             catch (ThreadAbortException)
             {
@@ -1185,97 +1179,146 @@ namespace EDUCATION.COM.Exam.Result
         {
             try
             {
+                DataTable subjects = GetSubjectResults(studentResultID);
+                string resultComment = GetResultStatus(studentGrade, studentPoint);
+
+                if (subjects.Rows.Count == 0)
+                    return "<p>No subject data found</p>";
+
+                string tableSizeClass = GetTableCssClass(subjects.Rows.Count);
+
+                // Check if we have sub-exams to determine table structure
                 int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                
-                // Get subject results
-                DataTable subjectResults = GetSubjectResults(studentResultID);
-                
-                if (subjectResults.Rows.Count == 0)
-                {
-                    return "<p>No subject results found</p>";
-                }
-                
-                // Check if this exam has sub-exams
                 bool hasSubExams = HasSubExams(examID);
-                int subExamCount = hasSubExams ? GetSubExamCount(examID) : 0;
-                
-                // Build the table
-                StringBuilder tableHtml = new StringBuilder();
-                
-                // Get CSS class based on subject count
-                string tableCssClass = GetTableCssClass(subjectResults.Rows.Count);
-                
-                tableHtml.Append($"<table class=\"marks-table {tableCssClass}\">");
-                
-                // Table header
-                tableHtml.Append("<thead><tr>");
-                tableHtml.Append("<th>বিষয়</th>");
-                
-                if (hasSubExams && subExamCount > 0)
+                string subExamHeader = "";
+                int subExamCount = 0;
+
+                string html = @"<table class=""marks-table " + tableSizeClass + @""">";
+
+                if (hasSubExams)
                 {
-                    // Add sub-exam headers
-                    tableHtml.Append(GetSubExamHeaderNames(studentResultID));
+                    // Get actual sub-exam count and header names
+                    subExamCount = GetSubExamCount(examID);
+                    if (subExamCount > 0)
+                    {
+                        subExamHeader = GetSubExamHeaderNames(studentResultID);
+                    }
                 }
-                
-                tableHtml.Append("<th>প্রাপ্ত নম্বর</th>");
-                tableHtml.Append("<th>পূর্ণ মান</th>");
-                tableHtml.Append("<th>গ্রেড</th>");
-                tableHtml.Append("<th>পয়েন্ট</th>");
-                tableHtml.Append("</tr></thead>");
-                
-                // Table body
-                tableHtml.Append("<tbody>");
-                
-                foreach (DataRow row in subjectResults.Rows)
+
+                // Create header row - Dynamic structure based on actual sub-exam count
+                if (hasSubExams && subExamCount > 0 && !string.IsNullOrEmpty(subExamHeader))
+                {
+                    // Table structure WITH sub-exams:
+                    // Row 1: Subject (rowspan 2) | Obtained Marks (colspan = subExamCount + 1 for sub-exams + total) | Full Marks | Grade | Points | Vertical Result
+                    // Row 2: [Sub-exam headers in separate cells] + মোট নম্বর
+                    html += @"
+                        <tr>
+                            <th rowspan=""2"">বিষয়</th>
+                            <th colspan=""" + (subExamCount + 1) + @""">প্রাপ্ত নম্বর</th>
+                            <th rowspan=""2"">পূর্ণ নম্বর</th>
+                            <th rowspan=""2"">গ্রেড</th>
+                            <th rowspan=""2"">পয়েন্ট</th>
+                            
+                        </tr>
+                        <tr>" + subExamHeader + @"<th>মোট নম্বর</th></tr>";
+                }
+                else
+                {
+                    // No sub-exams - Simple table structure
+                    // Header: Subject | Obtained Marks | Full Marks | Grade | Points | Vertical Result
+                    html += @"
+                        <tr>
+                            <th>বিষয়</th>
+                            <th>প্রাপ্ত নম্বর</th>
+                            <th>পূর্ণ নম্বর</th>
+                            <th>গ্রেড</th>
+                            <th>পয়েন্ট</th>
+                            
+                        </tr>";
+                }
+
+                // Data rows
+                foreach (DataRow row in subjects.Rows)
                 {
                     string subjectName = GetSafeColumnValue(row, "SubjectName");
-                    int subjectID = Convert.ToInt32(row["SubjectID"]);
                     string obtainedMark = GetSafeColumnValue(row, "ObtainedMark_ofSubject");
-                    string totalMark = GetSafeColumnValue(row, "TotalMark_ofSubject");
-                    string subjectGrade = GetSafeColumnValue(row, "SubjectGrades");
+                    string fullMark = GetSafeColumnValue(row, "TotalMark_ofSubject");
+                    string subjectGrades = GetSafeColumnValue(row, "SubjectGrades");
                     decimal subjectPoint = GetSafeDecimalValue(row, "SubjectPoint");
                     string passStatus = GetSafeColumnValue(row, "PassStatus_Subject");
+                    int subjectID = Convert.ToInt32(GetSafeColumnValue(row, "SubjectID"));
+
+                    if (passStatus == "") passStatus = "Pass";
                     
-                    // Check if student is absent (A or 0)
-                    bool isAbsent = (obtainedMark == "A" || obtainedMark == "0");
-                    string displayObtainedMark = isAbsent ? "অনুপস্থিত" : obtainedMark;
-                    
-                    // Determine row class based on pass status
-                    string rowClass = (passStatus == "Fail") ? "failed-subject" : "";
-                    
-                    tableHtml.Append($"<tr class=\"{rowClass}\">");
-                    tableHtml.Append($"<td>{subjectName}</td>");
-                    
+                    // Check if failed - use Grade F OR PassStatus Fail
+                    bool isFailed = (subjectGrades.ToUpper() == "F" || passStatus == "Fail");
+                    string rowClass = isFailed ? "failed-row" : "";
+
+                    // Format marks display - show 'অনুপস্থিত' for absent students instead of 0
+                    string displayMark = (obtainedMark == "A" || obtainedMark == "0") ? "অনুপস্থিত" : obtainedMark;
+
                     if (hasSubExams && subExamCount > 0)
                     {
-                        // Get sub-exam marks for this subject
-                        var subExamResult = GetSubExamMarksForDisplay(studentResultID, subjectID, obtainedMark);
-                        tableHtml.Append(subExamResult.SubExamMarksCells);
-                        tableHtml.Append(subExamResult.TotalMarks);
+                        // Get dynamic sub-exam marks for this subject
+                        var subExamData = GetSubExamMarksForDisplay(studentResultID, subjectID, obtainedMark);
+
+                        // Row structure WITH sub-exams:
+                        // Subject Name | [Sub-exam marks cells] | Total Marks | Full Marks | Grade | Points
+                        html += @"
+                            <tr class=""" + rowClass + @""">
+                                <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
+                                " + subExamData.SubExamMarksCells + @"
+                                " + subExamData.TotalMarks + @"
+                                <td>" + fullMark + @"</td>
+                                <td>" + subjectGrades + @"</td>
+                                <td>" + subjectPoint.ToString("F1") + @"</td>
+                            </tr>";
                     }
                     else
                     {
-                        // No sub-exams, just show obtained mark
-                        tableHtml.Append($"<td>{displayObtainedMark}</td>");
+                        // No sub-exams - check if failed and add red background
+                        string omCellClass = "";
+                        bool isAbsent = (obtainedMark == "A" || obtainedMark == "0");
+                        
+                        if (isFailed && !isAbsent)
+                        {
+                            // Add red background for failed subject
+                            omCellClass = " class=\"failed-mark-bg\"";
+                        }
+                        else if (!isAbsent)
+                        {
+                            // Additional check: if marks are below 33% (pass mark)
+                            decimal om = 0;
+                            decimal tm = 0;
+                            if (decimal.TryParse(obtainedMark, out om) && decimal.TryParse(fullMark, out tm) && tm > 0)
+                            {
+                                decimal passMark = tm * 0.33m; // 33% pass mark
+                                if (om < passMark)
+                                {
+                                    omCellClass = " class=\"failed-mark-bg\"";
+                                }
+                            }
+                        }
+                        
+                        // Simple row structure WITHOUT sub-exams:
+                        // Subject Name | Obtained Marks | Full Marks | Grade | Points
+                        html += @"
+                            <tr class=""" + rowClass + @""">
+                                <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
+                                <td" + omCellClass + ">" + displayMark + @"</td>
+                                <td>" + fullMark + @"</td>
+                                <td>" + subjectGrades + @"</td>
+                                <td>" + subjectPoint.ToString("F1") + @"</td>
+                            </tr>";
                     }
-                    
-                    tableHtml.Append($"<td>{totalMark}</td>");
-                    tableHtml.Append($"<td>{subjectGrade}</td>");
-                    tableHtml.Append($"<td>{subjectPoint:F1}</td>");
-                    tableHtml.Append("</tr>");
                 }
-                
-                tableHtml.Append("</tbody>");
-                tableHtml.Append("</table>");
-                
-                // Result status is now shown in summary table, not here
-                
-                return tableHtml.ToString();
+
+                html += "</table>";
+                return html.ToString();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in GenerateSubjectMarksTable: {ex.Message}");
-                return "<p>Error generating subject marks table</p>";
+                return "<p>Error loading subject table: " + ex.Message + "</p>";
             }
         }
 
@@ -1458,9 +1501,9 @@ namespace EDUCATION.COM.Exam.Result
                     con2 = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                     con2.Open();
 
-                    string headerQuery = @"
-                        SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN, 
-                               eom.FullMark as FM, eom.PassMark as PM
+                    // First, get ALL possible sub-exams for this class/exam (not just for this subject)
+                    string allSubExamsQuery = @"
+                        SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN, esn.SubExamID
                         FROM Exam_SubExam_Name esn
                         INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
                         INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
@@ -1473,21 +1516,22 @@ namespace EDUCATION.COM.Exam.Result
                         AND eom.EducationYearID = @EducationYearID
                         ORDER BY esn.Sub_ExamSN";
 
-                    using (SqlCommand cmd2 = new SqlCommand(headerQuery, con2))
+                    using (SqlCommand allSubExamsCmd = new SqlCommand(allSubExamsQuery, con2))
                     {
-                        cmd2.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                        cmd2.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                        cmd2.Parameters.AddWithValue("@ExamID", examID);
-                        cmd2.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                        allSubExamsCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                        allSubExamsCmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                        allSubExamsCmd.Parameters.AddWithValue("@ExamID", examID);
+                        allSubExamsCmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
 
-                        DataTable subExamHeaders = new DataTable();
-                        using (SqlDataAdapter adapter = new SqlDataAdapter(cmd2))
+                        DataTable allSubExamHeaders = new DataTable();
+                        using (SqlDataAdapter adapter = new SqlDataAdapter(allSubExamsCmd))
                         {
-                            adapter.Fill(subExamHeaders);
+                            adapter.Fill(allSubExamHeaders);
                         }
 
+                        // Now get marks for THIS specific subject
                         string studentMarksQuery = @"
-                            SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN,
+                            SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN, esn.SubExamID,
                                    ISNULL(CAST(eom.MarksObtained AS varchar(10)), '-') as MarksObtained,
                                    eom.FullMark as FM, eom.PassMark as PM
                             FROM Exam_SubExam_Name esn
@@ -1511,49 +1555,64 @@ namespace EDUCATION.COM.Exam.Result
                                 adapter.Fill(studentMarks);
                             }
 
-                            Dictionary<string, (string marks, decimal pm, decimal fm)> marksDict = new Dictionary<string, (string, decimal, decimal)>();
+                            // Create dictionary of marks for this subject using SubExamID as key
+                            Dictionary<int, (string marks, decimal pm, decimal fm)> marksDict = new Dictionary<int, (string, decimal, decimal)>();
                             foreach (DataRow markRow in studentMarks.Rows)
                             {
-                                string subExamName = markRow["SubExamName"].ToString();
+                                int subExamID = Convert.ToInt32(markRow["SubExamID"]);
                                 string markValue = markRow["MarksObtained"]?.ToString() ?? "-";
                                 decimal pm = markRow["PM"] != DBNull.Value ? Convert.ToDecimal(markRow["PM"]) : 0;
                                 decimal fm = markRow["FM"] != DBNull.Value ? Convert.ToDecimal(markRow["FM"]) : 0;
-                                marksDict[subExamName] = (markValue, pm, fm);
+                                marksDict[subExamID] = (markValue, pm, fm);
                             }
 
+                            // Now generate cells for ALL sub-exams (even if this subject doesn't have marks for some)
                             string cellsHtml = "";
                             decimal totalMarks = 0;
                             bool hasValidMarks = false;
                             bool hasAbsentMarks = false;
+                            int subjectSubExamCount = 0; // Count how many sub-exams this subject actually has
 
-                            foreach (DataRow headerRow in subExamHeaders.Rows)
+                            foreach (DataRow headerRow in allSubExamHeaders.Rows)
                             {
+                                int subExamID = Convert.ToInt32(headerRow["SubExamID"]);
                                 string subExamName = headerRow["SubExamName"].ToString();
                                 string markValue = "-";
                                 decimal passMark = 0;
 
-                                if (marksDict.ContainsKey(subExamName))
+                                // Check if this subject has marks for this sub-exam
+                                if (marksDict.ContainsKey(subExamID))
                                 {
-                                    markValue = marksDict[subExamName].marks;
-                                    passMark = marksDict[subExamName].pm;
+                                    markValue = marksDict[subExamID].marks;
+                                    passMark = marksDict[subExamID].pm;
+                                    subjectSubExamCount++; // Count this sub-exam for this subject
                                 }
 
                                 bool isAbsent = false;
+                                bool isNotApplicable = (markValue == "-"); // Not applicable for this subject
+
                                 if (markValue == "A")
                                 {
                                     markValue = "অনুপস্থিত";
                                     hasAbsentMarks = true;
                                     isAbsent = true;
                                 }
-                                else if (markValue == "0")
+                                else if (markValue == "0" && !isNotApplicable)
                                 {
-                                    markValue = "অনুপাতিত";
+                                    markValue = "০";
                                     hasAbsentMarks = true;
                                     isAbsent = true;
                                 }
 
                                 string cellClass = "";
-                                if (!isAbsent && markValue != "-")
+                                string cellStyle = "";
+                                
+                                // If this sub-exam is not applicable for this subject, add special styling
+                                if (isNotApplicable)
+                                {
+                                    cellStyle = " style=\"color: #999;\"";
+                                }
+                                else if (!isAbsent && markValue != "-")
                                 {
                                     decimal obtainedMark = 0;
                                     if (decimal.TryParse(markValue, out obtainedMark))
@@ -1567,9 +1626,10 @@ namespace EDUCATION.COM.Exam.Result
                                     }
                                 }
 
-                                cellsHtml += $"<td{cellClass}>{markValue}</td>";
+                                cellsHtml += $"<td{cellClass}{cellStyle}>{markValue}</td>";
                             }
 
+                            // Calculate total cell
                             string totalCell;
                             if (hasAbsentMarks)
                             {
@@ -1617,9 +1677,12 @@ namespace EDUCATION.COM.Exam.Result
                             }
                             else
                             {
+                                // No valid marks found, use original obtained mark if available
                                 string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
                                 totalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
                             }
+
+                            System.Diagnostics.Debug.WriteLine($"Subject {subjectID}: Generated {allSubExamHeaders.Rows.Count} cells (subject has marks for {subjectSubExamCount} sub-exams)");
 
                             return (cellsHtml, totalCell);
                         }

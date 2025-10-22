@@ -46,11 +46,11 @@ table.marks-table tr.failed-row td,
     font-weight: inherit !important;
 }
 
-/* Subject Name (First Cell) in Failed Row - Light Red Background */
+/* Subject Name (First Cell) in Failed Row - NO background, only red text */
 table.marks-table tr.failed-row td:first-child,
 .marks-table tr.failed-row td:first-child {
-    background-color: #ffe6e6 !important;
-    color: #d32f2f !important;
+    background-color: transparent !important; /* Remove background color */
+    color: #d32f2f !important; /* Keep red text color */
     font-weight: bold !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -155,11 +155,11 @@ table.marks-table tr.failed-row .grade-cell,
         font-weight: inherit !important;
     }
 
-    /* Subject Name in Failed Row - Print */
+    /* Subject Name in Failed Row - Print - NO background, only red text */
     table.marks-table tr.failed-row td:first-child,
     .marks-table tr.failed-row td:first-child {
-        background-color: #ffe6e6 !important;
-        color: #d32f2f !important;
+        background-color: transparent !important; /* Remove background color */
+        color: #d32f2f !important; /* Keep red text color */
         font-weight: bold !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -221,20 +221,8 @@ table.marks-table tr.failed-row .grade-cell,
         text-rendering: auto !important;
     }
 
-    /* Failed Subject Row Styling in Print */
-    .marks-table tr.failed-row {
-        background-color: #ffe6e6 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    .marks-table tr.failed-row td {
-        background-color: #ffe6e6 !important;
-        color: #d32f2f !important;
-        font-weight: bold !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
+    /* REMOVED: Old failed subject row styling that added background color */
+    /* We want transparent background, only red text for subject name */
 
     /* Ensure vertical text column is not affected in print */
     .marks-table tr.failed-row td.vertical-text {
@@ -362,6 +350,17 @@ table.marks-table tr.failed-row .grade-cell,
         font-size: 16px !important; /* Larger font for marks table */
         padding: 5px !important; /* More padding */
         font-family: Arial, sans-serif !important;
+    }
+
+    /* Subject name column - left aligned in print */
+    .marks-table td:first-child {
+        text-align: left !important;
+        padding-left: 10px !important;
+    }
+
+    .marks-table th:first-child {
+        text-align: left !important;
+        padding-left: 10px !important;
     }
 
     .marks-table th {
@@ -620,6 +619,14 @@ h3 {
         font-family: 'Kalpurush', Arial, sans-serif !important;
     }
 
+    /* Subject name column - left aligned */
+    .marks-table td:first-child {
+        text-align: left !important;
+        padding-left: 10px !important;
+    }
+
+
+
     .marks-table th {
         background: #d7ede1;
         font-size: 18px;
@@ -645,6 +652,12 @@ h3 {
         background: white;
         font-weight: bold;
         color: #0072bc;
+    }
+
+    /* Not applicable sub-exam cells - for subjects that don't have certain sub-exams */
+    .marks-table td[style*="background-color: #f5f5f5"] {
+        text-align: center;
+        font-style: italic;
     }
 
     /* Dynamic font sizes based on subject count - same as print view */
