@@ -288,7 +288,7 @@ BEGIN
 INSERT INTO Exam_Publish_Setting
                          (SchoolID, RegistrationID, EducationYearID, ClassID, ExamID, IS_Fail_Enable_Optional_Subject, IS_Add_Optional_Mark_In_FullMarks, IS_Enable_Grade_as_it_is_if_Fail, IS_Enable_Fail_if_fail_in_sub_Exam, 
                          Optional_Percentage_Deduction, IS_Published, Exam_Position_Format, IS_Hide_Sec_Position,IS_Hide_Class_Position, Attendance_FromDate, Attendance_ToDate,IS_Hide_FullMark,IS_Hide_PassMark,IS_Grade_BasePoint)
-VALUES        (@SchoolID,@RegistrationID,@EducationYearID,@ClassID,@ExamID,@IS_Fail_Enable_Optional_Subject,@IS_Add_Optional_Mark_In_FullMarks,@IS_Enable_Grade_as_it_is_if_Fail,@IS_Enable_Fail_if_fail_in_sub_Exam,@Optional_Percentage_Deduction,@IS_Published,@Exam_Position_Format,@IS_Hide_Sec_Position,@IS_Hide_Class_Position,@Attendance_FromDate,@Attendance_ToDate,@IS_Hide_FullMark,@IS_Hide_PassMark,@IS_Grade_BasePoint)
+VALUES        (@SchoolID,@RegistrationID,@EducationYearID,@ClassID,@ExamID,@IS_Fail_Enable_Optional_Subject,@IS_Add_Optional_Mark_In_FullMarks,@IS_Enable_Grade_as_it_is_if_Fail,@IS_Enable_Fail_if_fail_in_sub_Exam,@Optional_Percentage_Deduction,@IS_PUBLISHED,@Exam_Position_Format,@IS_Hide_Sec_Position,@IS_Hide_Class_Position,@Attendance_FromDate,@Attendance_ToDate,@IS_Hide_FullMark,@IS_Hide_PassMark,@IS_Grade_BasePoint)
 
 END
 ELSE
@@ -296,7 +296,7 @@ BEGIN
 UPDATE       Exam_Publish_Setting
 SET                IS_Fail_Enable_Optional_Subject = @IS_Fail_Enable_Optional_Subject, IS_Add_Optional_Mark_In_FullMarks = @IS_Add_Optional_Mark_In_FullMarks, 
                          IS_Enable_Grade_as_it_is_if_Fail = @IS_Enable_Grade_as_it_is_if_Fail, IS_Enable_Fail_if_fail_in_sub_Exam = @IS_Enable_Fail_if_fail_in_sub_Exam, 
-                         Optional_Percentage_Deduction = @Optional_Percentage_Deduction, IS_Published = @IS_Published, Exam_Position_Format = @Exam_Position_Format, Last_Published_Date = GETDATE(), 
+                         Optional_Percentage_Deduction = @Optional_Percentage_Deduction, IS_PUBLISHED = @IS_PUBLISHED, Exam_Position_Format = @Exam_Position_Format, Last_Published_Date = GETDATE(), 
                          IS_Hide_Sec_Position = @IS_Hide_Sec_Position,IS_Hide_Class_Position=@IS_Hide_Class_Position, Attendance_FromDate = @Attendance_FromDate, Attendance_ToDate = @Attendance_ToDate,IS_Hide_FullMark = @IS_Hide_FullMark,IS_Hide_PassMark = @IS_Hide_PassMark, IS_Grade_BasePoint=@IS_Grade_BasePoint
 WHERE        (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ExamID = @ExamID) AND (ClassID = @ClassID)
 
@@ -319,7 +319,7 @@ END"
                                     <asp:ControlParameter ControlID="Grade_AS_ItisCheckBox" Name="IS_Enable_Grade_as_it_is_if_Fail" PropertyName="Checked" />
                                     <asp:ControlParameter ControlID="SubExamFailCheckBox" Name="IS_Enable_Fail_if_fail_in_sub_Exam" PropertyName="Checked" />
                                     <asp:Parameter Name="Optional_Percentage_Deduction" />
-                                    <asp:Parameter DefaultValue="1" Name="IS_Published" />
+                                    <asp:Parameter DefaultValue="1" Name="IS_PUBLISHED" />
                                     <asp:ControlParameter ControlID="Position_RadioButtonList" DefaultValue="" Name="Exam_Position_Format" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="SectionPositionCheckBox" Name="IS_Hide_Sec_Position" PropertyName="Checked" />
                                     <asp:ControlParameter ControlID="ClassPositionCheckBox" Name="IS_Hide_Class_Position" PropertyName="Checked" />
@@ -392,28 +392,140 @@ FROM Exam_Obtain_Marks WHERE (SchoolID = @SchoolID) AND (EducationYearID = @Educ
         </ContentTemplate>
     </asp:UpdatePanel>
 
-    <asp:UpdateProgress ID="UpdateProgress" runat="server">
+    <asp:UpdateProgress ID="UpdateProgress" runat="server" AssociatedUpdatePanelID="UpdatePanel1" DisplayAfter="100">
         <ProgressTemplate>
-            <div id="progress_BG"></div>
-            <div id="progress">
-                <img src="/CSS/loading.gif" alt="Loading..." />
+            <div id="progress_BG" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 120; background-color: #000; opacity: 0.7; display: none;"></div>
+            <div id="progress" style="position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 200; display: none;">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="sr-only">Loading...</span>
+                </div>
                 <br />
-                <b>Loading...</b>
+                <b style="color: #003d5c; background-color: #ddd; padding: 5px 10px; border-radius: 5px; margin-top: 10px; display: inline-block;">Loading...</b>
             </div>
         </ProgressTemplate>
     </asp:UpdateProgress>
 
     <script type="text/javascript">
-        Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (a, b) {
-            $(".Datetime").datepicker({
-                format: 'dd M yyyy',
-                todayBtn: "linked",
-                todayHighlight: true,
-                autoclose: true
+        // Scoped to Publish_Result page only
+        (function() {
+            // Check if we're on the Publish_Result page
+            var isPublishResultPage = window.location.pathname.indexOf('Publish_Result.aspx') !== -1;
+            
+            if (!isPublishResultPage) {
+                return; // Exit if not on Publish_Result page
+            }
+            
+            console.log('🔧 Initializing Publish_Result page scripts');
+            
+            // Progress control with fail-safe mechanisms
+            var ProgressControl = {
+                timeout: null,
+                maxDuration: 30000, // 30 seconds max
+                
+                show: function() {
+                    console.log('✅ Showing progress...');
+                    $('#progress, #progress_BG').fadeIn(200);
+                    
+                    // Set fail-safe timeout
+                    var self = this;
+                    this.timeout = setTimeout(function() {
+                        console.warn('⚠️ Progress timeout reached - forcing hide');
+                        self.hide();
+                    }, this.maxDuration);
+                },
+                
+                hide: function() {
+                    console.log('✅ Hiding progress...');
+                    if (this.timeout) {
+                        clearTimeout(this.timeout);
+                        this.timeout = null;
+                    }
+                    $('#progress, #progress_BG').fadeOut(300);
+                }
+            };
+            
+            // ASP.NET AJAX Page Request Manager
+            var prm = Sys.WebForms.PageRequestManager.getInstance();
+            
+            prm.add_initializeRequest(function(sender, args) {
+                console.log('🔄 Initialize request');
             });
-        });
-
-
-        function isNumberKey(a) { a = a.which ? a.which : event.keyCode; return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0 };
+            
+            prm.add_beginRequest(function(sender, args) {
+                console.log('🔄 Begin request');
+                ProgressControl.show();
+            });
+            
+            prm.add_endRequest(function(sender, args) {
+                console.log('✅ End request');
+                ProgressControl.hide();
+                
+                // Handle errors
+                if (args.get_error()) {
+                    var errorMsg = args.get_error().message;
+                    console.error('❌ AJAX Error:', errorMsg);
+                    alert('An error occurred: ' + errorMsg);
+                    args.set_errorHandled(true);
+                }
+                
+                // Reinitialize controls
+                setTimeout(function() {
+                    initializeControls();
+                }, 100);
+            });
+            
+            prm.add_pageLoaded(function(sender, args) {
+                console.log('📄 Page loaded');
+                ProgressControl.hide(); // Extra safety
+                initializeControls();
+            });
+            
+            // Initialize all controls
+            function initializeControls() {
+                // Datepicker - only for .Datetime class on this page
+                if (typeof jQuery !== 'undefined' && jQuery.fn.datepicker) {
+                    $(".Datetime").datepicker({
+                        format: 'dd M yyyy',
+                        todayBtn: "linked",
+                        todayHighlight: true,
+                        autoclose: true
+                    });
+                }
+            }
+            
+            // Number key validation
+            window.isNumberKey = function(a) { 
+                a = a.which ? a.which : event.keyCode; 
+                return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0;
+            };
+            
+            // Document ready
+            $(document).ready(function() {
+                console.log('🚀 Document ready - Publish Result');
+                
+                // Hide progress on page load
+                ProgressControl.hide();
+                
+                // Initialize controls
+                initializeControls();
+                
+                // Debug: Log all update panels
+                var updatePanels = Sys.WebForms.PageRequestManager.getInstance()._updatePanelClientIDs;
+                if (updatePanels) {
+                    console.log('📦 Update panels:', updatePanels);
+                }
+            });
+            
+            // Window load backup
+            $(window).on('load', function() {
+                console.log('🪟 Window loaded');
+                ProgressControl.hide();
+            });
+            
+            // Unload cleanup
+            $(window).on('beforeunload', function() {
+                ProgressControl.hide();
+            });
+        })();
     </script>
 </asp:Content>

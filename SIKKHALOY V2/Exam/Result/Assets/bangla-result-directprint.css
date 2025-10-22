@@ -18,6 +18,10 @@
         overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        font-family: 'Kalpurush', Arial, sans-serif;
+        background: #fff;
+        margin: 0;
+       
     }
 
     /* Remove problematic font forcing */
@@ -194,12 +198,6 @@
     }
 }
 
-body {
-    font-family: 'Kalpurush', Arial, sans-serif;
-    background: #fff;
-    margin: 0;
-    padding: 20px; /* Reduced padding around entire page */
-}
 
 h3 {
     padding: 1rem;
