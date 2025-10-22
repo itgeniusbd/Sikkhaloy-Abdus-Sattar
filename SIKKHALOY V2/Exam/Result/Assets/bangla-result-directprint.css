@@ -4,13 +4,126 @@
     font-family: 'Noto Sans Bengali', 'SolaimanLipi', 'Kalpurush', Arial, sans-serif !important;
 }
 
+/* ========================================
+   FAILED MARK CELL STYLING - RED BACKGROUND FOR OM < PM
+   ======================================== */
+
+/* Red background for cells where Obtained Mark is less than Pass Mark */
+.marks-table td.failed-mark-bg {
+    background-color: #ffcccc !important; /* Light red background */
+    color: #cc0000 !important; /* Dark red text */
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* Ensure print version also shows red background */
+@media print {
+    .marks-table td.failed-mark-bg {
+        background-color: #ffcccc !important;
+        color: #cc0000 !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+/* ========================================
+   FAILED SUBJECT STYLING - ONLY SPECIFIC CELLS
+   ======================================== */
+
+/* Remove any default failed-row styling first */
+table.marks-table tr.failed-row,
+.marks-table tr.failed-row,
+table tr.failed-row {
+    background-color: transparent !important;
+}
+
+table.marks-table tr.failed-row td,
+.marks-table tr.failed-row td {
+    background-color: transparent !important;
+    color: inherit !important;
+    font-weight: inherit !important;
+}
+
+/* Subject Name (First Cell) in Failed Row - Light Red Background */
+table.marks-table tr.failed-row td:first-child,
+.marks-table tr.failed-row td:first-child {
+    background-color: #ffe6e6 !important;
+    color: #d32f2f !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* ======================================================================
+   GRADE COLUMN - RED TEXT FOR FAILED SUBJECTS
+   Target the second-to-last td (before Points column)
+   This works for both sub-exam and non-sub-exam structures
+   ====================================================================== */
+table.marks-table tr.failed-row td:nth-last-child(2),
+.marks-table tr.failed-row td:nth-last-child(2) {
+    color: #d32f2f !important; /* Red color for GRADE */
+    font-weight: bold !important;
+    font-size: 18px !important; /* Slightly larger for emphasis */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* ======================================================================
+   OBTAINED MARKS (OM) COLUMNS - RED TEXT FOR FAILED SUBJECTS
+   For tables WITHOUT sub-exams: Column 2 is OM
+   For tables WITH sub-exams: Individual sub-exam columns and total
+   ====================================================================== */
+
+/* For simple tables (no sub-exams): Target column 2 (Obtained Marks) */
+table.marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell),
+.marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell) {
+    color: #d32f2f !important; /* Red color for obtained marks */
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* For tables WITH sub-exams: Target all marks cells except the subject name */
+/* This will catch sub-exam marks and total marks */
+table.marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)),
+.marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)) {
+    color: #d32f2f !important; /* Red color for all marks in failed row */
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* Total marks cell - more specific styling */
+table.marks-table tr.failed-row td.total-marks-cell,
+.marks-table tr.failed-row td.total-marks-cell {
+    color: #d32f2f !important; /* Red color for total marks */
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* Alternative selector if grade has a specific class */
+table.marks-table tr.failed-row .grade-cell,
+.marks-table tr.failed-row .grade-cell {
+    color: #d32f2f !important;
+    font-weight: bold !important;
+    font-size: 18px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* ======================================================================
+   PRINT MEDIA QUERY - ENSURE RED COLOR APPEARS IN PRINT
+   ====================================================================== */
 @media print {
     .NoPrint, .controls, .btn {
         display: none !important;
     }
 
     html, body {
-        font-family: Arial, sans-serif !important; /* Use Arial for better print compatibility */
+        font-family: Arial, sans-serif !important;
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
@@ -24,12 +137,109 @@
        
     }
 
+    /* ========================================
+       FAILED SUBJECT STYLING IN PRINT - ONLY SPECIFIC CELLS
+       ======================================== */
+    
+    /* Remove default background from failed rows in print */
+    table.marks-table tr.failed-row,
+    .marks-table tr.failed-row,
+    table tr.failed-row {
+        background-color: transparent !important;
+    }
+
+    table.marks-table tr.failed-row td,
+    .marks-table tr.failed-row td {
+        background-color: transparent !important;
+        color: inherit !important;
+        font-weight: inherit !important;
+    }
+
+    /* Subject Name in Failed Row - Print */
+    table.marks-table tr.failed-row td:first-child,
+    .marks-table tr.failed-row td:first-child {
+        background-color: #ffe6e6 !important;
+        color: #d32f2f !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* GRADE column - RED TEXT IN PRINT (second-to-last column) */
+    table.marks-table tr.failed-row td:nth-last-child(2),
+    .marks-table tr.failed-row td:nth-last-child(2) {
+        color: #d32f2f !important; /* Red color for GRADE */
+        font-weight: bold !important;
+        font-size: 18px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Obtained marks - RED TEXT IN PRINT */
+    /* For simple tables: Column 2 */
+    table.marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell),
+    .marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell) {
+        color: #d32f2f !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* For tables with sub-exams: All marks cells */
+    table.marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)),
+    .marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)) {
+        color: #d32f2f !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Total marks cell in print */
+    table.marks-table tr.failed-row td.total-marks-cell,
+    .marks-table tr.failed-row td.total-marks-cell {
+        color: #d32f2f !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* If grade cell has a class - Print */
+    table.marks-table tr.failed-row .grade-cell,
+    .marks-table tr.failed-row .grade-cell {
+        color: #d32f2f !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
     /* Remove problematic font forcing */
     * {
-        font-family: Arial, sans-serif !important; /* Use Arial instead of Kalpurush for print */
+        font-family: Arial, sans-serif !important;
         -webkit-font-smoothing: auto !important;
         -moz-osx-font-smoothing: auto !important;
         text-rendering: auto !important;
+    }
+
+    /* Failed Subject Row Styling in Print */
+    .marks-table tr.failed-row {
+        background-color: #ffe6e6 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .marks-table tr.failed-row td {
+        background-color: #ffe6e6 !important;
+        color: #d32f2f !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Ensure vertical text column is not affected in print */
+    .marks-table tr.failed-row td.vertical-text {
+        color: blue !important;
+        background-color: white !important;
     }
 
     .result-card {
@@ -138,6 +348,7 @@
         font-size: 12px !important; /* Smaller font for values */
         font-family: Arial, sans-serif !important;
         font-weight: bold !important;
+        background-color:#ffcccc;
     }
 
     /* Info table - smaller text */
@@ -274,20 +485,20 @@ h3 {
         background: white !important; /* Same background as student photo */
     }
 
-/* Student photo in header - square with rounded corners */
-.student-photo {
-    width: 60px !important;
-    height: 60px !important;
-    border-radius: 5px !important; /* Square with rounded corners */
-    object-fit: cover !important;
-    position: absolute !important;
-    right: 0 !important;
-    top: 0 !important;
-    left: auto !important;
-    border: 3px solid #0072bc !important;
-    background: white !important;
-    z-index: 10 !important;
-}
+    /* Student photo in header - square with rounded corners */
+    .student-photo {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 5px !important; /* Square with rounded corners */
+        object-fit: cover !important;
+        position: absolute !important;
+        right: 0 !important;
+        top: 0 !important;
+        left: auto !important;
+        border: 3px solid #0072bc !important;
+        background: white !important;
+        z-index: 10 !important;
+    }
 
 .title {
     text-align: center;
@@ -544,6 +755,44 @@ h3 {
         background: #d9d2e9;
     }
 
+    .summary td:nth-child(8) {
+        background: #fff2cc; /* Yellowish for Result Status */
+    }
+
+/* Result Status Column Styling */
+.result-pass {
+    background-color: #d4edda !important; /* Light green for pass */
+    color: #155724 !important; /* Dark green text */
+    font-weight: bold !important;
+    border: 1px solid #0072bc !important;
+}
+
+.result-fail {
+    background-color: #f8d7da !important; /* Light red for fail */
+    color: #721c24 !important; /* Dark red text */
+    font-weight: bold !important;
+    border: 1px solid #0072bc !important;
+}
+
+/* Print styles for result status */
+@media print {
+    .result-pass {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .result-fail {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
 /* Ensure ResultPanel doesn't interfere with individual card borders */
 #ResultPanel, .result-panel {
     border: none !important;
@@ -647,7 +896,7 @@ h3 {
             border-color: #000000 !important;
         }
 
-/* Small form controls */
+    /* Small form controls */
 .form-control-sm {
     height: 28px;
     padding: 3px 6px;
@@ -727,7 +976,7 @@ h3 {
         min-width: 90px !important;
     }
 
-/* Warning button for number toggle */
+    /* Warning button for number toggle */
 .btn-warning {
     color: #212529 !important;
     background-color: #ffc107 !important;
@@ -740,7 +989,7 @@ h3 {
         border-color: #ffc720 !important;
     }
 
-/* Info button when toggled */
+    /* Info button when toggled */
 .btn-info {
     color: #fff !important;
     background-color: #17a2b8 !important;

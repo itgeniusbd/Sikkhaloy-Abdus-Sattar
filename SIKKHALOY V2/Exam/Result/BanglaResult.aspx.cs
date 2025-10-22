@@ -1180,658 +1180,102 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
-        // Method to get sub-exam marks formatted for display in separate cells - Only active sub-exams for this class
-        private (string SubExamMarksCells, string TotalMarks) GetSubExamMarksForDisplay(string studentResultID, int subjectID, string originalObtainedMark)
-        {
-            try
-            {
-                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-
-                System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Processing StudentResultID={studentResultID}, SubjectID={subjectID}, ExamID={examID}");
-
-                // Get sub-exam marks for this specific subject and student
-                DataTable subExamMarks = GetSubExamMarks(studentResultID, subjectID, examID);
-
-                System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Found {subExamMarks.Rows.Count} sub-exam marks");
-
-                // Get the ordered sub-exam names for header consistency - only active ones for this class
-                SqlConnection con2 = null;
-                try
-                {
-                    con2 = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                    con2.Open();
-
-                    // Get only sub-exam names that have actual data for this class and exam
-                    string headerQuery = @"
-                        SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN
-                        FROM Exam_SubExam_Name esn
-                        INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
-                        INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
-                        INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
-                        WHERE esn.SchoolID = @SchoolID
-                        AND esn.EducationYearID = @EducationYearID
-                        AND ers.ExamID = @ExamID
-                        AND sc.ClassID = @ClassID
-                        AND eom.SchoolID = @SchoolID
-                        AND eom.EducationYearID = @EducationYearID
-                        ORDER BY esn.Sub_ExamSN";
-
-                    using (SqlCommand cmd2 = new SqlCommand(headerQuery, con2))
-                    {
-                        cmd2.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                        cmd2.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                        cmd2.Parameters.AddWithValue("@ExamID", examID);
-                        cmd2.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
-
-                        DataTable subExamHeaders = new DataTable();
-                        using (SqlDataAdapter adapter = new SqlDataAdapter(cmd2))
-                        {
-                            adapter.Fill(subExamHeaders);
-                        }
-
-                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: Found {subExamHeaders.Rows.Count} active header names for ClassID: {ClassDropDownList.SelectedValue}");
-
-                        // Create dictionary of actual marks
-                        Dictionary<string, string> marksDict = new Dictionary<string, string>();
-                        foreach (DataRow markRow in subExamMarks.Rows)
-                        {
-                            string subExamName = markRow["SubExamName"].ToString();
-                            string markValue = markRow["MarksObtained"].ToString();
-                            marksDict[subExamName] = markValue;
-                            System.Diagnostics.Debug.WriteLine($"  Added to dict: {subExamName} = {markValue}");
-                        }
-
-                        // Generate cells in header order
-                        string cellsHtml = "";
-                        decimal totalMarks = 0;
-                        bool hasValidMarks = false;
-                        bool hasAbsentMarks = false;
-                        foreach (DataRow headerRow in subExamHeaders.Rows)
-                        {
-                            string subExamName = headerRow["SubExamName"].ToString();
-                            string markValue = marksDict.ContainsKey(subExamName) ? marksDict[subExamName] : "-";
-
-                            // Check if this is an absent mark (A) or 0 for absent student
-                            if (markValue == "A")
-                            {
-                                markValue = "অনুপস্থিত";
-                                hasAbsentMarks = true;
-                            }
-                            else if (markValue == "0")
-                            {
-                                markValue = "অনুপাতিত";
-                                hasAbsentMarks = true;
-                            }
-
-                            cellsHtml += $"<td>{markValue}</td>";
-                            System.Diagnostics.Debug.WriteLine($"  Generated cell for {subExamName}: {markValue}");
-
-                            // Calculate total if it's a valid numeric mark (not absent)
-                            if (!string.IsNullOrEmpty(markValue) &&
-                                markValue != "A" &&
-                                markValue != "অনুপাতিত" &&
-                                markValue != "-" &&
-                                decimal.TryParse(markValue, out decimal mark))
-                            {
-                                totalMarks += mark;
-                                hasValidMarks = true;
-                            }
-                        }
-
-                        // Format the total marks display
-                        string totalCell;
-
-                        // If student has absent marks in sub-exams, show "-" in total
-                        if (hasAbsentMarks)
-                        {
-                            totalCell = $"<td class=\"total-marks-cell\">-</td>";
-                        }
-                        else if (hasValidMarks)
-                        {
-                            totalCell = $"<td class=\"total-marks-cell\">{totalMarks}</td>";
-                        }
-                        else
-                        {
-                            // Show original marks or "-" for absent
-                            string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
-                            totalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
-                        }
-
-                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: HasValidMarks: {hasValidMarks}, HasAbsentMarks: {hasAbsentMarks}, Total: {(hasValidMarks ? totalMarks.ToString() : "N/A")}");
-                        System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForDisplay: CellsHtml: {cellsHtml}");
-
-                        return (cellsHtml, totalCell);
-                    }
-                }
-                finally
-                {
-                    if (con2 != null && con2.State == ConnectionState.Open)
-                    {
-                        con2.Close();
-                        con2.Dispose();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForDisplay: {ex.Message}");
-
-                // For error case, check if student is absent and show appropriate total
-                string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
-                string errorTotalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
-
-                return ("", errorTotalCell);
-            }
-        }
-
+        // Method to generate the complete subject marks table with sub-exams
         public string GenerateSubjectMarksTable(string studentResultID, string studentGrade, decimal studentPoint)
         {
             try
             {
-                DataTable subjects = GetSubjectResults(studentResultID);
-                string resultComment = GetResultStatus(studentGrade, studentPoint);
-
-                if (subjects.Rows.Count == 0)
-                    return "<p>No subject data found</p>";
-
-                string tableSizeClass = GetTableCssClass(subjects.Rows.Count);
-
-                // Check if we have sub-exams to determine table structure
                 int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                
+                // Get subject results
+                DataTable subjectResults = GetSubjectResults(studentResultID);
+                
+                if (subjectResults.Rows.Count == 0)
+                {
+                    return "<p>No subject results found</p>";
+                }
+                
+                // Check if this exam has sub-exams
                 bool hasSubExams = HasSubExams(examID);
-                string subExamHeader = "";
-                int subExamCount = 0;
-
-                string html = @"<table class=""marks-table " + tableSizeClass + @""">";
-
-                if (hasSubExams)
+                int subExamCount = hasSubExams ? GetSubExamCount(examID) : 0;
+                
+                // Build the table
+                StringBuilder tableHtml = new StringBuilder();
+                
+                // Get CSS class based on subject count
+                string tableCssClass = GetTableCssClass(subjectResults.Rows.Count);
+                
+                tableHtml.Append($"<table class=\"marks-table {tableCssClass}\">");
+                
+                // Table header
+                tableHtml.Append("<thead><tr>");
+                tableHtml.Append("<th>বিষয়</th>");
+                
+                if (hasSubExams && subExamCount > 0)
                 {
-                    // Get actual sub-exam count and header names
-                    subExamCount = GetSubExamCount(examID);
-                    if (subExamCount > 0)
-                    {
-                        subExamHeader = GetSubExamHeaderNames(studentResultID);
-                    }
+                    // Add sub-exam headers
+                    tableHtml.Append(GetSubExamHeaderNames(studentResultID));
                 }
-
-                // Create header row - Dynamic structure based on actual sub-exam count
-                if (hasSubExams && subExamCount > 0 && !string.IsNullOrEmpty(subExamHeader))
-                {
-                    html += @"
-                        <tr>
-                            <th rowspan=""2"">বিষয়</th>
-                            <th colspan=""" + subExamCount + @""">প্রাপ্ত নম্বর</th>
-                            <th rowspan=""2"">মোট নম্বর</th>
-                            <th rowspan=""2"">পূর্ণ নম্বর</th>
-                            <th rowspan=""2"">গ্রেড</th>
-                            <th rowspan=""2"">পয়েন্ট</th>
-                            <th rowspan=""" + (subjects.Rows.Count + 2) + @""" class=""vertical-text"">" + resultComment + @"</th>
-                        </tr>
-                        <tr>" + subExamHeader + @"</tr>";
-                }
-                else
-                {
-                    // No sub-exams - Simple table structure
-                    html += @"
-                        <tr>
-                            <th>বিষয়</th>
-                            <th>প্রাপ্ত নম্বর</th>
-                            <th>পূর্ণ নম্বর</th>
-                            <th>গ্রেড</th>
-                            <th>পয়েন্ট</th>
-                            <th rowspan=""" + (subjects.Rows.Count + 1) + @""" class=""vertical-text"">" + resultComment + @"</th>
-                        </tr>";
-                }
-
-                foreach (DataRow row in subjects.Rows)
+                
+                tableHtml.Append("<th>প্রাপ্ত নম্বর</th>");
+                tableHtml.Append("<th>পূর্ণ মান</th>");
+                tableHtml.Append("<th>গ্রেড</th>");
+                tableHtml.Append("<th>পয়েন্ট</th>");
+                tableHtml.Append("</tr></thead>");
+                
+                // Table body
+                tableHtml.Append("<tbody>");
+                
+                foreach (DataRow row in subjectResults.Rows)
                 {
                     string subjectName = GetSafeColumnValue(row, "SubjectName");
+                    int subjectID = Convert.ToInt32(row["SubjectID"]);
                     string obtainedMark = GetSafeColumnValue(row, "ObtainedMark_ofSubject");
-                    string fullMark = GetSafeColumnValue(row, "TotalMark_ofSubject");
-                    string subjectGrades = GetSafeColumnValue(row, "SubjectGrades");
+                    string totalMark = GetSafeColumnValue(row, "TotalMark_ofSubject");
+                    string subjectGrade = GetSafeColumnValue(row, "SubjectGrades");
                     decimal subjectPoint = GetSafeDecimalValue(row, "SubjectPoint");
                     string passStatus = GetSafeColumnValue(row, "PassStatus_Subject");
-                    int subjectID = Convert.ToInt32(GetSafeColumnValue(row, "SubjectID"));
-
-                    if (passStatus == "") passStatus = "Pass";
-                    string rowClass = passStatus == "Fail" ? "failed-row" : "";
-
-                    // Format marks display - show 'অনুপস্থিত' for absent students instead of 0
-                    string displayMark = (obtainedMark == "A" || obtainedMark == "0") ? "অনুপস্থিত" : obtainedMark;
-
+                    
+                    // Check if student is absent (A or 0)
+                    bool isAbsent = (obtainedMark == "A" || obtainedMark == "0");
+                    string displayObtainedMark = isAbsent ? "অনুপস্থিত" : obtainedMark;
+                    
+                    // Determine row class based on pass status
+                    string rowClass = (passStatus == "Fail") ? "failed-subject" : "";
+                    
+                    tableHtml.Append($"<tr class=\"{rowClass}\">");
+                    tableHtml.Append($"<td>{subjectName}</td>");
+                    
                     if (hasSubExams && subExamCount > 0)
                     {
-                        // Get dynamic sub-exam marks for this subject
-                        var subExamData = GetSubExamMarksForDisplay(studentResultID, subjectID, obtainedMark);
-
-                        html += @"
-                            <tr class=""" + rowClass + @""">
-                                <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
-                                " + subExamData.SubExamMarksCells + @"
-                                " + subExamData.TotalMarks + @"
-                                <td>" + fullMark + @"</td>
-                                <td>" + subjectGrades + @"</td>
-                                <td>" + subjectPoint.ToString("F1") + @"</td>
-                            </tr>";
+                        // Get sub-exam marks for this subject
+                        var subExamResult = GetSubExamMarksForDisplay(studentResultID, subjectID, obtainedMark);
+                        tableHtml.Append(subExamResult.SubExamMarksCells);
+                        tableHtml.Append(subExamResult.TotalMarks);
                     }
                     else
                     {
-                        // No sub-exams - Simple row structure with formatted marks
-                        html += @"
-                            <tr class=""" + rowClass + @""">
-                                <td style=""text-align: left; padding-left: 12px;"">" + subjectName + @"</td>
-                                <td>" + displayMark + @"</td>
-                                <td>" + fullMark + @"</td>
-                                <td>" + subjectGrades + @"</td>
-                                <td>" + subjectPoint.ToString("F1") + @"</td>
-                            </tr>";
+                        // No sub-exams, just show obtained mark
+                        tableHtml.Append($"<td>{displayObtainedMark}</td>");
                     }
+                    
+                    tableHtml.Append($"<td>{totalMark}</td>");
+                    tableHtml.Append($"<td>{subjectGrade}</td>");
+                    tableHtml.Append($"<td>{subjectPoint:F1}</td>");
+                    tableHtml.Append("</tr>");
                 }
-
-                html += "</table>";
-                return html.ToString();
+                
+                tableHtml.Append("</tbody>");
+                tableHtml.Append("</table>");
+                
+                // Result status is now shown in summary table, not here
+                
+                return tableHtml.ToString();
             }
             catch (Exception ex)
             {
-                return "<p>Error loading subject table: " + ex.Message + "</p>";
-            }
-        }
-
-        [System.Web.Services.WebMethod]
-        public static object SaveSignature(string signatureType, string imageData)
-        {
-            try
-            {
-                var context = HttpContext.Current;
-                var schoolId = context.Session["SchoolID"];
-
-                if (schoolId == null)
-                {
-                    return new { success = false, message = "School ID not found in session" };
-                }
-
-                // Convert base64 to byte array
-                byte[] imageBytes = Convert.FromBase64String(imageData);
-
-                SqlConnection con = null;
-                try
-                {
-                    con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
-                    con.Open();
-
-                    string column = signatureType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
-                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
-
-                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
-                    {
-                        cmd.Parameters.AddWithValue("@ImageData", imageBytes);
-                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
-
-                        int rowsAffected = cmd.ExecuteNonQuery();
-
-                        if (rowsAffected > 0)
-                        {
-                            return new { success = true, message = "Signature saved successfully", schoolId = schoolId };
-                        }
-                        else
-                        {
-                            return new { success = false, message = "No rows updated" };
-                        }
-                    }
-                }
-                finally
-                {
-                    if (con != null && con.State == ConnectionState.Open)
-                    {
-                        con.Close();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return new { success = false, message = ex.Message };
-            }
-        }
-
-        // Helper method to parse Student IDs from comma-separated input
-        private List<string> ParseStudentIDs(string input)
-        {
-            var studentIDs = new List<string>();
-
-            if (string.IsNullOrWhiteSpace(input))
-                return studentIDs;
-
-            // Split by comma and parse each ID
-            string[] idStrings = input.Split(new char[] { ',', '۔' }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (string idString in idStrings)
-            {
-                string cleanId = idString.Trim();
-
-                // Convert Bengali numbers to English if needed
-                cleanId = ConvertBengaliToEnglish(cleanId);
-
-                // Check if it's a valid ID (can be numeric or alphanumeric)
-                if (!string.IsNullOrEmpty(cleanId) && cleanId.Length > 0)
-                {
-                    // Add quotes around the ID for SQL IN clause
-                    string quotedId = $"'{cleanId}'";
-                    if (!studentIDs.Contains(quotedId))
-                    {
-                        studentIDs.Add(quotedId);
-                    }
-                }
-            }
-
-            return studentIDs;
-        }
-
-        // Helper method to convert Bengali numbers to English
-        private string ConvertBengaliToEnglish(string bengaliText)
-        {
-            if (string.IsNullOrEmpty(bengaliText))
-                return bengaliText;
-
-            var bengaliToEnglish = new Dictionary<char, char>
-            {
-                {'০', '0'}, {'১', '1'}, {'২', '2'}, {'৩', '3'}, {'৪', '4'},
-                {'৫', '5'}, {'৬', '6'}, {'৭', '7'}, {'৮', '8'}, {'৯', '9'}
-            };
-
-            var result = new StringBuilder();
-            foreach (char c in bengaliText)
-            {
-                if (bengaliToEnglish.ContainsKey(c))
-                {
-                    result.Append(bengaliToEnglish[c]);
-                }
-                else
-                {
-                    result.Append(c);
-                }
-            }
-
-            return result.ToString();
-        }
-
-        // Helper method to check if a specific section is selected (not ALL sections)
-        protected bool IsSectionSelected()
-        {
-            string sectionValue = SectionDropDownList.SelectedValue;
-            // Return true only if a specific section is selected (not % or empty)
-            return !string.IsNullOrEmpty(sectionValue) &&
-                   sectionValue != "%" &&
-                   sectionValue.Trim() != "" &&
-                   SectionDropDownList.Visible; // Also check if section dropdown is visible
-        }
-
-        // Helper method to get section column header and data for dynamic display
-        protected string GetSectionColumnHeader()
-        {
-            return IsSectionSelected() ? "<td>শাখা মেধা</td>" : "";
-        }
-
-        protected string GetSectionColumnData(object dataItem)
-        {
-            if (!IsSectionSelected()) return "";
-
-            DataRowView row = (DataRowView)dataItem;
-            var positionValue = row["Position_InExam_Subsection"];
-
-            // Handle DBNull values
-            if (positionValue == DBNull.Value || positionValue == null)
-            {
-                return "<td>N/A</td>";
-            }
-
-            return "<td>" + positionValue.ToString() + "</td>";
-        }
-
-        // Helper method to check if the selected class has groups available
-        protected bool HasGroupsForClass()
-        {
-            // Check if Group dropdown is visible (like summary table approach)
-            return GroupDropDownList.Visible;
-        }
-
-        // Helper method to check if the selected class has sections available - based on dropdown visibility  
-        protected bool HasSectionsForClass()
-        {
-            // Check if Section dropdown is visible (like summary table approach)
-            return SectionDropDownList.Visible;
-        }
-
-        // Helper methods to get group and section row HTML for dynamic display
-        protected string GetGroupRowHtml(object dataItem)
-        {
-            if (!HasGroupsForClass()) return "";
-
-            DataRowView row = (DataRowView)dataItem;
-            string groupName = row["GroupName"]?.ToString() ?? "";
-
-            return @"
-                <tr>
-                    <td>গ্রুপ:</td>
-                    <td>" + groupName + @"</td>
-                    <td>শাখা:</td>
-                    <td>" + row["SectionName"] + @"</td>
-                </tr>";
-        }
-
-        protected string GetSectionOnlyRowHtml(object dataItem)
-        {
-            // This method is for when there's no group but there are sections
-            if (HasGroupsForClass() || !HasSectionsForClass()) return "";
-
-            DataRowView row = (DataRowView)dataItem;
-            return @"
-                <tr>
-                    <td>শাখা:</td>
-                    <td>" + row["SectionName"] + @"</td>
-                    <td colspan=""2""></td>
-                </tr>";
-        }
-
-        protected string GetNoGroupSectionRowHtml()
-        {
-            // This method is for when there's neither group nor section
-            if (HasGroupsForClass() || HasSectionsForClass()) return "";
-
-            return @"
-                <tr style=""display: none;"">
-                    <td colspan=""4""></td>
-                </tr>";
-        }
-
-        // Helper method to generate dynamic info row based on class configuration
-        protected string GetDynamicInfoRow(object dataItem)
-        {
-            DataRowView row = (DataRowView)dataItem;
-
-            string className = row["ClassName"]?.ToString() ?? "";
-            string groupName = row["GroupName"]?.ToString() ?? "";
-            string sectionName = row["SectionName"]?.ToString() ?? "";
-
-            // Check if this class has groups and sections
-            bool hasGroups = HasGroupsForClass();
-            bool hasSections = HasSectionsForClass();
-
-            if (hasGroups)
-            {
-                // Show Class, Group, and Section
-                return @"
-                    <tr>
-                        <td>ক্লাস:</td>
-                        <td>" + className + @"</td>
-                        <td>গ্রুপ:</td>
-                        <td>" + groupName + @"</td>
-                        <td>শাখা:</td>
-                        <td>" + sectionName + @"</td>
-                    </tr>";
-            }
-            else if (hasSections)
-            {
-                // Show Class and Section only
-                return @"
-                    <tr>
-                        <td>ক্লাস:</td>
-                        <td>" + className + @"</td>
-                        <td>শাখা:</td>
-                        <td>" + sectionName + @"</td>
-                        <td colspan=""2""></td>
-                    </tr>";
-            }
-            else
-            {
-                // Show Class only
-                return @"
-                    <tr>
-                        <td>ক্লাস:</td>
-                        <td>" + className + @"</td>
-                        <td colspan=""4""></td>
-                    </tr>";
-            }
-        }
-
-        private string GetDynamicInfoRowForPDF(DataRowView dataRow)
-        {
-            if (dataRow == null) return "<tr><td colspan='6'>Data not available</td></tr>";
-
-            string className = dataRow["ClassName"]?.ToString() ?? "";
-            string groupName = dataRow["GroupName"]?.ToString() ?? "";
-            string sectionName = dataRow["SectionName"]?.ToString() ?? "";
-
-            bool hasGroups = HasGroupsForClass();
-            bool hasSections = HasSectionsForClass();
-
-            if (hasGroups)
-            {
-                return $@"
-                    <tr>
-                        <td>ক্লাস:</td>
-                        <td>{className}</td>
-                        <td>গ্রুপ:</td>
-                        <td>{groupName}</td>
-                        <td>শাখা:</td>
-                        <td>{sectionName}</td>
-                    </tr>";
-            }
-            else if (hasSections)
-            {
-                return $@"
-                    <tr>
-                        <td>ক্লাস:</td>
-                        <td>{className}</td>
-                        <td>শাখা:</td>
-                        <td>{sectionName}</td>
-                        <td colspan='2'></td>
-                    </tr>";
-            }
-            else
-            {
-                return $@"
-                    <tr>
-                        <td>ক্লাস:</td>
-                        <td>{className}</td>
-                        <td colspan='4'></td>
-                    </tr>";
-            }
-        }
-
-        private string GenerateGradeChartForPDF()
-        {
-            DataTable gradingData = GetGradingSystemData();
-            StringBuilder chartHtml = new StringBuilder();
-
-            chartHtml.Append(@"
-                <table>
-                    <tr><th>মার্ক</th><th>গ্রেড</th><th>পয়েন্ট</th></tr>");
-
-            foreach (DataRow row in gradingData.Rows)
-            {
-                chartHtml.AppendFormat(@"
-                    <tr>
-                        <td>{0}</td>
-                        <td>{1}</td>
-                        <td>{2:F1}</td>
-                    </tr>",
-                    row["MARKS"],
-                    row["Grades"],
-                    Convert.ToDecimal(row["Point"]));
-            }
-
-            chartHtml.Append("</table>");
-            return chartHtml.ToString();
-        }
-
-        protected void DownloadPDFButton_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // Simply redirect to print-friendly version using safe JavaScript
-                SafeRegisterStartupScript("printPage", "window.open(window.location.href + '?print=1', '_blank');");
-            }
-            catch (Exception ex)
-            {
-                string safeErrorMessage = EscapeForJavaScript(ex.Message);
-                SafeRegisterStartupScript("error", $"alert('Error: {safeErrorMessage}');");
-            }
-        }
-
-        // Add this method to handle print parameter
-        protected void Page_PreRender(object sender, EventArgs e)
-        {
-            if (Request.QueryString["print"] == "1")
-            {
-                // Hide unnecessary elements for printing using safe JavaScript
-                SafeRegisterStartupScript("autoPrint", @"
-                    document.addEventListener('DOMContentLoaded', function() {
-                        // Hide buttons and unnecessary elements
-                        var buttons = document.querySelectorAll('.btn, .form-control');
-                        buttons.forEach(function(btn) { btn.style.display = 'none'; });
-                        
-                        // Auto-open print dialog
-                        setTimeout(function() {
-                            window.print();
-                        }, 1000);
-                    });
-                ");
-            }
-        }
-
-        // Helper method to safely escape strings for JavaScript output
-        private string EscapeForJavaScript(string input)
-        {
-            if (string.IsNullOrEmpty(input))
-                return string.Empty;
-
-            return input
-                .Replace("\\", "\\\\")  // Escape backslashes first
-                .Replace("'", "\\'")    // Escape single quotes
-                .Replace("\"", "\\\"")  // Escape double quotes
-                .Replace("\n", "\\n")   // Escape newlines
-                .Replace("\r", "\\r")   // Escape carriage returns
-                .Replace("\t", "\\t")   // Escape tabs
-                .Replace("\b", "\\b")   // Escape backspace
-                .Replace("\f", "\\f")   // Escape form feed
-                .Replace("\v", "\\v")   // Escape vertical tab
-                .Replace("\0", "\\0");  // Escape null character
-        }
-
-        // Enhanced method to safely register JavaScript with proper error handling
-        private void SafeRegisterStartupScript(string key, string script)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(script))
-                    return;
-
-                string safeScript = "try { " + script + " } catch (e) { console.error('JavaScript error in " + key + ":', e); }";
-                Page.ClientScript.RegisterStartupScript(typeof(Page), key, safeScript, true);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error registering JavaScript for key '{key}': {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in GenerateSubjectMarksTable: {ex.Message}");
+                return "<p>Error generating subject marks table</p>";
             }
         }
 
@@ -1900,6 +1344,495 @@ namespace EDUCATION.COM.Exam.Result
                     con.Close();
                     con.Dispose();
                 }
+            }
+        }
+
+        // Helper method to safely escape strings for JavaScript output
+        private string EscapeForJavaScript(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            return input
+                .Replace("\\", "\\\\")  // Escape backslashes first
+                .Replace("'", "\\'")    // Escape single quotes
+                .Replace("\"", "\\\"")  // Escape double quotes
+                .Replace("\n", "\\n")   // Escape newlines
+                .Replace("\r", "\\r")   // Escape carriage returns
+                .Replace("\t", "\\t")   // Escape tabs
+                .Replace("\b", "\\b")   // Escape backspace
+                .Replace("\f", "\\f")   // Escape form feed
+                .Replace("\v", "\\v")   // Escape vertical tab
+                .Replace("\0", "\\0");  // Escape null character
+        }
+
+        // Enhanced method to safely register JavaScript with proper error handling
+        private void SafeRegisterStartupScript(string key, string script)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(script))
+                    return;
+
+                string safeScript = "try { " + script + " } catch (e) { console.error('JavaScript error in " + key + ":', e); }";
+                Page.ClientScript.RegisterStartupScript(typeof(Page), key, safeScript, true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error registering JavaScript for key '{key}': {ex.Message}");
+            }
+        }
+
+        // Helper method to parse Student IDs from comma-separated input
+        private List<string> ParseStudentIDs(string input)
+        {
+            var studentIDs = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(input))
+                return studentIDs;
+
+            // Split by comma and parse each ID
+            string[] idStrings = input.Split(new char[] { ',', '।' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string idString in idStrings)
+            {
+                string cleanId = idString.Trim();
+
+                // Convert Bengali numbers to English if needed
+                cleanId = ConvertBengaliToEnglish(cleanId);
+
+                // Check if it's a valid ID (can be numeric or alphanumeric)
+                if (!string.IsNullOrEmpty(cleanId) && cleanId.Length > 0)
+                {
+                    // Add quotes around the ID for SQL IN clause
+                    string quotedId = $"'{cleanId}'";
+                    if (!studentIDs.Contains(quotedId))
+                    {
+                        studentIDs.Add(quotedId);
+                    }
+                }
+            }
+
+            return studentIDs;
+        }
+
+        // Helper method to convert Bengali numbers to English
+        private string ConvertBengaliToEnglish(string bengaliText)
+        {
+            if (string.IsNullOrEmpty(bengaliText))
+                return bengaliText;
+
+            var bengaliToEnglish = new Dictionary<char, char>
+            {
+                {'০', '0'}, {'১', '1'}, {'২', '2'}, {'৩', '3'}, {'৪', '4'},
+                {'৫', '5'}, {'৬', '6'}, {'৭', '7'}, {'৮', '8'}, {'৯', '9'}
+            };
+
+            var result = new StringBuilder();
+            foreach (char c in bengaliText)
+            {
+                if (bengaliToEnglish.ContainsKey(c))
+                {
+                    result.Append(bengaliToEnglish[c]);
+                }
+                else
+                {
+                    result.Append(c);
+                }
+            }
+
+            return result.ToString();
+        }
+
+        // Method to get sub-exam marks formatted for display in separate cells
+        private (string SubExamMarksCells, string TotalMarks) GetSubExamMarksForDisplay(string studentResultID, int subjectID, string originalObtainedMark)
+        {
+            try
+            {
+                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                DataTable subExamMarks = GetSubExamMarks(studentResultID, subjectID, examID);
+
+                SqlConnection con2 = null;
+                try
+                {
+                    con2 = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                    con2.Open();
+
+                    string headerQuery = @"
+                        SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN, 
+                               eom.FullMark as FM, eom.PassMark as PM
+                        FROM Exam_SubExam_Name esn
+                        INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                        INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                        INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                        WHERE esn.SchoolID = @SchoolID
+                        AND esn.EducationYearID = @EducationYearID
+                        AND ers.ExamID = @ExamID
+                        AND sc.ClassID = @ClassID
+                        AND eom.SchoolID = @SchoolID
+                        AND eom.EducationYearID = @EducationYearID
+                        ORDER BY esn.Sub_ExamSN";
+
+                    using (SqlCommand cmd2 = new SqlCommand(headerQuery, con2))
+                    {
+                        cmd2.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                        cmd2.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                        cmd2.Parameters.AddWithValue("@ExamID", examID);
+                        cmd2.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                        DataTable subExamHeaders = new DataTable();
+                        using (SqlDataAdapter adapter = new SqlDataAdapter(cmd2))
+                        {
+                            adapter.Fill(subExamHeaders);
+                        }
+
+                        string studentMarksQuery = @"
+                            SELECT DISTINCT esn.SubExamName, esn.Sub_ExamSN,
+                                   ISNULL(CAST(eom.MarksObtained AS varchar(10)), '-') as MarksObtained,
+                                   eom.FullMark as FM, eom.PassMark as PM
+                            FROM Exam_SubExam_Name esn
+                            INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                            WHERE eom.SchoolID = @SchoolID
+                            AND eom.EducationYearID = @EducationYearID
+                            AND eom.StudentResultID = @StudentResultID
+                            AND eom.SubjectID = @SubjectID
+                            ORDER BY esn.Sub_ExamSN";
+
+                        using (SqlCommand studentCmd = new SqlCommand(studentMarksQuery, con2))
+                        {
+                            studentCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                            studentCmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                            studentCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                            studentCmd.Parameters.AddWithValue("@SubjectID", subjectID);
+
+                            DataTable studentMarks = new DataTable();
+                            using (SqlDataAdapter adapter = new SqlDataAdapter(studentCmd))
+                            {
+                                adapter.Fill(studentMarks);
+                            }
+
+                            Dictionary<string, (string marks, decimal pm, decimal fm)> marksDict = new Dictionary<string, (string, decimal, decimal)>();
+                            foreach (DataRow markRow in studentMarks.Rows)
+                            {
+                                string subExamName = markRow["SubExamName"].ToString();
+                                string markValue = markRow["MarksObtained"]?.ToString() ?? "-";
+                                decimal pm = markRow["PM"] != DBNull.Value ? Convert.ToDecimal(markRow["PM"]) : 0;
+                                decimal fm = markRow["FM"] != DBNull.Value ? Convert.ToDecimal(markRow["FM"]) : 0;
+                                marksDict[subExamName] = (markValue, pm, fm);
+                            }
+
+                            string cellsHtml = "";
+                            decimal totalMarks = 0;
+                            bool hasValidMarks = false;
+                            bool hasAbsentMarks = false;
+
+                            foreach (DataRow headerRow in subExamHeaders.Rows)
+                            {
+                                string subExamName = headerRow["SubExamName"].ToString();
+                                string markValue = "-";
+                                decimal passMark = 0;
+
+                                if (marksDict.ContainsKey(subExamName))
+                                {
+                                    markValue = marksDict[subExamName].marks;
+                                    passMark = marksDict[subExamName].pm;
+                                }
+
+                                bool isAbsent = false;
+                                if (markValue == "A")
+                                {
+                                    markValue = "অনুপস্থিত";
+                                    hasAbsentMarks = true;
+                                    isAbsent = true;
+                                }
+                                else if (markValue == "0")
+                                {
+                                    markValue = "অনুপাতিত";
+                                    hasAbsentMarks = true;
+                                    isAbsent = true;
+                                }
+
+                                string cellClass = "";
+                                if (!isAbsent && markValue != "-")
+                                {
+                                    decimal obtainedMark = 0;
+                                    if (decimal.TryParse(markValue, out obtainedMark))
+                                    {
+                                        if (obtainedMark < passMark && passMark > 0)
+                                        {
+                                            cellClass = " class=\"failed-mark-bg\"";
+                                        }
+                                        totalMarks += obtainedMark;
+                                        hasValidMarks = true;
+                                    }
+                                }
+
+                                cellsHtml += $"<td{cellClass}>{markValue}</td>";
+                            }
+
+                            string totalCell;
+                            if (hasAbsentMarks)
+                            {
+                                totalCell = $"<td class=\"total-marks-cell\">-</td>";
+                            }
+                            else if (hasValidMarks)
+                            {
+                                decimal overallPassMark = 0;
+                                SqlConnection con3 = null;
+                                try
+                                {
+                                    con3 = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                                    con3.Open();
+
+                                    string pmQuery = @"SELECT TOP 1 TotalMark_ofSubject FROM Exam_Result_of_Subject 
+                                                       WHERE StudentResultID = @StudentResultID AND SubjectID = @SubjectID";
+                                    using (SqlCommand pmCmd = new SqlCommand(pmQuery, con3))
+                                    {
+                                        pmCmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                                        pmCmd.Parameters.AddWithValue("@SubjectID", subjectID);
+                                        var result = pmCmd.ExecuteScalar();
+                                        if (result != null && result != DBNull.Value)
+                                        {
+                                            decimal totalFullMark = Convert.ToDecimal(result);
+                                            overallPassMark = totalFullMark * 0.33m;
+                                        }
+                                    }
+                                }
+                                finally
+                                {
+                                    if (con3 != null && con3.State == ConnectionState.Open)
+                                    {
+                                        con3.Close();
+                                        con3.Dispose();
+                                    }
+                                }
+
+                                string totalCellClass = "";
+                                if (totalMarks < overallPassMark && overallPassMark > 0)
+                                {
+                                    totalCellClass = " class=\"failed-mark-bg\"";
+                                }
+
+                                totalCell = $"<td{totalCellClass} class=\"total-marks-cell\">{totalMarks}</td>";
+                            }
+                            else
+                            {
+                                string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
+                                totalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
+                            }
+
+                            return (cellsHtml, totalCell);
+                        }
+                    }
+                }
+                finally
+                {
+                    if (con2 != null && con2.State == ConnectionState.Open)
+                    {
+                        con2.Close();
+                        con2.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamMarksForDisplay: {ex.Message}");
+                string displayMark = (originalObtainedMark == "A" || originalObtainedMark == "0") ? "-" : originalObtainedMark;
+                string errorTotalCell = $"<td class=\"total-marks-cell\">{displayMark}</td>";
+                return ("", errorTotalCell);
+            }
+        }
+
+        // Helper methods for class/section/group
+        protected bool IsSectionSelected()
+        {
+            string sectionValue = SectionDropDownList.SelectedValue;
+            return !string.IsNullOrEmpty(sectionValue) &&
+                   sectionValue != "%" &&
+                   sectionValue.Trim() != "" &&
+                   SectionDropDownList.Visible;
+        }
+
+        protected string GetSectionColumnHeader()
+        {
+            return IsSectionSelected() ? "<td>শাখা মেধা</td>" : "";
+        }
+
+        protected string GetSectionColumnData(object dataItem)
+        {
+            if (!IsSectionSelected()) return "";
+
+            DataRowView row = (DataRowView)dataItem;
+            var positionValue = row["Position_InExam_Subsection"];
+
+            if (positionValue == DBNull.Value || positionValue == null)
+            {
+                return "<td>N/A</td>";
+            }
+
+            return "<td>" + positionValue.ToString() + "</td>";
+        }
+
+        protected bool HasGroupsForClass()
+        {
+            return GroupDropDownList.Visible;
+        }
+
+        protected bool HasSectionsForClass()
+        {
+            return SectionDropDownList.Visible;
+        }
+
+        protected string GetDynamicInfoRow(object dataItem)
+        {
+            DataRowView row = (DataRowView)dataItem;
+
+            string className = row["ClassName"]?.ToString() ?? "";
+            string groupName = row["GroupName"]?.ToString() ?? "";
+            string sectionName = row["SectionName"]?.ToString() ?? "";
+
+            bool hasGroups = HasGroupsForClass();
+            bool hasSections = HasSectionsForClass();
+
+            if (hasGroups)
+            {
+                return @"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>" + className + @"</td>
+                        <td>গ্রুপ:</td>
+                        <td>" + groupName + @"</td>
+                        <td>শাখা:</td>
+                        <td>" + sectionName + @"</td>
+                    </tr>";
+            }
+            else if (hasSections)
+            {
+                return @"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>" + className + @"</td>
+                        <td>শাখা:</td>
+                        <td>" + sectionName + @"</td>
+                        <td colspan=""2""></td>
+                    </tr>";
+            }
+            else
+            {
+                return @"
+                    <tr>
+                        <td>ক্লাস:</td>
+                        <td>" + className + @"</td>
+                        <td colspan=""4""></td>
+                    </tr>";
+            }
+        }
+
+        // Method to get result status column data for summary table
+        protected string GetResultStatusColumn(object dataItem)
+        {
+            try
+            {
+                DataRowView row = (DataRowView)dataItem;
+                string studentGrade = row["Student_Grade"]?.ToString() ?? "";
+                decimal studentPoint = row["Student_Point"] != DBNull.Value ? Convert.ToDecimal(row["Student_Point"]) : 0m;
+
+                string resultStatus = GetResultStatus(studentGrade, studentPoint);
+                
+                // Add CSS class based on pass/fail
+                string cssClass = (studentGrade.ToUpper() == "F") ? "result-fail" : "result-pass";
+                
+                return $"<td class=\"{cssClass}\">{resultStatus}</td>";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetResultStatusColumn: {ex.Message}");
+                return "<td>N/A</td>";
+            }
+        }
+
+        [System.Web.Services.WebMethod]
+        public static object SaveSignature(string signatureType, string imageData)
+        {
+            try
+            {
+                var context = HttpContext.Current;
+                var schoolId = context.Session["SchoolID"];
+
+                if (schoolId == null)
+                {
+                    return new { success = false, message = "School ID not found in session" };
+                }
+
+                byte[] imageBytes = Convert.FromBase64String(imageData);
+
+                SqlConnection con = null;
+                try
+                {
+                    con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                    con.Open();
+
+                    string column = signatureType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
+                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@ImageData", imageBytes);
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            return new { success = true, message = "Signature saved successfully", schoolId = schoolId };
+                        }
+                        else
+                        {
+                            return new { success = false, message = "No rows updated" };
+                        }
+                    }
+                }
+                finally
+                {
+                    if (con != null && con.State == ConnectionState.Open)
+                    {
+                        con.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, message = ex.Message };
+            }
+        }
+
+        protected void DownloadPDFButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                SafeRegisterStartupScript("printPage", "window.open(window.location.href + '?print=1', '_blank');");
+            }
+            catch (Exception ex)
+            {
+                string safeErrorMessage = EscapeForJavaScript(ex.Message);
+                SafeRegisterStartupScript("error", $"alert('Error: {safeErrorMessage}');");
+            }
+        }
+
+        protected void Page_PreRender(object sender, EventArgs e)
+        {
+            if (Request.QueryString["print"] == "1")
+            {
+                SafeRegisterStartupScript("autoPrint", @"
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var buttons = document.querySelectorAll('.btn, .form-control');
+                        buttons.forEach(function(btn) { btn.style.display = 'none'; });
+                        
+                        setTimeout(function() {
+                            window.print();
+                        }, 1000);
+                    });
+                ");
             }
         }
     }

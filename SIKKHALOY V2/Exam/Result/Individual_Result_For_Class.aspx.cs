@@ -1225,7 +1225,11 @@ namespace EDUCATION.COM.Exam.Result
                     var positionData = GetSubjectPositionDataForTable(studentResultID, subjectID);
 
                     if (string.IsNullOrWhiteSpace(passStatus)) passStatus = "Pass";
-                    string rowClass = string.Equals(passStatus, "Fail", StringComparison.OrdinalIgnoreCase) ? "failed-row" : "";
+                    
+                    // Check for failed subject - check both PassStatus_Subject and SubjectGrades
+                    string rowClass = (string.Equals(passStatus, "Fail", StringComparison.OrdinalIgnoreCase) || 
+                                      string.Equals(passStatus, "F", StringComparison.OrdinalIgnoreCase) || 
+                                      string.Equals(subjectGrades, "F", StringComparison.OrdinalIgnoreCase)) ? "failed-row" : "";
 
                     bool isSubjectAbsent = (
                         string.Equals(obtainedMark, "A", StringComparison.OrdinalIgnoreCase) &&

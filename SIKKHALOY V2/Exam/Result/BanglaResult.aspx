@@ -331,6 +331,7 @@
                                     <td>জিপিএ</td>
                                     <td>ক্লাস মেধা</td>
                                     <%# GetSectionColumnHeader() %>
+                                    <td>ফলাফল</td>
                                 </tr>
                                 <tr class="summary-values">
                                     <td><%# Eval("TotalExamObtainedMark_ofStudent") %>/<%# Eval("TotalMark_ofStudent") %></td>
@@ -340,6 +341,7 @@
                                     <td><%# Eval("Student_Point") == DBNull.Value ? "0.0" : String.Format("{0:F1}", Eval("Student_Point")) %></td>
                                     <td><%# Eval("Position_InExam_Class") == DBNull.Value ? "N/A" : Eval("Position_InExam_Class") %></td>
                                     <%# GetSectionColumnData(Container.DataItem) %>
+                                    <%# GetResultStatusColumn(Container.DataItem) %>
                                 </tr>
                             </table>
                         </div>
