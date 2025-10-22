@@ -80,7 +80,7 @@ table.marks-table tr.failed-row td:nth-last-child(2),
 table.marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell),
 .marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell) {
     color: #d32f2f !important; /* Red color for obtained marks */
-    font-weight: bold !important;
+    font-weight: bold !important; /* Keep bold */
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
 }
@@ -90,7 +90,7 @@ table.marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell),
 table.marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)),
 .marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)) {
     color: #d32f2f !important; /* Red color for all marks in failed row */
-    font-weight: bold !important;
+    font-weight: bold !important; /* Keep bold */
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
 }
@@ -99,7 +99,7 @@ table.marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not
 table.marks-table tr.failed-row td.total-marks-cell,
 .marks-table tr.failed-row td.total-marks-cell {
     color: #d32f2f !important; /* Red color for total marks */
-    font-weight: bold !important;
+    font-weight: bold !important; /* Keep bold */
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
 }
@@ -108,7 +108,7 @@ table.marks-table tr.failed-row td.total-marks-cell,
 table.marks-table tr.failed-row .grade-cell,
 .marks-table tr.failed-row .grade-cell {
     color: #d32f2f !important;
-    font-weight: bold !important;
+    font-weight: bold !important; /* Keep bold */
     font-size: 18px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -180,7 +180,7 @@ table.marks-table tr.failed-row .grade-cell,
     table.marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell),
     .marks-table tr.failed-row td:nth-child(2):not(.total-marks-cell) {
         color: #d32f2f !important;
-        font-weight: bold !important;
+        font-weight: bold !important; /* Keep bold */
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -189,7 +189,7 @@ table.marks-table tr.failed-row .grade-cell,
     table.marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)),
     .marks-table tr.failed-row td:not(:first-child):not(:nth-last-child(1)):not(:nth-last-child(2)):not(:nth-last-child(3)) {
         color: #d32f2f !important;
-        font-weight: bold !important;
+        font-weight: bold !important; /* Keep bold */
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -198,7 +198,7 @@ table.marks-table tr.failed-row .grade-cell,
     table.marks-table tr.failed-row td.total-marks-cell,
     .marks-table tr.failed-row td.total-marks-cell {
         color: #d32f2f !important;
-        font-weight: bold !important;
+        font-weight: bold !important; /* Keep bold */
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -207,7 +207,7 @@ table.marks-table tr.failed-row .grade-cell,
     table.marks-table tr.failed-row .grade-cell,
     .marks-table tr.failed-row .grade-cell {
         color: #d32f2f !important;
-        font-weight: bold !important;
+        font-weight: bold !important; /* Keep bold */
         font-size: 18px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -347,24 +347,30 @@ table.marks-table tr.failed-row .grade-cell,
 
     /* Marks table - larger text for print */
     .marks-table th, .marks-table td {
-        font-size: 16px !important; /* Larger font for marks table */
-        padding: 5px !important; /* More padding */
+        font-size: 16px !important; /* Same size for all */
+        font-weight: bold !important; /* All bold */
+        padding: 5px !important;
         font-family: Arial, sans-serif !important;
     }
 
     /* Subject name column - left aligned in print */
     .marks-table td:first-child {
-        text-align: left !important;
+        
         padding-left: 10px !important;
+        font-size: 16px !important; /* Same size */
+        font-weight: bold !important;
     }
 
     .marks-table th:first-child {
-        text-align: left !important;
+       
         padding-left: 10px !important;
+        font-size: 18px !important; /* Header larger */
+        font-weight: bold !important;
     }
 
     .marks-table th {
-        font-size: 18px !important; /* Larger font for headers */
+        font-size: 18px !important; /* Header larger */
+        font-weight: bold !important;
         background: #d7ede1 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -372,22 +378,26 @@ table.marks-table tr.failed-row .grade-cell,
 
     /* Medium subjects table - adjust for print */
     .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-        font-size: 15px !important; /* Larger than before for print */
+        font-size: 15px !important; /* Consistent */
+        font-weight: bold !important; /* All bold */
         padding: 3px !important;
     }
 
     .marks-table.medium-subjects th {
-        font-size: 15px !important; /* Larger headers */
+        font-size: 16px !important; /* Header larger */
+        font-weight: bold !important;
     }
 
     /* Small subjects table - adjust for print */
     .marks-table.small-subjects th, .marks-table.small-subjects td {
-        font-size: 14px !important; /* Larger than before for print */
+        font-size: 14px !important; /* Consistent */
+        font-weight: bold !important; /* All bold */
         padding: 2px !important;
     }
 
     .marks-table.small-subjects th {
-        font-size: 15px !important; /* Larger headers */
+        font-size: 15px !important; /* Header larger */
+        font-weight: bold !important;
     }
 
     /* Grade chart - smaller for print */
@@ -614,8 +624,8 @@ h3 {
         border: 1px solid #0072bc;
         text-align: center;
         padding: 4px;
-        font-size: 16px;
-        font-weight: bold;
+        font-size: 16px !important; /* Force same size for all */
+        font-weight: bold !important; /* Force bold for all */
         font-family: 'Kalpurush', Arial, sans-serif !important;
     }
 
@@ -623,25 +633,34 @@ h3 {
     .marks-table td:first-child {
         text-align: left !important;
         padding-left: 10px !important;
+        font-size: 16px !important; /* Same size */
+        font-weight: bold !important; /* Bold */
     }
 
-
+    .marks-table th:first-child {
+       
+        padding-left: 10px !important;
+        font-size: 18px !important; /* Header slightly larger */
+        font-weight: bold !important;
+    }
 
     .marks-table th {
         background: #d7ede1;
-        font-size: 18px;
+        font-size: 18px !important; /* Header slightly larger */
+        font-weight: bold !important;
     }
 
         .marks-table th[colspan="2"] {
             background: #e8f4fd;
             color: #000;
-            font-weight: bold;
+            font-weight: bold !important;
+            font-size: 18px !important;
         }
 
-    /* Sub-exam marks styling */
+    /* Sub-exam marks styling - MAKE CONSISTENT */
     .marks-table .sub-exam-marks {
-        font-size: 14px;
-        font-weight: normal;
+        font-size: 16px !important; /* Same as other cells */
+        font-weight: bold !important; /* Make bold */
         white-space: nowrap;
         color: #333;
         display: inline-block;
@@ -650,7 +669,8 @@ h3 {
     /* Total marks column styling */
     .marks-table .total-marks-cell {
         background: white;
-        font-weight: bold;
+        font-weight: bold !important;
+        font-size: 16px !important; /* Same size */
         color: #0072bc;
     }
 
@@ -658,33 +678,41 @@ h3 {
     .marks-table td[style*="background-color: #f5f5f5"] {
         text-align: center;
         font-style: italic;
+        font-weight: bold !important;
+        font-size: 16px !important;
     }
 
     /* Dynamic font sizes based on subject count - same as print view */
     .marks-table.medium-subjects th, .marks-table.medium-subjects td {
-        font-size: 14px !important; /* Same as print view */
-        padding: 3px !important; /* Same as print view */
+        font-size: 15px !important; /* Consistent */
+        font-weight: bold !important; /* All bold */
+        padding: 3px !important;
     }
 
     .marks-table.medium-subjects th {
-        font-size: 14px !important; /* Same as print view */
+        font-size: 16px !important; /* Header slightly larger */
+        font-weight: bold !important;
     }
 
     .marks-table.medium-subjects .sub-exam-marks {
-        font-size: 13px !important;
+        font-size: 15px !important; /* Match table size */
+        font-weight: bold !important;
     }
 
     .marks-table.small-subjects th, .marks-table.small-subjects td {
-        font-size: 13px !important; /* Same as print view */
-        padding: 2px !important; /* Same as print view */
+        font-size: 14px !important; /* Consistent */
+        font-weight: bold !important; /* All bold */
+        padding: 2px !important;
     }
 
     .marks-table.small-subjects th {
-        font-size: 13px !important; /* Same as print view */
+        font-size: 15px !important; /* Header slightly larger */
+        font-weight: bold !important;
     }
 
     .marks-table.small-subjects .sub-exam-marks {
-        font-size: 12px !important;
+        font-size: 14px !important; /* Match table size */
+        font-weight: bold !important;
     }
 
 .vertical-text {
