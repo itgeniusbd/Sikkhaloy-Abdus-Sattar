@@ -43,6 +43,37 @@ namespace EDUCATION.COM.Exam.Result
             set { ViewState["HasSections"] = value; }
         }
 
+        // NEW: Publish Settings Properties
+        private bool IS_Hide_Sec_Position
+        {
+            get { return ViewState["IS_Hide_Sec_Position"] != null && (bool)ViewState["IS_Hide_Sec_Position"]; }
+            set { ViewState["IS_Hide_Sec_Position"] = value; }
+        }
+
+        private bool IS_Hide_Class_Position
+        {
+            get { return ViewState["IS_Hide_Class_Position"] != null && (bool)ViewState["IS_Hide_Class_Position"]; }
+            set { ViewState["IS_Hide_Class_Position"] = value; }
+        }
+
+        private bool IS_Hide_FullMark
+        {
+            get { return ViewState["IS_Hide_FullMark"] != null && (bool)ViewState["IS_Hide_FullMark"]; }
+            set { ViewState["IS_Hide_FullMark"] = value; }
+        }
+
+        private bool IS_Hide_PassMark
+        {
+            get { return ViewState["IS_Hide_PassMark"] != null && (bool)ViewState["IS_Hide_PassMark"]; }
+            set { ViewState["IS_Hide_PassMark"] = value; }
+        }
+
+        private bool IS_Grade_BasePoint
+        {
+            get { return ViewState["IS_Grade_BasePoint"] != null && (bool)ViewState["IS_Grade_BasePoint"]; }
+            set { ViewState["IS_Grade_BasePoint"] = value; }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             try
@@ -216,6 +247,8 @@ namespace EDUCATION.COM.Exam.Result
                         SafeRegisterStartupScript("debug1",
                             $"console.log('Loading results for Student IDs: {escapedStudentIDText}, Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');");
 
+                        // Load publish settings before loading results
+                        LoadPublishSettings();
                         LoadResultsData();
                     }
                     else
@@ -231,6 +264,8 @@ namespace EDUCATION.COM.Exam.Result
                         SafeRegisterStartupScript("debug1",
                             $"console.log('Loading results for Exam ID: {ExamDropDownList.SelectedValue}, Class ID: {ClassDropDownList.SelectedValue}');");
 
+                        // Load publish settings before loading results
+                        LoadPublishSettings();
                         LoadResultsData();
                     }
                     else
@@ -476,6 +511,80 @@ namespace EDUCATION.COM.Exam.Result
             }
         }
 
+        // NEW: Load publish settings from Exam_Publish_Setting table
+        private void LoadPublishSettings()
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
+
+                string query = @"
+                    SELECT TOP 1
+                        ISNULL(IS_Hide_Sec_Position, 0) AS IS_Hide_Sec_Position,
+                        ISNULL(IS_Hide_Class_Position, 0) AS IS_Hide_Class_Position,
+                        ISNULL(IS_Hide_FullMark, 0) AS IS_Hide_FullMark,
+                        ISNULL(IS_Hide_PassMark, 0) AS IS_Hide_PassMark,
+                        ISNULL(IS_Grade_BasePoint, 0) AS IS_Grade_BasePoint
+                    FROM Exam_Publish_Setting
+                    WHERE SchoolID = @SchoolID
+                    AND EducationYearID = @EducationYearID
+                    AND ClassID = @ClassID
+                    AND ExamID = @ExamID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                    cmd.Parameters.AddWithValue("@ExamID", ExamDropDownList.SelectedValue);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            IS_Hide_Sec_Position = Convert.ToBoolean(reader["IS_Hide_Sec_Position"]);
+                            IS_Hide_Class_Position = Convert.ToBoolean(reader["IS_Hide_Class_Position"]);
+                            IS_Hide_FullMark = Convert.ToBoolean(reader["IS_Hide_FullMark"]);
+                            IS_Hide_PassMark = Convert.ToBoolean(reader["IS_Hide_PassMark"]);
+                            IS_Grade_BasePoint = Convert.ToBoolean(reader["IS_Grade_BasePoint"]);
+
+                            System.Diagnostics.Debug.WriteLine($"Publish Settings Loaded: HideSec={IS_Hide_Sec_Position}, HideClass={IS_Hide_Class_Position}, HideFM={IS_Hide_FullMark}, HidePM={IS_Hide_PassMark}, GradeBase={IS_Grade_BasePoint}");
+                        }
+                        else
+                        {
+                            // Default values if no settings found
+                            IS_Hide_Sec_Position = false;
+                            IS_Hide_Class_Position = false;
+                            IS_Hide_FullMark = false;
+                            IS_Hide_PassMark = false;
+                            IS_Grade_BasePoint = false;
+                            System.Diagnostics.Debug.WriteLine("No publish settings found - using defaults");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading publish settings: {ex.Message}");
+                // Set defaults on error
+                IS_Hide_Sec_Position = false;
+                IS_Hide_Class_Position = false;
+                IS_Hide_FullMark = false;
+                IS_Hide_PassMark = false;
+                IS_Grade_BasePoint = false;
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
+        }
+
         // Helper method to generate attendance + summary table for a student
         public string GetAttendanceTableHtml(object dataItem)
         {
@@ -535,10 +644,21 @@ namespace EDUCATION.COM.Exam.Result
 
             // Create proper marks display (obtained/total)
             string marksDisplay = $"{obtainedMarks}/{totalMarks}";
+            // Build conditional PC header and data based on IS_Hide_Class_Position
+            string pcHeader = !IS_Hide_Class_Position ?
+                "<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #e19511; color: #fff; min-width: 25px;\" title=\"Position In Class\">PC</td>" :
+                string.Empty;
+            string pcData = !IS_Hide_Class_Position ?
+                $"<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;\" title=\"{positionClass}\">{positionClass}</td>" :
+                string.Empty;
 
-            string psHeader = HasSections ? "<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #339f03; color: #fff; min-width: 25px;\">PS</td>" : string.Empty;
-            string psData = HasSections ? $"<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;\" title=\"{positionSection}\">{positionSection}</td>" : string.Empty;
-
+            // Build conditional PS header and data based on HasSections AND IS_Hide_Sec_Position
+            string psHeader = (HasSections && !IS_Hide_Sec_Position) ?
+                "<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #339f03; color: #fff; min-width: 25px;\">PS</td>" :
+                string.Empty;
+            string psData = (HasSections && !IS_Hide_Sec_Position) ?
+                $"<td style=\"border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;\" title=\"{positionSection}\">{positionSection}</td>" :
+                string.Empty;
             string html = $@"<table class=""attendance-summary-combined"" style=""border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; font-family: Arial, sans-serif;"">
                     <tr>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ffd966; color: #000; min-width: 25px;"">WD</td>
@@ -552,7 +672,8 @@ namespace EDUCATION.COM.Exam.Result
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #009974; color: #fff; min-width: 45px;"">Average</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #ed4695; color: #fff; min-width: 35px;"">Grade</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #805ddd; color: #fff; min-width: 30px;"">GPA</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #e19511; color: #fff; min-width: 25px;"" title=""Position In Class"">PC</td>
+                      
+                        {pcHeader}
                         {psHeader}
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #a71a5f; color: #fff; min-width: 60px;"" title=""Comment based on Grade and GPA"">Comment</td>
                     </tr>
@@ -568,7 +689,8 @@ namespace EDUCATION.COM.Exam.Result
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 45px;"">{average}</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 35px;"">{grade}</td>
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 30px;"">{gpa}</td>
-                        <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 25px;"" title=""{positionClass}"">{positionClass}</td>
+                       
+                        {pcData}
                         {psData}
                         <td style=""border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold; background-color: #fff; color: #000; min-width: 60px;"">{comment}</td>
                     </tr>
@@ -1179,32 +1301,67 @@ namespace EDUCATION.COM.Exam.Result
                 totalColumns += (3 + positionColumns); // MARKS, GRADE, GPA + positions
                 totalColumns += 5; // buffer
 
-                string html = $@"<div style=""overflow-x: auto; width: 100;""><table class=""marks-table {tableSizeClass} sub-exam-{subExamCount}"" style=""{tableContainerStyle}"" data-total-columns=""{totalColumns}"">";
+                string html = $@"<div style=""overflow-x: auto; width: 100%;""><table class=""marks-table {tableSizeClass} sub-exam-{subExamCount}"" style=""{tableContainerStyle}"" data-total-columns=""{totalColumns}"">";
 
                 if (hasSubExams && subExamCount > 0 && !string.IsNullOrEmpty(subExamHeader))
                 {
-                    html += $@"<tr style=""background-color: #c8e6c9 !important;""> <th rowspan=""2"" style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold; background-color: #c8e6c9 !important;"">SUBJECTS</th> {subExamHeader}<th rowspan=""2"" style=""{standardCellStyle}; min-width: 60px; font-weight: bold; background-color: #c8e6c9 !important;"">MARKS</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; font-weight: bold; background-color: #c8e6c9 !important;"">GRADE</th><th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">GPA</th><th rowspan=""2"" class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
-                    if (HasSections)
+                    // **FIRST ROW: Sub-exam names with colspan**
+                    html += $@"<tr style=""background-color: #c8e6c9 !important;"">
+    <th rowspan=""2"" style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold; background-color: #c8e6c9 !important;"">SUBJECTS</th>
+    {subExamHeader}
+    <th rowspan=""2"" style=""{standardCellStyle}; min-width: 60px; font-weight: bold; background-color: #c8e6c9 !important;"">MARKS</th>
+    <th rowspan=""2"" style=""{standardCellStyle}; min-width: 40px; font-weight: bold; background-color: #c8e6c9 !important;"">GRADE</th>
+    <th rowspan=""2"" style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">GPA</th>";
+
+                    // Conditional position columns with rowspan="2"
+                    if (!IS_Hide_Class_Position)
+                    {
+                        html += $@"<th rowspan=""2"" class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
+                    }
+                    if (HasSections && !IS_Hide_Sec_Position)
                     {
                         html += $@"<th rowspan=""2"" class=""ps-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>";
                     }
                     html += $@"<th rowspan=""2"" class=""hmc-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMC</th>";
-                    if (HasSections)
+                    if (HasSections && !IS_Hide_Sec_Position)
                     {
                         html += $@"<th rowspan=""2"" class=""hms-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMS</th>";
                     }
                     html += "</tr>";
-                    html += $@"<tr style=""background-color: #c8e6c9 !important;"">{subExamSecondHeader}</tr>";
+
+                    // **SECOND ROW: FM/PM/OM headers for each sub-exam**
+                    html += $@"<tr style=""background-color: #c8e6c9 !important;"">
+    {subExamSecondHeader}
+</tr>";
                 }
                 else
                 {
-                    html += $@"<tr style=""background-color: #c8e6c9 !important;""> <th style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold; background-color: #c8e6c9 !important;"">SUBJECTS</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">FM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">PM</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">OM</th><th style=""{standardCellStyle}; min-width: 60px; font-weight: bold; background-color: #c8e6c9 !important;"">MARKS</th><th style=""{standardCellStyle}; min-width: 40px; font-weight: bold; background-color: #c8e6c9 !important;"">GRADE</th><th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">GPA</th><th class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
-                    if (HasSections)
+                    // Build conditional FM/PM headers for no sub-exam case
+                    string fmHeader = !IS_Hide_FullMark ?
+                        $@"<th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">FM</th>" : string.Empty;
+                    string pmHeader = !IS_Hide_PassMark ?
+                        $@"<th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">PM</th>" : string.Empty;
+
+                    html += $@"<tr style=""background-color: #c8e6c9 !important;"">
+    <th style=""{standardCellStyle}; text-align: left; min-width: 80px; max-width: 120px; font-weight: bold; background-color: #c8e6c9 !important;"">SUBJECTS</th>
+    {fmHeader}
+    {pmHeader}
+    <th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">OM</th>
+    <th style=""{standardCellStyle}; min-width: 60px; font-weight: bold; background-color: #c8e6c9 !important;"">MARKS</th>
+    <th style=""{standardCellStyle}; min-width: 40px; font-weight: bold; background-color: #c8e6c9 !important;"">GRADE</th>
+    <th style=""{standardCellStyle}; min-width: 35px; font-weight: bold; background-color: #c8e6c9 !important;"">GPA</th>";
+
+                    // Conditional position columns
+                    if (!IS_Hide_Class_Position)
+                    {
+                        html += $@"<th class=""pc-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PC</th>";
+                    }
+                    if (HasSections && !IS_Hide_Sec_Position)
                     {
                         html += $@"<th class=""ps-column"" style=""{standardCellStyle}; min-width: 35px; background-color: #e8f4fd; font-weight: bold;"">PS</th>";
                     }
                     html += $@"<th class=""hmc-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMC</th>";
-                    if (HasSections)
+                    if (HasSections && !IS_Hide_Sec_Position)
                     {
                         html += $@"<th class=""hms-column"" style=""{standardCellStyle}; min-width: 40px; background-color: #e8f4fd; font-weight: bold;"">HMS</th>";
                     }
@@ -1225,10 +1382,10 @@ namespace EDUCATION.COM.Exam.Result
                     var positionData = GetSubjectPositionDataForTable(studentResultID, subjectID);
 
                     if (string.IsNullOrWhiteSpace(passStatus)) passStatus = "Pass";
-                    
+
                     // Check for failed subject - check both PassStatus_Subject and SubjectGrades
-                    string rowClass = (string.Equals(passStatus, "Fail", StringComparison.OrdinalIgnoreCase) || 
-                                      string.Equals(passStatus, "F", StringComparison.OrdinalIgnoreCase) || 
+                    string rowClass = (string.Equals(passStatus, "Fail", StringComparison.OrdinalIgnoreCase) ||
+                                      string.Equals(passStatus, "F", StringComparison.OrdinalIgnoreCase) ||
                                       string.Equals(subjectGrades, "F", StringComparison.OrdinalIgnoreCase)) ? "failed-row" : "";
 
                     bool isSubjectAbsent = (
@@ -1261,17 +1418,25 @@ namespace EDUCATION.COM.Exam.Result
     {subExamData}
     <td style=""{marksColumnStyle}"">{marksDisplay}</td>
     <td class=""grade-cell"" style=""{standardCellStyle}"">{subjectGrades}</td>
-    <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>
-    <td class=""pc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>";
+    <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>";
 
-                        if (HasSections)
+                        // Conditional PC
+                        if (!IS_Hide_Class_Position)
+                        {
+                            html += $@"<td class=""pc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>";
+                        }
+
+                        // Conditional PS
+                        if (HasSections && !IS_Hide_Sec_Position)
                         {
                             html += $@"<td class=""ps-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionSection}"">{positionData.PositionSection}</td>";
                         }
 
+                        // HMC always shown
                         html += $@"<td class=""hmc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksClass}"">{positionData.HighestMarksClass}</td>";
 
-                        if (HasSections)
+                        // HMS only with PS
+                        if (HasSections && !IS_Hide_Sec_Position)
                         {
                             html += $@"<td class=""hms-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksSection}"">{positionData.HighestMarksSection}</td>";
                         }
@@ -1283,7 +1448,7 @@ namespace EDUCATION.COM.Exam.Result
                         // No sub-exams - use the new method for correct pass marks and add red background for failed marks
                         var passMarkData = GetMainExamPassMark(subjectID, examID);
                         string omDisplayMark = isSubjectAbsent ? "Abs" : obtainedMark;
-                        
+
                         // Check if student failed in this subject (no sub-exams)
                         bool isFailedInSubject = false;
                         if (!isSubjectAbsent && passMarkData != "-" && obtainedMark != "-")
@@ -1297,29 +1462,47 @@ namespace EDUCATION.COM.Exam.Result
                                 }
                             }
                         }
-                        
+
                         string omCellStyle = (isSubjectAbsent || isFailedInSubject) ?
                             $"{standardCellStyle}; background-color: #ffcccc !important; color: #d32f2f; font-weight: bold;" :
                             standardCellStyle;
-
                         html += $@"<tr class=""{rowClass}"">
-    <td style=""{subjectCellStyle}"" title=""{subjectName}"">{subjectName}</td>
-    <td style=""{standardCellStyle}"">{fullMark}</td>
-    <td style=""{standardCellStyle}"">{passMarkData}</td>
-    <td style=""{omCellStyle}"">{omDisplayMark}</td>
-    <td style=""{marksColumnStyle}"">{marksDisplay}</td>
-    <td class=""grade-cell"" style=""{standardCellStyle}"">{subjectGrades}</td>
-    <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>
-    <td class=""pc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>";
+    <td style=""{subjectCellStyle}"" title=""{subjectName}"">{subjectName}</td>";
 
-                        if (HasSections)
+                        // Conditional FM
+                        if (!IS_Hide_FullMark)
+                        {
+                            html += $"<td style=\"{standardCellStyle}\">{fullMark}</td>";
+                        }
+                        // Conditional PM
+                        if (!IS_Hide_PassMark)
+                        {
+                            html += $"<td style=\"{standardCellStyle}\">{passMarkData}</td>";
+                        }
+                        // OM always shown
+                        html += $"<td style=\"{omCellStyle}\">{omDisplayMark}</td>";
+
+                        html += $@"<td style=""{marksColumnStyle}"">{marksDisplay}</td>
+    <td class=""grade-cell"" style=""{standardCellStyle}"">{subjectGrades}</td>
+    <td style=""{standardCellStyle}"">{subjectPoint.ToString("F1")}</td>";
+
+                        // Conditional PC
+                        if (!IS_Hide_Class_Position)
+                        {
+                            html += $@"<td class=""pc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionClass}"">{positionData.PositionClass}</td>";
+                        }
+
+                        // Conditional PS
+                        if (HasSections && !IS_Hide_Sec_Position)
                         {
                             html += $@"<td class=""ps-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.PositionSection}"">{positionData.PositionSection}</td>";
                         }
 
+                        // HMC always shown
                         html += $@"<td class=""hmc-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksClass}"">{positionData.HighestMarksClass}</td>";
 
-                        if (HasSections)
+                        // HMS only with PS
+                        if (HasSections && !IS_Hide_Sec_Position)
                         {
                             html += $@"<td class=""hms-column"" style=""{standardCellStyle}; background-color: #e8f4fd;"" title=""{positionData.HighestMarksSection}"">{positionData.HighestMarksSection}</td>";
                         }
@@ -1364,7 +1547,17 @@ namespace EDUCATION.COM.Exam.Result
             string dashCells = "";
             for (int i = 0; i < subExamCount; i++)
             {
-                dashCells += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
+                // Build cells based on settings
+                if (!IS_Hide_FullMark)
+                {
+                    dashCells += $@"<td style=""{standardCellStyle}"">-</td>";
+                }
+                if (!IS_Hide_PassMark)
+                {
+                    dashCells += $@"<td style=""{standardCellStyle}"">-</td>";
+                }
+                // Always show OM
+                dashCells += $@"<td style=""{standardCellStyle}"">-</td>";
             }
             return dashCells;
         }
@@ -1384,8 +1577,8 @@ namespace EDUCATION.COM.Exam.Result
                     INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
                     INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
                     INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
-                    WHERE esn.SchoolID = @SchoolID
-                    AND eom.SchoolID = @SchoolID
+                    WHERE esn.SchoolID = @SchoolID 
+                    AND eom.SchoolID = @SchoolID 
                     AND eom.EducationYearID = @EducationYearID
                     AND ers.ExamID = @ExamID
                     AND sc.ClassID = @ClassID
@@ -1789,7 +1982,7 @@ namespace EDUCATION.COM.Exam.Result
                 con.Open();
 
                 string query = @"
-                    SELECT COUNT(DISTINCT eom.SubExamID) 
+                    SELECT COUNT(DISTINCT esn.SubExamID) 
                     FROM Exam_SubExam_Name esn
                     INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
                     INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
@@ -1929,6 +2122,8 @@ namespace EDUCATION.COM.Exam.Result
                     }
 
                     var result = new SubExamHeaderStructure();
+
+                    // First row - sub-exam names with dynamic colspan
                     foreach (DataRow row in dt.Rows)
                     {
                         string subExamName = row["SubExamName"].ToString();
@@ -1936,11 +2131,26 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             subExamName = subExamName.Substring(0, 6) + "..";
                         }
-                        result.FirstRowHeader += $@"<th colspan=""3"" style=""{standardCellStyle}; min-width: 75px; max-width: 100px; background-color: #c8e6c9 !important;"" title=""{row["SubExamName"]}"">{subExamName}</th>";
+
+                        // Calculate colspan based on visible columns
+                        int colspan = 1; // OM always shown
+                        if (!IS_Hide_FullMark) colspan++;
+                        if (!IS_Hide_PassMark) colspan++;
+
+                        result.FirstRowHeader += $@"<th colspan=""{colspan}"" style=""{standardCellStyle}; min-width: 75px; max-width: 100px; background-color: #c8e6c9 !important;"" title=""{row["SubExamName"]}"">{subExamName}</th>";
                     }
+
+                    // Second row - FM/PM/OM headers based on settings
                     foreach (DataRow row in dt.Rows)
                     {
-                        result.SecondRowHeader += $@"<th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">FM</th><th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">PM</th><th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">OM</th>";
+                        // Build conditional second row headers
+                        string fmCell = !IS_Hide_FullMark ?
+                            $@"<th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">FM</th>" : "";
+                        string pmCell = !IS_Hide_PassMark ?
+                            $@"<th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">PM</th>" : "";
+                        string omCell = $@"<th style=""{standardCellStyle}; background-color: #c8e6c9 !important;"">OM</th>";
+
+                        result.SecondRowHeader += $"{fmCell}{pmCell}{omCell}";
                     }
 
                     ViewState["OrderedSubExamIDs"] = dt.AsEnumerable().Select(r => Convert.ToInt32(r["SubExamID"])).ToList();
@@ -2018,8 +2228,17 @@ namespace EDUCATION.COM.Exam.Result
                                 // Check if this subject has data for this sub-exam
                                 if (obtainedMarkValue == DBNull.Value || obtainedMarkValue == null)
                                 {
-                                    // No data for this sub-exam, show dashes
-                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
+                                    // No data for this sub-exam, show dashes based on settings
+                                    if (!IS_Hide_FullMark)
+                                    {
+                                        cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
+                                    }
+                                    if (!IS_Hide_PassMark)
+                                    {
+                                        cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
+                                    }
+                                    // Always show OM
+                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
                                 }
                                 else
                                 {
@@ -2031,8 +2250,8 @@ namespace EDUCATION.COM.Exam.Result
                                         (string.Equals(obtainedMark, "A", StringComparison.OrdinalIgnoreCase));
 
                                     // If fullMark or passMark is 0, show dash for those
-                                    if (fullMark == "0") fullMark = "-";
-                                    if (passMark == "0") passMark = "-";
+                                    fullMark = (fullMark == "0") ? "-" : fullMark;
+                                    passMark = (passMark == "0") ? "-" : passMark;
 
                                     // Check if student failed in this sub-exam
                                     bool isFailedInSubExam = false;
@@ -2056,14 +2275,32 @@ namespace EDUCATION.COM.Exam.Result
                                     // Show actual marks in FM and PM, but Abs in OM if absent
                                     string displayObtainedMark = isAbsent ? "Abs" : obtainedMark;
 
-                                    // Add FM, PM, OM cells for this sub-exam
-                                    cellsHtml += $@"<td style=""{standardCellStyle}"" title=""Full Mark: {fullMark}"">{fullMark}</td><td style=""{standardCellStyle}"" title=""Pass Mark: {passMark}"">{passMark}</td><td style=""{omCellStyle}"" title=""Obtained Mark: {displayObtainedMark}"">{displayObtainedMark}</td>";
+                                    // Build cells based on settings
+                                    if (!IS_Hide_FullMark)
+                                    {
+                                        cellsHtml += $@"<td style=""{standardCellStyle}"" title=""Full Mark: {fullMark}"">{fullMark}</td>";
+                                    }
+                                    if (!IS_Hide_PassMark)
+                                    {
+                                        cellsHtml += $@"<td style=""{standardCellStyle}"" title=""Pass Mark: {passMark}"">{passMark}</td>";
+                                    }
+                                    // Always show OM
+                                    cellsHtml += $@"<td style=""{omCellStyle}"" title=""Obtained Mark: {displayObtainedMark}"">{displayObtainedMark}</td>";
                                 }
                             }
                             else
                             {
-                                // Sub-exam not found, show dashes
-                                cellsHtml += $@"<td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td><td style=""{standardCellStyle}"">-</td>";
+                                // Sub-exam not found, show dashes based on settings
+                                if (!IS_Hide_FullMark)
+                                {
+                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
+                                }
+                                if (!IS_Hide_PassMark)
+                                {
+                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
+                                }
+                                // Always show OM
+                                cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
                             }
                         }
                     }
