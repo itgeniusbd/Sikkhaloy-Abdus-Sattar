@@ -10,7 +10,7 @@
 
 /* Red background for cells where Obtained Mark is less than Pass Mark */
 .marks-table td.failed-mark-bg {
-    background-color: #ffcccc !important; /* Light red background */
+  
     color: #cc0000 !important; /* Dark red text */
     font-weight: bold !important;
     -webkit-print-color-adjust: exact !important;

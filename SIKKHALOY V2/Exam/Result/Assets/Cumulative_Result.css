@@ -540,13 +540,17 @@ body {
     }
 
     .note {
-        font-size: 9px !important;
-        line-height: 1.2 !important;
-        white-space: nowrap !important;
-        margin-top: 12px !important;
-        margin-bottom: 5px !important;
-        padding-top: 5px !important;
-        clear: both !important;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-size: 10px;
+        text-align: center;
+        color: green;
+        font-weight: bold;
+        font-family: Arial, sans-serif !important;
+        line-height: 1.2;
+        white-space: nowrap;
+        clear: both;
+        padding-top: 5px;
     }
 }
 

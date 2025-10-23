@@ -1,4 +1,4 @@
-﻿﻿ /* Simple Result Card CSS - Working Version */
+﻿/* Simple Result Card CSS - Working Version */
 * {
     font-family: Arial, sans-serif !important;
 }
@@ -215,6 +215,15 @@ body {
             background-color: #c8e6c9 !important;
         }
 
+    /* Failed mark background - Red color for failed subjects/sub-exams */
+    .failed-mark-bg {
+        background-color: #ffcccc !important;
+        color: #d32f2f !important;
+        font-weight: bold !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
 .footer {
     display: flex;
     justify-content: space-between;
@@ -366,6 +375,15 @@ body {
 
     .marks-table th {
         background-color: #c8e6c9 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Failed mark background in print */
+    .failed-mark-bg {
+        background-color: #ffcccc !important;
+        color: #d32f2f !important;
+        font-weight: bold !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }

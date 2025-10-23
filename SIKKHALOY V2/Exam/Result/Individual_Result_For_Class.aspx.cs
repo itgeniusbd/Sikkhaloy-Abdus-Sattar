@@ -1280,10 +1280,25 @@ namespace EDUCATION.COM.Exam.Result
                     }
                     else
                     {
-                        // No sub-exams - use the new method for correct pass marks
+                        // No sub-exams - use the new method for correct pass marks and add red background for failed marks
                         var passMarkData = GetMainExamPassMark(subjectID, examID);
                         string omDisplayMark = isSubjectAbsent ? "Abs" : obtainedMark;
-                        string omCellStyle = isSubjectAbsent ?
+                        
+                        // Check if student failed in this subject (no sub-exams)
+                        bool isFailedInSubject = false;
+                        if (!isSubjectAbsent && passMarkData != "-" && obtainedMark != "-")
+                        {
+                            decimal om = 0, pm = 0;
+                            if (decimal.TryParse(obtainedMark, out om) && decimal.TryParse(passMarkData, out pm))
+                            {
+                                if (om < pm && pm > 0)
+                                {
+                                    isFailedInSubject = true;
+                                }
+                            }
+                        }
+                        
+                        string omCellStyle = (isSubjectAbsent || isFailedInSubject) ?
                             $"{standardCellStyle}; background-color: #ffcccc !important; color: #d32f2f; font-weight: bold;" :
                             standardCellStyle;
 
@@ -2019,8 +2034,22 @@ namespace EDUCATION.COM.Exam.Result
                                     if (fullMark == "0") fullMark = "-";
                                     if (passMark == "0") passMark = "-";
 
-                                    // Style for absent OM cell (red background)
-                                    string omCellStyle = isAbsent ?
+                                    // Check if student failed in this sub-exam
+                                    bool isFailedInSubExam = false;
+                                    if (!isAbsent && passMark != "-" && obtainedMark != "-")
+                                    {
+                                        decimal om = 0, pm = 0;
+                                        if (decimal.TryParse(obtainedMark, out om) && decimal.TryParse(passMark, out pm))
+                                        {
+                                            if (om < pm && pm > 0)
+                                            {
+                                                isFailedInSubExam = true;
+                                            }
+                                        }
+                                    }
+
+                                    // Style for absent or failed OM cell (red background)
+                                    string omCellStyle = (isAbsent || isFailedInSubExam) ?
                                         $"{standardCellStyle}; background-color: #ffcccc !important; color: #d32f2f; font-weight: bold;" :
                                         standardCellStyle;
 
