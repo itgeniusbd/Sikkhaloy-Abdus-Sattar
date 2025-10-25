@@ -2017,6 +2017,7 @@
       <DependentUpon>Analytical_Smart_Result.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
+    <Compile Include="Exam\Result\Analytical_Smart_Result_TEMP.aspx.cs" />
     <Compile Include="Exam\Result\BanglaResult_Old.aspx.cs">
       <DependentUpon>BanglaResult_Old.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

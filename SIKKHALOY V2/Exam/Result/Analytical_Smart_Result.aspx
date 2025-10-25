@@ -156,6 +156,16 @@
                         <asp:ControlParameter ControlID="ExamDropDownList" Name="ExamID" PropertyName="SelectedValue" />
                     </SelectParameters>
                 </asp:SqlDataSource>
+
+                <!-- Subject Wise Grade Distribution Section -->
+                <hr class="my-4" style="border-top: 2px solid #007bff;" />
+                <h4 class="mb-3 mt-4">📚 Subject Wise Grade Distribution</h4>
+                <div class="alert alert-info d-print-none">
+                    <small><i class="fa fa-info-circle"></i> <strong>Note:</strong> This table shows how many students got each grade in each subject. Grades are dynamically loaded based on your institution's grading system.</small>
+                </div>
+                <div class="table-responsive">
+                    <asp:Literal ID="SubjectWiseGradeLiteral" runat="server"></asp:Literal>
+                </div>
             </div>
 
             <!-- Tab 2: Subject Statistics -->
@@ -752,12 +762,12 @@
             try {
                 var className = "";
                 if ($('[id*=ClassDropDownList] :selected').index() > 0) {
-                    className = "Class: " + '[id*=ClassDropDownList] :selected'.text();
+                    className = "Class: " + $('[id*=ClassDropDownList] :selected').text();
                 }
 
                 var examName = "";
                 if ($('[id*=ExamDropDownList] :selected').index() > 0) {
-                    examName = ", Exam: " + '[id*=ExamDropDownList] :selected'.text();
+                    examName = ", Exam: " + $('[id*=ExamDropDownList] :selected').text();
                 }
 
                 // Update the label if it exists
