@@ -41,6 +41,7 @@
         <ul class="nav nav-tabs nav-justified z-depth-1">
             <li class="nav-item"><a class="nav-link active" data-toggle="tab" role="tab" href="#TotalStudent">Total Student</a></li>
             <li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#SMS">SMS Recharge</a></li>
+            <li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#DueInvoiceSettings">Due Invoice Settings</a></li>
             <li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#ManagemeUser">Manage User</a></li>
             <li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#DeleteID">Student ID Delete</a></li>
             <li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#IDChange">Student ID Change</a></li>
@@ -136,6 +137,103 @@
                             <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
                         </SelectParameters>
                     </asp:SqlDataSource>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" role="tabpanel" id="DueInvoiceSettings">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">
+                        <i class="fa fa-bell text-warning"></i> বকেয়া নোটিফিকেশন সেটিংস
+                    </h5>
+                    
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> 
+                        <strong>তথ্য:</strong> ডিফল্টভাবে সব প্রতিষ্ঠানের বকেয়া নোটিশ বন্ধ থাকে। শুধুমাত্র যেসব প্রতিষ্ঠানের জন্য নোটিশ চালু করবেন শুধু তাদের Dashboard এ বকেয়া নোটিশ দেখাবে。
+                    </div>
+
+                    <asp:UpdatePanel ID="DueNoticeUpdatePanel" runat="server">
+                        <ContentTemplate>
+                            <div class="form-group">
+                                <div class="custom-control custom-checkbox">
+                                    <asp:CheckBox ID="EnableDueNoticeCheckBox" runat="server" 
+                                        CssClass="custom-control-input" 
+                                        AutoPostBack="True" 
+                                        OnCheckedChanged="EnableDueNoticeCheckBox_CheckedChanged" />
+                                    <label class="custom-control-label" for="<%= EnableDueNoticeCheckBox.ClientID %>">
+                                        <strong>বকেয়া নোটিশ চালু করুন</strong>
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    চেক করলে এই প্রতিষ্ঠানের Dashboard এ বকেয়া নোটিশ দেখাবে。
+                                </small>
+                            </div>
+
+                            <div id="HideDatePanel" runat="server" visible="false" class="mt-3">
+                                <div class="alert alert-success">
+                                    <i class="fa fa-check-circle"></i> 
+                                    বকেয়া নোটিশ বর্তমানে <strong>চালু</strong> আছে。
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label><i class="fa fa-calendar"></i> সাময়িকভাবে লুকাতে চান? (ঐচ্ছিক)</label>
+                                    <asp:TextBox ID="HideUntilDateTextBox" runat="server" 
+                                        CssClass="form-control datepicker" 
+                                        placeholder="তারিখ নির্বাচন করুন (e.g., 31 Jan 2025)" 
+                                        autocomplete="off"></asp:TextBox>
+                                    <small class="form-text text-muted">
+                                        এই তারিখ পর্যন্ত নোটিশ লুকানো থাকবে। খালি রাখলে নোটিশ সবসময় দেখাবে。
+                                    </small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label><i class="fa fa-comment"></i> নোট (ঐচ্ছিক)</label>
+                                    <asp:TextBox ID="HideReasonTextBox" runat="server" 
+                                        CssClass="form-control" 
+                                        TextMode="MultiLine" 
+                                        Rows="3"
+                                        placeholder="উদাহরণ: ৫০,০০০ টাকা পরিশোধ করেছে, ১ মাসের জন্য নোটিশ লুকানো"></asp:TextBox>
+                                </div>
+
+                                <asp:Button ID="SaveDueSettingsButton" runat="server" 
+                                    Text="সংরক্ষণ করুন" 
+                                    CssClass="btn btn-primary" 
+                                    OnClick="SaveDueSettingsButton_Click" />
+                            </div>
+
+                            <asp:Label ID="DueSettingsMessageLabel" runat="server" 
+                                CssClass="d-block mt-3" 
+                                ForeColor="Green"></asp:Label>
+
+                            <!-- Current Status Display -->
+                            <asp:FormView ID="DueNoticeStatusFormView" runat="server" 
+                                DataSourceID="DueNoticeStatusSQL" 
+                                Width="100%"
+                                Visible="false">
+                                <ItemTemplate>
+                                    <div class="alert alert-success mt-3">
+                                        <h6><i class="fa fa-bell"></i> বর্তমান স্থিতি</h6>
+                                        <ul class="mb-0">
+                                            <li><strong>নোটিশ স্ট্যাটাস:</strong> চালু আছে</li>
+                                            <li><strong>চালু করা হয়েছে:</strong> <%# Eval("CreatedDate", "{0:dd MMM yyyy hh:mm tt}") %></li>
+                                            <%# Eval("HideUntilDate") != DBNull.Value ? 
+                                                "<li><strong>সাময়িক লুকানো পর্যন্ত:</strong> " + Eval("HideUntilDate", "{0:dd MMM yyyy}") + "</li>" : 
+                                                "<li><strong>স্থিতি:</strong> সবসময় দেখাবে</li>" %>
+                                            <%# !string.IsNullOrEmpty(Eval("Reason").ToString()) ? 
+                                                "<li><strong>নোট:</strong> " + Eval("Reason") + "</li>" : "" %>
+                                        </ul>
+                                    </div>
+                                </ItemTemplate>
+                            </asp:FormView>
+
+                            <asp:SqlDataSource ID="DueNoticeStatusSQL" runat="server" 
+                                ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" 
+                                SelectCommand="SELECT TOP 1 * FROM SchoolInfo_DueNoticeSettings WHERE SchoolID = @SchoolID AND IsEnabled = 1 ORDER BY CreatedDate DESC">
+                                <SelectParameters>
+                                    <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" Type="Int32" />
+                                </SelectParameters>
+                            </asp:SqlDataSource>
+                        </ContentTemplate>
+                    </asp:UpdatePanel>
                 </div>
             </div>
 
@@ -410,6 +508,13 @@ DELETE FROM Income_MoneyReceipt WHERE (SchoolID = @SchoolID) AND (MoneyReceipt_S
                 $(".IS").show();
             }
 
+            // Initialize Bootstrap Datepicker
+            $('.datepicker').datepicker({
+                format: 'dd M yyyy',
+                autoclose: true,
+                todayHighlight: true,
+                orientation: 'bottom auto'
+            });
         });
 
         Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (a, b) {
@@ -418,6 +523,14 @@ DELETE FROM Income_MoneyReceipt WHERE (SchoolID = @SchoolID) AND (MoneyReceipt_S
                 if (e.which === 32) {
                     return false;
                 }
+            });
+
+            // Re-initialize datepicker after UpdatePanel postback
+            $('.datepicker').datepicker({
+                format: 'dd M yyyy',
+                autoclose: true,
+                todayHighlight: true,
+                orientation: 'bottom auto'
             });
         })
     </script>

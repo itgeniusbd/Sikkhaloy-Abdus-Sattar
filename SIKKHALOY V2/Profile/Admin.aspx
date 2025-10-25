@@ -5,8 +5,64 @@
     <link href="css/Admin.css?v=1.2" rel="stylesheet" />
     <!-- Dashboard Custom Styles -->
     <link href="css/dashboard-styles.css?v=1.0" rel="stylesheet" />
+    <style>
+        .due-invoice-modal {
+            background-color: #fff3cd;
+            border-left: 5px solid #ff6b6b;
+        }
+        .due-invoice-modal .modal-header {
+            background-color: #dc3545;
+            color: white;
+        }
+        .due-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .due-records {
+            font-size: 1.2rem;
+            color: #856404;
+        }
+    </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
+    <!-- Due Invoice Modal -->
+    <div class="modal fade" id="dueInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="dueInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content due-invoice-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dueInvoiceModalLabel">
+                        <i class="fa fa-exclamation-triangle"></i> বকেয়া বিজ্ঞপ্তি
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="fa fa-file-invoice-dollar fa-3x text-danger mb-3"></i>
+                    <h5 class="due-records mb-3">
+                        আপনার প্রতিষ্ঠানের 
+                        <span id="dueRecordCount" class="badge badge-warning">0</span> 
+                        টি বকেয়া রেকর্ড রয়েছে
+                    </h5>
+                    <div class="alert alert-danger">
+                        <strong>মোট বকেয়া পরিমাণ:</strong>
+                        <div class="due-amount">
+                            <span id="totalDueAmount">0.00</span> টাকা
+                        </div>
+                    </div>
+                    <p class="text-muted">বিস্তারিত দেখতে Due Invoice পেজে যান।</p>
+                </div>
+                <div class="modal-footer">
+                    <a href="Invoice/Due_Invoice.aspx" class="btn btn-danger">
+                        <i class="fa fa-eye"></i> Due Invoice দেখুন
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">পরে দেখব</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card my-3 wow fadeIn">
         <div class="card-body dashboard-header" style="padding: 20px;">
             <h4 class="dashboard-title">Dashboard</h4>

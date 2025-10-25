@@ -4,13 +4,58 @@
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- Additional Font Awesome support for this page -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    <!-- Font Awesome with multiple sources for reliability -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Fallback to Font Awesome 5 -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" crossorigin="anonymous">
 
     <!-- External CSS for English Result Card with cache busting -->
     <link href="Assets/Result_Card_English.css?v=<%= DateTime.Now.Ticks %>" rel="stylesheet" type="text/css" />
 
     <style>
+        /* Fix Font Awesome icons not showing */
+        .fa, .fas, .far, .fal, .fab {
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', 'FontAwesome' !important;
+            font-weight: 900;
+            display: inline-block;
+            font-style: normal;
+            font-variant: normal;
+            text-rendering: auto;
+            line-height: 1;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Ensure Font Awesome loads before fallback */
+        .icon-fallback {
+            position: relative;
+        }
+
+        /* Hide fallback emoji if Font Awesome loads */
+        .icon-fallback::before {
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', 'FontAwesome' !important;
+        }
+
+        /* Fallback emoji styling */
+        .icon-fallback::after {
+            content: attr(data-fallback);
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+            visibility: hidden;
+        }
+
+        /* Show emoji fallback if Font Awesome fails */
+        @supports not ((-webkit-mask-image: none) or (mask-image: none)) {
+            .icon-fallback::after {
+                visibility: visible;
+            }
+            .icon-fallback::before {
+                visibility: hidden;
+            }
+        }
+
         /* PS Column Visibility Control */
         .ps-column.ps-hidden {
             display: none !important;
@@ -968,6 +1013,9 @@
 
         // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
         $(document).ready(function () {
+            // Force Font Awesome to load properly
+            forceFontAwesomeLoad();
+
             // Check if Font Awesome is loaded properly
             checkAndFixFontAwesome();
 
@@ -1141,6 +1189,46 @@
         }
 
         // Function implementations (keeping existing functions)
+        function forceFontAwesomeLoad() {
+            console.log('Forcing Font Awesome load...');
+            
+            // Test if Font Awesome is loaded
+            var testElement = $('<i class="fa fa-home"></i>').appendTo('body').hide();
+            var computed = window.getComputedStyle(testElement[0], ':before');
+            var content = computed.getPropertyValue('content');
+            testElement.remove();
+            
+            if (!content || content === 'none' || content === '""') {
+                console.warn('Font Awesome not loaded properly, reloading...');
+                
+                // Remove existing Font Awesome links
+                $('link[href*="font-awesome"]').remove();
+                
+                // Add Font Awesome 6 with integrity check
+                $('<link>')
+                    .attr('rel', 'stylesheet')
+                    .attr('href', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css')
+                    .attr('integrity', 'sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==')
+                    .attr('crossorigin', 'anonymous')
+                    .attr('referrerpolicy', 'no-referrer')
+                    .appendTo('head');
+                
+                // Add Font Awesome 5 as fallback
+                $('<link>')
+                    .attr('rel', 'stylesheet')
+                    .attr('href', 'https://use.fontawesome.com/releases/v5.15.4/css/all.css')
+                    .attr('crossorigin', 'anonymous')
+                    .appendTo('head');
+                
+                setTimeout(function() {
+                    fixResultCardIcons();
+                }, 500);
+            } else {
+                console.log('Font Awesome loaded successfully');
+                fixResultCardIcons();
+            }
+        }
+
         function checkAndFixFontAwesome() {
             console.log('Checking Font Awesome icons...');
             var testIcon = $('<i class="fa fa-home"></i>').appendTo('body');

@@ -90,18 +90,18 @@ namespace EDUCATION.COM.Exam.Result
             {
                 ExamDropDownList.SelectedIndex = 0; // Select the first item which is "[ SELECT EXAM ]"
             }
-            
+
             // শুধু লেবেল আপডেট করবো, অন্য কিছু না
             UpdateClassExamLabel();
         }
 
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // এখানে সব ধরনের রিপোর্ট ডেটা লোড হবে
+            // এখানে সবাই ডাইনামিক টেবিল জেনারেট হবে
             UpdateClassExamLabel();
-            
+
             // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে এবং এক্সাম ভ্যালু 0 না হয় তখন ডেটা লোড করবো
-            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 && 
+            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 &&
                 ExamDropDownList.SelectedValue != "0")
             {
                 System.Diagnostics.Debug.WriteLine("🎯 Loading all report data after exam selection");
@@ -120,23 +120,23 @@ namespace EDUCATION.COM.Exam.Result
         {
             // ক্লাশ সিলেক্ট করলে শুধু লেবেল আপডেট করবো এবং এক্সাম ড্রপডাউন রিসেট করবো
             UpdateClassExamLabel();
-            
+
             // Force exam dropdown to rebind by clearing selection first
             if (ExamDropDownList.Items.Count > 0)
             {
                 ExamDropDownList.ClearSelection();
             }
-            
+
             // রিপোর্ট ডেটা ক্লিয়ার করি কারণ এখনো এক্সাম সিলেক্ট হয়নি
             ClearReportData();
-            
+
             System.Diagnostics.Debug.WriteLine($"🏫 Class changed to: {ClassDropDownList.SelectedItem?.Text}, Exam dropdown will be reset after rebind");
         }
 
         protected void Page_PreRender(object sender, EventArgs e)
         {
             // শুধু যখন ক্লাশ এবং এক্সাম দুটোই সিলেক্ট থাকবে এবং এক্সাম ভ্যালু 0 না হয় তখন ডাইনামিক টেবিল জেনারেট করবো
-            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 && 
+            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 &&
                 ExamDropDownList.SelectedValue != "0")
             {
                 System.Diagnostics.Debug.WriteLine("🎯 Generating dynamic table in Page_PreRender");
@@ -161,12 +161,12 @@ namespace EDUCATION.COM.Exam.Result
                 {
                     literalControl = FindControlRecursive(this, "DynamicTableLiteral") as Literal;
                 }
-                
+
                 if (literalControl != null)
                 {
                     literalControl.Text = "";
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine("🧹 Report data cleared");
             }
             catch (Exception ex)
@@ -765,7 +765,10 @@ namespace EDUCATION.COM.Exam.Result
                             OR (
                                 ISNUMERIC(ISNULL(eom.MarksObtained, '')) = 1 
                                 AND LTRIM(RTRIM(ISNULL(eom.MarksObtained, ''))) NOT IN ('', 'A', 'ABS', 'ABSENT')
-                                AND CONVERT(FLOAT, LTRIM(RTRIM(eom.MarksObtained))) < ISNULL(eom.PassMark, 33)
+                                AND ISNUMERIC(ISNULL(eom.FullMark, '')) = 1
+                                AND LTRIM(RTRIM(ISNULL(eom.FullMark, ''))) != ''
+                                AND CAST(eom.FullMark AS DECIMAL(10,2)) > 0
+                                AND CONVERT(FLOAT, LTRIM(RTRIM(eom.MarksObtained))) < (CAST(eom.FullMark AS DECIMAL(10,2)) * 0.33)
                             )
                         )
                     ORDER BY sc.StudentID, sub.SubjectName";
@@ -897,21 +900,20 @@ namespace EDUCATION.COM.Exam.Result
                             string totalMarks = reader["TotalMarks"]?.ToString() ?? "";
                             string fullMarks = reader["FullMarks"]?.ToString() ?? "";
 
-                            // Calculate correct pass marks
-                            decimal passMarks = 33; // default
+                            // Calculate correct pass marks (33% of full marks)
+                            decimal passMarks = 33; // default fallback
                             if (decimal.TryParse(fullMarks, out decimal fullMarksValue) && fullMarksValue > 0)
                             {
-                                passMarks = Math.Round(fullMarksValue * 0.33m, 0);
-                            }
-                            else
-                            {
-                                // Use dynamic calculation if full marks not available
-                                passMarks = GetDynamicPassMarksForSubject(subjectId, subjectName);
+                                passMarks = Math.Round(fullMarksValue * 0.33m, 2);
                             }
 
                             // Check if student actually failed based on calculated pass marks
                             bool isFailed = false;
                             if (totalMarks?.ToUpper() == "A" || totalMarks?.ToUpper() == "ABS" || totalMarks?.ToUpper() == "ABSENT")
+                            {
+                                isFailed = true;
+                            }
+                            else if (string.IsNullOrEmpty(totalMarks) || totalMarks == "0")
                             {
                                 isFailed = true;
                             }
@@ -949,7 +951,7 @@ namespace EDUCATION.COM.Exam.Result
                                             {
                                                 string grade = gradeReader["SubjectGrades"]?.ToString()?.Trim().ToUpper() ?? "";
                                                 string passStatus = gradeReader["PassStatus_Subject"]?.ToString()?.Trim().ToUpper() ?? "";
-                                                
+
                                                 isFailed = grade == "F" || passStatus == "FAIL" || passStatus == "F";
                                             }
                                         }
@@ -960,7 +962,7 @@ namespace EDUCATION.COM.Exam.Result
                             // Only add if student actually failed
                             if (isFailed)
                             {
-                                System.Diagnostics.Debug.WriteLine($"🔍 Student {studentName} failed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
+                                System.Diagnostics.Debug.WriteLine($"🔍 Student {studentName} failed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks} (33% of {fullMarks})");
 
                                 if (!studentDict.ContainsKey(studentId))
                                 {
@@ -995,7 +997,7 @@ namespace EDUCATION.COM.Exam.Result
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"✅ Student {studentName} passed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks}, FullMarks={fullMarks}");
+                                System.Diagnostics.Debug.WriteLine($"✅ Student {studentName} passed in {subjectName}: ObtainedMarks={totalMarks}, PassMarks={passMarks} (33% of {fullMarks})");
                             }
                         }
 
@@ -1021,7 +1023,8 @@ namespace EDUCATION.COM.Exam.Result
                         esn.SubExamID,
                         esn.Sub_ExamSN,
                         eom.MarksObtained,
-                        ISNULL(eom.PassMark, 33) as PassMark,
+                        eom.FullMark,
+                        ISNULL(eom.PassMark, 0) as PassMark,
                         ISNULL(eom.AbsenceStatus, 'Present') as AbsenceStatus
                     FROM Exam_SubExam_Name esn
                     INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
@@ -1054,6 +1057,7 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             var subExamName = reader["SubExamName"]?.ToString();
                             var marksObtainedValue = reader["MarksObtained"];
+                            var fullMarkValue = reader["FullMark"];
                             var passMarkValue = reader["PassMark"];
                             string absenceStatus = reader["AbsenceStatus"]?.ToString() ?? "Present";
 
@@ -1073,13 +1077,18 @@ namespace EDUCATION.COM.Exam.Result
                                     marksObtained = "A";
                                 }
 
+                                // Calculate pass marks as 33% of full marks
                                 decimal passMark = 0;
-                                if (passMarkValue != null && passMarkValue != DBNull.Value)
+                                if (fullMarkValue != null && fullMarkValue != DBNull.Value && decimal.TryParse(fullMarkValue.ToString(), out decimal fullMarkDecimal) && fullMarkDecimal > 0)
+                                {
+                                    passMark = Math.Round(fullMarkDecimal * 0.33m, 2);
+                                }
+                                else if (passMarkValue != null && passMarkValue != DBNull.Value)
                                 {
                                     decimal.TryParse(passMarkValue.ToString(), out passMark);
                                 }
 
-                                // Use dynamic calculation for better accuracy
+                                // Use dynamic calculation for better accuracy if passMark still 0
                                 if (passMark <= 0)
                                 {
                                     passMark = GetDefaultPassMark(subExamName);
@@ -1105,7 +1114,7 @@ namespace EDUCATION.COM.Exam.Result
                         {
                             // Use dynamic pass marks for total marks
                             decimal totalPassMarks = GetDynamicPassMarksForSubject(failedSubject.SubjectID, failedSubject.SubjectName);
-                            
+
                             failedSubject.SubExams.Add(new SubExamInfo
                             {
                                 SubExamType = "Total",
@@ -1113,7 +1122,7 @@ namespace EDUCATION.COM.Exam.Result
                                 PassMarks = totalPassMarks,
                                 ObtainedMarks = failedSubject.TotalMarks
                             });
-                            
+
                             System.Diagnostics.Debug.WriteLine($"🎯 Added Total sub-exam for failed subject {failedSubject.SubjectName} with dynamic PassMarks={totalPassMarks}");
                         }
                     }
@@ -1122,10 +1131,10 @@ namespace EDUCATION.COM.Exam.Result
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ Error getting sub-exams for failed subject {failedSubject.SubjectID}: " + ex.Message);
-                
+
                 // Use dynamic pass marks even in error case
                 decimal totalPassMarks = GetDynamicPassMarksForSubject(failedSubject.SubjectID, failedSubject.SubjectName);
-                
+
                 failedSubject.SubExams.Add(new SubExamInfo
                 {
                     SubExamType = "Total",
@@ -1144,8 +1153,8 @@ namespace EDUCATION.COM.Exam.Result
                 using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
                 {
                     con.Open();
-                    
-                    // Get the maximum total marks for this subject to calculate pass marks
+
+                    // Get the maximum total marks for this subject to calculate pass marks (33%)
                     string query = @"
                         SELECT MAX(CASE 
                             WHEN ISNUMERIC(ers.TotalMark_ofSubject) = 1 
@@ -1178,66 +1187,43 @@ namespace EDUCATION.COM.Exam.Result
                             decimal maxMarks = Convert.ToDecimal(result);
                             if (maxMarks > 0)
                             {
-                                decimal passMarks = Math.Round(maxMarks * 0.33m, 0);
-                                System.Diagnostics.Debug.WriteLine($"🎯 Dynamic PassMarks for {subjectName} (ID:{subjectId}): MaxMarks={maxMarks}, PassMarks={passMarks}");
+                                decimal passMarks = Math.Round(maxMarks * 0.33m, 2);
+                                System.Diagnostics.Debug.WriteLine($"🎯 Dynamic PassMarks for {subjectName} (ID:{subjectId}): MaxMarks={maxMarks}, PassMarks={passMarks} (33%)");
                                 return passMarks;
                             }
                         }
                     }
                 }
+
+
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting dynamic pass marks for {subjectName}: " + ex.Message);
             }
 
-            // Fallback to static method
-            return GetActualPassMarksForSubject(subjectName, "");
+            // Fallback to subject-specific estimation (still using 33% logic)
+            return GetEstimatedPassMarksForSubject(subjectName);
         }
 
-        private decimal GetActualPassMarksForSubject(string subjectName, string totalMarks)
+        // Fallback method for estimating pass marks when database lookup fails
+        private decimal GetEstimatedPassMarksForSubject(string subjectName)
         {
-            // Enhanced fallback: use subject-specific pass marks based on subject name patterns
+            // Enhanced fallback: estimate typical full marks and calculate 33%
             var lowerName = subjectName.ToLower();
+
             if (lowerName.Contains("drawing") || lowerName.Contains("art"))
-                return 17; // Typically drawing subjects have 50 total marks, so 33% = 16.5 ≈ 17
+                return Math.Round(50 * 0.33m, 2); // Typically 50 marks -> 16.5
             else if (lowerName.Contains("ict") || lowerName.Contains("computer"))
-                return 17; // ICT subjects often have 50 total marks
+                return Math.Round(50 * 0.33m, 2); // 50 marks -> 16.5
             else if (lowerName.Contains("work") || lowerName.Contains("education"))
-                return 17; // Work & Life Oriented Education
+                return Math.Round(50 * 0.33m, 2); // 50 marks -> 16.5
             else if (lowerName.Contains("religion") || lowerName.Contains("islam") || lowerName.Contains("hindu") || lowerName.Contains("christian") || lowerName.Contains("buddhist"))
-                return 33; // Religion subjects typically have 100 total marks
+                return Math.Round(100 * 0.33m, 2); // 100 marks -> 33
             else if (lowerName.Contains("physical") || lowerName.Contains("sports"))
-                return 17; // Physical Education
+                return Math.Round(50 * 0.33m, 2); // 50 marks -> 16.5
             else
-                return 33; // Default for major subjects (Bangla, English, Math, Science, etc.)
-        }
-
-        private decimal GetDefaultPassMark(string subExamName)
-        {
-            if (string.IsNullOrEmpty(subExamName))
-                return 33;
-
-            var lowerName = subExamName.ToLower();
-
-            // For sub-exams
-            if (lowerName.Contains("creative"))
-                return 15; // Creative questions typically have 45 marks, 33% = 15
-            else if (lowerName.Contains("mcq"))
-                return 10; // MCQ typically has 30 marks, 33% = 10
-            else if (lowerName.Contains("cq"))
-                return 8; // CQ typically has 25 marks, 33% = 8
-            else if (lowerName.Contains("structured"))
-                return 20; // Structured questions typically have 60 marks, 33% = 20
-            else if (lowerName.Contains("practical"))
-                return 20; // Practical typically has 60 marks, 33% = 20
-            else if (lowerName.Contains("total"))
-            {
-                // For total marks, return default - will be overridden by dynamic calculation
-                return 33;
-            }
-            else
-                return 33; // Default
+                return Math.Round(100 * 0.33m, 2); // Default major subjects (100 marks -> 33)
         }
 
         private decimal CalculateLack(string obtainedMarks, decimal passMarks)
@@ -1250,10 +1236,10 @@ namespace EDUCATION.COM.Exam.Result
             if (decimal.TryParse(obtainedMarks, out decimal marks))
             {
                 decimal lack = Math.Max(0, passMarks - marks);
-                
+
                 // Debug output to see what's happening
                 System.Diagnostics.Debug.WriteLine($"🔍 CalculateLack - Obtained: {obtainedMarks}, PassMarks: {passMarks}, Lack: {lack}");
-                
+
                 return lack;
             }
 
@@ -1324,42 +1310,70 @@ namespace EDUCATION.COM.Exam.Result
 
             return uniqueSubjects.Values.OrderBy(s => s.SubjectName).ToList();
         }
-    }
 
-    // Helper Classes
-    [Serializable]
-    public class SubjectWithSubExams
-    {
-        public int SubjectID { get; set; }
-        public string SubjectName { get; set; }
-        public List<SubExamInfo> SubExams { get; set; }
-    }
+        private decimal GetDefaultPassMark(string subExamName)
+        {
+            if (string.IsNullOrEmpty(subExamName))
+                return 33;
 
-    [Serializable]
-    public class SubExamInfo
-    {
-        public string SubExamType { get; set; }
-        public int SubExamID { get; set; }
-        public decimal PassMarks { get; set; }
-        public string ObtainedMarks { get; set; } // Added for failed subject tracking
-    }
+            var lowerName = subExamName.ToLower();
 
-    // New classes for precise failed student tracking
-    [Serializable]
-    public class FailedStudentData
-    {
-        public int StudentID { get; set; }
-        public string StudentIDString { get; set; } // Added for ID field from Student table
-        public string StudentName { get; set; }
-        public List<FailedSubjectData> FailedSubjects { get; set; }
-    }
+            // For sub-exams - estimate typical full marks and calculate 33%
+            if (lowerName.Contains("creative"))
+                return Math.Round(45 * 0.33m, 2); // Creative: typically 45 marks -> 14.85
+            else if (lowerName.Contains("mcq"))
+                return Math.Round(30 * 0.33m, 2); // MCQ: typically 30 marks -> 9.9
+            else if (lowerName.Contains("cq"))
+                return Math.Round(25 * 0.33m, 2); // CQ: typically 25 marks -> 8.25
+            else if (lowerName.Contains("structured"))
+                return Math.Round(60 * 0.33m, 2); // Structured: typically 60 marks -> 19.8
+            else if (lowerName.Contains("practical"))
+                return Math.Round(60 * 0.33m, 2); // Practical: typically 60 marks -> 19.8
+            else if (lowerName.Contains("total"))
+            {
+                // For total marks, return default - will be overridden by dynamic calculation
+                return Math.Round(100 * 0.33m, 2); // Default 100 marks -> 33
+            }
+            else
+                return Math.Round(100 * 0.33m, 2); // Default 100 marks -> 33
+        }
 
-    [Serializable]
-    public class FailedSubjectData
-    {
-        public int SubjectID { get; set; }
-        public string SubjectName { get; set; }
-        public string TotalMarks { get; set; }
-        public List<SubExamInfo> SubExams { get; set; }
+
+        // Helper Classes
+        [Serializable]
+        public class SubjectWithSubExams
+        {
+            public int SubjectID { get; set; }
+            public string SubjectName { get; set; }
+            public List<SubExamInfo> SubExams { get; set; }
+        }
+
+        [Serializable]
+        public class SubExamInfo
+        {
+            public string SubExamType { get; set; }
+            public int SubExamID { get; set; }
+            public decimal PassMarks { get; set; }
+            public string ObtainedMarks { get; set; } // Added for failed subject tracking
+        }
+
+        // New classes for precise failed student tracking
+        [Serializable]
+        public class FailedStudentData
+        {
+            public int StudentID { get; set; }
+            public string StudentIDString { get; set; } // Added for ID field from Student table
+            public string StudentName { get; set; }
+            public List<FailedSubjectData> FailedSubjects { get; set; }
+        }
+
+        [Serializable]
+        public class FailedSubjectData
+        {
+            public int SubjectID { get; set; }
+            public string SubjectName { get; set; }
+            public string TotalMarks { get; set; }
+            public List<SubExamInfo> SubExams { get; set; }
+        }
     }
-}
+}   

@@ -20,7 +20,7 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            background-color: #f9f9f9;
+           
         }
         
         .logo-preview img {

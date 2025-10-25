@@ -23,10 +23,126 @@ namespace EDUCATION.COM.Profile
             {
                 Holiday_DA = new SqlDataAdapter("Select * FROM Employee_Holiday Where SchoolID = " + Session["SchoolID"].ToString(), con);
                 Holiday_DA.Fill(ds, "Table");
+
+                // Due Invoice চেক করে পপআপ নোটিশ দেখানো
+                if (!IsPostBack)
+                {
+                    CheckAndShowDueInvoiceNotification();
+                }
             }
         }
 
-        //Acadamic calendar
+        // Due Invoice এর টোটাল চেক করে নোটিফিকেশন দেখানোর মেথড
+        private void CheckAndShowDueInvoiceNotification()
+        {
+            try
+            {
+                // প্রথমে চেক করি notification enable করা আছে কিনা
+                if (!IsDueNoticeEnabled())
+                {
+                    return; // Enable না থাকলে notification দেখাবে না
+                }
+
+                string query = @"SELECT COUNT(*) AS DueRecordCount, 
+                                       ISNULL(SUM(AAP_Invoice.TotalAmount - AAP_Invoice.PaidAmount), 0) AS TotalDue
+                                FROM AAP_Invoice 
+                                WHERE (AAP_Invoice.SchoolID = @SchoolID) AND (AAP_Invoice.IsPaid = 0)";
+
+                using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString()))
+                {
+                    using (SqlCommand cmd = new SqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+                        
+                        connection.Open();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                int dueRecordCount = Convert.ToInt32(reader["DueRecordCount"]);
+                                decimal totalDue = Convert.ToDecimal(reader["TotalDue"]);
+
+                                if (dueRecordCount > 0 && totalDue > 0)
+                                {
+                                    // Modal পপআপ দেখানোর জন্য JavaScript কোড
+                                    string script = $@"
+                                        $(document).ready(function() {{
+                                            $('#dueRecordCount').text('{dueRecordCount}');
+                                            $('#totalDueAmount').text('{totalDue:N2}');
+                                            $('#dueInvoiceModal').modal('show');
+                                        }});
+                                    ";
+                                    
+                                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", 
+                                        script, true);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Error handling - লগ করা যেতে পারে কিন্তু ইউজারকে দেখানো হবে না
+                System.Diagnostics.Debug.WriteLine("Due Invoice notification error: " + ex.Message);
+            }
+        }
+
+        // চেক করে যে Due Notice Enable করা আছে কিনা (নতুন লজিক - ডিফল্ট বন্ধ)
+        private bool IsDueNoticeEnabled()
+        {
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    string query = @"SELECT TOP 1 IsEnabled, HideUntilDate 
+                                    FROM SchoolInfo_DueNoticeSettings 
+                                    WHERE SchoolID = @SchoolID 
+                                    ORDER BY CreatedDate DESC";
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+                        connection.Open();
+
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                bool isEnabled = reader.GetBoolean(reader.GetOrdinal("IsEnabled"));
+                                
+                                if (!isEnabled)
+                                {
+                                    return false; // Disabled থাকলে নোটিশ দেখাবে না
+                                }
+                                
+                                // Enable থাকলে চেক করি HideUntilDate আছে কিনা
+                                if (!reader.IsDBNull(reader.GetOrdinal("HideUntilDate")))
+                                {
+                                    DateTime hideUntilDate = reader.GetDateTime(reader.GetOrdinal("HideUntilDate"));
+                                    if (DateTime.Now <= hideUntilDate)
+                                    {
+                                        return false; // Hide period চলছে
+                                    }
+                                }
+                                
+                                return true; // Enable আছে এবং Hide period শেষ
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error checking due notice enabled status: " + ex.Message);
+            }
+
+            return false; // ডিফল্ট - কোনো setting না থাকলে নোটিশ দেখাবে না
+        }
+
+        // Acadamic calendar
         protected void HolidayCalendar_DayRender(object sender, DayRenderEventArgs e)
         {
             // If the month is CurrentMonth

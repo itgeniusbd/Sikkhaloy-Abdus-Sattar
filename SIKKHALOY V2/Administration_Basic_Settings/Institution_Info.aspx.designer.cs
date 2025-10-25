@@ -15,6 +15,24 @@ namespace EDUCATION.COM.Administration_Basic_Settings
     {
 
         /// <summary>
+        /// debugInfo control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl debugInfo;
+
+        /// <summary>
+        /// DebugLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label DebugLabel;
+
+        /// <summary>
         /// rbSendSMS control.
         /// </summary>
         /// <remarks>
@@ -40,6 +58,15 @@ namespace EDUCATION.COM.Administration_Basic_Settings
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FormView PImgFormView;
+
+        /// <summary>
+        /// SchoolNameImgFormView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.FormView SchoolNameImgFormView;
 
         /// <summary>
         /// ImgSQL control.

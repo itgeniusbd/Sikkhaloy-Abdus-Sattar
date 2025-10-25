@@ -186,70 +186,138 @@
                     SelectCommand="
                         SELECT 
                             s.SubjectName,
-                            COUNT(*) as TotalStudents,
-                            -- Calculate Passed Students with safe numeric conversion
+                            COUNT(DISTINCT ers.StudentResultID) as TotalStudents,
+                            -- Calculate Passed Students with dynamic pass marks (33% of total marks)
                             SUM(CASE 
-                                -- Check by Grade first
-                                WHEN ers.SubjectGrades IN ('A+', 'A', 'A-', 'B', 'C', 'D') THEN 1 
-                                -- Check by Pass Status
-                                WHEN UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('PASS', 'P') THEN 1
-                                -- Check by numerical marks with enhanced validation
-                                WHEN UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', '', '0') 
-                                     AND ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
-                                     AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
-                                     AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) >= 33 THEN 1
+                                WHEN (
+                                    -- First check if NOT failed by explicit fail indicators
+                                    NOT (
+                                        ers.SubjectGrades = 'F'
+                                        OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F')
+                                        OR UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS', 'ABSENT')
+                                        OR ers.ObtainedMark_ofSubject = '0'
+                                        OR LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, ''))) = ''
+                                        OR (
+                                            ISNUMERIC(ISNULL(ers.ObtainedMark_ofSubject, '')) = 1 
+                                            AND ISNUMERIC(ISNULL(ers.TotalMark_ofSubject, '')) = 1
+                                            AND LEN(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) > 0
+                                            AND LEN(LTRIM(RTRIM(ISNULL(ers.TotalMark_ofSubject, '')))) > 0
+                                            AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
+                                            AND CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) > 0
+                                            AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) < (CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) * 0.33)
+                                        )
+                                    )
+                                )
+                                AND
+                                (
+                                    -- Then check if passed by any positive indicator
+                                    ers.SubjectGrades IN ('A+', 'A', 'A-', 'B', 'C', 'D')
+                                    OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('PASS', 'P')
+                                    OR (
+                                        ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
+                                        AND ISNUMERIC(ISNULL(ers.TotalMark_ofSubject, '')) = 1
+                                        AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
+                                        AND LEN(LTRIM(RTRIM(ISNULL(ers.TotalMark_ofSubject, '')))) > 0
+                                        AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
+                                        AND CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) > 0
+                                        AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) >= (CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) * 0.33)
+                                    )
+                                )
+                                THEN 1
                                 ELSE 0 
                             END) as PassedStudents,
-                            -- Calculate Failed Students
+                            -- Calculate Failed Students with dynamic pass marks (33% of total marks)
                             SUM(CASE 
-                                -- Check by Grade
-                                WHEN ers.SubjectGrades = 'F' THEN 1
-                                -- Check by Pass Status
-                                WHEN UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F') THEN 1
-                                -- Check if absent
-                                WHEN UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) IN ('A', 'ABS') THEN 1
-                                -- Check by numerical marks
-                                WHEN ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
-                                     AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
-                                     AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS')
-                                     AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) < 33 THEN 1
+                                WHEN (
+                                    -- Explicit fail grade
+                                    ers.SubjectGrades = 'F'
+                                    OR
+                                    -- Explicit fail status
+                                    UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F')
+                                    OR
+                                    -- Absent
+                                    UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS', 'ABSENT')
+                                    OR
+                                    -- Zero marks or empty
+                                    ers.ObtainedMark_ofSubject = '0'
+                                    OR
+                                    LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, ''))) = ''
+                                    OR
+                                    -- Marks below 33% of total marks
+                                    (
+                                        ISNUMERIC(ISNULL(ers.ObtainedMark_ofSubject, '')) = 1 
+                                        AND ISNUMERIC(ISNULL(ers.TotalMark_ofSubject, '')) = 1
+                                        AND LEN(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) > 0
+                                        AND LEN(LTRIM(RTRIM(ISNULL(ers.TotalMark_ofSubject, '')))) > 0
+                                        AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
+                                        AND CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) > 0
+                                        AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) < (CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) * 0.33)
+                                    )
+                                ) THEN 1
                                 ELSE 0 
                             END) as FailedStudents,
                             -- Calculate Pass Percentage
                             CAST(CASE 
-                                WHEN COUNT(*) > 0 THEN 
+                                WHEN COUNT(DISTINCT ers.StudentResultID) > 0 THEN 
                                     (SUM(CASE 
-                                        WHEN ers.SubjectGrades IN ('A+', 'A', 'A-', 'B', 'C', 'D') THEN 1 
-                                        WHEN UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('PASS', 'P') THEN 1
-                                        WHEN UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', '', '0') 
-                                             AND ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
-                                             AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
-                                             AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) >= 33 THEN 1
+                                        WHEN (
+                                            NOT (
+                                                ers.SubjectGrades = 'F'
+                                                OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F')
+                                                OR UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS', 'ABSENT')
+                                                OR ers.ObtainedMark_ofSubject = '0'
+                                                OR LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, ''))) = ''
+                                                OR (
+                                                    ISNUMERIC(ISNULL(ers.ObtainedMark_ofSubject, '')) = 1 
+                                                    AND ISNUMERIC(ISNULL(ers.TotalMark_ofSubject, '')) = 1
+                                                    AND LEN(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) > 0
+                                                    AND LEN(LTRIM(RTRIM(ISNULL(ers.TotalMark_ofSubject, '')))) > 0
+                                                    AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
+                                                    AND CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) > 0
+                                                    AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) < (CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) * 0.33)
+                                                )
+                                            )
+                                        )
+                                        AND
+                                        (
+                                            ers.SubjectGrades IN ('A+', 'A', 'A-', 'B', 'C', 'D')
+                                            OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('PASS', 'P')
+                                            OR (
+                                                ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
+                                                AND ISNUMERIC(ISNULL(ers.TotalMark_ofSubject, '')) = 1
+                                                AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
+                                                AND LEN(LTRIM(RTRIM(ISNULL(ers.TotalMark_ofSubject, '')))) > 0
+                                                AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
+                                                AND CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) > 0
+                                                AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) >= (CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) * 0.33)
+                                            )
+                                        )
+                                        THEN 1
                                         ELSE 0 
-                                    END) * 100.0 / COUNT(*))
+                                    END) * 100.0 / COUNT(DISTINCT ers.StudentResultID))
                                 ELSE 0
                             END AS DECIMAL(5,2)) as PassPercentage,
                             -- Calculate Highest Marks
                             ISNULL(MAX(CASE 
                                 WHEN ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
                                      AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
-                                     AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS')
+                                     AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
                                 THEN CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) 
                                 ELSE NULL 
                             END), 0) as HighestMarks,
-                            -- Calculate Lowest Marks (excluding absent and zero)
+                            -- Calculate Lowest Marks (excluding absent but including zero)
                             ISNULL(MIN(CASE 
                                 WHEN ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
                                      AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
-                                     AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', '0')
+                                     AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
                                 THEN CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) 
                                 ELSE NULL 
                             END), 0) as LowestMarks,
-                            -- Calculate Average Marks (excluding absent)
+                            -- Calculate Average Marks (excluding absent but including zero)
                             CAST(ISNULL(AVG(CASE 
                                 WHEN ISNUMERIC(ers.ObtainedMark_ofSubject) = 1 
                                      AND LEN(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) > 0
-                                     AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS')
+                                     AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
                                 THEN CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) 
                                 ELSE NULL 
                             END), 0) AS DECIMAL(5,2)) as AverageMarks
@@ -302,14 +370,20 @@
                             INNER JOIN StudentsClass sc ON erst.StudentClassID = sc.StudentClassID
                             INNER JOIN Student s ON sc.StudentID = s.StudentID
                             WHERE (
-                                -- Multiple failure conditions (same as other queries)
+                                -- Failure conditions with dynamic 33% pass marks
                                 UPPER(LTRIM(RTRIM(ISNULL(ers.SubjectGrades, '')))) = 'F'
                                 OR UPPER(LTRIM(RTRIM(ISNULL(ers.PassStatus_Subject, '')))) IN ('FAIL', 'F')
-                                OR UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS')
+                                OR UPPER(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) IN ('A', 'ABS', 'ABSENT')
+                                OR ers.ObtainedMark_ofSubject = '0'
+                                OR LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, ''))) = ''
                                 OR (
                                     ISNUMERIC(ISNULL(ers.ObtainedMark_ofSubject, '')) = 1 
+                                    AND ISNUMERIC(ISNULL(ers.TotalMark_ofSubject, '')) = 1
                                     AND LEN(LTRIM(RTRIM(ISNULL(ers.ObtainedMark_ofSubject, '')))) > 0
-                                    AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) < 33
+                                    AND LEN(LTRIM(RTRIM(ISNULL(ers.TotalMark_ofSubject, '')))) > 0
+                                    AND UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) NOT IN ('A', 'ABS', 'ABSENT')
+                                    AND CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) > 0
+                                    AND CAST(ers.ObtainedMark_ofSubject AS DECIMAL(10,2)) < (CAST(ers.TotalMark_ofSubject AS DECIMAL(10,2)) * 0.33)
                                 )
                             )
                                 AND s.Status = 'Active' 
