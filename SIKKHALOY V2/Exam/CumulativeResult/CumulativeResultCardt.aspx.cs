@@ -41,6 +41,44 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             set { ViewState["FilteredStudentIDs"] = value; }
         }
 
+        // NEW: Publish Settings Properties
+        private bool IS_Hide_Sec_Position
+        {
+            get { return ViewState["IS_Hide_Sec_Position"] != null && (bool)ViewState["IS_Hide_Sec_Position"]; }
+            set { ViewState["IS_Hide_Sec_Position"] = value; }
+        }
+
+        private bool IS_Hide_Class_Position
+        {
+            get { return ViewState["IS_Hide_Class_Position"] != null && (bool)ViewState["IS_Hide_Class_Position"]; }
+            set { ViewState["IS_Hide_Class_Position"] = value; }
+        }
+
+        private bool IS_Hide_FullMark
+        {
+            get { return ViewState["IS_Hide_FullMark"] != null && (bool)ViewState["IS_Hide_FullMark"]; }
+            set { ViewState["IS_Hide_FullMark"] = value; }
+        }
+
+        private bool IS_Hide_PassMark
+        {
+            get { return ViewState["IS_Hide_PassMark"] != null && (bool)ViewState["IS_Hide_PassMark"]; }
+            set { ViewState["IS_Hide_PassMark"] = value; }
+        }
+
+        private bool IS_Grade_BasePoint
+        {
+            get { return ViewState["IS_Grade_BasePoint"] != null && (bool)ViewState["IS_Grade_BasePoint"]; }
+            set { ViewState["IS_Grade_BasePoint"] = value; }
+        }
+
+        // Whether the current class/result set has sections
+        private bool HasSections
+        {
+            get { return ViewState["HasSections"] != null && (bool)ViewState["HasSections"]; }
+            set { ViewState["HasSections"] = value; }
+        }
+
         #endregion
 
         #region Page Events
@@ -295,11 +333,88 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 if (!ValidateInputs())
                     return;
 
+                // Load publish settings before loading results
+                LoadPublishSettings();
+                
                 LoadStudentResults();
             }
             catch (Exception ex)
             {
                 ShowError("Error loading results: " + ex.Message);
+            }
+        }
+
+        // NEW: Load publish settings from Exam_Cumulative_Setting table
+        private void LoadPublishSettings()
+        {
+            SqlConnection con = null;
+            try
+            {
+                con = new SqlConnection(connectionString);
+                con.Open();
+
+                string query = @"
+                    SELECT TOP 1
+                        ISNULL(IS_Hide_Sec_Position, 0) AS IS_Hide_Sec_Position,
+                        ISNULL(IS_Hide_Class_Position, 0) AS IS_Hide_Class_Position,
+                        ISNULL(IS_Hide_SubExam, 0) AS IS_Hide_SubExam,
+                        ISNULL(IS_Grade_BasePoint, 0) AS IS_Grade_BasePoint
+                    FROM Exam_Cumulative_Setting
+                    WHERE SchoolID = @SchoolID
+                    AND EducationYearID = @EducationYearID
+                    AND ClassID = @ClassID
+                    AND CumulativeNameID = @CumulativeNameID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                    cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                    cmd.Parameters.AddWithValue("@CumulativeNameID", ExamDropDownList.SelectedValue);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            IS_Hide_Sec_Position = Convert.ToBoolean(reader["IS_Hide_Sec_Position"]);
+                            IS_Hide_Class_Position = Convert.ToBoolean(reader["IS_Hide_Class_Position"]);
+                            // For cumulative result, FM and PM are always shown (no hide settings in table)
+                            IS_Hide_FullMark = false;
+                            IS_Hide_PassMark = false;
+                            IS_Grade_BasePoint = Convert.ToBoolean(reader["IS_Grade_BasePoint"]);
+
+                            System.Diagnostics.Debug.WriteLine($"Cumulative Settings Loaded: HideSec={IS_Hide_Sec_Position}, HideClass={IS_Hide_Class_Position}, GradeBase={IS_Grade_BasePoint}");
+                        }
+                        else
+                        {
+                            // Default values if no settings found
+                            IS_Hide_Sec_Position = false;
+                            IS_Hide_Class_Position = false;
+                            IS_Hide_FullMark = false;
+                            IS_Hide_PassMark = false;
+                            IS_Grade_BasePoint = false;
+                            System.Diagnostics.Debug.WriteLine("No cumulative settings found - using defaults");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading cumulative settings: {ex.Message}");
+                // Set defaults on error
+                IS_Hide_Sec_Position = false;
+                IS_Hide_Class_Position = false;
+                IS_Hide_FullMark = false;
+                IS_Hide_PassMark = false;
+                IS_Grade_BasePoint = false;
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
             }
         }
 
@@ -339,6 +454,9 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                     return;
                 }
 
+                // Determine if this class has any sections in the loaded data
+                DetermineIfHasSections();
+
                 // Load results for current page
                 LoadPagedResults();
                 UpdatePaginationInfo();
@@ -351,6 +469,45 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             catch (Exception ex)
             {
                 ShowError("Error loading student results: " + ex.Message);
+            }
+        }
+
+        // NEW: Determine if the current result set has any sections
+        private void DetermineIfHasSections()
+        {
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    var query = @"
+                        SELECT COUNT(DISTINCT cs.SectionID) AS SectionCount
+                        FROM Exam_Cumulative_Student ecs
+                        INNER JOIN StudentsClass sc ON ecs.StudentClassID = sc.StudentClassID
+                        LEFT JOIN CreateSection cs ON sc.SectionID = cs.SectionID
+                        WHERE ecs.CumulativeNameID = @CumulativeNameID
+                        AND ecs.SchoolID = @SchoolID
+                        AND ecs.ClassID = @ClassID
+                        AND cs.Section IS NOT NULL AND cs.Section != ''";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@CumulativeNameID", ExamDropDownList.SelectedValue);
+                        command.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                        command.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                        var sectionCount = Convert.ToInt32(command.ExecuteScalar());
+                        HasSections = sectionCount > 0;
+
+                        System.Diagnostics.Debug.WriteLine($"HasSections determined: {HasSections} (SectionCount: {sectionCount})");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error determining HasSections: {ex.Message}");
+                HasSections = false;
             }
         }
 
@@ -396,6 +553,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                         cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
                         var studentCount = (int)cmd.ExecuteScalar();
                         info.Append($"Cumulative students: {studentCount}");
+//                        info.Append($"Cumulative students: {studentCount}, ");
                     }
                     
                     return info.ToString();
@@ -1117,8 +1275,19 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>Average</strong></td>");
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>Grade</strong></td>");
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>GPA</strong></td>");
-                html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>PC</strong></td>");
-                html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>PS</strong></td>");
+                
+                // Conditional PC header based on IS_Hide_Class_Position
+                if (!IS_Hide_Class_Position)
+                {
+                    html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>PC</strong></td>");
+                }
+                
+                // Conditional PS header based on HasSections AND IS_Hide_Sec_Position
+                if (HasSections && !IS_Hide_Sec_Position)
+                {
+                    html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>PS</strong></td>");
+                }
+                
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>Comment</strong></td>");
                 html.Append("</tr>");
                 
@@ -1132,8 +1301,19 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #87ceeb;'><strong>{average}</strong></td>");
                 html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #6495ed; color: white;'><strong>{grade}</strong></td>");
                 html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #00008b; color: white;'><strong>{gpa}</strong></td>");
-                html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #228b22; color: white;'><strong>{positionClass}</strong></td>");
-                html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #228b22; color: white;'><strong>{positionSection}</strong></td>");
+                
+                // Conditional PC data based on IS_Hide_Class_Position
+                if (!IS_Hide_Class_Position)
+                {
+                    html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #228b22; color: white;'><strong>{positionClass}</strong></td>");
+                }
+                
+                // Conditional PS data based on HasSections AND IS_Hide_Sec_Position
+                if (HasSections && !IS_Hide_Sec_Position)
+                {
+                    html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #228b22; color: white;'><strong>{positionSection}</strong></td>");
+                }
+                
                 html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #800080; color: white;'><strong>{comments}</strong></td>");
                 html.Append("</tr>");
                 html.Append("</table>");
@@ -1261,10 +1441,20 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             dataTable.Columns.Add("SubjectID", typeof(int));
             dataTable.Columns.Add("SN", typeof(int));
 
-            // Add columns for each exam (FM and OM)
+            // Add columns for each exam (FM, PM, and OM based on settings)
             foreach (var exam in examList)
             {
-                dataTable.Columns.Add($"FM_Exam{exam.ExamID}", typeof(string));
+                // Conditional FM column
+                if (!IS_Hide_FullMark)
+                {
+                    dataTable.Columns.Add($"FM_Exam{exam.ExamID}", typeof(string));
+                }
+                // Conditional PM column
+                if (!IS_Hide_PassMark)
+                {
+                    dataTable.Columns.Add($"PM_Exam{exam.ExamID}", typeof(string));
+                }
+                // OM always added
                 dataTable.Columns.Add($"OM_Exam{exam.ExamID}", typeof(string));
             }
 
@@ -1339,7 +1529,8 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                                 SELECT 
                                     ers.TotalMark_ofSubject AS E_Subject_TM,
                                     ers.ObtainedMark_ofSubject AS E_Subject_OM,
-                                    ers.SubjectAbsenceStatus AS E_Subject_Abs
+                                    ers.SubjectAbsenceStatus AS E_Subject_Abs,
+                                    ers.PassStatus_Subject AS E_Subject_Pass
                                 FROM Exam_Result_of_Subject ers
                                 INNER JOIN Exam_Result_of_Student erstu ON ers.StudentResultID = erstu.StudentResultID
                                 WHERE erstu.StudentClassID = @StudentClassID
@@ -1359,8 +1550,28 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                                         var fm = examReader["E_Subject_TM"];
                                         var om = examReader["E_Subject_OM"];
                                         var abs = examReader["E_Subject_Abs"]?.ToString() ?? "";
+                                        var pass = examReader["E_Subject_Pass"]?.ToString() ?? "";
                                         
-                                        row[$"FM_Exam{exam.ExamID}"] = FormatMarks(fm);
+                                        // Conditional FM column
+                                        if (!IS_Hide_FullMark)
+                                        {
+                                            row[$"FM_Exam{exam.ExamID}"] = FormatMarks(fm);
+                                        }
+                                        
+                                        // Conditional PM column - calculate 33% of FM as PM
+                                        if (!IS_Hide_PassMark)
+                                        {
+                                            if (fm != DBNull.Value && fm != null)
+                                            {
+                                                decimal fmValue = Convert.ToDecimal(fm);
+                                                decimal pmValue = fmValue * 0.33m;
+                                                row[$"PM_Exam{exam.ExamID}"] = FormatMarks(pmValue);
+                                            }
+                                            else
+                                            {
+                                                row[$"PM_Exam{exam.ExamID}"] = "-";
+                                            }
+                                        }
                                         
                                         // If absent, show "Abs"
                                         if (abs == "Absent" || abs == "A")
@@ -1375,7 +1586,14 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                                     else
                                     {
                                         // No data for this exam-subject combination
-                                        row[$"FM_Exam{exam.ExamID}"] = "-";
+                                        if (!IS_Hide_FullMark)
+                                        {
+                                            row[$"FM_Exam{exam.ExamID}"] = "-";
+                                        }
+                                        if (!IS_Hide_PassMark)
+                                        {
+                                            row[$"PM_Exam{exam.ExamID}"] = "-";
+                                        }
                                         row[$"OM_Exam{exam.ExamID}"] = "-";
                                     }
                                 }
@@ -1400,19 +1618,41 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             
             foreach (var exam in examList)
             {
-                html.Append($"<th colspan='2'>{exam.ExamName} ({exam.Percentage}%)</th>");
+                // Calculate colspan based on visible columns
+                int examColspan = 1; // OM always shown
+                if (!IS_Hide_FullMark) examColspan++; // Add FM
+                if (!IS_Hide_PassMark) examColspan++; // Add PM
+                
+                html.Append($"<th colspan='{examColspan}'>{exam.ExamName} ({exam.Percentage}%)</th>");
             }
             
-            // Merged Cumulative Result header spanning 8 columns
-            html.Append("<th colspan='8' style='background-color: #E6E6FA;'>Cumulative Result</th>");
+            // Calculate cumulative result colspan based on visible columns
+            int cumulativeColspan = 4; // FM, OM, GRADE, GPA always shown
+            if (!IS_Hide_Class_Position) cumulativeColspan++; // PC
+            if (HasSections && !IS_Hide_Sec_Position) cumulativeColspan++; // PS
+            cumulativeColspan++; // HMC always shown
+            if (HasSections && !IS_Hide_Sec_Position) cumulativeColspan++; // HMS
+            
+            // Merged Cumulative Result header spanning calculated columns
+            html.Append($"<th colspan='{cumulativeColspan}' style='background-color: #E6E6FA;'>Cumulative Result</th>");
             html.Append("</tr>");
             
-            // Second header row - FM and OM labels for exams, then individual cumulative columns
+            // Second header row - Conditional FM, PM, and OM labels for exams, then individual cumulative columns
             html.Append("<tr>");
             
             foreach (var exam in examList)
             {
-                html.Append("<th>FM</th>");
+                // Conditional FM header
+                if (!IS_Hide_FullMark)
+                {
+                    html.Append("<th>FM</th>");
+                }
+                // Conditional PM header
+                if (!IS_Hide_PassMark)
+                {
+                    html.Append("<th>PM</th>");
+                }
+                // OM always shown
                 html.Append("<th>OM</th>");
             }
             
@@ -1421,10 +1661,28 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             html.Append("<th style='background-color: #E6E6FA;'>OM</th>");
             html.Append("<th style='background-color: #E6E6FA;'>GRADE</th>");
             html.Append("<th style='background-color: #E6E6FA;'>GPA</th>");
-            html.Append("<th style='background-color: #E6E6FA;'>PC</th>");
-            html.Append("<th style='background-color: #E6E6FA;'>PS</th>");
+            
+            // Conditional PC header
+            if (!IS_Hide_Class_Position)
+            {
+                html.Append("<th style='background-color: #E6E6FA;'>PC</th>");
+            }
+            
+            // Conditional PS header
+            if (HasSections && !IS_Hide_Sec_Position)
+            {
+                html.Append("<th style='background-color: #E6E6FA;'>PS</th>");
+            }
+            
+            // HMC always shown
             html.Append("<th style='background-color: #E6E6FA;'>HMC</th>");
-            html.Append("<th style='background-color: #E6E6FA;'>HMS</th>");
+            
+            // HMS only with sections and not hidden
+            if (HasSections && !IS_Hide_Sec_Position)
+            {
+                html.Append("<th style='background-color: #E6E6FA;'>HMS</th>");
+            }
+            
             html.Append("</tr>");
 
             return html.ToString();
@@ -1439,10 +1697,20 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 html.Append("<tr>");
                 html.Append($"<td class='subject-name' style='background-color: #F5F5F5; text-align: left;'>{row["SubjectName"]}</td>");
                 
-                // Exam-wise marks
+                // Exam-wise marks with conditional FM and PM
                 foreach (var exam in examList)
                 {
-                    html.Append($"<td>{row[$"FM_Exam{exam.ExamID}"]}</td>");
+                    // Conditional FM column
+                    if (!IS_Hide_FullMark)
+                    {
+                        html.Append($"<td>{row[$"FM_Exam{exam.ExamID}"]}</td>");
+                    }
+                    // Conditional PM column
+                    if (!IS_Hide_PassMark)
+                    {
+                        html.Append($"<td>{row[$"PM_Exam{exam.ExamID}"]}</td>");
+                    }
+                    // OM always shown
                     html.Append($"<td class='total-marks-cell'>{row[$"OM_Exam{exam.ExamID}"]}</td>");
                 }
                 
@@ -1451,10 +1719,28 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 html.Append($"<td class='total-marks-cell' style='background-color: #E6E6FA;'>{row["Cu_Sub_OM"]}</td>");
                 html.Append($"<td class='grade-cell' style='background-color: #E6E6FA;'>{row["Cu_Sub_Grades"]}</td>");
                 html.Append($"<td style='background-color: #E6E6FA;'>{row["Cu_Sub_Point"]}</td>");
-                html.Append($"<td class='position-col-pc' style='background-color: #E6E6FA;'>{row["Position_InSubject_Class"]}</td>");
-                html.Append($"<td class='position-col-ps' style='background-color: #E6E6FA;'>{row["Position_InSubject_Subsection"]}</td>");
+                
+                // Conditional PC column
+                if (!IS_Hide_Class_Position)
+                {
+                    html.Append($"<td class='position-col-pc' style='background-color: #E6E6FA;'>{row["Position_InSubject_Class"]}</td>");
+                }
+                
+                // Conditional PS column
+                if (HasSections && !IS_Hide_Sec_Position)
+                {
+                    html.Append($"<td class='position-col-ps' style='background-color: #E6E6FA;'>{row["Position_InSubject_Subsection"]}</td>");
+                }
+                
+                // HMC always shown
                 html.Append($"<td class='position-col-hmc' style='background-color: #E6E6FA;'>{row["HighestMark_InSubject_Class"]}</td>");
-                html.Append($"<td class='position-col-hms' style='background-color: #E6E6FA;'>{row["HighestMark_InSubject_Subsection"]}</td>");
+                
+                // HMS only with sections
+                if (HasSections && !IS_Hide_Sec_Position)
+                {
+                    html.Append($"<td class='position-col-hms' style='background-color: #E6E6FA;'>{row["HighestMark_InSubject_Subsection"]}</td>");
+                }
+                
                 html.Append("</tr>");
             }
 
@@ -1506,9 +1792,17 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             html.Append($"<td style='background-color: #D3D3D3;'><strong>Overall Result</strong></td>");
             
             // Empty cells for exam-wise columns with light gray background
+            // Calculate number of cells per exam based on settings
+            int cellsPerExam = 1; // OM always shown
+            if (!IS_Hide_FullMark) cellsPerExam++;
+            if (!IS_Hide_PassMark) cellsPerExam++;
+            
             for (int i = 0; i < examCount; i++)
             {
-                html.Append("<td style='background-color: #D3D3D3;'></td><td style='background-color: #D3D3D3;'></td>");
+                for (int j = 0; j < cellsPerExam; j++)
+                {
+                    html.Append("<td style='background-color: #D3D3D3;'></td>");
+                }
             }
             
             // All cumulative totals merged with single Lavender background (#E6E6FA)
@@ -1516,10 +1810,28 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{obtainedMarks}</strong></td>");
             html.Append($"<td class='grade-cell' style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{studentGrade}</strong></td>");
             html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{FormatPoint(studentPoint)}</strong></td>");
-            html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{positionClass}</strong></td>");
-            html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{positionSection}</strong></td>");
+            
+            // Conditional PC cell
+            if (!IS_Hide_Class_Position)
+            {
+                html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{positionClass}</strong></td>");
+            }
+            
+            // Conditional PS cell
+            if (HasSections && !IS_Hide_Sec_Position)
+            {
+                html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{positionSection}</strong></td>");
+            }
+            
+            // HMC always shown
             html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{highestClass}</strong></td>");
-            html.Append($"<td style='background-color: #E6E6FA;'><strong>{highestSection}</strong></td>");
+            
+            // HMS only with sections
+            if (HasSections && !IS_Hide_Sec_Position)
+            {
+                html.Append($"<td style='background-color: #E6E6FA;'><strong>{highestSection}</strong></td>");
+            }
+            
             html.Append("</tr>");
 
             return html.ToString();

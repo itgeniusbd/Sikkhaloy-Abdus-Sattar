@@ -9,6 +9,7 @@ body {
     background: #fff;
     margin: 0;
     font-size: 13px;
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 .result-card {
@@ -22,6 +23,8 @@ body {
     display: block;
     font-size: 13px;
     font-family: Arial, sans-serif !important;
+    overflow: hidden; /* Prevent scrollbar inside card */
+    position: relative; /* For proper note positioning */
 }
 
 .header {
@@ -154,6 +157,7 @@ body {
     table-layout: fixed;
     font-size: 11px;
     font-family: Arial, sans-serif !important;
+    overflow: hidden; /* Prevent table overflow causing scrollbar */
 }
 
     .marks-table th,
@@ -278,8 +282,8 @@ body {
 }
 
 .note {
-    margin-top: 15px;
-    margin-bottom: 5px;
+    margin-top: 8px; /* Reduced from 15px */
+    margin-bottom: 0px; /* Remove bottom margin */
     font-size: 10px;
     text-align: center;
     color: green;
@@ -288,7 +292,10 @@ body {
     line-height: 1.2;
     white-space: nowrap;
     clear: both;
-    padding-top: 5px;
+    padding-top: 3px; /* Reduced from 5px */
+    padding-bottom: 0px; /* Add explicit bottom padding */
+    position: relative; /* Keep it in document flow */
+    z-index: 1; /* Ensure it stays above other elements */
 }
 
 /* Print Styles - A4 Landscape Optimized */
@@ -335,7 +342,7 @@ body {
         page-break-inside: avoid !important;
         border: 1.5px solid #0072bc !important;
         box-sizing: border-box !important;
-        position: static !important;
+        position: relative !important; /* Changed from static to relative */
         top: auto !important;
         left: auto !important;
         font-family: Arial, sans-serif !important;
@@ -343,6 +350,7 @@ body {
         display: block !important;
         clear: both !important;
         font-size: 11px !important;
+        overflow: hidden !important; /* Prevent overflow in print */
     }
 
         .result-card:last-child {
@@ -515,10 +523,11 @@ body {
     }
 
     .footer {
-        margin-top: 20px !important;
+        margin-top: 12px !important; /* Reduced from 20px */
         padding: 0 30px !important;
         font-size: 11px !important;
-        min-height: 55px !important;
+        min-height: 50px !important; /* Reduced from 55px */
+        margin-bottom: 0px !important; /* Ensure no bottom margin */
     }
 
     .footer > div {
@@ -540,9 +549,9 @@ body {
     }
 
     .note {
-        margin-top: 15px;
-        margin-bottom: 5px;
-        font-size: 10px;
+        margin-top: 6px !important; /* Reduced spacing in print */
+        margin-bottom: 0px !important; /* No bottom margin */
+        font-size: 9px !important; /* Slightly smaller in print */
         text-align: center;
         color: green;
         font-weight: bold;
@@ -550,7 +559,12 @@ body {
         line-height: 1.2;
         white-space: nowrap;
         clear: both;
-        padding-top: 5px;
+        padding-top: 2px !important;
+        padding-bottom: 3px !important; /* Add bottom padding to keep inside border */
+        position: relative !important; /* Keep in document flow */
+        display: block !important;
+        page-break-inside: avoid !important; /* Prevent breaking across pages */
+        page-break-after: avoid !important;
     }
 }
 
