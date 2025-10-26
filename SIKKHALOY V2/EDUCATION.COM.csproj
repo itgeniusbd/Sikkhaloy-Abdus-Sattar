@@ -519,7 +519,7 @@
     <Content Include="Exam\Admit_Card\Multiple_Admit_Card.aspx" />
     <Content Include="Exam\Admit_Card\Old_AdmitCard.aspx" />
     <Content Include="Exam\Admit_Card\Old_AdmitCardWithoutPhoto.aspx" />
-    <Content Include="Exam\CumulativeResult\CumulativeResultCardt.aspx" />
+    <Content Include="Exam\CumulativeResult\Cumulative_Result.aspx" />
     <Content Include="Exam\ExmamPositionBangla.aspx" />
     <Content Include="Exam\Input_Exam_Marks_WithSubExam.aspx" />
     <Content Include="Exam\Result\Assets\Analytical_Result.css" />
@@ -532,7 +532,7 @@
     <Content Include="Exam\CSS\Input_Marks.css" />
     <Content Include="Exam\CSS\ExamPosition.css" />
     <Content Include="Exam\CumulativeResult\Cumulative_Position.aspx" />
-    <Content Include="Exam\CumulativeResult\Cumulative_Result.aspx" />
+    <Content Include="Exam\CumulativeResult\Cumulative_Result_old.aspx" />
     <Content Include="Exam\CumulativeResult\Cumulative_Setting.aspx" />
     <Content Include="Exam\ExamPosition.aspx" />
     <Content Include="Exam\ExamPosition_Subject.aspx" />
@@ -1983,12 +1983,12 @@
     <Compile Include="Exam\Admit_Card\Old_AdmitCardWithoutPhoto.aspx.designer.cs">
       <DependentUpon>Old_AdmitCardWithoutPhoto.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Exam\CumulativeResult\CumulativeResultCardt.aspx.cs">
-      <DependentUpon>CumulativeResultCardt.aspx</DependentUpon>
+    <Compile Include="Exam\CumulativeResult\Cumulative_Result.aspx.cs">
+      <DependentUpon>Cumulative_Result.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="Exam\CumulativeResult\CumulativeResultCardt.aspx.designer.cs">
-      <DependentUpon>CumulativeResultCardt.aspx</DependentUpon>
+    <Compile Include="Exam\CumulativeResult\Cumulative_Result.aspx.designer.cs">
+      <DependentUpon>Cumulative_Result.aspx</DependentUpon>
     </Compile>
     <Compile Include="Exam\CumulativeResult\Cu_Exam.cs">
       <DependentUpon>Cu_Exam.xsd</DependentUpon>
@@ -2042,12 +2042,12 @@
     <Compile Include="Exam\CumulativeResult\Cumulative_Position.aspx.designer.cs">
       <DependentUpon>Cumulative_Position.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Exam\CumulativeResult\Cumulative_Result.aspx.cs">
-      <DependentUpon>Cumulative_Result.aspx</DependentUpon>
+    <Compile Include="Exam\CumulativeResult\Cumulative_Result_old.aspx.cs">
+      <DependentUpon>Cumulative_Result_old.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="Exam\CumulativeResult\Cumulative_Result.aspx.designer.cs">
-      <DependentUpon>Cumulative_Result.aspx</DependentUpon>
+    <Compile Include="Exam\CumulativeResult\Cumulative_Result_old.aspx.designer.cs">
+      <DependentUpon>Cumulative_Result_old.aspx</DependentUpon>
     </Compile>
     <Compile Include="Exam\CumulativeResult\Cumulative_Setting.aspx.cs">
       <DependentUpon>Cumulative_Setting.aspx</DependentUpon>
