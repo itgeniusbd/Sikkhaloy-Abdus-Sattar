@@ -342,16 +342,19 @@
     <Content Include="Admission\CSS\Report.css" />
     <Content Include="Admission\Edit_Student_Info\Find_Student.aspx" />
     <Content Include="Admission\New_Student_Admission\Admission_Form.aspx" />
-    <Content Include="Admission\New_Student_Admission\Admission_New_Student.aspx" />
+    <Content Include="Admission\New_Student_Admission\Admission_New_Student_old.aspx" />
     <Content Include="Admission\Blocked_Unblocked_Student_Temporarily.aspx" />
     <Content Include="Admission\CSS\Admission_New_Student.css" />
     <Content Include="Admission\CSS\Student_List.css" />
     <Content Include="Admission\Edit_Student_Info\Edit_Student_information.aspx" />
     <Content Include="Admission\New_Student_Admission\Class_And_Subject.aspx" />
+    <Content Include="Admission\New_Student_Admission\CSS\FormBangla.css" />
     <Content Include="Admission\New_Student_Admission\CSS\New_Students_Payments.css" />
+    <Content Include="Admission\New_Student_Admission\CSS\New_Student_Admission.css" />
     <Content Include="Admission\New_Student_Admission\Form_Bangla.aspx" />
     <Content Include="Admission\New_Student_Admission\Online_Admission_Form.aspx" />
     <Content Include="Admission\New_Student_Admission\Payments.aspx" />
+    <Content Include="Admission\New_Student_Admission\Admission_New_Student.aspx" />
     <Content Include="Admission\Print_TC.aspx" />
     <Content Include="Admission\Promotion_Demotion\Change_Class_And_Subjects.aspx" />
     <Content Include="Admission\Promotion_Demotion\List_Of_Students.aspx" />
@@ -1210,8 +1213,12 @@
       <DependentUpon>Admission_New_Student.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="Admission\New_Student_Admission\Admission_New_Student.aspx.designer.cs">
-      <DependentUpon>Admission_New_Student.aspx</DependentUpon>
+    <Compile Include="Admission\New_Student_Admission\Admission_New_Student_old.aspx.cs">
+      <DependentUpon>Admission_New_Student_old.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Admission\New_Student_Admission\Admission_New_Student_old.aspx.designer.cs">
+      <DependentUpon>Admission_New_Student_old.aspx</DependentUpon>
     </Compile>
     <Compile Include="Admission\Blocked_Unblocked_Student_Temporarily.aspx.cs">
       <DependentUpon>Blocked_Unblocked_Student_Temporarily.aspx</DependentUpon>
@@ -1254,6 +1261,9 @@
     </Compile>
     <Compile Include="Admission\New_Student_Admission\Payments.aspx.designer.cs">
       <DependentUpon>Payments.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Admission\New_Student_Admission\Admission_New_Student.aspx.designer.cs">
+      <DependentUpon>Admission_New_Student.aspx</DependentUpon>
     </Compile>
     <Compile Include="Admission\Print_TC.aspx.cs">
       <DependentUpon>Print_TC.aspx</DependentUpon>

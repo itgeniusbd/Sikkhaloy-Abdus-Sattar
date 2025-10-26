@@ -2,193 +2,158 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="https://fonts.maateen.me/kalpurush/font.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-    <style>
-        body { line-height: initial; color: #333;font-family: 'Kalpurush', Arial, sans-serif !important; }
-
-        .img-thumbnail {
-  padding: 0.25rem;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-  border-radius:5%;
-  width: 80px;
-  height: 100px;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-th, td {
-  text-align: left;
-  padding: 8px;
-}
-
-
-  
-
-
-/*
-     -------------------------*/
-
-  .online-form { color: #000;font-family: 'Kalpurush', Arial, sans-serif !important;}
-  .online-form h3{border:none; font-family: 'Kalpurush', Arial, sans-serif !important;}
-  .online-form .border-bottom { margin-bottom:20px; border-bottom: 1px solid #777 !important; }
-  .online-form .cb label { margin-bottom: 0; font-family: 'Kalpurush', Arial, sans-serif !important;}
-    .C-title {
-    font-size: 2rem;
-    font-weight: 800;
-    width: 290px;
-    margin: auto;
-    border-radius:15px;
-    font-family: 'Kalpurush', Arial, sans-serif !important;
-    color: #333;
-    text-align:center;
-}
-    .c-body {
-       color: #000;
-      font-size: 20px;
-      text-align: justify;
-      font-family: 'Kalpurush', Arial, sans-serif !important;
-  }
- .online-form fieldset { border-radius:3px;font-family: 'Kalpurush', Arial, sans-serif !important;}
-   .online-form legend { padding: 0 7px; font-size: 1rem; font-weight:bold;font-family: 'Kalpurush', Arial, sans-serif !important; }
-  .online-form .border{border: 0.5px solid #333 !important;font-family: 'Kalpurush', Arial, sans-serif !important;}
-
-    </style>
+    <link href="CSS/FormBangla.css" rel="stylesheet" />
 </asp:Content>
 
-
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    
-     
-   <asp:FormView ID="FormView1" runat="server" DataSourceID="FormSQL" Width="100%">
-       <ItemTemplate>
-           <div> <p style="float:left;margin-top:30px;margin-left:10px;font-size:14px; font-weight:bold;font-family: 'Kalpurush', Arial, sans-serif !important;">ভর্তির তারিখ: <%# Eval("AdmissionDate","{0:d MMM yyyy}") %></p></div>
-<div class="C-title"><p style="float:left;margin-left:80px;margin-top:20px; border:1px solid #777;padding-left:20px;padding-right:20px;border-radius:10px;">ভর্তি ফরম</p></div>
-<div><p style="float:right;margin-top:0px;margin-right:10px;"><img src="/Handeler/Student_Photo.ashx?SID=<%#Eval("StudentImageID") %>" class="img-thumbnail" /></p></div>
+    <div class="print-container">
+        <!-- Decorative Corners -->
+        <div class="corner-decoration top-left d-print-none"></div>
+        <div class="corner-decoration top-right d-print-none"></div>
+        <div class="corner-decoration bottom-left d-print-none"></div>
+        <div class="corner-decoration bottom-right d-print-none"></div>
 
-           </ItemTemplate>
-       </asp:FormView>
-    <asp:FormView ID="FormFormView" runat="server" DataSourceID="FormSQL" Width="100%">
-        <ItemTemplate>
+        <!-- Watermark -->
+        <div class="watermark">ভর্তি ফরম</div>
 
-            <a class="btn btn-blue btn-sm d-print-none" href="../Edit_Student_Info/Edit_Student_information.aspx?Student=<%# Eval("StudentID") %>&Student_Class=<%# Eval("StudentClassID") %>"><i class="fa fa-pencil-square mr-1" aria-hidden="true"></i>Update Info</a>
-            <input class="btn btn-blue btn-sm d-print-none" onclick="window.print();" type="button" value="Print" />
-            <a class="btn btn-blue btn-sm d-print-none" href="Admission_New_Student.aspx">Admission New Student</a>
+        <!-- Action Buttons (Print/Edit) -->
+        <asp:FormView ID="FormView1" runat="server" DataSourceID="FormSQL" Width="100%">
+            <ItemTemplate>
+                <div class="action-buttons d-print-none">
+                    <a class="btn btn-blue" href="../Edit_Student_Info/Edit_Student_information.aspx?Student=<%# Eval("StudentID") %>&Student_Class=<%# Eval("StudentClassID") %>">
+                        <i class="fa fa-pencil-square" aria-hidden="true"></i> তথ্য সংশোধন করুন
+                    </a>
+                    <input class="btn btn-blue" onclick="window.print();" type="button" value="🖨️ প্রিন্ট করুন" />
+                    <a class="btn btn-blue" href="Admission_New_Student.aspx">➕ নতুন ভর্তি</a>
+                </div>
 
-
-
-            <fieldset class="border p-2 mb-3 c-body">
-                <legend class="w-auto">শিক্ষার্থীর তথ্য</legend>
-
-                <table>
-
-                    <tr>
-                        <td> ID: <%# Eval("ID") %></td>
-                        <td colspan="2"> শিক্ষার্থীর নাম: <%# Eval("StudentsName") %></td>
-                        <td> SMS মোবাইল নম্বর: <%# Eval("SMSPhoneNo") %></td>
-                        
-
-                    </tr>
-
-                    <tr>
-                        <td>*লিঙ্গ: <%# Eval("Gender") %></td>
-                        <td>জন্ম তারিখ: <%# Eval("DateofBirth","{0:d MMM yyyy}") %></td>
-                        <td>রক্তের গ্রুপ: <%# Eval("BloodGroup") %></td>
-                        <td>ধর্ম: <%# Eval("Religion") %></td>
-
-
-                    </tr>
-                    <tr>
-
-                        <td style="text-align: left" colspan="4">শিক্ষার্থীর স্থায়ী ঠিকানা: <%# Eval("StudentPermanentAddress") %></td>
-
-
-                    </tr>
-                    <tr>
-
-
-                        <td style="text-align: left" colspan="4">শিক্ষার্থীর অস্থায়ী ঠিকানা: <%# Eval("StudentsLocalAddress") %></td>
-                    </tr>
-                </table>
-
-            </fieldset>
-            <fieldset class="border p-2 mb-3 c-body">
-                <legend class="w-auto">পিতা-মাতার তথ্য</legend>
-    
-     <table>
-    <tr>
-
-        <td>পিতার নাম: <%# Eval("FathersName") %></td>
-        <td>মোবাইল : <%# Eval("FatherPhoneNumber") %></td>
-        <td>পিতার পেশা : <%# Eval("FatherOccupation") %></td>
-    </tr>
-
-
-    <tr>
-
-        <td>মাতার নাম : <%# Eval("MothersName") %></td>
-        <td>মোবাইল : <%# Eval("MotherPhoneNumber") %></td>
-        <td>মাতার পেশা : <%# Eval("MotherOccupation") %></td>
-    </tr>
-   
-</table>
-</fieldset>
-
-
-<fieldset class="border p-2 mb-3 c-body">
-<legend class="w-auto">অভিভাবকের তথ্য</legend>  
-
-            <table >
-                <tr>
-                    <td>অভিভাবকের নাম : <%# Eval("GuardianName") %></td>
- 
-                    <td>সম্পর্ক : <%# Eval("GuardianRelationshipwithStudent") %></td>
+                <!-- Form Header with Photo and Date on both sides -->
+                <div class="form-header">
+                    <!-- Left: Admission Date -->
+                    <div class="admission-date">
+                        📅 ভর্তি<br/><%# Eval("AdmissionDate","{0:dd/MM/yyyy}") %>
+                    </div>
                     
-                    <td>মোবাইল: <%# Eval("GuardianPhoneNumber") %></td>
+                    <!-- Center: School Info and Title -->
+                    <div class="header-center">
+                        <div class="form-title">✨ ভর্তি ফরম ✨</div>
+                    </div>
                     
-                </tr>
-            </table>
-    </fieldset>
-           
-<fieldset class="border p-2 mb-3 c-body">
-<legend class="w-auto">পূর্বে যে প্রতিষ্ঠানে  পড়েছে তার তথ্য</legend>  
+                    <!-- Right: Student Photo -->
+                    <div class="student-photo">
+                        <img src="/Handeler/Student_Photo.ashx?SID=<%#Eval("StudentImageID") %>" class="img-thumbnail" alt="Student Photo" />
+                    </div>
+                </div>
+            </ItemTemplate>
+        </asp:FormView>
 
-            <table>
-                <tr>
-                    <td>পূর্বের প্রতিষ্ঠান : <%# Eval("PrevSchoolName") %> </td>
-                    <td>যে শ্রেণিতে পড়েছে : <%# Eval("PrevClass") %></td>
-                    <td>পরীক্ষার বছর : <%# Eval("PrevExamYear") %></td>
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Form Content -->
+            <asp:FormView ID="FormFormView" runat="server" DataSourceID="FormSQL" Width="100%">
+                <ItemTemplate>
+                    <!-- Student Information -->
+                    <fieldset>
+                        <legend>👤 শিক্ষার্থীর তথ্য</legend>
+                        <table class="info-table">
+                            <tr>
+                                <td style="width: 25%;"><span class="label">আইডি:</span> <span class="value"><%# Eval("ID") %></span></td>
+                                <td style="width: 45%;"><span class="label">শিক্ষার্থীর নাম:</span> <span class="value"><%# Eval("StudentsName") %></span></td>
+                                <td style="width: 30%;"><span class="label">📱 মোবাইল:</span> <span class="value"><%# Eval("SMSPhoneNo") %></span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">লিঙ্গ:</span> <span class="value"><%# Eval("Gender") %></span></td>
+                                <td><span class="label">🎂 জন্ম তারিখ:</span> <span class="value"><%# Eval("DateofBirth","{0:dd/MM/yyyy}") %></span></td>
+                                <td><span class="label">🩸 রক্তের গ্রুপ:</span> <span class="value"><%# Eval("BloodGroup") %></span></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3"><span class="label">🕌 ধর্ম:</span> <span class="value"><%# Eval("Religion") %></span></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3"><span class="label">🏠 স্থায়ী ঠিকানা:</span> <span class="value"><%# Eval("StudentPermanentAddress") %></span></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3"><span class="label">📍 বর্তমান ঠিকানা:</span> <span class="value"><%# Eval("StudentsLocalAddress") %></span></td>
+                            </tr>
+                        </table>
+                    </fieldset>
 
+                    <!-- Parents Information -->
+                    <fieldset>
+                        <legend>👨‍👩‍👦 পিতা-মাতার তথ্য</legend>
+                        <table class="info-table">
+                            <tr>
+                                <td style="width: 40%;"><span class="label">👨 পিতার নাম:</span> <span class="value"><%# Eval("FathersName") %></span></td>
+                                <td style="width: 30%;"><span class="label">📱 মোবাইল:</span> <span class="value"><%# Eval("FatherPhoneNumber") %></span></td>
+                                <td style="width: 30%;"><span class="label">💼 পেশা:</span> <span class="value"><%# Eval("FatherOccupation") %></span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">👩 মাতার নাম:</span> <span class="value"><%# Eval("MothersName") %></span></td>
+                                <td><span class="label">📱 মোবাইল:</span> <span class="value"><%# Eval("MotherPhoneNumber") %></span></td>
+                                <td><span class="label">💼 পেশা:</span> <span class="value"><%# Eval("MotherOccupation") %></span></td>
+                            </tr>
+                        </table>
+                    </fieldset>
 
-                    <td>পরীক্ষায় যে গ্রেড পেয়েছে : <%# Eval("PrevExamGrade") %></td>
+                    <!-- Guardian Information -->
+                    <fieldset>
+                        <legend>🤝 অভিভাবকের তথ্য</legend>
+                        <table class="info-table">
+                            <tr>
+                                <td style="width: 40%;"><span class="label">অভিভাবকের নাম:</span> <span class="value"><%# Eval("GuardianName") %></span></td>
+                                <td style="width: 30%;"><span class="label">🔗 সম্পর্ক:</span> <span class="value"><%# Eval("GuardianRelationshipwithStudent") %></span></td>
+                                <td style="width: 30%;"><span class="label">📱 মোবাইল:</span> <span class="value"><%# Eval("GuardianPhoneNumber") %></span></td>
+                            </tr>
+                        </table>
+                    </fieldset>
 
-                </tr>
-            </table>
-</fieldset>
+                    <!-- Previous School Information -->
+                    <fieldset>
+                        <legend>🏫 পূর্বের শিক্ষা প্রতিষ্ঠানের তথ্য</legend>
+                        <table class="info-table">
+                            <tr>
+                                <td style="width: 40%;"><span class="label">প্রতিষ্ঠানের নাম:</span> <span class="value"><%# Eval("PrevSchoolName") %></span></td>
+                                <td style="width: 20%;"><span class="label">শ্রেণি:</span> <span class="value"><%# Eval("PrevClass") %></span></td>
+                                <td style="width: 20%;"><span class="label">সাল:</span> <span class="value"><%# Eval("PrevExamYear") %></span></td>
+                                <td style="width: 20%;"><span class="label">🏆 গ্রেড:</span> <span class="value"><%# Eval("PrevExamGrade") %></span></td>
+                            </tr>
+                        </table>
+                    </fieldset>
 
-<fieldset class="border p-2 mb-3 c-body">
-<legend class="w-auto">প্রাতিষ্ঠানিক তথ্য</legend>  
+                    <!-- Institutional Information -->
+                    <fieldset>
+                        <legend>🎓 প্রাতিষ্ঠানিক তথ্য</legend>
+                        <table class="info-table">
+                            <tr>
+                                <td style="width: 20%;"><span class="label">শ্রেণি:</span> <span class="value"><%# Eval("Class") %></span></td>
+                                <td style="width: 20%;"><span class="label">রোল নং:</span> <span class="value"><%# Eval("RollNo") %></span></td>
+                                <td style="width: 20%;"><span class="label">শাখা:</span> <span class="value"><%# Eval("Section") %></span></td>
+                                <td style="width: 20%;"><span class="label">শিফট:</span> <span class="value"><%# Eval("Shift") %></span></td>
+                                <td style="width: 20%;"><span class="label">গ্রুপ:</span> <span class="value"><%# Eval("SubjectGroup") %></span></td>
+                            </tr>
+                        </table>
+                    </fieldset>
+                </ItemTemplate>
+            </asp:FormView>
+        </div>
 
-            <table>
-                <tr>
-                    <td>যে শ্রেণিতে পড়বে : <%# Eval("Class") %></td>
-                   
-                    <td>রোল নং : <%# Eval("RollNo") %></td>
-                    
-                    <td>শাখা : <%# Eval("Section") %></td>
-                   
-                    <td>শিফট : <%# Eval("Shift") %></td>
-                   
-                    <td>গ্রুপ : <%# Eval("SubjectGroup") %></td>
-                    
-                </tr>
-            </table>
-    </fieldset>
-        </ItemTemplate>
-    </asp:FormView>
+        <!-- Signature Section - Normal flow, stays on first page -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-line">শিক্ষার্থীর স্বাক্ষর</div>
+                <div class="signature-date">তারিখ: _______</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line">অভিভাবকের স্বাক্ষর</div>
+                <div class="signature-date">তারিখ: _______</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line">প্রধান শিক্ষকের স্বাক্ষর</div>
+                <div class="signature-date">তারিখ: _______</div>
+            </div>
+        </div>
+    </div>
+
     <asp:SqlDataSource ID="FormSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.StudentsName, Student.FathersName, CreateClass.Class, StudentsClass.RollNo, CreateSection.Section, CreateSubjectGroup.SubjectGroup, CreateShift.Shift, Student.SMSPhoneNo, Student.StudentImageID, Student.StudentID, Student.SchoolID, Student.StudentEmailAddress, Student.DateofBirth, Student.BloodGroup, Student.Religion, Student.Gender, Student.StudentPermanentAddress, Student.StudentsLocalAddress, Student.PrevSchoolName, Student.PrevClass, Student.PrevExamYear, Student.PrevExamGrade, Student.MothersName, Student.MotherOccupation, Student.MotherPhoneNumber, Student.FatherOccupation, Student.FatherPhoneNumber, Student.GuardianName, Student.GuardianRelationshipwithStudent, Student.GuardianPhoneNumber, Student.OtherDetails, Student.AdmissionDate, StudentsClass.ClassID, StudentsClass.StudentClassID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.SchoolID = @SchoolID) AND (Student.StudentID = @StudentID) AND (StudentsClass.StudentClassID = @StudentClassID)">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -196,12 +161,4 @@ th, td {
             <asp:QueryStringParameter Name="StudentID" QueryStringField="Student" />
         </SelectParameters>
     </asp:SqlDataSource>
-
-
-    <div>
-        <p style="float:left;border-top : solid 1px #808080;margin-top:100px">শিক্ষার্থীর স্বাক্ষর</p>
-        <p style="float:right;border-top : solid 1px #808080;margin-top:100px">মুহতামীমের স্বাক্ষর</p>
-    </div>
-
-
 </asp:Content>

@@ -1,0 +1,381 @@
+﻿
+body {
+    background-color: #f8f9fa !important;
+}
+
+.admission-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 10px 10px 0 0;
+    margin: -30px -30px 30px -30px;
+    text-align: center;
+}
+
+    .page-header h2 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .page-header p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+    }
+
+.section-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+    .section-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+.section-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+    .section-header:hover {
+        opacity: 0.9;
+    }
+
+    .section-header.required {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .section-header.optional {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .section-header h4 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-header .icon {
+        transition: transform 0.3s ease;
+    }
+
+    .section-header.collapsed .icon {
+        transform: rotate(-90deg);
+    }
+
+.section-body {
+    padding: 20px;
+    background: white;
+    display: none;
+}
+
+    .section-body.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.required-mark {
+    color: #f5576c;
+    font-weight: bold;
+}
+
+.form-control, .custom-select {
+    border-radius: 6px;
+    border: 2px solid #e0e0e0;
+    padding: 5px 15px;
+    transition: all 0.3s ease;
+}
+
+    .form-control:focus, .custom-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 12px 30px;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+.btn-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border: none;
+    padding: 12px 30px;
+    font-weight: 600;
+    border-radius: 6px;
+}
+
+.action-buttons {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 20px;
+    margin: 30px -30px -30px -30px;
+    border-top: 2px solid #e0e0e0;
+    border-radius: 0 0 10px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+}
+
+    .action-buttons label {
+        display: inline-flex;
+        align-items: center;
+        margin: 0 15px 0 0;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+        .action-buttons label input[type="checkbox"] {
+            width: 18px !important;
+            height: 18px !important;
+            margin-right: 8px !important;
+            cursor: pointer !important;
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+        }
+
+    .action-buttons input[type="checkbox"] {
+        width: 18px !important;
+        height: 18px !important;
+        margin-right: 8px !important;
+        cursor: pointer !important;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+    }
+
+.progress-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.progress-step {
+    flex: 1;
+    text-align: center;
+    padding: 15px;
+    border-radius: 6px;
+    background: white;
+    margin: 0 5px;
+    transition: all 0.3s ease;
+}
+
+    .progress-step.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .progress-step.completed {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+    }
+
+.badge-status {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.EroorSummer {
+    color: #f5576c;
+    font-size: 14px;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Hide Group, Section, Shift dropdowns initially */
+.group-dropdown-wrapper,
+.section-dropdown-wrapper,
+.shift-dropdown-wrapper {
+    display: none;
+}
+
+/* Subject GridView Styling - Make checkboxes CLEARLY VISIBLE */
+.table-responsive {
+    margin-top: 20px;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-hover {
+    margin-bottom: 0 !important;
+}
+
+    .table-hover thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+        .table-hover thead th {
+            font-weight: 600;
+            padding: 15px;
+            border: none;
+        }
+
+    .table-hover tbody tr {
+        transition: all 0.3s ease;
+    }
+
+        .table-hover tbody tr:hover {
+            background-color: #f0f0ff;
+            transform: scale(1.01);
+        }
+
+    .table-hover tbody td {
+        padding: 12px;
+        vertical-align: middle;
+    }
+
+    /* IMPORTANT: Make checkboxes visible and styled */
+    .table-hover input[type="checkbox"] {
+        width: 20px !important;
+        height: 20px !important;
+        cursor: pointer !important;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        margin: 0 auto !important;
+    }
+
+    /* Style for RadioButtonList */
+    .table-hover input[type="radio"] {
+        width: 18px !important;
+        height: 18px !important;
+        cursor: pointer !important;
+        margin-right: 5px !important;
+    }
+
+    .table-hover label {
+        cursor: pointer;
+        margin: 0 10px 0 0;
+        font-weight: normal;
+    }
+
+.photo-upload {
+    border: 2px dashed #667eea;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+    .photo-upload:hover {
+        background: #e9ecef;
+        border-color: #764ba2;
+    }
+
+.custom-file-upload {
+    display: inline-block;
+    padding: 10px 25px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+    .custom-file-upload:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+input[type="file"] {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .admission-container {
+        padding: 15px;
+        margin: 10px;
+    }
+
+    .page-header {
+        padding: 15px;
+        margin: -15px -15px 20px -15px;
+    }
+
+    .progress-indicator {
+        flex-direction: column;
+    }
+
+    .progress-step {
+        margin: 5px 0;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        margin: 20px -15px -15px -15px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+}
+
+
