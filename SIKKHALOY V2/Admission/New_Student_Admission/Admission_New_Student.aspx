@@ -586,13 +586,19 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
             </div>
         </ProgressTemplate>
     </asp:UpdateProgress>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="/JS/DateMask.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bgrins-spectrum/1.8.1/spectrum.min.js"></script>
-    <script src="../../JS/canvas-to-blob.js"></script>
-    <script src="../../JS/canvas-to-blob.min.js"></script>
-    <script src="../../JS/canvas-resize.js"></script>
+    
     <script type="text/javascript">
+        // Re-initialize master page functions after this page loads
+        $(document).ready(function() {
+            // Re-bind header color picker and language toggle
+            if (typeof initializeHeaderColorPicker === 'function') {
+                initializeHeaderColorPicker();
+            }
+            if (typeof initializeLanguageToggle === 'function') {
+                initializeLanguageToggle();
+            }
+        });
+
         function isNumberKey(a) { 
             a = a.which ? a.which : event.keyCode; 
             return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0 
@@ -1021,8 +1027,6 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
                 validators.hide();
             }
 
-            // Date mask
-            $('[id$=BirthDayTextBox]').mask("99/99/9999", { placeholder: 'dd/mm/yyyy' });
             // Copy address
             $("#SameAddrs").click(function (e) {
                 e.preventDefault();
@@ -1107,7 +1111,9 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
             width: calc(100% - 30px);
             margin-top: -1px;
         }
-        
+        .fa-2x {
+    font-size: 1em;
+}
         .autocomplete-item {
             padding: 10px 15px;
             cursor: pointer;
@@ -1199,6 +1205,8 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
         /* Form group positioning for autocomplete */
         .form-group {
             position: relative;
+            margin-bottom: 0rem;
+            max-height: 80px;
         }
         
         /* Action Buttons Section Styling */
@@ -1214,18 +1222,18 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
         }
         
         /* Checkbox Container - Upper Section */
-        .checkbox-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            padding: 15px 20px;
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
+      .checkbox-container {
+    display: flex;
+    /* flex-wrap: wrap; */
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 9px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
         
         .checkbox-container label {
             display: inline-flex;

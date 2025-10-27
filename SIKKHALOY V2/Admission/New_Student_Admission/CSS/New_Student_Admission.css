@@ -15,7 +15,7 @@ body {
 .page-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 25px;
+    padding: 5px;
     border-radius: 10px 10px 0 0;
     margin: -30px -30px 30px -30px;
     text-align: center;
@@ -35,7 +35,7 @@ body {
 .section-card {
     border: 2px solid #e0e0e0;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 5px;
     overflow: hidden;
     transition: all 0.3s ease;
 }
@@ -47,7 +47,7 @@ body {
 .section-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 15px 20px;
+    padding: 5px 20px;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
@@ -85,7 +85,7 @@ body {
     }
 
 .section-body {
-    padding: 20px;
+    padding: 10px 15px;
     background: white;
     display: none;
 }
@@ -126,6 +126,7 @@ body {
     border: 2px solid #e0e0e0;
     padding: 5px 15px;
     transition: all 0.3s ease;
+    max-height: 47px;
 }
 
     .form-control:focus, .custom-select:focus {
@@ -204,16 +205,16 @@ body {
 .progress-indicator {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 30px;
-    padding: 20px;
+    margin-bottom: 18px;
+    padding: 11px;
     background: #f8f9fa;
-    border-radius: 8px;
+    border-radius: 7px;
 }
 
 .progress-step {
     flex: 1;
     text-align: center;
-    padding: 15px;
+    padding: 5px;
     border-radius: 6px;
     background: white;
     margin: 0 5px;
@@ -318,12 +319,12 @@ body {
 .photo-upload {
     border: 2px dashed #667eea;
     border-radius: 8px;
-    padding: 20px;
+    padding: 5px;
     text-align: center;
     background: #f8f9fa;
     transition: all 0.3s ease;
+    max-height: 59px;
 }
-
     .photo-upload:hover {
         background: #e9ecef;
         border-color: #764ba2;
@@ -356,7 +357,7 @@ input[type="file"] {
     }
 
     .page-header {
-        padding: 15px;
+        padding: 5px;
         margin: -15px -15px 20px -15px;
     }
 
