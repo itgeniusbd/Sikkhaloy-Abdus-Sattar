@@ -69,11 +69,11 @@ body {
 
     .section-header h4 {
         margin: 0;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
     }
 
     .section-header .icon {

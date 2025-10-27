@@ -1,8 +1,964 @@
-﻿
+﻿/* Enhanced Table Styles */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    table-layout: fixed; /* Fix layout to prevent overflow */
+}
 
-@media print{
-#ctl00_body_Examinee_Vs_GradeRV_ctl05,
-#ctl00_body_Individual_SubjectRV_ctl05,
-#ctl00_body_UnsuccessfulRV_ctl05,
-#ctl00_body_Pass_FailRV_ctl05,#header{ display:none}
+.report-table th,
+.report-table td {
+    border: 1px solid #ddd;
+    padding: 6px 4px; /* Reduced padding for better fit */
+    text-align: center;
+    word-wrap: break-word;
+    overflow: hidden;
+}
+
+.report-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    color: #333;
+    font-size: 11px; /* Smaller font for headers */
+}
+
+.report-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.report-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Enhanced responsive table container */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* Subject Statistics Table Specific Styles */
+#tab2 .table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+#tab2 .report-table {
+    width: 100%; /* Minimum width to ensure readability */
+    font-size: 11px;
+}
+
+    #tab2 .report-table th:nth-child(1), /* Subject */
+    #tab2 .report-table td:nth-child(1) {
+        min-width: 100%;
+       
+        text-align: left !important;
+        font-weight: 500;
+    }
+
+    #tab2 .report-table th:nth-child(2), /* Total Students */
+    #tab2 .report-table td:nth-child(2) {
+        min-width: 10%;
+    }
+
+    #tab2 .report-table th:nth-child(3), /* Passed */
+    #tab2 .report-table td:nth-child(3) {
+        min-width: 10%;
+        background-color: #d4edda !important;
+    }
+
+    #tab2 .report-table th:nth-child(4), /* Failed */
+    #tab2 .report-table td:nth-child(4) {
+        min-width: 10%;
+        background-color: #f8d7da !important;
+    }
+
+    #tab2 .report-table th:nth-child(5), /* Pass % */
+    #tab2 .report-table td:nth-child(5) {
+        min-width: 10%;
+    }
+
+    #tab2 .report-table th:nth-child(6), /* Highest */
+    #tab2 .report-table td nth-child(6) {
+        min-width: 10%;
+    }
+
+    #tab2 .report-table th:nth-child(7), /* Lowest */
+    #tab2 .report-table td:nth-child(7) {
+        min-width: 10%x;
+        background-color: #fff3cd !important;
+    }
+
+    #tab2 .report-table th:nth-child(8), /* Average */
+    #tab2 .report-table td:nth-child(8) {
+        min-width: 10%;
+    }
+
+.report-header {
+    text-align: center;
+    margin: 5px 0;
+    page-break-inside: avoid;
+}
+
+.chart-container {
+    text-align: center;
+    margin: 2px 0;
+    page-break-inside: avoid;
+}
+
+.grade-chart {
+    display: inline-block;
+    margin: 10px;
+    padding: 5px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    min-width: 80px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.grade-count {
+    font-size: 28px;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.grade-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-inline .form-group {
+    margin-right: 15px;
+    margin-bottom: 10px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    padding: 8px 16px;
+}
+
+/* Enhanced Tab Styling */
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 0;
+    flex-wrap: wrap; /* Allow tab wrapping on smaller screens */
+}
+
+    .nav-tabs .nav-link {
+        color: #c6c9cd !important;
+        font-weight: 500;
+        border: 1px solid transparent;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 12px 16px; /* Slightly reduced padding */
+        transition: all 0.3s ease;
+        font-size: 13px; /* Smaller font for better fit */
+    }
+
+        .nav-tabs .nav-link:hover {
+            color: #007bff;
+            background-color: #f8f9fa;
+            border-color: #dee2e6 #dee2e6 #f8f9fa;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #fff !important;
+            background-color: #007bff !important;
+            border-color: #007bff #007bff #007bff !important;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.25);
+        }
+
+.tab-content {
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    background-color: #fff;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    min-height: 400px;
+}
+
+/* Ensure all tab panes have proper spacing */
+.tab-pane {
+    padding-top: 10px;
+}
+
+    .tab-pane h4 {
+        margin-bottom: 5px;
+        color: #333;
+        font-weight: 600;
+        /* text-size-adjust: auto; */
+        font-size: 16px;
+    }
+
+/* Fix for empty data message */
+.no-data-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Enhanced styling for pass/fail data */
+.text-success {
+    color: #28a745 !important;
+    font-weight: 600;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: 600;
+}
+
+/* Highlight zero values */
+.report-table  {
+   width:100%;
+}
+
+    .report-table td contains('0') {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+/* Special styling for unsuccessful students table */
+.unsuccessful-table .failed-subjects-cell {
+    width: 100%;
+    word-wrap: break-word;
+    text-align: left !important;
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 8px 6px;
+}
+
+.unsuccessful-table .student-name-cell {
+    width:100%;
+    text-align: left !important;
+}
+
+.unsuccessful-table .grade-f {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    font-weight: bold;
+}
+
+.unsuccessful-table .failed-count {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    font-weight: bold;
+    width: 100%;
+}
+
+/* Remove subject pills styling - keep as simple text */
+.unsuccessful-table .failed-subjects-cell {
+    background-color: transparent !important;
+}
+
+/* Removed subject pills styling - now using simple comma-separated text */
+/* .subject-pill styles have been removed as we use plain text formatting */
+
+/* Improve Failed Subjects column display - simple text formatting */
+.failed-subjects-cell {
+    width: 100% !important;
+    width: 100% !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    font-family: Arial, sans-serif;
+    color: #495057;
+}
+
+/* Enhanced styling for detailed unsuccessful students table */
+.unsuccessful-students-detailed {
+    table-layout: auto !important;
+    width: 100% !important;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-size: 11px;
+}
+
+    .unsuccessful-students-detailed th {
+        background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+        color: white;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.5px;
+        padding: 8px 4px !important;
+        text-align: center;
+        border: 1px solid #dee2e6;
+    }
+
+    .unsuccessful-students-detailed td {
+        border: 1px solid #dee2e6;
+        padding: 6px 4px !important;
+        vertical-align: middle;
+        font-size: 10px;
+    }
+
+    .unsuccessful-students-detailed .student-id-col {
+        width: 60px !important;
+        text-align: center !important;
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+
+    .unsuccessful-students-detailed .student-name-col {
+        width: 150px !important;
+        text-align: left !important;
+        font-weight: 500;
+        background-color: #f8f9fa;
+    }
+
+/* Subject detail columns */
+.subject-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    font-size: 10px;
+}
+
+    .subject-detail-table th {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 4px 3px;
+        text-align: center;
+        border: 1px solid #dee2e6;
+        font-weight: 600;
+        font-size: 9px;
+    }
+
+    .subject-detail-table td {
+        padding: 3px;
+        text-align: center;
+        border: 1px solid #dee2e6;
+        font-size: 9px;
+    }
+
+    .subject-detail-table .subject-name {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        font-weight: 600;
+        background-color: #f8f9fa;
+        min-width: 25px;
+        padding: 2px;
+    }
+
+    .subject-detail-table .creative-label {
+        background-color: #fff3cd;
+        font-size: 8px;
+        font-weight: 500;
+    }
+
+    .subject-detail-table .om-cell {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        font-weight: 500;
+    }
+
+    .subject-detail-table .lack-cell {
+        background-color: #f8d7da;
+        color: #721c24;
+        font-weight: 600;
+    }
+
+    .subject-detail-table .empty-cell {
+        background-color: #f8f9fa;
+    }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .nav-tabs .nav-link {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .tab-content {
+        padding: 15px;
+    }
+
+    .report-table {
+        font-size: 10px;
+    }
+
+        .report-table th,
+        .report-table td {
+            padding: 4px 2px;
+        }
+
+    .form-inline .form-group {
+        margin-bottom: 10px;
+        width: 100%;
+    }
+
+    .form-inline .form-control {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+
+@media print {
+    .d-print-none, .NoPrint {
+        display: none !important;
+    }
+
+    .nav-tabs {
+        display: none !important;
+    }
+
+    .tab-content {
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .tab-pane {
+        display: block !important;
+        opacity: 1 !important;
+    }
+
+    .report-table {
+        font-size: 10px;
+    }
+
+    .grade-chart {
+        margin: 5px;
+        padding: 5px;
+    }
+
+    body {
+        font-size: 12px;
+    }
+
+    .table-responsive {
+        overflow-x: visible !important;
+    }
+}
+
+/* Horizontal scroll indicator for Subject Statistics */
+#tab2 .table-responsive::after {
+    content: "← Scroll horizontally to view all columns →";
+    display: block;
+    text-align: center;
+    font-size: 11px;
+    color: #6c757d;
+    font-style: italic;
+    padding: 5px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Hide scroll indicator on larger screens */
+@media (min-width: 1200px) {
+    #tab2 .table-responsive::after {
+        display: none;
+    }
+}
+
+/* Dynamic Unsuccessful Students Table - Simplified Design */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    background: white;
+}
+
+.dynamic-unsuccessful-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    min-width: 800px;
+    font-family: Arial, sans-serif;
+    table-layout: fixed; /* Fix column widths for better print */
+}
+
+    .dynamic-unsuccessful-table th,
+    .dynamic-unsuccessful-table td {
+        border: 1px solid #dee2e6;
+        padding: 4px 1px;
+        text-align: center;
+        vertical-align: middle;
+        word-wrap: break-word;
+    }
+
+    /* Fixed column widths for print stability */
+    .dynamic-unsuccessful-table th:nth-child(1), /* SL */
+    .dynamic-unsuccessful-table td:nth-child(1) {
+        width: 30px;
+        min-width: 30px;
+    }
+
+    .dynamic-unsuccessful-table th:nth-child(2), /* Student ID */
+    .dynamic-unsuccessful-table td:nth-child(2) {
+        width: 50px;
+        min-width: 50px;
+    }
+
+    .dynamic-unsuccessful-table th:nth-child(3), /* Student Name */
+    .dynamic-unsuccessful-table td:nth-child(3) {
+        width: 120px;
+        min-width: 120px;
+        text-align: left;
+    }
+
+    .dynamic-unsuccessful-table th:nth-child(4), /* Roll */
+    .dynamic-unsuccessful-table td:nth-child(4) {
+        width: 40px;
+        min-width: 40px;
+    }
+
+    .dynamic-unsuccessful-table th:nth-child(5), /* Grade */
+    .dynamic-unsuccessful-table td:nth-child(5) {
+        width: 45px;
+        min-width: 45px;
+    }
+
+    .dynamic-unsuccessful-table th:nth-child(6), /* Failed Subjects */
+    .dynamic-unsuccessful-table td:nth-child(6) {
+        width:72px;
+        min-width: 72px;
+    }
+
+    /* Simplified Header Styling */
+    .dynamic-unsuccessful-table .header-row th {
+        background-color: #343a40 !important;
+        color: white !important;
+        font-weight: bold;
+        font-size: 12px;
+        padding: 10px 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .dynamic-unsuccessful-table .sub-header-row th {
+        background-color: #007bff !important;
+        color: white !important;
+        font-weight: bold;
+        font-size: 11px;
+        padding: 8px 4px;
+    }
+
+    .dynamic-unsuccessful-table .om-lack-header-row th {
+        color: white !important;
+        font-weight: bold;
+        font-size: 10px;
+        padding: 6px 3px;
+    }
+
+    /* Student Data - Clear and Visible */
+    .dynamic-unsuccessful-table tbody td {
+        color: #212529 !important;
+        font-weight: 500;
+        font-size: 11px;
+    }
+
+    .dynamic-unsuccessful-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    .dynamic-unsuccessful-table tbody tr:hover {
+        background-color: #e3f2fd;
+    }
+
+    /* Student ID and Name columns */
+    .dynamic-unsuccessful-table .student-id-cell,
+    .dynamic-unsuccessful-table .student-name-cell {
+        color: #212529 !important;
+        font-weight: bold;
+        border-left: 3px solid #007bff;
+    }
+
+    .dynamic-unsuccessful-table .student-name-cell {
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Mark cells - clear visibility */
+    .dynamic-unsuccessful-table .om-cell {
+        color: #dc3545 !important;
+        font-weight: bold;
+        background-color: white;
+    }
+
+    .dynamic-unsuccessful-table .lack-cell {
+        color: #fd7e14 !important;
+        font-weight: bold;
+        background-color: white;
+    }
+
+    /* Pass/Fail indicators */
+    .dynamic-unsuccessful-table td[style*="color: #28a745"] {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        font-weight: bold;
+    }
+
+    .dynamic-unsuccessful-table td[style*="color: #6c757d"] {
+        background-color: #f8f9fa !important;
+        color: #6c757d !important;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .dynamic-unsuccessful-table {
+        font-size: 10px;
+        min-width: 900px;
+    }
+
+        .dynamic-unsuccessful-table th,
+        .dynamic-unsuccessful-table td {
+            padding: 2px 1px;
+        }
+}
+
+@media (max-width: 768px) {
+    .dynamic-unsuccessful-table {
+        font-size: 9px;
+        min-width: 700px;
+    }
+
+        .dynamic-unsuccessful-table th,
+        .dynamic-unsuccessful-table td {
+            padding: 3px 2px;
+        }
+
+        .dynamic-unsuccessful-table .student-name-cell {
+            max-width: 120px;
+        }
+}
+
+/* Print styles */
+@media print {
+    .table-wrapper {
+        border: none;
+        box-shadow: none;
+        overflow: visible;
+        margin: 5px 0;
+    }
+
+    .dynamic-unsuccessful-table {
+        font-size: 9px !important;
+        min-width: auto;
+        width: 100%;
+        page-break-inside: auto !important; /* Allow breaking inside table */
+    }
+
+        .dynamic-unsuccessful-table th,
+        .dynamic-unsuccessful-table td {
+            padding: 2px 1px !important;
+            border: 1px solid #000;
+            color: black !important;
+            font-size: 10px !important;
+        }
+
+        /* Enhanced print headers */
+        .dynamic-unsuccessful-table .header-row th,
+        .dynamic-unsuccessful-table .sub-header-row th,
+        .dynamic-unsuccessful-table .om-lack-header-row th {
+            background: #f0f0f0 !important;
+            color: black !important;
+            font-weight: bold !important;
+            font-size: 9px !important;
+            padding: 3px 2px !important;
+        }
+
+        /* Better student name visibility in print */
+        .dynamic-unsuccessful-table td:nth-child(3) { /* Student Name column (was 2) */
+            font-size: 9px !important;
+            font-weight: bold !important;
+            text-align: left !important;
+            min-width: 80px !important;
+            max-width: 120px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        /* Student ID column */
+        .dynamic-unsuccessful-table td:nth-child(2) {
+            font-size: 8px !important;
+            font-weight: bold !important;
+            min-width: 30px !important;
+        }
+
+        /* Roll column */
+        .dynamic-unsuccessful-table td:nth-child(4) {
+            font-size: 8px !important;
+            min-width: 25px !important;
+        }
+
+        /* Data cells with better visibility */
+        .dynamic-unsuccessful-table tbody td {
+            font-size: 8px !important;
+            font-weight: 500 !important;
+        }
+
+    @page {
+        margin: 0.3in 0.2in; /* Reduced margins for more space */
+        size: A4 landscape;
+    }
+
+    /* Better page breaks */
+    .dynamic-unsuccessful-table {
+        page-break-after: auto !important;
+    }
+
+        .dynamic-unsuccessful-table thead {
+            display: table-header-group; /* Repeat header on each page */
+        }
+
+        .dynamic-unsuccessful-table tbody {
+            display: table-row-group;
+        }
+
+        .dynamic-unsuccessful-table tr {
+            page-break-inside: avoid; /* Avoid breaking individual rows */
+            page-break-after: auto;
+        }
+
+    /* Hide scroll hints in print */
+    .table-wrapper::after,
+    #tab2 .table-responsive::after {
+        display: none !important;
+    }
+
+    /* Ensure all content is visible */
+    .tab-pane {
+        display: block !important;
+        page-break-before: auto;
+        page-break-after: auto;
+    }
+
+    /* Print each tab on separate page if needed */
+    #tab1 {
+        page-break-after: always;
+    }
+
+    #tab2 {
+        page-break-after: always;
+    }
+
+    #tab3 {
+        page-break-after: always;
+    }
+
+    #tab4 {
+        page-break-after: auto; /* Unsuccessful Student's Report */
+    }
+
+    /* Report header stays with content */
+    .report-header {
+        page-break-after: avoid;
+        margin-bottom: 10px;
+    }
+
+    h4 {
+        page-break-after: avoid;
+        margin-top: 15px;
+        margin-bottom: 10px;
+    }
+
+    /* Table summary footer */
+    .dynamic-unsuccessful-table + div {
+        page-break-before: avoid;
+        margin-top: 5px;
+        font-size: 9px !important;
+    }
+}
+
+/* Custom scrollbar */
+.table-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+/* Additional print optimizations for Unsuccessful Student's Report */
+@media print {
+    /* Remove wrapper border and overflow for print */
+    .table-wrapper,
+    .table-responsive {
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Optimize table for landscape A4 printing */
+    .dynamic-unsuccessful-table {
+        width: 100% !important;
+        min-width: auto !important;
+        table-layout: fixed !important;
+        page-break-inside: auto !important;
+        font-size: 7px !important; /* Smaller font for more columns */
+    }
+
+        /* Adjust all cell padding for print */
+        .dynamic-unsuccessful-table th,
+        .dynamic-unsuccessful-table td {
+            padding: 1px 1px !important;
+            font-size: 9px !important;
+            border: 0.5px solid #000 !important;
+            line-height: 1.2 !important;
+        }
+
+        /* Fixed column widths for print - optimized for landscape */
+        .dynamic-unsuccessful-table th:nth-child(1), 
+        .dynamic-unsuccessful-table td:nth-child(1) { /* SL */
+            width: 20px !important;
+            max-width: 20px !important;
+        }
+
+        .dynamic-unsuccessful-table th:nth-child(2), 
+        .dynamic-unsuccessful-table td:nth-child(2) { /* Student ID */
+            width: 35px !important;
+            max-width: 35px !important;
+            font-size: 6px !important;
+        }
+
+        .dynamic-unsuccessful-table th:nth-child(3), 
+        .dynamic-unsuccessful-table td:nth-child(3) { /* Student Name */
+            width: 90px !important;
+            max-width: 90px !important;
+            text-align: left !important;
+            font-size: 7px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        .dynamic-unsuccessful-table th:nth-child(4), 
+        .dynamic-unsuccessful-table td:nth-child(4) { /* Roll */
+            width: 25px !important;
+            max-width: 25px !important;
+        }
+
+        .dynamic-unsuccessful-table th:nth-child(5), 
+        .dynamic-unsuccessful-table td:nth-child(5) { /* Grade */
+            width: 30px !important;
+            max-width: 30px !important;
+        }
+
+        .dynamic-unsuccessful-table th:nth-child(6), 
+        .dynamic-unsuccessful-table td:nth-child(6) { /* Failed Count */
+            width: 55px !important;
+            max-width: 55px !important;
+        }
+
+        /* Subject columns - equal width distribution */
+        .dynamic-unsuccessful-table th:nth-child(n+7),
+        .dynamic-unsuccessful-table td:nth-child(n+7) {
+            width: auto !important;
+            min-width: 20px !important;
+            max-width: 25px !important;
+            font-size: 7px !important;
+        }
+
+        /* Header styling for print */
+        .dynamic-unsuccessful-table thead th {
+            background-color: #e0e0e0 !important;
+            color: #000 !important;
+            font-weight: bold !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .dynamic-unsuccessful-table .header-row th {
+            font-size: 8px !important;
+            padding: 2px 1px !important;
+        }
+
+        .dynamic-unsuccessful-table .subject-header {
+            font-size: 6px !important;
+            padding: 2px 1px !important;
+        }
+
+    /* Ensure table stays together but allow page breaks if needed */
+    .dynamic-unsuccessful-table thead {
+        display: table-header-group !important; /* Repeat header on each page */
+    }
+
+    .dynamic-unsuccessful-table tbody {
+        display: table-row-group !important;
+    }
+
+    .dynamic-unsuccessful-table tr {
+        page-break-inside: avoid !important; /* Keep rows together */
+        page-break-after: auto !important;
+    }
+
+    /* Landscape orientation for better fit */
+    @page {
+        size: A4 landscape;
+        margin: 0.3in 0.2in; /* Minimal margins */
+    }
+
+    /* Hide all other tabs when printing tab4 */
+    body.printing-tab4 #tab1,
+    body.printing-tab4 #tab2,
+    body.printing-tab4 #tab3,
+    body.printing-tab4 #tab5 {
+        display: none !important;
+    }
+
+    /* Ensure tab4 content is visible */
+    #tab4 {
+        display: block !important;
+        page-break-before: auto;
+    }
+
+    /* Print report header on first page only */
+    .report-header {
+        page-break-after: avoid !important;
+        margin-bottom: 5px !important;
+    }
+
+        .report-header h2,
+        .report-header h4,
+        .report-header h5 {
+            margin: 2px 0 !important;
+            font-size: 12px !important;
+        }
+
+    /* Tab title in print */
+    #tab4 h4 {
+        font-size: 11px !important;
+        margin: 5px 0 !important;
+        page-break-after: avoid !important;
+    }
+
+    /* Summary footer */
+    #tab4 > div:last-child {
+        font-size: 7px !important;
+        margin-top: 3px !important;
+        page-break-before: avoid !important;
+    }
 }

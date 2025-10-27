@@ -87,15 +87,6 @@ namespace EDUCATION.COM.Exam.Result
         protected global::System.Web.UI.WebControls.Literal GradeChartLiteral;
 
         /// <summary>
-        /// GradeGridView control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView GradeGridView;
-
-        /// <summary>
         /// GradeDataSource control.
         /// </summary>
         /// <remarks>

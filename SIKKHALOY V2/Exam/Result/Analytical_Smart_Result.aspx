@@ -1,8 +1,7 @@
 ﻿<%@ Page Title="Analytical Smart Result" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Analytical_Smart_Result.aspx.cs" Inherits="EDUCATION.COM.Exam.Result.Analytical_Smart_Result" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="CSS/Analytical_Smart_Result.css?v=5" rel="stylesheet" />
-    <link href="Assets/Analytical_Result.css" rel="stylesheet" />
+    <link href="CSS/Analytical_Smart_Result.css?v=6" rel="stylesheet" />
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -116,7 +115,7 @@
                 <div class="chart-container">
                     <asp:Literal ID="GradeChartLiteral" runat="server"></asp:Literal>
                 </div>
-                <div class="table-responsive">
+         <%--       <div class="table-responsive">
                     <asp:GridView ID="GradeGridView" runat="server" CssClass="report-table" 
                         AutoGenerateColumns="False" DataSourceID="GradeDataSource"
                         EmptyDataText="<div class='no-data-message'>📈 No grade data available for selected class and exam.</div>">
@@ -127,7 +126,7 @@
                         </Columns>
                         <EmptyDataRowStyle CssClass="no-data-message" />
                     </asp:GridView>
-                </div>
+                </div>--%>
                 <asp:SqlDataSource ID="GradeDataSource" runat="server" 
                     ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
                     SelectCommand="
@@ -711,28 +710,6 @@
                     }, 200);
                 });
 
-                // Enhanced print functionality - show all tabs when printing
-                $('button[onclick*="print"]').off('click').on('click', function (e) {
-                    e.preventDefault();
-
-                    // Store current active tab
-                    var activeTab = $('.tab-pane.active').attr('id');
-
-                    // Show all tabs for printing
-                    $('.tab-pane').addClass('show active');
-
-                    // Add a small delay to ensure content is rendered
-                    setTimeout(() => {
-                        window.print();
-
-                        // Restore original tab state after printing
-                        setTimeout(() => {
-                            $('.tab-pane').removeClass('show active');
-                            $('#' + activeTab).addClass('show active');
-                        }, 100);
-                    }, 200);
-                });
-
                 // Enhanced tab navigation with animation
                 $('.nav-tabs .nav-link').on('click', function (e) {
                     e.preventDefault();
@@ -755,6 +732,46 @@
                     }, 50);
                 });
             }
+        });
+
+        // Enhanced print functionality - SINGLE HANDLER to prevent double click issue
+        var printHandlerAttached = false;
+        
+        function setupPrintHandler() {
+            if (printHandlerAttached) return; // Prevent multiple attachments
+            
+            $('button[onclick*="print"]').removeAttr('onclick').off('click').on('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Store current active tab
+                var activeTab = $('.tab-pane.active').attr('id');
+
+                // Show all tabs for printing
+                $('.tab-pane').addClass('show active');
+
+                // Add a small delay to ensure content is rendered
+                setTimeout(() => {
+                    window.print();
+
+                    // Restore original tab state after printing
+                    setTimeout(() => {
+                        $('.tab-pane').removeClass('show active');
+                        if (activeTab) {
+                            $('#' + activeTab).addClass('show active');
+                        }
+                    }, 100);
+                }, 200);
+                
+                return false; // Prevent default action
+            });
+            
+            printHandlerAttached = true;
+        }
+        
+        // Call setup on document ready
+        $(document).ready(function() {
+            setupPrintHandler();
         });
 
         // Update labels function with improved error handling
@@ -789,6 +806,7 @@
             if (prm) {
                 prm.add_endRequest(function () {
                     updateLabels();
+                    setupPrintHandler(); // Re-setup print handler after postback
                 });
             }
         });
