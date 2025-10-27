@@ -337,6 +337,7 @@
     <Content Include="Administration_Basic_Settings\StudentFoult.aspx" />
     <Content Include="Admission\Change_Student_RollNo_Group_Section_Shift.aspx" />
     <Content Include="Admission\Change_Student_Subjects.aspx" />
+    <Content Include="Admission\CSS\OnlineAdmissionForm.css" />
     <Content Include="Admission\CSS\print-tc.css" />
     <Content Include="Admission\CSS\Reject_Student.css" />
     <Content Include="Admission\CSS\Report.css" />

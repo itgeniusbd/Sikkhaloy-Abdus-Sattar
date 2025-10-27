@@ -32,9 +32,10 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
                         Session["Edu_Year"] = EducationYearDropDownList.SelectedValue;
                     }
 
-                    GroupDropDownList.Visible = false;
-                    SectionDropDownList.Visible = false;
-                    ShiftDropDownList.Visible = false;
+                    // Dropdowns will be hidden via CSS initially
+                    // GroupDropDownList.Visible = false;
+                    // SectionDropDownList.Visible = false;
+                    // ShiftDropDownList.Visible = false;
 
                     using (SqlConnection con = new SqlConnection(connectionString))
                     {
@@ -54,6 +55,8 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
 
         protected void view()
         {
+            // CSS will handle visibility, not server-side Visible property
+            /*
             DataView GroupDV = new DataView();
             GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
             if (GroupDV.Count < 1)
@@ -86,6 +89,7 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
             {
                 ShiftDropDownList.Visible = true;
             }
+            */
         }
 
         private int GetLastIdentity(string tableName)
@@ -407,20 +411,30 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
             GroupDropDownList.DataBind();
             ShiftDropDownList.DataBind();
             SectionDropDownList.DataBind();
-            view();
+            // view(); // Removed - CSS will handle visibility
+            
+            // Register script to show/hide dropdowns after postback with delay for data binding
+            string script = "setTimeout(function() { console.log('Calling toggleAcademicDropdowns from server script'); toggleAcademicDropdowns(); }, 500);";
+            ScriptManager.RegisterStartupScript(this, GetType(), "ShowDropdowns", script, true);
         }
 
         protected void GroupDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             SectionDropDownList.DataBind();
             ShiftDropDownList.DataBind();
-            view();
+            // view(); // Removed - CSS will handle visibility
+            
+            string script = "setTimeout(function() { console.log('Calling toggleAcademicDropdowns from server script'); toggleAcademicDropdowns(); }, 500);";
+            ScriptManager.RegisterStartupScript(this, GetType(), "ShowDropdowns", script, true);
         }
 
         protected void SectionDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             ShiftDropDownList.DataBind();
-            view();
+            // view(); // Removed - CSS will handle visibility
+            
+            string script = "setTimeout(function() { console.log('Calling toggleAcademicDropdowns from server script'); toggleAcademicDropdowns(); }, 500);";
+            ScriptManager.RegisterStartupScript(this, GetType(), "ShowDropdowns", script, true);
         }
 
         protected void ShiftDropDownList_SelectedIndexChanged(object sender, EventArgs e)
