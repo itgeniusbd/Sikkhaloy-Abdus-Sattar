@@ -279,7 +279,7 @@
             <div class="section-header optional collapsed">
                 <h4>
                     <i class="fas fa-school"></i>
-                    Previous Institution Information
+                    Previous Education/Institution Information
                     <span class="badge badge-light badge-status">Optional</span>
                 </h4>
                 <i class="fas fa-chevron-down icon"></i>
@@ -1091,6 +1091,32 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
         prm.add_endRequest(function () {
             console.log('UpdatePanel endRequest fired');
             bindClassChangeEvent();
+        });
+
+        // Date of Birth auto-slash formatting  
+        $('[id$=BirthDayTextBox]').on('keyup', function (e) {
+            if (e.which === 8 || e.which === 46) return; // Don't format on delete
+
+            var value = $(this).val().replace(/\D/g, '');
+            var formatted = '';
+
+            if (value.length > 0) {
+                formatted = value.substring(0, 2);
+                if (value.length >= 3) formatted += '/' + value.substring(2, 4);
+                if (value.length >= 5) formatted += '/' + value.substring(4, 8);
+            }
+
+            $(this).val(formatted);
+        });
+
+        $('[id$=BirthDayTextBox]').on('keypress', function (e) {
+            if ($.inArray(e.keyCode, [8, 9, 27, 13, 46]) !== -1 ||
+                (e.keyCode === 65 && e.ctrlKey) || (e.keyCode === 67 && e.ctrlKey) ||
+                (e.keyCode === 86 && e.ctrlKey) || (e.keyCode === 88 && e.ctrlKey)) {
+                return;
+            }
+            if (e.which < 48 || e.which > 57) e.preventDefault();
+            if ($(this).val().length >= 10) e.preventDefault();
         });
     </script>
 

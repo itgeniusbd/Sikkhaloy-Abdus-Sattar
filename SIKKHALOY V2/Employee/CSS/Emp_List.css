@@ -2,7 +2,7 @@
 .Show_b { display: none; }
 .NFI-filename { width: 80%;}
 .mGrid td table td { border: none; }
-.Itm_Img { width:60px}
+.Itm_Img { width:95px}
 
 
 @page{ margin:0.5cm}
@@ -14,5 +14,8 @@
  h3 { color: #000; font-size: 22px; font-weight: 400; margin: 0; text-align: center; background-color: #fff; font-family: Tahoma; }
  .mGrid th { font-size: 14px; border: 1px solid #a2a2a2; }
  .mGrid td { font-size: 14px; padding: 3px; color: #000; border: 1px solid #a2a2a2; }
- .Itm_Img { width:50px}
+    .Itm_Img {
+        width: 55px;
+        height: 55px
+    }
 }

@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.IO;
+using System.Web.Services;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -44,6 +45,29 @@ namespace EDUCATION.COM.Employee
             DataView dv = (DataView)EmployeeSQL.Select(DataSourceSelectArguments.Empty);
             CountLabel.Text = "Total: " + dv.Count.ToString() + " Employee(s)";
         }
+
+        //Update Employee Image via AJAX
+        [WebMethod]
+        public static void UpdateEmployeeImage(string EmployeeID, string EmployeeType, string Image)
+        {
+            string constr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(constr))
+            {
+                string tableName = EmployeeType == "Teacher" ? "Teacher" : "Staff_Info";
+
+                using (SqlCommand cmd = new SqlCommand($"UPDATE {tableName} SET Image = CAST(N'' AS xml).value('xs:base64Binary(sql:variable(\"@Image\"))', 'varbinary(max)') WHERE EmployeeID = @EmployeeID"))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.Parameters.AddWithValue("@EmployeeID", EmployeeID);
+                    cmd.Parameters.AddWithValue("@Image", Image);
+                    cmd.Connection = con;
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                    con.Close();
+                }
+            }
+        }
+
         protected void UploadButton_Click(object sender, EventArgs e)
         {
             SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
@@ -51,7 +75,6 @@ namespace EDUCATION.COM.Employee
 
             foreach (GridViewRow rows in EmployeeGridView.Rows)
             {
-                FileUpload ImgFileUpload = (FileUpload)rows.FindControl("ImgFileUpload");
                 TextBox Emp_ID_TextBox = (TextBox)rows.FindControl("Emp_ID_TextBox");
                 TextBox EmployeeTypeTextBox = (TextBox)rows.FindControl("EmployeeTypeTextBox");
                 TextBox SalaryTextBox = (TextBox)rows.FindControl("SalaryTextBox");
@@ -91,70 +114,6 @@ namespace EDUCATION.COM.Employee
 
                     Device_DataUpdateSQL.Insert();
                     Up = true;
-                }
-
-                // Resize Image
-                if (ImgFileUpload.PostedFile != null && ImgFileUpload.PostedFile.FileName != "")
-                {
-                    string strExtension = Path.GetExtension(ImgFileUpload.FileName);
-                    if ((strExtension.ToUpper() == ".JPG") | (strExtension.ToUpper() == ".GIF") | (strExtension.ToUpper() == ".PNG"))
-                    {
-                        // Resize Image Before Uploading to DataBase
-                        System.Drawing.Image imageToBeResized = System.Drawing.Image.FromStream(ImgFileUpload.PostedFile.InputStream);
-                        int imageHeight = imageToBeResized.Height;
-                        int imageWidth = imageToBeResized.Width;
-
-                        int maxHeight = 330;
-                        int maxWidth = 300;
-
-                        imageHeight = (imageHeight * maxWidth) / imageWidth;
-                        imageWidth = maxWidth;
-
-                        if (imageHeight > maxHeight)
-                        {
-                            imageWidth = (imageWidth * maxHeight) / imageHeight;
-                            imageHeight = maxHeight;
-                        }
-
-                        Bitmap bitmap = new Bitmap(imageToBeResized, imageWidth, imageHeight);
-                        MemoryStream stream = new MemoryStream();
-                        bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg);
-                        stream.Position = 0;
-                        byte[] image = new byte[stream.Length + 1];
-                        stream.Read(image, 0, image.Length);
-
-
-                        //Teacher Create SQL Command
-                        SqlCommand cmd = new SqlCommand();
-                        cmd.CommandText = "UPDATE Teacher SET Image = @Image WHERE (EmployeeID = @EmployeeID) AND (SchoolID = @SchoolID)";
-                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
-                        cmd.Parameters.AddWithValue("@EmployeeID", EmployeeGridView.DataKeys[rows.DataItemIndex]["EmployeeID"].ToString());
-                        cmd.CommandType = CommandType.Text;
-                        cmd.Connection = con;
-
-                        //Staff Create SQL Command
-                        SqlCommand Staff_cmd = new SqlCommand();
-                        Staff_cmd.CommandText = "UPDATE Staff_Info SET Image = @Image2 WHERE (EmployeeID = @EmployeeID) AND (SchoolID = @SchoolID)";
-                        Staff_cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
-                        Staff_cmd.Parameters.AddWithValue("@EmployeeID", EmployeeGridView.DataKeys[rows.DataItemIndex]["EmployeeID"].ToString());
-                        Staff_cmd.CommandType = CommandType.Text;
-                        Staff_cmd.Connection = con;
-
-
-                        SqlParameter TImage = new SqlParameter("@Image", SqlDbType.Image, image.Length);
-                        TImage.Value = image;
-                        cmd.Parameters.Add(TImage);
-
-                        SqlParameter SImage = new SqlParameter("@Image2", SqlDbType.Image, image.Length);
-                        SImage.Value = image;
-                        Staff_cmd.Parameters.Add(SImage);
-
-                        con.Open();
-                        cmd.ExecuteNonQuery();
-                        Staff_cmd.ExecuteNonQuery();
-                        con.Close();
-                        Up = true;
-                    }
                 }
             }
 

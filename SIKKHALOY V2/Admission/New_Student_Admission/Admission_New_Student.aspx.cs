@@ -212,7 +212,7 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
                 else
                 {
                     ClientScript.RegisterStartupScript(this.GetType(), "Success",
-                        "alert('Admission completed successfully! Student ID: " + StudentID + "'); window.location='Admission_New_Student.aspx';", true);
+                        "alert('Admission completed successfully! ID: " + IDTextBox.Text + "'); window.location='Admission_New_Student.aspx';", true);
                 }
             }
             catch (SqlException sqlEx)
@@ -470,11 +470,16 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
             {
                 List<string> IDList = new List<string>();
                 string connString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                
+                // Get SchoolID from session - need to access through HttpContext
+                string schoolID = HttpContext.Current.Session["SchoolID"]?.ToString();
+ 
                 using (SqlConnection con = new SqlConnection(connString))
                 {
                     con.Open();
-                    SqlCommand cmd = new SqlCommand("SELECT TOP 10 ID FROM Student WHERE ID LIKE @ID + '%' ORDER BY ID", con);
+                    SqlCommand cmd = new SqlCommand("SELECT TOP 10 ID FROM Student WHERE ID LIKE @ID + '%' AND SchoolID = @SchoolID ORDER BY ID", con);
                     cmd.Parameters.AddWithValue("@ID", ids);
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolID ?? "");
                     SqlDataReader reader = cmd.ExecuteReader();
                     while (reader.Read())
                     {
