@@ -1,0 +1,10 @@
+﻿========================================
+Stored Procedures Backup Index
+========================================
+Generated: 2025-11-03 00:18:43
+Database: Edu
+Server: DESKTOP-3UN61QI
+Total Files: 27
+
+List of Stored Procedures:
+  ✓ AAP_Student_Count_Monthly_Insert.sql   ✓ Attendance_Employee_API.sql   ✓ Attendance_Students_API.sql   ✓ Emp_Monthly_Salary_Report.sql   ✓ Emp_Salary_Monthly.sql   ✓ Exam_Mark_Re_Submit.sql   ✓ Exam_Mark_Submit.sql   ✓ Examinee_Vs_Grade.sql   ✓ HighestMark_Position.sql   ✓ Income_Category_Report.sql   ✓ Income_Daily_Report.sql   ✓ Income_Monthly_Report.sql   ✓ Income_Stu_Class_MonthlyReport.sql   ✓ Income_Stu_Class_Report.sql   ✓ MoneyReceipt.sql   ✓ Result_of_Cumulative.sql   ✓ Result_of_Cumulative_Full_Class.sql   ✓ SP_Cumulative_Attendance.sql   ✓ SP_Cumulative_Exam_Student.sql   ✓ SP_Cumulative_Exam_Subject.sql   ✓ SP_Cumulative_HighestMark_Position.sql   ✓ sp_DeleteSchoolDataBySchoolID.sql   ✓ SP_Exam_Attendance.sql   ✓ SP_Exam_Student.sql   ✓ SP_Exam_Subject.sql   ✓ SP_SP_Exam_Subject_MarkCheck.sql   ✓ Student_Monthly_AttendanceFine.sql

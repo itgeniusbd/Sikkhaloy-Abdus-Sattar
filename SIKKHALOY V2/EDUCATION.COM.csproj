@@ -571,6 +571,9 @@
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Results.aspx" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
+    <Content Include="Home\logo\mgc-logo.jpg" />
+    <Content Include="Home\logo\sikkhaloy-logo.png" />
+    <Content Include="Home\mgcApp.html" />
     <Content Include="ID_Cards\Card.aspx" />
     <Content Include="ID_Cards\CSS\IDCardMordern.css" />
     <Content Include="ID_Cards\CSS\image\card.jpg" />
@@ -736,6 +739,7 @@
     <Content Include="Handeler\SignatureHandler.ashx" />
     <Content Include="Handeler\TestHandler.ashx" />
     <Content Include="Handeler\SchoolNameLogo.ashx" />
+    <Content Include="Home\.htaccess" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
     <Content Include="Routines\Modify_Routine.aspx" />
