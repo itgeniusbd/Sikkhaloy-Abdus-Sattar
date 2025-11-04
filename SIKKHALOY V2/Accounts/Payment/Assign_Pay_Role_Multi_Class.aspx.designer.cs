@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Accounts.Payment {
-    
-    
-    public partial class Assign_Pay_Role_Multi_Class {
-        
+namespace EDUCATION.COM.Accounts.Payment
+{
+
+
+    public partial class Assign_Pay_Role_Multi_Class
+    {
+
         /// <summary>
         /// ClassCheckBoxList control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.CheckBoxList ClassCheckBoxList;
-        
+
         /// <summary>
         /// ClassNameSQL control.
         /// </summary>
@@ -29,7 +31,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ClassNameSQL;
-        
+
         /// <summary>
         /// FindButton control.
         /// </summary>
@@ -38,7 +40,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button FindButton;
-        
+
         /// <summary>
         /// One_Role_GridView control.
         /// </summary>
@@ -47,7 +49,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView One_Role_GridView;
-        
+
         /// <summary>
         /// Roles_1_SQL control.
         /// </summary>
@@ -56,7 +58,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Roles_1_SQL;
-        
+
         /// <summary>
         /// Multi_Role_GridView control.
         /// </summary>
@@ -65,7 +67,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView Multi_Role_GridView;
-        
+
         /// <summary>
         /// OtherRolesSQL control.
         /// </summary>
@@ -74,7 +76,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource OtherRolesSQL;
-        
+
         /// <summary>
         /// RoleButton control.
         /// </summary>
@@ -83,7 +85,7 @@ namespace EDUCATION.COM.Accounts.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button RoleButton;
-        
+
         /// <summary>
         /// AssignRoleSQL control.
         /// </summary>

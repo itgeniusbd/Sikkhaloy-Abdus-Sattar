@@ -209,10 +209,111 @@ namespace EDUCATION.COM.Accounts.Payment
                 }
             }
         }
+
+        // Get Session Year Information with all months
+        [WebMethod]
+        public static string GetSessionYearInfo()
+        {
+            try
+       {
+          var months = new List<MonthInfo>();
+              string sessionStart = "";
+           string sessionEnd = "";
+
+     using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+   {
+      // Get session year dates first
+        string basicQuery = "SELECT StartDate, EndDate FROM Education_Year WHERE EducationYearID = @EducationYearID";
+        
+              using (SqlCommand basicCmd = new SqlCommand(basicQuery, con))
+        {
+     basicCmd.Parameters.AddWithValue("@EducationYearID", HttpContext.Current.Session["Edu_Year"].ToString());
+   
+    con.Open();
+          SqlDataReader basicDr = basicCmd.ExecuteReader();
+   
+ if (basicDr.Read())
+           {
+           sessionStart = basicDr["StartDate"].ToString();
+      sessionEnd = basicDr["EndDate"].ToString();
+  }
+      basicDr.Close();
+           }
+
+  // Now get all months in the session
+           string monthsQuery = @"
+           WITH months(MonthDate, RowNum) AS (
+   SELECT StartDate, 0 FROM Education_Year WHERE EducationYearID = @EducationYearID
+            UNION ALL
+       SELECT DATEADD(month, 1, MonthDate), RowNum + 1
+ FROM months
+         WHERE DATEADD(month, 1, MonthDate) <= (SELECT EndDate FROM Education_Year WHERE EducationYearID = @EducationYearID)
+     )
+     SELECT 
+  FORMAT(MonthDate, 'MMMM yyyy') AS MonthName,
+      FORMAT(DATEADD(day, 1-DAY(MonthDate), MonthDate), 'dd MMM yyyy') AS StartDate,
+    FORMAT(DATEADD(day, 9, DATEADD(day, 1-DAY(MonthDate), MonthDate)), 'dd MMM yyyy') AS EndDate,
+RowNum AS SortOrder
+       FROM months
+    ORDER BY RowNum
+        OPTION (MAXRECURSION 0)";
+    using (SqlCommand monthCmd = new SqlCommand(monthsQuery, con))
+              {
+      monthCmd.Parameters.AddWithValue("@EducationYearID", HttpContext.Current.Session["Edu_Year"].ToString());
+       
+   SqlDataReader monthDr = monthCmd.ExecuteReader();
+            
+        while (monthDr.Read())
+              {
+     months.Add(new MonthInfo
+        {
+MonthName = monthDr["MonthName"].ToString(),
+              StartDate = monthDr["StartDate"].ToString(),
+              EndDate = monthDr["EndDate"].ToString(),
+   SortOrder = Convert.ToInt32(monthDr["SortOrder"])
+  });
+            }
+          monthDr.Close();
+       }
+   
+   con.Close();
+     }
+
+        var result = new
+       {
+  StartDate = sessionStart,
+   EndDate = sessionEnd,
+         Months = months
+        };
+
+      var json = new JavaScriptSerializer().Serialize(result);
+         return json;
+            }
+            catch (Exception ex)
+ {
+      // Return error info for debugging
+            var error = new
+  {
+                StartDate = "",
+       EndDate = "",
+          Months = new List<MonthInfo>(),
+         Error = ex.Message
+                };
+       return new JavaScriptSerializer().Serialize(error);
+            }
+        }
         class EduYear
         {
             public string Month { get; set; }
             public string MonthYear { get; set; }
+        }
+
+        class MonthInfo
+        {
+            public string MonthName { get; set; }
+            public string StartDate { get; set; }
+            public string EndDate { get; set; }
+            public int SortOrder { get; set; }
         }
     }
 }

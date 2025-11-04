@@ -24,7 +24,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
         {
             //CheckBox DueCheckBox = (CheckBox).FindControl("DueCheckBox");
 
-           
+
 
             if (!IsPostBack)
             {
@@ -32,19 +32,19 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 LoadRadioButtonSelection();
                 if (GetLinkPageExist() != true)
                 {
-                    UpdateConcessionButton.Visible = false;                   
+                    UpdateConcessionButton.Visible = false;
                 }
-            }          
+            }
 
         }
         private void LoadRadioButtonSelection()
         {
             string schoolId = Session["SchoolID"].ToString();
-            string query = "SELECT top 1 PAY_Buttton_SMS_Enable_Disable FROM Account WHERE SchoolID ='" + schoolId + "'";  
+            string query = "SELECT top 1 PAY_Buttton_SMS_Enable_Disable FROM Account WHERE SchoolID ='" + schoolId + "'";
             try
             {
-                SqlCommand SMSCmd = new SqlCommand(query, con);                            
-                con.Open();               
+                SqlCommand SMSCmd = new SqlCommand(query, con);
+                con.Open();
                 object smsActive_InActive_Value = SMSCmd.ExecuteScalar();
                 con.Close();
                 bool val = Convert.ToBoolean(smsActive_InActive_Value);
@@ -61,7 +61,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             {
             }
         }
-       
+
 
         private bool GetLinkPageExist()  // Concession button show/hide
         {
@@ -244,7 +244,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 MoneyReceiptID = Convert.ToInt32(Payment_DataSet.Insert_MoneyReceipt(StudentID, RegistrationID, StudentClassID, Crrent_EduYearID, "Institution", DateTime.Now, SchoolID));
 
 
-                
+
 
                 foreach (GridViewRow row in DueGridView.Rows)
                 {
@@ -258,7 +258,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
                 }
 
-                
+
 
                 if (RoleCheckBox.Checked)
                 {
@@ -272,7 +272,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
                             message += $", {role}: {payFor}";
                         }
-                           
+
                     }
                 }
 
@@ -337,12 +337,12 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             if (Is_Paid)
             {
 
-                SqlCommand AccountCmd = new SqlCommand("Select MoneyReceipt_SN from Income_MoneyReceipt where SchoolID = "+ SchoolID + " AND MoneyReceiptID='"+ MoneyReceiptID + "'", con);                
+                SqlCommand AccountCmd = new SqlCommand("Select MoneyReceipt_SN from Income_MoneyReceipt where SchoolID = " + SchoolID + " AND MoneyReceiptID='" + MoneyReceiptID + "'", con);
                 con.Open();
                 object moneyReceiptNo = AccountCmd.ExecuteScalar();
                 con.Close();
-                string moneyReceipt = Convert.ToString(moneyReceiptNo);  
-                if(rbActive.Checked==true)
+                string moneyReceipt = Convert.ToString(moneyReceiptNo);
+                if (rbActive.Checked == true)
                 {
                     SendSMS(moneyReceipt, totalPaidAmount, message);
                 }
@@ -352,8 +352,8 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             }
         }
 
-       private void SendSMS(string moneyReceiptNo,double totalAmount,string mess)
-        {            
+        private void SendSMS(string moneyReceiptNo, double totalAmount, string mess)
+        {
             var msg = "অভিনন্দন ! ";
             var isSentSMS = false;
             if (StudentInfoFormView.CurrentMode == FormViewMode.ReadOnly)
@@ -409,16 +409,16 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 }
             }
         }
-       
+
         protected void UpdateConcessionButton_Click(object sender, EventArgs e)
         {
             CheckBox SingleCheckBox = new CheckBox();
             foreach (GridViewRow Row in DueGridView.Rows)
-            {               
+            {
                 SingleCheckBox = Row.FindControl("DueCheckBox") as CheckBox;
-                TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");                
+                TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
                 if (SingleCheckBox.Checked)
-                {                    
+                {
                     string paid = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
                     Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
                     Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;

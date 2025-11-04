@@ -514,7 +514,7 @@ ORDER BY Income_PayOrder.EndDate"
 
                 <asp:RequiredFieldValidator ID="RequiredFieldValidator6" runat="server" ControlToValidate="AccountDropDownList" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="PaY"></asp:RequiredFieldValidator>
                 <asp:Button ID="PayButton" runat="server" Text="Pay" OnClick="PayButton_Click" OnClientClick="return validateForm()" ValidationGroup="PaY" CssClass="btn btn-primary" />
-                <asp:Button ID="UpdateConcessionButton" runat="server" Text="Update Concession" OnClick="UpdateConcessionButton_Click" CssClass="btn btn-primary" />
+                <asp:Button ID="UpdateConcessionButton" runat="server" Text="Update Concession" OnClick="UpdateConcessionButton_Click" OnClientClick="return validateConcession()" CssClass="btn btn-primary" />
             </div>
 
 
@@ -542,8 +542,6 @@ ORDER BY Income_PayOrder.EndDate"
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
             </SelectParameters>
             <UpdateParameters>
-                <%--<asp:ControlParameter ControlID="RadioButton1" Name="PAY_Buttton_SMS_Enable_Disable" PropertyName="SelectedValue" />--%>
-                <asp:ControlParameter ControlID="rbSendSMS" Name="PAY_Buttton_SMS_Enable_Disable" PropertyName="SelectedValue" />
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
             </UpdateParameters>
         </asp:SqlDataSource>
@@ -599,7 +597,7 @@ ORDER BY Income_PayOrder.EndDate"
                                             <asp:TemplateField HeaderText="Paid Amount">
                                                 <ItemTemplate>
                                                     <%# Eval("TotalAmount") %> Tk
-       <small class="d-block">
+                                              <small class="d-block">
                                                 </ItemTemplate>
                                                 <HeaderStyle HorizontalAlign="Center" />
                                                 <ItemStyle HorizontalAlign="Center" />
@@ -757,17 +755,40 @@ ORDER BY Income_PayOrder.EndDate"
                     element.closest("tr").classList.toggle("row-selected");
 
                     const input = element.closest("tr").querySelector('.due-input');
-                    const consinput = element.closest("tr").querySelector('.concession-input');
-                    input.disabled = !element.checked;
-                    consinput.disabled = !element.checked;
-                }
+                const consinput = element.closest("tr").querySelector('.concession-input');
+                input.disabled = !element.checked;
+     consinput.disabled = !element.checked;
+      }
 
-                const total = `Total Amount: <span id="total-amount-pay">${calculateTotal()}</span> Tk`;
+     // Real-time validation for concession input
+  if (element.classList.contains('concession-input')) {
+           const row = element.closest("tr");
+  const feeCell = row.cells[6]; // Fee column
+        const paidCell = row.cells[9]; // Paid column
+              const dueCell = row.cells[10]; // Due column
+       
+         const fee = parseFloat(feeCell.innerText) || 0;
+        const paid = parseFloat(paidCell.innerText) || 0;
+             const due = parseFloat(dueCell.innerText) || 0;
+        const concession = parseFloat(element.value) || 0;
+       
+   if (concession > due) {
+            element.style.borderColor = 'red';
+         element.style.backgroundColor = '#fff5f5';
+                 element.title = 'কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!';
+                    } else {
+    element.style.borderColor = '';
+    element.style.backgroundColor = '';
+     element.title = '';
+   }
+   }
 
-                totalPayAmount.innerHTML = total;
-                totalPayAmountFixed.innerHTML = total;
-            });
-        })();
+         const total = `Total Amount: <span id="total-amount-pay">${calculateTotal()}</span> Tk`;
+
+     totalPayAmount.innerHTML = total;
+       totalPayAmountFixed.innerHTML = total;
+   });
+     })();
 
         //paid-record-modal
         function openModal() {
@@ -792,36 +813,62 @@ ORDER BY Income_PayOrder.EndDate"
             const isChecked = [...checkboxes].some(item => item.checked);
 
             if (isChecked) {
-                return true;
+      return true;
             }
 
-            $("#payment-submit").notify("Select payment to pay!", { position: "top left" });
+  $("#payment-submit").notify("Select payment to pay!", { position: "top left" });
             return false;
         }
 
+     //validate concession before update
+   function validateConcession() {
+     const paymentTable = document.getElementById("payment-container");
+   const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
+     
+     for (let concessionInput of concessionInputs) {
+    const row = concessionInput.closest("tr");
+   const feeCell = row.cells[6]; // Fee column
+        const paidCell = row.cells[9]; // Paid column
+          const dueCell = row.cells[10]; // Due column
+         
+    const fee = parseFloat(feeCell.innerText) || 0;
+    const paid = parseFloat(paidCell.innerText) || 0;
+      const due = parseFloat(dueCell.innerText) || 0;
+        const concession = parseFloat(concessionInput.value) || 0;
+ 
+             // Check if concession is greater than due amount
+            if (concession > due) {
+          alert('কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot be greater than due amount!');
+           concessionInput.focus();
+           return false;
+         }
+        }
+    return true;
+  }
+
         //show sticky bottom grand total
-        $(window).scroll(function () {
-            const totalPayAmount = +document.getElementById("total-amount-pay").textContent;
-            if (totalPayAmount === 0) {
-                $('#grand-total-fixed').fadeOut();
-                return;
-            }
+   $(window).scroll(function () {
+  const totalAmountElement = document.getElementById("total-amount-pay");
+if (!totalAmountElement) return;
+    
+    const totalPayAmount = parseFloat(totalAmountElement.textContent) || 0;
+    if (totalPayAmount === 0) {
+    $('#grand-total-fixed').fadeOut();
+             return;
+     }
 
-            if ($(window).scrollTop() + $(window).height() > $(document).height() - 300) {
-                $('#grand-total-fixed').fadeOut();
-            }
+ if ($(window).scrollTop() + $(window).height() > $(document).height() - 300) {
+          $('#grand-total-fixed').fadeOut();
+   }
             else {
-                $('#grand-total-fixed').fadeIn();
+       $('#grand-total-fixed').fadeIn();
             }
         });
 
-        $(document).ready(function () {
+     $(document).ready(function () {
             function openModal() {
-                $('#myModal').modal('show');
-            }
+         $('#myModal').modal('show');
+     }
         });
-
-
-
     </script>
 </asp:Content>
