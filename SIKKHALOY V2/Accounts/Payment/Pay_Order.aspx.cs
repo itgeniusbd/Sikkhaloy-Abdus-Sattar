@@ -32,6 +32,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 EmptyStudentLabel.Text = "";
                 ClassDropDownList.Visible = true;
             }
+
             else
             {
                 ClassDropDownList.Visible = false;
@@ -434,8 +435,15 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 #endregion Class wise Students Pay Order
             }
 
-            Response.Cookies["massage"].Value = success_count.ToString() + " Pay Order has been created successfully and previously created " + fail_count.ToString();
-            Response.Redirect(Request.Url.AbsoluteUri);
+            // Show success message using JavaScript
+            string message = success_count.ToString() + " Pay Order has been created successfully";
+            if (fail_count > 0)
+            {
+                message += " and " + fail_count.ToString() + " Pay Order already existed";
+            }
+
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "PayOrderSuccess",
+            $"alert('{message}'); window.location.href = window.location.href;", true);
         }
 
         protected void Multi_Role_GridView_RowDataBound(object sender, GridViewRowEventArgs e)
@@ -457,19 +465,184 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             }
         }
 
+        // For Assigned Multiple Instalments GridView
+        protected void Multi_A_Role_GridView_RowDataBound(object sender, GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                GridView Input_Multi_Role_GridView = (GridView)e.Row.FindControl("Input_Multi_Role_GridView");
+                HiddenField RoleHiddenField = (HiddenField)e.Row.FindControl("RoleHiddenField");
+
+                if (Input_Multi_Role_GridView != null && RoleHiddenField != null)
+                {
+                    // Get ClassID from the SqlDataSource parameter
+                    string classID = Multi_A_RoleSQL.SelectParameters["ClassID"].DefaultValue;
+
+                    if (string.IsNullOrEmpty(classID) || classID == "0")
+                    {
+                        classID = ClassDropDownList.SelectedValue;
+                    }
+
+                    // Get the assigned roles for this RoleID
+                    SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
+                    SqlCommand cmd = new SqlCommand(@"SELECT Income_Roles.Role, Income_Assign_Role.AssignRoleID, Income_Assign_Role.RegistrationID, 
+                Income_Assign_Role.SchoolID, Income_Assign_Role.ClassID, Income_Assign_Role.PayFor, 
+     Income_Assign_Role.Amount, Income_Assign_Role.LateFee, Income_Assign_Role.StartDate, Income_Assign_Role.EndDate, 
+         Income_Assign_Role.EducationYearID, Income_Assign_Role.RoleID
+     FROM Income_Assign_Role INNER JOIN Income_Roles ON Income_Assign_Role.RoleID = Income_Roles.RoleID 
+          WHERE (Income_Assign_Role.ClassID = @ClassID) AND (Income_Assign_Role.EducationYearID = @EducationYearID) 
+      AND (Income_Assign_Role.SchoolID = @SchoolID) AND (Income_Assign_Role.RoleID = @RoleID) 
+    ORDER BY Income_Assign_Role.StartDate", con);
+
+                    cmd.Parameters.AddWithValue("@ClassID", classID);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"].ToString());
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+                    cmd.Parameters.AddWithValue("@RoleID", RoleHiddenField.Value);
+
+                    con.Open();
+                    SqlDataReader dr = cmd.ExecuteReader();
+                    DataTable dt = new DataTable();
+                    dt.Load(dr);
+                    con.Close();
+
+                    Input_Multi_Role_GridView.DataSource = dt;
+                    Input_Multi_Role_GridView.DataBind();
+                }
+            }
+        }
+
         protected void Find_ID_Button_Click(object sender, EventArgs e)
         {
             ClassDropDownList.SelectedValue = "0";
             StudentsGridView.DataBind();
 
-            foreach (GridViewRow row in StudentsGridView.Rows)
-            {
-                CheckBox SingleCheckBox = row.FindControl("SingleCheckBox") as CheckBox;
-                SingleCheckBox.Checked = true;
-                row.CssClass = "selected";
-            }
+         // Get ClassID from selected students to load assigned roles
+    if (StudentsGridView.Rows.Count > 0)
+        {
+ int classID = Convert.ToInt32(StudentsGridView.DataKeys[0]["ClassID"]);
+
+ // Set parameters for assigned roles SQL - MUST do this BEFORE DataBind()
+   One_A_RoleSQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+                One_A_RoleSQL.SelectParameters["SchoolID"].DefaultValue = Session["SchoolID"].ToString();
+     One_A_RoleSQL.SelectParameters["EducationYearID"].DefaultValue = Session["Edu_Year"].ToString();
+
+      Multi_A_RoleSQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+                Multi_A_RoleSQL.SelectParameters["SchoolID"].DefaultValue = Session["SchoolID"].ToString();
+      Multi_A_RoleSQL.SelectParameters["EducationYearID"].DefaultValue = Session["Edu_Year"].ToString();
+
+   // Also bind unassigned roles for the same class
+          Roles_1_SQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+      Multi_R_SQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+
+                // Now bind all GridViews
+     One_A_RoleGridView.DataBind();
+    Multi_A_Role_GridView.DataBind();
+     One_Role_GridView.DataBind();
+      Multi_R_GridView.DataBind();
+
+   // Debug: Check database and GridView results
+      SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
+
+           // Check single instalment roles
+         SqlCommand oneCmd = new SqlCommand(@"
+       SELECT COUNT(*) FROM Income_Assign_Role as I_Role 
+       INNER JOIN Income_Roles ON I_Role.RoleID = Income_Roles.RoleID 
+      WHERE I_Role.ClassID = @ClassID 
+ AND I_Role.EducationYearID = @EducationYearID 
+      AND I_Role.SchoolID = @SchoolID
+    AND Income_Roles.NumberOfPay = 1", con);
+         oneCmd.Parameters.AddWithValue("@ClassID", classID);
+     oneCmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"].ToString());
+      oneCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+
+       // Check multiple instalment roles
+            SqlCommand multiCmd = new SqlCommand(@"
+   SELECT COUNT(DISTINCT I_Role.RoleID) FROM Income_Assign_Role as I_Role 
+       INNER JOIN Income_Roles ON I_Role.RoleID = Income_Roles.RoleID 
+WHERE I_Role.ClassID = @ClassID 
+      AND I_Role.EducationYearID = @EducationYearID 
+  AND I_Role.SchoolID = @SchoolID
+             AND Income_Roles.NumberOfPay > 1", con);
+         multiCmd.Parameters.AddWithValue("@ClassID", classID);
+        multiCmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"].ToString());
+          multiCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+
+    con.Open();
+   int oneSingleCount = Convert.ToInt32(oneCmd.ExecuteScalar());
+         int multiCount = Convert.ToInt32(multiCmd.ExecuteScalar());
+     con.Close();
+
+                // Check and display sections based on data availability
+     System.Text.StringBuilder sb = new System.Text.StringBuilder();
+     sb.AppendLine("<script type='text/javascript'>");
+     sb.AppendLine("$(document).ready(function() {");
+
+      // Student Grid
+           if (StudentsGridView.Rows.Count > 0)
+        {
+         sb.AppendLine("    $('.Hide_S_Gv').show();");
+               sb.AppendLine($"    console.log('Students: {StudentsGridView.Rows.Count} rows');");
+          }
+
+       // Debug info
+  sb.AppendLine($"    console.log('=== Database Query Results ===');");
+      sb.AppendLine($"    console.log('ClassID: {classID}');");
+           sb.AppendLine($"    console.log('SchoolID: {Session["SchoolID"]}');");
+    sb.AppendLine($"    console.log('EducationYearID: {Session["Edu_Year"]}');");
+          sb.AppendLine($"    console.log('Single Instalment Roles in DB: {oneSingleCount}');");
+                sb.AppendLine($"    console.log('Multiple Instalment Roles in DB: {multiCount}');");
+   sb.AppendLine($"    console.log('One_A_Role GridView Rows: {One_A_RoleGridView.Rows.Count}');");
+sb.AppendLine($"    console.log('Multi_A_Role GridView Rows: {Multi_A_Role_GridView.Rows.Count}');");
+
+   // One Assigned Role
+       if (One_A_RoleGridView.Rows.Count > 0)
+         {
+ sb.AppendLine("    $('.A_R').show();");
+    sb.AppendLine($"    console.log('✅ Showing One_A_Role section');");
+      }
+                else
+     {
+       sb.AppendLine($"    console.warn('❌ One_A_Role: GridView has no rows. DB has {oneSingleCount} single instalment roles.');");
+    }
+
+           // Multi Assigned Role
+         if (Multi_A_Role_GridView.Rows.Count > 0)
+{
+           sb.AppendLine("    $('.A_MR').show();");
+              sb.AppendLine($"    console.log('✅ Showing Multi_A_Role section');");
+      }
+      else
+ {
+  sb.AppendLine($"    console.warn('❌ Multi_A_Role: GridView has no rows. DB has {multiCount} multiple instalment roles.');");
         }
 
+           // One Unassigned Role
+     if (One_Role_GridView.Rows.Count > 0)
+  {
+   sb.AppendLine("  $('.UAR1').show();");
+         sb.AppendLine($"    console.log('One_Role: {One_Role_GridView.Rows.Count} rows');");
+          }
+
+      // Multi Unassigned Role
+   if (Multi_R_GridView.Rows.Count > 0)
+     {
+         sb.AppendLine("    $('.UAR2').show();");
+           sb.AppendLine($"    console.log('Multi_R: {Multi_R_GridView.Rows.Count} rows');");
+       }
+
+      sb.AppendLine("});");
+   sb.AppendLine("</script>");
+
+                ClientScript.RegisterStartupScript(this.GetType(), "ShowGrids", sb.ToString(), false);
+        }
+
+      foreach (GridViewRow row in StudentsGridView.Rows)
+       {
+      CheckBox SingleCheckBox = row.FindControl("SingleCheckBox") as CheckBox;
+          SingleCheckBox.Checked = true;
+           row.CssClass = "selected";
+            }
+        }
         protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             IDTextBox.Text = "";

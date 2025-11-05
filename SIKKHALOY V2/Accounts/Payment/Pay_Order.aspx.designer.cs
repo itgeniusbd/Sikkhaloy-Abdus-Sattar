@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.ACCOUNTS.Payment {
-    
-    
-    public partial class Pay_Order {
-        
+namespace EDUCATION.COM.ACCOUNTS.Payment
+{
+
+
+    public partial class Pay_Order
+    {
+
         /// <summary>
         /// PayorderMsgLabel control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label PayorderMsgLabel;
-        
+
         /// <summary>
         /// EmptyStudentLabel control.
         /// </summary>
@@ -29,7 +31,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label EmptyStudentLabel;
-        
+
         /// <summary>
         /// ClassDropDownList control.
         /// </summary>
@@ -38,7 +40,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ClassDropDownList;
-        
+
         /// <summary>
         /// ClassNameSQL control.
         /// </summary>
@@ -47,7 +49,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ClassNameSQL;
-        
+
         /// <summary>
         /// GroupDropDownList control.
         /// </summary>
@@ -56,7 +58,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList GroupDropDownList;
-        
+
         /// <summary>
         /// GroupSQL control.
         /// </summary>
@@ -65,7 +67,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource GroupSQL;
-        
+
         /// <summary>
         /// SectionDropDownList control.
         /// </summary>
@@ -74,7 +76,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList SectionDropDownList;
-        
+
         /// <summary>
         /// SectionSQL control.
         /// </summary>
@@ -83,7 +85,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SectionSQL;
-        
+
         /// <summary>
         /// OldNewDropDownList control.
         /// </summary>
@@ -92,7 +94,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList OldNewDropDownList;
-        
+
         /// <summary>
         /// IDTextBox control.
         /// </summary>
@@ -101,7 +103,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox IDTextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator1 control.
         /// </summary>
@@ -110,7 +112,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator1;
-        
+
         /// <summary>
         /// Find_ID_Button control.
         /// </summary>
@@ -119,7 +121,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button Find_ID_Button;
-        
+
         /// <summary>
         /// TotalStudentLabel control.
         /// </summary>
@@ -128,7 +130,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label TotalStudentLabel;
-        
+
         /// <summary>
         /// StudentsGridView control.
         /// </summary>
@@ -137,7 +139,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView StudentsGridView;
-        
+
         /// <summary>
         /// ShowStudentClassSQL control.
         /// </summary>
@@ -146,7 +148,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ShowStudentClassSQL;
-        
+
         /// <summary>
         /// CV control.
         /// </summary>
@@ -155,7 +157,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.CustomValidator CV;
-        
+
         /// <summary>
         /// One_A_RoleGridView control.
         /// </summary>
@@ -164,7 +166,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView One_A_RoleGridView;
-        
+
         /// <summary>
         /// One_A_RoleSQL control.
         /// </summary>
@@ -173,7 +175,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource One_A_RoleSQL;
-        
+
         /// <summary>
         /// Multi_A_Role_GridView control.
         /// </summary>
@@ -182,7 +184,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView Multi_A_Role_GridView;
-        
+
         /// <summary>
         /// Multi_A_RoleSQL control.
         /// </summary>
@@ -191,43 +193,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Multi_A_RoleSQL;
-        
-        /// <summary>
-        /// One_Role_GridView control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView One_Role_GridView;
-        
-        /// <summary>
-        /// Roles_1_SQL control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource Roles_1_SQL;
-        
-        /// <summary>
-        /// Multi_R_GridView control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView Multi_R_GridView;
-        
-        /// <summary>
-        /// Multi_R_SQL control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource Multi_R_SQL;
-        
+
         /// <summary>
         /// PayOrderButton control.
         /// </summary>
@@ -236,7 +202,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button PayOrderButton;
-        
+
         /// <summary>
         /// ValidationSummary1 control.
         /// </summary>
@@ -245,7 +211,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.ValidationSummary ValidationSummary1;
-        
+
         /// <summary>
         /// PayOrderSQL control.
         /// </summary>
@@ -254,5 +220,41 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource PayOrderSQL;
+
+        /// <summary>
+        /// One_Role_GridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView One_Role_GridView;
+
+        /// <summary>
+        /// Roles_1_SQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource Roles_1_SQL;
+
+        /// <summary>
+        /// Multi_R_GridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView Multi_R_GridView;
+
+        /// <summary>
+        /// Multi_R_SQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource Multi_R_SQL;
     }
 }
