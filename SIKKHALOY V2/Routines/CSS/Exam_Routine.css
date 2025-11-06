@@ -1,0 +1,313 @@
+﻿/* Exam Routine Styling - CLEAN VERSION */
+.exam-routine-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Kalpurush', Arial, sans-serif;
+}
+
+/* Hide ALL header fields */
+.routine-header,
+.routine-date,
+.routine-title,
+.routine-subtitle,
+.exam-class-info,
+.instruction-text,
+.notes-section,
+.signature-section {
+    display: none !important;
+}
+
+/* Routine Name Display */
+.routine-name-display {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: #d32f2f;
+    margin: 10px 0 20px 0;
+    padding: 10px;
+    border-bottom: 2px solid #000;
+}
+
+/* Table Styling */
+.routine-table {
+ width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.routine-table thead th {
+    background: #f0f0f0;
+    color: #000;
+    padding: 10px 5px;
+    text-align: center;
+    font-weight: bold;
+border: 1px solid #000;
+}
+
+.routine-table tbody td {
+    border: 1px solid #000;
+    padding: 8px 5px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Column Widths */
+.routine-table th:nth-child(1),
+.routine-table td:nth-child(1) {
+    width: 95px;
+}
+
+.routine-table th:nth-child(2),
+.routine-table td:nth-child(2) {
+    width: 85px;
+}
+
+.routine-table th:nth-child(3),
+.routine-table td:nth-child(3) {
+    width: 80px;
+}
+
+.routine-table th:nth-child(n+4),
+.routine-table td:nth-child(n+4) {
+    width: auto;
+    min-width: 140px;
+}
+
+.period-header {
+    background: #e8e8e8;
+}
+
+/* Subject Display - CLEAN & CENTERED */
+.subject-name {
+    text-align: center;
+font-weight: bold;
+    font-size: 14px;
+  padding: 5px;
+ min-height: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hide subject dropdown & textbox on screen */
+.subject-name select,
+.subject-name input.subject-textbox {
+    display: none !important;
+}
+
+/* Show selected subject text - VISIBLE */
+.subject-display-text {
+    display: block;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    color: #000;
+    padding: 3px;
+}
+
+/* Show only selected subject text */
+.subject-name select option:checked {
+    display: block;
+    text-align: center;
+}
+
+.subject-time {
+    font-size: 13px;
+    color: #d32f2f;
+    font-weight: bold;
+    margin-top: 5px;
+    text-align: center;
+}
+
+/* Form Controls - NO BORDERS */
+.form-control-routine {
+    width: 100%;
+    padding: 6px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-family: 'Kalpurush', Arial, sans-serif;
+    font-size: 13px;
+}
+
+.form-control-routine:focus {
+    outline: 1px dashed #ccc;
+}
+
+/* Date, Day, Time inputs - NO BORDERS */
+input.datepicker-input,
+input.day-input,
+input.time-input {
+    border: none !important;
+    background: transparent !important;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Time Input */
+.time-input {
+ font-size: 13px !important;
+    color: #d32f2f;
+}
+
+/* Time suggestions */
+.time-suggestions {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  width: 120px;
+}
+
+.time-suggestion-item {
+    padding: 6px 10px;
+    cursor: pointer;
+ font-size: 12px;
+}
+
+.time-suggestion-item:hover {
+    background: #e0e0e0;
+}
+
+/* Control Panel */
+.control-panel {
+    background: #f5f5f5;
+    padding: 15px;
+    border: 1px solid #ddd;
+    margin: 15px 0;
+}
+
+.control-label {
+    font-weight: bold;
+    color: #333;
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+/* Buttons */
+.btn-add-column,
+.btn-remove-column,
+.btn-add-row,
+.btn-remove-row,
+.btn-reload {
+    padding: 6px 12px;
+ margin: 0 4px;
+    border: 1px solid #999;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-add-column:hover,
+.btn-add-row:hover {
+    background: #4caf50;
+    color: white;
+}
+
+.btn-remove-column:hover,
+.btn-remove-row:hover {
+    background: #f44336;
+    color: white;
+}
+
+.btn-reload:hover {
+    background: #2196F3;
+    color: white;
+}
+
+/* Print Styles - SUPER CLEAN */
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    body {
+        margin: 0;
+  padding: 0;
+    }
+
+    .print-hide,
+    .control-panel,
+    .form-inline,
+  button,
+    .btn,
+    select.class-dropdown {
+        display: none !important;
+    }
+
+    .exam-routine-container {
+      padding: 0;
+    }
+
+    .routine-name-display {
+        font-size: 18px;
+        margin: 5px 0 10px 0;
+        padding: 5px;
+    }
+
+    .routine-table {
+   page-break-inside: avoid;
+        font-size: 12px;
+    }
+
+    .routine-table th,
+    .routine-table td {
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+
+    /* Show ONLY selected subject name - centered */
+    .subject-name {
+        font-size: 13px;
+        font-weight: bold;
+    text-align: center;
+    }
+
+    /* Hide all input controls in print */
+    .subject-name select,
+    .subject-name input {
+        display: none !important;
+    }
+
+    /* Show subject text from data attribute */
+  .subject-name::before {
+     content: attr(data-subject);
+        display: block;
+        text-align: center;
+    }
+
+ .subject-time {
+        font-size: 12px;
+    font-weight: bold;
+    }
+
+    /* Make sure inputs show their values as text */
+    input.datepicker-input,
+    input.day-input,
+    input.time-input {
+        border: none !important;
+        background: transparent !important;
+   font-weight: bold;
+    }
+
+ /* Remove placeholder text */
+  input::placeholder {
+        color: transparent !important;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .routine-table {
+      font-size: 11px;
+    }
+}
+
+
