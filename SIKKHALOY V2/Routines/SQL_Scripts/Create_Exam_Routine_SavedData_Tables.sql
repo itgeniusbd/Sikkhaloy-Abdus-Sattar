@@ -31,17 +31,41 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_Rows]') AND type in (N'U'))
 BEGIN
     CREATE TABLE [dbo].[Exam_Routine_Rows](
-[RowID] [int] IDENTITY(1,1) NOT NULL,
+        [RowID] [int] IDENTITY(1,1) NOT NULL,
         [RoutineID] [int] NOT NULL,
         [RowIndex] [int] NOT NULL,
-     [ExamDate] [date] NULL,
+        [ExamDate] [date] NULL,
         [DayName] [nvarchar](50) NULL,
-        [ExamTime] [nvarchar](50) NULL,
+        [StartTime] [nvarchar](20) NULL,  -- NEW: Start time (e.g., "10:00 AM")
+        [EndTime] [nvarchar](20) NULL,    -- NEW: End time (e.g., "01:00 PM")
+        [Duration] [nvarchar](20) NULL,   -- NEW: Duration in hours (e.g., "3 ?????")
+        [ExamTime] [nvarchar](50) NULL,   -- LEGACY: Keep for backward compatibility
         CONSTRAINT [PK_Exam_Routine_Rows] PRIMARY KEY CLUSTERED ([RowID] ASC),
         CONSTRAINT [FK_Exam_Routine_Rows_SavedData] FOREIGN KEY([RoutineID])
-      REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
-          ON DELETE CASCADE
-)
+            REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
+            ON DELETE CASCADE
+    )
+END
+ELSE
+BEGIN
+    -- Add new columns if table exists but columns don't
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_Rows]') AND name = 'StartTime')
+    BEGIN
+        ALTER TABLE [dbo].[Exam_Routine_Rows] ADD [StartTime] [nvarchar](20) NULL
+   PRINT 'Added StartTime column to Exam_Routine_Rows'
+    END
+    
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_Rows]') AND name = 'EndTime')
+    BEGIN
+    ALTER TABLE [dbo].[Exam_Routine_Rows] ADD [EndTime] [nvarchar](20) NULL
+        PRINT 'Added EndTime column to Exam_Routine_Rows'
+    END
+    
+  IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_Rows]') AND name = 'Duration')
+BEGIN
+        ALTER TABLE [dbo].[Exam_Routine_Rows] ADD [Duration] [nvarchar](20) NULL
+        PRINT 'Added Duration column to Exam_Routine_Rows'
+    END
 END
 GO
 
@@ -53,10 +77,10 @@ BEGIN
         [RoutineID] [int] NOT NULL,
         [ColumnIndex] [int] NOT NULL,
         [ClassID] [int] NOT NULL,
- CONSTRAINT [PK_Exam_Routine_ClassColumns] PRIMARY KEY CLUSTERED ([ColumnID] ASC),
+   CONSTRAINT [PK_Exam_Routine_ClassColumns] PRIMARY KEY CLUSTERED ([ColumnID] ASC),
     CONSTRAINT [FK_Exam_Routine_ClassColumns_SavedData] FOREIGN KEY([RoutineID])
-         REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
-            ON DELETE CASCADE
+            REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
+ ON DELETE CASCADE
     )
 END
 GO
@@ -67,23 +91,47 @@ BEGIN
     CREATE TABLE [dbo].[Exam_Routine_CellData](
         [CellID] [int] IDENTITY(1,1) NOT NULL,
         [RoutineID] [int] NOT NULL,
-        [RowIndex] [int] NOT NULL,
- [ColumnIndex] [int] NOT NULL,
+  [RowIndex] [int] NOT NULL,
+        [ColumnIndex] [int] NOT NULL,
         [SubjectID] [int] NULL,
         [SubjectText] [nvarchar](200) NULL,
-        [TimeText] [nvarchar](50) NULL,
-        CONSTRAINT [PK_Exam_Routine_CellData] PRIMARY KEY CLUSTERED ([CellID] ASC),
+[StartTime] [nvarchar](20) NULL,  -- NEW: Start time for this subject
+  [EndTime] [nvarchar](20) NULL,    -- NEW: End time for this subject
+     [Duration] [nvarchar](20) NULL,   -- NEW: Duration for this subject
+        [TimeText] [nvarchar](50) NULL,   -- LEGACY: Keep for backward compatibility
+  CONSTRAINT [PK_Exam_Routine_CellData] PRIMARY KEY CLUSTERED ([CellID] ASC),
         CONSTRAINT [FK_Exam_Routine_CellData_SavedData] FOREIGN KEY([RoutineID])
-     REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
-  ON DELETE CASCADE
+       REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
+         ON DELETE CASCADE
     )
+END
+ELSE
+BEGIN
+-- Add new columns if table exists but columns don't
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_CellData]') AND name = 'StartTime')
+    BEGIN
+   ALTER TABLE [dbo].[Exam_Routine_CellData] ADD [StartTime] [nvarchar](20) NULL
+      PRINT 'Added StartTime column to Exam_Routine_CellData'
+    END
+    
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_CellData]') AND name = 'EndTime')
+    BEGIN
+ ALTER TABLE [dbo].[Exam_Routine_CellData] ADD [EndTime] [nvarchar](20) NULL
+        PRINT 'Added EndTime column to Exam_Routine_CellData'
+    END
+    
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_CellData]') AND name = 'Duration')
+    BEGIN
+        ALTER TABLE [dbo].[Exam_Routine_CellData] ADD [Duration] [nvarchar](20) NULL
+        PRINT 'Added Duration column to Exam_Routine_CellData'
+    END
 END
 GO
 
 -- Create indexes for better performance
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Exam_Routine_SavedData_SchoolID')
 BEGIN
-CREATE NONCLUSTERED INDEX [IX_Exam_Routine_SavedData_SchoolID]
+    CREATE NONCLUSTERED INDEX [IX_Exam_Routine_SavedData_SchoolID]
     ON [dbo].[Exam_Routine_SavedData] ([SchoolID])
 END
 GO
@@ -109,4 +157,4 @@ BEGIN
 END
 GO
 
-PRINT 'Exam Routine Bangla database tables created successfully!'
+PRINT 'Exam Routine Bangla database tables created/updated successfully!'

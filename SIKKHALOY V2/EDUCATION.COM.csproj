@@ -572,7 +572,9 @@
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
     <Content Include="Home\logo\mgc-logo.jpg" />
+    <Content Include="Home\logo\noorani-logo.png" />
     <Content Include="Home\logo\sikkhaloy-logo.png" />
+    <Content Include="Home\NooraniApp.html" />
     <Content Include="Home\mgcApp.html" />
     <Content Include="ID_Cards\Card.aspx" />
     <Content Include="ID_Cards\CSS\IDCardMordern.css" />
@@ -660,9 +662,10 @@
       <DependentUpon>Attendance_DataSet.xsd</DependentUpon>
     </Content>
     <Content Include="Routines\CSS\Exam_Routine.css" />
-    <Content Include="Routines\Exam_Routine_Bangla.aspx" />
+    <Content Include="Routines\Exam_Routine.aspx" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_Bangla_Table.sql" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_SavedData_Tables.sql" />
+    <Content Include="Student\Exam_Routine_forStudent.aspx" />
     <Content Include="Student\Notice.aspx" />
     <Content Include="Student\OnlinePayment\Success.aspx" />
     <Content Include="Teacher\AddStudentReport.aspx" />
@@ -2478,12 +2481,12 @@
     <Compile Include="Routines\Create_Routines_for_Classes.aspx.designer.cs">
       <DependentUpon>Create_Routines_for_Classes.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Routines\Exam_Routine_Bangla.aspx.cs">
-      <DependentUpon>Exam_Routine_Bangla.aspx</DependentUpon>
+    <Compile Include="Routines\Exam_Routine.aspx.cs">
+      <DependentUpon>Exam_Routine.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="Routines\Exam_Routine_Bangla.aspx.designer.cs">
-      <DependentUpon>Exam_Routine_Bangla.aspx</DependentUpon>
+    <Compile Include="Routines\Exam_Routine.aspx.designer.cs">
+      <DependentUpon>Exam_Routine.aspx</DependentUpon>
     </Compile>
     <Compile Include="Routines\Modify_Routine.aspx.cs">
       <DependentUpon>Modify_Routine.aspx</DependentUpon>
@@ -2562,6 +2565,13 @@
     </Compile>
     <Compile Include="Student\Exam\Weekly_Exam.aspx.designer.cs">
       <DependentUpon>Weekly_Exam.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Student\Exam_Routine_forStudent.aspx.cs">
+      <DependentUpon>Exam_Routine_forStudent.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Student\Exam_Routine_forStudent.aspx.designer.cs">
+      <DependentUpon>Exam_Routine_forStudent.aspx</DependentUpon>
     </Compile>
     <Compile Include="Student\Notice.aspx.cs">
       <DependentUpon>Notice.aspx</DependentUpon>
@@ -2718,10 +2728,6 @@
     <Content Include="PaymentDataSet.xss">
       <DependentUpon>PaymentDataSet.xsd</DependentUpon>
     </Content>
-    <Content Include="Routines\SQL_Scripts\Exam_Routine_Bangla_Save_Load_Documentation.md" />
-    <Content Include="Routines\SQL_Scripts\Implementation_Summary.md" />
-    <Content Include="Routines\SQL_Scripts\README_BANGLA.md" />
-    <Content Include="Routines\SQL_Scripts\Quick_Start_Guide.md" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

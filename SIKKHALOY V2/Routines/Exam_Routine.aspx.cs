@@ -61,12 +61,24 @@ namespace EDUCATION.COM.Routines
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            // **CRITICAL FIX: Save class values FIRST on every postback**
+            if (IsPostBack)
+            {
+                SaveSelectedClassValues();
+            }
+
             if (!IsPostBack)
             {
                 ClassColumnCount = 1;
                 RowCount = 1;
+
+                // **NEW: Set default class selection for first column**
+                // This ensures subject dropdown appears on first load
+                SelectedClassIds[1] = 0; // Will be replaced when user selects a class
+
                 LoadDefaultRoutine();
                 GenerateClassHeaders();
+
             }
             else
             {
@@ -89,10 +101,7 @@ namespace EDUCATION.COM.Routines
                     }
                 }
 
-                // Save selected class values from form
-                SaveSelectedClassValues();
-
-                // Regenerate headers and table
+                // Regenerate headers after restoring state
                 GenerateClassHeaders();
             }
 
@@ -100,32 +109,27 @@ namespace EDUCATION.COM.Routines
             ClassColumnCountLabel.Text = "বর্তমান: " + ClassColumnCount;
             RowCountLabel.Text = "বর্তমান: " + RowCount;
         }
+
         private void SaveSelectedClassValues()
         {
-            var selectedIds = new Dictionary<int, int>();
+            // Clear existing
+            SelectedClassIds.Clear();
 
-            // Debug: Log what we're checking
-            System.Diagnostics.Debug.WriteLine("=== SaveSelectedClassValues ===");
-            System.Diagnostics.Debug.WriteLine("ClassColumnCount: " + ClassColumnCount);
-
+            // Read from form data
             for (int i = 1; i <= ClassColumnCount; i++)
             {
-                string classValue = Request.Form["ClassDropdown" + i];
-                System.Diagnostics.Debug.WriteLine($"ClassDropdown{i} value: {classValue}");
+                string dropdownName = $"ClassDropdown{i}";
+                string selectedValue = Request.Form[dropdownName];
 
-                if (!string.IsNullOrEmpty(classValue))
+                if (!string.IsNullOrEmpty(selectedValue))
                 {
                     int classId;
-                    if (int.TryParse(classValue, out classId) && classId > 0)
+                    if (int.TryParse(selectedValue, out classId) && classId > 0)
                     {
-                        selectedIds[i] = classId;
-                        System.Diagnostics.Debug.WriteLine($"Added ClassDropdown{i} = {classId}");
+                        SelectedClassIds[i] = classId;
                     }
                 }
             }
-
-            System.Diagnostics.Debug.WriteLine($"Total selected classes: {selectedIds.Count}");
-            SelectedClassIds = selectedIds;
         }
 
         private void GenerateClassHeaders()
@@ -153,7 +157,7 @@ namespace EDUCATION.COM.Routines
 
                 // Get previously selected value to show class name
                 int selectedValue = 0;
-                string selectedClassName = "শ্রেণী";
+                string selectedClassName = "";
                 if (SelectedClassIds.ContainsKey(i))
                 {
                     selectedValue = SelectedClassIds[i];
@@ -168,11 +172,21 @@ namespace EDUCATION.COM.Routines
                     }
                 }
 
-                // Class name and dropdown in same line
-                headerHtml.Append("<div style='display: flex; align-items: center; justify-content: center; gap: 10px;'>");
-                headerHtml.Append("<span>" + selectedClassName + "</span>");
+                // **FIXED: Always show "শ্রেণী" label with class name**
+                headerHtml.Append("<div style='display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;'>");
+
+                // Show "শ্রেণী: ClassName" or just "শ্রেণী" if no class selected
+                if (!string.IsNullOrEmpty(selectedClassName))
+                {
+                    headerHtml.Append("<span style='font-weight: bold;'>শ্রেণী: " + selectedClassName + "</span>");
+                }
+                else
+                {
+                    headerHtml.Append("<span style='font-weight: bold;'>শ্রেণী</span>");
+                }
+
                 headerHtml.Append("<select id='ClassDropdown" + i + "' name='ClassDropdown" + i + "' class='form-control-routine class-dropdown' style='width: auto; min-width: 150px;'>");
-                headerHtml.Append("<option value='0'>নির্বাচন করুন</option>");
+                headerHtml.Append("<option value=''>নির্বাচন করুন</option>");
 
                 foreach (DataRow row in classesTable.Rows)
                 {
@@ -213,8 +227,11 @@ namespace EDUCATION.COM.Routines
         {
             DataTable dtRows = new DataTable();
             dtRows.Columns.Add("RowIndex", typeof(int));
-            dtRows.Columns.Add("ExamDate", typeof(DateTime));
+            dtRows.Columns.Add("ExamDate", typeof(string));  // **CHANGED: Use string to control format**
             dtRows.Columns.Add("DayName", typeof(string));
+            dtRows.Columns.Add("StartTime", typeof(string));
+            dtRows.Columns.Add("EndTime", typeof(string));
+            dtRows.Columns.Add("Duration", typeof(string));
             dtRows.Columns.Add("ExamTime", typeof(string));
             dtRows.Columns.Add("RoutineID", typeof(int));
 
@@ -226,8 +243,12 @@ namespace EDUCATION.COM.Routines
                 DateTime currentDate = startDate.AddDays(i);
 
                 newRow["RowIndex"] = i;
-                newRow["ExamDate"] = currentDate;
+                // **CRITICAL: Format date as dd/MM/yyyy string**
+                newRow["ExamDate"] = currentDate.ToString("dd/MM/yyyy");
                 newRow["DayName"] = GetBengaliDayName(currentDate.DayOfWeek);
+                newRow["StartTime"] = "10:00 AM";
+                newRow["EndTime"] = "01:00 PM";
+                newRow["Duration"] = "৩ ঘন্টা";
                 newRow["ExamTime"] = "10:00 AM";
                 newRow["RoutineID"] = 0;
                 dtRows.Rows.Add(newRow);
@@ -295,7 +316,7 @@ namespace EDUCATION.COM.Routines
                 }
                 classReader.Close();
 
-                // 3. Load row data (dates)
+                // 3. Load row data (dates) - FIXED: Proper date formatting
                 string rowQuery = @"
   SELECT RowIndex, ExamDate, DayName, ExamTime 
  FROM Exam_Routine_Rows 
@@ -307,39 +328,118 @@ ORDER BY RowIndex";
 
                 DataTable dtRows = new DataTable();
                 dtRows.Columns.Add("RowIndex", typeof(int));
-                dtRows.Columns.Add("ExamDate", typeof(DateTime));
+                dtRows.Columns.Add("ExamDate", typeof(string));  // **CHANGED: Use string to control format**
                 dtRows.Columns.Add("DayName", typeof(string));
-                dtRows.Columns.Add("ExamTime", typeof(string));
+                dtRows.Columns.Add("StartTime", typeof(string));  // NEW
+                dtRows.Columns.Add("EndTime", typeof(string));    // NEW
+                dtRows.Columns.Add("Duration", typeof(string));   // NEW
+                dtRows.Columns.Add("ExamTime", typeof(string));// LEGACY
                 dtRows.Columns.Add("RoutineID", typeof(int));
 
                 SqlDataReader rowReader = cmdRows.ExecuteReader();
+
+                // **CRITICAL FIX: Keep track of saved dates to fill missing ones sequentially**
+                var savedDates = new Dictionary<int, DateTime?>();
                 while (rowReader.Read())
                 {
-                    DataRow newRow = dtRows.NewRow();
-                    newRow["RowIndex"] = rowReader["RowIndex"];
+                    int rowIndex = Convert.ToInt32(rowReader["RowIndex"]);
+                    DateTime? examDate = null;
 
                     if (rowReader["ExamDate"] != DBNull.Value)
                     {
-                        newRow["ExamDate"] = Convert.ToDateTime(rowReader["ExamDate"]);
+                        examDate = Convert.ToDateTime(rowReader["ExamDate"]);
+                    }
+
+                    savedDates[rowIndex] = examDate;
+                }
+                rowReader.Close();
+                
+
+                // **NEW: Fill in missing dates sequentially from current date**
+                DateTime currentDate = DateTime.Today;
+                for (int i = 0; i < RowCount; i++)
+                {
+                    if (!savedDates.ContainsKey(i) || !savedDates[i].HasValue)
+                    {
+                        savedDates[i] = currentDate;
+                        currentDate = currentDate.AddDays(1);
                     }
                     else
                     {
-                        newRow["ExamDate"] = DBNull.Value;
+                        currentDate = savedDates[i].Value.AddDays(1);
                     }
+                }
 
-                    newRow["DayName"] = rowReader["DayName"].ToString();
-                    newRow["ExamTime"] = rowReader["ExamTime"].ToString();
-                    newRow["RoutineID"] = routineId;
+                // **NEW: Re-read and create rows with proper dates**
+                cmdRows = new SqlCommand(rowQuery, con);
+                cmdRows.Parameters.AddWithValue("@RoutineID", routineId);
+                rowReader = cmdRows.ExecuteReader();
 
-                    dtRows.Rows.Add(newRow);
+                var rowData = new Dictionary<int, Tuple<string, string>>();
+                while (rowReader.Read())
+                {
+                    int rowIndex = Convert.ToInt32(rowReader["RowIndex"]);
+                    string dayName = rowReader["DayName"].ToString();
+                    string examTime = rowReader["ExamTime"].ToString();
+                    rowData[rowIndex] = new Tuple<string, string>(dayName, examTime);
                 }
                 rowReader.Close();
 
+                // **CRITICAL: Create DataTable with all rows**
+                for (int i = 0; i < RowCount; i++)
+                {
+                    DataRow newRow = dtRows.NewRow();
+                    newRow["RowIndex"] = i;
+                    newRow["RoutineID"] = routineId;
+
+                    // Set date - **CRITICAL: Format as dd/MM/yyyy string**
+                    if (savedDates.ContainsKey(i) && savedDates[i].HasValue)
+                    {
+                        newRow["ExamDate"] = savedDates[i].Value.ToString("dd/MM/yyyy");
+                        newRow["DayName"] = GetBengaliDayName(savedDates[i].Value.DayOfWeek);
+                    }
+                    else
+                    {
+                        newRow["ExamDate"] = "";
+                        newRow["DayName"] = "";
+                    }
+
+                    // Set time
+                    if (rowData.ContainsKey(i))
+                    {
+                        newRow["DayName"] = rowData[i].Item1; // Override with saved day name
+                        newRow["ExamTime"] = rowData[i].Item2;
+
+                        // Parse ExamTime to get StartTime and EndTime
+                        string examTimeStr = rowData[i].Item2;
+                        if (!string.IsNullOrEmpty(examTimeStr) && examTimeStr.Contains("-"))
+                        {
+                            var timeParts = examTimeStr.Split(new[] { '-' }, 2);
+                            newRow["StartTime"] = timeParts[0].Trim();
+                            newRow["EndTime"] = timeParts.Length > 1 ? timeParts[1].Trim() : "01:00 PM";
+                        }
+                        else
+                        {
+                            newRow["StartTime"] = "10:00 AM";
+                            newRow["EndTime"] = "01:00 PM";
+                        }
+                    }
+                    else
+                    {
+                        newRow["ExamTime"] = "10:00 AM - 01:00 PM";
+                        newRow["StartTime"] = "10:00 AM";
+                        newRow["EndTime"] = "01:00 PM";
+                    }
+
+                    newRow["Duration"] = "৩ ঘন্টা";
+                    dtRows.Rows.Add(newRow);
+                }
+
                 // 4. Load cell data
                 string cellQuery = @"
-            SELECT RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText 
+          SELECT RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText 
          FROM Exam_Routine_CellData 
-        WHERE RoutineID = @RoutineID";
+ WHERE RoutineID = @RoutineID";
 
                 SqlCommand cmdCells = new SqlCommand(cellQuery, con);
                 cmdCells.Parameters.AddWithValue("@RoutineID", routineId);
@@ -361,8 +461,6 @@ ORDER BY RowIndex";
                         SubjectText = cellReader["SubjectText"]?.ToString() ?? "",
                         TimeText = cellReader["TimeText"]?.ToString() ?? ""
                     };
-
-                    System.Diagnostics.Debug.WriteLine($"Loaded cell data: Row={rowIndex}, Col={columnIndex}, SubjectID={LoadedCellData[cellKey].SubjectID}");
                 }
                 cellReader.Close();
 
@@ -372,8 +470,8 @@ ORDER BY RowIndex";
                 RoutineRepeater.DataBind();
 
                 // Update labels
-                ClassColumnCountLabel.Text = "বর্তমান: " + ClassColumnCount;
-                RowCountLabel.Text = "বর্তমান: " + RowCount;
+                ClassColumnCountLabel.Text = "বরতমান: " + ClassColumnCount;
+                RowCountLabel.Text = "বরতমান: " + RowCount;
 
                 // Force UpdatePanel refresh
                 MainUpdatePanel.Update();
@@ -387,10 +485,6 @@ ORDER BY RowIndex";
                 StringBuilder columnsHtml = new StringBuilder();
                 Literal classColumnsLiteral = (Literal)e.Item.FindControl("ClassColumnsLiteral");
 
-                System.Diagnostics.Debug.WriteLine($"=== ItemDataBound for row {e.Item.ItemIndex} ===");
-                System.Diagnostics.Debug.WriteLine($"ClassColumnCount: {ClassColumnCount}");
-                System.Diagnostics.Debug.WriteLine($"SelectedClassIds count: {SelectedClassIds.Count}");
-
                 // Generate columns for each class
                 for (int i = 1; i <= ClassColumnCount; i++)
                 {
@@ -400,9 +494,9 @@ ORDER BY RowIndex";
                         selectedClassId = SelectedClassIds[i];
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"Column {i}: ClassID = {selectedClassId}");
-
                     columnsHtml.Append("<td class='editable-cell'>");
+
+                    // **CRITICAL FIX: Always generate dropdown HTML, even if no previous selection**
 
                     // Check if we have loaded cell data for this cell
                     string cellKey = $"{e.Item.ItemIndex}_{i}";
@@ -453,19 +547,20 @@ ORDER BY RowIndex";
                         }
                     }
 
+                    // **ALWAYS generate dropdown - removed the if condition**
+
                     // Subject container with data attribute for print
                     columnsHtml.Append("<div class='subject-name' data-subject='" + selectedSubjectText + "'>");
 
-                    // Subject dropdown
-                    columnsHtml.Append("<select id='Subject" + i + "Dropdown_" + e.Item.ItemIndex + "' name='Subject" + i + "Dropdown_" + e.Item.ItemIndex + "' class='form-control-routine' style='margin-bottom: 5px;'>");
+                    // **CRITICAL: Subject dropdown generation**
+                    string dropdownId = $"Subject{i}Dropdown_{e.Item.ItemIndex}";
+                    columnsHtml.Append($"<select id='{dropdownId}' name='{dropdownId}' class='form-control-routine' style='margin-bottom: 5px;'>");
                     columnsHtml.Append("<option value=''>বিষয় নির্বাচন করুন</option>");
 
                     // Load subjects if class is selected
                     if (selectedClassId > 0)
                     {
                         DataTable subjectsTable = GetSubjectsForClass(selectedClassId);
-                        System.Diagnostics.Debug.WriteLine($"  Found {subjectsTable.Rows.Count} subjects for ClassID {selectedClassId}");
-
                         foreach (DataRow row in subjectsTable.Rows)
                         {
                             string selected = "";
@@ -473,7 +568,6 @@ ORDER BY RowIndex";
                             if (previouslySelectedSubjectId > 0 && previouslySelectedSubjectId.ToString() == row["SubjectID"].ToString())
                             {
                                 selected = " selected='selected'";
-                                System.Diagnostics.Debug.WriteLine($"  Pre-selecting subject: {row["SubjectName"]} (ID: {row["SubjectID"]})");
                             }
                             columnsHtml.Append("<option value='" + row["SubjectID"] + "'" + selected + ">" + row["SubjectName"] + "</option>");
                         }
@@ -490,7 +584,7 @@ ORDER BY RowIndex";
                         textboxValue = loadedCell.SubjectText ?? "";
                     }
 
-                    columnsHtml.Append("<input type='text' id='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' name='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine subject-textbox' value='" + textboxValue + "' />");
+                    columnsHtml.Append("<input type='text' id='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' name='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine subject-textbox' value='" + textboxValue + "' placeholder='অতিরিক্ত তথ্য' />");
 
                     // Display selected subject text (visible on screen & print)
                     if (!string.IsNullOrEmpty(selectedSubjectText))
@@ -500,7 +594,7 @@ ORDER BY RowIndex";
 
                     columnsHtml.Append("</div>");
 
-                    // Time with value from form or loaded data
+                    // **NEW: Add time textbox (without time picker) for manual entry**
                     string timeFieldName = "Time" + i + "TextBox_" + e.Item.ItemIndex;
                     string timeValue = Request.Form[timeFieldName] ?? "";
 
@@ -510,14 +604,16 @@ ORDER BY RowIndex";
                         timeValue = loadedCell.TimeText ?? "";
                     }
 
-                    columnsHtml.Append("<div class='subject-time'>");
-                    columnsHtml.Append("<input type='text' id='Time" + i + "TextBox_" + e.Item.ItemIndex + "' name='Time" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine time-input' value='" + timeValue + "' />");
+                    columnsHtml.Append("<div class='subject-time-manual'>");
+                    columnsHtml.Append("<input type='text' id='Time" + i + "TextBox_" + e.Item.ItemIndex + "' name='Time" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine time-manual-input' value='" + timeValue + "' placeholder='সময় (যেমন: 8:20 PM)' />");
                     columnsHtml.Append("</div>");
 
                     columnsHtml.Append("</td>");
                 }
 
-                classColumnsLiteral.Text = columnsHtml.ToString();
+                // **CRITICAL: Set the literal text**
+                string finalHtml = columnsHtml.ToString();
+                classColumnsLiteral.Text = finalHtml;
             }
         }
 
@@ -572,15 +668,15 @@ ORDER BY RowIndex";
             using (SqlConnection con = new SqlConnection(connString))
             {
                 string query = @"
-         SELECT DISTINCT s.SubjectID, s.SubjectName 
+     SELECT DISTINCT s.SubjectID, s.SubjectName 
    FROM Subject s
    INNER JOIN SubjectForGroup sfg ON s.SubjectID = sfg.SubjectID
-                 WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
-       ORDER BY s.SubjectName";
+WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
+  ORDER BY s.SubjectName";
 
                 SqlCommand cmd = new SqlCommand(query, con);
                 cmd.Parameters.AddWithValue("@ClassID", classId);
-                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 0);
 
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 da.Fill(dt);
@@ -633,7 +729,7 @@ ORDER BY RowIndex";
 
             if (string.IsNullOrEmpty(routineName))
             {
-                ScriptManager.RegisterStartupScript(this, GetType(), "alert", "alert('দয়া করে রুটিনের নাম লিখুন');", true);
+                ScriptManager.RegisterStartupScript(this, GetType(), "alert", "alert('দয়া করে রুটিনের nome লিখুন');", true);
                 return;
             }
 
@@ -685,8 +781,8 @@ SELECT SCOPE_IDENTITY();";
                     foreach (var kvp in SelectedClassIds)
                     {
                         string classInsert = @"
-   INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
-            VALUES (@RoutineID, @ColumnIndex, @ClassID)";
+INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
+  VALUES (@RoutineID, @ColumnIndex, @ClassID)";
 
                         SqlCommand cmdClass = new SqlCommand(classInsert, con, transaction);
                         cmdClass.Parameters.AddWithValue("@RoutineID", newRoutineId);
@@ -702,24 +798,38 @@ SELECT SCOPE_IDENTITY();";
                         {
                             TextBox examDateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
                             TextBox dayNameTextBox = (TextBox)item.FindControl("DayNameTextBox");
-                            TextBox examTimeTextBox = (TextBox)item.FindControl("ExamTimeTextBox");
+                            TextBox startTimeTextBox = (TextBox)item.FindControl("StartTimeTextBox");
+                            TextBox endTimeTextBox = (TextBox)item.FindControl("EndTimeTextBox");
 
-                            string examDateStr = examDateTextBox.Text;
-                            string dayName = dayNameTextBox.Text ?? "";
-                            string examTime = examTimeTextBox.Text ?? "";
+                            string examDateStr = examDateTextBox?.Text ?? "";
+                            string dayName = dayNameTextBox?.Text ?? "";
+                            string startTime = startTimeTextBox?.Text ?? "";
+                            string endTime = endTimeTextBox?.Text ?? "";
+
+                            // Combine start and end time for ExamTime field (backward compatibility)
+                            string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
+                     ? ""
+                       : $"{startTime} - {endTime}";
 
                             DateTime? examDate = null;
                             if (!string.IsNullOrEmpty(examDateStr))
                             {
-                                if (DateTime.TryParse(examDateStr, out DateTime tempDate))
+                                // **CRITICAL: Parse date from dd/MM/yyyy format**
+                                if (DateTime.TryParseExact(examDateStr, "dd/MM/yyyy",
+                                 System.Globalization.CultureInfo.InvariantCulture,
+                                      System.Globalization.DateTimeStyles.None, out DateTime tempDate))
+                                {
+                                    examDate = tempDate;
+                                }
+                                else if (DateTime.TryParse(examDateStr, out tempDate))
                                 {
                                     examDate = tempDate;
                                 }
                             }
 
                             string rowInsert = @"
-                                INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
-                                VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
+     INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
+     VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
 
                             SqlCommand cmdRow = new SqlCommand(rowInsert, con, transaction);
                             cmdRow.Parameters.AddWithValue("@RoutineID", newRoutineId);
@@ -730,7 +840,6 @@ SELECT SCOPE_IDENTITY();";
                             cmdRow.ExecuteNonQuery();
                         }
                     }
-
 
                     // 4. Insert cell data
                     foreach (RepeaterItem item in RoutineRepeater.Items)
@@ -754,8 +863,8 @@ SELECT SCOPE_IDENTITY();";
                                 }
 
                                 string cellInsert = @"
-                                    INSERT INTO Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText)
-                                    VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText)";
+    INSERT INTO Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText)
+  VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText)";
 
                                 SqlCommand cmdCell = new SqlCommand(cellInsert, con, transaction);
                                 cmdCell.Parameters.AddWithValue("@RoutineID", newRoutineId);
@@ -776,7 +885,7 @@ SELECT SCOPE_IDENTITY();";
                     RoutineNameLabel.Text = routineName;
                     LoadRoutineDropdown();
 
-                    ScriptManager.RegisterStartupScript(this, GetType(), "success", "alert('রুটিন সফলভাবে সংরক্ষিত হয়েছে');", true);
+                    ScriptManager.RegisterStartupScript(this, GetType(), "success", "alert('রুটিন সফলভাবে সংরক্ষণ করা হয়েছে');", true);
                 }
                 catch (Exception ex)
                 {
@@ -824,8 +933,8 @@ WHERE RoutineID = @RoutineID AND SchoolID = @SchoolID";
                     foreach (var kvp in SelectedClassIds)
                     {
                         string classInsert = @"
-       INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
-      VALUES (@RoutineID, @ColumnIndex, @ClassID)";
+INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
+  VALUES (@RoutineID, @ColumnIndex, @ClassID)";
 
                         SqlCommand cmdClass = new SqlCommand(classInsert, con, transaction);
                         cmdClass.Parameters.AddWithValue("@RoutineID", routineId);
@@ -846,24 +955,38 @@ WHERE RoutineID = @RoutineID AND SchoolID = @SchoolID";
                         {
                             TextBox examDateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
                             TextBox dayNameTextBox = (TextBox)item.FindControl("DayNameTextBox");
-                            TextBox examTimeTextBox = (TextBox)item.FindControl("ExamTimeTextBox");
+                            TextBox startTimeTextBox = (TextBox)item.FindControl("StartTimeTextBox");
+                            TextBox endTimeTextBox = (TextBox)item.FindControl("EndTimeTextBox");
 
-                            string examDateStr = examDateTextBox.Text;
-                            string dayName = dayNameTextBox.Text ?? "";
-                            string examTime = examTimeTextBox.Text ?? "";
+                            string examDateStr = examDateTextBox?.Text ?? "";
+                            string dayName = dayNameTextBox?.Text ?? "";
+                            string startTime = startTimeTextBox?.Text ?? "";
+                            string endTime = endTimeTextBox?.Text ?? "";
+
+                            // Combine start and end time for ExamTime field (backward compatibility)
+                            string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
+                           ? ""
+                     : $"{startTime} - {endTime}";
 
                             DateTime? examDate = null;
                             if (!string.IsNullOrEmpty(examDateStr))
                             {
-                                if (DateTime.TryParse(examDateStr, out DateTime tempDate))
+                                // **CRITICAL: Parse date from dd/MM/yyyy format**
+                                if (DateTime.TryParseExact(examDateStr, "dd/MM/yyyy",
+                                   System.Globalization.CultureInfo.InvariantCulture,
+                              System.Globalization.DateTimeStyles.None, out DateTime tempDate))
+                                {
+                                    examDate = tempDate;
+                                }
+                                else if (DateTime.TryParse(examDateStr, out tempDate))
                                 {
                                     examDate = tempDate;
                                 }
                             }
 
                             string rowInsert = @"
-                                INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
-                                VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
+           INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
+  VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
 
                             SqlCommand cmdRow = new SqlCommand(rowInsert, con, transaction);
                             cmdRow.Parameters.AddWithValue("@RoutineID", routineId);
@@ -902,17 +1025,17 @@ WHERE RoutineID = @RoutineID AND SchoolID = @SchoolID";
                                 }
 
                                 string cellInsert = @"
-           INSERT INTO Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText)
-      VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText)";
+       INSERT INTO Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText)
+  VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText)";
 
-                            SqlCommand cmdCell = new SqlCommand(cellInsert, con, transaction);
-                            cmdCell.Parameters.AddWithValue("@RoutineID", routineId);
-                            cmdCell.Parameters.AddWithValue("@RowIndex", item.ItemIndex);
-                            cmdCell.Parameters.AddWithValue("@ColumnIndex", colIndex);
-                            cmdCell.Parameters.AddWithValue("@SubjectID", subjectId > 0 ? (object)subjectId : DBNull.Value);
-                            cmdCell.Parameters.AddWithValue("@SubjectText", subjectText);
-                            cmdCell.Parameters.AddWithValue("@TimeText", timeText);
-                            cmdCell.ExecuteNonQuery();
+                                SqlCommand cmdCell = new SqlCommand(cellInsert, con, transaction);
+                                cmdCell.Parameters.AddWithValue("@RoutineID", routineId);
+                                cmdCell.Parameters.AddWithValue("@RowIndex", item.ItemIndex);
+                                cmdCell.Parameters.AddWithValue("@ColumnIndex", colIndex);
+                                cmdCell.Parameters.AddWithValue("@SubjectID", subjectId > 0 ? (object)subjectId : DBNull.Value);
+                                cmdCell.Parameters.AddWithValue("@SubjectText", subjectText);
+                                cmdCell.Parameters.AddWithValue("@TimeText", timeText);
+                                cmdCell.ExecuteNonQuery();
                             }
                         }
                     }
@@ -1004,19 +1127,90 @@ WHERE RoutineID = @RoutineID AND SchoolID = @SchoolID";
 
         protected void RefreshSubjectsButton_Click(object sender, EventArgs e)
         {
-            // Save current class selections
+            // **CRITICAL: Save class values FIRST before anything else**
             SaveSelectedClassValues();
 
-            // Re-bind the repeater which will trigger ItemDataBound
-            LoadDefaultRoutine();
+            // Save subject and time selections from form
+            var cellSelections = new Dictionary<string, CellData>();
+            for (int rowIdx = 0; rowIdx < RowCount; rowIdx++)
+            {
+                for (int colIdx = 1; colIdx <= ClassColumnCount; colIdx++)
+                {
+                    string subjectDropdownName = $"Subject{colIdx}Dropdown_{rowIdx}";
+                    string subjectTextboxName = $"Subject{colIdx}TextBox_{rowIdx}";
+                    string timeTextboxName = $"Time{colIdx}TextBox_{rowIdx}";
 
-            // Regenerate headers to show correct class names
+                    string subjectIdStr = Request.Form[subjectDropdownName];
+                    string subjectText = Request.Form[subjectTextboxName] ?? "";
+                    string timeText = Request.Form[timeTextboxName] ?? "";
+
+                    int subjectId = 0;
+                    if (!string.IsNullOrEmpty(subjectIdStr))
+                    {
+                        int.TryParse(subjectIdStr, out subjectId);
+                    }
+
+                    string cellKey = $"{rowIdx}_{colIdx}";
+                    cellSelections[cellKey] = new CellData
+                    {
+                        SubjectID = subjectId,
+                        SubjectText = subjectText,
+                        TimeText = timeText
+                    };
+                }
+            }
+
+            // Store in LoadedCellData for ItemDataBound
+            LoadedCellData = cellSelections;
+
+            // Save all current form data before re-binding
+            var currentData = new List<Dictionary<string, string>>();
+            foreach (RepeaterItem item in RoutineRepeater.Items)
+            {
+                if (item.ItemType == ListItemType.Item || item.ItemType == ListItemType.AlternatingItem)
+                {
+                    var rowData = new Dictionary<string, string>();
+
+                    // Get TextBox controls
+                    TextBox dateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
+                    TextBox dayTextBox = (TextBox)item.FindControl("DayNameTextBox");
+                    TextBox timeTextBox = (TextBox)item.FindControl("ExamTimeTextBox");
+
+                    rowData["ExamDate"] = dateTextBox != null ? dateTextBox.Text : "";
+                    rowData["DayName"] = dayTextBox != null ? dayTextBox.Text : "";
+                    rowData["ExamTime"] = timeTextBox != null ? timeTextBox.Text : "";
+                    currentData.Add(rowData);
+                }
+            }
+
+            // Create DataTable for rebinding
+            DataTable dtRows = new DataTable();
+            dtRows.Columns.Add("RowIndex", typeof(int));
+            dtRows.Columns.Add("ExamDate", typeof(string));
+            dtRows.Columns.Add("DayName", typeof(string));
+            dtRows.Columns.Add("ExamTime", typeof(string));
+
+            for (int i = 0; i < currentData.Count; i++)
+            {
+                DataRow newRow = dtRows.NewRow();
+                newRow["RowIndex"] = i;
+
+                // **CRITICAL: Keep date in dd/MM/yyyy format as string**
+                newRow["ExamDate"] = currentData[i]["ExamDate"];
+                newRow["DayName"] = currentData[i]["DayName"];
+                newRow["ExamTime"] = currentData[i]["ExamTime"];
+                dtRows.Rows.Add(newRow);
+            }
+
+            // **CRITICAL: Regenerate headers BEFORE binding**
             GenerateClassHeaders();
 
-            // Force the UpdatePanel to refresh its content
-            MainUpdatePanel.Update();
+            // **CRITICAL: Rebind repeater to trigger ItemDataBound**
+            RoutineRepeater.DataSource = dtRows;
+            RoutineRepeater.DataBind();
 
-            ScriptManager.RegisterStartupScript(this, GetType(), "refreshSuccess", "alert('বিষয় তালিকা রিফ্রেশ করা হয়েছে।');", true);
+            // Force UpdatePanel refresh
+            MainUpdatePanel.Update();
         }
     }
 }
