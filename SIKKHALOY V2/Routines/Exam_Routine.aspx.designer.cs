@@ -150,6 +150,15 @@ namespace EDUCATION.COM.Routines
         protected global::System.Web.UI.WebControls.DropDownList RoutineListDropDown;
 
         /// <summary>
+        /// DebugLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label DebugLabel;
+
+        /// <summary>
         /// ClassColumnCountHF control.
         /// </summary>
         /// <remarks>
@@ -220,14 +229,5 @@ namespace EDUCATION.COM.Routines
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource RoutineListSQL;
-
-        /// <summary>
-        /// DebugLabel control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Label DebugLabel;
     }
 }

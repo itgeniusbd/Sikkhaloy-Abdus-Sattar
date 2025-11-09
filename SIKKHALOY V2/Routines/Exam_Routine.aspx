@@ -178,16 +178,25 @@ $(document).ready(function() {
   InitializeTimeInputs();
  
    // Force refresh on UpdatePanel postback
-      if (typeof Sys !== 'undefined' && typeof Sys.WebForms !== 'undefined') {
+if (typeof Sys !== 'undefined' && typeof Sys.WebForms !== 'undefined') {
 Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function() {
    setTimeout(function() {
        // **CRITICAL: Fix date formats after postback**
      FixAllDateFormats();
    InitializeDatepickers();
    InitializeTimeInputs();
+     UpdatePrintDataAttributes();
      }, 300);
        });
   }
+
+    // **NEW: Update print data attributes on page load**
+    UpdatePrintDataAttributes();
+
+    // **NEW: Update data attributes when any input changes**
+$(document).on('change', 'input, select', function() {
+        UpdatePrintDataAttributes();
+    });
 });
       })();
 
@@ -269,6 +278,7 @@ dateObj = new Date(year, part2 - 1, part1);
    }
     });
     }
+
 
 // Helper function to pad single digits with zero
     function padZero(num) {
@@ -442,6 +452,7 @@ function calculateDurationForRow(rowIndex) {
     // Find inputs using ID ends with pattern (works with master page prefixes)
  var $startInput = $("input[id$='StartTimeTextBox_" + rowIndex + "']");
 var $endInput = $("input[id$='EndTimeTextBox_" + rowIndex + "']");
+
   var $durationLabel = $("#DurationLabel_" + rowIndex);
      
   if ($startInput.length === 0 || $endInput.length === 0) {
@@ -487,300 +498,92 @@ var startMoment = parseTime(startTime);
    }
 
 
-// Print routine function
-    function printRoutine() {
-        // Get the header text
-        var routineTitle = $('#<%= RoutineNameLabel.ClientID %>').text().trim();
-        if (!routineTitle) {
-      routineTitle = "পরীক্ষা রুটিন";
-     }
 
-        // Create a new table for printing
-        var printTable = $('<table class="routine-table-print"></table>');
-        var tableHeader = $('<thead></thead>');
-        var tableBody = $('<tbody></tbody>');
+    // **NEW: Update data attributes for printing**
+    function UpdatePrintDataAttributes() {
+   console.log('Updating print data attributes');
+   
+        // Update each row
+        $('.routine-table > tbody > tr').each(function() {
+            var $row = $(this);
 
-        // Build the header for the print table
-   var headerRow = $('<tr></tr>');
-        $('.routine-table > thead > tr > th').each(function(index) {
-            var th = $(this);
-         var th_text = "";
+      // Date cell
+       var $dateCell = $row.find('.date-cell, td:nth-child(1)');
+       var dateValue = $dateCell.find('input').val() || '';
+      $dateCell.attr('data-date', dateValue);
 
-       if (index <= 2) { // For Date, Day, Time columns
-      th_text = th.text();
-      } else { // For class columns
-     // Find the span inside the header div
-       var classSpan = th.find('span');
-        if (classSpan.length > 0) {
-       th_text = classSpan.text();
-    } else {
-       th_text = "শ্রেণী";
-        }
-    }
-         headerRow.append('<th>' + th_text + '</th>');
-        });
-        tableHeader.append(headerRow);
+            // Day cell
+            var $dayCell = $row.find('.day-cell, td:nth-child(2)');
+            var dayValue = $dayCell.find('input').val() || '';
+     $dayCell.attr('data-day', dayValue);
 
-        // Iterate over each row of the original table body
-   $('.routine-table > tbody > tr').each(function() {
-var originalRow = $(this);
-    var newRow = $('<tr></tr>');
-
-          // 1. Date cell
-          var dateVal = originalRow.find('input[id*="ExamDateTextBox"]').val();
-            newRow.append('<td>' + (dateVal || '') + '</td>');
-
-  // 2. Day cell
-  var dayVal = originalRow.find('input[id*="DayNameTextBox"]').val();
- newRow.append('<td>' + (dayVal || '') + '</td>');
-
-   // 3. Time cell - FIXED: Get StartTime and EndTime
-        var startTimeVal = originalRow.find('input[id*="StartTimeTextBox"]').val();
-          var endTimeVal = originalRow.find('input[id*="EndTimeTextBox"]').val();
-     var durationVal = originalRow.find('span[id*="DurationLabel"]').text();
-        
+   // Time cell - **FIXED: Proper formatting without extra hyphen**
+       var $timeCell = $row.find('.time-cell, td:nth-child(3)');
+      var startTime = $timeCell.find('input[id*="StartTimeTextBox"]').val() || '';
+       var endTime = $timeCell.find('input[id*="EndTimeTextBox"]').val() || '';
+   var duration = $timeCell.find('span[id*="DurationLabel"]').text() || '';
      var timeDisplay = '';
-        if (startTimeVal && endTimeVal) {
-     timeDisplay = startTimeVal + ' - ' + endTimeVal;
-      if (durationVal) {
-         timeDisplay += '<br><small style="color: #d32f2f;">(' + durationVal + ')</small>';
-         }
-         }
-         newRow.append('<td>' + timeDisplay + '</td>');
-
-       // 4. Subject cells
-            originalRow.find('.editable-cell').each(function() {
-  var cell = $(this);
-     var cellContent = '';
-
-     // Find all dropdowns and text inputs in the cell, in order
-   cell.find('select, input[type="text"]').each(function() {
-   var element = $(this);
-        var value = '';
-
-         if (element.is('select')) {
-   // It's a dropdown
-if (element.val() && element.val() !== '0' && element.find('option:selected').text() !== 'বিষয় নির্বাচন করুন') {
-     value = element.find('option:selected').text();
-}
-  } else if (element.hasClass('subject-textbox')) {
-       // It's a subject text input
-  value = element.val();
-         } else if (element.hasClass('time-manual-input')) {
-        // It's a manual time input in subject cell
-          var timeVal = element.val();
-    if (timeVal) {
- if (cellContent) {
-        cellContent += '<br/>';
-   }
-    cellContent += '<small style="color: #d32f2f; font-weight: bold;">(' + timeVal + ')</small>';
-         return; // Skip adding to value
-    }
-    }
-
-       if (value) {
-       if (cellContent) {
-  // Add a line break if content already exists
-     cellContent += '<br/>';
- }
- cellContent += value;
-       }
-   });
-
-       newRow.append('<td>' + cellContent + '</td>');
-        });
-
-  tableBody.append(newRow);
-        });
-
-        printTable.append(tableHeader);
-        printTable.append(tableBody);
-
-        // Populate the printable area
-        var printableArea = $('#printableArea');
-        printableArea.empty(); // Clear previous content
+            
+            if (startTime && endTime) {
+         // **Format: "10:00 AM - 1:00 PM" on first line**
+      timeDisplay = startTime + ' - ' + endTime;
       
-        var schoolName = "Imperial Ideal School & College"; // You can make this dynamic if needed
-        var headerContent = '<div style="text-align:center; margin-bottom: 20px;">' +
-        '<h2>' + schoolName + '</h2>' +
-   '<h4>' + routineTitle + '</h4>' +
-'</div>';
+     // **Add duration on second line without hyphen**
+    if (duration) {
+          timeDisplay += '\n(' + duration + ')';
+          }
+          }
+   
+       $timeCell.attr('data-time', timeDisplay);
 
-      printableArea.append(headerContent);
-        printableArea.append(printTable);
+         // Subject cells
+            $row.find('.editable-cell').each(function() {
+          var $cell = $(this);
+      var cellContent = '';
 
-   // --- New printing logic using an iframe ---
-        var printFrame = document.createElement('iframe');
-        printFrame.style.position = 'fixed';
-  printFrame.style.top = '-1000px';
-        document.body.appendChild(printFrame);
+     // Get selected subject from dropdown
+       var $dropdown = $cell.find('select');
+ if ($dropdown.length > 0 && $dropdown.val() && $dropdown.val() !== '0') {
+    var selectedText = $dropdown.find('option:selected').text();
+            if (selectedText && selectedText !== 'বিষয় নির্বাচন করুন') {
+      cellContent = selectedText;
+             }
+   }
 
-        var frameDoc = printFrame.contentWindow.document;
-   var frameHead = frameDoc.getElementsByTagName('head')[0];
-        var frameBody = frameDoc.getElementsByTagName('body')[0];
+ // Get subject textbox value
+                var $textbox = $cell.find('input.subject-textbox');
+    if ($textbox.length > 0 && $textbox.val()) {
+      if (cellContent) cellContent += '\n';
+     cellContent += $textbox.val();
+ }
 
-        // Copy stylesheets from the main document to the iframe
-    $('link[rel="stylesheet"]').each(function () {
- var newLink = frameDoc.createElement('link');
-    newLink.rel = 'stylesheet';
-      newLink.type = 'text/css';
-   newLink.href = this.href;
-         frameHead.appendChild(newLink);
+    // Get time manual input
+         var $timeInput = $cell.find('input.time-manual-input');
+     if ($timeInput.length > 0 && $timeInput.val()) {
+          if (cellContent) cellContent += '\n';
+         cellContent += '(' + $timeInput.val() + ')';
+            }
+
+  $cell.attr('data-print-value', cellContent);
+      });
         });
 
-    // Add inline styles for printing to ensure content is visible
-    var printStyle = frameDoc.createElement('style');
-        printStyle.innerHTML = `
- @media print {
-   body, html {
-   width: 100%;
-   margin: 0;
-     padding: 0;
-          font-weight: bold;
-  color: #000;
-   }
-  
-     .routine-table-print {
-      width: 100%;
-     border-collapse: collapse;
-     font-size: 13px !important;
-        font-weight: bold !important;
-            color: #000 !important;
-     border: 2px solid #000 !important;
-      }
-        
- .routine-table-print th, .routine-table-print td {
-         border: 1px solid #000 !important;
-         padding: 6px 4px !important;
-    text-align: center;
-  vertical-align: middle;
-    font-weight: bold !important;
-        color: #000 !important;
-       font-size: 13px !important;
-       line-height: 1.2;
+      console.log('Print data attributes updated');
     }
 
-        .routine-table-print thead th {
-    background: #d0d0d0 !important;
-          font-size: 14px !important;
-       font-weight: bold !important;
-  color: #000 !important;
-   padding: 8px 5px !important;
-   -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-        }
+    // Print routine function - **SIMPLIFIED: Direct window.print()**
+    function printRoutine() {
+      console.log('Print function called - using direct window.print()');
+ 
+     // **Update data attributes before printing**
+        UpdatePrintDataAttributes();
         
-     /* First 3 columns (Date, Day, Time) */
-   .routine-table-print td:nth-child(1),
-        .routine-table-print td:nth-child(2),
-   .routine-table-print td:nth-child(3),
-        .routine-table-print th:nth-child(1),
-        .routine-table-print th:nth-child(2),
-        .routine-table-print th:nth-child(3) {
-         white-space: nowrap;
-     font-size: 13px !important;
-     font-weight: bold !important;
-            color: #000 !important;
-        }
-        
- /* Date column */
-   .routine-table-print td:nth-child(1),
-    .routine-table-print th:nth-child(1) {
-      width: 85px;
-   min-width: 85px;
-        }
-        
-      /* Day column */
-     .routine-table-print td:nth-child(2),
-    .routine-table-print th:nth-child(2) {
-            width: 75px;
-       min-width: 75px;
-     }
-        
-    /* Time column */
-        .routine-table-print td:nth-child(3),
-  .routine-table-print th:nth-child(3) {
-            width: 100px;
-            min-width: 100px;
-    }
-     
- /* Subject columns */
-        .routine-table-print td:nth-child(n+4),
-        .routine-table-print th:nth-child(n+4) {
-    word-wrap: break-word;
-      font-size: 12px !important;
-            font-weight: bold !important;
-   color: #000 !important;
-  line-height: 1.2;
-     padding: 5px 3px !important;
-   }
-      
-        small {
-  font-size: 10px !important;
-       color: #000 !important;
-  font-weight: bold !important;
-         display: block;
-  margin-top: 2px;
-        }
-        
-     /* Scale down for many columns */
-   @page {
-     size: A4 landscape;
-            margin: 5mm;
-        }
-        
- /* If more than 5 columns, reduce font slightly */
-        .routine-table-print.many-columns {
-         font-size: 12px !important;
-    }
-     
-        .routine-table-print.many-columns td:nth-child(n+4),
-        .routine-table-print.many-columns th:nth-child(n+4) {
-          font-size: 11px !important;
-          padding: 4px 3px !important;
-   }
-        
-        .routine-table-print.many-columns td:nth-child(1),
-   .routine-table-print.many-columns td:nth-child(2),
-        .routine-table-print.many-columns td:nth-child(3) {
-            font-size: 12px !important;
-    }
-
-    .routine-table-print.many-columns th {
-            font-size: 13px !important;
-        }
-
-        /* Ensure all text is bold and black */
-        * {
-         font-weight: bold !important;
-  color: #000 !important;
-        }
+ // **Simply call window.print() - CSS will handle everything**
+      setTimeout(function() {
+    window.print();
+        }, 100);
  }
-    `;
-   frameHead.appendChild(printStyle);
 
-        // Set the content of the iframe's body
-     frameBody.innerHTML = printableArea.html();
-        
-   // Add class if many columns
-     var tableInFrame = frameDoc.querySelector('.routine-table-print');
-        if (tableInFrame) {
-     var columnCount = tableInFrame.querySelector('thead tr').children.length;
-         if (columnCount > 5) {
-     tableInFrame.classList.add('many-columns');
-       }
-        }
-
-        // Wait for content and styles to load, then print
-        setTimeout(function () {
-            printFrame.contentWindow.focus();
-   printFrame.contentWindow.print();
-        // Remove the iframe after a delay
-       setTimeout(function () {
-        document.body.removeChild(printFrame);
-            }, 1000);
-  }, 500);
- }
     // Parse time string to Date object - GLOBAL SCOPE
     function parseTime(timeStr) {
     if (!timeStr) return null;

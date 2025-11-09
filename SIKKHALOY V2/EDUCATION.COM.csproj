@@ -663,7 +663,6 @@
     </Content>
     <Content Include="Routines\CSS\Exam_Routine.css" />
     <Content Include="Routines\Exam_Routine.aspx" />
-    <Content Include="Routines\Exam_Routine_Bangla.aspx" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_Bangla_Table.sql" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_SavedData_Tables.sql" />
     <Content Include="Student\Exam_Routine_forStudent.aspx" />
