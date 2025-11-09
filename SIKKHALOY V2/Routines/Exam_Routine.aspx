@@ -61,24 +61,29 @@
  <span class="control-label">রুটিন নাম:</span>
  <asp:TextBox ID="RoutineNameTextBox" runat="server" CssClass="form-control" Width="220" placeholder="রুটিনের নাম লিখুন"></asp:TextBox>
  </div>
+
  <div style="display:flex; gap:8px; align-items:center;">
  <span class="control-label">রুটিন লিস্ট:</span>
- <asp:DropDownList ID="RoutineListDropDown" runat="server" CssClass="form-control" DataSourceID="RoutineListSQL" DataTextField="RoutineName" DataValueField="RoutineID" AppendDataBoundItems="true">
- <asp:ListItem Value="0">[ নির্বাচন করুন ]</asp:ListItem>
+ <asp:DropDownList ID="RoutineListDropDown" runat="server" CssClass="form-control" 
+     DataTextField="DisplayText" DataValueField="RoutineID" 
+     AppendDataBoundItems="true">
+     <asp:ListItem Value="0">[ নির্বাচন করুন ]</asp:ListItem>
  </asp:DropDownList>
+ <!-- Debug label for testing -->
+ <asp:Label ID="DebugLabel" runat="server" CssClass="text-muted ml-2"></asp:Label>
  </div>
  </div>
     
      <!-- Hidden fields to track counts -->
    <asp:HiddenField ID="ClassColumnCountHF" runat="server" Value="1" />
-       <asp:HiddenField ID="RowCountHF" runat="server" Value="1" />
-       <asp:HiddenField ID="CellDataJsonHF" runat="server" />
+   <asp:HiddenField ID="RowCountHF" runat="server" Value="1" />
+     <asp:HiddenField ID="CellDataJsonHF" runat="server" />
      <asp:HiddenField ID="LoadedRoutineIdHF" runat="server" Value="0" />
   
       <!-- Exam Routine Table -->
          <table class="routine-table" id="routineTable">
    <thead>
-     <tr>
+   <tr>
     <th>তারিখ</th>
     <th>বার</th>
     <th>সময়</th>
@@ -97,7 +102,7 @@
   </td>
    <td class="time-cell">
       <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
-   <asp:TextBox ID="StartTimeTextBox" runat="server" 
+<asp:TextBox ID="StartTimeTextBox" runat="server" 
      CssClass="form-control-routine time-input start-time-input" 
 Text="10:00 AM"
    placeholder="শুরু"
@@ -118,7 +123,7 @@ Text="10:00 AM"
     </tr>
     </ItemTemplate>
  </asp:Repeater>
-       </tbody>
+ </tbody>
 </table>
      
    <!-- SqlDataSource for Classes -->
@@ -132,12 +137,12 @@ Text="10:00 AM"
    
    <!-- SqlDataSource for Routine List -->
         <asp:SqlDataSource ID="RoutineListSQL" runat="server" 
-       ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" 
-            SelectCommand="SELECT RoutineID, RoutineName, CONVERT(VARCHAR, CreatedDate, 106) AS DisplayDate FROM Exam_Routine_SavedData WHERE SchoolID = @SchoolID AND IsActive = 1 ORDER BY CreatedDate DESC">
+    ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" 
+     SelectCommand="SELECT RoutineID, RoutineName + ' (' + CONVERT(VARCHAR, CreatedDate, 106) + ')' AS DisplayText, CreatedDate FROM Exam_Routine_SavedData WHERE SchoolID = @SchoolID AND IsActive = 1 ORDER BY CreatedDate DESC">
  <SelectParameters>
         <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
       </SelectParameters>
-        </asp:SqlDataSource>
+    </asp:SqlDataSource>
  </div>
  </ContentTemplate>
  </asp:UpdatePanel>
@@ -408,7 +413,7 @@ if (!inputId) {
   
   // Calculate duration when a time input changes
    function calculateDuration($input) {
-// Find the row index from the input ID
+    // Find the row index from the input ID
     var inputId = $input.attr('id');
    if (!inputId) return;
    

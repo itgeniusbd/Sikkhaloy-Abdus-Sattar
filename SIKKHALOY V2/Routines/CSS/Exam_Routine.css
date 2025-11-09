@@ -7,9 +7,16 @@
 }
 
 /* Hide ALL header fields */
-.routine-header,
+.routine-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
 .routine-date,
-.routine-title,
 .routine-subtitle,
 .exam-class-info,
 .instruction-text,
@@ -27,6 +34,19 @@
     margin: 10px 0 20px 0;
     padding: 10px;
     border-bottom: 2px solid #000;
+}
+
+.routine-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.class-info {
+    font-size: 15px;
+    color: #555;
+    font-weight: 600;
 }
 
 /* Table Styling */
@@ -94,8 +114,11 @@ text-align: center;
 .routine-table th:nth-child(3),
 .routine-table td:nth-child(3),
 .time-cell {
-    width: 150px;
-    min-width: 150px;
+    width: 180px;
+    min-width: 180px;
+    white-space: nowrap;
+    font-size: 13px;
+    padding: 8px 6px;
 }
 
 .routine-table th:nth-child(n+4),
@@ -362,66 +385,107 @@ font-weight: bold;
 @media print {
     @page {
         size: A4 landscape;
-        margin: 5mm;
+        margin: 3mm 4mm;
     }
 
     body {
         margin: 0;
         padding: 0;
-        color: #000 !important;
-     -webkit-print-color-adjust: exact;
+  color: #000 !important;
+        -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-  }
+    }
 
-    .print-hide,
-.control-panel,
+.print-hide,
+    .control-panel,
     .form-inline,
     button,
     .btn,
-    select.class-dropdown {
+    select.class-dropdown,
+    .print-button,
+.btn-primary {
         display: none !important;
     }
 
-    .exam-routine-container {
-        padding: 0;
+    .exam-routine-container,
+    .routine-container {
+    padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .routine-section {
+        margin-bottom: 0 !important;
+     padding-bottom: 0 !important;
+      border-bottom: none !important;
+        page-break-after: always;
+    }
+
+    .routine-section:last-child {
+        page-break-after: auto;
+    }
+
+/* SHOW routine header in print */
+    .routine-header {
+        display: block !important;
+    text-align: center;
+    margin-bottom: 8px !important;
+padding: 0 !important;
+  background: transparent !important;
+    }
+
+    .routine-title {
+        font-size: 18px !important;
+        font-weight: bold !important;
+  color: #000 !important;
+        margin-bottom: 3px !important;
+    }
+
+    .class-info {
+    font-size: 13px !important;
+        color: #000 !important;
+  font-weight: bold !important;
     }
 
     .routine-name-display {
-   font-size: 18px;
-  font-weight: bold;
+        font-size: 18px;
+font-weight: bold;
         color: #000 !important;
-        margin: 3px 0 8px 0;
-        padding: 4px;
-     text-align: center;
+  margin: 2px 0 5px 0 !important;
+        padding: 3px !important;
+        text-align: center;
     }
 
     .routine-table {
-        page-break-inside: avoid;
- font-size: 13px !important;
-        font-weight: bold;
-        color: #000 !important;
-        border: 2px solid #000 !important;
-        width: 100%;
+      page-break-inside: avoid;
+        font-size: 12px !important;
+   font-weight: bold;
+    color: #000 !important;
+  border: 2px solid #000 !important;
+     width: 100%;
+        margin: 0 !important;
+        table-layout: fixed;
     }
 
-    .routine-table th,
+  .routine-table th,
     .routine-table td {
-    padding: 6px 4px !important;
-        font-size: 13px !important;
- font-weight: bold !important;
-    color: #000 !important;
-     border: 1px solid #000 !important;
-        line-height: 1.2;
-        vertical-align: middle;
+    padding: 5px 3px !important;
+        font-size: 12px !important;
+        font-weight: bold !important;
+        color: #000 !important;
+        border: 1px solid #000 !important;
+        line-height: 1.2 !important;
+     vertical-align: middle;
+      overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Make header row darker and readable */
- .routine-table thead th {
+    .routine-table thead th {
         background: #d0d0d0 !important;
-        font-size: 14px !important;
+        font-size: 13px !important;
         font-weight: bold !important;
         color: #000 !important;
-        padding: 8px 5px !important;
+        padding: 6px 4px !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -430,146 +494,167 @@ font-weight: bold;
     .routine-table th:nth-child(1),
     .routine-table td:nth-child(1),
     .date-cell {
-      font-weight: bold !important;
-        font-size: 13px !important;
+        font-weight: bold !important;
+    font-size: 12px !important;
         color: #000 !important;
-        min-width: 85px;
-   width: 85px;
+        min-width: 80px;
+   width: 80px;
     }
 
     /* Day column - bold and readable */
     .routine-table th:nth-child(2),
     .routine-table td:nth-child(2),
     .day-cell {
-  font-weight: bold !important;
-        font-size: 13px !important;
-        color: #000 !important;
-     min-width: 75px;
-        width: 75px;
+ font-weight: bold !important;
+        font-size: 12px !important;
+  color: #000 !important;
+        min-width: 70px;
+        width: 70px;
     }
 
-    /* Time column - bold and readable */
+    /* Time column - FIXED: Increased width to prevent overflow */
     .routine-table th:nth-child(3),
     .routine-table td:nth-child(3),
-  .time-cell {
-font-weight: bold !important;
-   font-size: 12px !important;
+    .time-cell {
+  font-weight: bold !important;
+        font-size: 11px !important;
         color: #000 !important;
-    min-width: 100px;
-        width: 100px;
+        min-width: 110px;
+   width: 110px;
+        white-space: nowrap !important;
+     line-height: 1.1 !important;
+     padding: 4px 3px !important;
+        overflow: visible !important;
     }
 
     /* Subject columns - optimized */
     .routine-table th:nth-child(n+4),
     .routine-table td:nth-child(n+4) {
-        font-size: 12px !important;
+      font-size: 11px !important;
         font-weight: bold !important;
         color: #000 !important;
-        padding: 5px 3px !important;
-    }
+   padding: 4px 3px !important;
+        line-height: 1.2 !important;
+}
 
     /* Show ONLY selected subject name - centered */
     .subject-name {
-   font-size: 13px !important;
+        font-size: 12px !important;
         font-weight: bold !important;
-    text-align: center;
-        color: #000 !important;
-        padding: 2px;
+        text-align: center;
+ color: #000 !important;
+  padding: 2px !important;
+        line-height: 1.2 !important;
     }
 
     /* **CRITICAL: Hide all dropdowns and inputs in print** */
     .subject-name select,
     .subject-name input.subject-textbox {
- display: none !important;
+      display: none !important;
     }
 
     /* **CRITICAL: Show the display text in print** */
     .subject-display-text {
         display: block !important;
-   font-weight: bold !important;
-        font-size: 13px !important;
+        font-weight: bold !important;
+        font-size: 12px !important;
         color: #000 !important;
     }
 
     /* Show subject text from data attribute if no display text */
-  .subject-name:not(:has(.subject-display-text))::before {
+    .subject-name:not(:has(.subject-display-text))::before {
         content: attr(data-subject);
-      display: block;
-     text-align: center;
-        font-weight: bold !important;
+        display: block;
+        text-align: center;
+font-weight: bold !important;
         color: #000 !important;
-        font-size: 13px !important;
+        font-size: 12px !important;
     }
 
     /* Subject time manual input - show in print */
     .subject-time-manual,
- .subject-time-manual input {
-        font-size: 11px !important;
-   font-weight: bold !important;
-  color: #000 !important;
+    .subject-time-manual input {
+   font-size: 10px !important;
+      font-weight: bold !important;
+        color: #000 !important;
    border: none !important;
-  background: transparent !important;
-   text-align: center;
-        margin-top: 2px;
+ background: transparent !important;
+        text-align: center;
+        margin-top: 2px !important;
+      line-height: 1 !important;
+        padding: 0 !important;
     }
 
-    /* Make sure inputs show their values as text - BIGGER */
-  input.datepicker-input,
+    /* Make sure inputs show their values as text */
+    input.datepicker-input,
     input.day-input,
     input.time-input,
     input.start-time-input,
     input.end-time-input {
-    border: none !important;
-    background: transparent !important;
-        font-weight: bold !important;
-   font-size: 13px !important;
-color: #000 !important;
+        border: none !important;
+        background: transparent !important;
+ font-weight: bold !important;
+        font-size: 12px !important;
+  color: #000 !important;
+     line-height: 1.2 !important;
+        padding: 0 !important;
     }
 
     /* Duration display */
     .duration-display,
     .duration-display span {
-   font-weight: bold !important;
+        font-weight: bold !important;
      font-size: 10px !important;
         color: #000 !important;
-     margin-top: 1px;
+      margin-top: 0px !important;
+        line-height: 1 !important;
     }
 
     /* Remove placeholder text */
     input::placeholder {
         color: transparent !important;
-    }
+  }
 
     /* Make date and day columns bold and dark */
     .date-cell,
-.day-cell,
+    .day-cell,
     .time-cell {
         font-weight: bold !important;
-   font-size: 13px !important;
-        color: #000 !important;
+        font-size: 12px !important;
+ color: #000 !important;
     }
 
     /* Ensure all text is black and bold in print */
     * {
-        color: #000 !important;
+color: #000 !important;
         font-weight: bold !important;
     }
 
     /* Remove any borders from inputs inside table */
     .routine-table input {
-        border: none !important;
-        background: transparent !important;
+  border: none !important;
+  background: transparent !important;
         padding: 0 !important;
     }
 
     /* Reduce spacing to fit more rows */
     .routine-table tbody tr {
- height: auto;
+     height: auto;
+   page-break-inside: avoid;
     }
 
     /* Compress time cell */
     .time-cell > div {
-        margin-bottom: 1px !important;
+   margin-bottom: 0px !important;
+        line-height: 1 !important;
+    }
+
+    /* Compress all inner divs */
+    .routine-table td > div,
+    .routine-table td > span {
+ margin: 0 !important;
+   padding: 0 !important;
+        line-height: 1.2 !important;
     }
 }
 
@@ -619,5 +704,7 @@ td.editable-cell .subject-name input.subject-textbox,
     font-weight: bold;
     color: #000;
 }
+
+
 
 

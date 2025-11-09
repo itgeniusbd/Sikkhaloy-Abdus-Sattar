@@ -79,6 +79,8 @@ namespace EDUCATION.COM.Routines
                 LoadDefaultRoutine();
                 GenerateClassHeaders();
 
+                // **CRITICAL: Populate routine dropdown on first load**
+                BindRoutineDropdown();
             }
             else
             {
@@ -193,7 +195,8 @@ namespace EDUCATION.COM.Routines
                     string selected = "";
                     if (selectedValue > 0 && selectedValue.ToString() == row["ClassID"].ToString())
                     {
-                        selected = " selected='selected'";
+                        selected = " selected='selected'"
+;
                     }
                     headerHtml.Append("<option value='" + row["ClassID"] + "'" + selected + ">" + row["Class"] + "</option>");
                 }
@@ -293,6 +296,9 @@ namespace EDUCATION.COM.Routines
                     string routineName = reader["RoutineName"].ToString();
                     RoutineNameLabel.Text = routineName;
                     RoutineNameTextBox.Text = routineName;
+
+                    // Note: EducationYearID is stored in DB but we don't need to show it
+                    // It will be used for filtering on student side
                 }
                 reader.Close();
 
@@ -353,7 +359,7 @@ ORDER BY RowIndex";
                     savedDates[rowIndex] = examDate;
                 }
                 rowReader.Close();
-                
+
 
                 // **NEW: Fill in missing dates sequentially from current date**
                 DateTime currentDate = DateTime.Today;
@@ -468,12 +474,6 @@ ORDER BY RowIndex";
                 GenerateClassHeaders();
                 RoutineRepeater.DataSource = dtRows;
                 RoutineRepeater.DataBind();
-
-                // Update labels
-                ClassColumnCountLabel.Text = "বরতমান: " + ClassColumnCount;
-                RowCountLabel.Text = "বরতমান: " + RowCount;
-
-                // Force UpdatePanel refresh
                 MainUpdatePanel.Update();
             }
         }
@@ -692,10 +692,12 @@ WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
             using (SqlConnection con = new SqlConnection(connString))
             {
                 string query = @"
- SELECT RoutineID, RoutineName 
-          FROM Exam_Routine_SavedData 
-           WHERE SchoolID = @SchoolID 
-    ORDER BY RoutineName";
+SELECT RoutineID, 
+       RoutineName + ' (' + CONVERT(VARCHAR, CreatedDate, 106) + ')' AS DisplayText,
+       CreatedDate
+FROM Exam_Routine_SavedData 
+WHERE SchoolID = @SchoolID AND IsActive = 1
+ORDER BY CreatedDate DESC";
 
                 SqlCommand cmd = new SqlCommand(query, con);
                 cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
@@ -704,13 +706,69 @@ WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                RoutineListDropDown.DataSourceID = null; // Clear DataSourceID
+                // **CRITICAL: Clear items first to prevent duplicates**
+                RoutineListDropDown.Items.Clear();
+
+                // Add default item
+                RoutineListDropDown.Items.Add(new ListItem("[ নির্বাচন করুন ]", "0"));
+
+                // **CRITICAL: Use DataBind() properly**
                 RoutineListDropDown.DataSource = dt;
-                RoutineListDropDown.DataTextField = "RoutineName";
+                RoutineListDropDown.DataTextField = "DisplayText";
                 RoutineListDropDown.DataValueField = "RoutineID";
                 RoutineListDropDown.DataBind();
+            }
+        }
 
-                RoutineListDropDown.Items.Insert(0, new ListItem("-- নতুন রুটিন --", "0"));
+        // **NEW: Manual binding method for UpdatePanel compatibility**
+        private void BindRoutineDropdown()
+        {
+            string connString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+
+            using (SqlConnection con = new SqlConnection(connString))
+            {
+                string query = @"
+SELECT RoutineID, 
+ RoutineName + ' (' + CONVERT(VARCHAR, CreatedDate, 106) + ')' AS DisplayText,
+       CreatedDate
+FROM Exam_Routine_SavedData 
+WHERE SchoolID = @SchoolID AND IsActive = 1
+ORDER BY CreatedDate DESC";
+
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+
+                con.Open();
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                // Clear existing items
+                RoutineListDropDown.Items.Clear();
+
+                // Add default item
+                RoutineListDropDown.Items.Add(new ListItem("[ নির্বাচন করুন ]", "0"));
+
+                // **Store the currently selected routine ID**
+                string currentSelection = LoadedRoutineIdHF.Value;
+
+                // Manually add items from reader
+                while (reader.Read())
+                {
+                    string routineId = reader["RoutineID"].ToString();
+                    string displayText = reader["DisplayText"].ToString();
+
+                    ListItem item = new ListItem(displayText, routineId);
+
+                    // **Re-select the current routine after binding**
+                    if (routineId == currentSelection)
+                    {
+                        item.Selected = true;
+                    }
+
+                    RoutineListDropDown.Items.Add(item);
+                }
+
+                reader.Close();
+                con.Close();
             }
         }
 
@@ -719,7 +777,14 @@ WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
             int routineId;
             if (int.TryParse(RoutineListDropDown.SelectedValue, out routineId) && routineId > 0)
             {
+                // **CRITICAL: Clear previous data BEFORE loading new routine**
+                LoadedCellData.Clear();
+
+                // Load the new routine
                 LoadRoutineFromDatabase(routineId);
+
+                // **CRITICAL: Force full UI refresh**
+                MainUpdatePanel.Update();
             }
         }
 
@@ -727,9 +792,26 @@ WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
         {
             string routineName = RoutineNameTextBox.Text.Trim();
 
+            // Validate routine name
             if (string.IsNullOrEmpty(routineName))
             {
-                ScriptManager.RegisterStartupScript(this, GetType(), "alert", "alert('দয়া করে রুটিনের nome লিখুন');", true);
+                // **DIRECT alert - no setTimeout needed for validation**
+                ScriptManager.RegisterStartupScript(this, GetType(), "alert",
+"alert('দয়া করে রুটিনের নাম লিখুন');", true);
+                return;
+            }
+
+            // **GET Education Year from Session (Current active education year)**
+            int educationYearId = 0;
+            if (Session["Edu_Year"] != null)
+            {
+                int.TryParse(Session["Edu_Year"].ToString(), out educationYearId);
+            }
+
+            if (educationYearId == 0)
+            {
+                ScriptManager.RegisterStartupScript(this, GetType(), "alert",
+      "alert('শিক্ষাবর্ষ পাওয়া যাচ্ছে না। অনুগ্রহ করে সেশন নির্বাচন করুন।');", true);
                 return;
             }
 
@@ -743,16 +825,16 @@ WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
             if (loadedRoutineId > 0)
             {
                 // UPDATE existing routine
-                UpdateRoutineInDatabase(loadedRoutineId, routineName);
+                UpdateRoutineInDatabase(loadedRoutineId, routineName, educationYearId);
             }
             else
             {
                 // INSERT new routine
-                SaveRoutineToDatabase(routineName);
+                SaveRoutineToDatabase(routineName, educationYearId);
             }
         }
 
-        private void SaveRoutineToDatabase(string routineName)
+        private void SaveRoutineToDatabase(string routineName, int educationYearId)
         {
             string connString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
 
@@ -763,10 +845,10 @@ WHERE sfg.ClassID = @ClassID AND sfg.SchoolID = @SchoolID
 
                 try
                 {
-                    // 1. Insert main routine data with [RowCount]
+                    // 1. Insert main routine data with EducationYearID
                     string mainInsert = @"
-INSERT INTO Exam_Routine_SavedData (RoutineName, ClassColumnCount, [RowCount], SchoolID, CreatedDate)
-    VALUES (@RoutineName, @ClassColumnCount, @RowCount, @SchoolID, GETDATE());
+INSERT INTO Exam_Routine_SavedData (RoutineName, ClassColumnCount, [RowCount], SchoolID, EducationYearID, CreatedDate)
+    VALUES (@RoutineName, @ClassColumnCount, @RowCount, @SchoolID, @EducationYearID, GETDATE());
 SELECT SCOPE_IDENTITY();";
 
                     SqlCommand cmdMain = new SqlCommand(mainInsert, con, transaction);
@@ -774,6 +856,7 @@ SELECT SCOPE_IDENTITY();";
                     cmdMain.Parameters.AddWithValue("@ClassColumnCount", ClassColumnCount);
                     cmdMain.Parameters.AddWithValue("@RowCount", RowCount);
                     cmdMain.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    cmdMain.Parameters.AddWithValue("@EducationYearID", educationYearId);
 
                     int newRoutineId = Convert.ToInt32(cmdMain.ExecuteScalar());
 
@@ -808,16 +891,16 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
 
                             // Combine start and end time for ExamTime field (backward compatibility)
                             string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
-                     ? ""
-                       : $"{startTime} - {endTime}";
+                              ? ""
+                               : $"{startTime} - {endTime}";
 
                             DateTime? examDate = null;
                             if (!string.IsNullOrEmpty(examDateStr))
                             {
                                 // **CRITICAL: Parse date from dd/MM/yyyy format**
                                 if (DateTime.TryParseExact(examDateStr, "dd/MM/yyyy",
-                                 System.Globalization.CultureInfo.InvariantCulture,
-                                      System.Globalization.DateTimeStyles.None, out DateTime tempDate))
+                               System.Globalization.CultureInfo.InvariantCulture,
+                              System.Globalization.DateTimeStyles.None, out DateTime tempDate))
                                 {
                                     examDate = tempDate;
                                 }
@@ -828,8 +911,8 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
                             }
 
                             string rowInsert = @"
-     INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
-     VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
+  INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
+  VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
 
                             SqlCommand cmdRow = new SqlCommand(rowInsert, con, transaction);
                             cmdRow.Parameters.AddWithValue("@RoutineID", newRoutineId);
@@ -880,25 +963,62 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
 
                     transaction.Commit();
 
-                    // Update UI
-                    LoadedRoutineIdHF.Value = newRoutineId.ToString();
-                    RoutineNameLabel.Text = routineName;
-                    LoadRoutineDropdown();
+                    // **CRITICAL SUCCESS SEQUENCE**
 
-                    ScriptManager.RegisterStartupScript(this, GetType(), "success", "alert('রুটিন সফলভাবে সংরক্ষণ করা হয়েছে');", true);
+                    // 1. Update hidden field
+                    LoadedRoutineIdHF.Value = newRoutineId.ToString();
+
+                    // 2. Update label
+                    RoutineNameLabel.Text = routineName;
+
+                    // 3. MANUALLY bind dropdown
+                    BindRoutineDropdown();
+
+                    // **CRITICAL FIX: Reload the routine to show it in the UI**
+                    LoadRoutineFromDatabase(newRoutineId);
+
+                    // 4. Force UpdatePanel refresh
+                    MainUpdatePanel.Update();
+
+                    // 5. Register client script for success message (NO setTimeout, direct alert)
+                    string script = @"
+        alert('রুটিন সফলভাবে সংরক্ষণ করা হয়েছে');
+    ";
+                    ScriptManager.RegisterClientScriptBlock(this, GetType(), "successSave", script, true);
                 }
                 catch (Exception ex)
                 {
-                    transaction.Rollback();
+                    // **CRITICAL FIX: Only rollback if transaction is still active**
+                    if (transaction != null && transaction.Connection != null)
+                    {
+                        try
+                        {
+                            transaction.Rollback();
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // Transaction already rolled back or completed
+                        }
+                    }
+
                     string safeMessage = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-                    ScriptManager.RegisterStartupScript(this, GetType(), "error", $"alert('Error: {safeMessage}');", true);
+                    string errorScript = "alert('Error: " + safeMessage + "');";
+                    ScriptManager.RegisterClientScriptBlock(this, GetType(), "errorSave", errorScript, true);
                 }
             }
         }
 
-        private void UpdateRoutineInDatabase(int routineId, string routineName)
+        private void UpdateRoutineInDatabase(int routineId, string routineName, int educationYearId)
         {
             string connString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+
+            // **DEBUG: Log what we're starting with**
+            System.Diagnostics.Debug.WriteLine($"=== UPDATE START ===");
+            System.Diagnostics.Debug.WriteLine($"RoutineID: {routineId}");
+            System.Diagnostics.Debug.WriteLine($"RoutineName: {routineName}");
+            System.Diagnostics.Debug.WriteLine($"RowCount: {RowCount}");
+            System.Diagnostics.Debug.WriteLine($"ClassColumnCount: {ClassColumnCount}");
+            System.Diagnostics.Debug.WriteLine($"SelectedClassIds count: {SelectedClassIds.Count}");
 
             using (SqlConnection con = new SqlConnection(connString))
             {
@@ -907,152 +1027,252 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
 
                 try
                 {
-                    // 1. Update main routine data with [RowCount]
+                    // **CRITICAL FIX: Read RowCount and ClassColumnCount BEFORE any operations**
+                    int currentRowCount = RowCount;
+                    int currentClassColumnCount = ClassColumnCount;
+
+                    // 1. Update main routine data with EducationYearID
                     string mainUpdate = @"
 UPDATE Exam_Routine_SavedData 
 SET RoutineName = @RoutineName, 
     ClassColumnCount = @ClassColumnCount, 
     [RowCount] = @RowCount,
+    EducationYearID = @EducationYearID,
     ModifiedDate = GETDATE()
 WHERE RoutineID = @RoutineID AND SchoolID = @SchoolID";
 
                     SqlCommand cmdMain = new SqlCommand(mainUpdate, con, transaction);
                     cmdMain.Parameters.AddWithValue("@RoutineName", routineName);
-                    cmdMain.Parameters.AddWithValue("@ClassColumnCount", ClassColumnCount);
-                    cmdMain.Parameters.AddWithValue("@RowCount", RowCount);
+                    cmdMain.Parameters.AddWithValue("@ClassColumnCount", currentClassColumnCount);
+                    cmdMain.Parameters.AddWithValue("@RowCount", currentRowCount);
+                    cmdMain.Parameters.AddWithValue("@EducationYearID", educationYearId);
                     cmdMain.Parameters.AddWithValue("@RoutineID", routineId);
                     cmdMain.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                    cmdMain.ExecuteNonQuery();
+
+                    int mainRowsAffected = cmdMain.ExecuteNonQuery();
+
+                    // **DEBUG: Log main update rows affected**
+                    System.Diagnostics.Debug.WriteLine($"Main update rows affected: {mainRowsAffected}");
+
+                    if (mainRowsAffected == 0)
+                    {
+                        throw new Exception("Main routine update failed - no rows affected");
+                    }
 
                     // 2. Delete and re-insert class columns
                     string deleteClasses = "DELETE FROM Exam_Routine_ClassColumns WHERE RoutineID = @RoutineID";
                     SqlCommand cmdDeleteClasses = new SqlCommand(deleteClasses, con, transaction);
                     cmdDeleteClasses.Parameters.AddWithValue("@RoutineID", routineId);
-                    cmdDeleteClasses.ExecuteNonQuery();
+                    int deletedClasses = cmdDeleteClasses.ExecuteNonQuery();
 
+                    System.Diagnostics.Debug.WriteLine($"Deleted {deletedClasses} class columns");
+
+                    // **CRITICAL FIX: Use SelectedClassIds dictionary directly**
+                    int insertedClasses = 0;
                     foreach (var kvp in SelectedClassIds)
                     {
                         string classInsert = @"
 INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
-  VALUES (@RoutineID, @ColumnIndex, @ClassID)";
+VALUES (@RoutineID, @ColumnIndex, @ClassID)";
 
                         SqlCommand cmdClass = new SqlCommand(classInsert, con, transaction);
                         cmdClass.Parameters.AddWithValue("@RoutineID", routineId);
                         cmdClass.Parameters.AddWithValue("@ColumnIndex", kvp.Key);
                         cmdClass.Parameters.AddWithValue("@ClassID", kvp.Value);
                         cmdClass.ExecuteNonQuery();
+                        insertedClasses++;
+
+                        System.Diagnostics.Debug.WriteLine($"Inserted class column: Index={kvp.Key}, ClassID={kvp.Value}");
                     }
+
+                    System.Diagnostics.Debug.WriteLine($"Total inserted class columns: {insertedClasses}");
 
                     // 3. Delete and re-insert row data
                     string deleteRows = "DELETE FROM Exam_Routine_Rows WHERE RoutineID = @RoutineID";
                     SqlCommand cmdDeleteRows = new SqlCommand(deleteRows, con, transaction);
                     cmdDeleteRows.Parameters.AddWithValue("@RoutineID", routineId);
-                    cmdDeleteRows.ExecuteNonQuery();
+                    int deletedRows = cmdDeleteRows.ExecuteNonQuery();
 
-                    foreach (RepeaterItem item in RoutineRepeater.Items)
+                    System.Diagnostics.Debug.WriteLine($"Deleted {deletedRows} rows");
+
+                    // **DEBUG: Log all Request.Form keys**
+                    System.Diagnostics.Debug.WriteLine("=== REQUEST.FORM KEYS ===");
+                    foreach (string key in Request.Form.AllKeys)
                     {
-                        if (item.ItemType == ListItemType.Item || item.ItemType == ListItemType.AlternatingItem)
+                        if (key != null && (key.Contains("ExamDate") || key.Contains("DayName") ||
+                         key.Contains("StartTime") || key.Contains("EndTime") ||
+                           key.Contains("Subject") || key.Contains("Time")))
                         {
-                            TextBox examDateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
-                            TextBox dayNameTextBox = (TextBox)item.FindControl("DayNameTextBox");
-                            TextBox startTimeTextBox = (TextBox)item.FindControl("StartTimeTextBox");
-                            TextBox endTimeTextBox = (TextBox)item.FindControl("EndTimeTextBox");
-
-                            string examDateStr = examDateTextBox?.Text ?? "";
-                            string dayName = dayNameTextBox?.Text ?? "";
-                            string startTime = startTimeTextBox?.Text ?? "";
-                            string endTime = endTimeTextBox?.Text ?? "";
-
-                            // Combine start and end time for ExamTime field (backward compatibility)
-                            string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
-                           ? ""
-                     : $"{startTime} - {endTime}";
-
-                            DateTime? examDate = null;
-                            if (!string.IsNullOrEmpty(examDateStr))
-                            {
-                                // **CRITICAL: Parse date from dd/MM/yyyy format**
-                                if (DateTime.TryParseExact(examDateStr, "dd/MM/yyyy",
-                                   System.Globalization.CultureInfo.InvariantCulture,
-                              System.Globalization.DateTimeStyles.None, out DateTime tempDate))
-                                {
-                                    examDate = tempDate;
-                                }
-                                else if (DateTime.TryParse(examDateStr, out tempDate))
-                                {
-                                    examDate = tempDate;
-                                }
-                            }
-
-                            string rowInsert = @"
-           INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
-  VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
-
-                            SqlCommand cmdRow = new SqlCommand(rowInsert, con, transaction);
-                            cmdRow.Parameters.AddWithValue("@RoutineID", routineId);
-                            cmdRow.Parameters.AddWithValue("@RowIndex", item.ItemIndex);
-                            cmdRow.Parameters.AddWithValue("@ExamDate", (object)examDate ?? DBNull.Value);
-                            cmdRow.Parameters.AddWithValue("@DayName", dayName);
-                            cmdRow.Parameters.AddWithValue("@ExamTime", examTime);
-                            cmdRow.ExecuteNonQuery();
+                            System.Diagnostics.Debug.WriteLine($"{key} = {Request.Form[key]}");
                         }
                     }
+
+                    // **CRITICAL FIX: Loop through rowCount and get data from Request.Form directly**
+                    int insertedRowsCount = 0;
+                    for (int rowIdx = 0; rowIdx < currentRowCount; rowIdx++)
+                    {
+                        // **Try multiple control ID patterns**
+                        string[] possibleDateNames = new string[] {
+ $"ctl00$body$RoutineRepeater$ctl0{rowIdx}$ExamDateTextBox",
+      $"ctl00$body$RoutineRepeater$ctl{rowIdx:00}$ExamDateTextBox",
+   $"ExamDateTextBox_{rowIdx}",
+     $"RoutineRepeater_ExamDateTextBox_{rowIdx}"
+        };
+
+                        string examDateStr = "";
+                        string dayName = "";
+                        string startTime = "";
+                        string endTime = "";
+
+                        // Try to find the correct control name
+                        foreach (string possibleName in possibleDateNames)
+                        {
+                            if (Request.Form[possibleName] != null)
+                            {
+                                examDateStr = Request.Form[possibleName];
+
+                                // Extract base pattern
+                                string basePattern = possibleName.Replace("ExamDateTextBox", "");
+                                dayName = Request.Form[basePattern + "DayNameTextBox"] ?? "";
+                                startTime = Request.Form[basePattern + "StartTimeTextBox"] ?? "";
+                                endTime = Request.Form[basePattern + "EndTimeTextBox"] ?? "";
+
+                                System.Diagnostics.Debug.WriteLine($"Row {rowIdx}: Found data with pattern '{basePattern}'");
+                                break;
+                            }
+                        }
+
+                        System.Diagnostics.Debug.WriteLine($"Row {rowIdx}: Date={examDateStr}, Day={dayName}, Start={startTime}, End={endTime}");
+
+                        string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
+                         ? ""
+                          : $"{startTime} - {endTime}";
+
+                        DateTime? examDate = null;
+                        if (!string.IsNullOrEmpty(examDateStr))
+                        {
+                            if (DateTime.TryParseExact(examDateStr, "dd/MM/yyyy",
+                                   System.Globalization.CultureInfo.InvariantCulture,
+                          System.Globalization.DateTimeStyles.None, out DateTime tempDate))
+                            {
+                                examDate = tempDate;
+                            }
+                            else if (DateTime.TryParse(examDateStr, out tempDate))
+                            {
+                                examDate = tempDate;
+                            }
+                        }
+
+                        string rowInsert = @"
+INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
+VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
+
+                        SqlCommand cmdRow = new SqlCommand(rowInsert, con, transaction);
+                        cmdRow.Parameters.AddWithValue("@RoutineID", routineId);
+                        cmdRow.Parameters.AddWithValue("@RowIndex", rowIdx);
+                        cmdRow.Parameters.AddWithValue("@ExamDate", (object)examDate ?? DBNull.Value);
+                        cmdRow.Parameters.AddWithValue("@DayName", dayName);
+                        cmdRow.Parameters.AddWithValue("@ExamTime", examTime);
+                        cmdRow.ExecuteNonQuery();
+                        insertedRowsCount++;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"Total inserted rows: {insertedRowsCount}");
 
                     // 4. Delete and re-insert cell data
                     string deleteCells = "DELETE FROM Exam_Routine_CellData WHERE RoutineID = @RoutineID";
                     SqlCommand cmdDeleteCells = new SqlCommand(deleteCells, con, transaction);
                     cmdDeleteCells.Parameters.AddWithValue("@RoutineID", routineId);
-                    cmdDeleteCells.ExecuteNonQuery();
+                    int deletedCells = cmdDeleteCells.ExecuteNonQuery();
 
-                    foreach (RepeaterItem item in RoutineRepeater.Items)
+                    System.Diagnostics.Debug.WriteLine($"Deleted {deletedCells} cells");
+
+                    // **CRITICAL FIX: Loop through all rows and columns**
+                    int insertedCellsCount = 0;
+                    for (int rowIdx = 0; rowIdx < currentRowCount; rowIdx++)
                     {
-                        if (item.ItemType == ListItemType.Item || item.ItemType == ListItemType.AlternatingItem)
+                        for (int colIndex = 1; colIndex <= currentClassColumnCount; colIndex++)
                         {
-                            for (int colIndex = 1; colIndex <= ClassColumnCount; colIndex++)
+                            string subjectDropdownName = $"Subject{colIndex}Dropdown_{rowIdx}";
+                            string subjectTextboxName = $"Subject{colIndex}TextBox_{rowIdx}";
+                            string timeTextboxName = $"Time{colIndex}TextBox_{rowIdx}";
+
+                            string subjectIdStr = Request.Form[subjectDropdownName];
+                            string subjectText = Request.Form[subjectTextboxName] ?? "";
+                            string timeText = Request.Form[timeTextboxName] ?? "";
+
+                            int subjectId = 0;
+                            if (!string.IsNullOrEmpty(subjectIdStr))
                             {
-                                string subjectDropdownName = "Subject" + colIndex + "Dropdown_" + item.ItemIndex;
-                                string subjectTextboxName = "Subject" + colIndex + "TextBox_" + item.ItemIndex;
-                                string timeTextboxName = "Time" + colIndex + "TextBox_" + item.ItemIndex;
-
-                                string subjectIdStr = Request.Form[subjectDropdownName];
-                                string subjectText = Request.Form[subjectTextboxName] ?? "";
-                                string timeText = Request.Form[timeTextboxName] ?? "";
-
-                                int subjectId = 0;
-                                if (!string.IsNullOrEmpty(subjectIdStr))
-                                {
-                                    int.TryParse(subjectIdStr, out subjectId);
-                                }
-
-                                string cellInsert = @"
-       INSERT INTO Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText)
-  VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText)";
-
-                                SqlCommand cmdCell = new SqlCommand(cellInsert, con, transaction);
-                                cmdCell.Parameters.AddWithValue("@RoutineID", routineId);
-                                cmdCell.Parameters.AddWithValue("@RowIndex", item.ItemIndex);
-                                cmdCell.Parameters.AddWithValue("@ColumnIndex", colIndex);
-                                cmdCell.Parameters.AddWithValue("@SubjectID", subjectId > 0 ? (object)subjectId : DBNull.Value);
-                                cmdCell.Parameters.AddWithValue("@SubjectText", subjectText);
-                                cmdCell.Parameters.AddWithValue("@TimeText", timeText);
-                                cmdCell.ExecuteNonQuery();
+                                int.TryParse(subjectIdStr, out subjectId);
                             }
+
+                            System.Diagnostics.Debug.WriteLine($"Cell [{rowIdx},{colIndex}]: SubjectID={subjectId}, SubjectText={subjectText}, TimeText={timeText}");
+
+                            string cellInsert = @"
+INSERT INTO Exam_Routine_CellData (RoutineID, RowIndex, ColumnIndex, SubjectID, SubjectText, TimeText)
+VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText)";
+
+                            SqlCommand cmdCell = new SqlCommand(cellInsert, con, transaction);
+                            cmdCell.Parameters.AddWithValue("@RoutineID", routineId);
+                            cmdCell.Parameters.AddWithValue("@RowIndex", rowIdx);
+                            cmdCell.Parameters.AddWithValue("@ColumnIndex", colIndex);
+                            cmdCell.Parameters.AddWithValue("@SubjectID", subjectId > 0 ? (object)subjectId : DBNull.Value);
+                            cmdCell.Parameters.AddWithValue("@SubjectText", subjectText);
+                            cmdCell.Parameters.AddWithValue("@TimeText", timeText);
+                            cmdCell.ExecuteNonQuery();
+                            insertedCellsCount++;
                         }
                     }
 
+                    System.Diagnostics.Debug.WriteLine($"Total inserted cells: {insertedCellsCount}");
+
                     transaction.Commit();
 
-                    // Update UI
-                    RoutineNameLabel.Text = routineName;
-                    LoadRoutineDropdown();
+                    System.Diagnostics.Debug.WriteLine("=== TRANSACTION COMMITTED SUCCESSFULLY ===");
 
-                    ScriptManager.RegisterStartupScript(this, GetType(), "success", "alert('রুটিন সফলভাবে আপডেট হয়েছে');", true);
+                    // **CRITICAL SUCCESS SEQUENCE FOR UPDATE**
+
+                    // 1. Update label
+                    RoutineNameLabel.Text = routineName;
+
+                    // 2. MANUALLY bind dropdown
+                    BindRoutineDropdown();
+
+                    // **CRITICAL FIX: Reload the routine to show updated data in the UI**
+                    LoadRoutineFromDatabase(routineId);
+
+                    // 3. Force UpdatePanel refresh
+                    MainUpdatePanel.Update();
+
+                    // 4. Register client script for success message (NO setTimeout, direct alert)
+                    string script = @"
+     alert('রুটিন সফলভাবে আপডেট হয়েছে');
+    ";
+                    ScriptManager.RegisterClientScriptBlock(this, GetType(), "successUpdate", script, true);
                 }
                 catch (Exception ex)
                 {
-                    transaction.Rollback();
+                    System.Diagnostics.Debug.WriteLine($"=== ERROR DURING UPDATE ===");
+                    System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Stack: {ex.StackTrace}");
+
+                    if (transaction != null && transaction.Connection != null)
+                    {
+                        try
+                        {
+                            transaction.Rollback();
+                            System.Diagnostics.Debug.WriteLine("Transaction rolled back");
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // Transaction already completed
+                        }
+                    }
+
                     string safeMessage = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-                    ScriptManager.RegisterStartupScript(this, GetType(), "error", $"alert('Error: {safeMessage}');", true);
+                    string errorScript = "alert('Error: " + safeMessage + "');";
+                    ScriptManager.RegisterClientScriptBlock(this, GetType(), "errorUpdate", errorScript, true);
                 }
             }
         }
@@ -1063,17 +1283,16 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
             if (int.TryParse(RoutineListDropDown.SelectedValue, out routineId) && routineId > 0)
             {
                 string connString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
-                SqlTransaction transaction = null; // Define transaction here to access in catch
-                bool transactionCommitted = false; // Flag to track transaction status
 
                 using (SqlConnection con = new SqlConnection(connString))
                 {
+                    SqlTransaction transaction = null;
+
                     try
                     {
                         con.Open();
                         transaction = con.BeginTransaction();
 
-                        // Delete in correct order (child tables first)
                         string deleteCells = "DELETE FROM Exam_Routine_CellData WHERE RoutineID = @RoutineID";
                         SqlCommand cmdCells = new SqlCommand(deleteCells, con, transaction);
                         cmdCells.Parameters.AddWithValue("@RoutineID", routineId);
@@ -1096,30 +1315,53 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
                         cmdMain.ExecuteNonQuery();
 
                         transaction.Commit();
-                        transactionCommitted = true; // Mark as committed
 
-                        // Reset UI
+                        // **CRITICAL SUCCESS SEQUENCE FOR DELETE**
+
+                        // 1. Reset UI
                         LoadedRoutineIdHF.Value = "";
                         RoutineNameTextBox.Text = "";
-                        RoutineNameLabel.Text = "";
-                        LoadRoutineDropdown();
+                        RoutineNameLabel.Text = "পরীক্ষার রুটিন";
 
-                        // Reset to default
+                        // 2. MANUALLY bind dropdown
+                        BindRoutineDropdown();
+
+                        // 3. Reset to default
                         ClassColumnCount = 1;
                         RowCount = 1;
                         SelectedClassIds.Clear();
                         LoadedCellData.Clear();
+
+                        // 4. Regenerate UI
+                        GenerateClassHeaders();
                         LoadDefaultRoutine();
 
-                        ScriptManager.RegisterStartupScript(this, GetType(), "success", "alert('রুটিন সফলভাবে মুছে ফেলা হয়েছে');", true);
+                        // 5. Force UpdatePanel refresh
+                        MainUpdatePanel.Update();
+
+                        // 6. Register client script for success message
+                        string script = @"
+    alert('রুটিন সফলভাবে মুছে ফেলা হয়েছে');
+    ";
+                        ScriptManager.RegisterClientScriptBlock(this, GetType(), "successDelete", script, true);
                     }
                     catch (Exception ex)
                     {
-                        if (transaction != null && !transactionCommitted)
+                        if (transaction != null && transaction.Connection != null)
                         {
-                            transaction.Rollback();
+                            try
+                            {
+                                transaction.Rollback();
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                // Transaction already completed
+                            }
                         }
-                        ScriptManager.RegisterStartupScript(this, GetType(), "error", $"alert('Error: {ex.Message}');", true);
+
+                        string safeMessage = ex.Message.Replace("'", "\\'").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                        string errorScript = "alert('Error: " + safeMessage + "');";
+                        ScriptManager.RegisterClientScriptBlock(this, GetType(), "errorDelete", errorScript, true);
                     }
                 }
             }
@@ -1127,10 +1369,8 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
 
         protected void RefreshSubjectsButton_Click(object sender, EventArgs e)
         {
-            // **CRITICAL: Save class values FIRST before anything else**
             SaveSelectedClassValues();
 
-            // Save subject and time selections from form
             var cellSelections = new Dictionary<string, CellData>();
             for (int rowIdx = 0; rowIdx < RowCount; rowIdx++)
             {
@@ -1160,10 +1400,8 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
                 }
             }
 
-            // Store in LoadedCellData for ItemDataBound
             LoadedCellData = cellSelections;
 
-            // Save all current form data before re-binding
             var currentData = new List<Dictionary<string, string>>();
             foreach (RepeaterItem item in RoutineRepeater.Items)
             {
@@ -1171,45 +1409,48 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
                 {
                     var rowData = new Dictionary<string, string>();
 
-                    // Get TextBox controls
                     TextBox dateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
                     TextBox dayTextBox = (TextBox)item.FindControl("DayNameTextBox");
-                    TextBox timeTextBox = (TextBox)item.FindControl("ExamTimeTextBox");
+                    TextBox startTimeTextBox = (TextBox)item.FindControl("StartTimeTextBox");
+                    TextBox endTimeTextBox = (TextBox)item.FindControl("EndTimeTextBox");
 
                     rowData["ExamDate"] = dateTextBox != null ? dateTextBox.Text : "";
                     rowData["DayName"] = dayTextBox != null ? dayTextBox.Text : "";
-                    rowData["ExamTime"] = timeTextBox != null ? timeTextBox.Text : "";
+                    rowData["StartTime"] = startTimeTextBox != null ? startTimeTextBox.Text : "";
+                    rowData["EndTime"] = endTimeTextBox != null ? endTimeTextBox.Text : "";
                     currentData.Add(rowData);
                 }
             }
 
-            // Create DataTable for rebinding
             DataTable dtRows = new DataTable();
             dtRows.Columns.Add("RowIndex", typeof(int));
             dtRows.Columns.Add("ExamDate", typeof(string));
             dtRows.Columns.Add("DayName", typeof(string));
+            dtRows.Columns.Add("StartTime", typeof(string));
+            dtRows.Columns.Add("EndTime", typeof(string));
             dtRows.Columns.Add("ExamTime", typeof(string));
 
             for (int i = 0; i < currentData.Count; i++)
             {
                 DataRow newRow = dtRows.NewRow();
                 newRow["RowIndex"] = i;
-
-                // **CRITICAL: Keep date in dd/MM/yyyy format as string**
                 newRow["ExamDate"] = currentData[i]["ExamDate"];
                 newRow["DayName"] = currentData[i]["DayName"];
-                newRow["ExamTime"] = currentData[i]["ExamTime"];
+                newRow["StartTime"] = currentData[i]["StartTime"];
+                newRow["EndTime"] = currentData[i]["EndTime"];
+
+                string startTime = currentData[i]["StartTime"];
+                string endTime = currentData[i]["EndTime"];
+                newRow["ExamTime"] = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
+             ? ""
+                  : $"{startTime} - {endTime}";
+
                 dtRows.Rows.Add(newRow);
             }
 
-            // **CRITICAL: Regenerate headers BEFORE binding**
             GenerateClassHeaders();
-
-            // **CRITICAL: Rebind repeater to trigger ItemDataBound**
             RoutineRepeater.DataSource = dtRows;
             RoutineRepeater.DataBind();
-
-            // Force UpdatePanel refresh
             MainUpdatePanel.Update();
         }
     }

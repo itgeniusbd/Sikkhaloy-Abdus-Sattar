@@ -33,39 +33,53 @@ BEGIN
     CREATE TABLE [dbo].[Exam_Routine_Rows](
         [RowID] [int] IDENTITY(1,1) NOT NULL,
         [RoutineID] [int] NOT NULL,
-        [RowIndex] [int] NOT NULL,
-        [ExamDate] [date] NULL,
+   [RowIndex] [int] NOT NULL,
+      [ExamDate] [date] NULL,
         [DayName] [nvarchar](50) NULL,
         [StartTime] [nvarchar](20) NULL,  -- NEW: Start time (e.g., "10:00 AM")
-        [EndTime] [nvarchar](20) NULL,    -- NEW: End time (e.g., "01:00 PM")
+     [EndTime] [nvarchar](20) NULL,    -- NEW: End time (e.g., "01:00 PM")
         [Duration] [nvarchar](20) NULL,   -- NEW: Duration in hours (e.g., "3 ?????")
         [ExamTime] [nvarchar](50) NULL,   -- LEGACY: Keep for backward compatibility
-        CONSTRAINT [PK_Exam_Routine_Rows] PRIMARY KEY CLUSTERED ([RowID] ASC),
+ CONSTRAINT [PK_Exam_Routine_Rows] PRIMARY KEY CLUSTERED ([RowID] ASC),
         CONSTRAINT [FK_Exam_Routine_Rows_SavedData] FOREIGN KEY([RoutineID])
-            REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
-            ON DELETE CASCADE
+      REFERENCES [dbo].[Exam_Routine_SavedData] ([RoutineID])
+    ON DELETE CASCADE
     )
 END
 ELSE
 BEGIN
     -- Add new columns if table exists but columns don't
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_Rows]') AND name = 'StartTime')
-    BEGIN
-        ALTER TABLE [dbo].[Exam_Routine_Rows] ADD [StartTime] [nvarchar](20) NULL
+BEGIN
+      ALTER TABLE [dbo].[Exam_Routine_Rows] ADD [StartTime] [nvarchar](20) NULL
    PRINT 'Added StartTime column to Exam_Routine_Rows'
     END
-    
+  
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_Rows]') AND name = 'EndTime')
     BEGIN
     ALTER TABLE [dbo].[Exam_Routine_Rows] ADD [EndTime] [nvarchar](20) NULL
         PRINT 'Added EndTime column to Exam_Routine_Rows'
-    END
+  END
     
   IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_Rows]') AND name = 'Duration')
 BEGIN
         ALTER TABLE [dbo].[Exam_Routine_Rows] ADD [Duration] [nvarchar](20) NULL
         PRINT 'Added Duration column to Exam_Routine_Rows'
     END
+END
+GO
+
+-- **NEW: Add EducationYearID to Exam_Routine_SavedData**
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Exam_Routine_SavedData]') AND name = 'EducationYearID')
+BEGIN
+    ALTER TABLE [dbo].[Exam_Routine_SavedData] ADD [EducationYearID] [int] NULL
+    PRINT 'Added EducationYearID column to Exam_Routine_SavedData'
+  
+    -- Add foreign key constraint
+    ALTER TABLE [dbo].[Exam_Routine_SavedData] 
+    ADD CONSTRAINT [FK_Exam_Routine_SavedData_EducationYear] 
+    FOREIGN KEY([EducationYearID]) REFERENCES [dbo].[Education_Year] ([EducationYearID])
+    PRINT 'Added FK constraint for EducationYearID'
 END
 GO
 
