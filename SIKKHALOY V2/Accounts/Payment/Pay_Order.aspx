@@ -236,7 +236,7 @@ ORDER BY Income_Assign_Role.StartDate">
   <asp:TextBox ID="AssinLFeeTextBox" onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" CssClass="form-control" placeholder="Late Fee Same For All" runat="server"></asp:TextBox>
         </HeaderTemplate>
       <ItemTemplate>
- <asp:TextBox ID="Multi_LateFeeTextBox" placeholder="Late Fee" Text='<%# Eval("LateFee") %>' runat="server" CssClass="form-control"></asp:TextBox>
+ <asp:TextBox ID="Multi_LateFeeTextBox" placeholder="Late Fee" runat="server" CssClass="form-control"></asp:TextBox>
      </ItemTemplate>
      </asp:TemplateField>
         <asp:TemplateField>
@@ -460,19 +460,54 @@ ORDER BY Income_Assign_Role.RoleID">
 window.history.replaceState({}, document.title, window.location.pathname);
  }
         
+   // Handle "All" checkbox in Students GridView
+        $("[id*=AllIteamCheckBox]").on("click", function () {
+        var isChecked = $(this).is(':checked');
+            var grid = $(this).closest('table');
+         
+         $("input[id*=SingleCheckBox]", grid).each(function () {
+    $(this).prop('checked', isChecked);
+       if (isChecked) {
+         $(this).closest('tr').addClass('selected');
+   } else {
+  $(this).closest('tr').removeClass('selected');
+   }
+            });
+        });
+
+        // Handle individual student checkbox clicks
+    $("[id*=SingleCheckBox]").on("click", function () {
+            if ($(this).is(':checked')) {
+      $(this).closest('tr').addClass('selected');
+     } else {
+                $(this).closest('tr').removeClass('selected');
+           // Uncheck "All" checkbox if any individual checkbox is unchecked
+          $("[id*=AllIteamCheckBox]").prop('checked', false);
+            }
+
+            // Check if all checkboxes are checked, then check "All" checkbox
+    var grid = $(this).closest('table');
+         var totalCheckboxes = $("input[id*=SingleCheckBox]", grid).length;
+     var checkedCheckboxes = $("input[id*=SingleCheckBox]:checked", grid).length;
+     
+      if (totalCheckboxes === checkedCheckboxes) {
+    $("[id*=AllIteamCheckBox]").prop('checked', true);
+        }
+        });
+        
       if ($('[id*=SectionDropDownList] option').length > 1) {
          $('.S_Show').show();
       }
-        if ($('[id*=GroupDropDownList] option').length > 1) {
+ if ($('[id*=GroupDropDownList] option').length > 1) {
       $('.G_Show').show();
    }
 
           $('.PayFor').on("keypress", function () {
-          var tr = $(this).closest("tr");
+       var tr = $(this).closest("tr");
        $(this).typeahead({
        minLength: 1,
        source: function (request, result) {
-          $.ajax({
+      $.ajax({
    url: "Pay_Order.aspx/GetMonth",
     data: JSON.stringify({ 'prefix': request }),
    dataType: "json",
@@ -486,8 +521,8 @@ window.history.replaceState({}, document.title, window.location.pathname);
            map[item.Month] = item;
   });
      result(label);
-           }
-          });
+    }
+      });
      },
     updater: function (item) {
      $(".Datetime:eq(0)", tr).val("01 " + map[item].MonthYear);
@@ -500,43 +535,43 @@ window.history.replaceState({}, document.title, window.location.pathname);
   $('.Datetime').datepicker({
     format: 'dd M yyyy',
   todayBtn: "linked",
-            todayHighlight: true,
+      todayHighlight: true,
  autoclose: true
    });
 
    //Is Gridview is empty
-            if ($('[id*=StudentsGridView] tr').length) {
+        if ($('[id*=StudentsGridView] tr').length) {
    $(".Hide_S_Gv").show();
             }
-            if ($('[id*=One_A_RoleGridView] tr').length) {
-              $(".A_R").show();
-            }
-            if ($('[id*=Multi_A_Role_GridView] tr').length) {
+  if ($('[id*=One_A_RoleGridView] tr').length) {
+         $(".A_R").show();
+  }
+        if ($('[id*=Multi_A_Role_GridView] tr').length) {
      $(".A_MR").show();
-            }
+ }
             if ($('[id*=One_Role_GridView] tr').length) {
    $(".UAR1").show();
        }
-            if ($('[id*=Multi_R_GridView] tr').length) {
-                $(".UAR2").show();
+       if ($('[id*=Multi_R_GridView] tr').length) {
+      $(".UAR2").show();
   }
 
    //Assign_One Role_CheckBox
     $("[id*=A_OR_CheckBox]").on("click", function () {
-           ValidatorEnable($("[id*=AmountRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
+    ValidatorEnable($("[id*=AmountRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
   ValidatorEnable($("[id*=StartdateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
-           ValidatorEnable($("[id*=EndDateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
+      ValidatorEnable($("[id*=EndDateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
     });
 
      //One Role CheckBox
  $("[id*=One_Role_CheckBox]").on("click", function () {
             ValidatorEnable($("[id*=payForRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
        ValidatorEnable($("[id*=StartdateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
-       ValidatorEnable($("[id*=EndDateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
-            });
+  ValidatorEnable($("[id*=EndDateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
+});
 
   //Multi Role CheckBox - Show/Hide detail section
-            $("[id*=Multi_AddCheckBox]").on("click", function () {
+      $("[id*=Multi_AddCheckBox]").on("click", function () {
     if ($(this).is(':checked')) {
         $(this).closest("tr").find("div.criteriaData").show("slow");
        }
@@ -546,7 +581,7 @@ window.history.replaceState({}, document.title, window.location.pathname);
        });
 
        //Multi Role CheckBox - Check/Uncheck all child checkboxes
-            $("[id*=Multi_AddCheckBox]").on("click", function () {
+     $("[id*=Multi_AddCheckBox]").on("click", function () {
       var Multi_AddCheckBox = $(this);
       var grid = $(this).closest("tr").find("div.criteriaData");
 
@@ -555,17 +590,17 @@ window.history.replaceState({}, document.title, window.location.pathname);
      $(this).attr("checked", "checked");
      ValidatorEnable($("[id*=payForRF]", $(this).closest("tr"))[0], true);
              ValidatorEnable($("[id*=AmountRF]", $(this).closest("tr"))[0], true);
-        ValidatorEnable($("[id*=StartdateRF]", $(this).closest("tr"))[0], true);
+  ValidatorEnable($("[id*=StartdateRF]", $(this).closest("tr"))[0], true);
       ValidatorEnable($("[id*=EndDateRF]", $(this).closest("tr"))[0], true);
  }
-          else {
+   else {
    $(this).removeAttr("checked");
         ValidatorEnable($("[id*=payForRF]", $(this).closest("tr"))[0], false);
         ValidatorEnable($("[id*=AmountRF]", $(this).closest("tr"))[0], false);
        ValidatorEnable($("[id*=StartdateRF]", $(this).closest("tr"))[0], false);
-              ValidatorEnable($("[id*=EndDateRF]", $(this).closest("tr"))[0], false);
+     ValidatorEnable($("[id*=EndDateRF]", $(this).closest("tr"))[0], false);
     }
-        });
+   });
    });
 
         $("[id*=Input_MultiCheckBox]").on("click", function () {
@@ -573,14 +608,14 @@ window.history.replaceState({}, document.title, window.location.pathname);
  ValidatorEnable($("[id*=AmountRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
      ValidatorEnable($("[id*=StartdateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
     ValidatorEnable($("[id*=EndDateRF]", $("td", $(this).closest("tr")))[0], $(this).is(":checked"));
-            });
+          });
 
      //Assign Amount to All
-         $("[id*=AssignAmountTextBox]").on("keyup", function () {
+     $("[id*=AssignAmountTextBox]").on("keyup", function () {
       $("[id*=Multi_AmountTextBox]", $(this).closest("tr td")).val($.trim($(this).val()));
     });
 
-       //Assign Late Fee to All
+    //Assign Late Fee to All
   $("[id*=AssinLFeeTextBox]").on("keyup", function () {
          $("[id*=Multi_LateFeeTextBox]", $(this).closest("tr td")).val($.trim($(this).val()));
    });
@@ -588,12 +623,12 @@ window.history.replaceState({}, document.title, window.location.pathname);
          //Concession Fee to All
             $("[id*=AssConcessionTextBox]").on("keyup", function () {
        $("[id*=Multi_DiscountTextBox]", $(this).closest("tr td")).val($.trim($(this).val()));
-            });
+});
    });
 
      function SelectedItemCLR(a) {
          a.options[1].style.color = "rgb(255, 106, 0)";
-        };
+     };
 
         //Select at least one Checkbox Students GridView
     function Validate(d, c) {
@@ -601,7 +636,7 @@ window.history.replaceState({}, document.title, window.location.pathname);
         var a = b.getElementsByTagName("input");
        for (i = 0; i < a.length; i++) {
   if (a[i].type == "checkbox" && a[i].checked) {
-    return true;
+  return true;
   }
         }
             alert("You do not select any student from student list.");

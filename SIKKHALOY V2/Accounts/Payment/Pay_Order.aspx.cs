@@ -645,8 +645,63 @@ sb.AppendLine($"    console.log('Multi_A_Role GridView Rows: {Multi_A_Role_GridV
         }
         protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            IDTextBox.Text = "";
-            StudentsGridView.DataBind();
+          IDTextBox.Text = "";
+       StudentsGridView.DataBind();
+
+  // Load assigned roles when a specific class is selected
+    if (ClassDropDownList.SelectedIndex > 1) // Not "Select" or "All Students"
+    {
+                int classID = Convert.ToInt32(ClassDropDownList.SelectedValue);
+
+            // Set parameters for assigned roles SQL
+       One_A_RoleSQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+    One_A_RoleSQL.SelectParameters["SchoolID"].DefaultValue = Session["SchoolID"].ToString();
+             One_A_RoleSQL.SelectParameters["EducationYearID"].DefaultValue = Session["Edu_Year"].ToString();
+
+    Multi_A_RoleSQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+   Multi_A_RoleSQL.SelectParameters["SchoolID"].DefaultValue = Session["SchoolID"].ToString();
+     Multi_A_RoleSQL.SelectParameters["EducationYearID"].DefaultValue = Session["Edu_Year"].ToString();
+
+        // Also bind unassigned roles for the same class
+       Roles_1_SQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+    Multi_R_SQL.SelectParameters["ClassID"].DefaultValue = classID.ToString();
+
+         // Now bind all GridViews
+     One_A_RoleGridView.DataBind();
+          Multi_A_Role_GridView.DataBind();
+                One_Role_GridView.DataBind();
+        Multi_R_GridView.DataBind();
+
+// Show sections if they have data
+      System.Text.StringBuilder sb = new System.Text.StringBuilder();
+  sb.AppendLine("<script type='text/javascript'>");
+         sb.AppendLine("$(document).ready(function() {");
+  
+    if (One_A_RoleGridView.Rows.Count > 0)
+ {
+           sb.AppendLine("    $('.A_R').show();");
+           }
+                
+                if (Multi_A_Role_GridView.Rows.Count > 0)
+         {
+    sb.AppendLine("    $('.A_MR').show();");
+      }
+      
+          if (One_Role_GridView.Rows.Count > 0)
+       {
+           sb.AppendLine("    $('.UAR1').show();");
+    }
+         
+if (Multi_R_GridView.Rows.Count > 0)
+           {
+    sb.AppendLine("    $('.UAR2').show();");
+             }
+
+            sb.AppendLine("});");
+      sb.AppendLine("</script>");
+
+    ClientScript.RegisterStartupScript(this.GetType(), "ShowGridsOnClassChange", sb.ToString(), false);
+   }
         }
         protected void GroupDropDownList_DataBound(object sender, EventArgs e)
         {
