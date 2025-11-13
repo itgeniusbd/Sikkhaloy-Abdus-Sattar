@@ -236,158 +236,199 @@ namespace EDUCATION.COM.Admission.Promotion_Demotion
         }        
         protected void SubmitButton_Click(object sender, EventArgs e)
         {
-            
-            if (IsValidate()!=true)
+      
+       if (IsValidate()!=true)
             {
-                btnSubmit.Enabled = false;
-                SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
+ btnSubmit.Enabled = false;
+     SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
 
-                string StudentID = "";
-                string StudentClassID = "";
+             string StudentID = "";
+        string StudentClassID = "";
 
                 TextBox Merit_StatusTextBox = new TextBox();
-                CheckBox SingleCheckBox = new CheckBox();
-                CheckBox SubjectCheckBox = new CheckBox();
-                RadioButtonList SubjectType = new RadioButtonList();
+       CheckBox SingleCheckBox = new CheckBox();
+  CheckBox SubjectCheckBox = new CheckBox();
+      RadioButtonList SubjectType = new RadioButtonList();
 
-                foreach (GridViewRow Row in StudentsGridView.Rows)
+          bool hasError = false;
+        string errorStudents = "";
+
+        foreach (GridViewRow Row in StudentsGridView.Rows)
+      {
+        SingleCheckBox = Row.FindControl("SingleCheckBox") as CheckBox;
+
+   if (SingleCheckBox.Checked)
+           {
+     StudentID = StudentsGridView.DataKeys[Row.DataItemIndex]["StudentID"].ToString();
+             Session["studentId"] = StudentID;
+
+    // Check if student already exists in the target class
+        string edu_year = Session["Edu_Year"].ToString();
+            string schoolId = Session["SchoolID"].ToString();
+       string targetClassID = Re_ClassDropDownList.SelectedValue;
+
+             SqlCommand checkDuplicateCommand = new SqlCommand(
+            "SELECT COUNT(*) FROM StudentsClass WHERE (StudentID = @StudentID) AND (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ClassID = @ClassID)", con);
+   checkDuplicateCommand.Parameters.AddWithValue("@SchoolID", schoolId);
+     checkDuplicateCommand.Parameters.AddWithValue("@EducationYearID", edu_year);
+            checkDuplicateCommand.Parameters.AddWithValue("@StudentID", StudentID);
+                checkDuplicateCommand.Parameters.AddWithValue("@ClassID", targetClassID);
+
+                  con.Open();
+              int duplicateCount = (int)checkDuplicateCommand.ExecuteScalar();
+con.Close();
+
+     if (duplicateCount > 0)
+ {
+         // Get student name and ID for error message
+     string studentName = Row.Cells[2].Text;
+         string studentIdText = Row.Cells[1].Text;
+       
+       errorStudents += studentIdText + " (" + studentName + "), ";
+ hasError = true;
+         continue; // Skip this student
+           }
+
+ //----------
+       SqlCommand StudnetIDcommand = new SqlCommand("SELECT StudentClassID FROM StudentsClass WHERE (EducationYearID = @EducationYearID) AND (SchoolID = @SchoolID) AND (StudentID = @StudentID)", con);
+       StudnetIDcommand.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+            StudnetIDcommand.Parameters.AddWithValue("@EducationYearID", edu_year);
+      StudnetIDcommand.Parameters.AddWithValue("@StudentID", StudentID);
+           con.Open();
+     object StudentID_Check = StudnetIDcommand.ExecuteScalar();
+     con.Close();
+   Merit_StatusTextBox = Row.FindControl("Merit_StatusTextBox") as TextBox;
+         #region Class-group-section-shift dropdownlist
+
+          if (Re_GroupDropDownList.SelectedValue == "%")
+          {
+     StudentClassSQL.InsertParameters["SubjectGroupID"].DefaultValue = "0";
+        }
+           else
+        {
+   StudentClassSQL.InsertParameters["SubjectGroupID"].DefaultValue = Re_GroupDropDownList.SelectedValue;
+   }
+
+         if (Re_SectionDropDownList.SelectedValue == "%")
+        {
+      StudentClassSQL.InsertParameters["SectionID"].DefaultValue = "0";
+     }
+        else
+              {
+        StudentClassSQL.InsertParameters["SectionID"].DefaultValue = Re_SectionDropDownList.SelectedValue;
+       }
+
+       if (Re_ShiftDropDownList.SelectedValue == "%")
+        {
+           StudentClassSQL.InsertParameters["ShiftID"].DefaultValue = "0";
+             }
+              else
+         {
+ StudentClassSQL.InsertParameters["ShiftID"].DefaultValue = Re_ShiftDropDownList.SelectedValue;
+   }
+       #endregion
+
+  StudentClassSQL.InsertParameters["StudentID"].DefaultValue = StudentID;
+  StudentClassSQL.Insert();  //----StudentClassId Creation
+
+            //---- Get StudentClass Last Id
+
+     SqlCommand cmd1 = new SqlCommand("Select TOP 1 * from StudentsClass where StudentID='" + StudentID + "' and SchoolID='" + schoolId + "' order by StudentClassID desc ", con);
+   con.Open();
+    Session["StudentClassLastID"] = cmd1.ExecuteScalar().ToString();
+                  string lastId = Session["StudentClassLastID"].ToString();
+           con.Close();
+
+    //-- Current StudentClassId
+
+            
+
+               SqlCommand cmd = new SqlCommand("Select IDENT_CURRENT('StudentsClass')", con);
+             con.Open();
+                 Session["StudentClassID"] = cmd.ExecuteScalar().ToString();
+        
+     con.Close();
+ foreach (GridViewRow row in GroupGridView.Rows) //insert subject
+                 {
+    SubjectCheckBox = (CheckBox)row.FindControl("SubjectCheckBox");
+                SubjectType = (RadioButtonList)row.FindControl("SubjectTypeRadioButtonList");
+
+    if (SubjectCheckBox.Checked)
+        {
+        StudentRecordSQL.InsertParameters["StudentID"].DefaultValue = StudentID;
+StudentRecordSQL.InsertParameters["SubjectID"].DefaultValue = GroupGridView.DataKeys[row.DataItemIndex]["SubjectID"].ToString();
+              StudentRecordSQL.InsertParameters["StudentClassID"].DefaultValue = StudentClassID;
+           StudentRecordSQL.InsertParameters["SubjectType"].DefaultValue = SubjectType.SelectedValue;
+      StudentRecordSQL.Insert();
+     }
+    }
+             StudentClassSQL.UpdateParameters["StudentClassID"].DefaultValue = StudentsGridView.DataKeys[Row.DataItemIndex]["StudentClassID"].ToString();
+
+       StudentClassSQL.Update();  //Class Changing status update
+
+
+
+
+            if (KeepPayOrderCheckbox.Checked)
+          {
+           UpdateIncomePayorder.Update();
+       }
+    else
+             {
+        string value= StudentID_Check.ToString();
+       UpdatePaymantSQL.DeleteParameters["StudentClassID"].DefaultValue = value;
+  UpdatePaymantSQL.Delete(); //Delete Unpaid Record
+            }
+               UpdatePaymantSQL.Update(); //Update Payment  
+           }  
+     }
+
+        if (hasError)
                 {
-                    SingleCheckBox = Row.FindControl("SingleCheckBox") as CheckBox;
-
-                    if (SingleCheckBox.Checked)
-                    {
-                        StudentID = StudentsGridView.DataKeys[Row.DataItemIndex]["StudentID"].ToString();
-                        Session["studentId"] = StudentID;
-
-                        //----------
-                        string edu_year = Session["Edu_Year"].ToString();
-                        string schoolId = Session["SchoolID"].ToString();
-
-                        SqlCommand StudnetIDcommand = new SqlCommand("SELECT StudentClassID FROM StudentsClass WHERE (EducationYearID = @EducationYearID) AND (SchoolID = @SchoolID) AND (StudentID = @StudentID)", con);
-                        StudnetIDcommand.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
-                        StudnetIDcommand.Parameters.AddWithValue("@EducationYearID", edu_year);
-                        StudnetIDcommand.Parameters.AddWithValue("@StudentID", StudentID);
-                        con.Open();
-                        object StudentID_Check = StudnetIDcommand.ExecuteScalar();
-                        con.Close();
-                        Merit_StatusTextBox = Row.FindControl("Merit_StatusTextBox") as TextBox;
-                        #region Class-group-section-shift dropdownlist
-
-                        if (Re_GroupDropDownList.SelectedValue == "%")
-                        {
-                            StudentClassSQL.InsertParameters["SubjectGroupID"].DefaultValue = "0";
-                        }
-                        else
-                        {
-                            StudentClassSQL.InsertParameters["SubjectGroupID"].DefaultValue = Re_GroupDropDownList.SelectedValue;
-                        }
-
-                        if (Re_SectionDropDownList.SelectedValue == "%")
-                        {
-                            StudentClassSQL.InsertParameters["SectionID"].DefaultValue = "0";
-                        }
-                        else
-                        {
-                            StudentClassSQL.InsertParameters["SectionID"].DefaultValue = Re_SectionDropDownList.SelectedValue;
-                        }
-
-                        if (Re_ShiftDropDownList.SelectedValue == "%")
-                        {
-                            StudentClassSQL.InsertParameters["ShiftID"].DefaultValue = "0";
-                        }
-                        else
-                        {
-                            StudentClassSQL.InsertParameters["ShiftID"].DefaultValue = Re_ShiftDropDownList.SelectedValue;
-                        }
-                        #endregion
-
-                        StudentClassSQL.InsertParameters["StudentID"].DefaultValue = StudentID;
-                        StudentClassSQL.Insert();  //----StudentClassId Creation
-
-                        //---- Get StudentClass Last Id
-
-                        SqlCommand cmd1 = new SqlCommand("Select TOP 1 * from StudentsClass where StudentID='" + StudentID + "' and SchoolID='" + schoolId + "' order by StudentClassID desc ", con);
-                        con.Open();
-                        Session["StudentClassLastID"] = cmd1.ExecuteScalar().ToString();
-                        string lastId = Session["StudentClassLastID"].ToString();
-                        con.Close();
-
-                        //-- Current StudentClassId
-
-                        
-
-                        SqlCommand cmd = new SqlCommand("Select IDENT_CURRENT('StudentsClass')", con);
-                        con.Open();
-                        Session["StudentClassID"] = cmd.ExecuteScalar().ToString();
-                        
-                        con.Close();
-                        foreach (GridViewRow row in GroupGridView.Rows) //insert subject
-                        {
-                            SubjectCheckBox = (CheckBox)row.FindControl("SubjectCheckBox");
-                            SubjectType = (RadioButtonList)row.FindControl("SubjectTypeRadioButtonList");
-
-                            if (SubjectCheckBox.Checked)
-                            {
-                                StudentRecordSQL.InsertParameters["StudentID"].DefaultValue = StudentID;
-                                StudentRecordSQL.InsertParameters["SubjectID"].DefaultValue = GroupGridView.DataKeys[row.DataItemIndex]["SubjectID"].ToString();
-                                StudentRecordSQL.InsertParameters["StudentClassID"].DefaultValue = StudentClassID;
-                                StudentRecordSQL.InsertParameters["SubjectType"].DefaultValue = SubjectType.SelectedValue;
-                                StudentRecordSQL.Insert();
-                            }
-                        }
-                        StudentClassSQL.UpdateParameters["StudentClassID"].DefaultValue = StudentsGridView.DataKeys[Row.DataItemIndex]["StudentClassID"].ToString();
-
-                        StudentClassSQL.Update();  //Class Changing status update
-
-
-
-
-                        if (KeepPayOrderCheckbox.Checked)
-                        {
-                            UpdateIncomePayorder.Update();
-                        }
-                        else
-                        {
-                            string value= StudentID_Check.ToString();
-                            UpdatePaymantSQL.DeleteParameters["StudentClassID"].DefaultValue = value;
-                            UpdatePaymantSQL.Delete(); //Delete Unpaid Record
-                        }
-                        UpdatePaymantSQL.Update(); //Update Payment                                                   
-                    }                    
-                }                
-                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alert", "alert('Class Changed Successfully!');" +
-                 "window.location='List_Of_Students.aspx';", true);
-                btnSubmit.Enabled = true;
-            }            
+   // Remove trailing comma and space
+          errorStudents = errorStudents.TrimEnd(',', ' ');
+      
+  ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alert", 
+     "alert('⚠️ Cannot change class!\\n\\nThe following students already exist in the target class:\\n" + errorStudents + "\\n\\nPlease deselect these students and try again.');" +
+  "window.location='List_Of_Students.aspx';", true);
+  }
+  else
+    {
+            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alert", "alert('Class Changed Successfully!');" +
+   "window.location='List_Of_Students.aspx';", true);
+                }
+             
+       btnSubmit.Enabled = true;
+            }    
         }
         //----- Validation Method
         private bool IsValidate()  
         {
-            CheckBox SingleCheckBox = new CheckBox();
+   CheckBox SingleCheckBox = new CheckBox();
             ErrorLabel.Text = "";
-            bool check=true;
+ bool check=true;
             bool check1=false;
-            foreach (GridViewRow Row in StudentsGridView.Rows)
+        foreach (GridViewRow Row in StudentsGridView.Rows)
             {
-                SingleCheckBox = Row.FindControl("SingleCheckBox") as CheckBox;
+  SingleCheckBox = Row.FindControl("SingleCheckBox") as CheckBox;
                 if (SingleCheckBox.Checked == false)
-                {
-                    check = false;
-                }
+             {
+         check = false;
+         }
                 else { check1 = true; }
-            }
-            bool flag = false;
-            if (ClassDropDownList.SelectedValue == Re_ClassDropDownList.SelectedValue)
+     }
+      bool flag = false;
+    if (ClassDropDownList.SelectedValue == Re_ClassDropDownList.SelectedValue)
             {
                 ErrorLabel.Text = "You are selected same class.Please select different class !";
-                flag = true;
+        flag = true;
             }
-            else if(check1 == false)
-            {
-                ErrorLabel.Text = "Please check at least one student !";
-                flag = true;
+       else if(check1 == false)
+        {
+           ErrorLabel.Text = "Please check at least one student !";
+       flag = true;
             }
-            return flag;
-        }
+        return flag;
+      }
     }
 }

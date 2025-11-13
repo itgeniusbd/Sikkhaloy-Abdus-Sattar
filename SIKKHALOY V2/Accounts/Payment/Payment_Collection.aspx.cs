@@ -8,6 +8,7 @@ using System.Text;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+using System.Web.Security;
 
 using Education;
 using Microsoft.Ajax.Utilities;
@@ -62,12 +63,55 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             }
         }
 
+        // Handle radio button change event to save to database
+        protected void rbSMS_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                string schoolId = Session["SchoolID"].ToString();
+                int smsValue = rbActive.Checked ? 1 : 0;
+
+                string updateQuery = "UPDATE Account SET PAY_Buttton_SMS_Enable_Disable = @Value WHERE SchoolID = @SchoolID";
+                SqlCommand updateCmd = new SqlCommand(updateQuery, con);
+                updateCmd.Parameters.AddWithValue("@Value", smsValue);
+                updateCmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                con.Open();
+                updateCmd.ExecuteNonQuery();
+                con.Close();
+
+                // Keep the selected state after postback
+                if (smsValue == 1)
+                {
+                    rbActive.Checked = true;
+                    rbInactive.Checked = false;
+                }
+                else
+                {
+                    rbActive.Checked = false;
+                    rbInactive.Checked = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorLabel.Text = "Error updating SMS setting: " + ex.Message;
+            }
+        }
 
         private bool GetLinkPageExist()  // Concession button show/hide
         {
             bool flag = false;
             try
             {
+                // Check if Main Admin using Roles - they should always have access
+                string currentUserName = HttpContext.Current.User.Identity.Name;
+                
+                if (Roles.IsUserInRole(currentUserName, "Admin"))
+                {
+                    return true; // Always show for Main-Admin (Admin role)
+                }
+
+                // For Sub-Admin, check Link_Users table
                 SqlCommand AccountCmd = new SqlCommand("Select * from Link_Users where SchoolID = @SchoolID AND RegistrationID=@RegistrationID and LinkID=3074", con);
                 AccountCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
                 AccountCmd.Parameters.AddWithValue("@RegistrationID", Session["RegistrationID"].ToString());

@@ -150,6 +150,31 @@ namespace EDUCATION.COM.Admission.Promotion_Demotion
             }
             #endregion
 
+            // Check if student already exists in the target class before proceeding
+            string studentId = Request.QueryString["Student"].ToString();
+            string targetClassID = ClassDropDownList.SelectedValue;
+            string schoolId = Session["SchoolID"].ToString();
+            string eduYear = Session["Edu_Year"].ToString();
+
+            SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
+            SqlCommand checkDuplicateCommand = new SqlCommand(
+                "SELECT COUNT(*) FROM StudentsClass WHERE (StudentID = @StudentID) AND (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ClassID = @ClassID)", con);
+            checkDuplicateCommand.Parameters.AddWithValue("@SchoolID", schoolId);
+            checkDuplicateCommand.Parameters.AddWithValue("@EducationYearID", eduYear);
+            checkDuplicateCommand.Parameters.AddWithValue("@StudentID", studentId);
+            checkDuplicateCommand.Parameters.AddWithValue("@ClassID", targetClassID);
+
+            con.Open();
+            int duplicateCount = (int)checkDuplicateCommand.ExecuteScalar();
+            con.Close();
+
+            if (duplicateCount > 0)
+            {
+                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage",
+                    "alert('⚠️ Cannot change class!\\n\\nThis student already exists in the target class.\\n\\nPlease select a different class.');", true);
+                return;
+            }
+
             SubmitButton.Enabled = false;
             bool IS_Optional = false;
             foreach (GridViewRow row in GroupGridView.Rows)

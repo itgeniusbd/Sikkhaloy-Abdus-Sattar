@@ -487,7 +487,7 @@ ORDER BY Income_PayOrder.EndDate"
 
     <!--submit button-->
     <div id="payment-submit" class="mt-4">
-        <h4 id="total-pay-amount"></h4>
+       <h4 id="total-pay-amount"></h4>
 
         <div class="form-inline">
             <div class="form-group">
@@ -506,8 +506,8 @@ ORDER BY Income_PayOrder.EndDate"
 
             <div class="form-group d-print-none">
 
-                <asp:RadioButton ID="rbActive" runat="server" Text="SMS Active" GroupName="Status" Value="1" />
-                <asp:RadioButton ID="rbInactive" runat="server" Text="SMS Inactive" GroupName="Status" Value="0" />
+                <asp:RadioButton ID="rbActive" runat="server" Text="SMS Active" GroupName="Status" Value="1" AutoPostBack="true" OnCheckedChanged="rbSMS_CheckedChanged" />
+                <asp:RadioButton ID="rbInactive" runat="server" Text="SMS Inactive" GroupName="Status" Value="0" AutoPostBack="true" OnCheckedChanged="rbSMS_CheckedChanged" />
 
                 <asp:CheckBox ID="RoleCheckBox" runat="server" Text="Send Payment Roles" />
 
@@ -646,149 +646,155 @@ ORDER BY Income_PayOrder.EndDate"
     </div>
 
     <script>
-        const inputFindId = document.getElementById("<%=SearchIDTextBox.ClientID%>");
+  const inputFindId = document.getElementById("<%=SearchIDTextBox.ClientID%>");
         const searchButton = document.getElementById("<%=SearchButton.ClientID%>");
 
         //find student ids
-        $(`#${inputFindId.id}`).typeahead({
-            source: function (request, result) {
-                $.ajax({
-                    url: "/Handeler/Student_IDs.asmx/GetStudentID",
-                    data: JSON.stringify({ 'ids': request }),
-                    dataType: "json",
-                    type: "POST",
-                    contentType: "application/json; charset=utf-8",
-                    success: function (response) { result(JSON.parse(response.d)); },
-                    error: function (err) { console.log(err) }
-                });
+      $(`#${inputFindId.id}`).typeahead({
+       source: function (request, result) {
+      $.ajax({
+         url: "/Handeler/Student_IDs.asmx/GetStudentID",
+        data: JSON.stringify({ 'ids': request }),
+    dataType: "json",
+    type: "POST",
+ contentType: "application/json; charset=utf-8",
+          success: function (response) { result(JSON.parse(response.d)); },
+      error: function (err) { console.log(err) }
+          });
             },
         });
 
-        function PrintContent() {
+    function PrintContent() {
             $(".Print_ins_Name").show();
             $("#Print_InsName").text($("#InstitutionName").text());
 
-            var DocumentContainer = document.getElementById('modalDiv');
-            var WindowObject = window.open("", "PrintWindow",
-                "width=800,height=650,top=50, left=50,toolbars=no,scrollbars=yes,status=no,resizable=yes");
-            WindowObject.document.write();
-            WindowObject.document.write('<link rel="stylesheet" type="text/css" href="path-to-my-stylesheet.css">')
-            WindowObject.document.writeln(DocumentContainer.innerHTML);
-            WindowObject.document.close();
+     var DocumentContainer = document.getElementById('modalDiv');
+          var WindowObject = window.open("", "PrintWindow",
+    "width=800,height=650,top=50, left=50,toolbars=no,scrollbars=yes,status=no,resizable=yes");
+ WindowObject.document.write();
+       WindowObject.document.write('<link rel="stylesheet" type="text/css" href="path-to-my-stylesheet.css">')
+       WindowObject.document.writeln(DocumentContainer.innerHTML);
+     WindowObject.document.close();
             WindowObject.focus();
-            WindowObject.print();
-            WindowObject.close();
+        WindowObject.print();
+     WindowObject.close();
         }
 
 
 
-        function Modal_Info_Prnt() {
+    function Modal_Info_Prnt() {
             /*$(".Print_ins_Name").show();*/
-            /*$("#Print_InsName").text($("#InstitutionName").text());*/
+         /*$("#Print_InsName").text($("#InstitutionName").text());*/
 
 
-            $('#modalDiv').css({ 'height': 'auto', 'overflow': 'auto' }).removeClass('modal-body');
+   $('#modalDiv').css({ 'height': 'auto', 'overflow': 'auto' }).removeClass('modal-body');
             /*$('#myModal').modal('hide');*/
 
-            setTimeout(function () {
-                $('#modalDiv').addClass('modal-body');
-            }, 1000);
+  setTimeout(function () {
+           $('#modalDiv').addClass('modal-body');
+    }, 1000);
 
             $("#modalDiv").printThis({
-                debug: false,
+  debug: false,
                 importCSS: true,
-                importStyle: true,
-                printContainer: true,
-                //loadCSS: "CSS/Present_Due.css",
-                pageTitle: "Current Due",
-                removeInline: false,
-                printDelay: 200,
-                header: null,
-                formValues: true
-            });
+importStyle: true,
+printContainer: true,
+   //loadCSS: "CSS/Present_Due.css",
+ pageTitle: "Current Due",
+        removeInline: false,
+         printDelay: 200,
+       header: null,
+        formValues: true
+   });
         }
         //student id press enter to submit
         inputFindId.addEventListener("keyup", function (event) {
-            if (event.keyCode === 13) {
-                searchButton.click();
-                return false;
-            }
+    if (event.keyCode === 13) {
+         searchButton.click();
+            return false;
+   }
         });
 
-        //show payment submit area if dues
-        const currentSessionDue = document.getElementById("<%=DueGridView.ClientID%>");
+   //show payment submit area if dues
+      const currentSessionDue = document.getElementById("<%=DueGridView.ClientID%>");
         const othersSessionDue = document.getElementById("<%=OtherSessionGridView.ClientID%>");
         const paymentSubmit = document.getElementById("payment-submit");
 
         if (currentSessionDue && currentSessionDue.rows.length || othersSessionDue && othersSessionDue.rows.length) {
-            paymentSubmit.style.display = "block";
+    paymentSubmit.style.display = "block";
         }
 
         //Uncheck due select checkbox if page reload
         const checkboxes = document.querySelectorAll("input[type='checkbox']");
-        for (const checkbox of checkboxes) {
-            checkbox.checked = false;
+      for (const checkbox of checkboxes) {
+       checkbox.checked = false;
         }
 
         //due checkbox and input due amount
-        (function () {
+    (function () {
             //calculate total dues
-            function calculateTotal() {
-                const inputedDues = document.querySelectorAll(".due-input:not([disabled])");
-                let total = 0;
-                inputedDues.forEach((item => {
-                    total += Number(item.value);
-                }));
+         function calculateTotal() {
+              const inputedDues = document.querySelectorAll(".due-input:not([disabled])");
+ let total = 0;
+        inputedDues.forEach((item => {
+    total += Number(item.value);
+  }));
 
-                return total;
-            }
+         return total;
+          }
 
-            //click checkbox and input dues
+   //click checkbox and input dues
             const totalPayAmount = document.getElementById("total-pay-amount");
-            const totalPayAmountFixed = document.getElementById("grand-total-fixed");
-            const paymentTable = document.getElementById("payment-container");
+  const totalPayAmountFixed = document.getElementById("grand-total-fixed");
+       const paymentTable = document.getElementById("payment-container");
 
-            paymentTable.addEventListener("input", function (evt) {
-                const element = evt.target;
+    paymentTable.addEventListener("input", function (evt) {
+       const element = evt.target;
 
                 if (element.type === "checkbox") {
-                    element.closest("tr").classList.toggle("row-selected");
+         element.closest("tr").classList.toggle("row-selected");
 
-                    const input = element.closest("tr").querySelector('.due-input');
-                const consinput = element.closest("tr").querySelector('.concession-input');
-                input.disabled = !element.checked;
-     consinput.disabled = !element.checked;
+          const input = element.closest("tr").querySelector('.due-input');
+      const consinput = element.closest("tr").querySelector('.concession-input');
+   input.disabled = !element.checked;
+              consinput.disabled = !element.checked;
+                }
+
+  // Real-time validation for concession input
+    if (element.classList.contains('concession-input')) {
+   const row = element.closest("tr");
+ const dueCell = row.cells[10]; // Due column
+       
+      const due = parseFloat(dueCell.innerText) || 0;
+ const concession = parseFloat(element.value) || 0;
+         
+  // Validate concession against due
+              if (concession > due) {
+    element.style.borderColor = 'red';
+                element.style.backgroundColor = '#fff5f5';
+   element.title = 'কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!';
+        
+            // Show notification
+     $(element).notify("কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!", { 
+    position: "top",
+    className: "error"
+       });
+      
+   // Reset to maximum allowed (due amount)
+              element.value = due;
+          } else {
+   element.style.borderColor = '';
+                element.style.backgroundColor = '';
+          element.title = '';
+     }
       }
-
-     // Real-time validation for concession input
-  if (element.classList.contains('concession-input')) {
-           const row = element.closest("tr");
-  const feeCell = row.cells[6]; // Fee column
-        const paidCell = row.cells[9]; // Paid column
-              const dueCell = row.cells[10]; // Due column
-       
-         const fee = parseFloat(feeCell.innerText) || 0;
-        const paid = parseFloat(paidCell.innerText) || 0;
-             const due = parseFloat(dueCell.innerText) || 0;
-        const concession = parseFloat(element.value) || 0;
-       
-   if (concession > due) {
-            element.style.borderColor = 'red';
-         element.style.backgroundColor = '#fff5f5';
-                 element.title = 'কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!';
-                    } else {
-    element.style.borderColor = '';
-    element.style.backgroundColor = '';
-     element.title = '';
-   }
-   }
 
          const total = `Total Amount: <span id="total-amount-pay">${calculateTotal()}</span> Tk`;
 
-     totalPayAmount.innerHTML = total;
-       totalPayAmountFixed.innerHTML = total;
-   });
-     })();
+    totalPayAmount.innerHTML = total;
+  totalPayAmountFixed.innerHTML = total;
+            });
+        })();
 
         //paid-record-modal
         function openModal() {
@@ -796,79 +802,92 @@ ORDER BY Income_PayOrder.EndDate"
 
             //calculate total rows paid amount
             const paids = document.querySelectorAll(".paid-record-paid-amount");
-            const paidGrandTotal = document.getElementById("paid-record-grand-total");
+    const paidGrandTotal = document.getElementById("paid-record-grand-total");
 
-            let total = 0;
+  let total = 0;
             paids.forEach((item => {
-                total += Number(item.textContent);
-            }));
+        total += Number(item.textContent);
+     }));
 
-            if (paidGrandTotal)
-                paidGrandTotal.textContent = `Total: ${total} tk`;
+         if (paidGrandTotal)
+           paidGrandTotal.textContent = `Total: ${total} tk`;
         }
 
 
         //validate form before submit pay
         function validateForm() {
-            const isChecked = [...checkboxes].some(item => item.checked);
+        const isChecked = [...checkboxes].some(item => item.checked);
 
             if (isChecked) {
-      return true;
+    // Validate all concession fields before payment
+        const paymentTable = document.getElementById("payment-container");
+         const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
+            
+     for (let concessionInput of concessionInputs) {
+         const row = concessionInput.closest("tr");
+          const dueCell = row.cells[10]; // Due column
+      
+             const due = parseFloat(dueCell.innerText) || 0;
+         const concession = parseFloat(concessionInput.value) || 0;
+ 
+                if (concession > due) {
+           alert('কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot be greater than due amount!');
+     concessionInput.focus();
+       return false;
+     }
+      }
+                return true;
             }
 
   $("#payment-submit").notify("Select payment to pay!", { position: "top left" });
             return false;
-        }
+      }
 
-     //validate concession before update
-   function validateConcession() {
-     const paymentTable = document.getElementById("payment-container");
-   const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
-     
-     for (let concessionInput of concessionInputs) {
-    const row = concessionInput.closest("tr");
-   const feeCell = row.cells[6]; // Fee column
-        const paidCell = row.cells[9]; // Paid column
-          const dueCell = row.cells[10]; // Due column
-         
-    const fee = parseFloat(feeCell.innerText) || 0;
-    const paid = parseFloat(paidCell.innerText) || 0;
-      const due = parseFloat(dueCell.innerText) || 0;
-        const concession = parseFloat(concessionInput.value) || 0;
- 
-             // Check if concession is greater than due amount
-            if (concession > due) {
-          alert('কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot be greater than due amount!');
-           concessionInput.focus();
-           return false;
+        //validate concession before update
+        function validateConcession() {
+    const paymentTable = document.getElementById("payment-container");
+        const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
+            
+   for (let concessionInput of concessionInputs) {
+                const row = concessionInput.closest("tr");
+    const dueCell = row.cells[10]; // Due column
+    
+       const due = parseFloat(dueCell.innerText) || 0;
+      const concession = parseFloat(concessionInput.value) || 0;
+       
+        // Check if concession is greater than due amount
+     if (concession > due) {
+                  alert('কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot be greater than due amount!');
+          concessionInput.focus();
+   return false;
          }
-        }
-    return true;
-  }
+     }
+            return true;
+   }
 
         //show sticky bottom grand total
-   $(window).scroll(function () {
-  const totalAmountElement = document.getElementById("total-amount-pay");
-if (!totalAmountElement) return;
-    
-    const totalPayAmount = parseFloat(totalAmountElement.textContent) || 0;
-    if (totalPayAmount === 0) {
-    $('#grand-total-fixed').fadeOut();
-             return;
-     }
+      $(window).scroll(function () {
+        const totalAmountElement = document.getElementById("total-amount-pay");
+ if (!totalAmountElement) return;
+      
+ const totalPayAmount = parseFloat(totalAmountElement.textContent) || 0;
+            if (totalPayAmount === 0) {
+  $('#grand-total-fixed').fadeOut();
+     return;
+         }
 
- if ($(window).scrollTop() + $(window).height() > $(document).height() - 300) {
-          $('#grand-total-fixed').fadeOut();
-   }
-            else {
+         if ($(window).scrollTop() + $(window).height() > $(document).height() - 300) {
+         $('#grand-total-fixed').fadeOut();
+    }
+        else {
        $('#grand-total-fixed').fadeIn();
-            }
+          }
         });
 
-     $(document).ready(function () {
+        $(document).ready(function () {
             function openModal() {
-         $('#myModal').modal('show');
-     }
+     $('#myModal').modal('show');
+            }
         });
     </script>
 </asp:Content>

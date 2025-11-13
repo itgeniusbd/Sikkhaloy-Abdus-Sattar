@@ -213,23 +213,27 @@
                 <asp:Label ID="ErrorLabel" runat="server" ForeColor="Red"></asp:Label>
             </div>
 
-            <asp:SqlDataSource ID="StudentClassSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="INSERT INTO [StudentsClass] ([SchoolID], [RegistrationID], [StudentID], [ClassID], [SectionID], [ShiftID], [SubjectGroupID], [EducationYearID], [Date]) VALUES (@SchoolID, @RegistrationID, @StudentID, @ClassID, @SectionID, @ShiftID, @SubjectGroupID, @EducationYearID, Getdate())" SelectCommand="SELECT * FROM StudentsClass " UpdateCommand="UPDATE StudentsClass SET EducationYearID = @EducationYearID, New_StudentClassID = @New_StudentClassID, Promotion_Demotion_Year = @Promotion_Demotion_Year, Class_Status = @Class_Status WHERE (StudentClassID = @StudentClassID)">
+            <asp:SqlDataSource ID="StudentClassSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS (SELECT * FROM  StudentsClass WHERE (StudentID = @StudentID) AND (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ClassID = @ClassID))
+BEGIN
+INSERT INTO [StudentsClass] ([SchoolID], [RegistrationID], [StudentID], [ClassID], [SectionID], [ShiftID], [SubjectGroupID], [RollNo], [EducationYearID], [Date]) VALUES (@SchoolID, @RegistrationID, @StudentID, @ClassID, @SectionID, @ShiftID, @SubjectGroupID, @RollNo, @EducationYearID, Getdate())
+END" SelectCommand="SELECT * FROM StudentsClass " UpdateCommand="UPDATE StudentsClass SET EducationYearID = @EducationYearID, New_StudentClassID = @New_StudentClassID, Promotion_Demotion_Year = @Promotion_Demotion_Year, Class_Status = @Class_Status WHERE (StudentClassID = @StudentClassID)">
                 <InsertParameters>
                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                     <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                     <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
-                    <asp:QueryStringParameter Name="StudentID" QueryStringField="Student" Type="Int32" />
+                    <asp:Parameter Name="StudentID" Type="Int32" />
                     <asp:ControlParameter ControlID="Re_ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" Type="Int32" />
                     <asp:SessionParameter Name="SectionID" SessionField="SectionID" Type="String" />
                     <asp:SessionParameter Name="ShiftID" SessionField="ShiftID" Type="String" />
                     <asp:SessionParameter Name="SubjectGroupID" SessionField="GroupID" Type="String" />
+                    <asp:Parameter Name="RollNo" Type="String" />
                 </InsertParameters>
                 <UpdateParameters>
                     <asp:Parameter DefaultValue="0" Name="EducationYearID" />
                     <asp:SessionParameter DefaultValue="" Name="New_StudentClassID" SessionField="StudentClassID" />
                     <asp:SessionParameter DefaultValue="" Name="Promotion_Demotion_Year" SessionField="Edu_Year" />
                     <asp:ControlParameter ControlID="PDRadioButtonList" DefaultValue="" Name="Class_Status" PropertyName="SelectedValue" />
-                    <asp:QueryStringParameter Name="StudentClassID" QueryStringField="Old_Class" />
+                    <asp:Parameter Name="StudentClassID" />
                 </UpdateParameters>
             </asp:SqlDataSource>
             <asp:SqlDataSource ID="StudentRecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
