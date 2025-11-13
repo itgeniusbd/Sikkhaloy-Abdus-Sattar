@@ -583,6 +583,13 @@ ORDER BY Income_PayOrder.EndDate"
                                                 <HeaderStyle HorizontalAlign="Center" />
                                                 <ItemStyle HorizontalAlign="Center" />
                                             </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="Printed Receipt No">
+                                               <ItemTemplate>
+                        <%# string.IsNullOrEmpty(Eval("PrintedReceiptNo").ToString()) ? "-" : Eval("PrintedReceiptNo") %>
+                                    </ItemTemplate>
+                                               <HeaderStyle HorizontalAlign="Center" />
+                                                <ItemStyle HorizontalAlign="Center" />
+                                            </asp:TemplateField>
                                             <asp:TemplateField HeaderText="Paid Date & Time">
                                                 <ItemTemplate>
 
@@ -606,12 +613,12 @@ ORDER BY Income_PayOrder.EndDate"
                                             <asp:TemplateField HeaderText=" Re-Print">
                                                 <ItemTemplate>
 
-                                                    <asp:LinkButton ID="Print_LinkButton" runat="server" CommandArgument='<%# Eval("MoneyReceiptID") %>' ToolTip="Click To Print" OnCommand="Print_LinkButton_Command"><i class="fa fa-print"></i> Print</asp:LinkButton></small>
+                                                    <asp:LinkButton ID="Print_LinkButton" runat="server" CommandArgument='<%# Eval("MoneyReceiptID") %>' ToolTip="Click To Print" OnCommand="Print_LinkButton_Command" OnClientClick="return closeModalBeforePrint();"><i class="fa fa-print"></i> Print</asp:LinkButton></small>
                                                 </ItemTemplate>
                                                 <HeaderStyle HorizontalAlign="Center" />
                                                 <ItemStyle HorizontalAlign="Center" />
                                             </asp:TemplateField>
-                                            <asp:TemplateField HeaderText=" Received By">
+                                            <asp:TemplateField HeaderText="Received By">
                                                 <ItemTemplate>
                                                     <%# Eval("Name") %>
                                                 </ItemTemplate>
@@ -623,8 +630,12 @@ ORDER BY Income_PayOrder.EndDate"
                                 </div>
 
                                 <asp:SqlDataSource ID="AllPaidRecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                                    SelectCommand="SELECT Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceiptID,Admin.FirstName + ' ' + Admin.LastName AS Name FROM Income_MoneyReceipt INNER JOIN Student ON Income_MoneyReceipt.StudentID = Student.StudentID Inner join Admin ON Income_MoneyReceipt.RegistrationID=Admin.RegistrationID WHERE (Income_MoneyReceipt.EducationYearID = @EducationYearID) AND (Student.ID = @ID) AND (Income_MoneyReceipt.SchoolID = @SchoolID)
-                                    ORDER BY Income_MoneyReceipt.PaidDate DESC">
+                                    SelectCommand="SELECT Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.PrintedReceiptNo, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceiptID, Admin.FirstName + ' ' + Admin.LastName AS Name 
+     FROM Income_MoneyReceipt 
+             INNER JOIN Student ON Income_MoneyReceipt.StudentID = Student.StudentID 
+         INNER JOIN Admin ON Income_MoneyReceipt.RegistrationID = Admin.RegistrationID 
+  WHERE (Income_MoneyReceipt.EducationYearID = @EducationYearID) AND (Student.ID = @ID) AND (Income_MoneyReceipt.SchoolID = @SchoolID)
+      ORDER BY Income_MoneyReceipt.PaidDate DESC">
                                     <SelectParameters>
                                         <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                                         <asp:ControlParameter ControlID="SearchIDTextBox" Name="ID" PropertyName="Text" />
@@ -818,51 +829,43 @@ printContainer: true,
         function validateForm() {
         const isChecked = [...checkboxes].some(item => item.checked);
 
-            if (isChecked) {
-    // Validate all concession fields before payment
-        const paymentTable = document.getElementById("payment-container");
-         const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
-            
-     for (let concessionInput of concessionInputs) {
-         const row = concessionInput.closest("tr");
-          const dueCell = row.cells[10]; // Due column
-      
-             const due = parseFloat(dueCell.innerText) || 0;
-         const concession = parseFloat(concessionInput.value) || 0;
- 
-                if (concession > due) {
-           alert('কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot be greater than due amount!');
-     concessionInput.focus();
-       return false;
-     }
-      }
-                return true;
+          if (isChecked) {
+    // ✅ REMOVED CONCESSION VALIDATION - Only check if payment is selected
+    // Concession validation only needed in Update Concession Button (validateConcession function)
+      return true;
             }
 
   $("#payment-submit").notify("Select payment to pay!", { position: "top left" });
-            return false;
-      }
+ return false;
+   }
 
         //validate concession before update
         function validateConcession() {
     const paymentTable = document.getElementById("payment-container");
-        const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
-            
+      const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
+       
    for (let concessionInput of concessionInputs) {
-                const row = concessionInput.closest("tr");
-    const dueCell = row.cells[10]; // Due column
+const row = concessionInput.closest("tr");
+            
+            // Get Fee column (column index 6) and Paid column (column index 9)
+    const feeCell = row.cells[6]; // Fee column
+    const paidCell = row.cells[9]; // Paid column
     
-       const due = parseFloat(dueCell.innerText) || 0;
+  const fee = parseFloat(feeCell.innerText) || 0;
+            const paid = parseFloat(paidCell.innerText) || 0;
       const concession = parseFloat(concessionInput.value) || 0;
        
-        // Check if concession is greater than due amount
-     if (concession > due) {
-                  alert('কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot be greater than due amount!');
-          concessionInput.focus();
+        // Check if concession exceeds (Fee - Paid)
+ // Logic: You can't give concession more than what's left to pay
+      const maxConcessionAllowed = fee - paid;
+         
+if (concession > maxConcessionAllowed) {
+     alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot exceed remaining amount!\n\nFee: ' + fee + ' TK\nPaid: ' + paid + ' TK\nMax Concession Allowed: ' + maxConcessionAllowed + ' TK\nYou entered: ' + concession + ' TK');
+      concessionInput.focus();
    return false;
          }
      }
-            return true;
+  return true;
    }
 
         //show sticky bottom grand total
@@ -889,5 +892,18 @@ printContainer: true,
      $('#myModal').modal('show');
             }
         });
+
+        // Close modal before printing
+     function closeModalBeforePrint() {
+       $('#myModal').modal('hide');
+            
+      // Small delay to ensure modal is fully hidden before print dialog opens
+     setTimeout(function() {
+    // Continue with server-side processing
+      return true;
+       }, 300);
+   
+      return true;
+   }
     </script>
 </asp:Content>

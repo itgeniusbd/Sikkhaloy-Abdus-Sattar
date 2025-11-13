@@ -7,11 +7,22 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Employee {
-    
-    
-    public partial class Acadamic_Calender {
-        
+namespace EDUCATION.COM.Employee
+{
+
+
+    public partial class Acadamic_Calender
+    {
+
+        /// <summary>
+        /// ContainUpdatePanel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.UpdatePanel ContainUpdatePanel;
+
         /// <summary>
         /// HolidayCalendar control.
         /// </summary>
@@ -20,7 +31,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Calendar HolidayCalendar;
-        
+
         /// <summary>
         /// UpdateProgress control.
         /// </summary>

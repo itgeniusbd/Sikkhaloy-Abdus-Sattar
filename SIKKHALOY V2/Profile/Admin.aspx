@@ -1,10 +1,12 @@
-﻿<%@ Page Title="Dashboard" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Admin.aspx.cs" Inherits="EDUCATION.COM.Profile.Admin" %>
+﻿<%@ Page Title="Dashboard" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Admin.aspx.cs" Inherits="EDUCATION.COM.Profile.Admin" Culture="auto" UICulture="auto" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="/Employee/CSS/Acadamic_Calender.css" rel="stylesheet" />
     <link href="css/Admin.css?v=1.2" rel="stylesheet" />
     <!-- Dashboard Custom Styles -->
     <link href="css/dashboard-styles.css?v=1.0" rel="stylesheet" />
+    <!-- Word of the Day Styles -->
+    <link href="css/WordOfDay.css?v=1.0" rel="stylesheet" />
     <style>
         .due-invoice-modal {
             background-color: #fff3cd;
@@ -22,6 +24,14 @@
         .due-records {
             font-size: 1.2rem;
             color: #856404;
+        }
+        .blink-icon {
+            animation: blinking 1.2s infinite;
+        }
+        @keyframes blinking {
+            0% { color: #fff; }
+            50% { color: #dc3545; }
+            100% { color: #fff; }
         }
     </style>
 </asp:Content>
@@ -63,31 +73,69 @@
         </div>
     </div>
 
+    <!-- Dashboard Header with Word of the Day -->
     <div class="card my-3 wow fadeIn">
-        <div class="card-body dashboard-header" style="padding: 20px;">
-            <h4 class="dashboard-title">Dashboard</h4>
-            <div class="dashboard-links">
-                <a href="../ID_Cards/Find_Students.aspx" class="gradient-link find-student">
-                    <i class="fa fa-search"></i>
-                    <span class="btn-text-full">FIND STUDENT</span>
-                    <span class="btn-text-short d-none">FIND</span>
-                </a>
-                <a href="../Accounts/Payment/Payment_Collection.aspx" class="gradient-link collect-payment">
-                    <i class="fa fa-credit-card"></i>
-                    <span class="btn-text-full">COLLECT PAYMENT</span>
-                    <span class="btn-text-short d-none">PAYMENT</span>
-                </a>
-                <%if (EmployeeRepeater.Items.Count > 0 || StudentRepeater.Items.Count > 0) { %>
-                <a target="_blank" href="../Attendances/Online_Display/Attendance_Slider.aspx" class="gradient-link attendance-display">
-                    <i class="fa fa-television"></i>
-                    <span class="btn-text-full">ATTENDANCE DISPLAY</span>
-                    <span class="btn-text-short d-none">ATTENDANCE</span>
-                </a>
-                <%} %>
-            </div>
+        <div class="card-body" style="padding: 15px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+       <div class="row align-items-center">
+         <!-- Left side: Dashboard Title -->
+         <div class="col-lg-3 col-md-4 mb-2 mb-md-0">
+    <h4 class="mb-0" style="color: white; font-weight: 600;">
+             <i class="fa fa-tachometer-alt"></i> Dashboard
+</h4>
+        </div>
+    
+   <!-- Middle: Word of the Day -->
+<div class="col-lg-6 col-md-8 mb-2 mb-md-0">
+       <div class="word-of-day-inline">
+   <asp:FormView ID="WordOfDayFormView" runat="server" DataSourceID="WordOfDaySQL" RenderOuterTable="false">
+       <ItemTemplate>
+   <div class="word-inline-display">
+  <span class="word-label">
+ <i class="fa fa-book"></i> <span class="d-none d-md-inline">Vucabelury of the Day</span><span class="d-md-none">Word</span>
+      </span>
+   <strong class="english-word-inline"><%# Eval("EnglishWord") %></strong>
+     <span class="bengali-inline">
+ <i class="fa fa-language"></i> <%# Eval("BengaliMeaning") %>
+      </span>
+   </div>
+</ItemTemplate>
+   <EmptyDataTemplate>
+ <span class="text-white-50">
+<i class="fa fa-book"></i> No word available
+      </span>
+     </EmptyDataTemplate>
+    </asp:FormView>
+      <asp:SqlDataSource ID="WordOfDaySQL" runat="server" 
+    ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+   SelectCommand="SELECT TOP 1 
+  CAST(EnglishWord AS NVARCHAR(100)) AS EnglishWord, 
+    CAST(BengaliMeaning AS NVARCHAR(200)) AS BengaliMeaning, 
+CAST(PartOfSpeech AS NVARCHAR(50)) AS PartOfSpeech, 
+      CAST(ExampleSentence AS NVARCHAR(500)) AS ExampleSentence, 
+  CAST(Pronunciation AS NVARCHAR(100)) AS Pronunciation 
+FROM WordOfTheDay 
+WHERE IsActive = 1 
+       ORDER BY NEWID()">
+   </asp:SqlDataSource>
+  </div>
+     </div>
+          
+    <!-- Right side: Action Buttons -->
+          <div class="col-lg-3 col-md-12">
+       <div class="dashboard-actions">
+     <a href="../ID_Cards/Find_Students.aspx" class="btn-action btn-find">
+       <i class="fa fa-search"></i> FIND STUDENT
+     </a>
+    <a href="../Accounts/Payment/Payment_Collection.aspx" class="btn-action btn-payment">
+          <i class="fa fa-credit-card"></i> COLLECT PAYMENT
+            </a>
+     </div>
+     </div>
+       </div>
         </div>
     </div>
-    <label id="results"></label>
+
+ <label id="results"></label>
     <div class="row wow fadeIn">
         <div class="col-lg-8 mb-4">
             <!-- Old New Student-->
@@ -260,20 +308,27 @@ WHERE (Student.DateofBirth IS NOT NULL) AND
 
             <!-- Calendar-->
             <div class="card mb-4">
-                <asp:UpdatePanel ID="ContainUpdatePanel" runat="server">
-                    <ContentTemplate>
-                        <div class="table-responsive" style="overflow-y: hidden !important;">
-                            <asp:Calendar ID="HolidayCalendar" CssClass="myCalendar" OnDayRender="HolidayCalendar_DayRender" runat="server" NextMonthText="." PrevMonthText="." SelectMonthText="»" SelectWeekText="›" CellPadding="0" FirstDayOfWeek="Saturday" SelectionMode="None">
-                                <DayStyle CssClass="myCalendarDay" />
-                                <DayHeaderStyle CssClass="myCalendarDayHeader" />
-                                <SelectedDayStyle CssClass="myCalendarSelector" />
-                                <SelectorStyle CssClass="myCalendarSelector" />
-                                <NextPrevStyle CssClass="myCalendarNextPrev" />
-                                <TitleStyle CssClass="myCalendarTitle" />
-                            </asp:Calendar>
-                        </div>
-                    </ContentTemplate>
-                </asp:UpdatePanel>
+           <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+             <i class="fa fa-calendar-alt" aria-hidden="true"></i>
+ <strong>একাডেমিক ক্যালেন্ডার</strong> | Academic Calendar | التقويم الأكاديمي
+      <small class="pull-right" style="opacity: 0.9;">
+  <i class="fa fa-globe"></i> ইংরেজি | বাংলা | আরবি
+        </small>
+   </div>
+  <asp:UpdatePanel ID="ContainUpdatePanel" runat="server">
+   <ContentTemplate>
+ <div class="table-responsive" style="overflow-y: hidden !important;">
+    <asp:Calendar ID="HolidayCalendar" CssClass="myCalendar" OnDayRender="HolidayCalendar_DayRender" runat="server" NextMonthText="." PrevMonthText="." SelectMonthText="»" SelectWeekText="›" CellPadding="0" FirstDayOfWeek="Saturday" SelectionMode="None">
+        <DayStyle CssClass="myCalendarDay" />
+      <DayHeaderStyle CssClass="myCalendarDayHeader" />
+                 <SelectedDayStyle CssClass="myCalendarSelector" />
+          <SelectorStyle CssClass="myCalendarSelector" />
+                <NextPrevStyle CssClass="myCalendarNextPrev" />
+    <TitleStyle CssClass="myCalendarTitle" />
+    </asp:Calendar>
+        </div>
+        </ContentTemplate>
+      </asp:UpdatePanel>
             </div>
         </div>
 

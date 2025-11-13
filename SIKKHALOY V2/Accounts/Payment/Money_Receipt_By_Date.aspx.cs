@@ -1,5 +1,7 @@
 ﻿using Education;
 using System;
+using System.Configuration;
+using System.Data.SqlClient;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,6 +13,12 @@ namespace EDUCATION.COM.Accounts.Payment
 {
     public partial class Money_Receipt_By_Date : System.Web.UI.Page
     {
+        private string CurrentMoneyReceiptID
+        {
+            get { return ViewState["MoneyReceiptID"]?.ToString(); }
+            set { ViewState["MoneyReceiptID"] = value; }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(Request.QueryString["s_icD"]) || string.IsNullOrEmpty(Request.QueryString["mN_R"]))
@@ -22,11 +30,14 @@ namespace EDUCATION.COM.Accounts.Payment
             if (this.IsPostBack) return;
             try
             {
+                string decryptedMoneyReceiptID = Decrypt(HttpUtility.UrlDecode(Request.QueryString["mN_R"]));
+                CurrentMoneyReceiptID = decryptedMoneyReceiptID;
+
                 StudentInfoSQL.SelectParameters["ID"].DefaultValue = Decrypt(HttpUtility.UrlDecode(Request.QueryString["s_icD"]));
                 ID_DueDetailsODS.SelectParameters["ID"].DefaultValue = Decrypt(HttpUtility.UrlDecode(Request.QueryString["s_icD"]));
-                MoneyRSQL.SelectParameters["MoneyReceiptID"].DefaultValue = Decrypt(HttpUtility.UrlDecode(Request.QueryString["mN_R"]));
-                PaidDetailsSQL.SelectParameters["MoneyReceiptID"].DefaultValue = Decrypt(HttpUtility.UrlDecode(Request.QueryString["mN_R"]));
-                ReceivedBySQL.SelectParameters["MoneyReceiptID"].DefaultValue = Decrypt(HttpUtility.UrlDecode(Request.QueryString["mN_R"]));
+                MoneyRSQL.SelectParameters["MoneyReceiptID"].DefaultValue = decryptedMoneyReceiptID;
+                PaidDetailsSQL.SelectParameters["MoneyReceiptID"].DefaultValue = decryptedMoneyReceiptID;
+                ReceivedBySQL.SelectParameters["MoneyReceiptID"].DefaultValue = decryptedMoneyReceiptID;
             }
             catch { ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Something went wrong!')", true); }
         }
@@ -153,6 +164,90 @@ namespace EDUCATION.COM.Accounts.Payment
             if (isSentSMS)
             {
                 Response.Redirect("Payment_Collection_By_Date.aspx");
+            }
+        }
+
+        protected void UpdatePrintedReceiptButton_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(CurrentMoneyReceiptID))
+            {
+                return;
+            }
+
+            // Get button and find the FormView
+            Button btn = (Button)sender;
+            FormView formView = (FormView)btn.NamingContainer;
+
+            if (formView == null)
+            {
+                return;
+            }
+
+            // Get controls from FormView ItemTemplate
+            TextBox printedReceiptNoTextBox = (TextBox)formView.FindControl("PrintedReceiptNoTextBox");
+            Label updateMessageLabel = (Label)formView.FindControl("UpdateMessageLabel");
+
+            if (printedReceiptNoTextBox == null || updateMessageLabel == null)
+            {
+                return;
+            }
+
+            string printedReceiptNo = printedReceiptNoTextBox.Text.Trim();
+
+            if (string.IsNullOrEmpty(printedReceiptNo))
+            {
+                updateMessageLabel.Text = "Please enter a number!";
+                updateMessageLabel.ForeColor = System.Drawing.Color.Red;
+                return;
+            }
+
+            try
+            {
+                // Check if this Printed Receipt Number already exists for another receipt
+                string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    string checkQuery = @"SELECT COUNT(*) FROM Income_MoneyReceipt 
+              WHERE PrintedReceiptNo = @PrintedReceiptNo 
+          AND MoneyReceiptID != @CurrentMoneyReceiptID 
+      AND SchoolID = @SchoolID";
+
+                    SqlCommand checkCmd = new SqlCommand(checkQuery, con);
+                    checkCmd.Parameters.AddWithValue("@PrintedReceiptNo", printedReceiptNo);
+                    checkCmd.Parameters.AddWithValue("@CurrentMoneyReceiptID", CurrentMoneyReceiptID);
+                    checkCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+
+                    con.Open();
+                    int count = (int)checkCmd.ExecuteScalar();
+                    con.Close();
+
+                    if (count > 0)
+                    {
+                        updateMessageLabel.Text = "❌ This number already exists! Use a unique number.";
+                        updateMessageLabel.ForeColor = System.Drawing.Color.Red;
+                        return;
+                    }
+                }
+
+                // If unique, proceed with update
+                MoneyRSQL.UpdateParameters["PrintedReceiptNo"].DefaultValue = printedReceiptNo;
+                MoneyRSQL.UpdateParameters["MoneyReceiptID"].DefaultValue = CurrentMoneyReceiptID;
+                MoneyRSQL.Update();
+
+                updateMessageLabel.Text = "✓ Updated!";
+                updateMessageLabel.ForeColor = System.Drawing.Color.Green;
+
+                // Refresh to show updated value
+                ReceiptFormView.DataBind();
+
+                // Hide message after 3 seconds
+                ScriptManager.RegisterStartupScript(this, GetType(), "HideMsg",
+                         "setTimeout(function(){ var label = document.getElementById('" + updateMessageLabel.ClientID + "'); if(label) label.style.display='none'; }, 3000);", true);
+            }
+            catch (Exception ex)
+            {
+                updateMessageLabel.Text = "Error: " + ex.Message;
+                updateMessageLabel.ForeColor = System.Drawing.Color.Red;
             }
         }
     }

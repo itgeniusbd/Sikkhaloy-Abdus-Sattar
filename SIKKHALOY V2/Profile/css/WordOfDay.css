@@ -1,0 +1,380 @@
+/* ========================================
+   Word of the Day - Modern Elegant Design
+   ======================================== */
+
+/* Main container with gradient background */
+.word-of-day-inline {
+    background: linear-gradient(135deg, 
+     rgba(255, 215, 0, 0.15) 0%, 
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 215, 0, 0.15) 100%);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 215, 0, 0.4);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3),
+         inset 0 1px 3px rgba(255, 255, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    animation: gentleGlow 4s ease-in-out infinite;
+}
+
+/* Gentle glow animation */
+@keyframes gentleGlow {
+    0%, 100% {
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3),
+   inset 0 1px 3px rgba(255, 255, 255, 0.3);
+    }
+    50% {
+      box-shadow: 0 6px 25px rgba(255, 215, 0, 0.5),
+  inset 0 1px 3px rgba(255, 255, 255, 0.5);
+    }
+}
+
+/* Subtle wave background */
+.word-of-day-inline::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, 
+      rgba(255, 215, 0, 0.1) 0%, 
+ transparent 70%);
+    animation: rotateGradient 15s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotateGradient {
+    from {
+        transform: rotate(0deg);
+    }
+  to {
+   transform: rotate(360deg);
+    }
+}
+
+/* Content wrapper */
+.word-inline-display {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  color: white;
+    font-size: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Icon and label container */
+.word-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    padding: 4px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+    animation: labelPulse 3s ease-in-out infinite;
+}
+
+@keyframes labelPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.03);
+    }
+}
+
+/* Book icon styling */
+.word-label i {
+    font-size: 18px;
+    color: #ffd700;
+    animation: bookFlip 3s ease-in-out infinite;
+    display: inline-block;
+}
+
+@keyframes bookFlip {
+    0%, 100% {
+        transform: rotateY(0deg);
+    }
+    50% {
+        transform: rotateY(180deg);
+    }
+}
+
+/* English word styling */
+.english-word-inline {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffd700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5),
+     0 0 10px rgba(255, 215, 0, 0.5);
+    padding: 4px 16px;
+    background: linear-gradient(135deg, 
+        rgba(0, 0, 0, 0.2) 0%, 
+        rgba(0, 0, 0, 0.3) 100%);
+    border-radius: 8px;
+    animation: wordShine 2s ease-in-out infinite;
+    display: inline-block;
+    position: relative;
+}
+
+@keyframes wordShine {
+    0%, 100% {
+     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5),
+0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    50% {
+   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5),
+            0 0 20px rgba(255, 215, 0, 0.8),
+         0 0 30px rgba(255, 215, 0, 0.5);
+    }
+}
+
+/* Bengali meaning styling */
+.bengali-inline {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, 
+        rgba(255, 215, 0, 0.3) 0%, 
+ rgba(255, 215, 0, 0.2) 100%);
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  animation: bengaliFloat 3s ease-in-out infinite;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes bengaliFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-3px);
+  }
+}
+
+/* Language icon */
+.bengali-inline i {
+    font-size: 14px;
+    color: #ffd700;
+    animation: langSpin 4s linear infinite;
+}
+
+@keyframes langSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+    transform: rotate(360deg);
+    }
+}
+
+/* Hover effect */
+.word-of-day-inline:hover {
+    transform: scale(1.02);
+    border-color: rgba(255, 215, 0, 0.6);
+    transition: all 0.3s ease;
+}
+
+.word-of-day-inline:hover .english-word-inline {
+    color: #ffed4e;
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+
+/* Remove sparkle - causing question marks */
+.word-of-day-inline::after {
+ display: none;
+}
+
+/* Dashboard Actions */
+.dashboard-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.btn-action {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-find {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.btn-find:hover {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+.btn-payment {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.btn-payment:hover {
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+    .word-inline-display {
+        font-size: 13px;
+        gap: 8px;
+    }
+    
+    .english-word-inline {
+        font-size: 18px;
+    }
+    
+    .bengali-inline {
+    font-size: 14px;
+    }
+  
+    .dashboard-actions {
+        justify-content: center;
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 767px) {
+    .word-of-day-inline {
+      padding: 8px 12px;
+        border-radius: 8px;
+    }
+    
+    .word-inline-display {
+    font-size: 11px;
+        gap: 6px;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    
+    .word-label {
+    font-size: 11px;
+        padding: 3px 8px;
+        flex-shrink: 0;
+    }
+    
+    .word-label i {
+        font-size: 14px;
+    }
+    
+    .english-word-inline {
+font-size: 14px;
+        padding: 3px 10px;
+   letter-spacing: 0.5px;
+        flex-shrink: 0;
+    }
+    
+    .bengali-inline {
+        font-size: 11px;
+        padding: 3px 10px;
+   white-space: nowrap;
+        overflow: hidden;
+text-overflow: ellipsis;
+        max-width: 150px;
+    }
+    
+.bengali-inline i {
+        font-size: 11px;
+    }
+    
+    .btn-action {
+     font-size: 10px;
+        padding: 5px 10px;
+    }
+    
+    /* Compact animations for mobile */
+.word-of-day-inline {
+        animation: gentleGlow 3s ease-in-out infinite;
+    }
+    
+    .word-of-day-inline::before {
+        animation: none;
+    }
+    
+    .english-word-inline {
+        animation: none;
+    }
+    
+    .bengali-inline {
+        animation: none;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    .word-of-day-inline {
+        padding: 6px 10px;
+    }
+ 
+    .word-inline-display {
+        font-size: 10px;
+        gap: 4px;
+ }
+    
+    .word-label {
+        font-size: 10px;
+    padding: 2px 6px;
+    }
+    
+    .word-label i {
+     font-size: 12px;
+    }
+    
+    .english-word-inline {
+      font-size: 12px;
+        padding: 2px 8px;
+    }
+    
+    .bengali-inline {
+        font-size: 10px;
+        padding: 2px 8px;
+max-width: 120px;
+    }
+}
+
+/* Accessibility - Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+    .word-of-day-inline,
+    .word-label,
+    .english-word-inline,
+    .bengali-inline,
+    .word-label i,
+    .bengali-inline i {
+        animation: none !important;
+  }
+}
+
+/* Remove old card styles */
+.word-of-day-card {
+    display: none !important;
+}

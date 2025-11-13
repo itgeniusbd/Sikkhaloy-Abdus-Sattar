@@ -27,27 +27,61 @@
         </SelectParameters>
     </asp:SqlDataSource>
 
-    <asp:FormView ID="ReceiptFormView" runat="server" DataSourceID="MoneyRSQL" Width="100%" DataKeyNames="TotalAmount">
+    <asp:FormView ID="ReceiptFormView" runat="server" DataSourceID="MoneyRSQL" Width="100%" DataKeyNames="TotalAmount,MoneyReceiptID">
         <ItemTemplate>
-            <div class="SInfo">
-                Receipt No:
+          <div class="SInfo">
+    Online Receipt No:
             <asp:Label ID="MoneyReceiptIDLabel" runat="server" Text='<%# Eval("MoneyReceipt_SN") %>' />
-                <br />
-                Paid Date: 
-            <asp:Label ID="PaidDateLabel" runat="server" Text='<%# Eval("PaidDate","{0:d-MMM-yy (hh:mm tt)}") %>' />
-                <br />
-                <%#Eval("AccountName", "Payment Method: {0}").ToString()%>
-            </div>
+        <br />
+         Paid Date: 
+<asp:Label ID="PaidDateLabel" runat="server" Text='<%# Eval("PaidDate","{0:d-MMM-yy (hh:mm tt)}") %>' />
+    <br />
+           <%#Eval("AccountName", "Payment Method: {0}").ToString()%>
+      
+                <%-- Printed Receipt Number Inline Edit --%>
+<br />
+    <div class="d-flex align-items-center justify-content-center mt-2">
+       <strong class="mr-2">Printed Receipt No:</strong>
+         <asp:Label ID="PrintedReceiptNoLabel" runat="server" 
+      Text='<%# string.IsNullOrEmpty(Convert.ToString(Eval("PrintedReceiptNo"))) ? "Not Set" : Eval("PrintedReceiptNo").ToString() %>' 
+          CssClass="mr-2" />
+        
+               <asp:TextBox ID="PrintedReceiptNoTextBox" runat="server" 
+      Text='<%# Eval("PrintedReceiptNo") %>'
+        CssClass="form-control form-control-sm d-print-none mr-2" 
+ placeholder="Enter No" 
+      MaxLength="50"
+    style="width: 150px; display: inline-block;"
+            autocomplete="off"></asp:TextBox>
+ 
+ <asp:Button ID="UpdatePrintedReceiptButton" runat="server" 
+        Text="Update" 
+        CssClass="btn btn-sm btn-success d-print-none" 
+ OnClick="UpdatePrintedReceiptButton_Click" 
+    CommandArgument='<%# Eval("MoneyReceiptID") %>'
+     OnClientClick="return confirm('Update printed receipt number?');" />
+         
+          <asp:Label ID="UpdateMessageLabel" runat="server" 
+   CssClass="ml-2 text-success d-print-none" 
+   style="font-size: 0.9rem;"></asp:Label>
+     </div>
+       </div>
         </ItemTemplate>
-    </asp:FormView>
+  </asp:FormView>
     <asp:SqlDataSource ID="MoneyRSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-        SelectCommand="SELECT DISTINCT Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Account.AccountName FROM Account INNER JOIN
-                       Income_PaymentRecord ON Account.AccountID = Income_PaymentRecord.AccountID RIGHT OUTER JOIN
-                       Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID = Income_MoneyReceipt.MoneyReceiptID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)">
-        <SelectParameters>
-            <asp:Parameter Name="MoneyReceiptID" />
+        SelectCommand="SELECT DISTINCT Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.MoneyReceiptID, Income_MoneyReceipt.PrintedReceiptNo, Account.AccountName FROM Account INNER JOIN
+          Income_PaymentRecord ON Account.AccountID = Income_PaymentRecord.AccountID RIGHT OUTER JOIN
+  Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID = Income_MoneyReceipt.MoneyReceiptID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)"
+UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceiptNo WHERE MoneyReceiptID = @MoneyReceiptID AND SchoolID = @SchoolID">
+<SelectParameters>
+   <asp:Parameter Name="MoneyReceiptID" />
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
         </SelectParameters>
+        <UpdateParameters>
+    <asp:Parameter Name="PrintedReceiptNo" Type="String" />
+    <asp:Parameter Name="MoneyReceiptID" Type="Int32" />
+            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
+  </UpdateParameters>
     </asp:SqlDataSource>
 
     <asp:GridView ID="PaidDetailsGridView" DataKeyNames="Role,PayFor" runat="server" AutoGenerateColumns="False" DataSourceID="PaidDetailsSQL" CssClass="mGrid" ShowFooter="True" Font-Bold="False" RowStyle-CssClass="Rows">
@@ -88,11 +122,11 @@
         <RowStyle CssClass="Rows" />
     </asp:GridView>
     <asp:SqlDataSource ID="PaidDetailsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-        SelectCommand="SELECT Income_PaymentRecord.MoneyReceiptID, Income_Roles.Role, Income_PaymentRecord.PayFor + ' (' + Education_Year.EducationYear + ')' AS PayFor, Income_PaymentRecord.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount , 0) + ISNULL(Income_PayOrder.LateFee , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PayOrder.PaidAmount , 0) - ISNULL(Income_PayOrder.LateFee_Discount , 0) ELSE ISNULL(Income_PayOrder.Amount , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PayOrder.PaidAmount , 0) END AS Due, Income_PaymentRecord.PaidDate, Income_PayOrder.Amount FROM Income_PaymentRecord INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID INNER JOIN Income_PayOrder ON Income_PaymentRecord.PayOrderID = Income_PayOrder.PayOrderID INNER JOIN Education_Year ON Income_PaymentRecord.EducationYearID = Education_Year.EducationYearID WHERE (Income_PaymentRecord.MoneyReceiptID = @MoneyReceiptID) AND (Income_PaymentRecord.SchoolID = @SchoolID) ORDER BY Income_PayOrder.EndDate">
+        SelectCommand="SELECT Income_PaymentRecord.MoneyReceiptID, Income_Roles.Role, Income_PaymentRecord.PayFor + ' (' + Education_Year.EducationYear + ')' AS PayFor, Income_PaymentRecord.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount , 0) + ISNULL(Income_PayOrder.LateFee , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PaymentRecord.PaidAmount , 0) - ISNULL(Income_PayOrder.LateFee_Discount , 0) ELSE ISNULL(Income_PayOrder.Amount , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PaymentRecord.PaidAmount , 0) END AS Due, Income_PaymentRecord.PaidDate, Income_PayOrder.Amount FROM Income_PaymentRecord INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID INNER JOIN Income_PayOrder ON Income_PaymentRecord.PayOrderID = Income_PayOrder.PayOrderID INNER JOIN Education_Year ON Income_PaymentRecord.EducationYearID = Education_Year.EducationYearID WHERE (Income_PaymentRecord.MoneyReceiptID = @MoneyReceiptID) AND (Income_PaymentRecord.SchoolID = @SchoolID) ORDER BY Income_PayOrder.EndDate">
         <SelectParameters>
-            <asp:Parameter Name="MoneyReceiptID" />
-            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-        </SelectParameters>
+      <asp:Parameter Name="MoneyReceiptID" />
+         <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+   </SelectParameters>
     </asp:SqlDataSource>
 
     <p class="text-right" id="amount-in-word"></p>
@@ -185,161 +219,162 @@
 
     <div class="d-print-none my-4 card">
         <div class="card-header">
-            <h4 class="card-title mb-0">
-                <i class="fa fa-print"></i>
-                Print Options
-            </h4>
+          <h4 class="card-title mb-0">
+          <i class="fa fa-print"></i>
+      Print Options
+    </h4>
         </div>
         <div class="card-body">
-            <div class="d-flex align-items-center">
-                <div>
-                    <input id="checkboxInstitution" type="checkbox" />
-                    <label for="checkboxInstitution">Hide Institution Name</label>
+   <div class="d-flex align-items-center">
+      <div>
+  <input id="checkboxInstitution" type="checkbox" />
+         <label for="checkboxInstitution">Hide Institution Name</label>
                 </div>
                 <div class="ml-3">
-                    <input id="checkboxDueDetails" type="checkbox" />
-                    <label for="checkboxDueDetails">Hide Current Due</label>
+             <input id="checkboxDueDetails" type="checkbox" />
+           <label for="checkboxDueDetails">Hide Current Due</label>
                 </div>
-            </div>
+     </div>
 
-            <div class="d-flex align-items-center mt-3">
-                <div>
-                    <label for="inputTopSpace">Page Space From Top (px)</label>
-                    <input id="inputTopSpace" min="0" type="number" class="form-control" />
-                </div>
-                <div class="ml-3">
-                    <label for="inputFontSize">Font Size (px)</label>
-                    <input id="inputFontSize" min="10" max="20" type="number" class="form-control" />
-                </div>
+   <div class="d-flex align-items-center mt-3">
+   <div>
+        <label for="inputTopSpace">Page Space From Top (px)</label>
+        <input id="inputTopSpace" min="0" type="number" class="form-control" />
+           </div>
+      <div class="ml-3">
+           <label for="inputFontSize">Font Size (px)</label>
+      <input id="inputFontSize" min="10" max="20" type="number" class="form-control" />
+    </div>
             </div>
         </div>
-        <div class="card-footer">
-            <input id="PrintButton" type="button" value="Print" onclick="window.print();" class="btn btn-info" />
+  <div class="card-footer">
+    <input id="PrintButton" type="button" value="Print" onclick="window.print();" class="btn btn-info" />
         </div>
     </div>
 
+    <!-- SMS SECTION -->
     <div class="form-group d-print-none">
-        <asp:CheckBox ID="RoleCheckBox" runat="server" Text="Send Payment Roles" />
-        <asp:CheckBox ID="CurrentDueCheckBox" runat="server" Text="Send Current Due" /><br />
-        <asp:Button ID="SMSButton" runat="server" Text="Send SMS" CssClass="btn btn-primary" OnClick="SMSButton_Click" />
-        <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
+   <asp:CheckBox ID="RoleCheckBox" runat="server" Text="Send Payment Roles" />
+   <asp:CheckBox ID="CurrentDueCheckBox" runat="server" Text="Send Current Due" /><br />
+     <asp:Button ID="SMSButton" runat="server" Text="Send SMS" CssClass="btn btn-primary" OnClick="SMSButton_Click" />
+ <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
     </div>
 
-     <!--Amount in word js-->
+<!--Amount in word js-->
     <script src="../../JS/amount-in-word.js"></script>
     <script>
         $(function () {
-            //Paid Grand Total
-            var PaidTotal = 0;
-            $("[id*=PaidAmountLabel]").each(function () { PaidTotal = PaidTotal + parseFloat($(this).text()) });
+         //Paid Grand Total
+       var PaidTotal = 0;
+       $("[id*=PaidAmountLabel]").each(function () { PaidTotal = PaidTotal + parseFloat($(this).text()) });
             $("#PGTLabel").text(PaidTotal);
 
-            const inWord = number2text(PaidTotal);
-            document.getElementById("amount-in-word").textContent = inWord;
+          const inWord = number2text(PaidTotal);
+   document.getElementById("amount-in-word").textContent = inWord;
 
-            //Due Grand Total
-            var DueTotal = 0;
-            $("[id*=DueLabel]").each(function () { DueTotal = DueTotal + parseFloat($(this).text()) });
+ //Due Grand Total
+  var DueTotal = 0;
+    $("[id*=DueLabel]").each(function () { DueTotal = DueTotal + parseFloat($(this).text()) });
             $("#DGTLabel").text(`Total: ${DueTotal}`);
 
-            //Is Grid view is empty
-            if ($('[id*=DueDetailsGridView] tr').length) {
-                $(".P_Dues").show();
-            }
-        });
+   //Is Grid view is empty
+ if ($('[id*=DueDetailsGridView] tr').length) {
+      $(".P_Dues").show();
+ }
+ });
 
 
-        //print options
+//print options
         let printingOptions = {
-            isInstitutionName: false,
+     isInstitutionName: false,
             topSpace: 0,
-            fontSize: 11
+       fontSize: 11
         };
 
         const stores = {
-            set: function () {
-                localStorage.setItem('receipt-printing', JSON.stringify(printingOptions));
-            },
-            get: function () {
-                const data = localStorage.getItem("receipt-printing");
+          set: function () {
+    localStorage.setItem('receipt-printing', JSON.stringify(printingOptions));
+         },
+ get: function () {
+  const data = localStorage.getItem("receipt-printing");
 
-                if (data) printingOptions = JSON.parse(data);
-            }
-        }
+       if (data) printingOptions = JSON.parse(data);
+         }
+  }
 
-        const printContent = document.getElementById("print-content");
+    const printContent = document.getElementById("print-content");
         const checkboxInstitution = document.getElementById("checkboxInstitution");
-        const header = document.getElementById("header");
+     const header = document.getElementById("header");
         const institutionInfo = document.querySelector(".bg-main");
 
-        const inputTopSpace = document.getElementById("inputTopSpace");
+      const inputTopSpace = document.getElementById("inputTopSpace");
         const checkboxDueDetails = document.getElementById("checkboxDueDetails");
         const currentDuesContainer = document.getElementById("Due_Show");
 
-        const inputFontSize = document.getElementById("inputFontSize");
+    const inputFontSize = document.getElementById("inputFontSize");
 
-        //institution name show/hide checkbox
+ //institution name show/hide checkbox
         checkboxInstitution.addEventListener("change", function () {
-            printingOptions.isInstitutionName = this.checked;
+       printingOptions.isInstitutionName = this.checked;
 
             stores.set();
             bindPrintOption();
         });
 
-        //input top space
+  //input top space
         inputTopSpace.addEventListener("input", function () {
-            printingOptions.topSpace = +this.value
+       printingOptions.topSpace = +this.value
 
             stores.set();
-            bindPrintOption();
+      bindPrintOption();
         });
 
         //input font size
-        inputFontSize.addEventListener("input", function () {
+   inputFontSize.addEventListener("input", function () {
             const min = +this.min;
-            const max = +this.max;
+ const max = +this.max;
             const size = +this.value;
 
-            if (min < size) {
-                printingOptions.fontSize = size;
+if (min < size) {
+           printingOptions.fontSize = size;
 
-                stores.set();
-                bindPrintOption();
-            }
-        });
+     stores.set();
+     bindPrintOption();
+     }
+ });
 
-        //due details show/hide checkbox
+      //due details show/hide checkbox
         checkboxDueDetails.addEventListener("change", function () {
             currentDuesContainer.style.display = this.checked ? "none" : "block";
         });
 
         //bind selected options
         function bindPrintOption() {
-            stores.get();
+       stores.get();
 
-            //institution show hide
-            checkboxInstitution.checked = printingOptions.isInstitutionName;
-            printingOptions.isInstitutionName ? institutionInfo.classList.add("d-print-none") : institutionInfo.classList.remove("d-print-none");
+   //institution show hide
+       checkboxInstitution.checked = printingOptions.isInstitutionName;
+          printingOptions.isInstitutionName ? institutionInfo.classList.add("d-print-none") : institutionInfo.classList.remove("d-print-none");
 
             //space from top
             inputTopSpace.value = printingOptions.topSpace;
 
-            //font size
-            inputFontSize.value = printingOptions.fontSize;
+         //font size
+   inputFontSize.value = printingOptions.fontSize;
             printContent.textContent = `
-                 #InstitutionName { font-size: ${printingOptions.fontSize + 4}px}
-                 .SInfo {font-size: ${printingOptions.fontSize + 1}px}
-                 #header { padding-top: ${printingOptions.topSpace}px}
-                .InsInfo p { font-size: ${printingOptions.fontSize + 1}px}
-                .mGrid th { font-size: ${printingOptions.fontSize}px}
-                .mGrid td { font-size: ${printingOptions.fontSize}px}`;
+      #InstitutionName { font-size: ${printingOptions.fontSize + 4}px}
+      .SInfo {font-size: ${printingOptions.fontSize + 1}px}
+       #header { padding-top: ${printingOptions.topSpace}px}
+       .InsInfo p { font-size: ${printingOptions.fontSize + 1}px}
+        .mGrid th { font-size: ${printingOptions.fontSize}px}
+        .mGrid td { font-size: ${printingOptions.fontSize}px}`;
         }
 
         bindPrintOption();
 
 
-        //disable after submit SMS
+   //disable after submit SMS
         function Disable_Submited() { document.getElementById("<%=SMSButton.ClientID %>").disabled = true; }
-        window.onbeforeunload = Disable_Submited;
+     window.onbeforeunload = Disable_Submited;
     </script>
-</asp:Content>
+    </asp:Content>

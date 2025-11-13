@@ -7,11 +7,31 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Profile {
-    
-    
-    public partial class Admin {
-        
+namespace EDUCATION.COM.Profile
+{
+
+
+    public partial class Admin
+    {
+
+        /// <summary>
+        /// WordOfDayFormView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.FormView WordOfDayFormView;
+
+        /// <summary>
+        /// WordOfDaySQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource WordOfDaySQL;
+
         /// <summary>
         /// OldNewStudentSQL control.
         /// </summary>
@@ -20,7 +40,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource OldNewStudentSQL;
-        
+
         /// <summary>
         /// ErrorLabel control.
         /// </summary>
@@ -29,7 +49,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label ErrorLabel;
-        
+
         /// <summary>
         /// SendButton control.
         /// </summary>
@@ -38,7 +58,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button SendButton;
-        
+
         /// <summary>
         /// TodayBirthdayRepeater control.
         /// </summary>
@@ -47,7 +67,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater TodayBirthdayRepeater;
-        
+
         /// <summary>
         /// TodayBirthSQL control.
         /// </summary>
@@ -56,7 +76,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource TodayBirthSQL;
-        
+
         /// <summary>
         /// SMS_OtherInfoSQL control.
         /// </summary>
@@ -65,7 +85,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SMS_OtherInfoSQL;
-        
+
         /// <summary>
         /// UpComingRepeater control.
         /// </summary>
@@ -74,7 +94,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater UpComingRepeater;
-        
+
         /// <summary>
         /// UpComingSQL control.
         /// </summary>
@@ -83,7 +103,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource UpComingSQL;
-        
+
         /// <summary>
         /// ContainUpdatePanel control.
         /// </summary>
@@ -92,7 +112,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel ContainUpdatePanel;
-        
+
         /// <summary>
         /// HolidayCalendar control.
         /// </summary>
@@ -101,7 +121,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Calendar HolidayCalendar;
-        
+
         /// <summary>
         /// EmployeeRepeater control.
         /// </summary>
@@ -110,7 +130,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater EmployeeRepeater;
-        
+
         /// <summary>
         /// EmployeeSQL control.
         /// </summary>
@@ -119,7 +139,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource EmployeeSQL;
-        
+
         /// <summary>
         /// StudentRepeater control.
         /// </summary>
@@ -128,7 +148,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater StudentRepeater;
-        
+
         /// <summary>
         /// StudentSQL control.
         /// </summary>
@@ -137,7 +157,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource StudentSQL;
-        
+
         /// <summary>
         /// SMSBalanceFormView control.
         /// </summary>
@@ -146,7 +166,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FormView SMSBalanceFormView;
-        
+
         /// <summary>
         /// SMSBalanceSQL control.
         /// </summary>
@@ -155,7 +175,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SMSBalanceSQL;
-        
+
         /// <summary>
         /// BloodRepeater control.
         /// </summary>
@@ -164,7 +184,7 @@ namespace EDUCATION.COM.Profile {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater BloodRepeater;
-        
+
         /// <summary>
         /// BloodSQL control.
         /// </summary>

@@ -638,10 +638,12 @@
     <Content Include="Profile\css\CallCenter.jpg" />
     <Content Include="Profile\css\dashboard-styles.css" />
     <Content Include="Profile\css\Invoice.css" />
+    <Content Include="Profile\css\WordOfDay.css" />
     <Content Include="Profile\Invoice\Due_Invoice.aspx" />
     <Content Include="Profile\Invoice\Receipt\Invoice_List.aspx" />
     <Content Include="Profile\Invoice\Receipt\Paid_Receipt.aspx" />
     <Content Include="Profile\js\dashboard-charts.js" />
+    <Content Include="Profile\Manage_WordOfDay.aspx" />
     <Content Include="Profile\Sub-Admin.aspx" />
     <Content Include="Profile\Support\Support_Ticket.aspx" />
     <Content Include="Profile\Total_Student_List.aspx" />
@@ -665,6 +667,7 @@
     <Content Include="Routines\Exam_Routine.aspx" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_Bangla_Table.sql" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_SavedData_Tables.sql" />
+    <Content Include="Profile\WordOfTheDay_Simplified.sql" />
     <Content Include="Student\Exam_Routine_forStudent.aspx" />
     <Content Include="Student\Notice.aspx" />
     <Content Include="Student\OnlinePayment\Success.aspx" />
@@ -1377,6 +1380,7 @@
       <DependentUpon>Device_Attendance.asmx</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
+    <Content Include="App_Code\BanglaCalendar.cs" />
     <Compile Include="Attendances\Absence_Fee_Manage.aspx.cs">
       <DependentUpon>Absence_Fee_Manage.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -2420,6 +2424,13 @@
     </Compile>
     <Compile Include="Profile\Invoice\Receipt\Paid_Receipt.aspx.designer.cs">
       <DependentUpon>Paid_Receipt.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Profile\Manage_WordOfDay.aspx.cs">
+      <DependentUpon>Manage_WordOfDay.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Profile\Manage_WordOfDay.aspx.designer.cs">
+      <DependentUpon>Manage_WordOfDay.aspx</DependentUpon>
     </Compile>
     <Compile Include="Profile\Sub-Admin.aspx.cs">
       <DependentUpon>Sub-Admin.aspx</DependentUpon>

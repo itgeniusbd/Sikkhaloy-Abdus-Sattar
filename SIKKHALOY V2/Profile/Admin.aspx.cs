@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Web;
 using System.Web.Services;
 using System.Web.UI;
@@ -142,24 +143,62 @@ namespace EDUCATION.COM.Profile
             return false; // ডিফল্ট - কোনো setting না থাকলে নোটিশ দেখাবে না
         }
 
-        // Acadamic calendar
+        // Acadamic calendar with Arabic, Bangla and English dates
         protected void HolidayCalendar_DayRender(object sender, DayRenderEventArgs e)
         {
+            // Clear default content
+            e.Cell.Controls.Clear();
+
             // If the month is CurrentMonth
             if (!e.Day.IsOtherMonth)
             {
+                // Create container for multi-language dates
+                Panel dateContainer = new Panel();
+                dateContainer.CssClass = "calendar-date-container";
+
+                // 1. English Date (First Line - Largest)
+                Label englishDate = new Label();
+                englishDate.CssClass = "calendar-english-date";
+                englishDate.Text = e.Day.Date.Day.ToString();
+                dateContainer.Controls.Add(englishDate);
+
+                // 2. Bangla Date (Second Line)
+                Label banglaDate = new Label();
+                banglaDate.CssClass = "calendar-bangla-date";
+                banglaDate.Text = "🇧🇩 " + GetBanglaDate(e.Day.Date);
+                dateContainer.Controls.Add(banglaDate);
+
+                // 3. Arabic/Hijri Date (Third Line)
+                Label hijriDate = new Label();
+                hijriDate.CssClass = "calendar-hijri-date";
+                hijriDate.Text = GetHijriDate(e.Day.Date) + " 🕌";
+                dateContainer.Controls.Add(hijriDate);
+
+                // Check if today
+                if (e.Day.Date == DateTime.Today)
+                {
+                    e.Cell.CssClass = "myCalendarToday";
+                    Label todayBadge = new Label();
+                    todayBadge.CssClass = "calendar-today-badge";
+                    todayBadge.Text = "TODAY";
+                    dateContainer.Controls.Add(todayBadge);
+                }
+
+                e.Cell.Controls.Add(dateContainer);
+
+                // Check for holidays/events
                 foreach (DataRow dr in ds.Tables[0].Rows)
                 {
                     if ((dr["HolidayDate"].ToString() != DBNull.Value.ToString()))
                     {
                         DateTime dtEvent = (DateTime)dr["HolidayDate"];
-                        Label lbl = new Label();
-                        lbl.CssClass = "Appointment";
-
+                        
                         if (dtEvent.Equals(e.Day.Date))
                         {
-                            e.Cell.CssClass = "Evnt_Date";
-                            lbl.Text += dr["HolidayName"].ToString();
+                            e.Cell.CssClass += " Evnt_Date";
+                            Label lbl = new Label();
+                            lbl.CssClass = "Appointment";
+                            lbl.Text = "📅 " + dr["HolidayName"].ToString();
                             e.Cell.Controls.Add(lbl);
                         }
                     }
@@ -169,9 +208,132 @@ namespace EDUCATION.COM.Profile
             else
             {
                 e.Cell.Text = "";
+                e.Cell.Enabled = false;
             }
         }
 
+        // Get Bangla Date
+        private string GetBanglaDate(DateTime date)
+        {
+            try
+            {
+                // Bangla month names
+                string[] banglaMonths = { "বৈশাখ", "জ্যৈেষ্ঠ", "আষাঢ়", "শ্রাবণ", "ভাদ্র", "আশ্বিন",
+      "কার্তিক", "অগ্রহায়ণ", "পৌষ", "মাঘ", "ফাল্গুন", "চৈত্র" };
+
+                // Bangla digits
+                string[] banglaDigits = { "০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯" };
+
+                // Bengali calendar epoch: 593 years behind Gregorian
+                int gYear = date.Year;
+                int gMonth = date.Month;
+                int gDay = date.Day;
+
+                // Determine if leap year in Gregorian calendar
+                bool isLeapYear = DateTime.IsLeapYear(gYear);
+
+                // Bengali New Year starts on April 14 (or April 15 in leap years)
+                int pohela = isLeapYear ? 15 : 14;
+
+                int banglaYear, banglaMonth, banglaDay;
+
+                if (gMonth < 4 || (gMonth == 4 && gDay < pohela))
+                {
+                    // Before Bengali New Year - previous Bengali year
+                    banglaYear = gYear - 594;
+                    DateTime bengaliNewYear = new DateTime(gYear - 1, 4, pohela);
+                    TimeSpan diff = date - bengaliNewYear;
+                    int totalDays = diff.Days + 1;
+                    CalculateBengaliMonthDay(totalDays, out banglaMonth, out banglaDay);
+                }
+                else
+                {
+                    // After or on Bengali New Year - current Bengali year
+                    banglaYear = gYear - 593;
+                    DateTime bengaliNewYear = new DateTime(gYear, 4, pohela);
+                    TimeSpan diff = date - bengaliNewYear;
+                    int totalDays = diff.Days + 1;
+                    CalculateBengaliMonthDay(totalDays, out banglaMonth, out banglaDay);
+                }
+
+                // Convert day to Bangla digits
+                string banglaDayStr = "";
+                foreach (char digit in banglaDay.ToString())
+                {
+                    banglaDayStr += banglaDigits[int.Parse(digit.ToString())];
+                }
+
+                return string.Format("{0} {1}", banglaDayStr, banglaMonths[banglaMonth - 1]);
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        // Calculate Bengali month and day from total days
+        private void CalculateBengaliMonthDay(int totalDays, out int month, out int day)
+        {
+            int[] monthDays = { 31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 30 };
+            month = 1;
+            day = totalDays;
+
+            for (int i = 0; i < 12; i++)
+            {
+                if (day <= monthDays[i])
+                {
+                    month = i + 1;
+                    break;
+                }
+                day -= monthDays[i];
+            }
+
+            // Handle edge case
+            if (day > monthDays[month - 1])
+            {
+                day = 1;
+                month++;
+                if (month > 12)
+                {
+                    month = 1;
+                }
+            }
+        }
+
+        // Get Hijri/Arabic Date
+        private string GetHijriDate(DateTime date)
+        {
+            try
+            {
+                // Create Hijri calendar
+                HijriCalendar hijriCalendar = new HijriCalendar();
+    
+                // Arabic month names
+                string[] arabicMonths = { "محرم", "صفر", "ربيع الأول", "ربيع الثاني", "جمادى الأولى", "جمادى الثانية",
+            "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة" };
+    
+              // Get Hijri date components
+              int hijriDay = hijriCalendar.GetDayOfMonth(date);
+                int hijriMonth = hijriCalendar.GetMonth(date);
+               int hijriYear = hijriCalendar.GetYear(date);
+       
+  // Arabic digits (Eastern Arabic numerals)
+     string[] arabicDigits = { "٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩" };
+      
+             // Convert day to Arabic digits
+        string arabicDayStr = "";
+                foreach (char digit in hijriDay.ToString())
+                {
+         arabicDayStr += arabicDigits[int.Parse(digit.ToString())];
+    }
+     
+                return string.Format("{0} {1}", arabicDayStr, arabicMonths[hijriMonth - 1]);
+      }
+            catch
+            {
+  return "";
+  }
+        }
 
         //Session wise Student data
         [WebMethod]

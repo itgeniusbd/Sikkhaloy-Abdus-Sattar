@@ -26,25 +26,59 @@
         </SelectParameters>
     </asp:SqlDataSource>
 
-    <asp:FormView ID="ReceiptFormView" runat="server" DataSourceID="MoneyRSQL" Width="100%" DataKeyNames="TotalAmount">
+    <asp:FormView ID="ReceiptFormView" runat="server" DataSourceID="MoneyRSQL" Width="100%" DataKeyNames="TotalAmount,MoneyReceiptID">
         <ItemTemplate>
-            <div class="SInfo">
-                Receipt No:
-            <asp:Label ID="MoneyReceiptIDLabel" runat="server" Text='<%# Eval("MoneyReceipt_SN") %>' />
-                <br />
-                Paid Date: 
-            <asp:Label ID="PaidDateLabel" runat="server" Text='<%# Eval("PaidDate","{0:d-MMM-yy}") %>' />
-                <br />
-                <%#Eval("AccountName", "Payment Method: {0}").ToString()%>
-            </div>
+       <div class="SInfo">
+             Online Receipt No:
+         <asp:Label ID="MoneyReceiptIDLabel" runat="server" Text='<%# Eval("MoneyReceipt_SN") %>' />
+   <br />
+              Paid Date: 
+      <asp:Label ID="PaidDateLabel" runat="server" Text='<%# Eval("PaidDate","{0:d-MMM-yy (hh:mm tt)}") %>' />
+        <br />
+    <%#Eval("AccountName", "Payment Method: {0}").ToString()%>
+
+        <%-- Printed Receipt Number Inline Edit --%>
+   <br />
+                <div class="d-flex align-items-center justify-content-center mt-2">
+         <strong class="mr-2">Printed Receipt No:</strong>
+         <asp:Label ID="PrintedReceiptNoLabel" runat="server" 
+        Text='<%# string.IsNullOrEmpty(Convert.ToString(Eval("PrintedReceiptNo"))) ? "Not Set" : Eval("PrintedReceiptNo").ToString() %>' 
+   CssClass="mr-2" />
+            
+     <asp:TextBox ID="PrintedReceiptNoTextBox" runat="server" 
+      Text='<%# Eval("PrintedReceiptNo") %>'
+       CssClass="form-control form-control-sm d-print-none mr-2" 
+             placeholder="Enter No" 
+         MaxLength="50"
+             style="width: 150px; display: inline-block;"
+               autocomplete="off"></asp:TextBox>
+         
+       <asp:Button ID="UpdatePrintedReceiptButton" runat="server" 
+      Text="Update" 
+      CssClass="btn btn-sm btn-success d-print-none" 
+  OnClick="UpdatePrintedReceiptButton_Click" 
+         CommandArgument='<%# Eval("MoneyReceiptID") %>'
+          OnClientClick="return confirm('Update printed receipt number?');" />
+    
+            <asp:Label ID="UpdateMessageLabel" runat="server" 
+              CssClass="ml-2 text-success d-print-none" 
+    style="font-size: 0.9rem;"></asp:Label>
+         </div>
+        </div>
         </ItemTemplate>
     </asp:FormView>
     <asp:SqlDataSource ID="MoneyRSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-        SelectCommand="SELECT DISTINCT Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Account.AccountName FROM Account INNER JOIN                       Income_PaymentRecord ON Account.AccountID = Income_PaymentRecord.AccountID RIGHT OUTER JOIN                       Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID = Income_MoneyReceipt.MoneyReceiptID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)">
+    SelectCommand="SELECT DISTINCT Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.MoneyReceiptID, Income_MoneyReceipt.PrintedReceiptNo, Account.AccountName FROM Account INNER JOIN       Income_PaymentRecord ON Account.AccountID = Income_PaymentRecord.AccountID RIGHT OUTER JOIN              Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID = Income_MoneyReceipt.MoneyReceiptID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)"
+      UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceiptNo WHERE MoneyReceiptID = @MoneyReceiptID AND SchoolID = @SchoolID">
         <SelectParameters>
-            <asp:Parameter Name="MoneyReceiptID" />
+       <asp:Parameter Name="MoneyReceiptID" />
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-        </SelectParameters>
+      </SelectParameters>
+     <UpdateParameters>
+      <asp:Parameter Name="PrintedReceiptNo" Type="String" />
+       <asp:Parameter Name="MoneyReceiptID" Type="Int32" />
+            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
+  </UpdateParameters>
     </asp:SqlDataSource>
 
     <asp:GridView ID="PaidDetailsGridView" runat="server" AutoGenerateColumns="False" DataSourceID="PaidDetailsSQL" CssClass="mGrid" ShowFooter="True" Font-Bold="False" RowStyle-CssClass="Rows" DataKeyNames="Role,PayFor">

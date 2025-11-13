@@ -450,46 +450,153 @@ double DueByPayOrder = Convert.ToDouble(Payment_DataSet.DueByPayOrderID(PayOrder
         // Update Concession
      protected void UpdateConcessionButton_Click(object sender, EventArgs e)
    {
-      CheckBox SingleCheckBox = new CheckBox();
-        string employeeId = "";
-
-
-
+   CheckBox SingleCheckBox = new CheckBox();
+   
+// Validate concession for Current Session
         foreach (GridViewRow Row in DueGridView.Rows)
+      {
+  SingleCheckBox = Row.FindControl("DueCheckBox") as CheckBox;
+     TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
+
+     if (SingleCheckBox.Checked)
+    {
+int PayOrderID = Convert.ToInt32(DueGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
+       
+    // Get ORIGINAL AMOUNT and PAID AMOUNT from database
+          double OriginalAmount = 0;
+          double PaidAmount = 0;
+     try
+  {
+        SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
+    cmd.Parameters.AddWithValue("@PayOrderID", PayOrderID);
+        con.Open();
+   SqlDataReader reader = cmd.ExecuteReader();
+        if (reader.Read())
+    {
+       OriginalAmount = Convert.ToDouble(reader["OriginalAmount"]);
+    PaidAmount = Convert.ToDouble(reader["PaidAmount"]);
+    }
+    reader.Close();
+con.Close();
+}
+   catch (Exception ex)
+     {
+       if (con.State == System.Data.ConnectionState.Open)
+     con.Close();
+    ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "DbError", 
+    $"alert('Database error: {ex.Message}');", true);
+  return;
+    }
+   
+       // Check if NEW concession exceeds (Original Amount - Paid Amount)
+         // Logic: Total Concession cannot exceed what's left to pay
+ if (DiscountTextBox != null && double.TryParse(DiscountTextBox.Text.Trim(), out double NewConcession))
+     {
+            // Maximum concession allowed = Original Amount - Paid Amount
+          double MaxConcessionAllowed = OriginalAmount - PaidAmount;
+    
+     if (NewConcession > MaxConcessionAllowed)
         {
-    SingleCheckBox = Row.FindControl("DueCheckBox") as CheckBox;
-TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
-       if (SingleCheckBox.Checked)
-        {
-        string paid = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-    Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-         Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
-            Fee_DiscountSQL.Update();
-       }
-     }
-            foreach (GridViewRow Row in OtherSessionGridView.Rows)
-            {
-             SingleCheckBox = Row.FindControl("Other_Session_CheckBox") as CheckBox;
-      TextBox DiscountTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
-       if (SingleCheckBox.Checked)
-            {
-     string paid = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-   Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-    Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
- Fee_DiscountSQL.Update();
+   ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "ConcessionError", 
+   "alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\\nConcession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
+  return;
         }
-            }
-          con.Close();
-    ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Update Successfully!!')", true);
-            DueGridView.DataBind();
+   }
+}
+        }
+
+       // Validate concession for Other Session
+      foreach (GridViewRow Row in OtherSessionGridView.Rows)
+ {
+    SingleCheckBox = Row.FindControl("Other_Session_CheckBox") as CheckBox;
+ TextBox DiscountTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
+   
+      if (SingleCheckBox.Checked)
+     {
+   int PayOrderID = Convert.ToInt32(OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
+    
+// Get ORIGINAL AMOUNT and PAID AMOUNT from database
+      double OriginalAmount = 0;
+      double PaidAmount = 0;
+       try
+{
+ SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
+  cmd.Parameters.AddWithValue("@PayOrderID", PayOrderID);
+    con.Open();
+   SqlDataReader reader = cmd.ExecuteReader();
+        if (reader.Read())
+     {
+      OriginalAmount = Convert.ToDouble(reader["OriginalAmount"]);
+      PaidAmount = Convert.ToDouble(reader["PaidAmount"]);
+    }
+      reader.Close();
+ con.Close();
+    }
+  catch (Exception ex)
+    {
+   if (con.State == System.Data.ConnectionState.Open)
+    con.Close();
+ ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "DbError", 
+  $"alert('Database error: {ex.Message}');", true);
+  return;
+      }
+    
+    // Check if NEW concession exceeds (Original Amount - Paid Amount)
+ // Logic: Total Concession cannot exceed what's left to pay
+    if (DiscountTextBox != null && double.TryParse(DiscountTextBox.Text.Trim(), out double NewConcession))
+     {
+    // Maximum concession allowed = Original Amount - Paid Amount
+  double MaxConcessionAllowed = OriginalAmount - PaidAmount;
+       
+      if (NewConcession > MaxConcessionAllowed)
+       {
+  ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "ConcessionError", 
+ "alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\\nConcession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
+  return;
+     }
+   }
+       }
+      }
+  
+    // If validation passes, update concession
+foreach (GridViewRow Row in DueGridView.Rows)
+   {
+      SingleCheckBox = Row.FindControl("DueCheckBox") as CheckBox;
+    TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
+    if (SingleCheckBox.Checked)
+        {
+   string paid = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
+ Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
+   Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
+Fee_DiscountSQL.Update();
+     }
+ }
+
+ foreach (GridViewRow Row in OtherSessionGridView.Rows)
+{
+ SingleCheckBox = Row.FindControl("Other_Session_CheckBox") as CheckBox;
+    TextBox DiscountTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
+      if (SingleCheckBox.Checked)
+  {
+      string paid = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
+      Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
+  Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
+    Fee_DiscountSQL.Update();
+   }
+ }
+
+    con.Close();
+       ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Update Successfully!!')", true);
+    DueGridView.DataBind();
        OtherSessionGridView.DataBind();
 
         }
+        
     protected void Print_LinkButton_Command(object sender, CommandEventArgs e)
         {
   string MRid = HttpUtility.UrlEncode(Encrypt(Convert.ToString(e.CommandArgument)));
-            string Sid = HttpUtility.UrlEncode(Encrypt(StudentInfoFormView.DataKey["ID"].ToString()));
-            Response.Redirect(string.Format("Money_Receipt_By_Date.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
+     string Sid = HttpUtility.UrlEncode(Encrypt(StudentInfoFormView.DataKey["ID"].ToString()));
+      Response.Redirect(string.Format("Money_Receipt_By_Date.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
   }
     }
 }
