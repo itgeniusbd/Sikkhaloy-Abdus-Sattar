@@ -129,6 +129,13 @@ WHERE IsActive = 1
     <a href="../Accounts/Payment/Payment_Collection.aspx" class="btn-action btn-payment">
           <i class="fa fa-credit-card"></i> COLLECT PAYMENT
             </a>
+                    <%if (EmployeeRepeater.Items.Count > 0 || StudentRepeater.Items.Count > 0) { %>
+                <a target="_blank" href="../Attendances/Online_Display/Attendance_Slider.aspx" class="gradient-link attendance-display">
+                    <i class="fa fa-television"></i>
+                    <span class="btn-text-full">ATTENDANCE DISPLAY</span>
+                    <span class="btn-text-short d-none">ATTENDANCE</span>
+                </a>
+                <%} %>
      </div>
      </div>
        </div>

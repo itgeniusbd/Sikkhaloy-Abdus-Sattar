@@ -1,5 +1,4 @@
-﻿
-.range_inputs { display:none;}
+﻿.range_inputs { display:none;}
 .user-imge {float: left; height: 60px; width: 60px; }
 .user-imge img { height:100%; width:100%; border:1px solid #ddd; border-radius:50%;}
 
@@ -11,13 +10,48 @@
 .user-bg { background-color:#03A9F4}
 .income-bg{ background-color:#8BC34A}
 .expense-bg{ background-color:#E84E40}
+.balance-bg{ background-color:#FF9800}
+.submitted-bg{ background-color:#9C27B0}
+.remaining-bg{ background-color:#00BCD4}
 
 .box { color: #333; font-size: 21px; padding-bottom: 10px}
+
+/* Header section styling */
+.d-flex {
+    display: flex;
+}
+
+.justify-content-between {
+    justify-content: space-between;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.mb-3 {
+    margin-bottom: 1rem;
+}
+
+.mb-0 {
+    margin-bottom: 0;
+}
 
 @media (min-width:768px) and (max-width:1480px) {
  .user-grid { padding: 13px; }
  .headline { overflow: hidden; text-overflow: ellipsis; -ms-text-overflow: ellipsis; -o-text-overflow: ellipsis; white-space: nowrap; }
  .user-grid .value { font-size: 0.9rem; }
+}
+
+@media (max-width:767px) {
+    .d-flex {
+ flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex .NoPrint {
+   margin-top: 10px;
+  }
 }
 
 

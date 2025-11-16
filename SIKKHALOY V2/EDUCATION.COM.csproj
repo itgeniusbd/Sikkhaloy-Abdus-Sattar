@@ -312,6 +312,7 @@
     <Content Include="Accounts\Reports\Net.aspx" />
     <Content Include="Accounts\Reports\PaidReport.aspx" />
     <Content Include="Accounts\Reports\PayOrderReport.aspx" />
+    <Content Include="Accounts\Reports\SubmitBalance.aspx" />
     <Content Include="Accounts\Reports\UserAccount.aspx" />
     <Content Include="Accounts\Reports\UserWise_Account_Report.aspx" />
     <Content Include="Administration_Basic_Settings\Active_deactivate_Sub_Admin.aspx" />
@@ -485,6 +486,7 @@
     <Content Include="CSS\Print.css" />
     <Content Include="CSS\Search_In_DropdownList.css" />
     <Content Include="CSS\SideNavbar.css" />
+    <Content Include="Database\CreateUserBalanceSubmissionTable.sql" />
     <Content Include="Employee\Acadamic_Calender.aspx" />
     <Content Include="Employee\Add_Holidays.aspx" />
     <Content Include="Employee\Attendance_Schedule.aspx" />
@@ -1048,6 +1050,10 @@
     </Compile>
     <Compile Include="Accounts\Reports\PayOrderReport.aspx.designer.cs">
       <DependentUpon>PayOrderReport.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Accounts\Reports\SubmitBalance.aspx.cs">
+      <DependentUpon>SubmitBalance.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Accounts\Reports\UserAccount.aspx.cs">
       <DependentUpon>UserAccount.aspx</DependentUpon>
