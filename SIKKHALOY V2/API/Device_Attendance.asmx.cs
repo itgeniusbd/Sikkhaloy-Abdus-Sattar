@@ -133,8 +133,11 @@ namespace EDUCATION.COM.API
                         #region Pre
                         if (Attendance == "Pre" && Entry_Confirmation && !Is_Entry_SMS_Sent)
                         {
-                            string Entry = "Respected Guardian, " + StudentsName + "  has Safely Entered in " + SchoolName + "  at " + EntryTime.ToString("h:mm tt");
-                            string Msg = Entry;
+                            // Use Template System
+                            SMS_Template_Helper templateHelper = new SMS_Template_Helper(SchoolID);
+                            var classInfo = templateHelper.GetStudentClassInfo(UserID);
+
+                            string Msg = templateHelper.GenerateEntrySMS(StudentsName, ID, SchoolName, EntryTime, AttendanceDate, classInfo.className, classInfo.roll);
                             int TotalSMS = SMS.SMS_Conut(Msg);
                             int SMSBalance = SMS.SMSBalance;
 
@@ -149,7 +152,7 @@ namespace EDUCATION.COM.API
                                         Guid SMS_Send_ID = SMS.SMS_Send(SMSPhoneNo, Msg, "Device Attendence");
                                         if (SMS_Send_ID != Guid.Empty)
                                         {
-                                            SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
+                                            SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, Education_Year.EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
                                             Insert_SMS_Command.Parameters.AddWithValue("@SMS_Send_ID", SMS_Send_ID.ToString());
                                             Insert_SMS_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
                                             Insert_SMS_Command.Parameters.AddWithValue("@StudentID", UserID);
@@ -172,9 +175,12 @@ namespace EDUCATION.COM.API
                         #region Late
                         if (Attendance == "Late" && Is_Late_SMS && !Is_Entry_SMS_Sent)
                         {
+                            // Use Template System
+                            SMS_Template_Helper lateTemplateHelper = new SMS_Template_Helper(SchoolID);
+                            var lateClassInfo = lateTemplateHelper.GetStudentClassInfo(UserID);
+
                             TimeSpan span = EntryTime.Subtract(StartTime);
-                            string Late = "Respected Guardian, " + StudentsName + " Today( " + AttendanceDate.ToString("d MMM yyyy") + " ) Late " + span.Minutes + " min. In " + SchoolName + "  Entered at " + EntryTime.ToString("h:mm tt");
-                            string Msg = Late;
+                            string Msg = lateTemplateHelper.GenerateLateSMS(StudentsName, ID, SchoolName, EntryTime, span.Minutes, AttendanceDate, lateClassInfo.className, lateClassInfo.roll);
                             int TotalSMS = SMS.SMS_Conut(Msg);
                             int SMSBalance = SMS.SMSBalance;
 
@@ -189,7 +195,7 @@ namespace EDUCATION.COM.API
                                         Guid SMS_Send_ID = SMS.SMS_Send(SMSPhoneNo, Msg, "Device Attendence");
                                         if (SMS_Send_ID != Guid.Empty)
                                         {
-                                            SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
+                                            SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, Education_Year.EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
 
                                             Insert_SMS_Command.Parameters.AddWithValue("@SMS_Send_ID", SMS_Send_ID.ToString());
                                             Insert_SMS_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
@@ -215,9 +221,12 @@ namespace EDUCATION.COM.API
                         {
                             if (Is_Late_SMS || Entry_Confirmation)
                             {
+                                // Use Template System
+                                SMS_Template_Helper lateAbsTemplateHelper = new SMS_Template_Helper(SchoolID);
+                                var lateAbsClassInfo = lateAbsTemplateHelper.GetStudentClassInfo(UserID);
+
                                 TimeSpan span = EntryTime.Subtract(StartTime);
-                                string Late_abs = "Respected Guardian, " + StudentsName + " Today(" + AttendanceDate.ToString("d MMM yyyy") + ") Late " + span.Minutes + " min. (Count as Absent) In " + SchoolName + " Entered at " + EntryTime.ToString("h:mm tt");
-                                string Msg = Late_abs;
+                                string Msg = lateAbsTemplateHelper.GenerateLateAbsSMS(StudentsName, ID, SchoolName, EntryTime, span.Minutes, AttendanceDate, lateAbsClassInfo.className, lateAbsClassInfo.roll);
                                 int TotalSMS = SMS.SMS_Conut(Msg);
                                 int SMSBalance = SMS.SMSBalance;
 
@@ -232,7 +241,7 @@ namespace EDUCATION.COM.API
                                             Guid SMS_Send_ID = SMS.SMS_Send(SMSPhoneNo, Msg, "Device Attendence");
                                             if (SMS_Send_ID != Guid.Empty)
                                             {
-                                                SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
+                                                SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, Education_Year.EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
                                                 Insert_SMS_Command.Parameters.AddWithValue("@SMS_Send_ID", SMS_Send_ID.ToString());
                                                 Insert_SMS_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
                                                 Insert_SMS_Command.Parameters.AddWithValue("@StudentID", UserID);
@@ -249,201 +258,205 @@ namespace EDUCATION.COM.API
                                     }
                                 }
                             }
-                        }
-                        #endregion Late_Abs
+                            #endregion Late_Abs
 
-                        #region Exit
-                        if (ExitConfirmed_Status == "Yes" && Exit_Confirmation && !Is_ExitTime_SMS_Sent)
-                        {
-                            string Exit = "Respected Guardian, " + StudentsName + " has Left " + SchoolName + " at " + ExitTime.ToString("h:mm tt");
-                            string Msg = Exit;
-                            int TotalSMS = SMS.SMS_Conut(Msg);
-                            int SMSBalance = SMS.SMSBalance;
-
-                            if (SMSBalance >= TotalSMS)
+                            #region Exit
+                            if (ExitConfirmed_Status == "Yes" && Exit_Confirmation && !Is_ExitTime_SMS_Sent)
                             {
-                                if (SMS.SMS_GetBalance() >= TotalSMS)
+                                // Use Template System
+                                SMS_Template_Helper exitTemplateHelper = new SMS_Template_Helper(SchoolID);
+                                var exitClassInfo = exitTemplateHelper.GetStudentClassInfo(UserID);
+
+                                string Msg = exitTemplateHelper.GenerateExitSMS(StudentsName, ID, SchoolName, ExitTime, AttendanceDate, exitClassInfo.className, exitClassInfo.roll);
+                                int TotalSMS = SMS.SMS_Conut(Msg);
+                                int SMSBalance = SMS.SMSBalance;
+
+                                if (SMSBalance >= TotalSMS)
                                 {
-                                    Get_Validation IsValid = SMS.SMS_Validation(SMSPhoneNo, Msg);
-
-                                    if (IsValid.Validation)
+                                    if (SMS.SMS_GetBalance() >= TotalSMS)
                                     {
-                                        Guid SMS_Send_ID = SMS.SMS_Send(SMSPhoneNo, Msg, "Device Attendence");
-                                        if (SMS_Send_ID != Guid.Empty)
+                                        Get_Validation IsValid = SMS.SMS_Validation(SMSPhoneNo, Msg);
+
+                                        if (IsValid.Validation)
                                         {
-                                            SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
-                                            Insert_SMS_Command.Parameters.AddWithValue("@SMS_Send_ID", SMS_Send_ID.ToString());
-                                            Insert_SMS_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
-                                            Insert_SMS_Command.Parameters.AddWithValue("@StudentID", UserID);
-
-                                            SqlCommand Update_Att_Command = new SqlCommand("UPDATE Attendance_Record SET  Is_ExitTime_SMS_Sent =1 WHERE (AttendanceRecordID = @AttendanceRecordID)", con);
-                                            Update_Att_Command.Parameters.AddWithValue("@AttendanceRecordID", AttendanceRecordID);
-
-                                            con.Open();
-                                            Insert_SMS_Command.ExecuteNonQuery();
-                                            Update_Att_Command.ExecuteNonQuery();
-                                            con.Close();
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        #endregion Exit
-
-                        #region Abs SMS
-
-                        if (Attendance_Date.ToShortDateString() == DateTime.Today.ToShortDateString())
-                        {
-                            SqlCommand Stu_Abs_Command = new SqlCommand("SELECT Attendance_Record.AttendanceRecordID, Attendance_Record.StudentID, SchoolInfo.SchoolName, Student.ID, Student.StudentsName, Student.SMSPhoneNo, Attendance_Record.Attendance,  Attendance_Record.AttendanceDate, Attendance_Record.EntryTime, Attendance_Record.ExitTime, Attendance_Record.Is_Entry_SMS_Sent, Attendance_Record.Is_ExitTime_SMS_Sent, Attendance_Record.ExitConfirmed_Status, Attendance_Schedule.StartTime, Attendance_Schedule.EndTime,Attendance_Schedule_AssignStudent.Is_Abs_SMS FROM Attendance_Record INNER JOIN Student ON Attendance_Record.StudentID = Student.StudentID INNER JOIN SchoolInfo ON Attendance_Record.SchoolID = SchoolInfo.SchoolID INNER JOIN Attendance_Schedule_AssignStudent ON Student.StudentID = Attendance_Schedule_AssignStudent.StudentID INNER JOIN Attendance_Schedule ON Attendance_Schedule_AssignStudent.ScheduleID = Attendance_Schedule.ScheduleID INNER JOIN Education_Year ON Attendance_Schedule.EducationYearID = Education_Year.EducationYearID WHERE (Attendance_Record.SchoolID = @SchoolID) AND (Attendance_Record.AttendanceDate = @AttendanceDate) AND (Attendance_Record.Attendance = N'Abs') AND (Attendance_Record.Is_Entry_SMS_Sent = 0) AND (Education_Year.Status = N'True')", con);
-                            Stu_Abs_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
-                            Stu_Abs_Command.Parameters.AddWithValue("@AttendanceDate", Attendance_Date.ToShortDateString());
-
-                            con.Open();
-                            SqlDataReader Stu_Abs_DR;
-                            Stu_Abs_DR = Stu_Abs_Command.ExecuteReader();
-                            string StudentID = "";
-
-                            while (Stu_Abs_DR.Read())
-                            {
-                                AttendanceRecordID = Stu_Abs_DR["AttendanceRecordID"].ToString();
-                                StudentID = Stu_Abs_DR["StudentID"].ToString();
-                                SchoolName = Stu_Abs_DR["SchoolName"].ToString();
-                                ID = Stu_Abs_DR["ID"].ToString();
-                                StudentsName = Stu_Abs_DR["StudentsName"].ToString();
-                                SMSPhoneNo = Stu_Abs_DR["SMSPhoneNo"].ToString();
-                                AttendanceDate = Convert.ToDateTime(Stu_Abs_DR["AttendanceDate"].ToString());
-                                Is_Entry_SMS_Sent = Convert.ToBoolean(Stu_Abs_DR["Is_Entry_SMS_Sent"]);
-                                Is_ExitTime_SMS_Sent = Convert.ToBoolean(Stu_Abs_DR["Is_ExitTime_SMS_Sent"]);
-                                ExitConfirmed_Status = Stu_Abs_DR["ExitConfirmed_Status"].ToString();
-                                Is_Abs_SMS = Convert.ToBoolean(Stu_Abs_DR["Is_Abs_SMS"]);
-
-                                if (Is_Abs_SMS)
-                                {
-                                    string Abs = "Respected Guardian, " + StudentsName + " Today(" + AttendanceDate.ToString("d MMM yyyy") + ") absent from " + SchoolName + ". Please send to class regularly";
-                                    string Msg = Abs;
-                                    int TotalSMS = SMS.SMS_Conut(Msg);
-                                    int SMSBalance = SMS.SMSBalance;
-
-                                    if (SMSBalance >= TotalSMS)
-                                    {
-                                        if (SMS.SMS_GetBalance() >= TotalSMS)
-                                        {
-                                            Get_Validation IsValid = SMS.SMS_Validation(SMSPhoneNo, Msg);
-
-                                            if (IsValid.Validation)
+                                            Guid SMS_Send_ID = SMS.SMS_Send(SMSPhoneNo, Msg, "Device Attendence");
+                                            if (SMS_Send_ID != Guid.Empty)
                                             {
-                                                Guid SMS_Send_ID = SMS.SMS_Send(SMSPhoneNo, Msg, "Device Attendence");
-                                                if (SMS_Send_ID != Guid.Empty)
-                                                {
-                                                    SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
-                                                    Insert_SMS_Command.Parameters.AddWithValue("@SMS_Send_ID", SMS_Send_ID.ToString());
-                                                    Insert_SMS_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
-                                                    Insert_SMS_Command.Parameters.AddWithValue("@StudentID", StudentID);
-                                                    Insert_SMS_Command.ExecuteNonQuery();
+                                                SqlCommand Insert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, Education_Year.EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
+                                                Insert_SMS_Command.Parameters.AddWithValue("@SMS_Send_ID", SMS_Send_ID.ToString());
+                                                Insert_SMS_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
+                                                Insert_SMS_Command.Parameters.AddWithValue("@StudentID", UserID);
 
-                                                    SqlCommand Update_Att_Command = new SqlCommand("UPDATE Attendance_Record SET Is_Entry_SMS_Sent = 1 WHERE (AttendanceRecordID = @AttendanceRecordID)", con);
-                                                    Update_Att_Command.Parameters.AddWithValue("@AttendanceRecordID", AttendanceRecordID);
-                                                    Update_Att_Command.ExecuteNonQuery();
-                                                }
+                                                SqlCommand Update_Att_Command = new SqlCommand("UPDATE Attendance_Record SET  Is_ExitTime_SMS_Sent =1 WHERE (AttendanceRecordID = @AttendanceRecordID)", con);
+                                                Update_Att_Command.Parameters.AddWithValue("@AttendanceRecordID", AttendanceRecordID);
+
+                                                con.Open();
+                                                Insert_SMS_Command.ExecuteNonQuery();
+                                                Update_Att_Command.ExecuteNonQuery();
+                                                con.Close();
                                             }
                                         }
                                     }
                                 }
                             }
-                            con.Close();
-                        }
-                        #endregion Abs SMS
+                            #endregion Exit
 
-                        #endregion SMS_Send
+                            #region Abs SMS
+
+                            if (Attendance_Date.ToShortDateString() == DateTime.Today.ToShortDateString())
+                            {
+                                SqlCommand Stu_Abs_Command = new SqlCommand("SELECT Attendance_Record.AttendanceRecordID, Attendance_Record.StudentID, SchoolInfo.SchoolName, Student.ID, Student.StudentsName, Student.SMSPhoneNo, Attendance_Record.Attendance,  Attendance_Record.AttendanceDate, Attendance_Record.EntryTime, Attendance_Record.ExitTime, Attendance_Record.Is_Entry_SMS_Sent, Attendance_Record.Is_ExitTime_SMS_Sent, Attendance_Record.ExitConfirmed_Status, Attendance_Schedule.StartTime, Attendance_Schedule.EndTime,Attendance_Schedule_AssignStudent.Is_Abs_SMS FROM Attendance_Record INNER JOIN Student ON Attendance_Record.StudentID = Student.StudentID INNER JOIN SchoolInfo ON Attendance_Record.SchoolID = SchoolInfo.SchoolID INNER JOIN Attendance_Schedule_AssignStudent ON Student.StudentID = Attendance_Schedule_AssignStudent.StudentID INNER JOIN Attendance_Schedule ON Attendance_Schedule_AssignStudent.ScheduleID = Attendance_Schedule.ScheduleID INNER JOIN Education_Year ON Attendance_Schedule.EducationYearID = Education_Year.EducationYearID WHERE (Attendance_Record.SchoolID = @SchoolID) AND (Attendance_Record.AttendanceDate = @AttendanceDate) AND (Attendance_Record.Attendance = N'Abs') AND (Attendance_Record.Is_Entry_SMS_Sent = 0) AND (Education_Year.Status = N'True')", con);
+                                Stu_Abs_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
+                                Stu_Abs_Command.Parameters.AddWithValue("@AttendanceDate", Attendance_Date.ToShortDateString());
+
+                                con.Open();
+                                SqlDataReader Stu_Abs_DR;
+                                Stu_Abs_DR = Stu_Abs_Command.ExecuteReader();
+
+                                // Initialize template helper once
+                                SMS_Template_Helper absTemplateHelper = new SMS_Template_Helper(SchoolID);
+
+                                while (Stu_Abs_DR.Read())
+                                {
+                                    string absAttendanceRecordID = Stu_Abs_DR["AttendanceRecordID"].ToString();
+                                    string absStudentID = Stu_Abs_DR["StudentID"].ToString();
+                                    string absSchoolName = Stu_Abs_DR["SchoolName"].ToString();
+                                    string absID = Stu_Abs_DR["ID"].ToString();
+                                    string absStudentsName = Stu_Abs_DR["StudentsName"].ToString();
+                                    string absSMSPhoneNo = Stu_Abs_DR["SMSPhoneNo"].ToString();
+                                    DateTime absAttendanceDate = Convert.ToDateTime(Stu_Abs_DR["AttendanceDate"].ToString());
+                                    bool absIs_Abs_SMS = Convert.ToBoolean(Stu_Abs_DR["Is_Abs_SMS"]);
+
+                                    if (absIs_Abs_SMS)
+                                    {
+                                        // Use Template System
+                                        var absClassInfo = absTemplateHelper.GetStudentClassInfo(Convert.ToInt32(absStudentID));
+
+                                        string absMsg = absTemplateHelper.GenerateAbsentSMS(absStudentsName, absID, absSchoolName, absAttendanceDate, absClassInfo.className, absClassInfo.roll);
+                                        int absTotalSMS = SMS.SMS_Conut(absMsg);
+                                        int absSMSBalance = SMS.SMSBalance;
+
+                                        if (absSMSBalance >= absTotalSMS)
+                                        {
+                                            if (SMS.SMS_GetBalance() >= absTotalSMS)
+                                            {
+                                                Get_Validation absIsValid = SMS.SMS_Validation(absSMSPhoneNo, absMsg);
+
+                                                if (absIsValid.Validation)
+                                                {
+                                                    Guid absSMS_Send_ID = SMS.SMS_Send(absSMSPhoneNo, absMsg, "Device Attendence - Absent");
+                                                    if (absSMS_Send_ID != Guid.Empty)
+                                                    {
+                                                        SqlCommand absInsert_SMS_Command = new SqlCommand("INSERT INTO SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID) SELECT @SMS_Send_ID, @SchoolID, @StudentID, EducationYearID FROM Education_Year WHERE (Status = N'True') AND (SchoolID = @SchoolID)", con);
+                                                        absInsert_SMS_Command.Parameters.AddWithValue("@SMS_Send_ID", absSMS_Send_ID.ToString());
+                                                        absInsert_SMS_Command.Parameters.AddWithValue("@SchoolID", SchoolID);
+                                                        absInsert_SMS_Command.Parameters.AddWithValue("@StudentID", absStudentID);
+                                                        absInsert_SMS_Command.ExecuteNonQuery();
+
+                                                        SqlCommand absUpdate_Att_Command = new SqlCommand("UPDATE Attendance_Record SET Is_Entry_SMS_Sent = 1 WHERE (AttendanceRecordID = @AttendanceRecordID)", con);
+                                                        absUpdate_Att_Command.Parameters.AddWithValue("@AttendanceRecordID", absAttendanceRecordID);
+                                                        absUpdate_Att_Command.ExecuteNonQuery();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                con.Close();
+                            }
+                            #endregion Abs SMS
+
+                            #endregion SMS_Send
+                        }
                     }
                     else
                     {
                         Attendance_Employee_APITableAdapter Emp = new Attendance_Employee_APITableAdapter();
                         Emp.GetData(SchoolID, Attendance_Date, UserID);
                     }
+                    }
+                }
+            }
+
+            [WebMethod]
+            public bool Is_Device_Attendance_Enable(int SchoolID, string API_PIN)
+            {
+                API_ConfigTableAdapter API = new API_ConfigTableAdapter();
+                bool ret;
+
+                if (API.Is_Attendance_Enable(SchoolID, API_PIN).ToString() == "")
+                {
+                    ret = false;
+                }
+                else
+                {
+                    ret = (bool)API.Is_Attendance_Enable(SchoolID, API_PIN);
+                }
+                return ret;
+            }
+
+            [WebMethod]
+            public bool Valid_UserID(string UserName, string Password, int SchoolID, string API_PIN)
+            {
+                API_ConfigTableAdapter API = new API_ConfigTableAdapter();
+
+                bool ret;
+
+                try
+                {
+                    ret = (bool)API.Validation_UserID(UserName, Password, SchoolID, API_PIN);
+                }
+                catch
+                {
+                    ret = false;
+                }
+                return ret;
+
+            }
+
+            [WebMethod]
+            public bool Valid_API(int SchoolID, string API_PIN)
+            {
+                API_ConfigTableAdapter API = new API_ConfigTableAdapter();
+
+                bool ret;
+
+                if (API.Validation_API(SchoolID, API_PIN).ToString() == "")
+                {
+                    ret = false;
+                }
+                else
+                {
+                    ret = (bool)API.Validation_API(SchoolID, API_PIN);
+                }
+                return ret;
+            }
+
+            [WebMethod]
+            public Attendance_DataSet.Device_Finger_Print_RecordDataTable Finger_Print_Record(int SchoolID, string API_PIN)
+            {
+                Device_Finger_Print_RecordTableAdapter Device_Finger_Print = new Device_Finger_Print_RecordTableAdapter();
+                return Device_Finger_Print.GetData(SchoolID, API_PIN);
+            }
+
+            [WebMethod]
+            public void Finger_Print_insert(int SchoolID, int DeviceID, int Finger_Index, string Temp_Data, int Flag, string API_PIN)
+            {
+                if (Valid_API(SchoolID, API_PIN))
+                {
+                    Device_Finger_Print_RecordTableAdapter Device_Finger_Print = new Device_Finger_Print_RecordTableAdapter();
+                    Device_Finger_Print.InsertQuery(SchoolID, DeviceID, Finger_Index, Temp_Data, Flag);
+                }
+            }
+
+            [WebMethod]
+            public void Attendance_Record_Device(string ID, DateTime EntryDateTime, string EntryDate, int Stu_Emp_ID, int DeviceID, string Category, int SchoolID, string API_PIN)
+            {
+                if (Valid_API(SchoolID, API_PIN))
+                {
+                    All_UserTableAdapter Users = new All_UserTableAdapter();
+                    Users.Insert_Attendance_Record_Device(ID, EntryDateTime, EntryDate, Stu_Emp_ID, DeviceID, Category, SchoolID);
                 }
             }
         }
-
-        [WebMethod]
-        public bool Is_Device_Attendance_Enable(int SchoolID, string API_PIN)
-        {
-            API_ConfigTableAdapter API = new API_ConfigTableAdapter();
-            bool ret;
-
-            if (API.Is_Attendance_Enable(SchoolID, API_PIN).ToString() == "")
-            {
-                ret = false;
-            }
-            else
-            {
-                ret = (bool)API.Is_Attendance_Enable(SchoolID, API_PIN);
-            }
-            return ret;
-        }
-
-        [WebMethod]
-        public bool Valid_UserID(string UserName, string Password, int SchoolID, string API_PIN)
-        {
-            API_ConfigTableAdapter API = new API_ConfigTableAdapter();
-
-            bool ret;
-
-            try
-            {
-                ret = (bool)API.Validation_UserID(UserName, Password, SchoolID, API_PIN);
-            }
-            catch
-            {
-                ret = false;
-            }
-            return ret;
-
-        }
-
-        [WebMethod]
-        public bool Valid_API(int SchoolID, string API_PIN)
-        {
-            API_ConfigTableAdapter API = new API_ConfigTableAdapter();
-
-            bool ret;
-
-            if (API.Validation_API(SchoolID, API_PIN).ToString() == "")
-            {
-                ret = false;
-            }
-            else
-            {
-                ret = (bool)API.Validation_API(SchoolID, API_PIN);
-            }
-            return ret;
-        }
-
-        [WebMethod]
-        public Attendance_DataSet.Device_Finger_Print_RecordDataTable Finger_Print_Record(int SchoolID, string API_PIN)
-        {
-            Device_Finger_Print_RecordTableAdapter Device_Finger_Print = new Device_Finger_Print_RecordTableAdapter();
-            return Device_Finger_Print.GetData(SchoolID, API_PIN);
-        }
-
-        [WebMethod]
-        public void Finger_Print_insert(int SchoolID, int DeviceID, int Finger_Index, string Temp_Data, int Flag, string API_PIN)
-        {
-            if (Valid_API(SchoolID, API_PIN))
-            {
-                Device_Finger_Print_RecordTableAdapter Device_Finger_Print = new Device_Finger_Print_RecordTableAdapter();
-                Device_Finger_Print.InsertQuery(SchoolID, DeviceID, Finger_Index, Temp_Data, Flag);
-            }
-        }
-
-        [WebMethod]
-        public void Attendance_Record_Device(string ID, DateTime EntryDateTime, string EntryDate, int Stu_Emp_ID, int DeviceID, string Category, int SchoolID, string API_PIN)
-        {
-            if (Valid_API(SchoolID, API_PIN))
-            {
-                All_UserTableAdapter Users = new All_UserTableAdapter();
-                Users.Insert_Attendance_Record_Device(ID, EntryDateTime, EntryDate, Stu_Emp_ID, DeviceID, Category, SchoolID);
-            }
-        }
-    }
-}
+    } 

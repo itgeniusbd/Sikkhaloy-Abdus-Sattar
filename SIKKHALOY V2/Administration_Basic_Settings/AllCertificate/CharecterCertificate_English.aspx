@@ -79,29 +79,29 @@
 
 
             <div class="C-title">CHARACTER CERTIFICATE</div>
-            <div class="C-title2">TO WHOM IT MAY CONCERN</div>
-            <div class="c-body">
-                This is to certify that, <strong><%# Eval("StudentsName") %></strong>
-                <%#(string)Eval("Gender") == "Male" ? "son of" : "daughter of" %> <strong><%# Eval("FathersName") %></strong> & <strong><%# Eval("MothersName") %></strong>, 
-                Date Of Birth, <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
+      <div class="C-title2">TO WHOM IT MAY CONCERN</div>
+<div class="c-body">
+       This is to certify that, Student: <strong><%# Eval("StudentsName") %></strong>, ID: <strong><%# Eval("ID") %></strong>, Class: <strong><%# Eval("Class") %></strong>, Roll No: <strong><%# Eval("RollNo") %></strong>,
+        <%#(string)Eval("Gender") == "Male" ? "son of" : "daughter of" %> <strong><%# Eval("FathersName") %></strong> & <strong><%# Eval("MothersName") %></strong>, 
+             Date Of Birth, <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
                 residence of <strong><%# Eval("StudentPermanentAddress")%></strong>, is known to me. He is a citizen of Bangladesh by birth. To the best of my knowledge,
-                he bears a good moral character and is not involved in such activities which are against the state freedom and peace.
+        he bears a good moral character and is not involved in such activities which are against the state freedom and peace.
+</div>
+
+          <div class="c-footer">
+     I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
             </div>
 
-            <div class="c-footer">
-                I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
-            </div>
-
-            <div class="c-sign">
-                Date: ......../........../.........
-            </div>
-            <div class="c-sign2 text-right">
-                Signature: ............................
-            </div>
+   <div class="c-sign">
+      Date: ......../........../.........
+          </div>
+        <div class="c-sign2 text-right">
+     Signature: ............................
+ </div>
 
         </ItemTemplate>
     </asp:FormView>
-    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID)">
+    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID)">
         <SelectParameters>
             <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -110,38 +110,38 @@
 
 
     <asp:FormView ID="FormView1" runat="server" DataSourceID="Reject_StudentInfoSQL" Width="100%" Visible="false">
-        <ItemTemplate>
+    <ItemTemplate>
             <a class="btn btn-dark-green d-print-none" href="/Admission/Edit_Student_Info/Edit_Student_information.aspx?Student=<%#Eval("StudentID") %>&Student_Class=<%#Eval("StudentClassID") %>"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>Update Information</a>
             <button type="button" onclick="window.print();" class="d-print-none btn btn-amber pull-right">Print</button>
-            <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary d-print-none" OnClick="ExportWordButton_Click" Text="Export To Word" />
+      <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary d-print-none" OnClick="ExportWordButton_Click" Text="Export To Word" />
 
 
             <div class="C-title">CHARACTER CERTIFICATE</div>
-            <div class="C-title2">TO WHOM IT MAY CONCERN</div>
+   <div class="C-title2">TO WHOM IT MAY CONCERN</div>
 
-            <asp:Panel ID="Data_Panel" runat="server" CssClass="word-style">
-                <div class="Head" style="margin-top: 100px">
-                    This is to certify that, <strong><%# Eval("StudentsName") %></strong>
-                    <%#(string)Eval("Gender") == "Male" ? "son of" : "daughter of" %> <strong><%# Eval("FathersName") %></strong> & <strong><%# Eval("MothersName") %></strong>, 
+     <asp:Panel ID="Data_Panel" runat="server" CssClass="word-style">
+     <div class="Head" style="margin-top: 100px">
+       This is to certify that, Student: <strong><%# Eval("StudentsName") %></strong>, ID: <strong><%# Eval("ID") %></strong>, Class: <strong><%# Eval("Class") %></strong>, Roll No: <strong><%# Eval("RollNo") %></strong>,
+   <%#(string)Eval("Gender") == "Male" ? "son of" : "daughter of" %> <strong><%# Eval("FathersName") %></strong> & <strong><%# Eval("MothersName") %></strong>, 
             Date Of Birth, <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
             residence of <strong><%# Eval("StudentPermanentAddress")%></strong>, is known to me. He is a citizen of Bangladesh by birth. To the best of my knowledge,
-            he bears a good moral character and is not involved in such activities which are against the state freedom and peace.
-                </div>
+       he bears a good moral character and is not involved in such activities which are against the state freedom and peace.
+  </div>
 
-                <div class="c-footer">
+     <div class="c-footer">
                     I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
-                </div>
+         </div>
 
 
-                <div class="form-inline" style="margin-top:300px;position:absolute">
-                   <label class="date-position" style="font-size:50px">Date: ......../........../.........</label> &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
-                   <label>Signature: ............................</label> 
+  <div class="form-inline" style="margin-top:300px;position:absolute">
+     <label class="date-position" style="font-size:50px">Date: ......../........../.........</label> &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+  <label>Signature: ............................</label> 
 
-                                    
-                    
-                </div>
+         
+   
+      </div>
 
-            </asp:Panel>
+    </asp:Panel>
         </ItemTemplate>
     </asp:FormView>
 

@@ -3,12 +3,114 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <style>
         .No_Schedule { background-color: #f78693; }
+        
+        /* SMS Template Notification Style */
+        .sms-template-notification {
+  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+    border: 1px solid #00bcd4;
+            border-radius: 12px;
+      padding: 15px 20px;
+         margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+       box-shadow: 0 2px 8px rgba(0, 188, 212, 0.2);
+            flex-wrap: wrap;
+     }
+        
+        .sms-notification-content {
+            display: flex;
+        align-items: center;
+  gap: 12px;
+      flex: 1;
+       min-width: 250px;
+   }
+        
+   .sms-notification-icon {
+   background: white;
+   width: 40px;
+     height: 40px;
+      border-radius: 50%;
+            display: flex;
+            align-items: center;
+         justify-content: center;
+            color: #00bcd4;
+          font-size: 20px;
+     flex-shrink: 0;
+        }
+        
+        .sms-notification-text {
+         color: #006064;
+            font-weight: 500;
+        font-size: 14px;
+        }
+        
+        .sms-template-btn {
+  background: linear-gradient(135deg, #5e72e4 0%, #825ee4 100%);
+   color: white;
+         border: none;
+       padding: 10px 25px;
+            border-radius: 25px;
+        font-weight: 600;
+      text-transform: uppercase;
+   font-size: 12px;
+   letter-spacing: 0.5px;
+   transition: all 0.3s ease;
+ box-shadow: 0 4px 15px rgba(94, 114, 228, 0.3);
+ text-decoration: none;
+        display: inline-flex;
+          align-items: center;
+       gap: 8px;
+        }
+        
+        .sms-template-btn:hover {
+            transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(94, 114, 228, 0.4);
+ text-decoration: none;
+      color: white;
+   }
+  
+     .sms-template-btn i {
+     font-size: 16px;
+        }
+    
+        @media (max-width: 768px) {
+    .sms-template-notification {
+        flex-direction: column;
+                gap: 15px;
+     text-align: center;
+        }
+    
+            .sms-notification-content {
+      justify-content: center;
+}
+   
+    .sms-template-btn {
+                width: 100%;
+    justify-content: center;
+   }
+      }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <h3>Assign Student Attendance Schedule
         <asp:Label ID="CGSSLabel" runat="server"></asp:Label>
     </h3>
+
+    <!-- SMS Template Notification Panel -->
+    <div class="sms-template-notification">
+        <div class="sms-notification-content">
+            <div class="sms-notification-icon">
+    <i class="fa fa-info-circle"></i>
+    </div>
+  <div class="sms-notification-text">
+   <i class="fa fa-envelope"></i> <strong>SMS Notification:</strong> Configure attendance SMS templates for better communication with guardians
+            </div>
+        </div>
+   <a href="../SMS/SMS_Template.aspx" class="sms-template-btn">
+          <i class="fa fa-cog"></i> MANAGE SMS TEMPLATES
+    </a>
+    </div>
 
     <div class="form-inline NoPrint">
         <div class="form-group">

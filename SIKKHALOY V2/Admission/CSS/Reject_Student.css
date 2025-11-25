@@ -1,4 +1,3 @@
-﻿
 .badge { margin-bottom: 2px; }
 
 .p-image { flex-shrink:0;padding-right:1rem}
@@ -11,6 +10,63 @@
 
 @page{ margin:0.5cm}
 @media print{ 
-#Print{ display:none}
- h3{ color:#000; font-size:22px;font-weight:400;margin:0;text-align:center;background-color:#fff;}
+    #Print{ display:none}
+    h3{ color:#000; font-size:22px;font-weight:400;margin:0;text-align:center;background-color:#fff;}
+    
+    /* Hide modal when printing */
+    .modal,
+    .modal-backdrop {
+        display: none !important;
+    }
 }
+
+/* Page specific fixes for TC modal stacking */
+#activeStudentModal { 
+ position: fixed !important; 
+ z-index:2000 !important; /* above any tabs/cards */
+}
+
+.modal-backdrop { 
+ z-index:1990 !important; /* just below modal */
+}
+
+/* UpdateProgress overlay (class-based) to stay below modal */
+.progress_BG {
+ background-color: #000;
+ position: fixed;
+ top:0;
+ left:0;
+ width:100%;
+ height:100%;
+ opacity:0.4;
+ z-index:1500 !important;
+ display: none;
+}
+
+.progress {
+ position: fixed;
+ top:50%;
+ left:50%;
+ transform: translate(-50%, -50%);
+ background: #fff;
+ padding:20px;
+ border-radius:5px;
+ z-index:1510 !important;
+ text-align: center;
+ display: none;
+}
+
+/* When modal is open, drop the tabs/card stacking so modal stays on top */
+body.modal-open .nav-tabs,
+body.modal-open .nav-tabs.z-depth-1,
+body.modal-open .tab-content,
+body.modal-open .tab-content.card {
+ position: static !important;
+ z-index:0 !important;
+}
+
+/* Ensure modal and its children always sit above page UI */
+#activeStudentModal { position: fixed !important; z-index:3000 !important; }
+#activeStudentModal .modal-dialog { z-index:3001 !important; }
+#activeStudentModal .modal-content { z-index:3002 !important; }
+.modal-backdrop { z-index:2990 !important; }

@@ -237,7 +237,11 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                         Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
                         Text += " You have successfully Passed " + ExamDropDownList.SelectedItem.Text + ". Your ";
                         Text += "Total Marks: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
-                        Text += ", Grade: " + StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"];
+                        
+                        // Fix: HTML decode the grade
+                        string grade = HttpUtility.HtmlDecode(StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"].ToString());
+                        Text += ", Grade: " + grade;
+    
                         Text += ", Point: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["Student_Point"].ToString()).ToString("0.00");
                         if (ClassPositionCheckBox.Checked)
                         {
@@ -286,7 +290,11 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                                 Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
                                 Text += " You have successfully Passed " + ExamDropDownList.SelectedItem.Text + ". Your ";
                                 Text += "Total Marks: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
-                                Text += ", Grade: " + StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"];
+                                
+                                // Fix: HTML decode the grade
+                                string grade = HttpUtility.HtmlDecode(StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"].ToString());
+                                Text += ", Grade: " + grade;
+                                
                                 Text += ", Point: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["Student_Point"].ToString()).ToString("0.00");
                                 if (ClassPositionCheckBox.Checked)
                                 {

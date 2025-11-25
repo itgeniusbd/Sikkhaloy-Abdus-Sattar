@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.ADMISSION_REGISTER {
-    
-    
-    public partial class Reject_Student_from_school {
-        
+namespace EDUCATION.COM.ADMISSION_REGISTER
+{
+
+
+    public partial class Reject_Student_from_school
+    {
+
         /// <summary>
         /// UpdatePanel2 control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel2;
-        
+
         /// <summary>
         /// IDTextBox control.
         /// </summary>
@@ -29,7 +31,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox IDTextBox;
-        
+
         /// <summary>
         /// FindButton control.
         /// </summary>
@@ -38,7 +40,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button FindButton;
-        
+
         /// <summary>
         /// StudentInfoFormView control.
         /// </summary>
@@ -47,7 +49,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FormView StudentInfoFormView;
-        
+
         /// <summary>
         /// PayorderRadioButtonList control.
         /// </summary>
@@ -56,7 +58,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RadioButtonList PayorderRadioButtonList;
-        
+
         /// <summary>
         /// RejectButton control.
         /// </summary>
@@ -65,7 +67,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button RejectButton;
-        
+
         /// <summary>
         /// ActiveButton control.
         /// </summary>
@@ -74,7 +76,115 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button ActiveButton;
-        
+
+        /// <summary>
+        /// ModalUpdatePanel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.UpdatePanel ModalUpdatePanel;
+
+        /// <summary>
+        /// ActiveClassDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ActiveClassDropDown;
+
+        /// <summary>
+        /// ActiveClassSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource ActiveClassSQL;
+
+        /// <summary>
+        /// ActiveSectionDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ActiveSectionDropDown;
+
+        /// <summary>
+        /// ActiveSectionSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource ActiveSectionSQL;
+
+        /// <summary>
+        /// ActiveGroupDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ActiveGroupDropDown;
+
+        /// <summary>
+        /// ActiveGroupSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource ActiveGroupSQL;
+
+        /// <summary>
+        /// ActiveShiftDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ActiveShiftDropDown;
+
+        /// <summary>
+        /// ActiveShiftSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource ActiveShiftSQL;
+
+        /// <summary>
+        /// ActiveSessionDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ActiveSessionDropDown;
+
+        /// <summary>
+        /// ActiveSessionSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource ActiveSessionSQL;
+
+        /// <summary>
+        /// ConfirmActiveButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button ConfirmActiveButton;
+
         /// <summary>
         /// Reject_StudentInfoSQL control.
         /// </summary>
@@ -83,7 +193,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Reject_StudentInfoSQL;
-        
+
         /// <summary>
         /// PayOrderDeleteSQL control.
         /// </summary>
@@ -92,7 +202,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource PayOrderDeleteSQL;
-        
+
         /// <summary>
         /// ActiveSQL control.
         /// </summary>
@@ -101,7 +211,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ActiveSQL;
-        
+
         /// <summary>
         /// ActDeActLogSQL control.
         /// </summary>
@@ -110,7 +220,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ActDeActLogSQL;
-        
+
         /// <summary>
         /// Device_DataUpdateSQL control.
         /// </summary>
@@ -119,7 +229,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Device_DataUpdateSQL;
-        
+
         /// <summary>
         /// UpdatePanel1 control.
         /// </summary>
@@ -128,7 +238,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel1;
-        
+
         /// <summary>
         /// ClassDropDownList control.
         /// </summary>
@@ -137,7 +247,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ClassDropDownList;
-        
+
         /// <summary>
         /// ClassNameSQL control.
         /// </summary>
@@ -146,7 +256,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ClassNameSQL;
-        
+
         /// <summary>
         /// TiIDTextBox control.
         /// </summary>
@@ -155,7 +265,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox TiIDTextBox;
-        
+
         /// <summary>
         /// TcFindButton control.
         /// </summary>
@@ -164,7 +274,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button TcFindButton;
-        
+
         /// <summary>
         /// CountStudentLabel control.
         /// </summary>
@@ -173,7 +283,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label CountStudentLabel;
-        
+
         /// <summary>
         /// StatusGridView control.
         /// </summary>
@@ -182,7 +292,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView StatusGridView;
-        
+
         /// <summary>
         /// StatusSQL control.
         /// </summary>
@@ -191,7 +301,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource StatusSQL;
-        
+
         /// <summary>
         /// UpdateProgress control.
         /// </summary>

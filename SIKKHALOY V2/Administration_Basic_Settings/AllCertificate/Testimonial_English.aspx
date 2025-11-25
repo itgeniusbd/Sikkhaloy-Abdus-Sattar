@@ -110,54 +110,54 @@ font-size: 2rem;
             <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary d-print-none" OnClick="ExportWordButton_Click" Text="Export To Word" />
 
 
-             <div class="C-title">TESTIMONIAL</div>
+           <div class="C-title">TESTIMONIAL</div>
           <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:30px">Date: ......../........../.........</label>
             <div class="c-body">
-                It is hereby certified that the student: <strong><%# Eval("StudentsName") %>, </strong>
-               Father : <strong><%# Eval("FathersName") %></strong>, Mother :  <strong><%# Eval("MothersName") %></strong>, 
-                Date Of Birth : <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
-                Address : <strong><%# Eval("StudentPermanentAddress")%></strong>। To my knowledge he is of good character and is not involved in any anti-state activities. 
-               </div>
+                It is hereby certified that the student: <strong><%# Eval("StudentsName") %>, </strong> ID: <strong><%# Eval("ID") %></strong>, Class: <strong><%# Eval("Class") %></strong>, Roll No: <strong><%# Eval("RollNo") %></strong>,
+   Father: <strong><%# Eval("FathersName") %></strong>, Mother:  <strong><%# Eval("MothersName") %></strong>, 
+    Date Of Birth: <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
+        Address: <strong><%# Eval("StudentPermanentAddress")%></strong>. To my knowledge <%#(string)Eval("Gender") == "Male" ? "he" : "she" %> is of good character and is not involved in any anti-state activities. 
+      </div>
 
-            <div class="c-footer">
-                 I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
-            </div>
-            
-            <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">Authority Signature</label> 
+ <div class="c-footer">
+  I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
+      </div>
+    
+       <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">Authority Signature</label> 
 
         </ItemTemplate>
     </asp:FormView>
 
     <asp:FormView ID="FormView1" runat="server" DataSourceID="Reject_StudentInfoSQL" Width="100%" Visible="false">
         <ItemTemplate>
-            <a class="btn btn-dark-green d-print-none" href="/Admission/Edit_Student_Info/Edit_Student_information.aspx?Student=<%#Eval("StudentID") %>&Student_Class=<%#Eval("StudentClassID") %>"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>Update Information</a>
-            <button type="button" onclick="window.print();" class="d-print-none btn btn-amber pull-right">Print</button>
+          <a class="btn btn-dark-green d-print-none" href="/Admission/Edit_Student_Info/Edit_Student_information.aspx?Student=<%#Eval("StudentID") %>&Student_Class=<%#Eval("StudentClassID") %>"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>Update Information</a>
+  <button type="button" onclick="window.print();" class="d-print-none btn btn-amber pull-right">Print</button>
             <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary d-print-none" OnClick="ExportWordButton_Click" Text="Export To Word" />
 
 
-            <div class="C-title">TESTIMONIAL</div>
+   <div class="C-title">TESTIMONIAL</div>
             
-            <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:30px">Date: ......../........../.........</label>
-            <asp:Panel ID="Data_Panel" runat="server" CssClass="word-style">
-                <div class="Head" style="margin-top: 100px">
-                    It is hereby certified that the student  <strong><%# Eval("StudentsName") %></strong>,
-                 Father:  <strong><%# Eval("FathersName") %>, </strong> Mother : <strong><%# Eval("MothersName") %></strong>, 
+   <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:30px">Date: ......../........../.........</label>
+      <asp:Panel ID="Data_Panel" runat="server" CssClass="word-style">
+       <div class="Head" style="margin-top: 100px">
+        It is hereby certified that the student: <strong><%# Eval("StudentsName") %></strong>, ID: <strong><%# Eval("ID") %></strong>, Class: <strong><%# Eval("Class") %></strong>, Roll No: <strong><%# Eval("RollNo") %></strong>,
+  Father:  <strong><%# Eval("FathersName") %>, </strong> Mother: <strong><%# Eval("MothersName") %></strong>, 
            Date Of Birth: <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
-            Address: <strong><%# Eval("StudentPermanentAddress")%></strong>, To my knowledge he is of good character and is not involved in any anti-state activities.
-                    </div>
+            Address: <strong><%# Eval("StudentPermanentAddress")%></strong>. To my knowledge <%#(string)Eval("Gender") == "Male" ? "he" : "she" %> is of good character and is not involved in any anti-state activities.
+       </div>
 
-                <div class="c-footer">
-                 I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
-                </div>
+  <div class="c-footer">
+             I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
+      </div>
 
-                <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">Authority Signature</label> 
-            </asp:Panel>
-        </ItemTemplate>
+<label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">Authority Signature</label> 
+    </asp:Panel>
+     </ItemTemplate>
     </asp:FormView>
-       <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID)">
+   <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID)">
        <SelectParameters>
-           <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
-           <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+      <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
+ <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
        </SelectParameters>
    </asp:SqlDataSource>
     <script>

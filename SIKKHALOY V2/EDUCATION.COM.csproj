@@ -313,7 +313,9 @@
     <Content Include="Accounts\Reports\PaidReport.aspx" />
     <Content Include="Accounts\Reports\PayOrderReport.aspx" />
     <Content Include="Accounts\Reports\SubmitBalance.aspx" />
+    <Content Include="Accounts\Reports\SubmitBalance0.aspx" />
     <Content Include="Accounts\Reports\UserAccount.aspx" />
+    <Content Include="Accounts\Reports\UserAccount_Fixed.aspx" />
     <Content Include="Accounts\Reports\UserWise_Account_Report.aspx" />
     <Content Include="Administration_Basic_Settings\Active_deactivate_Sub_Admin.aspx" />
     <Content Include="Administration_Basic_Settings\Active_Deactivate_Teacher.aspx" />
@@ -343,6 +345,7 @@
     <Content Include="Admission\CSS\Reject_Student.css" />
     <Content Include="Admission\CSS\Report.css" />
     <Content Include="Admission\Edit_Student_Info\Find_Student.aspx" />
+    <Content Include="Admission\New_Student_Admission\Form_Bangla.aspx" />
     <Content Include="Admission\New_Student_Admission\Admission_Form.aspx" />
     <Content Include="Admission\New_Student_Admission\Admission_New_Student_old.aspx" />
     <Content Include="Admission\Blocked_Unblocked_Student_Temporarily.aspx" />
@@ -353,7 +356,6 @@
     <Content Include="Admission\New_Student_Admission\CSS\FormBangla.css" />
     <Content Include="Admission\New_Student_Admission\CSS\New_Students_Payments.css" />
     <Content Include="Admission\New_Student_Admission\CSS\New_Student_Admission.css" />
-    <Content Include="Admission\New_Student_Admission\Form_Bangla.aspx" />
     <Content Include="Admission\New_Student_Admission\Online_Admission_Form.aspx" />
     <Content Include="Admission\New_Student_Admission\Payments.aspx" />
     <Content Include="Admission\New_Student_Admission\Admission_New_Student.aspx" />
@@ -667,9 +669,16 @@
     </Content>
     <Content Include="Routines\CSS\Exam_Routine.css" />
     <Content Include="Routines\Exam_Routine.aspx" />
+    <Content Include="Routines\Exam_Routine_Bangla.aspx" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_Bangla_Table.sql" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_SavedData_Tables.sql" />
     <Content Include="Profile\WordOfTheDay_Simplified.sql" />
+    <Content Include="SMS\SMS_Template.aspx" />
+    <Content Include="SQL\Create_SMS_Template_Table.sql" />
+    <Content Include="SQL\Debug_Student_Grade.sql" />
+    <Content Include="SQL\Insert_All_Default_SMS_Templates.sql" />
+    <Content Include="SQL\Insert_Essential_SMS_Templates.sql" />
+    <Content Include="SQL\Insert_Payment_SMS_Templates.sql" />
     <Content Include="Student\Exam_Routine_forStudent.aspx" />
     <Content Include="Student\Notice.aspx" />
     <Content Include="Student\OnlinePayment\Success.aspx" />
@@ -1223,6 +1232,13 @@
     <Compile Include="Admission\Edit_Student_Info\Find_Student.aspx.designer.cs">
       <DependentUpon>Find_Student.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.cs">
+      <DependentUpon>Form_Bangla.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.designer.cs">
+      <DependentUpon>Form_Bangla.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Admission\New_Student_Admission\Admission_Form.aspx.cs">
       <DependentUpon>Admission_Form.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -1261,13 +1277,6 @@
     </Compile>
     <Compile Include="Admission\New_Student_Admission\Class_And_Subject.aspx.designer.cs">
       <DependentUpon>Class_And_Subject.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.cs">
-      <DependentUpon>Form_Bangla.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.designer.cs">
-      <DependentUpon>Form_Bangla.aspx</DependentUpon>
     </Compile>
     <Compile Include="Admission\New_Student_Admission\Online_Admission_Form.aspx.cs">
       <DependentUpon>Online_Admission_Form.aspx</DependentUpon>
@@ -2030,6 +2039,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Cu_Exam.xsd</DependentUpon>
     </Compile>
+    <Compile Include="Exam\ExamPosition.aspx.cs">
+      <DependentUpon>ExamPosition.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
     <Compile Include="Exam\ExmamPositionBangla.aspx.cs">
       <DependentUpon>ExmamPositionBangla.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -2087,10 +2100,6 @@
     </Compile>
     <Compile Include="Exam\CumulativeResult\Cumulative_Setting.aspx.designer.cs">
       <DependentUpon>Cumulative_Setting.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="Exam\ExamPosition.aspx.cs">
-      <DependentUpon>ExamPosition.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Exam\ExamPosition.aspx.designer.cs">
       <DependentUpon>ExamPosition.aspx</DependentUpon>
@@ -2505,6 +2514,13 @@
     <Compile Include="Routines\Exam_Routine.aspx.designer.cs">
       <DependentUpon>Exam_Routine.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Routines\Exam_Routine_Bangla.aspx.cs">
+      <DependentUpon>Exam_Routine_Bangla.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Routines\Exam_Routine_Bangla.aspx.designer.cs">
+      <DependentUpon>Exam_Routine_Bangla.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Routines\Modify_Routine.aspx.cs">
       <DependentUpon>Modify_Routine.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -2533,7 +2549,15 @@
     <Compile Include="SMS\Sent_SMS_Records.aspx.designer.cs">
       <DependentUpon>Sent_SMS_Records.aspx</DependentUpon>
     </Compile>
+    <Compile Include="SMS\SMS_Template.aspx.cs">
+      <DependentUpon>SMS_Template.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="SMS\SMS_Template.aspx.designer.cs">
+      <DependentUpon>SMS_Template.aspx</DependentUpon>
+    </Compile>
     <Compile Include="SMS_Class.cs" />
+    <Compile Include="SMS_Template_Helper.cs" />
     <Compile Include="Student\Accounts.aspx.cs">
       <DependentUpon>Accounts.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -2745,6 +2769,7 @@
     <Content Include="PaymentDataSet.xss">
       <DependentUpon>PaymentDataSet.xsd</DependentUpon>
     </Content>
+    <Content Include="SQL\README_SQL_SCRIPTS.md" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 
 namespace EDUCATION.COM.Routines
 {
-    public partial class Exam_Routine_Bangla : System.Web.UI.Page
+    public partial class Exam_Routine_Bangla1 : System.Web.UI.Page
     {
         // Properties to track counts
         private int ClassColumnCount
@@ -108,8 +108,8 @@ namespace EDUCATION.COM.Routines
             }
 
             // Update labels
-            ClassColumnCountLabel.Text = "Current: " + ClassColumnCount;
-        RowCountLabel.Text = "Current: " + RowCount;
+            ClassColumnCountLabel.Text = "বর্তমান: " + ClassColumnCount;
+            RowCountLabel.Text = "বর্তমান: " + RowCount;
         }
 
         private void SaveSelectedClassValues()
@@ -174,21 +174,21 @@ namespace EDUCATION.COM.Routines
                     }
                 }
 
-                // **FIXED: Always show "Class" label with class name**
+                // **FIXED: Always show "শ্রেণী" label with class name**
                 headerHtml.Append("<div style='display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;'>");
 
-                // Show "Class: ClassName" or just "Class" if no class selected
+                // Show "শ্রেণী: ClassName" or just "শ্রেণী" if no class selected
                 if (!string.IsNullOrEmpty(selectedClassName))
                 {
-                    headerHtml.Append("<span style='font-weight: bold;'>Class: " + selectedClassName + "</span>");
+                    headerHtml.Append("<span style='font-weight: bold;'>শ্রেণী: " + selectedClassName + "</span>");
                 }
                 else
                 {
-                    headerHtml.Append("<span style='font-weight: bold;'>Class</span>");
+                    headerHtml.Append("<span style='font-weight: bold;'>শ্রেণী</span>");
                 }
 
                 headerHtml.Append("<select id='ClassDropdown" + i + "' name='ClassDropdown" + i + "' class='form-control-routine class-dropdown' style='width: auto; min-width: 150px;'>");
-                headerHtml.Append("<option value=''>Select</option>");
+                headerHtml.Append("<option value=''>নির্বাচন করুন</option>");
 
                 foreach (DataRow row in classesTable.Rows)
                 {
@@ -215,13 +215,13 @@ namespace EDUCATION.COM.Routines
         {
             switch (dayOfWeek)
             {
-                case DayOfWeek.Saturday: return "Saturday";
-                case DayOfWeek.Sunday: return "Sunday";
-                case DayOfWeek.Monday: return "Monday";
-                case DayOfWeek.Tuesday: return "Tuesday";
-                case DayOfWeek.Wednesday: return "Wednesday";
-                case DayOfWeek.Thursday: return "Thursday";
-                case DayOfWeek.Friday: return "Friday";
+                case DayOfWeek.Saturday: return "শনিবার";
+                case DayOfWeek.Sunday: return "রবিবার";
+                case DayOfWeek.Monday: return "সোমবার";
+                case DayOfWeek.Tuesday: return "মঙ্গলবার";
+                case DayOfWeek.Wednesday: return "বুধবার";
+                case DayOfWeek.Thursday: return "বৃহস্পতিবার";
+                case DayOfWeek.Friday: return "শুক্রবার";
                 default: return "";
             }
         }
@@ -251,7 +251,7 @@ namespace EDUCATION.COM.Routines
                 newRow["DayName"] = GetBengaliDayName(currentDate.DayOfWeek);
                 newRow["StartTime"] = "10:00 AM";
                 newRow["EndTime"] = "01:00 PM";
-                newRow["Duration"] = "3 hours";
+                newRow["Duration"] = "৩ ঘন্টা";
                 newRow["ExamTime"] = "10:00 AM";
                 newRow["RoutineID"] = 0;
                 dtRows.Rows.Add(newRow);
@@ -437,7 +437,7 @@ ORDER BY RowIndex";
                         newRow["EndTime"] = "01:00 PM";
                     }
 
-                    newRow["Duration"] = "3 hours";
+                    newRow["Duration"] = "৩ ঘন্টা";
                     dtRows.Rows.Add(newRow);
                 }
 
@@ -555,7 +555,7 @@ ORDER BY RowIndex";
                     // **CRITICAL: Subject dropdown generation**
                     string dropdownId = $"Subject{i}Dropdown_{e.Item.ItemIndex}";
                     columnsHtml.Append($"<select id='{dropdownId}' name='{dropdownId}' class='form-control-routine' style='margin-bottom: 5px;'>");
-                    columnsHtml.Append("<option value=''>Select Subject</option>");
+                    columnsHtml.Append("<option value=''>বিষয় নির্বাচন করুন</option>");
 
                     // Load subjects if class is selected
                     if (selectedClassId > 0)
@@ -584,7 +584,7 @@ ORDER BY RowIndex";
                         textboxValue = loadedCell.SubjectText ?? "";
                     }
 
-                    columnsHtml.Append("<input type='text' id='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' name='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine subject-textbox' value='" + textboxValue + "' placeholder='Additional info' />");
+                    columnsHtml.Append("<input type='text' id='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' name='Subject" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine subject-textbox' value='" + textboxValue + "' placeholder='অতিরিক্ত তথ্য' />");
 
                     // Display selected subject text (visible on screen & print)
                     if (!string.IsNullOrEmpty(selectedSubjectText))
@@ -605,7 +605,7 @@ ORDER BY RowIndex";
                     }
 
                     columnsHtml.Append("<div class='subject-time-manual'>");
-                    columnsHtml.Append("<input type='text' id='Time" + i + "TextBox_" + e.Item.ItemIndex + "' name='Time" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine time-manual-input' value='" + timeValue + "' placeholder='Time (e.g: 8:20 PM)' />");
+                    columnsHtml.Append("<input type='text' id='Time" + i + "TextBox_" + e.Item.ItemIndex + "' name='Time" + i + "TextBox_" + e.Item.ItemIndex + "' class='form-control-routine time-manual-input' value='" + timeValue + "' placeholder='সময় (যেমন: 8:20 PM)' />");
                     columnsHtml.Append("</div>");
 
                     columnsHtml.Append("</td>");
@@ -710,7 +710,7 @@ ORDER BY CreatedDate DESC";
                 RoutineListDropDown.Items.Clear();
 
                 // Add default item
-                RoutineListDropDown.Items.Add(new ListItem("[ Select ]", "0"));
+                RoutineListDropDown.Items.Add(new ListItem("[ নির্বাচন করুন ]", "0"));
 
                 // **CRITICAL: Use DataBind() properly**
                 RoutineListDropDown.DataSource = dt;
@@ -745,7 +745,7 @@ ORDER BY CreatedDate DESC";
                 RoutineListDropDown.Items.Clear();
 
                 // Add default item
-                RoutineListDropDown.Items.Add(new ListItem("[ Select ]", "0"));
+                RoutineListDropDown.Items.Add(new ListItem("[ নির্বাচন করুন ]", "0"));
 
                 // **Store the currently selected routine ID**
                 string currentSelection = LoadedRoutineIdHF.Value;
@@ -797,7 +797,7 @@ ORDER BY CreatedDate DESC";
             {
                 // **DIRECT alert - no setTimeout needed for validation**
                 ScriptManager.RegisterStartupScript(this, GetType(), "alert",
-"alert('Please enter routine name');", true);
+"alert('দয়া করে রুটিনের নাম লিখুন');", true);
                 return;
             }
 
@@ -811,7 +811,7 @@ ORDER BY CreatedDate DESC";
             if (educationYearId == 0)
             {
                 ScriptManager.RegisterStartupScript(this, GetType(), "alert",
-      "alert('Education year not found. Please select session.');", true);
+      "alert('শিক্ষাবর্ষ পাওয়া যাচ্ছে না। অনুগ্রহ করে সেশন নির্বাচন করুন।');", true);
                 return;
             }
 
@@ -982,8 +982,8 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
 
                     // 5. Register client script for success message (NO setTimeout, direct alert)
                     string script = @"
-   alert('Routine saved successfully');
-  ";
+        alert('রুটিন সফলভাবে সংরক্ষণ করা হয়েছে');
+    ";
                     ScriptManager.RegisterClientScriptBlock(this, GetType(), "successSave", script, true);
                 }
                 catch (Exception ex)
@@ -1247,9 +1247,9 @@ VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText
 
                     // 4. Register client script for success message (NO setTimeout, direct alert)
                     string script = @"
-alert('Routine updated successfully');
-       ";
-       ScriptManager.RegisterClientScriptBlock(this, GetType(), "successUpdate", script, true);
+     alert('রুটিন সফলভাবে আপডেট হয়েছে');
+    ";
+                    ScriptManager.RegisterClientScriptBlock(this, GetType(), "successUpdate", script, true);
                 }
                 catch (Exception ex)
                 {
@@ -1321,7 +1321,7 @@ alert('Routine updated successfully');
                         // 1. Reset UI
                         LoadedRoutineIdHF.Value = "";
                         RoutineNameTextBox.Text = "";
-                        RoutineNameLabel.Text = "Exam Routine";
+                        RoutineNameLabel.Text = "পরীক্ষার রুটিন";
 
                         // 2. MANUALLY bind dropdown
                         BindRoutineDropdown();
@@ -1341,9 +1341,9 @@ alert('Routine updated successfully');
 
                         // 6. Register client script for success message
                         string script = @"
- alert('Routine deleted successfully');
- ";
- ScriptManager.RegisterClientScriptBlock(this, GetType(), "successDelete", script, true);
+    alert('রুটিন সফলভাবে মুছে ফেলা হয়েছে');
+    ";
+                        ScriptManager.RegisterClientScriptBlock(this, GetType(), "successDelete", script, true);
                     }
                     catch (Exception ex)
                     {

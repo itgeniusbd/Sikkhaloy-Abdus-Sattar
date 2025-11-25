@@ -15,8 +15,20 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(Request.QueryString["Student"]) && string.IsNullOrEmpty(Request.QueryString["Class"]) && string.IsNullOrEmpty(Request.QueryString["StudentClass"]))
-                Response.Redirect("Class_And_Subject.aspx");
+            if (!IsPostBack)
+            {
+                if (string.IsNullOrEmpty(Request.QueryString["Student"]) && string.IsNullOrEmpty(Request.QueryString["Class"]) && string.IsNullOrEmpty(Request.QueryString["StudentClass"]))
+                    Response.Redirect("Class_And_Subject.aspx");
+
+                // Set Admission_Year cookie from query string if provided (for rejected student activation)
+                if (!string.IsNullOrEmpty(Request.QueryString["Year"]))
+                {
+                    HttpCookie admissionYearCookie = new HttpCookie("Admission_Year");
+                    admissionYearCookie.Value = Request.QueryString["Year"];
+                    admissionYearCookie.Expires = DateTime.Now.AddDays(30);
+                    Response.Cookies.Add(admissionYearCookie);
+                }
+            }
         }
 
         protected void PayOrderButton_Click(object sender, EventArgs e)

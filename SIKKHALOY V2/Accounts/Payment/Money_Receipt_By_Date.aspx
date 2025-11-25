@@ -240,12 +240,30 @@
         </div>
     </div>
 
-    <div class="form-group d-print-none">
-        <asp:CheckBox ID="RoleCheckBox" runat="server" Text="Send Payment Roles" />
-        <asp:CheckBox ID="CurrentDueCheckBox" runat="server" Text="Send Current Due" /><br />
-        <asp:Button ID="SMSButton" runat="server" Text="Send SMS" CssClass="btn btn-primary" OnClick="SMSButton_Click" />
-        <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
+    <!-- SMS SECTION -->
+<div class="d-print-none my-3">
+    <!-- SMS Template Info & Edit Link -->
+    <div style="background-color: #e7f3ff; border: 1px solid #2196F3; border-radius: 4px; padding: 12px 15px; margin-bottom: 15px;">
+   <div style="display: flex; align-items: center; justify-content: space-between;">
+       <div style="flex: 1;">
+         <i class="fa fa-info-circle" style="color: #2196F3; font-size: 18px; margin-right: 8px;"></i>
+    <strong style="color: #1976D2;">SMS Template Active:</strong>
+            <span style="color: #555; margin-left: 10px;">
+    Using system template for payment receipt. 
+      <small style="color: #777;">(Placeholders: {StudentName}, {Amount}, {ReceiptNo}, {PaymentDetails}, {CurrentDue}, etc.)</small>
+    </span>
+   </div>
+        <div>
+    <a href="/SMS/SMS_Template.aspx" class="btn btn-info btn-sm" style="text-decoration: none;">
+       <i class="fa fa-edit"></i> Edit SMS Templates
+    </a>
+        </div>
+       </div>
     </div>
+
+    <asp:Button ID="SMSButton" runat="server" Text="Send Receipt SMS" CssClass="btn btn-primary" OnClick="SMSButton_Click" />
+ <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
+</div>
 
     <!--Amount in word js-->
     <script src="../../JS/amount-in-word.js"></script>

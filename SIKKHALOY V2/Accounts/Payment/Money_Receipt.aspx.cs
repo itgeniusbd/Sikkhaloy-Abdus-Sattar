@@ -70,7 +70,7 @@ namespace EDUCATION.COM.Accounts.Payment
         protected void SMSButton_Click(object sender, EventArgs e)
         {
             ErrorLabel.Text = "";
-            var msg = "Congrats! ";
+            var msg = "";
             var isSentSMS = false;
 
             decimal currentDue = 0.0m;
@@ -81,13 +81,11 @@ namespace EDUCATION.COM.Accounts.Payment
                     var numberLabel = row.FindControl("DueLabel") as Label;
                     if (numberLabel != null)
                     {
-                        {
-                            currentDue += Convert.ToDecimal(numberLabel.Text);
-                        }
-
+                        currentDue += Convert.ToDecimal(numberLabel.Text);
                     }
                 }
             }
+
             if (StudentInfoFormView.CurrentMode == FormViewMode.ReadOnly)
             {
                 var phoneNo = StudentInfoFormView.DataKey["SMSPhoneNo"].ToString();
@@ -96,30 +94,38 @@ namespace EDUCATION.COM.Accounts.Payment
                 var studentName = (StudentInfoFormView.Row.FindControl("StudentsNameLabel") as Label)?.Text;
                 var receiptNo = (ReceiptFormView.Row.FindControl("MoneyReceiptIDLabel") as Label)?.Text;
 
-
-
-                if (CurrentDueCheckBox.Checked)
+                // Build payment details for template
+                var paymentDetails = "";
+                foreach (GridViewRow row in PaidDetailsGridView.Rows)
                 {
-                    msg += $"(ID: {studentId}) {studentName}. You've Paid: {paid} Tk. And Current Due: {currentDue} Tk.  Receipt No: {receiptNo}";
+                    var role = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["Role"];
+                    var payFor = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["PayFor"];
+                    paymentDetails += $", {role}: {payFor}";
+                }
+
+                // Try to get Payment SMS Template from database
+                string paymentTemplate = GetSMSTemplate("Payment", "Payment");
+
+                if (!string.IsNullOrEmpty(paymentTemplate))
+                {
+                    // Use template and replace placeholders
+                    msg = BuildPaymentReceiptMessageFromTemplate(paymentTemplate, studentName, studentId,
+                            Convert.ToDouble(paid), receiptNo, paymentDetails, currentDue);
                 }
                 else
                 {
+                    // Default message if no template found
+                    msg = "Congrats! ";
                     msg += $"(ID: {studentId}) {studentName}. You've Paid: {paid} Tk. Receipt No: {receiptNo}";
-                }
 
-
-
-                if (RoleCheckBox.Checked)
-                {
-                    foreach (GridViewRow row in PaidDetailsGridView.Rows)
+                    // Optionally include payment details in default message
+                    if (!string.IsNullOrEmpty(paymentDetails))
                     {
-                        var role = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["Role"];
-                        var payFor = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["PayFor"];
-
-                        msg += $", {role}: {payFor}";
+                        msg += paymentDetails;
                     }
+
+                    msg += ". Regards, " + Session["School_Name"];
                 }
-                msg += ". Regards, " + Session["School_Name"];
 
                 var sms = new SMS_Class(Session["SchoolID"].ToString());
                 var smsBalance = sms.SMSBalance;
@@ -145,7 +151,6 @@ namespace EDUCATION.COM.Accounts.Payment
                                     StudentInfoFormView.DataKey["StudentID"].ToString();
                                 SMS_OtherInfoSQL.InsertParameters["TeacherID"].DefaultValue = "";
                                 SMS_OtherInfoSQL.Insert();
-
                             }
                             isSentSMS = true;
                         }
@@ -253,6 +258,113 @@ namespace EDUCATION.COM.Accounts.Payment
                 updateMessageLabel.Text = "Error: " + ex.Message;
                 updateMessageLabel.ForeColor = System.Drawing.Color.Red;
             }
+        }
+
+        /// <summary>
+        /// Get SMS Template from database by category and type
+        /// </summary>
+        private string GetSMSTemplate(string category, string templateType)
+        {
+            try
+            {
+                using (SqlConnection tempCon = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString()))
+                {
+                    tempCon.Open();
+
+                    // First check if SMS_Template table exists
+                    SqlCommand checkTableCmd = new SqlCommand(@"
+IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
+              WHERE TABLE_NAME = 'SMS_Template')
+         SELECT 1
+                ELSE
+     SELECT 0", tempCon);
+
+                    int tableExists = (int)checkTableCmd.ExecuteScalar();
+
+                    if (tableExists == 0)
+                    {
+                        return string.Empty;
+                    }
+
+                    // Check if TemplateCategory column exists
+                    SqlCommand checkColumnCmd = new SqlCommand(@"
+   IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'SMS_Template' AND COLUMN_NAME = 'TemplateCategory')
+             SELECT 1
+  ELSE
+           SELECT 0", tempCon);
+
+                    int columnExists = (int)checkColumnCmd.ExecuteScalar();
+
+                    string selectQuery;
+                    if (columnExists == 1)
+                    {
+                        selectQuery = @"SELECT TOP 1 MessageTemplate 
+        FROM SMS_Template 
+                    WHERE SchoolID = @SchoolID 
+   AND TemplateCategory = @TemplateCategory
+       AND TemplateType = @TemplateType 
+           AND IsActive = 1 
+          ORDER BY CreatedDate DESC";
+                    }
+                    else
+                    {
+                        selectQuery = @"SELECT TOP 1 MessageTemplate 
+    FROM SMS_Template 
+     WHERE SchoolID = @SchoolID 
+        AND TemplateType = @TemplateType 
+          AND IsActive = 1 
+  ORDER BY CreatedDate DESC";
+                    }
+
+                    SqlCommand cmd = new SqlCommand(selectQuery, tempCon);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    if (columnExists == 1)
+                    {
+                        cmd.Parameters.AddWithValue("@TemplateCategory", category);
+                    }
+                    cmd.Parameters.AddWithValue("@TemplateType", templateType);
+
+                    object result = cmd.ExecuteScalar();
+                    return result != null ? result.ToString() : string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Build Payment Receipt SMS message from template by replacing placeholders
+        /// </summary>
+        private string BuildPaymentReceiptMessageFromTemplate(string template, string studentName, string studentId,
+          double amount, string receiptNo, string paymentDetails, decimal currentDue)
+        {
+            string message = template;
+
+            // Replace all payment-related placeholders
+            message = message.Replace("{StudentName}", studentName);
+            message = message.Replace("{ID}", studentId);
+            message = message.Replace("{Amount}", amount.ToString("0.00"));
+            message = message.Replace("{ReceiptNo}", receiptNo);
+            message = message.Replace("{CurrentDue}", currentDue.ToString("0.00"));
+
+            // Clean up payment details
+            if (!string.IsNullOrEmpty(paymentDetails))
+            {
+                paymentDetails = paymentDetails.TrimStart(',', ' ');
+                message = message.Replace("{PaymentDetails}", paymentDetails);
+            }
+            else
+            {
+                message = message.Replace(", {PaymentDetails}", "")
+  .Replace("{PaymentDetails}", "");
+            }
+
+            message = message.Replace("{SchoolName}", Session["School_Name"].ToString());
+
+            return message;
         }
     }
 }

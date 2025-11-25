@@ -130,6 +130,17 @@ ORDER BY Income_Roles.Role">
                     </div>
 
                     <div class="form-inline Submit_Disable d-print-none">
+                        <!-- SMS Template Info & Edit Link -->
+                        <div class="form-group" style="flex: 1; margin-right: 15px;">
+                            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 8px 12px;">
+                                <i class="fa fa-info-circle" style="color: #ff9800;"></i>
+                                <small style="color: #856404; margin-right: 8px;">SMS Template: Due Notification</small>
+                                <a href="/SMS/SMS_Template.aspx" class="btn btn-sm btn-warning" style="padding: 2px 8px; font-size: 11px;">
+                                    <i class="fa fa-edit"></i> Edit
+                                </a>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <asp:Button ID="ClassSendButton" runat="server" CssClass="btn btn-primary" OnClick="ClassSendButton_Click" Text="Send SMS" ValidationGroup="AD" />
                         </div>
@@ -212,6 +223,19 @@ ORDER BY Income_Roles.Role">
             </div>
 
             <div class="id_hide" style="display: none;">
+                <!-- SMS Template Info & Edit Link -->
+                <div style="background-color: #e7f3ff; border: 1px solid #2196F3; border-radius: 4px; padding: 10px 15px; margin-bottom: 15px;">
+     <i class="fa fa-info-circle" style="color: #2196F3;"></i>
+      <strong style="color: #1976D2;">SMS Template:</strong>
+<span style="color: #555; margin-left: 10px;">
+      Due notification template. 
+            <small style="color: #777;">(Placeholders: {StudentName}, {ID}, {TotalDue}, {DueDetails}, etc.)</small>
+        </span>
+        <a href="/SMS/SMS_Template.aspx" class="btn btn-info btn-sm ml-2" style="text-decoration: none;">
+  <i class="fa fa-edit"></i> Edit Templates
+     </a>
+ </div>
+
                 <div class="form-inline">
                     <div class="form-group">
                         <asp:Button ID="IDSendButton" runat="server" CssClass="btn btn-primary" OnClick="IDSendButton_Click" Text="Send SMS" />
@@ -332,16 +356,38 @@ ORDER BY Income_Roles.Role">
             }
             //Checkbox selected color
             $("[id*=AllIteamCheckBox]").on("click", function () {
-                var a = $(this), b = $(this).closest("table");
-                $("input[type=checkbox]", b).each(function () {
-                    a.is(":checked") ? ($(this).attr("checked", "checked"), $("td", $(this).closest("tr")).addClass("selected")) : ($(this).removeAttr("checked"), $("td", $(this).closest("tr")).removeClass("selected"));
+                var isChecked = $(this).prop('checked');
+                var grid = $(this).closest("table");
+                
+                $("input[type=checkbox]", grid).each(function () {
+                    $(this).prop('checked', isChecked);
+                  if (isChecked) {
+ $("td", $(this).closest("tr")).addClass("selected");
+  } else {
+ $("td", $(this).closest("tr")).removeClass("selected");
+ }
                 });
             });
 
             $("[id*=SingleCheckBox]").on("click", function () {
-                var a = $(this).closest("table"), b = $("[id*=chkHeader]", a);
-                $(this).is(":checked") ? ($("td", $(this).closest("tr")).addClass("selected"), $("[id*=SingleCheckBox]", a).length == $("[id*=SingleCheckBox]:checked", a).length && b.attr("checked", "checked")) : ($("td", $(this).closest("tr")).removeClass("selected"), b.removeAttr("checked"));
-            });
+    var grid = $(this).closest("table");
+ var allCheckbox = $("[id*=AllIteamCheckBox]", grid);
+    
+    if ($(this).prop('checked')) {
+        $("td", $(this).closest("tr")).addClass("selected");
+  
+    // Check if all individual checkboxes are checked
+  var totalCheckboxes = $("[id*=SingleCheckBox]", grid).length;
+  var checkedCheckboxes = $("[id*=SingleCheckBox]:checked", grid).length;
+        
+        if (totalCheckboxes === checkedCheckboxes) {
+   allCheckbox.prop('checked', true);
+      }
+    } else {
+  $("td", $(this).closest("tr")).removeClass("selected");
+  allCheckbox.prop('checked', false);
+    }
+});
 
             //GridView Is Empty
             if (!$('[id*=TotalDueGridView] tr').length) {
@@ -366,40 +412,62 @@ ORDER BY Income_Roles.Role">
         });
 
         Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (e, f) {
-            //Checkbox selected color
-            $("[id*=AllIteamCheckBox]").on("click", function () {
-                var a = $(this), b = $(this).closest("table");
-                $("input[type=checkbox]", b).each(function () {
-                    a.is(":checked") ? ($(this).attr("checked", "checked"), $("td", $(this).closest("tr")).addClass("selected")) : ($(this).removeAttr("checked"), $("td", $(this).closest("tr")).removeClass("selected"));
-                });
-            });
+    //Checkbox selected color
+    $("[id*=AllIteamCheckBox]").on("click", function () {
+        var isChecked = $(this).prop('checked');
+   var grid = $(this).closest("table");
+        
+   $("input[type=checkbox]", grid).each(function () {
+       $(this).prop('checked', isChecked);
+      if (isChecked) {
+    $("td", $(this).closest("tr")).addClass("selected");
+  } else {
+   $("td", $(this).closest("tr")).removeClass("selected");
+    }
+     });
+    });
 
-            $("[id*=SingleCheckBox]").on("click", function () {
-                var a = $(this).closest("table"), b = $("[id*=chkHeader]", a);
-                $(this).is(":checked") ? ($("td", $(this).closest("tr")).addClass("selected"), $("[id*=SingleCheckBox]", a).length == $("[id*=SingleCheckBox]:checked", a).length && b.attr("checked", "checked")) : ($("td", $(this).closest("tr")).removeClass("selected"), b.removeAttr("checked"));
-            });
+    $("[id*=SingleCheckBox]").on("click", function () {
+ var grid = $(this).closest("table");
+   var allCheckbox = $("[id*=AllIteamCheckBox]", grid);
+      
+ if ($(this).prop('checked')) {
+ $("td", $(this).closest("tr")).addClass("selected");
+      
+   // Check if all individual checkboxes are checked
+ var totalCheckboxes = $("[id*=SingleCheckBox]", grid).length;
+       var checkedCheckboxes = $("[id*=SingleCheckBox]:checked", grid).length;
+ 
+  if (totalCheckboxes === checkedCheckboxes) {
+    allCheckbox.prop('checked', true);
+   }
+   } else {
+  $("td", $(this).closest("tr")).removeClass("selected");
+     allCheckbox.prop('checked', false);
+        }
+    });
 
-            if ($('[id*=SectionDropDownList] option').length > 1) {
-                $('.S_Show').show();
-            }
+    if ($('[id*=SectionDropDownList] option').length > 1) {
+        $('.S_Show').show();
+    }
 
-            //GridView Is Empty
-            if (!$('[id*=TotalDueGridView] tr').length) {
-                $(".Submit_Disable").hide();
-                $("#C_Name").hide();
-            }
+    //GridView Is Empty
+    if (!$('[id*=TotalDueGridView] tr').length) {
+        $(".Submit_Disable").hide();
+   $("#C_Name").hide();
+    }
 
-            //Due Grand Total
-            var DueTotal = 0;
-            $("[id*=CTDueLabel]").each(function () { DueTotal = DueTotal + parseFloat($(this).text()) });
+    //Due Grand Total
+    var DueTotal = 0;
+    $("[id*=CTDueLabel]").each(function () { DueTotal = DueTotal + parseFloat($(this).text()) });
 
-            var Role = "";
-            if ($('[id*=RoleDropDownList] :selected').index() > 0) {
-                Role = " For: " + $('[id*=RoleDropDownList] :selected').text();
-            }
+    var Role = "";
+    if ($('[id*=RoleDropDownList] :selected').index() > 0) {
+        Role = " For: " + $('[id*=RoleDropDownList] :selected').text();
+  }
 
-            $('#C_Name').text("Total Current Dues" + Role + " In Class " + $('[id*=ClassDropDownList] :selected').text() + ": " + DueTotal + " Tk");
-        });
+    $('#C_Name').text("Total Current Dues" + Role + " In Class " + $('[id*=ClassDropDownList] :selected').text() + ": " + DueTotal + " Tk");
+});
 
         function openModal() {
             $('#myModal').modal('show');

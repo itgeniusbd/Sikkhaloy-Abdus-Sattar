@@ -114,25 +114,31 @@ align-items: center;
     }
 
 .section-body {
-    padding: 9px 20px 0px 20px;
+    padding: 0px;
     background: white;
-    display: none;
+    max-height: 0 !important;
+  overflow: hidden !important;
+    opacity: 0 !important;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out !important;
 }
-
+textarea.form-control {
+    height: 55px;
+}
     .section-body.show {
- display: block;
-  animation: slideDown 0.3s ease;
+     max-height: 3000px !important;
+        opacity: 1 !important;
+  padding: 15px !important;
     }
 
 @keyframes slideDown {
- from {
+    from {
         opacity: 0;
-        transform: translateY(-10px);
+        max-height: 0;
     }
 
     to {
-        opacity: 1;
-        transform: translateY(0);
+   opacity: 1;
+     max-height: 3000px;
     }
 }
 
@@ -368,7 +374,7 @@ cursor: pointer !important;
 .photo-upload {
  border: 2px dashed #cbd5e0;
 border-radius: 8px;
- padding: 20px;
+ padding: 2px;
     text-align: center;
   background: #f7fafc;
 transition: all 0.3s ease;
@@ -500,24 +506,66 @@ transition: background-color 0.2s ease;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
 }
 
+/* SMS Template Link Container */
+.sms-template-link-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+    .sms-template-link-container .alert {
+        margin-bottom: 0;
+        border-left: 4px solid #4299e1;
+        background: linear-gradient(135deg, #ebf8ff 0%, #f0f9ff 100%);
+        border-color: #4299e1;
+    }
+
+        .sms-template-link-container .alert strong {
+            color: #2c5282;
+        }
+
+  .sms-template-link-container .alert .btn {
+            background: #4299e1;
+    color: white;
+  border: none;
+    padding: 8px 20px;
+       font-weight: 600;
+  border-radius: 6px;
+      transition: all 0.3s ease;
+            text-decoration: none;
+      display: inline-flex;
+   align-items: center;
+            gap: 8px;
+        }
+
+            .sms-template-link-container .alert .btn:hover {
+  background: #3182ce;
+          transform: translateY(-2px);
+             box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+            }
+
+            .sms-template-link-container .alert .btn i {
+ font-size: 14px;
+  }
+
 /* Checkbox Container */
 .checkbox-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 12px;
+    gap: 15px;
     padding: 15px;
     background: #f7fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
 }
 
-    .checkbox-container label {
-        display: inline-flex;
+  .checkbox-container label {
+ display: inline-flex;
         align-items: center;
         padding: 10px 15px;
-        background: white;
+   background: white;
         border: 1px solid #e2e8f0;
       border-radius: 6px;
 cursor: pointer;
@@ -525,7 +573,7 @@ cursor: pointer;
         font-weight: 500;
    color: #2d3748;
       transition: all 0.3s ease;
-        margin: 0;
+ margin: 0;
     }
 
 .checkbox-container label:hover {
@@ -533,62 +581,36 @@ cursor: pointer;
             border-color: #4299e1;
       transform: translateY(-2px);
             box-shadow: 0 2px 8px rgba(66, 153, 225, 0.15);
-        }
+   }
 
-        .checkbox-container label input[type="checkbox"] {
-            width: 18px !important;
-            height: 18px !important;
-            margin-right: 8px !important;
-  cursor: pointer !important;
-  display: inline-block !important;
-          visibility: visible !important;
-            opacity: 1 !important;
-    position: relative !important;
-   accent-color: #4299e1;
-        }
+  .checkbox-container label input[type="checkbox"] {
+      width: 18px !important;
+         height: 18px !important;
+     margin-right: 8px !important;
+       cursor: pointer !important;
+          display: inline-block !important;
+  visibility: visible !important;
+ opacity: 1 !important;
+     position: relative !important;
+     accent-color: #4299e1;
+  }
 
-/* Button Container */
-.button-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.btn-success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
-    border: none !important;
-    padding: 14px 35px !important;
-    font-weight: 600 !important;
-    font-size: 16px !important;
-    border-radius: 8px !important;
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3) !important;
-    transition: all 0.3s ease !important;
-}
-
-    .btn-success:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4) !important;
+    /* SMS Checkbox Special Styling */
+    .checkbox-container label.sms-checkbox {
+        background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+        border-color: #4299e1;
+        font-weight: 600;
     }
 
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    border: none !important;
-    padding: 14px 35px !important;
-    font-weight: 600 !important;
-    font-size: 16px !important;
-    border-radius: 8px !important;
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
-    transition: all 0.3s ease !important;
-}
+        .checkbox-container label.sms-checkbox:hover {
+ background: linear-gradient(135deg, #bee3f8 0%, #b2f5ea 100%);
+            border-color: #3182ce;
+   box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+  }
 
-    .btn-primary:hover {
-     transform: translateY(-3px) !important;
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
-    }
+     .checkbox-container label.sms-checkbox input[type="checkbox"]:checked {
+            accent-color: #38a169;
+      }
 
 @media (max-width: 768px) {
  .admission-container {
@@ -656,7 +678,7 @@ padding: 10px 15px;
         }
 
     .section-body {
-        padding: 15px;
+        padding: 5px;
     }
 }
 

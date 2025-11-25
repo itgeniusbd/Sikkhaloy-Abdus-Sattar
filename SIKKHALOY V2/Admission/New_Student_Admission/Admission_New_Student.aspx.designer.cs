@@ -555,22 +555,13 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
         protected global::System.Web.UI.WebControls.SqlDataSource StudentRecordSQL;
 
         /// <summary>
-        /// SMSCheckBox control.
+        /// SendAdmissionSMSCheckBox control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox SMSCheckBox;
-
-        /// <summary>
-        /// BanglaSMSCheckBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox BanglaSMSCheckBox;
+        protected global::System.Web.UI.WebControls.CheckBox SendAdmissionSMSCheckBox;
 
         /// <summary>
         /// PrintCheckBox control.

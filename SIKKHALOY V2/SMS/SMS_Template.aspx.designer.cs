@@ -7,227 +7,263 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Exam
+namespace EDUCATION.COM.SMS
 {
 
 
-    public partial class ExamPosition
+    public partial class SMS_Template
     {
 
         /// <summary>
-        /// CGSSLabel control.
+        /// MessageLabel control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Label CGSSLabel;
+        protected global::System.Web.UI.WebControls.Label MessageLabel;
 
         /// <summary>
-        /// ClassDropDownList control.
+        /// AddExamTemplateButton control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ClassDropDownList;
+        protected global::System.Web.UI.WebControls.Button AddExamTemplateButton;
 
         /// <summary>
-        /// ClassNameSQL control.
+        /// ExamTemplatesGridView control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource ClassNameSQL;
+        protected global::System.Web.UI.WebControls.GridView ExamTemplatesGridView;
 
         /// <summary>
-        /// GroupDropDownList control.
+        /// ExamTemplatesSQL control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList GroupDropDownList;
+        protected global::System.Web.UI.WebControls.SqlDataSource ExamTemplatesSQL;
 
         /// <summary>
-        /// GroupSQL control.
+        /// AddPaymentTemplateButton control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource GroupSQL;
+        protected global::System.Web.UI.WebControls.Button AddPaymentTemplateButton;
 
         /// <summary>
-        /// SectionDropDownList control.
+        /// PaymentTemplatesGridView control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList SectionDropDownList;
+        protected global::System.Web.UI.WebControls.GridView PaymentTemplatesGridView;
 
         /// <summary>
-        /// SectionSQL control.
+        /// PaymentTemplatesSQL control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource SectionSQL;
+        protected global::System.Web.UI.WebControls.SqlDataSource PaymentTemplatesSQL;
 
         /// <summary>
-        /// ShiftDropDownList control.
+        /// AddAttendanceTemplateButton control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ShiftDropDownList;
+        protected global::System.Web.UI.WebControls.Button AddAttendanceTemplateButton;
 
         /// <summary>
-        /// ShiftSQL control.
+        /// AttendanceTemplatesGridView control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource ShiftSQL;
+        protected global::System.Web.UI.WebControls.GridView AttendanceTemplatesGridView;
 
         /// <summary>
-        /// ExamDropDownList control.
+        /// AttendanceTemplatesSQL control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ExamDropDownList;
+        protected global::System.Web.UI.WebControls.SqlDataSource AttendanceTemplatesSQL;
 
         /// <summary>
-        /// ExamSQL control.
+        /// AddDueTemplateButton control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource ExamSQL;
+        protected global::System.Web.UI.WebControls.Button AddDueTemplateButton;
 
         /// <summary>
-        /// Resultstatus_RBList control.
+        /// DueTemplatesGridView control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.RadioButtonList Resultstatus_RBList;
+        protected global::System.Web.UI.WebControls.GridView DueTemplatesGridView;
 
         /// <summary>
-        /// ExportPanel control.
+        /// DueTemplatesSQL control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlGenericControl ExportPanel;
+        protected global::System.Web.UI.WebControls.SqlDataSource DueTemplatesSQL;
 
         /// <summary>
-        /// Export_ClassLabel control.
+        /// AddAdmissionTemplateButton control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Label Export_ClassLabel;
+        protected global::System.Web.UI.WebControls.Button AddAdmissionTemplateButton;
 
         /// <summary>
-        /// StudentsGridView control.
+        /// AdmissionTemplatesGridView control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView StudentsGridView;
+        protected global::System.Web.UI.WebControls.GridView AdmissionTemplatesGridView;
 
         /// <summary>
-        /// ShowStudentClassSQL control.
+        /// AdmissionTemplatesSQL control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource ShowStudentClassSQL;
+        protected global::System.Web.UI.WebControls.SqlDataSource AdmissionTemplatesSQL;
 
         /// <summary>
-        /// SMS_OtherInfoSQL control.
+        /// FormTitleLabel control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource SMS_OtherInfoSQL;
+        protected global::System.Web.UI.WebControls.Label FormTitleLabel;
 
         /// <summary>
-        /// ErrorLabel control.
+        /// TemplateIDHiddenField control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Label ErrorLabel;
+        protected global::System.Web.UI.WebControls.HiddenField TemplateIDHiddenField;
 
         /// <summary>
-        /// CV control.
+        /// CurrentCategoryHiddenField control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.CustomValidator CV;
+        protected global::System.Web.UI.WebControls.HiddenField CurrentCategoryHiddenField;
 
         /// <summary>
-        /// SMSButton control.
+        /// TemplateNameTextBox control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button SMSButton;
+        protected global::System.Web.UI.WebControls.TextBox TemplateNameTextBox;
 
         /// <summary>
-        /// ExportWordButton control.
+        /// TemplateNameRequired control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button ExportWordButton;
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator TemplateNameRequired;
 
         /// <summary>
-        /// SMSFormView control.
+        /// TemplateCategoryDropDownList control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.FormView SMSFormView;
+        protected global::System.Web.UI.WebControls.DropDownList TemplateCategoryDropDownList;
 
         /// <summary>
-        /// SMSSQL control.
+        /// TemplateTypeDropDownList control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource SMSSQL;
+        protected global::System.Web.UI.WebControls.DropDownList TemplateTypeDropDownList;
 
         /// <summary>
-        /// UpdateProgress control.
+        /// MessageTemplateTextBox control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.UpdateProgress UpdateProgress;
+        protected global::System.Web.UI.WebControls.TextBox MessageTemplateTextBox;
+
+        /// <summary>
+        /// MessageTemplateRequired control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator MessageTemplateRequired;
+
+        /// <summary>
+        /// IsActiveCheckBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox IsActiveCheckBox;
+
+        /// <summary>
+        /// PreviewLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label PreviewLabel;
+
+        /// <summary>
+        /// SaveButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button SaveButton;
     }
 }

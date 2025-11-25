@@ -54,7 +54,13 @@ namespace SmsService
         {
             const string actionUrl = "api.php?json"; // your powers ms site url; register the ip first
             var request = HttpWebRequest.Create(HostUrl + actionUrl);
-            var smsText = Uri.EscapeDataString(massage);
+            
+            // Fix: Replace + with a safe alternative before encoding to preserve it in SMS
+            var safeMassage = massage.Replace("A+", "A Plus")
+                .Replace("a+", "a Plus")
+              .Replace("+", " Plus ");
+            
+            var smsText = Uri.EscapeDataString(safeMassage);
             var dataFormat = "token={0}&to={1}&message={2}";
 
 
@@ -109,7 +115,8 @@ namespace SmsService
                 new
                 {
                     to = s.Number,
-                    message = Uri.EscapeDataString(s.Text)
+                    // Fix: Replace + with "Plus" before encoding
+                    message = Uri.EscapeDataString(s.Text.Replace("A+", "A Plus").Replace("a+", "a Plus").Replace("+", " Plus "))
                 }).ToList();
 
             var jsonSmsData = JsonConvert.SerializeObject(smsData);

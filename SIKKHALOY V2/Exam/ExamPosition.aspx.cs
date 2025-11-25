@@ -1,6 +1,8 @@
-﻿using Education;
+using Education;
 using System;
+using System.Configuration;
 using System.Data;
+using System.Data.SqlClient;
 using System.IO;
 using System.Text;
 using System.Web;
@@ -11,200 +13,200 @@ namespace EDUCATION.COM.Exam
 {
     public partial class ExamPosition : System.Web.UI.Page
     {
+   private readonly string _connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString();
+
         protected void Page_Load(object sender, EventArgs e)
-        {
-            Session["Group"] = GroupDropDownList.SelectedValue;
-            Session["Shift"] = ShiftDropDownList.SelectedValue;
-            Session["Section"] = SectionDropDownList.SelectedValue;
+   {
+     Session["Group"] = GroupDropDownList.SelectedValue;
+     Session["Shift"] = ShiftDropDownList.SelectedValue;
+      Session["Section"] = SectionDropDownList.SelectedValue;
 
-            if (!IsPostBack)
+        if (!IsPostBack)
             {
-                GroupDropDownList.Visible = false;
-                SectionDropDownList.Visible = false;
-                ShiftDropDownList.Visible = false;
-            }
+      GroupDropDownList.Visible = false;
+              SectionDropDownList.Visible = false;
+         ShiftDropDownList.Visible = false;
+ }
         }
-        protected void view()
+
+  protected void view()
         {
-            DataView GroupDV = new DataView();
-            GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
-            if (GroupDV.Count < 1)
-            {
-                GroupDropDownList.Visible = false;
-            }
+   DataView GroupDV = new DataView();
+          GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
+  if (GroupDV.Count < 1)
+      {
+      GroupDropDownList.Visible = false;
+     }
             else
-            {
-                GroupDropDownList.Visible = true;
+      {
+     GroupDropDownList.Visible = true;
             }
 
-            DataView SectionDV = new DataView();
-            SectionDV = (DataView)SectionSQL.Select(DataSourceSelectArguments.Empty);
+     DataView SectionDV = new DataView();
+      SectionDV = (DataView)SectionSQL.Select(DataSourceSelectArguments.Empty);
             if (SectionDV.Count < 1)
             {
-                SectionDropDownList.Visible = false;
+         SectionDropDownList.Visible = false;
             }
-            else
-            {
-                SectionDropDownList.Visible = true;
+   else
+        {
+              SectionDropDownList.Visible = true;
             }
 
-            DataView ShiftDV = new DataView();
-            ShiftDV = (DataView)ShiftSQL.Select(DataSourceSelectArguments.Empty);
-            if (ShiftDV.Count < 1)
-            {
-                ShiftDropDownList.Visible = false;
-            }
+        DataView ShiftDV = new DataView();
+ ShiftDV = (DataView)ShiftSQL.Select(DataSourceSelectArguments.Empty);
+    if (ShiftDV.Count < 1)
+          {
+          ShiftDropDownList.Visible = false;
+          }
             else
-            {
+     {
                 ShiftDropDownList.Visible = true;
             }
 
-            if (ExamDropDownList.SelectedIndex > 0)
-            {
-                string name = "Position Of " + ExamDropDownList.SelectedItem.Text;
+ if (ExamDropDownList.SelectedIndex > 0)
+          {
+        string name = "Position Of " + ExamDropDownList.SelectedItem.Text;
 
-                name += " For Class: " + ClassDropDownList.SelectedItem.Text;
+            name += " For Class: " + ClassDropDownList.SelectedItem.Text;
 
                 if (SectionDropDownList.SelectedIndex != 0)
-                {
-                    name += ", Section: " + SectionDropDownList.SelectedItem.Text;
-                }
-                if (GroupDropDownList.SelectedIndex != 0)
-                {
-                    name += ", Group: " + GroupDropDownList.SelectedItem.Text;
-                }
-                if (ShiftDropDownList.SelectedIndex != 0)
-                {
-                    name += ", Shift: " + ShiftDropDownList.SelectedItem.Text;
-                }
+          {
+                  name += ", Section: " + SectionDropDownList.SelectedItem.Text;
+}
+      if (GroupDropDownList.SelectedIndex != 0)
+   {
+        name += ", Group: " + GroupDropDownList.SelectedItem.Text;
+        }
+      if (ShiftDropDownList.SelectedIndex != 0)
+        {
+           name += ", Shift: " + ShiftDropDownList.SelectedItem.Text;
+          }
                 CGSSLabel.Text = name;
-            }
-            else
-            {
-                CGSSLabel.Text = "";
+  }
+    else
+       {
+         CGSSLabel.Text = "";
             }
         }
-        protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
-        {
+
+ protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
+     {
             Session["Group"] = "%";
-            Session["Shift"] = "%";
+ Session["Shift"] = "%";
             Session["Section"] = "%";
 
             GroupDropDownList.DataBind();
             ShiftDropDownList.DataBind();
-            SectionDropDownList.DataBind();
-            view();
+     SectionDropDownList.DataBind();
+      view();
         }
 
-        protected void GroupDropDownList_SelectedIndexChanged(object sender, EventArgs e)
+    protected void GroupDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            view();
+   view();
         }
 
         protected void GroupDropDownList_DataBound(object sender, EventArgs e)
         {
             GroupDropDownList.Items.Insert(0, new ListItem("[ ALL GROUP ]", "%"));
-            if (IsPostBack)
+      if (IsPostBack)
                 GroupDropDownList.Items.FindByValue(Session["Group"].ToString()).Selected = true;
         }
 
         protected void SectionDropDownList_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            view();
+     {
+     view();
         }
 
-        protected void SectionDropDownList_DataBound(object sender, EventArgs e)
-        {
+    protected void SectionDropDownList_DataBound(object sender, EventArgs e)
+   {
             SectionDropDownList.Items.Insert(0, new ListItem("[ ALL SECTION ]", "%"));
-            if (IsPostBack)
-                SectionDropDownList.Items.FindByValue(Session["Section"].ToString()).Selected = true;
-        }
+     if (IsPostBack)
+     SectionDropDownList.Items.FindByValue(Session["Section"].ToString()).Selected = true;
+    }
 
         protected void ShiftDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            view();
+   view();
+   }
+
+    protected void ShiftDropDownList_DataBound(object sender, EventArgs e)
+    {
+    ShiftDropDownList.Items.Insert(0, new ListItem("[ ALL SHIFT ]", "%"));
+            if (IsPostBack)
+          ShiftDropDownList.Items.FindByValue(Session["Shift"].ToString()).Selected = true;
         }
 
-        protected void ShiftDropDownList_DataBound(object sender, EventArgs e)
-        {
-            ShiftDropDownList.Items.Insert(0, new ListItem("[ ALL SHIFT ]", "%"));
-            if (IsPostBack)
-                ShiftDropDownList.Items.FindByValue(Session["Shift"].ToString()).Selected = true;
-        }
         //End DDL
-        protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
+     protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            view();
-        }
+         view();
+    }
+
         protected void ExamDropDownList_DataBound(object sender, EventArgs e)
         {
-            ExamDropDownList.Items.Insert(0, new ListItem("[ SELECT EXAM ]", "0"));
+          ExamDropDownList.Items.Insert(0, new ListItem("[ SELECT EXAM ]", "0"));
         }
 
         protected void StudentsGridView_RowDataBound(object sender, GridViewRowEventArgs e)
         {
-            if (e.Row.RowType == DataControlRowType.DataRow)
-            {
-                //Class
-                var classIndex = 9;
+  if (e.Row.RowType == DataControlRowType.DataRow)
+          {
+              //Class
+            var classIndex = 9;
                 if (e.Row.Cells[classIndex].Text == "1")
-                {
-                    e.Row.Cells[classIndex].CssClass = "First";
-                    e.Row.Cells[classIndex].Text += " st";
+{
+    e.Row.Cells[classIndex].CssClass = "First";
+           e.Row.Cells[classIndex].Text += " st";
+   }
+            else if (e.Row.Cells[classIndex].Text == "2")
+     {
+                  e.Row.Cells[classIndex].CssClass = "Second";
+           e.Row.Cells[classIndex].Text += " nd";
+    }
+         else if (e.Row.Cells[classIndex].Text == "3")
+              {
+                e.Row.Cells[classIndex].CssClass = "Third";
+       e.Row.Cells[classIndex].Text += " rd";
                 }
+    else
+         {
+       e.Row.Cells[classIndex].Text += " th";
+       }
 
-                else if (e.Row.Cells[classIndex].Text == "2")
+          //Section
+    var sectionIndex = 10;
+          if (e.Row.Cells[sectionIndex].Text == "1")
                 {
-                    e.Row.Cells[classIndex].CssClass = "Second";
-                    e.Row.Cells[classIndex].Text += " nd";
-                }
-
-                else if (e.Row.Cells[classIndex].Text == "3")
-                {
-                    e.Row.Cells[classIndex].CssClass = "Third";
-                    e.Row.Cells[classIndex].Text += " rd";
-                }
-                else
-                {
-                    e.Row.Cells[classIndex].Text += " th";
-                }
-
-                //Section
-                var sectionIndex = 10;
-                if (e.Row.Cells[sectionIndex].Text == "1")
-                {
-                    e.Row.Cells[sectionIndex].CssClass = "First";
-                    e.Row.Cells[sectionIndex].Text += " st";
-                }
-
-                else if (e.Row.Cells[sectionIndex].Text == "2")
-                {
+  e.Row.Cells[sectionIndex].CssClass = "First";
+        e.Row.Cells[sectionIndex].Text += " st";
+      }
+       else if (e.Row.Cells[sectionIndex].Text == "2")
+     {
                     e.Row.Cells[sectionIndex].CssClass = "Second";
-                    e.Row.Cells[sectionIndex].Text += " nd";
+      e.Row.Cells[sectionIndex].Text += " nd";
+          }
+     else if (e.Row.Cells[sectionIndex].Text == "3")
+    {
+        e.Row.Cells[sectionIndex].CssClass = "Third";
+        e.Row.Cells[sectionIndex].Text += " rd";
+          }
+ else
+        {
+        e.Row.Cells[sectionIndex].Text += " th";
+ }
 
-                }
+  if (StudentsGridView.DataKeys[e.Row.DataItemIndex]["PassStatus_InSubject"].ToString() == "F")
+       {
+         e.Row.CssClass = "RowColor";
+          }
+         }
 
-                else if (e.Row.Cells[sectionIndex].Text == "3")
-                {
-                    e.Row.Cells[sectionIndex].CssClass = "Third";
-                    e.Row.Cells[sectionIndex].Text += " rd";
-                }
-                else
-                {
-                    e.Row.Cells[sectionIndex].Text += " th";
-                }
-
-
-                if (StudentsGridView.DataKeys[e.Row.DataItemIndex]["PassStatus_InSubject"].ToString() == "F")
-                {
-                    e.Row.CssClass = "RowColor";
-                }
-            }
-
-            if (StudentsGridView.Rows.Count > 0)
-            {
-                StudentsGridView.UseAccessibleHeader = true;
-                StudentsGridView.HeaderRow.TableSection = TableRowSection.TableHeader;
+     if (StudentsGridView.Rows.Count > 0)
+     {
+       StudentsGridView.UseAccessibleHeader = true;
+   StudentsGridView.HeaderRow.TableSection = TableRowSection.TableHeader;
             }
         }
 
@@ -212,189 +214,315 @@ namespace EDUCATION.COM.Exam
         protected void SMSButton_Click(object sender, EventArgs e)
         {
             ErrorLabel.Text = "";
-            SMS_Class SMS = new SMS_Class(Session["SchoolID"].ToString());
+        SMS_Class SMS = new SMS_Class(Session["SchoolID"].ToString());
 
-            int TotalSMS = 0;
-            string PhoneNo = "";
-            string Text = "";
-            int SMSBalance = SMS.SMSBalance;
-            bool SentMgsConfirm = false;
-            int SentMsgCont = 0;
-            int FailedMsgCont = 0;
+  int TotalSMS = 0;
+     string PhoneNo = "";
+   string Text = "";
+    int SMSBalance = SMS.SMSBalance;
+      bool SentMgsConfirm = false;
+        int SentMsgCont = 0;
+    int FailedMsgCont = 0;
 
-            foreach (GridViewRow row in StudentsGridView.Rows)
-            {
-                CheckBox SMSCheckbox = (CheckBox)row.FindControl("SingleCheckBox");
+            // Get SMS Templates
+      string passedTemplate = GetSMSTemplate("Passed");
+            string failedTemplate = GetSMSTemplate("Failed");
 
-                if (SMSCheckbox.Checked)
-                {
-                    PhoneNo = StudentsGridView.DataKeys[row.DataItemIndex]["SMSPhoneNo"].ToString();
-                    if (StudentsGridView.DataKeys[row.RowIndex]["PassStatus_InSubject"].ToString() == "P")
-                    {
-                        Text = "Congratulation! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
-                        Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
-                        Text += " You have successfully Passed " + ExamDropDownList.SelectedItem.Text + ". Your ";
-                        Text += "Total Marks: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
-                        Text += ", Grade: " + StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"];
-                        Text += ", Point: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["Student_Point"].ToString()).ToString("0.00");
-                        if(ClassPositionCheckBox.Checked)
-                        {
-                            Text += ", Position In Class: " + row.Cells[9].Text;
-                        }
-                        if (SecPositionCheckBox.Checked)
-                        {
-                            Text += ", Position In Section: " + row.Cells[10].Text;
-                        }
-                        Text += ". Regards: " + Session["School_Name"];
+    foreach (GridViewRow row in StudentsGridView.Rows)
+   {
+              CheckBox SMSCheckbox = (CheckBox)row.FindControl("SingleCheckBox");
+
+  if (SMSCheckbox.Checked)
+          {
+PhoneNo = StudentsGridView.DataKeys[row.DataItemIndex]["SMSPhoneNo"].ToString();
+
+          if (StudentsGridView.DataKeys[row.RowIndex]["PassStatus_InSubject"].ToString() == "P")
+             {
+         // Use template if available, otherwise use default message
+      if (!string.IsNullOrEmpty(passedTemplate))
+     {
+        Text = BuildMessageFromTemplate(passedTemplate, row, "P");
+          }
+   else
+    {
+       // Default message for passed students (no position info)
+        Text = "Congratulation! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
+        Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
+   Text += " You have successfully Passed " + ExamDropDownList.SelectedItem.Text + ". Your ";
+        Text += "Total Marks: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
+
+        // Fix: HTML decode the grade
+   string grade = HttpUtility.HtmlDecode(StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"].ToString());
+        Text += ", Grade: " + grade;
+        
+        Text += ", Point: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["Student_Point"].ToString()).ToString("0.00");
+        Text += ". Regards: " + Session["School_Name"];
+ }
                     }
-                    else
-                    {
-                        Text = "Alas!! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
-                        Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
-                        Text += " You have failed " + ExamDropDownList.SelectedItem.Text;
-                        Text += ". Your Total Marks Is : " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
-                        Text += ". Regards: " + Session["School_Name"].ToString();
-                    }
+           else
+           {
+               // Use template if available, otherwise use default message
+   if (!string.IsNullOrEmpty(failedTemplate))
+        {
+            Text = BuildMessageFromTemplate(failedTemplate, row, "F");
+  }
+         else
+      {
+       // Default message for failed students
+ Text = "Alas!! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
+   Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
 
-                    Get_Validation IsValid = SMS.SMS_Validation(PhoneNo, Text);
+     Text += " You have failed " + ExamDropDownList.SelectedItem.Text;
+    Text += ". Your Total Marks Is : " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
+        Text += ". Regards: " + Session["School_Name"].ToString();
+              }
+           }
 
-                    if (IsValid.Validation)
-                    {
-                        TotalSMS += SMS.SMS_Conut(Text);
-                    }
-                }
-            }
+          Get_Validation IsValid = SMS.SMS_Validation(PhoneNo, Text);
+
+      if (IsValid.Validation)
+           {
+      TotalSMS += SMS.SMS_Conut(Text);
+  }
+         }
+       }
 
             if (SMSBalance >= TotalSMS)
-            {
-                if (SMS.SMS_GetBalance() >= TotalSMS)
+         {
+              if (SMS.SMS_GetBalance() >= TotalSMS)
                 {
-                    foreach (GridViewRow row in StudentsGridView.Rows)
-                    {
-                        CheckBox SMSCheckbox = (CheckBox)row.FindControl("SingleCheckBox");
+               foreach (GridViewRow row in StudentsGridView.Rows)
+ {
+ CheckBox SMSCheckbox = (CheckBox)row.FindControl("SingleCheckBox");
 
-                        if (SMSCheckbox.Checked)
-                        {
-                            PhoneNo = StudentsGridView.DataKeys[row.RowIndex]["SMSPhoneNo"].ToString();
+         if (SMSCheckbox.Checked)
+    {
+         PhoneNo = StudentsGridView.DataKeys[row.RowIndex]["SMSPhoneNo"].ToString();
 
-                            if (StudentsGridView.DataKeys[row.RowIndex]["PassStatus_InSubject"].ToString() == "P")
-                            {
-                                Text = "Congratulation! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
-                                Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
-                                Text += " You have successfully Passed " + ExamDropDownList.SelectedItem.Text + ". Your ";
-                                Text += "Total Marks: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
-                                Text += ", Grade: " + StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"];
-                                Text += ", Point: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["Student_Point"].ToString()).ToString("0.00");
+         if (StudentsGridView.DataKeys[row.RowIndex]["PassStatus_InSubject"].ToString() == "P")
+  {
+      // Use template if available, otherwise use default message
+         if (!string.IsNullOrEmpty(passedTemplate))
+                {
+           Text = BuildMessageFromTemplate(passedTemplate, row, "P");
+                 }
+    else
+  {
+   Text = "Congratulation! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
+      Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
 
-                                if (ClassPositionCheckBox.Checked)
-                                {
-                                    Text += ", Position In Class: " + row.Cells[9].Text;
-                                }
-                                
-                              
-                                if (SecPositionCheckBox.Checked)
-                                {
-                                    Text += ", Position In Section: " + row.Cells[10].Text;
-                                }
-                                Text += ". Regards: " + Session["School_Name"];
-                            }
-                            else
-                            {
-                                Text = "Alas!! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
-                                Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
-                                Text += " You have failed " + ExamDropDownList.SelectedItem.Text;
-                                Text += ". Your Total Marks Is : " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
-                                Text += ". Regards: " + Session["School_Name"];
-                            }
-
-
-                            Get_Validation IsValid = SMS.SMS_Validation(PhoneNo, Text);
-
-                            if (IsValid.Validation)
-                            {
-                                Guid SMS_Send_ID = SMS.SMS_Send(PhoneNo, Text, "Position Result");
-                                if (SMS_Send_ID != Guid.Empty)
-                                {
-                                    SMS_OtherInfoSQL.InsertParameters["SMS_Send_ID"].DefaultValue = SMS_Send_ID.ToString();
-                                    SMS_OtherInfoSQL.InsertParameters["SchoolID"].DefaultValue = Session["SchoolID"].ToString();
-                                    SMS_OtherInfoSQL.InsertParameters["EducationYearID"].DefaultValue = Session["Edu_Year"].ToString();
-                                    SMS_OtherInfoSQL.InsertParameters["StudentID"].DefaultValue = StudentsGridView.DataKeys[row.RowIndex]["StudentID"].ToString();
-                                    SMS_OtherInfoSQL.InsertParameters["TeacherID"].DefaultValue = "";
-
-                                    SMS_OtherInfoSQL.Insert();
-                                    SentMgsConfirm = true;
-                                    SentMsgCont++;
-                                }
-                                else
-                                {
-                                    row.BackColor = System.Drawing.Color.Silver;
-                                    FailedMsgCont++;
-                                }
-                            }
-                            else
-                            {
-                                row.BackColor = System.Drawing.Color.Silver;
-                                FailedMsgCont++;
-                            }
-                        }
-                    }
-
-                    if (SentMgsConfirm)
-                    {
-                        ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Successfully Sent " + SentMsgCont.ToString() + " SMS. & Failed " + FailedMsgCont.ToString() + ".')", true);
-                    }
+     Text += " You have successfully Passed " + ExamDropDownList.SelectedItem.Text + ". Your ";
+           Text += "Total Marks: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
+        
+        // Fix: HTML decode the grade
+        string grade = HttpUtility.HtmlDecode(StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"].ToString());
+        
+        // DEBUG: Log the original and decoded grade
+        System.Diagnostics.Debug.WriteLine($"[DEBUG] Original Grade from DB: '{StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"]}', Decoded: '{grade}'");
+        
+        Text += ", Grade: " + grade;
+        
+        Text += ", Point: " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["Student_Point"].ToString()).ToString("0.00");
+        Text += ". Regards: " + Session["School_Name"];
+  }
                 }
+      else
+       {
+     // Use template if available, otherwise use default message
+  if (!string.IsNullOrEmpty(failedTemplate))
+   {
+               Text = BuildMessageFromTemplate(failedTemplate, row, "F");
+}
+ else
+        {
+          Text = "Alas!! " + StudentsGridView.DataKeys[row.RowIndex]["StudentsName"];
+    Text += "(ID " + StudentsGridView.DataKeys[row.RowIndex]["ID"] + ")";
+
+     Text += " You have failed " + ExamDropDownList.SelectedItem.Text;
+               Text += ". Your Total Marks Is : " + Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00");
+             Text += ". Regards: " + Session["School_Name"];
+     }
+         }
+
+    Get_Validation IsValid = SMS.SMS_Validation(PhoneNo, Text);
+
+       if (IsValid.Validation)
+     {
+   Guid SMS_Send_ID = SMS.SMS_Send(PhoneNo, Text, "Position Result");
+   if (SMS_Send_ID != Guid.Empty)
+     {
+               SMS_OtherInfoSQL.InsertParameters["SMS_Send_ID"].DefaultValue = SMS_Send_ID.ToString();
+SMS_OtherInfoSQL.InsertParameters["SchoolID"].DefaultValue = Session["SchoolID"].ToString();
+                SMS_OtherInfoSQL.InsertParameters["EducationYearID"].DefaultValue = Session["Edu_Year"].ToString();
+    SMS_OtherInfoSQL.InsertParameters["StudentID"].DefaultValue = StudentsGridView.DataKeys[row.RowIndex]["StudentID"].ToString();
+          SMS_OtherInfoSQL.InsertParameters["TeacherID"].DefaultValue = "";
+
+          SMS_OtherInfoSQL.Insert();
+       SentMgsConfirm = true;
+    SentMsgCont++;
+   }
+     else
+       {
+           row.BackColor = System.Drawing.Color.Silver;
+   FailedMsgCont++;
+    }
+           }
                 else
-                {
-                    ErrorLabel.Text = "SMS Service Updating. Try again later or contact to authority";
+      {
+      row.BackColor = System.Drawing.Color.Silver;
+      FailedMsgCont++;
+         }
+            }
+              }
+
+        if (SentMgsConfirm)
+         {
+        ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Successfully Sent " + SentMsgCont.ToString() + " SMS. & Failed " + FailedMsgCont.ToString() + ".')", true);
+}
                 }
-            }
-            else
+   else
+   {
+   ErrorLabel.Text = "SMS Service Updating. Try again later or contact to authority";
+       }
+      }
+      else
+      {
+           ErrorLabel.Text = "You don't have sufficient SMS balance, Your Current Balance is " + SMSBalance;
+          }
+        }
+
+        /// <summary>
+        /// Get SMS Template from database
+        /// </summary>
+ private string GetSMSTemplate(string templateType)
+        {
+    try
             {
-                ErrorLabel.Text = "You don't have sufficient SMS balance, Your Current Balance is " + SMSBalance;
-            }
+  using (SqlConnection con = new SqlConnection(_connectionString))
+      {
+     con.Open();
+
+         // First check if SMS_Template table exists
+        SqlCommand checkTableCmd = new SqlCommand(@"
+              IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
+ WHERE TABLE_NAME = 'SMS_Template')
+           SELECT 1
+          ELSE
+   SELECT 0", con);
+
+        int tableExists = (int)checkTableCmd.ExecuteScalar();
+
+         if (tableExists == 0)
+   {
+        // Table doesn't exist, return empty string to use default message
+           return string.Empty;
+        }
+
+         SqlCommand cmd = new SqlCommand(@"SELECT TOP 1 MessageTemplate 
+   FROM SMS_Template 
+         WHERE SchoolID = @SchoolID 
+     AND TemplateType = @TemplateType 
+   AND IsActive = 1 
+   ORDER BY CreatedDate DESC", con);
+      cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+         cmd.Parameters.AddWithValue("@TemplateType", templateType);
+
+           object result = cmd.ExecuteScalar();
+        return result != null ? result.ToString() : string.Empty;
+       }
+       }
+            catch (Exception ex)
+            {
+          // Log error if needed, but return empty to use default message
+                // System.Diagnostics.Debug.WriteLine("Error getting SMS template: " + ex.Message);
+    return string.Empty;
+     }
+        }
+
+        /// <summary>
+  /// Build SMS message from template by replacing placeholders
+        /// </summary>
+        private string BuildMessageFromTemplate(string template, GridViewRow row, string passStatus)
+        {
+            string message = template;
+
+            // Replace all placeholders
+            message = message.Replace("{StudentName}", StudentsGridView.DataKeys[row.RowIndex]["StudentsName"].ToString());
+            message = message.Replace("{ID}", StudentsGridView.DataKeys[row.RowIndex]["ID"].ToString());
+            message = message.Replace("{ExamName}", ExamDropDownList.SelectedItem.Text);
+            message = message.Replace("{TotalMarks}", Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["ObtainedMark_ofStudent"].ToString()).ToString("0.00"));
+            
+            // Fix: HTML decode the grade to ensure A+ displays correctly
+            string grade = HttpUtility.HtmlDecode(StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"].ToString());
+            
+            // DEBUG: Log the original and decoded grade
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Original Grade from DB: '{StudentsGridView.DataKeys[row.RowIndex]["Student_Grade"]}', Decoded: '{grade}'");
+            
+            message = message.Replace("{Grade}", grade);
+            
+            message = message.Replace("{Point}", Convert.ToDecimal(StudentsGridView.DataKeys[row.RowIndex]["Student_Point"].ToString()).ToString("0.00"));
+
+    // Handle position placeholders - always include positions from cells
+    // Remove dependency on checkboxes since they're removed
+    string classPosition = row.Cells[9].Text;
+    string sectionPosition = row.Cells[10].Text;
+    
+    // Replace placeholders if they exist in template
+    message = message.Replace("{ClassPosition}", classPosition);
+    message = message.Replace("{SectionPosition}", sectionPosition);
+    
+    // Clean up any remaining position placeholders that weren't used
+    message = message.Replace(", Position In Class: {ClassPosition}", "")
+        .Replace("Position In Class: {ClassPosition}", "")
+        .Replace("{ClassPosition}", "");
+    
+    message = message.Replace(", Position In Section: {SectionPosition}", "")
+        .Replace("Position In Section: {SectionPosition}", "")
+ .Replace("{SectionPosition}", "");
+
+            message = message.Replace("{SchoolName}", Session["School_Name"].ToString());
+
+ return message;
         }
 
         //Export To Word
         protected void ExportWordButton_Click(object sender, EventArgs e)
         {
-            Export_ClassLabel.Text = CGSSLabel.Text;
+Export_ClassLabel.Text = CGSSLabel.Text;
             Response.Clear();
-            Response.ContentEncoding = Encoding.Unicode;
+         Response.ContentEncoding = Encoding.Unicode;
             Response.BinaryWrite(Encoding.Unicode.GetPreamble());
 
             Response.AddHeader("content-disposition", "attachment;filename=Exam_Position.doc");
-            Response.Charset = "";
+       Response.Charset = "";
             Response.Cache.SetCacheability(HttpCacheability.NoCache);
             Response.ContentType = "application/doc";
             StringWriter stringWrite = new StringWriter();
-            HtmlTextWriter htmlWrite = new HtmlTextWriter(stringWrite);
+      HtmlTextWriter htmlWrite = new HtmlTextWriter(stringWrite);
 
-            // Read Style file (css) here and add to response 
-            FileInfo fi = new FileInfo(Server.MapPath("~/Exam/CSS/ExamPosition.css"));
-            StringBuilder sb = new StringBuilder();
+     // Read Style file (css) here and add to response 
+     FileInfo fi = new FileInfo(Server.MapPath("~/Exam/CSS/ExamPosition.css"));
+         StringBuilder sb = new StringBuilder();
             StreamReader sr = fi.OpenText();
 
             while (sr.Peek() >= 0)
             {
-                sb.Append(sr.ReadLine());
+       sb.Append(sr.ReadLine());
             }
 
-            sr.Close();
+     sr.Close();
             StudentsGridView.Columns[0].Visible = false;
-            ExportPanel.RenderControl(htmlWrite);
-            Response.Write("<html><head><style type='text/css'>" + sb.ToString() + "</style></head><body>" + stringWrite.ToString() + "</body></html>");
+        ExportPanel.RenderControl(htmlWrite);
+         Response.Write("<html><head><style type='text/css'>" + sb.ToString() + "</style></head><body>" + stringWrite.ToString() + "</body></html>");
 
-            Response.Write(stringWrite.ToString());
-            Response.End();
-
-
-
+        Response.Write(stringWrite.ToString());
+Response.End();
         }
+
         public override void VerifyRenderingInServerForm(Control control)
-        {
-            /* Confirms that an HtmlForm control is rendered for the specified ASP.NET
-               server control at run time. */
-        }
-    }
+   {
+      /* Confirms that an HtmlForm control is rendered for the specified ASP.NET
+       server control at run time. */
+  }
+ }
 }

@@ -47,6 +47,9 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
             string Msg = "";
             int SMSBalance = SMS.SMSBalance;
 
+            // Try to get Due notification template
+            string dueTemplate = GetSMSTemplate("Due", "Due"); // Updated to use "Due" category
+
             foreach (GridViewRow row in TotalDueGridView.Rows)
             {
                 CheckBox SMSCheckBox = row.FindControl("SingleCheckBox") as CheckBox;
@@ -55,20 +58,30 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
                 {
                     string ID = TotalDueGridView.DataKeys[row.RowIndex]["ID"].ToString();
                     string SName = TotalDueGridView.DataKeys[row.RowIndex]["StudentsName"].ToString();
+                    double dueAmount = Convert.ToDouble(TotalDueGridView.DataKeys[row.RowIndex]["Due"]);
 
                     PhoneNo = TotalDueGridView.DataKeys[row.DataItemIndex]["SMSPhoneNo"].ToString();
 
-                    Msg += "Dear, " + SName + ", ID:" + ID + ". You've Due Payment: ";
+                    // Build due details WITH BREAKDOWN
+                    string dueDetails = "";
+                    dt = due.GetData(ID, SchoolID, RoleDropDownList.SelectedValue);
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        dueDetails += dr["Role"].ToString() + ": " + dr["PayFor"].ToString() + " - " + dr["Due"].ToString() + " Tk, ";
+                    }
 
-                    //dt = due.GetData(ID, SchoolID, RoleDropDownList.SelectedValue);
-
-                    //foreach (DataRow dr in dt.Rows)
-                    //{
-                    //    Msg += dr["Role"].ToString() + " for " + dr["PayFor"].ToString() + " due " + dr["Due"].ToString() + " Tk.,";
-                    //}
-
-                    Msg += TotalDueGridView.DataKeys[row.RowIndex]["Due"].ToString() + " Tk. ";
-                    Msg += "Regards, " + Session["School_Name"].ToString();
+                    if (!string.IsNullOrEmpty(dueTemplate))
+                    {
+                        // Use template
+                        Msg = BuildDueNotificationMessage(dueTemplate, SName, ID, dueAmount, dueDetails);
+                    }
+                    else
+                    {
+                        // Default message
+                        Msg = "Dear, " + SName + ", ID:" + ID + ". You've Due Payment: ";
+                        Msg += dueAmount.ToString() + " Tk. ";
+                        Msg += "Regards, " + Session["School_Name"].ToString();
+                    }
 
                     Get_Validation IsValid = SMS.SMS_Validation(PhoneNo, Msg);
 
@@ -92,17 +105,28 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
 
                             string ID = TotalDueGridView.DataKeys[row.RowIndex]["ID"].ToString();
                             string SName = TotalDueGridView.DataKeys[row.RowIndex]["StudentsName"].ToString();
+                            double dueAmount = Convert.ToDouble(TotalDueGridView.DataKeys[row.RowIndex]["Due"]);
 
-                            Msg = "Dear, " + SName + ", ID: " + ID + ". You've Due Payment: ";
+                            // Build due details WITH BREAKDOWN
+                            string dueDetails = "";
                             dt = due.GetData(ID, SchoolID, RoleDropDownList.SelectedValue);
+                            foreach (DataRow dr in dt.Rows)
+                            {
+                                dueDetails += dr["Role"].ToString() + ": " + dr["PayFor"].ToString() + " - " + dr["Due"].ToString() + " Tk, ";
+                            }
 
-                            //foreach (DataRow dr in dt.Rows)
-                            //{
-                            //    Msg += dr["Role"].ToString() + " for " + dr["PayFor"].ToString() + " due " + dr["Due"].ToString() + " Tk.,";
-                            //}
-
-                            Msg += TotalDueGridView.DataKeys[row.RowIndex]["Due"].ToString() + " Tk. ";
-                            Msg += "Regards, " + Session["School_Name"].ToString();
+                            if (!string.IsNullOrEmpty(dueTemplate))
+                            {
+                                // Use template
+                                Msg = BuildDueNotificationMessage(dueTemplate, SName, ID, dueAmount, dueDetails);
+                            }
+                            else
+                            {
+                                // Default message
+                                Msg = "Dear, " + SName + ", ID: " + ID + ". You've Due Payment: ";
+                                Msg += dueAmount.ToString() + " Tk. ";
+                                Msg += "Regards, " + Session["School_Name"].ToString();
+                            }
 
                             Get_Validation IsValid = SMS.SMS_Validation(PhoneNo, Msg);
 
@@ -220,16 +244,35 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
                 string ID = IDTextBox.Text;
                 PhoneNo = StudentInfoFormView.DataKey["SMSPhoneNo"].ToString();
                 string SName = StudentInfoFormView.DataKey["StudentsName"].ToString();
+                double totalDue = Convert.ToDouble(StudentInfoFormView.DataKey["Due"]);
 
-
-                Msg = "Dear, " + SName + ". You've Due Payment(s): ";
+                // Build due details from GridView
+                string dueDetails = "";
                 dt = due.GetData(ID, SchoolID, RoleDropDownList.SelectedValue);
                 foreach (DataRow dr in dt.Rows)
                 {
-                    Msg += dr["Role"].ToString() + " for " + dr["PayFor"].ToString() + " due " + dr["Due"].ToString() + " Tk.";
+                    dueDetails += dr["Role"].ToString() + " for " + dr["PayFor"].ToString() + " due " + dr["Due"].ToString() + " Tk, ";
                 }
-                Msg += "Total Due " + StudentInfoFormView.DataKey["Due"].ToString() + " Tk";
-                Msg += " Regards, " + Session["School_Name"].ToString();
+
+                // Try to get Due notification template
+                string dueTemplate = GetSMSTemplate("Due", "Due"); // Updated to use "Due" category
+
+                if (!string.IsNullOrEmpty(dueTemplate))
+                {
+                    // Use template
+                    Msg = BuildDueNotificationMessage(dueTemplate, SName, ID, totalDue, dueDetails);
+                }
+                else
+                {
+                    // Default message
+                    Msg = "Dear, " + SName + ". You've Due Payment(s): ";
+                    foreach (DataRow dr in dt.Rows)
+                    {
+                        Msg += dr["Role"].ToString() + " for " + dr["PayFor"].ToString() + " due " + dr["Due"].ToString() + " Tk.";
+                    }
+                    Msg += "Total Due " + totalDue.ToString() + " Tk";
+                    Msg += " Regards, " + Session["School_Name"].ToString();
+                }
 
                 TotalSMS = SMS.SMS_Conut(Msg);
 
@@ -319,6 +362,110 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
         protected void RoleDropDownList_DataBound(object sender, EventArgs e)
         {
             RoleDropDownList.Items.Insert(0, new ListItem("[ All ROLE ]", "%"));
+        }
+
+        /// <summary>
+        /// Get SMS Template from database by category and type
+        /// </summary>
+        private string GetSMSTemplate(string category, string templateType)
+        {
+            try
+            {
+                using (System.Data.SqlClient.SqlConnection tempCon = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                {
+                    tempCon.Open();
+
+                    // First check if SMS_Template table exists
+                    System.Data.SqlClient.SqlCommand checkTableCmd = new System.Data.SqlClient.SqlCommand(@"
+       IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_NAME = 'SMS_Template')
+      SELECT 1
+ELSE
+              SELECT 0", tempCon);
+
+                    int tableExists = (int)checkTableCmd.ExecuteScalar();
+
+                    if (tableExists == 0)
+                    {
+                        return string.Empty;
+                    }
+
+                    // Check if TemplateCategory column exists
+                    System.Data.SqlClient.SqlCommand checkColumnCmd = new System.Data.SqlClient.SqlCommand(@"
+     IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+   WHERE TABLE_NAME = 'SMS_Template' AND COLUMN_NAME = 'TemplateCategory')
+           SELECT 1
+  ELSE
+              SELECT 0", tempCon);
+
+                    int columnExists = (int)checkColumnCmd.ExecuteScalar();
+
+                    string selectQuery;
+                    if (columnExists == 1)
+                    {
+                        selectQuery = @"SELECT TOP 1 MessageTemplate 
+  FROM SMS_Template 
+        WHERE SchoolID = @SchoolID 
+AND TemplateCategory = @TemplateCategory
+        AND TemplateType = @TemplateType 
+  AND IsActive = 1 
+      ORDER BY CreatedDate DESC";
+                    }
+                    else
+                    {
+                        selectQuery = @"SELECT TOP 1 MessageTemplate 
+    FROM SMS_Template 
+          WHERE SchoolID = @SchoolID 
+       AND TemplateType = @TemplateType 
+        AND IsActive = 1 
+       ORDER BY CreatedDate DESC";
+                    }
+
+                    System.Data.SqlClient.SqlCommand cmd = new System.Data.SqlClient.SqlCommand(selectQuery, tempCon);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    if (columnExists == 1)
+                    {
+                        cmd.Parameters.AddWithValue("@TemplateCategory", category);
+                    }
+                    cmd.Parameters.AddWithValue("@TemplateType", templateType);
+
+                    object result = cmd.ExecuteScalar();
+                    return result != null ? result.ToString() : string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Build Due notification SMS from template
+        /// </summary>
+        private string BuildDueNotificationMessage(string template, string studentName, string studentId, double totalDue, string dueDetails)
+        {
+            string message = template;
+
+            // Replace placeholders
+            message = message.Replace("{StudentName}", studentName);
+            message = message.Replace("{ID}", studentId);
+            message = message.Replace("{TotalDue}", totalDue.ToString("0.00"));
+            
+            // Clean up due details
+            if (!string.IsNullOrEmpty(dueDetails))
+            {
+                dueDetails = dueDetails.TrimStart(',', ' ').TrimEnd(',', ' ');
+  message = message.Replace("{DueDetails}", dueDetails);
+            }
+  else
+    {
+   message = message.Replace(", {DueDetails}", "")
+        .Replace("{DueDetails}", "");
+    }
+
+            message = message.Replace("{SchoolName}", Session["School_Name"].ToString());
+
+            return message;
         }
     }
 }

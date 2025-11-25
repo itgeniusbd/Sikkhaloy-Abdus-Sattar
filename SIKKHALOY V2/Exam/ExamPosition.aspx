@@ -170,7 +170,7 @@ h3 {
                     <asp:BoundField DataField="ObtainedMark_ofStudent" HeaderText="Total" SortExpression="ObtainedMark_ofStudent" DataFormatString="{0:n2}" />
                     <asp:TemplateField HeaderText="Grade" SortExpression="Student_Grade">
                         <ItemTemplate>
-                            <asp:Label ID="Label1" runat="server" Text='<%# Bind("Student_Grade") %>'></asp:Label>
+                          <%# System.Web.HttpUtility.HtmlDecode(Eval("Student_Grade").ToString()) %>
                         </ItemTemplate>
                     </asp:TemplateField>
                     <asp:BoundField DataField="Student_Point" HeaderText="Point" SortExpression="Student_Point" DataFormatString="{0:0.00}" />
@@ -232,18 +232,34 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
         <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
         <asp:CustomValidator ID="CV" runat="server" ClientValidationFunction="Validate" ErrorMessage="You do not select any student from student list." ForeColor="Red" ValidationGroup="1"></asp:CustomValidator>
     </div>
-    <asp:CheckBox ID="ClassPositionCheckBox" CssClass="NoPrint" runat="server" Text="Send Class Position" Checked="True" />
-    <asp:CheckBox ID="SecPositionCheckBox" CssClass="NoPrint" runat="server" Text="Send Section Position" />
-    
 
-    <div class="form-inline NoPrint">
-        <div class="form-group">
-            <asp:Button ID="SMSButton" runat="server" CssClass="btn btn-primary" Text="Send Result By SMS" OnClick="SMSButton_Click" ValidationGroup="1" />
+    <!-- SMS Template Info & Edit Link -->
+    <div class="NoPrint" style="background-color: #e7f3ff; border: 1px solid #2196F3; border-radius: 4px; padding: 12px 15px; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="flex: 1;">
+      <i class="fa fa-info-circle" style="color: #2196F3; font-size: 18px; margin-right: 8px;"></i>
+  <strong style="color: #1976D2;">SMS Template Active:</strong>
+            <span style="color: #555; margin-left: 10px;">
+    Using system templates for Pass/Fail results. 
+      <small style="color: #777;">(Placeholders: {StudentName}, {ID}, {ExamName}, {Grade}, {Point}, etc.)</small>
+       </span>
         </div>
-        <div class="form-group">
-            <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary" OnClick="ExportWordButton_Click" Text="Export To Word" />
-        </div>
+      <div>
+     <a href="/SMS/SMS_Template.aspx" class="btn btn-info btn-sm" style="text-decoration: none;">
+    <i class="fa fa-edit"></i> Edit SMS Templates
+      </a>
+ </div>
     </div>
+</div>
+
+<div class="form-inline NoPrint">
+    <div class="form-group">
+        <asp:Button ID="SMSButton" runat="server" CssClass="btn btn-primary" Text="Send Result By SMS" OnClick="SMSButton_Click" ValidationGroup="1" />
+    </div>
+    <div class="form-group">
+    <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary" OnClick="ExportWordButton_Click" Text="Export To Word" />
+    </div>
+</div>
 
     <asp:FormView ID="SMSFormView" runat="server" CssClass="NoPrint" DataKeyNames="SMSID" DataSourceID="SMSSQL" Width="100%">
         <ItemTemplate>
@@ -271,11 +287,11 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <input onchange="printHiddenTableColumn(10,this);" type="checkbox" id="isHiddenPrintClassCol" />
+                        <input onchange="printHiddenTableColumn(10,self);" type="checkbox" id="isHiddenPrintClassCol" />
                         <label for="isHiddenPrintClassCol">Hide Class Position Column</label>
                     </div>
                     <div class="form-group">
-                        <input onchange="printHiddenTableColumn(11,this);" type="checkbox" id="isHiddenPrintSectionCol" />
+                        <input onchange="printHiddenTableColumn(11,self);" type="checkbox" id="isHiddenPrintSectionCol" />
                         <label for="isHiddenPrintSectionCol">Hide Section Position Column</label>
                     </div>
                 </div>

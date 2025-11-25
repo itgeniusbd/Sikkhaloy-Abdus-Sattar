@@ -546,33 +546,45 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
 
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <!-- Checkbox Container - Upper Section -->
-            <div class="checkbox-container">
-                <label>
-                    <asp:CheckBox ID="SMSCheckBox" runat="server" />
-                    <span>📱 Send admission SMS (English)</span>
-                </label>
-                <label>
-                    <asp:CheckBox ID="BanglaSMSCheckBox" runat="server" />
-                    <span>📱 Send admission SMS (বাংলা)</span>
-                </label>
-                <label>
-                    <asp:CheckBox ID="PrintCheckBox" runat="server" />
-                    <span>🖨️ Print admission form (English)</span>
-                </label>
-                <label>
-                    <asp:CheckBox ID="BanglaPrintCheckBox" runat="server" />
-                    <span>🖨️ Print admission form (বাংলা)</span>
-                </label>
+   <!-- SMS & Print Options -->
+         <div class="checkbox-container">
+      <!-- SMS Checkboxes -->
+          <label class="sms-checkbox">
+         <asp:CheckBox ID="SendAdmissionSMSCheckBox" runat="server" />
+          <span>📱 Send admission SMS</span>
+       </label>
+ 
+         <!-- Print Checkboxes -->
+       <label>
+       <asp:CheckBox ID="PrintCheckBox" runat="server" />
+           <span>🖨️ Print form (English)</span>
+  </label>
+    <label>
+       <asp:CheckBox ID="BanglaPrintCheckBox" runat="server" />
+         <span>🖨️ Print form (বাংলা)</span>
+          </label>
             </div>
-            
-            <!-- Button Container - Lower Section -->
-            <div class="button-container">
-                <asp:Button ID="SubmitButton" runat="server" CssClass="btn btn-success" OnClick="SubmitButton_Click" Text="✓ COMPLETE ADMISSION" ValidationGroup="1" />
-                <asp:Button ID="GoPayorderButton" runat="server" CssClass="btn btn-primary" OnClick="GoPayorderButton_Click" Text="💳 SAVE & GO TO PAYMENT" ValidationGroup="1" />
+        
+            <!-- SMS Template Link -->
+    <div class="sms-template-link-container">
+       <div class="alert alert-info d-flex align-items-center justify-content-between">
+        <div>
+          <i class="fas fa-info-circle"></i>
+     <strong>📋 SMS Notification:</strong> Configure admission SMS templates for better communication
+       </div>
+                 <a href="../../SMS/SMS_Template.aspx"" target="_blank" class="btn btn-sm btn-primary">
+                   <i class="fas fa-cog"></i> Manage SMS Templates
+ </a>
+     </div>
+</div>
+        
+    <!-- Button Container -->
+       <div class="button-container">
+             <asp:Button ID="SubmitButton" runat="server" CssClass="btn btn-success" OnClick="SubmitButton_Click" Text="✓ COMPLETE ADMISSION" ValidationGroup="1" />
+    <asp:Button ID="GoPayorderButton" runat="server" CssClass="btn btn-primary" OnClick="GoPayorderButton_Click" Text="💳 SAVE & GO TO PAYMENT" ValidationGroup="1" />
             </div>
-            
-            <asp:ValidationSummary ID="ValidationSummary2" runat="server" CssClass="EroorSummer" DisplayMode="List" ShowMessageBox="True" ShowSummary="False" ValidationGroup="1" />
+       
+      <asp:ValidationSummary ID="ValidationSummary2" runat="server" CssClass="EroorSummer" DisplayMode="List" ShowMessageBox="True" ShowSummary="False" ValidationGroup="1" />
         </div>
     </div>
 
@@ -602,89 +614,112 @@ $(document).ready(function() {
   
    // Initialize collapsible sections
         initializeCollapsibleSections();
+    
+ // Set initial states for sections
+    console.log('Setting initial section states...');
+    $('.section-header.required').removeClass('collapsed').find('.icon').css('transform', 'rotate(180deg)');
+        $('.section-header.required').next('.section-body').addClass('show');
+    
+    $('.section-header.optional').addClass('collapsed').find('.icon').css('transform', 'rotate(0deg)');
+    $('.section-header.optional').next('.section-body').removeClass('show');
+  
+  console.log('Initial states set. Required sections:', $('.section-header.required').length);
+        console.log('Optional sections:', $('.section-header.optional').length);
+        
+        // ✅ IMPORTANT: Initialize form events on page load
+        console.log('Calling bindClassChangeEvent and bindFormEvents on page load...');
+  bindClassChangeEvent();
+        bindFormEvents();
+   console.log('Form events initialized successfully');
     });
     
     // Initialize collapsible sections - works with UpdatePanel
     function initializeCollapsibleSections() {
-        // Use event delegation to handle dynamically loaded content
-        $(document).off('click.sectionHeader').on('click.sectionHeader', '.section-header', function (e) {
-            e.preventDefault();
-   e.stopPropagation();
+        console.log('Initializing collapsible sections...');
+        
+ // Use event delegation to handle dynamically loaded content
+    $(document).off('click.sectionHeader').on('click.sectionHeader', '.section-header', function (e) {
+          e.preventDefault();
+            e.stopPropagation();
 
-            console.log('Section header clicked:', $(this).find('h4').text());
+   var $header = $(this);
+        var $body = $header.next('.section-body');
+      
+   console.log('Section header clicked:', $header.find('h4').text());
+        console.log('Current collapsed state:', $header.hasClass('collapsed'));
+            console.log('Current show state:', $body.hasClass('show'));
             
-    var $header = $(this);
-  var $body = $header.next('.section-body');
- 
-        // Toggle collapsed class
-   $header.toggleClass('collapsed');
-         
-     // Toggle show class and slide animation
-    if ($body.hasClass('show')) {
-           $body.removeClass('show').slideUp(300);
-      } else {
-           $body.addClass('show').slideDown(300);
- }
-  
-      // Rotate chevron icon
-            var $icon = $header.find('.icon');
-          if ($header.hasClass('collapsed')) {
-    $icon.css('transform', 'rotate(0deg)');
-            } else {
-     $icon.css('transform', 'rotate(180deg)');
-       }
+     // Toggle collapsed class on header
+            $header.toggleClass('collapsed');
+        
+          // Toggle show class on body
+            $body.toggleClass('show');
+          
+            // Rotate chevron icon
+      var $icon = $header.find('.icon');
+        if ($header.hasClass('collapsed')) {
+                $icon.css('transform', 'rotate(0deg)');
+     console.log('Section collapsed');
+        } else {
+    $icon.css('transform', 'rotate(180deg)');
+        console.log('Section expanded');
+          }
         });
-     
-        console.log('Collapsible sections initialized');
-    }
-    
+        
+ console.log('Collapsible sections initialized. Found', $('.section-header').length, 'headers');
+  }
+
     // Re-initialize after UpdatePanel partial postback
     var prm = Sys.WebForms.PageRequestManager.getInstance();
     prm.add_endRequest(function (sender, args) {
-        console.log('UpdatePanel postback completed - rebinding events');
+  console.log('UpdatePanel postback completed - rebinding events');
         
- // Re-initialize collapsible sections
+        // Re-initialize collapsible sections
         initializeCollapsibleSections();
  
-        // Re-bind class dropdown event
+  // Re-set initial states
+    $('.section-header.required').removeClass('collapsed').find('.icon').css('transform', 'rotate(180deg)');
+  $('.section-header.required').next('.section-body').addClass('show');
+     
+ // Re-bind class dropdown event
         bindClassChangeEvent();
-        
-        // Re-bind all form event handlers
-        bindFormEvents();
+     
+   // ✅ Re-bind all form event handlers after UpdatePanel update
+  bindFormEvents();
     });
 
     function isNumberKey(a) { 
         a = a.which ? a.which : event.keyCode; 
-        return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0 
+ return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0 
     }
 
     // Validate phone number length
     function validatePhoneLength(source, args) {
         var phoneNumber = args.Value.trim();
-        
-        // Remove any non-digit characters
+ 
+   // Remove any non-digit characters
         phoneNumber = phoneNumber.replace(/\D/g, '');
         
-        // Check if it's exactly 11 digits starting with 01
-        if (phoneNumber.length === 11 && phoneNumber.substring(0, 2) === '01') {
-            // Check if 3rd digit is valid (3-9)
-     var thirdDigit = parseInt(phoneNumber.charAt(2));
-   if (thirdDigit >= 3 && thirdDigit <= 9) {
-    args.IsValid = true;
-              return;
-     }
-      }
+  // Check if it's exactly 11 digits starting with 01
+      if (phoneNumber.length === 11 && phoneNumber.substring(0, 2) === '01') {
+  // Check if 3rd digit is valid (3-9)
+            var thirdDigit = parseInt(phoneNumber.charAt(2));
+    if (thirdDigit >= 3 && thirdDigit <= 9) {
+     args.IsValid = true;
+      return;
+            }
+        }
     
-        // Check if it's 13 digits starting with 88
-  if (phoneNumber.length === 13 && phoneNumber.substring(0, 2) === '88') {
-  // Check if after 88, it starts with 01 and 5th digit is 3-9
-if (phoneNumber.substring(2, 4) === '01') {
-     var fifthDigit = parseInt(phoneNumber.charAt(4));
-        if (fifthDigit >= 3 && fifthDigit <= 9) {
+  // Check if it's 13 digits starting with 88
+      if (phoneNumber.length === 13 && phoneNumber.substring(0, 2) === '88') {
+        // Check if after 88, it starts with 01 and 5th digit is 3-9
+            if (phoneNumber.substring(2, 4) === '01') {
+   var fifthDigit = parseInt(phoneNumber.charAt(4));
+         if (fifthDigit >= 3 && fifthDigit <= 9) {
            args.IsValid = true;
-        return;
-          }
-   }
+    return;
+ }
+ }
         }
   
         args.IsValid = false;
@@ -692,365 +727,506 @@ if (phoneNumber.substring(2, 4) === '01') {
 
     // Auto-format phone number as user types
     function formatPhoneNumber(input) {
-        var value = input.value.replace(/\D/g, '');
-        
+   var value = input.value.replace(/\D/g, '');
+  
         // Limit to 13 digits max
         if (value.length > 13) {
-          value = value.substring(0, 13);
+  value = value.substring(0, 13);
         }
         
-      input.value = value;
+        input.value = value;
     }
 
     // Show/Hide Group, Section, Shift dropdowns based on Class selection and data availability
-    function toggleAcademicDropdowns() {
-   var classValue = $('[id$=ClassDropDownList]').val();
+ function toggleAcademicDropdowns() {
+        var classValue = $('[id$=ClassDropDownList]').val();
   
         console.log('toggleAcademicDropdowns called, classValue:', classValue);
         
         if (classValue && classValue !== '0') {
-       // Check Group dropdown - show only if has actual data items
-            // Use more specific selector to avoid BloodGroupDropDownList
-         var groupDropdown = $('[id$=GroupDropDownList]').not('[id*=Blood]');
-var groupOptions = groupDropdown.find('option');
- var hasGroupData = false;
+// Check Group dropdown - show only if has actual data items
+        // Use more specific selector to avoid BloodGroupDropDownList
+      var groupDropdown = $('[id$=GroupDropDownList]').not('[id*=Blood]');
+            var groupOptions = groupDropdown.find('option');
+     var hasGroupData = false;
   
-      console.log('Group options count:', groupOptions.length);
-            
-      // Check if there are options other than [ ALL ] or placeholder
-         groupOptions.each(function() {
-           var optionText = $(this).text().trim();
-       var optionValue = $(this).val();
-     console.log('Group option - Text:', optionText, 'Value:', optionValue);
-                
-             // If option is not [ ALL ] or % (wildcard), then we have real data
+          console.log('Group options count:', groupOptions.length);
+       
+       // Check if there are options other than [ ALL ] or placeholder
+   groupOptions.each(function() {
+    var optionText = $(this).text().trim();
+      var optionValue = $(this).val();
+           console.log('Group option - Text:', optionText, 'Value:', optionValue);
+     
+            // If option is not [ ALL ] or % (wildcard), then we have real data
       if (optionValue !== '%' && optionText !== '[ ALL ]' && optionValue !== '' && optionText !== '') {
-            hasGroupData = true;
-        console.log('Group has real data:', optionText);
-      return false; // break the loop
-}
-            });
-            
-        console.log('hasGroupData:', hasGroupData);
-            
-     if (hasGroupData) {
-      console.log('Showing Group dropdown');
-       $('.group-dropdown-wrapper').show().css('display', 'block');
-   } else {
-console.log('Hiding Group dropdown');
-      $('.group-dropdown-wrapper').hide().css('display', 'none');
-         }
-            
-    // Check Section dropdown - show only if has actual data items
-   var sectionDropdown = $('[id$=SectionDropDownList]');
-   var sectionOptions = sectionDropdown.find('option');
-            var hasSectionData = false;
-    
-            console.log('Section options count:', sectionOptions.length);
-         
-            sectionOptions.each(function() {
-      var optionText = $(this).text().trim();
-   var optionValue = $(this).val();
-           console.log('Section option - Text:', optionText, 'Value:', optionValue);
-                
-      if (optionValue !== '%' && optionText !== '[ ALL ]' && optionValue !== '' && optionText !== '') {
-         hasSectionData = true;
-        console.log('Section has real data:', optionText);
-   return false;
-         }
-            });
-
-            console.log('hasSectionData:', hasSectionData);
+     hasGroupData = true;
+          console.log('Group has real data:', optionText);
+     return false; // break the loop
+   }
+   });
+      
+            console.log('hasGroupData:', hasGroupData);
  
-            if (hasSectionData) {
-           console.log('Showing Section dropdown');
-                $('.section-dropdown-wrapper').show().css('display', 'block');
-         } else {
-         console.log('Hiding Section dropdown');
-       $('.section-dropdown-wrapper').hide().css('display', 'none');
+          if (hasGroupData) {
+    console.log('Showing Group dropdown');
+             $('.group-dropdown-wrapper').show().css('display', 'block');
+      } else {
+console.log('Hiding Group dropdown');
+ $('.group-dropdown-wrapper').hide().css('display', 'none');
             }
             
-            // Check Shift dropdown - show only if has actual data items
-            var shiftDropdown = $('[id$=ShiftDropDownList]');
-            var shiftOptions = shiftDropdown.find('option');
+            // Check Section dropdown - show only if has actual data items
+            var sectionDropdown = $('[id$=SectionDropDownList]');
+          var sectionOptions = sectionDropdown.find('option');
+       var hasSectionData = false;
+    
+      console.log('Section options count:', sectionOptions.length);
+       
+            sectionOptions.each(function() {
+          var optionText = $(this).text().trim();
+   var optionValue = $(this).val();
+          console.log('Section option - Text:', optionText, 'Value:', optionValue);
+       
+                if (optionValue !== '%' && optionText !== '[ ALL ]' && optionValue !== '' && optionText !== '') {
+  hasSectionData = true;
+  console.log('Section has real data:', optionText);
+   return false;
+    }
+            });
+
+    console.log('hasSectionData:', hasSectionData);
+ 
+if (hasSectionData) {
+          console.log('Showing Section dropdown');
+      $('.section-dropdown-wrapper').show().css('display', 'block');
+            } else {
+          console.log('Hiding Section dropdown');
+    $('.section-dropdown-wrapper').hide().css('display', 'none');
+   }
+    
+        // Check Shift dropdown - show only if has actual data items
+var shiftDropdown = $('[id$=ShiftDropDownList]');
+    var shiftOptions = shiftDropdown.find('option');
             var hasShiftData = false;
   
-     console.log('Shift options count:', shiftOptions.length);
-         
-    shiftOptions.each(function() {
-       var optionText = $(this).text().trim();
-   var optionValue = $(this).val();
-         console.log('Shift option - Text:', optionText, 'Value:', optionValue);
-                
-             if (optionValue !== '%' && optionText !== '[ ALL ]' && optionValue !== '' && optionText !== '') {
-           hasShiftData = true;
-     console.log('Shift has real data:', optionText);
-        return false;
-           }
-            });
+   console.log('Shift options count:', shiftOptions.length);
+      
+         shiftOptions.each(function() {
+    var optionText = $(this).text().trim();
+           var optionValue = $(this).val();
+console.log('Shift option - Text:', optionText, 'Value:', optionValue);
+      
+  if (optionValue !== '%' && optionText !== '[ ALL ]' && optionValue !== '' && optionText !== '') {
+     hasShiftData = true;
+ console.log('Shift has real data:', optionText);
+           return false;
+    }
+ });
     
- console.log('hasShiftData:', hasShiftData);
-            
+   console.log('hasShiftData:', hasShiftData);
+    
             if (hasShiftData) {
-    console.log('Showing Shift dropdown');
-      $('.shift-dropdown-wrapper').show().css('display', 'block');
-            } else {
-       console.log('Hiding Shift dropdown');
-     $('.shift-dropdown-wrapper').hide().css('display', 'none');
-  }
-   } else {
-            console.log('No class selected, hiding all dropdowns');
-  // Hide all dropdowns when no class is selected
-   $('.group-dropdown-wrapper').hide().css('display', 'none');
-    $('.section-dropdown-wrapper').hide().css('display', 'none');
-            $('.shift-dropdown-wrapper').hide().css('display', 'none');
+          console.log('Showing Shift dropdown');
+    $('.shift-dropdown-wrapper').show().css('display', 'block');
+     } else {
+         console.log('Hiding Shift dropdown');
+    $('.shift-dropdown-wrapper').hide().css('display', 'none');
+            }
+        } else {
+       console.log('No class selected, hiding all dropdowns');
+         // Hide all dropdowns when no class is selected
+     $('.group-dropdown-wrapper').hide().css('display', 'none');
+            $('.section-dropdown-wrapper').hide().css('display', 'none');
+   $('.shift-dropdown-wrapper').hide().css('display', 'none');
         }
     }
 
     // Function to bind events - called on page load and after UpdatePanel updates
     function bindClassChangeEvent() {
-  console.log('bindClassChangeEvent called');
+    console.log('bindClassChangeEvent called');
  
         // Check on page load
         toggleAcademicDropdowns();
-        
+    
         // Unbind first to prevent multiple bindings
         $('[id$=ClassDropDownList]').off('change').on('change', function() {
             console.log('Class dropdown changed');
-            toggleAcademicDropdowns();
-     });
+  toggleAcademicDropdowns();
+        });
         
         // Also bind to Group, Section, Shift changes to re-check visibility
         $('[id$=GroupDropDownList]').not('[id*=Blood]').off('change').on('change', function() {
-       console.log('Group dropdown changed');
- toggleAcademicDropdowns();
-        });
+    console.log('Group dropdown changed');
+          toggleAcademicDropdowns();
+      });
         
-     $('[id$=SectionDropDownList]').off('change').on('change', function() {
-            console.log('Section dropdown changed');
-            toggleAcademicDropdowns();
+        $('[id$=SectionDropDownList]').off('change').on('change', function() {
+    console.log('Section dropdown changed');
+    toggleAcademicDropdowns();
         });
      
-      $('[id$=ShiftDropDownList]').off('change').on('change', function() {
-       console.log('Shift dropdown changed');
-     toggleAcademicDropdowns();
-      });
+        $('[id$=ShiftDropDownList]').off('change').on('change', function() {
+    console.log('Shift dropdown changed');
+   toggleAcademicDropdowns();
+        });
     }
     
     // Bind all form events
     function bindFormEvents() {
-        // Progress indicator
-  function updateProgress() {
-  var filledCount = 0;
-        var totalRequired = 5; // Adjust based on required fields
+        console.log('bindFormEvents called - setting up date formatting...');
+      
+    // Progress indicator
+   function updateProgress() {
+     var filledCount = 0;
+ var totalRequired = 5;
      
-            // Check required fields
-        if ($('[id$=IDTextBox]').val()) filledCount++;
-        if ($('[id$=SMSPhoneNoTextBox]').val()) filledCount++;
-   if ($('[id$=StudentNameTextBox]').val()) filledCount++;
-       if ($('[id$=FatherNameTextBox]').val()) filledCount++;
-   if ($('[id$=ClassDropDownList]').val() !== '0') filledCount++;
-            
-            // Update step classes
-   $('.progress-step').removeClass('active completed');
+    if ($('[id$=IDTextBox]').val()) filledCount++;
+       if ($('[id$=SMSPhoneNoTextBox]').val()) filledCount++;
+  if ($('[id$=StudentNameTextBox]').val()) filledCount++;
+     if ($('[id$=FatherNameTextBox]').val()) filledCount++;
+      if ($('[id$=ClassDropDownList]').val() !== '0') filledCount++;
+    
+      $('.progress-step').removeClass('active completed');
             if (filledCount >= 4) {
-     $('#step1, #step2').addClass('completed');
-   $('#step3').addClass('active');
-       } else if (filledCount >= 2) {
-   $('#step1').addClass('completed');
-     $('#step2').addClass('active');
-        } else {
-           $('#step1').addClass('active');
-  }
+    $('#step1, #step2').addClass('completed');
+  $('#step3').addClass('active');
+    } else if (filledCount >= 2) {
+    $('#step1').addClass('completed');
+       $('#step2').addClass('active');
+      } else {
+          $('#step1').addClass('active');
+       }
         }
-        
-        // Update progress on field change
-     $('input, select, textarea').off('change.progress keyup.progress').on('change.progress keyup.progress', updateProgress);
+ 
+        $('input, select, textarea').off('change.progress keyup.progress').on('change.progress keyup.progress', updateProgress);
 
-     // Space not allow in ID
-      $('[id$=IDTextBox]').off('keypress.idspace keyup.idspace').on("keypress.idspace keyup.idspace", function (e) {
-  if (e.which === 32) return false;
+        // Space not allow in ID
+ $('[id$=IDTextBox]').off('keypress.idspace keyup.idspace').on("keypress.idspace keyup.idspace", function (e) {
+      if (e.which === 32) return false;
         });
 
         // Student ID Autocomplete
         var idTimeout;
         var currentIdIndex = -1;
-        
+  
         $('[id$=IDTextBox]').off('keyup.autocomplete').on("keyup.autocomplete", function(e) {
             // Prevent space
- if (e.which === 32) {
-         $(this).val($(this).val().replace(/\s/g, ''));
-                return false;
-        }
+     if (e.which === 32) {
+     $(this).val($(this).val().replace(/\s/g, ''));
+  return false;
+     }
       
-      // Handle arrow keys and enter for autocomplete
-       var dropdown = $('#idAutocompleteDropdown');
-    var items = dropdown.find('.autocomplete-item');
+    // Handle arrow keys and enter for autocomplete
+          var dropdown = $('#idAutocompleteDropdown');
+      var items = dropdown.find('.autocomplete-item');
  
-         if (e.which === 40) { // Arrow Down
-         e.preventDefault();
-           if (items.length > 0) {
-           currentIdIndex = (currentIdIndex + 1) % items.length;
-                    items.removeClass('active');
-    items.eq(currentIdIndex).addClass('active');
-         }
-   return;
-    } else if (e.which === 38) { // Arrow Up
+ if (e.which === 40) { // Arrow Down
      e.preventDefault();
-        if (items.length > 0) {
-       currentIdIndex = currentIdIndex <= 0 ? items.length - 1 : currentIdIndex - 1;
-        items.removeClass('active');
-         items.eq(currentIdIndex).addClass('active');
-        }
-           return;
-            } else if (e.which === 13) { // Enter
-  e.preventDefault();
-            if (currentIdIndex >= 0 && items.length > 0) {
-                    $(this).val(items.eq(currentIdIndex).text());
-             dropdown.hide();
-                currentIdIndex = -1;
+    if (items.length > 0) {
+     currentIdIndex = (currentIdIndex + 1) % items.length;
+              items.removeClass('active');
+       items.eq(currentIdIndex).addClass('active');
+       }
+      return;
+  } else if (e.which === 38) { // Arrow Up
+              e.preventDefault();
+      if (items.length > 0) {
+   currentIdIndex = currentIdIndex <= 0 ? items.length - 1 : currentIdIndex - 1;
+    items.removeClass('active');
+        items.eq(currentIdIndex).addClass('active');
+   }
+    return;
+       } else if (e.which === 13) { // Enter
+    e.preventDefault();
+       if (currentIdIndex >= 0 && items.length > 0) {
+  $(this).val(items.eq(currentIdIndex).text());
+      dropdown.hide();
+       currentIdIndex = -1;
   }
-      return;
-      } else if (e.which === 27) { // Escape
-     dropdown.hide();
-  currentIdIndex = -1;
-      return;
-            }
+    return;
+    } else if (e.which === 27) { // Escape
+    dropdown.hide();
+     currentIdIndex = -1;
+   return;
+ }
           
   var searchText = $(this).val().trim();
  
-            // Clear previous timeout
-     clearTimeout(idTimeout);
+       // Clear previous timeout
+       clearTimeout(idTimeout);
      
-            // Hide dropdown if empty
- if (searchText.length < 1) {
-      dropdown.hide();
-           // Remove validation styling
-    $(this).removeClass('is-invalid is-valid id-duplicate');
-              return;
-            }
-         
+      // Hide dropdown if empty
+   if (searchText.length < 1) {
+    dropdown.hide();
+  // Remove validation styling
+   $(this).removeClass('is-invalid is-valid id-duplicate');
+      return;
+      }
+
             // Set new timeout for duplicate check and AJAX call
             idTimeout = setTimeout(function() {
-     var $idTextBox = $('[id$=IDTextBox]');
-        
-       // First check for duplicates
-       $.ajax({
-          type: "POST",
+   var $idTextBox = $('[id$=IDTextBox]');
+     
+    // First check for duplicates
+     $.ajax({
+      type: "POST",
           url: "Admission_New_Student.aspx/CheckIDExists",
-            data: JSON.stringify({ studentID: searchText }),
-        contentType: "application/json; charset=utf-8",
-         dataType: "json",
-  success: function(response) {
-         var result = JSON.parse(response.d);
+   data: JSON.stringify({ studentID: searchText }),
+  contentType: "application/json; charset=utf-8",
+     dataType: "json",
+         success: function(response) {
+  var result = JSON.parse(response.d);
     
-   if (result.exists) {
-        // ID already exists - show error
-  $idTextBox.addClass('is-invalid id-duplicate').removeClass('is-valid');
-        
-          // Show warning in dropdown
+          if (result.exists) {
+       // ID already exists - show error
+            $idTextBox.addClass('is-invalid id-duplicate').removeClass('is-valid');
+      
+      // Show warning in dropdown
       var warningHtml = '<div class="autocomplete-item autocomplete-warning" style="background-color: #f8d7da; color: #721c24; font-weight: bold; cursor: default;">';
       warningHtml += '<i class="fas fa-exclamation-triangle"></i> ⚠️ This ID already exists!';
-           warningHtml += '</div>';
-              dropdown.html(warningHtml).show();
-     } else {
-            // ID is available
-        $idTextBox.removeClass('is-invalid id-duplicate').addClass('is-valid');
-          
-     // Now show autocomplete suggestions
+       warningHtml += '</div>';
+dropdown.html(warningHtml).show();
+  } else {
+  // ID is available
+    $idTextBox.removeClass('is-invalid id-duplicate').addClass('is-valid');
+  
+   // Now show autocomplete suggestions
          $.ajax({
-            type: "POST",
-     url: "Admission_New_Student.aspx/GetAllID",
+       type: "POST",
+       url: "Admission_New_Student.aspx/GetAllID",
             data: JSON.stringify({ ids: searchText }),
-   contentType: "application/json; charset=utf-8",
-       dataType: "json",
-      success: function(response) {
-    var ids = JSON.parse(response.d);
+      contentType: "application/json; charset=utf-8",
+     dataType: "json",
+ success: function(response) {
+      var ids = JSON.parse(response.d);
  
-         if (ids && ids.length > 0) {
-   var html = '';
-     $.each(ids, function(index, id) {
-      html += '<div class="autocomplete-item" data-value="' + id + '">' + id + '</div>';
-               });
+     if (ids && ids.length > 0) {
+ var html = '';
+      $.each(ids, function(index, id) {
+ html += '<div class="autocomplete-item" data-value="' + id + '">' + id + '</div>';
+          });
       
        dropdown.html(html).show();
-   currentIdIndex = -1;
+     currentIdIndex = -1;
  
-         // Click handler for items
-        dropdown.find('.autocomplete-item').on('click', function() {
-   $('[id$=IDTextBox]').val($(this).text());
-          dropdown.hide();
-         currentIdIndex = -1;
-             // Re-check if selected ID exists
-         $('[id$=IDTextBox]').trigger('keyup');
-           });
-        
-  // Hover handler
-     dropdown.find('.autocomplete-item').on('mouseenter', function() {
-      dropdown.find('.autocomplete-item').removeClass('active');
-     $(this).addClass('active');
-              currentIdIndex = $(this).index();
-         });
-         } else {
-        dropdown.hide();
-        }
-           },
-  error: function() {
-      dropdown.hide();
-           }
-       });
-}
-           },
-                 error: function() {
- $idTextBox.removeClass('is-invalid is-valid id-duplicate');
-             dropdown.hide();
-   }
+          // Click handler for items
+      dropdown.find('.autocomplete-item').on('click', function() {
+  $('[id$=IDTextBox]').val($(this).text());
+     dropdown.hide();
+       currentIdIndex = -1;
+        // Re-check if selected ID exists
+        $('[id$=IDTextBox]').trigger('keyup');
    });
-          }, 500); // 500ms debounce for better UX
-        });
+        
+    // Hover handler
+   dropdown.find('.autocomplete-item').on('mouseenter', function() {
+dropdown.find('.autocomplete-item').removeClass('active');
+         $(this).addClass('active');
+   currentIdIndex = $(this).index();
+     });
+   } else {
+    dropdown.hide();
+  }
+ },
+      error: function() {
+       dropdown.hide();
+     }
+           });
+     }
+       },
+   error: function() {
+     $idTextBox.removeClass('is-invalid is-valid id-duplicate');
+       dropdown.hide();
+          }
+   });
+}, 500);
+      });
           
         // Hide dropdown when clicking outside
         $(document).off('click.autocomplete').on('click.autocomplete', function(e) {
          if (!$(e.target).closest('[id$=IDTextBox], #idAutocompleteDropdown').length) {
-      $('#idAutocompleteDropdown').hide();
-      currentIdIndex = -1;
-            }
-});
+ $('#idAutocompleteDropdown').hide();
+   currentIdIndex = -1;
+   }
+     });
 
         // Validate ID before form submission
-   $('form').off('submit.idvalidation').on('submit.idvalidation', function(e) {
-         var $idTextBox = $('[id$=IDTextBox]');
+        $('form').off('submit.idvalidation').on('submit.idvalidation', function(e) {
+   var $idTextBox = $('[id$=IDTextBox]');
      var studentID = $idTextBox.val().trim();
+   
+     if (studentID === '') {
+      return true;
+      }
         
-        if (studentID === '') {
-    return true; // Let required field validator handle it
+    // Check if ID has duplicate class
+     if ($idTextBox.hasClass('id-duplicate')) {
+  e.preventDefault();
+   alert('⚠️ Student ID "' + studentID + '" already exists!\n\nPlease use a different ID.');
+   $idTextBox.focus();
+      return false;
+          }
+  
+     return true;
+ });
+        
+        // Copy permanent address to local address
+  $('#SameAddrs').off('click.copyaddress').on('click.copyaddress', function(e) {
+e.preventDefault();
+            var permanentAddress = $('[id$=StudentPermanentAddressTextBox]').val();
+ $('[id$=StudentLocalAddressTextBox]').val(permanentAddress);
+   });
+
+        // ✅ Date of Birth auto-formatting
+ console.log('Setting up Date of Birth formatting...');
+   var $birthDayTextBox = $('[id$=BirthDayTextBox]');
+  console.log('Found BirthDayTextBox:', $birthDayTextBox.length);
+    console.log('BirthDayTextBox ID:', $birthDayTextBox.attr('id'));
+        console.log('BirthDayTextBox type:', $birthDayTextBox.attr('type'));
+    
+  // Auto-format Date of Birth with "/" separator (dd/mm/yyyy)
+        $birthDayTextBox.off('input.dateformat').on('input.dateformat', function(e) {
+            console.log('✅ Date input event triggered! Value:', $(this).val());
+          var input = $(this);
+   var value = input.val();
+   var numbers = value.replace(/[^0-9]/g, ''); // Keep only numbers
+       var cursorPosition = this.selectionStart;
+ var previousLength = value.length;
+   
+   console.log('Numbers extracted:', numbers);
+            
+   // Build formatted date
+         var formatted = '';
+   if (numbers.length > 0) {
+                // DD
+              formatted = numbers.substring(0, 2);
+           console.log('After DD:', formatted);
+          
+          // Add first slash after DD if we have month digits
+          if (numbers.length >= 3) {
+          formatted += '/' + numbers.substring(2, 4); // MM
+         console.log('After MM:', formatted);
    }
         
-         // Check if ID has duplicate class
-      if ($idTextBox.hasClass('id-duplicate')) {
-       e.preventDefault();
-    alert('⚠️ Student ID "' + studentID + '" already exists!\n\nPlease use a different ID.');
-            $idTextBox.focus();
-       return false;
-      }
-    
-            return true;
-    });
-        
-    // Copy permanent address to local address
-        $('#SameAddrs').off('click.copyaddress').on('click.copyaddress', function(e) {
-        e.preventDefault();
-    var permanentAddress = $('[id$=StudentPermanentAddressTextBox]').val();
-            $('[id$=StudentLocalAddressTextBox]').val(permanentAddress);
-        });
+        // Add second slash after MM if we have year digits
+                if (numbers.length >= 5) {
+ formatted += '/' + numbers.substring(4, 8); // YYYY
+      console.log('After YYYY:', formatted);
     }
+            }
+   
+        // Limit to dd/mm/yyyy format (10 characters max)
+            if (formatted.length > 10) {
+            formatted = formatted.substring(0, 10);
+      }
+   
+     console.log('Final formatted value:', formatted);
+  
+            // Update input value
+          input.val(formatted);
 
-    $(function () {
-  // Initial binding
-        bindClassChangeEvent();
-        bindFormEvents();
-    });
-</script>
+            // Adjust cursor position
+      var newLength = formatted.length;
+    var diff = newLength - previousLength;
+            
+      // If a slash was auto-added, move cursor forward
+        if (diff > 0 && (cursorPosition === 2 || cursorPosition === 5)) {
+      this.selectionStart = this.selectionEnd = cursorPosition + diff;
+         } else if (diff < 0) {
+      // When deleting, adjust cursor
+             this.selectionStart = this.selectionEnd = Math.max(0, cursorPosition + diff);
+            } else {
+       this.selectionStart = this.selectionEnd = cursorPosition;
+   }
+        });
+        
+        // Also try binding with 'keyup' as fallback
+$birthDayTextBox.off('keyup.dateformat').on('keyup.dateformat', function(e) {
+ console.log('⚡ Keyup event triggered! Key:', e.which, 'Value:', $(this).val());
+         
+     // Skip special keys
+         if (e.which === 8 || e.which === 46 || e.which === 9 || e.which === 27 || 
+      e.which === 13 || e.which === 37 || e.which === 39) {
+     return;
+            }
+   
+          // Trigger the input event manually
+        $(this).trigger('input');
+        });
+        
+     // Only allow numbers and slashes in Date of Birth (prevent other characters)
+        $birthDayTextBox.off('keydown.dateformat').on('keydown.dateformat', function(e) {
+            console.log('⌨️ Keydown event! Key code:', e.which);
+       var charCode = e.which || e.keyCode;
+            
+        // Allow: backspace(8), delete(46), tab(9), escape(27), enter(13), left arrow(37), right arrow(39)
+    if (charCode === 8 || charCode === 46 || charCode === 9 || charCode === 27 || 
+    charCode === 13 || charCode === 37 || charCode === 39) {
+ return true;
+ }
+     
+// Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+            if ((e.ctrlKey || e.metaKey) && (charCode === 65 || charCode === 67 || charCode === 86 || charCode === 88)) {
+  return true;
+            }
+    
+            // Prevent slash key (we auto-add it)
+         if (charCode === 191 || charCode === 111) {
+        e.preventDefault();
+      return false;
+      }
+            
+  // Allow only numbers (0-9)
+            if ((charCode >= 48 && charCode <= 57) || (charCode >= 96 && charCode <= 105)) {
+   return true;
+        }
+   
+     // Block everything else
+            console.log('❌ Blocking key:', charCode);
+            e.preventDefault();
+            return false;
+     });
 
+    // Handle paste event
+    $birthDayTextBox.off('paste.dateformat').on('paste.dateformat', function(e) {
+   console.log('📋 Paste event triggered!');
+         e.preventDefault();
 
-</asp:Content>
+       // Get pasted text
+      var pastedText = (e.originalEvent || e).clipboardData.getData('text/plain');
+  console.log('Pasted text:', pastedText);
+     var numbers = pastedText.replace(/[^0-9]/g, ''); // Extract only numbers
+     console.log('Numbers from paste:', numbers);
+  
+            if (numbers.length > 8) {
+                numbers = numbers.substring(0, 8);
+          }
+          
+            // Format the pasted numbers
+    var formatted = '';
+    if (numbers.length > 0) {
+    formatted = numbers.substring(0, 2);
+   if (numbers.length >= 3) {
+           formatted += '/' + numbers.substring(2, 4);
+ }
+           if (numbers.length >= 5) {
+     formatted += '/' + numbers.substring(4, 8);
+     }
+            }
+   
+   console.log('Formatted paste result:', formatted);
+      $(this).val(formatted);
+    
+            // Trigger input event to ensure validation runs
+$(this).trigger('input');
+        });
+        
+    // Test if element is actually focused
+  $birthDayTextBox.on('focus.dateformat', function() {
+  console.log('🎯 Date of Birth field focused!');
+        });
+        
+        console.log('Date of Birth formatting setup complete');
+    }
+</script></asp:Content>

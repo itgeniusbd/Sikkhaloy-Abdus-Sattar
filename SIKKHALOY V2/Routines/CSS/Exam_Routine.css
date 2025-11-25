@@ -34,6 +34,11 @@
     margin: 10px 0 20px 0;
     padding: 10px;
     border-bottom: 2px solid #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .routine-title {
@@ -47,6 +52,66 @@
     font-size: 15px;
     color: #555;
     font-weight: 600;
+}
+
+/* Bangla Routine Button */
+.bangla-routine-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 30px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+    white-space: nowrap;
+}
+
+.bangla-routine-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    border-color: #fff;
+    text-decoration: none;
+    color: white;
+}
+
+.bangla-routine-btn:active {
+    transform: translateY(0);
+}
+
+/* English Routine Button */
+.english-routine-btn {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    padding: 12px 30px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+    white-space: nowrap;
+}
+
+.english-routine-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+    border-color: #fff;
+    text-decoration: none;
+    color: white;
+}
+
+.english-routine-btn:active {
+    transform: translateY(0);
 }
 
 /* Table Styling */
@@ -381,6 +446,20 @@ font-weight: bold;
     color: white;
 }
 
+/* Responsive for mobile */
+@media (max-width: 768px) {
+    .routine-name-display {
+        flex-direction: column;
+    text-align: center;
+    }
+    
+    .bangla-routine-btn,
+    .english-routine-btn {
+ font-size: 14px;
+        padding: 10px 20px;
+    }
+}
+
 /* Print Styles - OPTIMIZED FOR 15 ROWS IN ONE PAGE */
 @media print {
     @page {
@@ -400,7 +479,7 @@ font-weight: bold;
 .control-panel,
     .form-inline,
     button,
-    .btn,
+  .btn,
 select.class-dropdown,
     input[type="button"],
     input[type="submit"],
@@ -411,8 +490,13 @@ select.class-dropdown,
     aside,
     .control-label,
     form > div.form-inline,
-    .exam-routine-container > .control-panel,
- .exam-routine-container > .form-inline {
+  .exam-routine-container > .control-panel,
+ .exam-routine-container > .form-inline,
+    .bangla-routine-btn,
+    a.bangla-routine-btn,
+    .english-routine-btn,
+    a.english-routine-btn,
+    .routine-name-display a {
         display: none !important;
     }
 
@@ -421,11 +505,30 @@ select.class-dropdown,
    display: block !important;
         text-align: center !important;
         font-size: 18px !important;
-        font-weight: bold !important;
-      color: #000 !important;
+     font-weight: bold !important;
+    color: #000 !important;
         margin: 5px 0 10px 0 !important;
-        padding: 5px !important;
+padding: 5px !important;
         border: none !important;
+        /* Override flex layout in print */
+   justify-content: center !important;
+    }
+
+    /* **Make routine name label inline-block and centered** */
+    .routine-name-display > asp\\:Label,
+    .routine-name-display > label,
+    .routine-name-display > span {
+        display: inline-block !important;
+        text-align: center !important;
+ }
+
+    /* **Hide Bangla/English routine buttons in print** */
+    .bangla-routine-btn,
+    .english-routine-btn,
+    .routine-name-display a,
+    .routine-name-display > a {
+        display: none !important;
+     visibility: hidden !important;
     }
 
     /* **Show exam routine container** */

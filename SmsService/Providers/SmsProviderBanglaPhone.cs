@@ -90,7 +90,14 @@ namespace SmsService
         {
             const string actionUrl = "sendsms"; // your powers ms site url; register the ip first
             var request = HttpWebRequest.Create(HostUrl + actionUrl);
-            var smsText = Uri.EscapeDataString(massage);
+
+            // Fix: Replace + with a safe alternative before encoding to preserve it in SMS
+            // Option 1: Use full word "Plus" instead of symbol
+            var safeMassage = massage.Replace("A+", "A Plus")
+               .Replace("a+", "a Plus")
+             .Replace("+", " Plus ");
+
+            var smsText = Uri.EscapeDataString(safeMassage);
             var receiversParam = number;
             var dataFormat = "userId={0}&password={1}&smsText={2}&commaSeperatedReceiverNumbers={3}";
 

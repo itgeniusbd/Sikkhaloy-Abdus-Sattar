@@ -508,7 +508,14 @@ ORDER BY Income_PayOrder.EndDate"
     <asp:RadioButton ID="rbActive" runat="server" Text="SMS Active" GroupName="Status" Value="1" AutoPostBack="true" OnCheckedChanged="rbSMS_CheckedChanged" />
    <asp:RadioButton ID="rbInactive" runat="server" Text="SMS Inactive" GroupName="Status" Value="0" AutoPostBack="true" OnCheckedChanged="rbSMS_CheckedChanged" />
 
-   <asp:CheckBox ID="RoleCheckBox" runat="server" Text="Send Payment Roles" />
+<!-- SMS Template Info & Edit Link -->
+    <div style="display: inline-block; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 6px 12px; margin: 0 10px;">
+        <i class="fa fa-info-circle" style="color: #ff9800;"></i>
+        <small style="color: #856404; margin-right: 8px;">SMS Template Active</small>
+      <a href="/SMS/SMS_Template.aspx" class="btn btn-sm btn-warning" style="padding: 2px 8px; font-size: 12px;">
+         <i class="fa fa-edit"></i> Edit Template
+  </a>
+     </div>
 
   <asp:RequiredFieldValidator ID="RequiredFieldValidator6" runat="server" ControlToValidate="AccountDropDownList" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="PaY"></asp:RequiredFieldValidator>
          <asp:Button ID="PayButton" runat="server" Text="Pay" OnClick="PayButton_Click" OnClientClick="return validateForm()" ValidationGroup="PaY" CssClass="btn btn-primary" />
@@ -817,7 +824,7 @@ const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([d
   const maxConcessionAllowed = fee - paid;
    
       if (concession > maxConcessionAllowed) {
-      alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot exceed remaining amount!\n\nFee: ' + fee + ' TK\nPaid: ' + paid + ' TK\nMax Concession Allowed: ' + maxConcessionAllowed + ' TK\nYou entered: ' + concession + ' TK');
+      alert('কনসেশন EMI আমাউন্ট অবশিষ্ট EMI এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot exceed remaining amount!\n\nFee: ' + fee + ' TK\nPaid: ' + paid + ' TK\nMax Concession Allowed: ' + maxConcessionAllowed + ' TK\nYou entered: ' + concession + ' TK');
            concessionInput.focus();
   return false;
 }

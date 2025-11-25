@@ -114,59 +114,59 @@ font-size: 2rem;
             <div class="C-title">প্রশংসা পত্র</div>
           <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:30px">তারিখ: ......../........../.........</label>
             <div class="c-body">
-                এই মর্মে প্রত্যয়ন করা হইতেছে যে,  শিক্ষার্থী: <strong><%# Eval("StudentsName") %>, </strong>
-                পিতা: <strong><%# Eval("FathersName") %></strong>, মাতা:  <strong><%# Eval("MothersName") %></strong>, 
-                জন্ম তারিখ: <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong> ইং,
-                ঠিকানা: <strong><%# Eval("StudentPermanentAddress")%></strong>। আমার নিকট সে ব্যাক্তিগত ভাবে পরিচিত। আমার জানামতে সে রাষ্ট্র বিরোধী কোন কার্যক্রমে জড়িত নয়। 
-               তাহার স্বভাব চরিত্র ভালো।
-            </div>
+       এই মর্মে প্রত্যয়ন করা হইতেছে যে,  শিক্ষার্থী: <strong><%# Eval("StudentsName") %>, </strong> আইডি নম্বর: <strong><%# Eval("ID") %></strong>, শ্রেণি: <b><%# Eval("Class") %></b>, রোল নং: <strong><%# Eval("RollNo") %></strong>,
+         পিতা: <strong><%# Eval("FathersName") %></strong>, মাতা:<strong><%# Eval("MothersName") %></strong>, 
+    জন্ম তারিখ: <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong> ইং,
+         ঠিকানা: <strong><%# Eval("StudentPermanentAddress")%></strong>। আমার নিকট সে ব্যাক্তিগত ভাবে পরিচিত। আমার জানামতে সে রাষ্ট্র বিরোধী কোন কার্যক্রমে জড়িত নয়। 
+       তাহার স্বভাব চরিত্র ভালো。
+   </div>
 
-            <div class="c-footer">
-                 <strong>আমি তাহার সর্বাঙ্গীন উন্নতি ও মঙ্গল কামনা করছি।</strong> 
-            </div>
-            
-            <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">কর্তৃপক্ষের স্বাক্ষর</label> 
+        <div class="c-footer">
+       <strong>আমি তাহার সর্বাঙ্গীন উন্নতি ও মঙ্গল কামনা করছি।</strong> 
+  </div>
+   
+     <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">কর্তৃপক্ষের স্বাক্ষর</label> 
 
         </ItemTemplate>
     </asp:FormView>
-    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID)">
+    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID)">
         <SelectParameters>
             <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
-            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+    <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
         </SelectParameters>
-    </asp:SqlDataSource>
+  </asp:SqlDataSource>
 
 
-    <asp:FormView ID="FormView1" runat="server" DataSourceID="Reject_StudentInfoSQL" Width="100%" Visible="false">
+ <asp:FormView ID="FormView1" runat="server" DataSourceID="Reject_StudentInfoSQL" Width="100%" Visible="false">
         <ItemTemplate>
-            <a class="btn btn-dark-green d-print-none" href="/Admission/Edit_Student_Info/Edit_Student_information.aspx?Student=<%#Eval("StudentID") %>&Student_Class=<%#Eval("StudentClassID") %>"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>Update Information</a>
-            <button type="button" onclick="window.print();" class="d-print-none btn btn-amber pull-right">Print</button>
-            <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary d-print-none" OnClick="ExportWordButton_Click" Text="Export To Word" />
+ <a class="btn btn-dark-green d-print-none" href="/Admission/Edit_Student_Info/Edit_Student_information.aspx?Student=<%#Eval("StudentID") %>&Student_Class=<%#Eval("StudentClassID") %>"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>Update Information</a>
+        <button type="button" onclick="window.print();" class="d-print-none btn btn-amber pull-right">Print</button>
+      <asp:Button ID="ExportWordButton" runat="server" CssClass="btn btn-primary d-print-none" OnClick="ExportWordButton_Click" Text="Export To Word" />
 
 
-            <div class="C-title">প্রশংসা পত্র</div>
-                      <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:30px">তারিখ: ......../........../.........</label>
+  <div class="C-title">প্রশংসা পত্র</div>
+   <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:30px">তারিখ: ......../........../.........</label>
             <asp:Panel ID="Data_Panel" runat="server" CssClass="word-style">
-                <div class="Head" style="margin-top: 100px">
-                    এই মর্মে প্রত্যয়ন করা হইতেছে যে,  শিক্ষার্থী: <strong><%# Eval("StudentsName") %></strong>,
-                 পিতা:  <strong><%# Eval("FathersName") %>, </strong>মাতা: <strong><%# Eval("MothersName") %></strong>, 
-            জন্ম তারিখ: <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong> ইং,
-            ঠিকানা: <strong><%# Eval("StudentPermanentAddress")%></strong>, আমার নিকট সে ব্যাক্তিগত ভাবে পরিচিত। আমার জানামতে সে রাষ্ট্র বিরোধী কোন কার্যক্রমে জড়িত নয়।
-                <p>তাহার স্বভাব চরিত্র ভালো।</p>
-                </div>
+  <div class="Head" style="margin-top: 100px">
+   এই মর্মে প্রত্যয়ন করা হইতেছে যে,  শিক্ষার্থী: <strong><%# Eval("StudentsName") %></strong>, আইডি নম্বর: <strong><%# Eval("ID") %></strong>, শ্রেণি: <b><%# Eval("Class") %></b>, রোল নং: <strong><%# Eval("RollNo") %></strong>,
+   পিতা:  <strong><%# Eval("FathersName") %>, </strong>মাতা: <strong><%# Eval("MothersName") %></strong>, 
+      জন্ম তারিখ: <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong> ইং,
+  ঠিকানা: <strong><%# Eval("StudentPermanentAddress")%></strong>, আমার নিকট সে ব্যাক্তিগত ভাবে পরিচিত। আমার জানামতে সে রাষ্ট্র বিরোধী কোন কার্যক্রমে জড়িত নয়।
+     <p>তাহার স্বভাব চরিত্র ভালো।</p>
+     </div>
 
-                <div class="c-footer">
+       <div class="c-footer">
                   <strong>আমি তাহার সর্বাঙ্গীন উন্নতি ও মঙ্গল কামনা করছি।</strong> 
-                </div>
+        </div>
 
 
-              
-            <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">কর্তৃপক্ষের স্বাক্ষর</label> 
-                                            
-                    
-               
+        
+            <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">কর্তৃপক্ষের স্বाक्षর</label> 
+    
+         
+         
 
-            </asp:Panel>
+ </asp:Panel>
         </ItemTemplate>
     </asp:FormView>
 

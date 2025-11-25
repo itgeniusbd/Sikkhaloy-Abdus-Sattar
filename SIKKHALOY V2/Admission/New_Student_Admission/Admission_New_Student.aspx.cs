@@ -191,37 +191,32 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
       StudentRecordSQL.InsertParameters["StudentID"].DefaultValue = StudentID.ToString();
  StudentRecordSQL.InsertParameters["SubjectID"].DefaultValue = GroupGridView.DataKeys[row.RowIndex].Values["SubjectID"].ToString();
      StudentRecordSQL.InsertParameters["SubjectType"].DefaultValue = SubjectTypeRadioButtonList.SelectedValue;
-         StudentRecordSQL.Insert();
-                 }
-                    }
+     StudentRecordSQL.Insert();
+             }
+      }
    }
 
-         if (SMSCheckBox.Checked && !string.IsNullOrEmpty(SMSPhoneNoTextBox.Text))
-        {
-    SendAdmissionSMS(StudentNameTextBox.Text, IDTextBox.Text, ClassDropDownList.SelectedItem.Text,
+  // Send admission SMS if checkbox is checked
+       if (SendAdmissionSMSCheckBox.Checked && !string.IsNullOrEmpty(SMSPhoneNoTextBox.Text))
+       {
+        SendAdmissionSMS(StudentNameTextBox.Text, IDTextBox.Text, ClassDropDownList.SelectedItem.Text,
                RollNumberTextBox.Text, SMSPhoneNoTextBox.Text, StudentID.ToString(), false);
-     }
-
-  if (BanglaSMSCheckBox.Checked && !string.IsNullOrEmpty(SMSPhoneNoTextBox.Text))
-      {
-                SendAdmissionSMS(StudentNameTextBox.Text, IDTextBox.Text, ClassDropDownList.SelectedItem.Text,
-       RollNumberTextBox.Text, SMSPhoneNoTextBox.Text, StudentID.ToString(), true);
-           }
+       }
 
        if (PrintCheckBox.Checked)
-         {
-              Response.Redirect($"Admission_Form.aspx?Student={StudentID}&StudentClass={StudentClassID}", false);
-      Context.ApplicationInstance.CompleteRequest();
+   {
+        Response.Redirect($"Admission_Form.aspx?Student={StudentID}&StudentClass={StudentClassID}", false);
+   Context.ApplicationInstance.CompleteRequest();
         }
 else if (BanglaPrintCheckBox.Checked)
     {
-            Response.Redirect($"Form_Bangla.aspx?Student={StudentID}&StudentClass={StudentClassID}", false);
+       Response.Redirect($"Form_Bangla.aspx?Student={StudentID}&StudentClass={StudentClassID}", false);
      Context.ApplicationInstance.CompleteRequest();
-           }
-      else
+   }
+ else
     {
-           ClientScript.RegisterStartupScript(this.GetType(), "Success",
-                "alert('Admission completed successfully! ID: " + IDTextBox.Text + "'); window.location='Admission_New_Student.aspx';", true);
+        ClientScript.RegisterStartupScript(this.GetType(), "Success",
+  "alert('Admission completed successfully! ID: " + IDTextBox.Text + "'); window.location='Admission_New_Student.aspx';", true);
       }
    }
           catch (SqlException sqlEx)
@@ -339,25 +334,20 @@ if (SubjectCheckBox != null && SubjectCheckBox.Checked)
    }
         }
 
-              if (SMSCheckBox.Checked && !string.IsNullOrEmpty(SMSPhoneNoTextBox.Text))
-    {
-          SendAdmissionSMS(StudentNameTextBox.Text, IDTextBox.Text, ClassDropDownList.SelectedItem.Text,
-         RollNumberTextBox.Text, SMSPhoneNoTextBox.Text, StudentID.ToString(), false);
-    }
-
-      if (BanglaSMSCheckBox.Checked && !string.IsNullOrEmpty(SMSPhoneNoTextBox.Text))
-        {
-    SendAdmissionSMS(StudentNameTextBox.Text, IDTextBox.Text, ClassDropDownList.SelectedItem.Text,
-          RollNumberTextBox.Text, SMSPhoneNoTextBox.Text, StudentID.ToString(), true);
+           // Send admission SMS if checkbox is checked
+    if (SendAdmissionSMSCheckBox.Checked && !string.IsNullOrEmpty(SMSPhoneNoTextBox.Text))
+ {
+      SendAdmissionSMS(StudentNameTextBox.Text, IDTextBox.Text, ClassDropDownList.SelectedItem.Text,
+   RollNumberTextBox.Text, SMSPhoneNoTextBox.Text, StudentID.ToString(), false);
      }
 
            Response.Cookies["Class"].Value = ClassDropDownList.SelectedItem.Text;
       Response.Cookies["RollNo"].Value = RollNumberTextBox.Text;
    Response.Cookies["Admission_Year"].Value = Session["Edu_Year"].ToString();
-          Response.Cookies["Admission_Year"].Expires = DateTime.Now.AddDays(1);
+   Response.Cookies["Admission_Year"].Expires = DateTime.Now.AddDays(1);
 
-            Response.Redirect($"Payments.aspx?Student={StudentID}&Class={ClassDropDownList.SelectedValue}&StudentClass={StudentClassID}", false);
-        Context.ApplicationInstance.CompleteRequest();
+   Response.Redirect($"Payments.aspx?Student={StudentID}&Class={ClassDropDownList.SelectedValue}&StudentClass={StudentClassID}", false);
+ Context.ApplicationInstance.CompleteRequest();
          }
             catch (SqlException sqlEx)
             {
@@ -385,16 +375,34 @@ if (SubjectCheckBox != null && SubjectCheckBox.Checked)
             try
             {
                 string Text;
-                
-                if (isBangla)
+
+                // Try to get admission template
+                string admissionTemplate = GetSMSTemplate("Admission", isBangla ? "AdmissionWelcome" : "AdmissionConfirm");
+
+                if (!string.IsNullOrEmpty(admissionTemplate))
                 {
-                    // Bangla SMS format
-                    Text = $"অভিনন্দন! {studentName} আপনি। {className},শ্রেণীতে অনলাইনে ভর্তি হয়েছে। আইডি: {studentID}, রোল: {rollNo} ভবিষ্যতের জন্য এই তথ্য সংরক্ষণ করুন। ধন্যবাদ - {Session["School_Name"]}";
+                    // Use template with placeholders
+                    Text = admissionTemplate
+                    .Replace("{StudentName}", studentName)
+                          .Replace("{ID}", studentID)
+                   .Replace("{Class}", className)
+                     .Replace("{RollNo}", rollNo)
+                      .Replace("{AdmissionDate}", DateTime.Now.ToString("dd MMM yyyy"))
+                 .Replace("{SchoolName}", Session["School_Name"].ToString());
                 }
                 else
                 {
-                    // English SMS format
-                    Text = $"Congratulation!! {studentName} You have been Online admitted into class: {className}. ID: {studentID}. Roll No: {rollNo} Please save this information for future. Regards: {Session["School_Name"]}";
+                    // Default message (fallback)
+                    if (isBangla)
+                    {
+                        // Bangla SMS format
+                        Text = $"অভিনন্দন! {studentName} আপনি {className} শ্রেণীতে অনলাইনে ভর্তি হয়েছেন। আইডি: {studentID}, রোল: {rollNo}। ভবিষ্যতের জন্য এই তথ্য সংরক্ষণ করুন। ধন্যবাদ - {Session["School_Name"]}";
+                    }
+                    else
+                    {
+                        // English SMS format
+                        Text = $"Congratulation!! {studentName} You have been Online admitted into class: {className}. ID: {studentID}. Roll No: {rollNo} Please save this information for future. Regards: {Session["School_Name"]}";
+                    }
                 }
 
                 SMS_Class SMS = new SMS_Class(Session["SchoolID"].ToString());
@@ -417,8 +425,8 @@ if (SubjectCheckBox != null && SubjectCheckBox.Checked)
                                 {
                                     con.Open();
                                     SqlCommand cmd = new SqlCommand(@"
-                                        INSERT INTO SMS_OtherInfo(SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID) 
-                                        VALUES (@SMS_Send_ID, @SchoolID, @StudentID, @TeacherID, @EducationYearID)", con);
+          INSERT INTO SMS_OtherInfo(SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID) 
+      VALUES (@SMS_Send_ID, @SchoolID, @StudentID, @TeacherID, @EducationYearID)", con);
 
                                     cmd.Parameters.AddWithValue("@SMS_Send_ID", SMS_Send_ID);
                                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
@@ -560,23 +568,99 @@ if (SubjectCheckBox != null && SubjectCheckBox.Checked)
       // Server-side method to check duplicate ID before insertion
 private bool IsIDDuplicate(string studentID)
         {
- try
+    try
     {
-      using (SqlConnection con = new SqlConnection(connectionString))
-   {
-       con.Open();
- SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM Student WHERE ID = @ID AND SchoolID = @SchoolID", con);
-    cmd.Parameters.AddWithValue("@ID", studentID.Trim());
-  cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-    
-  int count = Convert.ToInt32(cmd.ExecuteScalar());
-        return count > 0;
-                }
-     }
- catch
-       {
+        using (SqlConnection con = new SqlConnection(connectionString))
+    {
+            con.Open();
+            SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM Student WHERE ID = @ID AND SchoolID = @SchoolID", con);
+ cmd.Parameters.AddWithValue("@ID", studentID.Trim());
+   cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+            
+            int count = Convert.ToInt32(cmd.ExecuteScalar());
+          return count > 0;
+        }
+    }
+    catch
+    {
         return false; // If error, assume not duplicate and let database constraint handle it
+    }
+}
+
+/// <summary>
+/// Get SMS Template from database by category and type
+/// </summary>
+private string GetSMSTemplate(string category, string templateType)
+{
+  try
+    {
+        using (SqlConnection tempCon = new SqlConnection(connectionString))
+  {
+  tempCon.Open();
+
+          // First check if SMS_Template table exists
+            SqlCommand checkTableCmd = new SqlCommand(@"
+  IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
+     WHERE TABLE_NAME = 'SMS_Template')
+                    SELECT 1
+     ELSE
+          SELECT 0", tempCon);
+
+       int tableExists = (int)checkTableCmd.ExecuteScalar();
+
+  if (tableExists == 0)
+            {
+  return string.Empty;
+ }
+
+    // Check if TemplateCategory column exists
+            SqlCommand checkColumnCmd = new SqlCommand(@"
+   IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+   WHERE TABLE_NAME = 'SMS_Template' AND COLUMN_NAME = 'TemplateCategory')
+           SELECT 1
+ ELSE
+  SELECT 0", tempCon);
+
+   int columnExists = (int)checkColumnCmd.ExecuteScalar();
+
+  string selectQuery;
+            if (columnExists == 1)
+ {
+         selectQuery = @"SELECT TOP 1 MessageTemplate 
+        FROM SMS_Template 
+         WHERE SchoolID = @SchoolID 
+         AND TemplateCategory = @TemplateCategory
+    AND TemplateType = @TemplateType 
+    AND IsActive = 1 
+         ORDER BY CreatedDate DESC";
+    }
+       else
+            {
+    selectQuery = @"SELECT TOP 1 MessageTemplate 
+    FROM SMS_Template 
+        WHERE SchoolID = @SchoolID 
+   AND TemplateType = @TemplateType 
+             AND IsActive = 1 
+       ORDER BY CreatedDate DESC";
+       }
+
+            SqlCommand cmd = new SqlCommand(selectQuery, tempCon);
+         cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+            if (columnExists == 1)
+     {
+      cmd.Parameters.AddWithValue("@TemplateCategory", category);
+   }
+     cmd.Parameters.AddWithValue("@TemplateType", templateType);
+
+  object result = cmd.ExecuteScalar();
+  return result != null ? result.ToString() : string.Empty;
         }
-        }
+    }
+    catch (Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine("Template Error: " + ex.Message);
+        return string.Empty;
+    }
+}
     }
 }

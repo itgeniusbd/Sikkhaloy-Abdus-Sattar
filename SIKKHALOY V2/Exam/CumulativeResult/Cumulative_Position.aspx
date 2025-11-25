@@ -148,7 +148,7 @@
                             <asp:BoundField DataField="ObtainedMark_ofStudent" HeaderText="Total" SortExpression="ObtainedMark_ofStudent" DataFormatString="{0:n2}" />
                             <asp:TemplateField HeaderText="Grade" SortExpression="Student_Grade">
                                 <ItemTemplate>
-                                    <asp:Label ID="Label1" runat="server" Text='<%# Bind("Student_Grade") %>'></asp:Label>
+                                    <%# System.Web.HttpUtility.HtmlDecode(Eval("Student_Grade").ToString()) %>
                                 </ItemTemplate>
                             </asp:TemplateField>
                             <asp:BoundField DataField="Student_Point" HeaderText="Point" SortExpression="Student_Point" DataFormatString="{0:0.00}" />

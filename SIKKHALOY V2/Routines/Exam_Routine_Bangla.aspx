@@ -1,5 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Exam_Routine.aspx.cs" Inherits="EDUCATION.COM.Routines.Exam_Routine_Bangla" %>
-
+﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="Exam_Routine_Bangla.aspx.cs" Inherits="EDUCATION.COM.Routines.Exam_Routine_Bangla1" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
  <link href="CSS/Exam_Routine.css" rel="stylesheet" />
  <link href="/JS/TimePicker/mdtimepicker.css" rel="stylesheet" />
@@ -12,55 +11,55 @@
   
   <!-- Routine Name Display ONLY -->
   <div class="routine-name-display" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
- <asp:Label ID="RoutineNameLabel" runat="server" Text="Exam Routine" style="font-size: 24px; font-weight: bold;"></asp:Label>
-      <a href="Exam_Routine_Bangla.aspx" class="bangla-routine-btn" style="
-   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      <asp:Label ID="RoutineNameLabel" runat="server" Text="পরীক্ষার রুটিন" style="font-size: 24px; font-weight: bold;"></asp:Label>
+      <a href="Exam_Routine.aspx" class="english-routine-btn" style="
+   background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
    color: white;
    padding: 12px 30px;
-          border-radius: 30px;
-          text-decoration: none;
-     font-weight: 600;
+   border-radius: 30px;
+   text-decoration: none;
+   font-weight: 600;
    font-size: 16px;
-   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-  transition: all 0.3s ease;
+   box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+   transition: all 0.3s ease;
    display: inline-flex;
-  align-items: center;
-    gap: 8px;
-          border: 2px solid transparent;
-      " 
-      onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.5)'; this.style.borderColor='#fff';"
-      onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)'; this.style.borderColor='transparent';">
-          <span style="font-size: 20px;">🇧🇩</span>
-       <span>পরীক্ষার রুটিন বাংলায়</span>
-     <span style="font-size: 18px;">→</span>
-      </a>
+   align-items: center;
+   gap: 8px;
+   border: 2px solid transparent;
+   " 
+   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(76, 175, 80, 0.5)'; this.style.borderColor='#fff';"
+   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(76, 175, 80, 0.4)'; this.style.borderColor='transparent';">
+   <span style="font-size: 20px;">🇬🇧</span>
+   <span>Exam Routine English</span>
+   <span style="font-size: 18px;">→</span>
+   </a>
   </div>
         
 <!-- Control Panel for Dynamic Columns and Rows -->
       <div class="control-panel print-hide">
 <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
      <div>
-   <span class="control-label">Class Column:</span>
-  <asp:Button ID="AddClassColumnButton" runat="server" Text="➕ Add" 
+   <span class="control-label">শ্রেণী কলাম:</span>
+  <asp:Button ID="AddClassColumnButton" runat="server" Text="➕ যোগ" 
   CssClass="btn-add-column" OnClick="AddClassColumnButton_Click" />
-        <asp:Button ID="RemoveClassColumnButton" runat="server" Text="➖ Remove" 
+        <asp:Button ID="RemoveClassColumnButton" runat="server" Text="➖ মুছে ফেলুন" 
   CssClass="btn-remove-column" OnClick="RemoveClassColumnButton_Click" />
    <asp:Label ID="ClassColumnCountLabel" runat="server" Text="(1)" 
  style="margin-left: 5px;"></asp:Label>
      </div>
   
     <div>
-    <span class="control-label">Row:</span>
-       <asp:Button ID="AddRowButton" runat="server" Text="➕ Add" 
+    <span class="control-label">সারি:</span>
+       <asp:Button ID="AddRowButton" runat="server" Text="➕ যোগ" 
  CssClass="btn-add-row" OnClick="AddRowButton_Click" />
-     <asp:Button ID="RemoveRowButton" runat="server" Text="➖ Remove" 
+     <asp:Button ID="RemoveRowButton" runat="server" Text="➖ মুছে ফেলুন" 
     CssClass="btn-remove-row" OnClick="RemoveRowButton_Click" />
   <asp:Label ID="RowCountLabel" runat="server" Text="(1)" 
    style="margin-left: 5px;"></asp:Label>
 </div>
   
    <div>
- <asp:Button ID="RefreshSubjectsButton" runat="server" Text="🔄 Refresh" 
+ <asp:Button ID="RefreshSubjectsButton" runat="server" Text="🔄 রিফ্রেশ" 
     CssClass="btn-reload" OnClick="RefreshSubjectsButton_Click" />
  </div>
         </div>
@@ -68,27 +67,27 @@
   
  <!-- Buttons -->
  <div class="form-inline print-hide" style="gap:10px; align-items:center; flex-wrap:wrap;">
- <asp:Button ID="LoadRoutineButton" runat="server" Text="Load Routine" 
+ <asp:Button ID="LoadRoutineButton" runat="server" Text="রুটিন লোড করুন" 
  CssClass="btn btn-info" OnClick="LoadRoutineButton_Click" />
- <asp:Button ID="DeleteRoutineButton" runat="server" Text="Delete" 
+ <asp:Button ID="DeleteRoutineButton" runat="server" Text="ডিলেট করুন" 
  CssClass="btn btn-danger" OnClick="DeleteRoutineButton_Click" 
- OnClientClick="return confirm('Are you sure you want to delete this routine?');" />
- <asp:Button ID="SaveButton" runat="server" Text="Save" 
+ OnClientClick="return confirm('আপনি কি নিশ্চিত যে এই রুটিনটি মুছে ফেলতে চান?');" />
+ <asp:Button ID="SaveButton" runat="server" Text="সংরক্ষণ করুন" 
  CssClass="btn btn-success" OnClick="SaveRoutineButton_Click" />
- <asp:Button ID="PrintButton" runat="server" Text="Print" 
+ <asp:Button ID="PrintButton" runat="server" Text="প্রিন্ট করুন" 
  CssClass="btn btn-primary" OnClientClick="printRoutine(); return false;" />
 
  <div style="display:flex; gap:8px; align-items:center;">
- <span class="control-label">Routine Name:</span>
- <asp:TextBox ID="RoutineNameTextBox" runat="server" CssClass="form-control" Width="220" placeholder="Enter routine name"></asp:TextBox>
+ <span class="control-label">রুটিন নাম:</span>
+ <asp:TextBox ID="RoutineNameTextBox" runat="server" CssClass="form-control" Width="220" placeholder="রুটিনের নাম লিখুন"></asp:TextBox>
  </div>
 
  <div style="display:flex; gap:8px; align-items:center;">
- <span class="control-label">Routine List:</span>
+ <span class="control-label">রুটিন লিস্ট:</span>
  <asp:DropDownList ID="RoutineListDropDown" runat="server" CssClass="form-control" 
      DataTextField="DisplayText" DataValueField="RoutineID" 
      AppendDataBoundItems="true">
-     <asp:ListItem Value="0">[ Select ]</asp:ListItem>
+     <asp:ListItem Value="0">[ নির্বাচন করুন ]</asp:ListItem>
  </asp:DropDownList>
  <!-- Debug label for testing -->
  <asp:Label ID="DebugLabel" runat="server" CssClass="text-muted ml-2"></asp:Label>
@@ -105,9 +104,9 @@
          <table class="routine-table" id="routineTable">
    <thead>
    <tr>
-    <th>Date</th>
-    <th>Day</th>
-    <th>Time</th>
+    <th>তারিখ</th>
+    <th>বার</th>
+    <th>সময়</th>
      <asp:Literal ID="ClassHeaderLiteral" runat="server"></asp:Literal>
     </tr>
  </thead>
@@ -119,25 +118,25 @@
       <asp:TextBox ID="ExamDateTextBox" runat="server" CssClass="form-control-routine datepicker-input" name='<%# "ExamDate_" + Container.ItemIndex %>' Text='<%# Eval("ExamDate") %>' placeholder="dd/mm/yyyy"></asp:TextBox>
 </td>
  <td class="day-cell">
-     <asp:TextBox ID="DayNameTextBox" runat="server" CssClass="form-control-routine day-input" name='<%# "DayName_" + Container.ItemIndex %>' Text='<%# Eval("DayName") %>' placeholder="Day" ReadOnly="true"></asp:TextBox>
+     <asp:TextBox ID="DayNameTextBox" runat="server" CssClass="form-control-routine day-input" name='<%# "DayName_" + Container.ItemIndex %>' Text='<%# Eval("DayName") %>' placeholder="বার" ReadOnly="true"></asp:TextBox>
   </td>
- <td class="time-cell">
-   <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
+   <td class="time-cell">
+      <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
 <asp:TextBox ID="StartTimeTextBox" runat="server" 
      CssClass="form-control-routine time-input start-time-input" 
 Text="10:00 AM"
-   placeholder="Start"
+   placeholder="শুরু"
     style="width: 70px; text-align: center;" />
  <span style="font-weight: bold;">-</span>
    <asp:TextBox ID="EndTimeTextBox" runat="server" 
    CssClass="form-control-routine time-input end-time-input"
        Text="01:00 PM"
- placeholder="End"
+ placeholder="শেষ"
    style="width: 70px; text-align: center;" />
     </div>
         <!-- Duration Display (Auto-calculated) -->
      <div class="duration-display" style="color: #d32f2f; font-weight: bold; font-size: 11px; text-align: center;">
-    <span id='<%# "DurationLabel_" + Container.ItemIndex %>' data-row='<%# Container.ItemIndex %>'>3 hours</span>
+    <span id='<%# "DurationLabel_" + Container.ItemIndex %>' data-row='<%# Container.ItemIndex %>'>৩ ঘন্টা</span>
    </div>
  </td>
     <asp:Literal ID="ClassColumnsLiteral" runat="server"></asp:Literal>
@@ -174,7 +173,7 @@ Text="10:00 AM"
     <script src="/JS/TimePicker/mdtimepicker.js?v=5"></script>
     
     <script type="text/javascript">
-// Ensure jQuery and jQuery UI are loaded
+     // Ensure jQuery and jQuery UI are loaded
     if (typeof jQuery === 'undefined') {
    document.write('<script src="https://code.jquery.com/jquery-3.3.1.min.js"><\/script>');
    }
@@ -192,7 +191,7 @@ $(document).ready(function() {
   // **NEW: Fix date format on page load**
         FixAllDateFormats();
 
-  // Initialize date pickers first
+        // Initialize date pickers first
       InitializeDatepickers();
    
      // Initialize time inputs
@@ -203,7 +202,7 @@ if (typeof Sys !== 'undefined' && typeof Sys.WebForms !== 'undefined') {
 Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function() {
    setTimeout(function() {
        // **CRITICAL: Fix date formats after postback**
-FixAllDateFormats();
+     FixAllDateFormats();
    InitializeDatepickers();
    InitializeTimeInputs();
      UpdatePrintDataAttributes();
@@ -221,8 +220,8 @@ $(document).on('change', 'input, select', function() {
 });
       })();
 
-    // Day names in English
-  var englishDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        // জন্ম তারিখ ইনপুট Inicialization
+  var bengaliDays = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"];
 
   // **NEW: Function to fix all date formats to dd/MM/yyyy**
   function FixAllDateFormats() {
@@ -233,7 +232,7 @@ var $input = $(this);
      
      if (!currentValue) {
  return;
-  }
+      }
   
   // **CRITICAL: If already in dd/MM/yyyy format (2 digits/2 digits/4 digits), skip**
 var ddMMyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})$/;
@@ -244,8 +243,8 @@ var ddMMyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})$/;
        
     // Validate it's a valid date in dd/MM/yyyy format
  if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
-   return;
-   }
+       return;
+     }
   }
   
    // Try to parse the date from various formats
@@ -259,7 +258,7 @@ var ddMMyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})$/;
  var part1 = parseInt(match[1], 10);
 var part2 = parseInt(match[2], 10);
  var year = parseInt(match[3], 10);
- 
+   
    if (part1 > 12) {
 dateObj = new Date(year, part2 - 1, part1);
    } else if (part2 > 12) {
@@ -267,7 +266,7 @@ dateObj = new Date(year, part2 - 1, part1);
    } else {
   dateObj = new Date(year, part1 - 1, part2);
      }
-   }
+        }
        
    // Pattern 2: yyyy-mm-dd (ISO format)
     var isoPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
@@ -279,7 +278,7 @@ dateObj = new Date(year, part2 - 1, part1);
    dateObj = new Date(year, month - 1, day);
       }
  
-    // If we successfully parsed a date, format it as dd/MM/yyyy
+       // If we successfully parsed a date, format it as dd/MM/yyyy
   if (dateObj && !isNaN(dateObj.getTime())) {
      var day = dateObj.getDate();
   var month = dateObj.getMonth() + 1;
@@ -293,16 +292,16 @@ dateObj = new Date(year, part2 - 1, part1);
    var $dayTextbox = $row.find("input[id*='DayNameTextBox'], input.day-input");
  if ($dayTextbox.length > 0) {
        var dayOfWeek = dateObj.getDay();
-     var englishDay = englishDays[dayOfWeek];
-   $dayTextbox.val(englishDay);
+     var bengaliDay = bengaliDays[dayOfWeek];
+   $dayTextbox.val(bengaliDay);
  }
    }
     });
-}
+    }
 
 
 // Helper function to pad single digits with zero
-function padZero(num) {
+    function padZero(num) {
         return num < 10 ? '0' + num : num.toString();
     }
 
@@ -338,12 +337,12 @@ if (!$datepicker.closest('tr').length) {
 changeYear: true,
   yearRange: '2020:2030',
    showButtonPanel: false,
- closeText: 'Close',
-currentText: 'Today',
+ closeText: 'বন্ধ করুন',
+currentText: 'আজ',
   onSelect: function(dateText, inst) {
        // Update the textbox value
   $(this).val(dateText);
-  
+     
 // Parse date from dd/mm/yyyy format
   var parts = dateText.split('/');
   var day = parseInt(parts[0], 10);
@@ -352,28 +351,28 @@ currentText: 'Today',
     
  var selectedDate = new Date(year, month, day);
      var dayOfWeek = selectedDate.getDay();
- var englishDay = englishDays[dayOfWeek];
+ var bengaliDay = bengaliDays[dayOfWeek];
    
-    // Set day in English
+    // Set day in Bangla
  if ($dayTextbox.length > 0) {
-      $dayTextbox.val(englishDay);
+        $dayTextbox.val(bengaliDay);
  }
     },
       onClose: function(dateText) {
   if (dateText) {
     $(this).val(dateText);
       }
-  }
+        }
  });
    
 // Add placeholder
-   $datepicker.attr('placeholder', 'dd/mm/yyyy');
+        $datepicker.attr('placeholder', 'dd/mm/yyyy');
       // Make it clickable
 $datepicker.css('cursor', 'pointer');
   });
   }
         
-      function InitializeTimeInputs() {
+        function InitializeTimeInputs() {
     
       // Initialize mdtimepicker ONLY for main time column inputs (start/end time)
       // NOT for subject cell time inputs
@@ -382,7 +381,7 @@ $datepicker.css('cursor', 'pointer');
      
   // Skip if it's a manual time input in subject cell
     if ($input.hasClass('time-manual-input')) {
- return;
+     return;
   }
 
        // Initialize mdtimepicker
@@ -397,7 +396,7 @@ $datepicker.css('cursor', 'pointer');
      
  // Initial duration calculation for all rows
      InitializeDurationCalculation();
-  }
+        }
       
   // Initialize duration calculation for all time input pairs
         function InitializeDurationCalculation() {
@@ -413,13 +412,13 @@ if (!inputId) {
 
   // Extract row index - try multiple patterns
    var rowIndex = null;
-
+   
         // Pattern 1: StartTimeTextBox_0
     var match1 = inputId.match(/_(\d+)$/);
    if (match1) {
      rowIndex = match1[1];
     }
-     
+        
         // Pattern 2: ContentPlaceHolderID_StartTimeTextBox_0
  if (!rowIndex) {
     var match2 = inputId.match(/StartTimeTextBox_(\d+)$/);
@@ -432,7 +431,7 @@ if (!inputId) {
     // Try to find end input with same row index
        var $endInput = $("input[id$='EndTimeTextBox_" + rowIndex + "']");
    
-  if ($endInput.length > 0) {
+    if ($endInput.length > 0) {
        // Calculate initial duration if both times exist
    if ($startInput.val() && $endInput.val()) {
      calculateDurationForRow(rowIndex);
@@ -445,7 +444,7 @@ if (!inputId) {
   // Calculate duration when a time input changes
    function calculateDuration($input) {
     // Find the row index from the input ID
- var inputId = $input.attr('id');
+    var inputId = $input.attr('id');
    if (!inputId) return;
    
   // Try multiple patterns
@@ -460,7 +459,7 @@ if (!inputId) {
   var match2 = inputId.match(/TimeTextBox_(\d+)$/);
       if (match2) {
    rowIndex = match2[1];
- }
+   }
  }
     
  if (!rowIndex) return;
@@ -489,9 +488,9 @@ var startTime = $startInput.val().trim().toUpperCase();
     $durationLabel.text('');
     }
    return;
- }
+       }
  
-// Parse times
+     // Parse times
 var startMoment = parseTime(startTime);
    var endMoment = parseTime(endTime);
       
@@ -509,8 +508,8 @@ var startMoment = parseTime(startTime);
    
    var durationHours = durationMs / (1000 * 60 * 60);
    
-    // Format duration in English
-   var durationText = formatDurationEnglish(durationHours);
+    // Format duration in Bangla
+      var durationText = formatDurationBangla(durationHours);
      
     // Update duration display
   if ($durationLabel.length > 0) {
@@ -524,17 +523,17 @@ var startMoment = parseTime(startTime);
     function UpdatePrintDataAttributes() {
    console.log('Updating print data attributes');
    
-  // Update each row
+        // Update each row
         $('.routine-table > tbody > tr').each(function() {
-        var $row = $(this);
+            var $row = $(this);
 
       // Date cell
        var $dateCell = $row.find('.date-cell, td:nth-child(1)');
        var dateValue = $dateCell.find('input').val() || '';
-   $dateCell.attr('data-date', dateValue);
+      $dateCell.attr('data-date', dateValue);
 
             // Day cell
-    var $dayCell = $row.find('.day-cell, td:nth-child(2)');
+            var $dayCell = $row.find('.day-cell, td:nth-child(2)');
             var dayValue = $dayCell.find('input').val() || '';
      $dayCell.attr('data-day', dayValue);
 
@@ -543,10 +542,10 @@ var startMoment = parseTime(startTime);
       var startTime = $timeCell.find('input[id*="StartTimeTextBox"]').val() || '';
        var endTime = $timeCell.find('input[id*="EndTimeTextBox"]').val() || '';
    var duration = $timeCell.find('span[id*="DurationLabel"]').text() || '';
-  var timeDisplay = '';
- 
-    if (startTime && endTime) {
-      // **Format: "10:00 AM - 1:00 PM" on first line**
+     var timeDisplay = '';
+            
+            if (startTime && endTime) {
+         // **Format: "10:00 AM - 1:00 PM" on first line**
       timeDisplay = startTime + ' - ' + endTime;
       
      // **Add duration on second line without hyphen**
@@ -557,25 +556,25 @@ var startMoment = parseTime(startTime);
    
        $timeCell.attr('data-time', timeDisplay);
 
-       // Subject cells
-        $row.find('.editable-cell').each(function() {
- var $cell = $(this);
+         // Subject cells
+            $row.find('.editable-cell').each(function() {
+          var $cell = $(this);
       var cellContent = '';
 
      // Get selected subject from dropdown
- var $dropdown = $cell.find('select');
+       var $dropdown = $cell.find('select');
  if ($dropdown.length > 0 && $dropdown.val() && $dropdown.val() !== '0') {
     var selectedText = $dropdown.find('option:selected').text();
-            if (selectedText && selectedText !== 'Select Subject') {
+            if (selectedText && selectedText !== 'বিষয় নির্বাচন করুন') {
       cellContent = selectedText;
              }
    }
 
  // Get subject textbox value
-     var $textbox = $cell.find('input.subject-textbox');
+                var $textbox = $cell.find('input.subject-textbox');
     if ($textbox.length > 0 && $textbox.val()) {
       if (cellContent) cellContent += '\n';
- cellContent += $textbox.val();
+     cellContent += $textbox.val();
  }
 
     // Get time manual input
@@ -589,7 +588,7 @@ var startMoment = parseTime(startTime);
       });
         });
 
-  console.log('Print data attributes updated');
+      console.log('Print data attributes updated');
     }
 
     // Print routine function - **SIMPLIFIED: Direct window.print()**
@@ -602,19 +601,19 @@ var startMoment = parseTime(startTime);
  // **Simply call window.print() - CSS will handle everything**
       setTimeout(function() {
     window.print();
-  }, 100);
+        }, 100);
  }
 
     // Parse time string to Date object - GLOBAL SCOPE
     function parseTime(timeStr) {
     if (!timeStr) return null;
  
-// Remove extra spaces and convert to uppercase
+      // Remove extra spaces and convert to uppercase
      timeStr = timeStr.trim().toUpperCase();
      
-     // Extract hour, minute, and am/pm
+        // Extract hour, minute, and am/pm
         // Patterns: "10:00 AM", "10:00AM", "10 AM", "10AM", "1000AM"
-var match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
+        var match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
         if (!match) return null;
         
  var hour = parseInt(match[1]);
@@ -630,36 +629,45 @@ var match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
         
    // Create a date object (date doesn't matter, only time)
         var date = new Date();
- date.setHours(hour);
+        date.setHours(hour);
    date.setMinutes(minute);
     date.setSeconds(0);
-   date.setMilliseconds(0);
+        date.setMilliseconds(0);
 
         return date;
     }
     
-    // Format duration in English
-  function formatDurationEnglish(hours) {
+    // Format duration in Bangla - GLOBAL SCOPE
+    function formatDurationBangla(hours) {
+    var bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     
- // Round to 1 decimal place
+        // Round to 1 decimal place
         hours = Math.round(hours * 10) / 10;
     
- if (hours === 0) {
-   return '0 hour';
+   if (hours === 0) {
+   return '০ ঘন্টা';
         }
       
         var wholeHours = Math.floor(hours);
         var minutes = Math.round((hours - wholeHours) * 60);
         
-        var hourText = wholeHours.toString();
- var minuteText = minutes > 0 ? minutes.toString() : '';
+        var hourStr = wholeHours.toString().split('').map(function(d) {
+    return bengaliDigits[parseInt(d)];
+  }).join('');
+        
+  var minuteStr = '';
+      if (minutes > 0) {
+    minuteStr = minutes.toString().split('').map(function(d) {
+      return bengaliDigits[parseInt(d)];
+       }).join('');
+        }
         
         if (wholeHours > 0 && minutes > 0) {
-   return hourText + ' hour' + (wholeHours > 1 ? 's' : '') + ' ' + minuteText + ' minute' + (minutes > 1 ? 's' : '');
+   return hourStr + ' ঘন্টা ' + minuteStr + ' মিনিট';
     } else if (wholeHours > 0) {
-   return hourText + ' hour' + (wholeHours > 1 ? 's' : '');
+   return hourStr + ' ঘন্টা';
         } else {
-      return minuteText + ' minute' + (minutes > 1 ? 's' : '');
+        return minuteStr + ' মিনিট';
 }
     }
     </script>
@@ -667,4 +675,4 @@ var match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
  <!-- Printable Area (OUTSIDE script tag) -->
     <div id="printableArea" style="display:none;"></div>
 
-    </asp:Content>
+    </asp:Content>    
