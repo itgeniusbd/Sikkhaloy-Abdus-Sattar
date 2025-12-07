@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using System.Reflection;
 using System.IO;
 using System.Windows.Media.Imaging;
+using System.Windows.Controls;
 
 namespace SmsSenderApp
 {
@@ -25,6 +26,9 @@ namespace SmsSenderApp
             try
             {
                 InitializeComponent();
+
+                // Initialize UI with default values immediately
+                InitializeUI();
 
                 // Set window icon
                 try
@@ -51,9 +55,17 @@ namespace SmsSenderApp
                     return;
                 }
 
+                // Ensure minimum interval is 1 minute to prevent infinite loop
+                var intervalMinutes = GlobalClass.Instance.Setting.SmsSendInterval;
+                if (intervalMinutes < 1)
+                {
+                    intervalMinutes = 5; // Default to 5 minutes if setting is invalid
+                    Log.Warning($"Invalid SmsSendInterval ({GlobalClass.Instance.Setting.SmsSendInterval}), using default 5 minutes");
+                }
+
                 timer = new DispatcherTimer
                 {
-                    Interval = TimeSpan.FromMinutes(GlobalClass.Instance.Setting.SmsSendInterval)
+                    Interval = TimeSpan.FromMinutes(intervalMinutes)
                 };
 
                 timer.Tick += Timer_Tick;
@@ -66,12 +78,20 @@ namespace SmsSenderApp
                 {
                     SmsSender = new Attendance_SMS_Sender
                     {
-                        AppStartTime = DateTime.Now
+                        AppStartTime = DateTime.Now,
+                        TotalEventCall = 0,
+                        TotalSmsSend = 0,
+                        TotalSmsFailed = 0
                     };
                     Log.Warning("SmsSender initialization failed, using temporary instance");
                 }
+                else
+                {
+                    Log.Information($"SmsSender initialized - ID: {SmsSender.AttendanceSmsSenderId}, Start Time: {SmsSender.AppStartTime}");
+                }
 
-                ShowAppInfo();
+                // Update UI with loaded data
+                UpdateUIWithData();
             }
             catch (Exception ex)
             {
@@ -81,10 +101,81 @@ namespace SmsSenderApp
             }
         }
 
+        private void InitializeUI()
+        {
+            try
+            {
+                Log.Information("InitializeUI started");
+                
+                if (txtAppStartTime == null)
+                {
+                    Log.Error("txtAppStartTime is NULL in InitializeUI!");
+                    return;
+                }
+                if (txtEventCount == null)
+                {
+                    Log.Error("txtEventCount is NULL in InitializeUI!");
+                    return;
+                }
+                if (txtSmsSent == null)
+                {
+                    Log.Error("txtSmsSent is NULL in InitializeUI!");
+                    return;
+                }
+                if (txtSmsFailed == null)
+                {
+                    Log.Error("txtSmsFailed is NULL in InitializeUI!");
+                    return;
+                }
+                
+                txtAppStartTime.Text = "TESTING 123";
+                txtEventCount.Text = "999";
+                txtSmsSent.Text = "888";
+                txtSmsFailed.Text = "777";
+                
+                Log.Information($"InitializeUI completed - txtEventCount.Text = '{txtEventCount.Text}'");
+                Log.Information($"InitializeUI completed - txtEventCount.Foreground = '{txtEventCount.Foreground}'");
+                Log.Information($"InitializeUI completed - txtEventCount.FontSize = '{txtEventCount.FontSize}'");
+                Log.Information($"InitializeUI completed - txtEventCount.Visibility = '{txtEventCount.Visibility}'");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to initialize UI");
+            }
+        }
+
+        private void UpdateUIWithData()
+        {
+            try
+            {
+                if (SmsSender == null)
+                {
+                    Log.Warning("SmsSender is null in UpdateUIWithData");
+                    return;
+                }
+
+                txtAppStartTime.Text = $"App Started at {SmsSender.AppStartTime:dd MMM, yyyy (hh:mm tt)}";
+                txtEventCount.Text = SmsSender.TotalEventCall.ToString();
+                txtSmsSent.Text = SmsSender.TotalSmsSend.ToString();
+                txtSmsFailed.Text = SmsSender.TotalSmsFailed.ToString();
+
+                Log.Information($"UI updated - Event: {SmsSender.TotalEventCall}, Sent: {SmsSender.TotalSmsSend}, Failed: {SmsSender.TotalSmsFailed}");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to update UI with data");
+            }
+        }
+
         private async void Timer_Tick(object sender, EventArgs e)
         {
             try
             {
+                // Stop timer during processing to prevent overlapping calls
+                timer.Stop();
+
+                Log.Information("Timer tick started - checking for SMS to send");
+
                 var today = DateTime.Now;
 
                 var failedSmsList = new List<Attendance_SMS_Failed>();
@@ -95,8 +186,12 @@ namespace SmsSenderApp
                 //Get the list from database
                 var totalSmsList = await GlobalClass.Instance.GetAttendanceSmsListAndDeleteFromDbAsync();
 
+                Log.Information($"Retrieved {totalSmsList.Count} SMS from database");
+
                 //Get the To-days SMS List
                 var smsListOfToDay = totalSmsList.Where(s => s.AttendanceDate == today.Date).ToList();
+
+                Log.Information($"Found {smsListOfToDay.Count} SMS for today");
 
                 //Get the other days SMS List
                 var smsListOfOtherDay = totalSmsList.Where(s => s.AttendanceDate != today.Date)
@@ -117,6 +212,11 @@ namespace SmsSenderApp
                     }).ToList();
 
                 failedSmsList.AddRange(smsListOfOtherDay);
+
+                if (smsListOfOtherDay.Any())
+                {
+                    Log.Information($"Marked {smsListOfOtherDay.Count} SMS as failed (not current date)");
+                }
 
                 if (smsListOfToDay.Any())
                 {
@@ -141,16 +241,31 @@ namespace SmsSenderApp
 
                     failedSmsList.AddRange(timeupSmsList);
 
+                    if (timeupSmsList.Any())
+                    {
+                        Log.Information($"Marked {timeupSmsList.Count} SMS as failed (time up)");
+                    }
+
                     //Get the SMS List of send-able SMS
                     smsList = smsListOfToDay
                        .Where(s => s.ScheduleTime.TotalMinutes + s.SMS_TimeOut > currentTime.TotalMinutes).ToList();
+
+                    Log.Information($"Found {smsList.Count} sendable SMS (within time window)");
 
                     if (smsList.Any())
                     {
                         //get the School Ids
                         var schoolIds = smsList.Select(s => s.SchoolID).Distinct().ToList();
+                        Log.Information($"Checking SMS balance for {schoolIds.Count} schools");
+
                         //get the SMS Balance
                         var noSmsBalanceSchoolIds = await GlobalClass.Instance.NoSmsBalanceSchoolIdsAsync(schoolIds);
+                        
+                        if (noSmsBalanceSchoolIds.Any())
+                        {
+                            Log.Warning($"Found {noSmsBalanceSchoolIds.Count} schools with insufficient balance");
+                        }
+
                         //Get the smsList of School which have available balance
                         var noBalanceSmsList = new List<Attendance_SMS_Failed>();
                         if (noSmsBalanceSchoolIds.Any())
@@ -174,6 +289,8 @@ namespace SmsSenderApp
                                     }).ToList();
 
                             smsList = smsList.Where(s => !noSmsBalanceSchoolIds.Contains(s.SchoolID)).ToList();
+
+                            Log.Information($"Marked {noBalanceSmsList.Count} SMS as failed (insufficient balance)");
                         }
 
                         failedSmsList.AddRange(noBalanceSmsList);
@@ -182,6 +299,8 @@ namespace SmsSenderApp
                         //Send the smsList
                         if (smsList.Any())
                         {
+                            Log.Information($"Attempting to send {smsList.Count} SMS");
+
                             var smsRecords = new List<SMS_OtherInfo>();
 
                             var smsSendList = new List<SendSmsModel>();
@@ -208,9 +327,13 @@ namespace SmsSenderApp
 
                             var sms = new SMS_Class();
                             var isSend = sms.SmsSendMultiple(smsSendList, "Device Attendance");
+                            
+                            Log.Information($"SMS send result: {isSend.Validation}, Message: {isSend.Message}");
+
                             if (isSend.Validation)
                             {
                                 await GlobalClass.Instance.SMS_OtherInfoAddAsync(smsRecords);
+                                Log.Information($"Successfully sent {smsList.Count} SMS");
                             }
                             else
                             {
@@ -232,31 +355,51 @@ namespace SmsSenderApp
 
                                 failedSmsList.AddRange(smsSendFail);
 
+                                Log.Warning($"Failed to send {smsList.Count} SMS");
+
                                 smsList.Clear();
                             }
 
                         }
+                        else
+                        {
+                            Log.Information("No SMS to send after balance check");
+                        }
                     }
+                }
+                else
+                {
+                    Log.Information("No SMS found for today");
                 }
 
                 //insert the fail SMS table
                 if (failedSmsList.Any())
                 {
                     await GlobalClass.Instance.Attendance_SMS_FailedAddAsync(failedSmsList);
+                    Log.Information($"Recorded {failedSmsList.Count} failed SMS");
                 }
 
                 //Update the total send and fail status
 
                 GlobalClass.Instance.SmsSender.TotalSmsSend += smsList.Count;
                 GlobalClass.Instance.SmsSender.TotalSmsFailed += failedSmsList.Count;
-
-                // Perform your desired action here
                 GlobalClass.Instance.SmsSender.TotalEventCall++;
+                
+                // Update in database
+                GlobalClass.Instance.SenderUpdate();
+                
+                Log.Information($"Event call completed - Total: {GlobalClass.Instance.SmsSender.TotalEventCall}, Sent: {GlobalClass.Instance.SmsSender.TotalSmsSend}, Failed: {GlobalClass.Instance.SmsSender.TotalSmsFailed}");
+                
                 ShowAppInfo();
             }
             catch (Exception ex)
             {
                 Log.Error(ex, ex.Message);
+            }
+            finally
+            {
+                // Always restart timer, even if there was an error
+                timer.Start();
             }
         }
 
@@ -266,14 +409,33 @@ namespace SmsSenderApp
             Hide();
         }
 
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Log.Information("Window loaded, refreshing UI");
+                
+                // Refresh UI with current data
+                UpdateUIWithData();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in Window_Loaded");
+            }
+        }
+
         private void ShowAppInfo()
         {
             try
             {
-                if (SmsSender != null && txtStatus != null)
+                // Check if we're on UI thread
+                if (!Dispatcher.CheckAccess())
                 {
-                    txtStatus.Text = $"App Started at {SmsSender.AppStartTime.ToString("dd MMM, yyyy (hh:mm tt)")}, total event called: {SmsSender.TotalEventCall}, SMS send: {SmsSender.TotalSmsSend} & SMS Failed: {SmsSender.TotalSmsFailed}";
+                    Dispatcher.Invoke(() => ShowAppInfo());
+                    return;
                 }
+
+                UpdateUIWithData();
             }
             catch (Exception ex)
             {

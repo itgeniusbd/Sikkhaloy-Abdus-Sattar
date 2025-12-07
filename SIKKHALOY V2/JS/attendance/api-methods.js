@@ -1,6 +1,10 @@
 ﻿const attendance = (function() {
-//    const baseUrl = "http://localhost:19362";
-    const baseUrl = "https://api.sikkhaloy.com";
+    // CONFIGURATION: Update this URL based on your Attendance_API deployment
+    // For local IIS: Use http://localhost:port or http://server-ip:port
+    // পরিবর্তন করুন:
+    // const baseUrl = "http://localhost:19362";  // Comment করুন
+    const baseUrl = "https://api.sikkhaloy.com";  // Enable করুন
+
 
     //create new user
     const registerNewDeviceUser = function () {

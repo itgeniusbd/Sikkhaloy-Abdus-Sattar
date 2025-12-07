@@ -7,20 +7,152 @@
         Topmost="True"
         mc:Ignorable="d"
         Title="Sikkhaloy SMS Sender"
-        Height="450"
-        Width="800" 
-        Closing="Window_Closing">
-    
-    <Grid>
-        <TextBlock x:Name="txtStatus"
-                   Text="Sikkhaloy SMS Sender is running in the background&#x0a;App Started at 04 Dec, 2025 (09:07 PM)&#x0a;Total events: 0, SMS sent: 0, Failed: 0"
-                   FontSize="20"
-                   FontWeight="Bold"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   Padding="40"
-                   Foreground="#2C3E50"/>
+        Height="500"
+        Width="900" 
+        Closing="Window_Closing"
+        Loaded="Window_Loaded">
+
+    <Grid Background="#F0F0F0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#667eea" Padding="20">
+            <StackPanel>
+                <TextBlock Text="Sikkhaloy SMS Sender" 
+                          FontSize="28" 
+                          FontWeight="Bold" 
+                          Foreground="White"
+                          HorizontalAlignment="Center"/>
+                <TextBlock Text="Automated SMS Service" 
+                          FontSize="14" 
+                          Foreground="White"
+                          HorizontalAlignment="Center"
+                          Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <StackPanel Grid.Row="1" Margin="30">
+            <!-- App Start Time -->
+            <Border Background="White" 
+                    Padding="15" 
+                    Margin="0,0,0,20"
+                    BorderBrush="#667eea"
+                    BorderThickness="1"
+                    CornerRadius="5">
+                <TextBlock x:Name="txtAppStartTime"
+                          FontSize="16"
+                          FontWeight="SemiBold"
+                          Foreground="#333333"
+                          HorizontalAlignment="Center"
+                          Text="Loading..."/>
+            </Border>
+
+            <!-- Stats Cards -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Event Count Card -->
+                <Border Grid.Column="0" 
+                        Background="White" 
+                        Margin="5"
+                        Padding="20"
+                        BorderBrush="#667eea"
+                        BorderThickness="2"
+                        CornerRadius="5">
+                    <StackPanel>
+                        <TextBlock Text="Event Called" 
+                                  FontSize="14" 
+                                  Foreground="#666666" 
+                                  HorizontalAlignment="Center"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock x:Name="txtEventCount" 
+                                  FontSize="48" 
+                                  FontWeight="Bold" 
+                                  Foreground="#667eea" 
+                                  HorizontalAlignment="Center"
+                                  Text="0"/>
+                        <TextBlock Text="🔄" 
+                                  FontSize="24" 
+                                  HorizontalAlignment="Center"
+                                  Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- SMS Sent Card -->
+                <Border Grid.Column="1" 
+                        Background="White" 
+                        Margin="5"
+                        Padding="20"
+                        BorderBrush="#11998e"
+                        BorderThickness="2"
+                        CornerRadius="5">
+                    <StackPanel>
+                        <TextBlock Text="SMS Sent" 
+                                  FontSize="14" 
+                                  Foreground="#666666" 
+                                  HorizontalAlignment="Center"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock x:Name="txtSmsSent" 
+                                  FontSize="48" 
+                                  FontWeight="Bold" 
+                                  Foreground="#11998e" 
+                                  HorizontalAlignment="Center"
+                                  Text="0"/>
+                        <TextBlock Text="✅" 
+                                  FontSize="24" 
+                                  HorizontalAlignment="Center"
+                                  Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- SMS Failed Card -->
+                <Border Grid.Column="2" 
+                        Background="White" 
+                        Margin="5"
+                        Padding="20"
+                        BorderBrush="#eb3349"
+                        BorderThickness="2"
+                        CornerRadius="5">
+                    <StackPanel>
+                        <TextBlock Text="SMS Failed" 
+                                  FontSize="14" 
+                                  Foreground="#666666" 
+                                  HorizontalAlignment="Center"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock x:Name="txtSmsFailed" 
+                                  FontSize="48" 
+                                  FontWeight="Bold" 
+                                  Foreground="#eb3349" 
+                                  HorizontalAlignment="Center"
+                                  Text="0"/>
+                        <TextBlock Text="❌" 
+                                  FontSize="24" 
+                                  HorizontalAlignment="Center"
+                                  Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" 
+                Background="White" 
+                Padding="15"
+                BorderBrush="#CCCCCC"
+                BorderThickness="0,1,0,0">
+            <TextBlock Text="✓ Running in background... App will minimize to system tray"
+                      FontSize="12"
+                      Foreground="#666666"
+                      HorizontalAlignment="Center"/>
+        </Border>
     </Grid>
 </Window>

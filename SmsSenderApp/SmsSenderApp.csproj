@@ -226,8 +226,6 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="RELEASE_BUILD_SUMMARY.md" />
-    <None Include="SETUP_BANATE_KIVABE.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

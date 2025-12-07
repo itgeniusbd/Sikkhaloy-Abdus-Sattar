@@ -231,6 +231,7 @@
     <Compile Include="Controllers\AttendanceController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\SchoolController.cs" />
+    <Compile Include="Controllers\TestController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
     <Compile Include="DB_Model\Attendance_Device_DataUpdateList.cs" />
     <Compile Include="DB_Model\Attendance_Device_Settings.cs" />
