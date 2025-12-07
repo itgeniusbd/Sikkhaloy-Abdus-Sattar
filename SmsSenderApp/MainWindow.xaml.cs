@@ -7,6 +7,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using System.Reflection;
+using System.IO;
+using System.Windows.Media.Imaging;
 
 namespace SmsSenderApp
 {
@@ -15,25 +17,68 @@ namespace SmsSenderApp
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Attendance_SMS_Sender SmsSender { get; }
+        private Attendance_SMS_Sender SmsSender { get; set; }
+        private DispatcherTimer timer;
 
         public MainWindow()
         {
-            InitializeComponent();
-            //SetStartup();
-
-            DispatcherTimer timer = new DispatcherTimer
+            try
             {
-                Interval = TimeSpan.FromMinutes(GlobalClass.Instance.Setting.SmsSendInterval)
-            };
+                InitializeComponent();
 
-            timer.Tick += Timer_Tick;
-            timer.Start();
+                // Set window icon
+                try
+                {
+                    var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Sikkhaloy.ico");
+                    if (File.Exists(iconPath))
+                    {
+                        this.Icon = new BitmapImage(new Uri(iconPath, UriKind.Absolute));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to load window icon");
+                }
 
-            GlobalClass.Instance.SenderInsert();
-            SmsSender = GlobalClass.Instance.SmsSender;
+                //SetStartup();
 
-            ShowAppInfo();
+                // Check if Setting is available
+                if (GlobalClass.Instance.Setting == null)
+                {
+                    Log.Error("Failed to load settings");
+                    MessageBox.Show("Failed to load application settings. Please check database connection.",
+                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                timer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMinutes(GlobalClass.Instance.Setting.SmsSendInterval)
+                };
+
+                timer.Tick += Timer_Tick;
+                timer.Start();
+
+                GlobalClass.Instance.SenderInsert();
+                SmsSender = GlobalClass.Instance.SmsSender;
+
+                if (SmsSender == null)
+                {
+                    SmsSender = new Attendance_SMS_Sender
+                    {
+                        AppStartTime = DateTime.Now
+                    };
+                    Log.Warning("SmsSender initialization failed, using temporary instance");
+                }
+
+                ShowAppInfo();
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Failed to initialize MainWindow");
+                MessageBox.Show($"Failed to initialize application: {ex.Message}",
+                  "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async void Timer_Tick(object sender, EventArgs e)
@@ -221,8 +266,19 @@ namespace SmsSenderApp
             Hide();
         }
 
-        private void ShowAppInfo(){
-            txtStatus.Text = $"App Started at {SmsSender.AppStartTime.ToString("dd MMM, yyyy (hh:mm tt)")}, total event called: {SmsSender.TotalEventCall}, SMS send: {SmsSender.TotalSmsSend} & SMS Failed: {SmsSender.TotalSmsFailed}";
+        private void ShowAppInfo()
+        {
+            try
+            {
+                if (SmsSender != null && txtStatus != null)
+                {
+                    txtStatus.Text = $"App Started at {SmsSender.AppStartTime.ToString("dd MMM, yyyy (hh:mm tt)")}, total event called: {SmsSender.TotalEventCall}, SMS send: {SmsSender.TotalSmsSend} & SMS Failed: {SmsSender.TotalSmsFailed}";
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to update status");
+            }
         }
 
         private void SetStartup()

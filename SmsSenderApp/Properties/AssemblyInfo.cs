@@ -7,12 +7,12 @@ using System.Windows;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SmsSenderApp")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Sikkhaloy SMS Sender")]
+[assembly: AssemblyDescription("Automated SMS Sender for Sikkhaloy School Management System")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("SmsSenderApp")]
-[assembly: AssemblyCopyright("Copyright ©  2023")]
+[assembly: AssemblyCompany("Sikkhaloy")]
+[assembly: AssemblyProduct("Sikkhaloy SMS Sender")]
+[assembly: AssemblyCopyright("Copyright © Sikkhaloy 2025")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -91,7 +91,7 @@
        <ItemTemplate>
    <div class="word-inline-display">
   <span class="word-label">
- <i class="fa fa-book"></i> <span class="d-none d-md-inline">Vucabelury of the Day</span><span class="d-md-none">Word</span>
+ <i class="fa fa-book"></i> <span class="d-none d-md-inline">Vocabulary of the Day</span><span class="d-md-none">Word</span>
       </span>
    <strong class="english-word-inline"><%# Eval("EnglishWord") %></strong>
      <span class="bengali-inline">

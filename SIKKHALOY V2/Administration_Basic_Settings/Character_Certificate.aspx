@@ -94,6 +94,11 @@ padding: 3rem;
 
             <a href="../Administration_Basic_Settings/AllCertificate/Testimonial_Bangla.aspx"><b>প্রশংসা পত্র (বাংলা)</b></a>
         </div>
+                <div class="link-design bg">
+
+            <a href="../Administration_Basic_Settings/AllCertificate/Prottoyon_Bangla.aspx"><b>প্রত্যয়ন পত্র (বাংলা)</b></a>
+        </div>
+
     </div>
 
  

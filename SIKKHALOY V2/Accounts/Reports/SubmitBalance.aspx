@@ -3,272 +3,7 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <style>
-     .TotalSubmission {
-   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-color: white;
-padding: 15px;
-       border-radius: 5px;
-      margin-bottom: 20px;
-   text-align: center;
-   }
-   .summary-boxes {
- margin-bottom: 20px;
- }
-        .summary-box {
-      background: #fff;
-padding: 15px;
-   border-radius: 5px;
-   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-   text-align: center;
-    border-left: 4px solid #00BCD4;
- }
- .summary-box h5 {
-    margin: 0 0 10px 0;
-    color: #666;
-       font-size: 14px;
-   }
-  .summary-box .amount {
-   font-size: 24px;
-    font-weight: bold;
-   color: #00BCD4;
-   }
-        
-        /* Modern Modal Styling */
-     .modal-content {
-            border-radius: 15px;
-  border: none;
-   box-shadow: 0 10px 40px rgba(0,0,0,0.2);
- overflow: hidden;
-      }
-        
-   .modal-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-     border-radius: 15px 15px 0 0;
-            padding: 20px 25px;
-   border-bottom: none;
-    }
-     
-        .modal-header .title {
- font-size: 24px;
-         font-weight: 600;
-    margin: 0;
-    letter-spacing: 0.5px;
-        }
-        
-        .modal-header .close {
-color: white;
-    opacity: 1;
-   text-shadow: none;
-            font-size: 28px;
-            font-weight: 300;
-        }
-        
-        .modal-header .close:hover {
-     color: #f0f0f0;
-     }
-    
-        .modal-body {
- padding: 30px 25px;
-        background: #f8f9fa;
-   }
-
-        /* Modern Form Groups */
-        .form-group {
-  margin-bottom: 20px;
-        }
-        
-     .form-group label {
-          font-weight: 600;
-     color: #2c3e50;
-      margin-bottom: 8px;
-          font-size: 14px;
-display: block;
-        }
-        
-        .form-control {
-   border: 2px solid #e0e6ed;
-   border-radius: 8px;
-  padding: 6px 15px;
-            font-size: 14px;
-       transition: all 0.3s ease;
-       background: white;
-        }
- 
-        .form-control:focus {
-    border-color: #667eea;
-          box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
-   outline: none;
-   }
-        
-        /* Modern Alert Box */
-  .alert-warning {
-  background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-            border: none;
- border-radius: 10px;
-            padding: 15px 20px;
- margin-bottom: 25px;
-            border-left: 4px solid #f39c12;
-        }
-    
-        .alert-warning strong {
-    color: #2c3e50;
-        }
- 
-        /* Modern Buttons */
-        .btn {
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-weight: 600;
-         transition: all 0.3s ease;
-            border: none;
-            text-transform: uppercase;
-        letter-spacing: 0.5px;
-     font-size: 13px;
-        }
-        
-    .btn-info {
-            background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
-            box-shadow: 0 4px 15px rgba(0, 180, 219, 0.3);
-      }
-        
-    .btn-info:hover {
-    transform: translateY(-2px);
-   box-shadow: 0 6px 20px rgba(0, 180, 219, 0.4);
-        }
-    
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-            padding: 12px 40px;
-            font-size: 15px;
-        }
-     
-        .btn-primary:hover {
-     transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-.btn-link {
-            color: #667eea;
-    text-decoration: none;
-     font-weight: 600;
-        }
-    
-        .btn-link:hover {
-            color: #764ba2;
-            text-decoration: underline;
-      }
-     
-        /* OTP Section */
-        #otpSection {
-  background: white;
-      padding: 20px;
-  border-radius: 10px;
-   border: 2px dashed #667eea;
-            margin-top: 15px;
-        }
-        
-     #otpSection label {
-       color: #667eea;
-        }
-        
-        /* Timer Styling */
-        #resendTimer {
-    background: #fff3cd;
-        padding: 5px 12px;
-          border-radius: 20px;
- font-weight: 600;
-    color: #856404;
-        }
-        
-        /* Textarea */
-        textarea.form-control {
-            min-height: 100px;
-        resize: vertical;
-        }
-     
-        /* Validation Messages */
-      .text-danger, .field-validation-error {
-       color: #e74c3c !important;
-  font-size: 12px;
-   margin-top: 5px;
-   display: block;
-      }
-        
-        /* Success/Error Messages */
-        #SuccessMsg {
-    background: #d4edda;
-  color: #155724;
-            padding: 10px 15px;
-            border-radius: 8px;
-     display: inline-block;
-     font-weight: 600;
-        }
-        
-        #ErrorMsg {
-            background: #f8d7da;
-   color: #721c24;
-          padding: 10px 15px;
-border-radius: 8px;
-            display: inline-block;
-            font-weight: 600;
-        }
-  
-        /* Input Icons */
-        .form-group {
-     position: relative;
-        }
-        
-        .form-group .fa {
-            position: absolute;
-    right: 15px;
-            top: 18px;
-  color: #bdc3c7;
-     }
-
-   /* Responsive */
- @media (max-width: 576px) {
-  .modal-dialog {
-    margin: 10px;
-            }
-   
- .modal-body {
-       padding: 20px 15px;
-      }
-
-            .modal-header .title {
-     font-size: 20px;
-            }
-     }
-  
-        /* Time column styling */
-    .mGrid td[style*="Center"],
-        .mGrid th[style*="Center"] {
-         font-family: 'Courier New', monospace;
-            font-weight: 600;
-          color: #2196F3;
-        }
-        
-        /* Smooth Animations */
-        .modal.fade .modal-dialog {
-     transition: transform 0.3s ease-out;
-     }
-  
-  .modal.show .modal-dialog {
-       transform: none;
-        }
-        
-        /* Balance Display in Modal */
-        .alert-warning span {
-      background: white;
-            padding: 5px 15px;
-   border-radius: 20px;
-        color: #f39c12;
-            font-weight: 700;
-        }
-    </style>
+    <link href="CSS/SubmitBalance.css" rel="stylesheet" />
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -281,7 +16,7 @@ border-radius: 8px;
          <div class="form-group">
      <asp:DropDownList ID="UserDropDown" runat="server" CssClass="form-control" 
        DataSourceID="UsersSQL" DataTextField="UserName" DataValueField="RegistrationID"
-       AppendDataBoundItems="true" AutoPostBack="True">
+       AppendDataBoundItems="true" AutoPostBack="True" OnSelectedIndexChanged="UserDropDown_SelectedIndexChanged">
      <asp:ListItem Text="[ All Users ]" Value="0" Selected="True"></asp:ListItem>
      </asp:DropDownList>
       <asp:SqlDataSource ID="UsersSQL" runat="server" 
@@ -296,7 +31,7 @@ border-radius: 8px;
   ORDER BY Registration.Category, Admin.FirstName">
         <SelectParameters>
 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-       </SelectParameters>
+  </SelectParameters>
       </asp:SqlDataSource>
    </div>
 
@@ -308,10 +43,20 @@ border-radius: 8px;
      <div class="form-group">
  <asp:TextBox ID="ToDateTextBox" placeholder="To Date" runat="server" 
      autocomplete="off" CssClass="form-control Datetime"></asp:TextBox>
-       </div>
+   </div>
 
    <div class="form-group">
-       <asp:Button ID="FindButton" runat="server" CssClass="btn btn-blue-grey" Text="Search" />
+   <asp:TextBox ID="ReceiverNameTextBox" placeholder="Receiver Name" runat="server" 
+     autocomplete="off" CssClass="form-control"></asp:TextBox>
+    </div>
+
+<div class="form-group">
+       <asp:TextBox ID="ReceiverMobileTextBox" placeholder="Receiver Mobile" runat="server" 
+       autocomplete="off" CssClass="form-control" onkeypress="return isNumberKey(event)" MaxLength="11"></asp:TextBox>
+    </div>
+
+   <div class="form-group">
+       <asp:Button ID="FindButton" runat="server" CssClass="btn btn-blue-grey" Text="Search" OnClick="FindButton_Click" />
     </div>
 
   <div class="form-group pull-right">
@@ -397,7 +142,7 @@ border-radius: 8px;
     SelectCommand="SELECT 
  UBS.SubmissionID,
     UBS.SubmissionDate AS SubmissionDate,
-    ISNULL(Admin.FirstName, '') + ' ' + ISNULL(Admin.LastName, '') + ' (' + Registration.UserName + ')' AS UserName,
+  ISNULL(Admin.FirstName, '') + ' ' + ISNULL(Admin.LastName, '') + ' (' + Registration.UserName + ')' AS UserName,
  UBS.SubmissionAmount, 
     UBS.ReceivedBy, 
         UBS.ReceiverPhone,
@@ -409,8 +154,10 @@ UBS.Remarks,
     LEFT OUTER JOIN Admin ON Registration.RegistrationID = Admin.RegistrationID
  WHERE UBS.SchoolID = @SchoolID
   AND (@RegistrationID = 0 OR UBS.RegistrationID = @RegistrationID)
-    AND (CAST(UBS.SubmissionDate AS DATE) >= CASE WHEN NULLIF(@FromDate, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @FromDate, 103) END)
+AND (CAST(UBS.SubmissionDate AS DATE) >= CASE WHEN NULLIF(@FromDate, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @FromDate, 103) END)
   AND (CAST(UBS.SubmissionDate AS DATE) <= CASE WHEN NULLIF(@ToDate, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @ToDate, 103) END)
+  AND (NULLIF(@ReceiverName, '') IS NULL OR UBS.ReceivedBy LIKE '%' + @ReceiverName + '%')
+  AND (NULLIF(@ReceiverMobile, '') IS NULL OR UBS.ReceiverPhone LIKE '%' + @ReceiverMobile + '%')
        ORDER BY UBS.CreatedDate DESC"
   CancelSelectOnNullParameter="False">
     <SelectParameters>
@@ -419,6 +166,8 @@ UBS.Remarks,
  PropertyName="SelectedValue" Type="Int32" />
        <asp:ControlParameter ControlID="FromDateTextBox" Name="FromDate" PropertyName="Text" Type="String" />
  <asp:ControlParameter ControlID="ToDateTextBox" Name="ToDate" PropertyName="Text" Type="String" />
+   <asp:ControlParameter ControlID="ReceiverNameTextBox" Name="ReceiverName" PropertyName="Text" Type="String" />
+   <asp:ControlParameter ControlID="ReceiverMobileTextBox" Name="ReceiverMobile" PropertyName="Text" Type="String" />
    </SelectParameters>
   </asp:SqlDataSource>
        </div>

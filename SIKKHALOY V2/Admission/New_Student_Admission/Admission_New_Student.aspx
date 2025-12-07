@@ -336,7 +336,7 @@
                                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                                 <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
                                 <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" PropertyName="SelectedValue" />
-                                <asp:SessionParameter Name="Education_YearID" SessionField="Edu_Year" />
+                                <asp:ControlParameter ControlID="EducationYearDropDownList" Name="Education_YearID" PropertyName="SelectedValue" />
                             </SelectParameters>
                         </asp:SqlDataSource>
                         
@@ -516,18 +516,18 @@
 BEGIN
 INSERT INTO [StudentsClass] ([SchoolID], [RegistrationID], [StudentID], [ClassID], [SectionID], [ShiftID], [SubjectGroupID], [RollNo], [EducationYearID], [Date]) VALUES (@SchoolID, @RegistrationID, @StudentID, @ClassID, @SectionID, @ShiftID, @SubjectGroupID, @RollNo, @EducationYearID, Getdate())
 END" SelectCommand="SELECT * FROM StudentsClass ">
-            <InsertParameters>
-                <asp:Parameter Name="StudentID" Type="Int32" />
-                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" Type="String" />
-                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
-                <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" Type="Int32" />
-                <asp:SessionParameter Name="SectionID" SessionField="SectionID" Type="String" />
-                <asp:SessionParameter Name="ShiftID" SessionField="ShiftID" Type="String" />
-                <asp:SessionParameter Name="SubjectGroupID" SessionField="GroupID" Type="String" />
-                <asp:ControlParameter ControlID="RollNumberTextBox" Name="RollNo" PropertyName="Text" Type="String" />
+        <InsertParameters>
+          <asp:Parameter Name="StudentID" Type="Int32" />
+   <asp:ControlParameter ControlID="EducationYearDropDownList" Name="EducationYearID" PropertyName="SelectedValue" Type="String" />
+        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+ <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
+  <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" Type="Int32" />
+    <asp:SessionParameter Name="SectionID" SessionField="SectionID" Type="String" />
+        <asp:SessionParameter Name="ShiftID" SessionField="ShiftID" Type="String" />
+           <asp:SessionParameter Name="SubjectGroupID" SessionField="GroupID" Type="String" />
+   <asp:ControlParameter ControlID="RollNumberTextBox" Name="RollNo" PropertyName="Text" Type="String" />
             </InsertParameters>
-        </asp:SqlDataSource>
+    </asp:SqlDataSource>
         
         <asp:SqlDataSource ID="StudentRecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS (SELECT  * FROM  StudentRecord WHERE (StudentID = @StudentID) AND (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (StudentClassID = @StudentClassID) AND (SubjectID = @SubjectID))
 BEGIN
@@ -537,7 +537,7 @@ END" SelectCommand="SELECT * FROM [StudentRecord]">
                 <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
                 <asp:Parameter Name="StudentID" />
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
+                <asp:ControlParameter ControlID="EducationYearDropDownList" Name="EducationYearID" PropertyName="SelectedValue" Type="String" />
                 <asp:SessionParameter Name="StudentClassID" SessionField="StudentClassID" Type="Int32" />
                 <asp:Parameter Name="SubjectID" Type="Int32" />
                 <asp:Parameter Name="SubjectType" />
@@ -1079,154 +1079,170 @@ e.preventDefault();
    });
 
         // ✅ Date of Birth auto-formatting
- console.log('Setting up Date of Birth formatting...');
+        console.log('Setting up Date of Birth formatting...');
    var $birthDayTextBox = $('[id$=BirthDayTextBox]');
-  console.log('Found BirthDayTextBox:', $birthDayTextBox.length);
-    console.log('BirthDayTextBox ID:', $birthDayTextBox.attr('id'));
+        console.log('Found BirthDayTextBox:', $birthDayTextBox.length);
+ console.log('BirthDayTextBox ID:', $birthDayTextBox.attr('id'));
         console.log('BirthDayTextBox type:', $birthDayTextBox.attr('type'));
-    
+        
   // Auto-format Date of Birth with "/" separator (dd/mm/yyyy)
         $birthDayTextBox.off('input.dateformat').on('input.dateformat', function(e) {
-            console.log('✅ Date input event triggered! Value:', $(this).val());
-          var input = $(this);
-   var value = input.val();
-   var numbers = value.replace(/[^0-9]/g, ''); // Keep only numbers
-       var cursorPosition = this.selectionStart;
- var previousLength = value.length;
-   
-   console.log('Numbers extracted:', numbers);
+     console.log('✅ Date input event triggered! Value:', $(this).val());
+ var input = $(this);
+      var value = input.val();
+     var numbers = value.replace(/[^0-9]/g, ''); // Keep only numbers
+      var cursorPosition = this.selectionStart;
+      var oldValue = value;
+   var oldLength = oldValue.length;
+       
+            console.log('Numbers extracted:', numbers);
+         console.log('Cursor position before:', cursorPosition);
             
-   // Build formatted date
-         var formatted = '';
-   if (numbers.length > 0) {
-                // DD
-              formatted = numbers.substring(0, 2);
-           console.log('After DD:', formatted);
-          
-          // Add first slash after DD if we have month digits
-          if (numbers.length >= 3) {
-          formatted += '/' + numbers.substring(2, 4); // MM
-         console.log('After MM:', formatted);
-   }
-        
-        // Add second slash after MM if we have year digits
-                if (numbers.length >= 5) {
- formatted += '/' + numbers.substring(4, 8); // YYYY
-      console.log('After YYYY:', formatted);
-    }
-            }
-   
-        // Limit to dd/mm/yyyy format (10 characters max)
-            if (formatted.length > 10) {
-            formatted = formatted.substring(0, 10);
-      }
-   
-     console.log('Final formatted value:', formatted);
-  
-            // Update input value
-          input.val(formatted);
-
-            // Adjust cursor position
-      var newLength = formatted.length;
-    var diff = newLength - previousLength;
-            
-      // If a slash was auto-added, move cursor forward
-        if (diff > 0 && (cursorPosition === 2 || cursorPosition === 5)) {
-      this.selectionStart = this.selectionEnd = cursorPosition + diff;
-         } else if (diff < 0) {
-      // When deleting, adjust cursor
-             this.selectionStart = this.selectionEnd = Math.max(0, cursorPosition + diff);
-            } else {
-       this.selectionStart = this.selectionEnd = cursorPosition;
-   }
-        });
-        
-        // Also try binding with 'keyup' as fallback
-$birthDayTextBox.off('keyup.dateformat').on('keyup.dateformat', function(e) {
- console.log('⚡ Keyup event triggered! Key:', e.which, 'Value:', $(this).val());
+  // Build formatted date
+            var formatted = '';
+  if (numbers.length > 0) {
+  // DD
+         formatted = numbers.substring(0, 2);
+    console.log('After DD:', formatted);
          
-     // Skip special keys
-         if (e.which === 8 || e.which === 46 || e.which === 9 || e.which === 27 || 
-      e.which === 13 || e.which === 37 || e.which === 39) {
-     return;
+     // Add first slash after DD if we have month digits
+ if (numbers.length >= 3) {
+     formatted += '/' + numbers.substring(2, 4); // MM
+          console.log('After MM:', formatted);
+                }
+             
+   // Add second slash after MM if we have year digits
+            if (numbers.length >= 5) {
+          formatted += '/' + numbers.substring(4, 8); // YYYY
+console.log('After YYYY:', formatted);
+   }
             }
-   
-          // Trigger the input event manually
-        $(this).trigger('input');
-        });
-        
-     // Only allow numbers and slashes in Date of Birth (prevent other characters)
-        $birthDayTextBox.off('keydown.dateformat').on('keydown.dateformat', function(e) {
-            console.log('⌨️ Keydown event! Key code:', e.which);
-       var charCode = e.which || e.keyCode;
+          
+            // Limit to dd/mm/yyyy format (10 characters max)
+if (formatted.length > 10) {
+         formatted = formatted.substring(0, 10);
+            }
             
-        // Allow: backspace(8), delete(46), tab(9), escape(27), enter(13), left arrow(37), right arrow(39)
-    if (charCode === 8 || charCode === 46 || charCode === 9 || charCode === 27 || 
-    charCode === 13 || charCode === 37 || charCode === 39) {
- return true;
- }
+     console.log('Final formatted value:', formatted);
      
-// Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        // Update input value
+   input.val(formatted);
+   
+       // Fix cursor position
+    var newLength = formatted.length;
+            var newCursorPosition = cursorPosition;
+        
+  // If we just added a slash at position 2 or 5, move cursor after the slash
+      if (formatted.length > oldLength) {
+     // A slash was added
+       if (cursorPosition === 2 && formatted.charAt(2) === '/') {
+             // First slash was added after DD
+newCursorPosition = 3; // Move cursor after the slash
+     } else if (cursorPosition === 5 && formatted.charAt(5) === '/') {
+        // Second slash was added after MM
+    newCursorPosition = 6; // Move cursor after the slash
+  } else {
+    // Normal case - maintain cursor position accounting for new length
+newCursorPosition = cursorPosition + (newLength - oldLength);
+  }
+            } else if (formatted.length < oldLength) {
+       // User deleted something - adjust cursor back
+            newCursorPosition = Math.max(0, cursorPosition);
+   }
+    
+       console.log('Cursor position after:', newCursorPosition);
+    
+     // Set cursor position
+            this.selectionStart = this.selectionEnd = newCursorPosition;
+        });
+
+        // Also try binding with 'keyup' as fallback
+        $birthDayTextBox.off('keyup.dateformat').on('keyup.dateformat', function(e) {
+        console.log('⚡ Keyup event triggered! Key:', e.which, 'Value:', $(this).val());
+         
+    // Skip special keys
+    if (e.which === 8 || e.which === 46 || e.which === 9 || e.which === 27 || 
+   e.which === 13 || e.which === 37 || e.which === 39) {
+          return;
+ }
+   
+        // Trigger the input event manually
+      $(this).trigger('input');
+ });
+        
+        // Only allow numbers and slashes in Date of Birth (prevent other characters)
+        $birthDayTextBox.off('keydown.dateformat').on('keydown.dateformat', function(e) {
+   console.log('⌨️ Keydown event! Key code:', e.which);
+   var charCode = e.which || e.keyCode;
+            
+ // Allow: backspace(8), delete(46), tab(9), escape(27), enter(13), left arrow(37), right arrow(39)
+            if (charCode === 8 || charCode === 46 || charCode === 9 || charCode === 27 || 
+    charCode === 13 || charCode === 37 || charCode === 39) {
+      return true;
+          }
+     
+     // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
             if ((e.ctrlKey || e.metaKey) && (charCode === 65 || charCode === 67 || charCode === 86 || charCode === 88)) {
-  return true;
-            }
+        return true;
+  }
     
             // Prevent slash key (we auto-add it)
-         if (charCode === 191 || charCode === 111) {
-        e.preventDefault();
-      return false;
-      }
-            
-  // Allow only numbers (0-9)
-            if ((charCode >= 48 && charCode <= 57) || (charCode >= 96 && charCode <= 105)) {
-   return true;
+          if (charCode === 191 || charCode === 111) {
+     e.preventDefault();
+    return false;
         }
+            
+            // Allow only numbers (0-9)
+            if ((charCode >= 48 && charCode <= 57) || (charCode >= 96 && charCode <= 105)) {
+       return true;
+            }
    
-     // Block everything else
+       // Block everything else
             console.log('❌ Blocking key:', charCode);
             e.preventDefault();
             return false;
-     });
+        });
 
-    // Handle paste event
-    $birthDayTextBox.off('paste.dateformat').on('paste.dateformat', function(e) {
-   console.log('📋 Paste event triggered!');
-         e.preventDefault();
+        // Handle paste event
+        $birthDayTextBox.off('paste.dateformat').on('paste.dateformat', function(e) {
+      console.log('📋 Paste event triggered!');
+            e.preventDefault();
 
-       // Get pasted text
-      var pastedText = (e.originalEvent || e).clipboardData.getData('text/plain');
-  console.log('Pasted text:', pastedText);
-     var numbers = pastedText.replace(/[^0-9]/g, ''); // Extract only numbers
-     console.log('Numbers from paste:', numbers);
+          // Get pasted text
+   var pastedText = (e.originalEvent || e).clipboardData.getData('text/plain');
+            console.log('Pasted text:', pastedText);
+    var numbers = pastedText.replace(/[^0-9]/g, ''); // Extract only numbers
+       console.log('Numbers from paste:', numbers);
   
-            if (numbers.length > 8) {
-                numbers = numbers.substring(0, 8);
-          }
+ if (numbers.length > 8) {
+           numbers = numbers.substring(0, 8);
+            }
           
-            // Format the pasted numbers
+       // Format the pasted numbers
     var formatted = '';
-    if (numbers.length > 0) {
-    formatted = numbers.substring(0, 2);
-   if (numbers.length >= 3) {
-           formatted += '/' + numbers.substring(2, 4);
- }
-           if (numbers.length >= 5) {
-     formatted += '/' + numbers.substring(4, 8);
-     }
+            if (numbers.length > 0) {
+                formatted = numbers.substring(0, 2);
+ if (numbers.length >= 3) {
+        formatted += '/' + numbers.substring(2, 4);
+      }
+         if (numbers.length >= 5) {
+               formatted += '/' + numbers.substring(4, 8);
+                }
             }
    
    console.log('Formatted paste result:', formatted);
-      $(this).val(formatted);
-    
-            // Trigger input event to ensure validation runs
-$(this).trigger('input');
-        });
-        
-    // Test if element is actually focused
-  $birthDayTextBox.on('focus.dateformat', function() {
-  console.log('🎯 Date of Birth field focused!');
+            $(this).val(formatted);
+ 
+        // Trigger input event to ensure validation runs
+     $(this).trigger('input');
+  });
+      
+  // Test if element is actually focused
+        $birthDayTextBox.on('focus.dateformat', function() {
+     console.log('🎯 Date of Birth field focused!');
         });
         
         console.log('Date of Birth formatting setup complete');
     }
-</script></asp:Content>
+
+    </script></asp:Content>

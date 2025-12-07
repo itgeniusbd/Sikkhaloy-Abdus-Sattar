@@ -18,11 +18,14 @@ namespace SmsSenderApp
         public EduEntities()
             : base("name=EduEntities")
         {
+            // Disable initializer to prevent Code First from creating database
+            Database.SetInitializer<EduEntities>(null);
         }
     
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            throw new UnintentionalCodeFirstException();
+            // Comment out the exception to allow Database First approach
+            // throw new UnintentionalCodeFirstException();
         }
     
         public virtual DbSet<Attendance_Device_Setting> Attendance_Device_Setting { get; set; }

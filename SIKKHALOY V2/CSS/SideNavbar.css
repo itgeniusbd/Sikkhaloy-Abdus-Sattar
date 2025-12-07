@@ -286,36 +286,36 @@
 
 @media (min-width: 768px) {
     #header {
-        margin-left: 250px !important;
+margin-left: 250px;
     }
 
     #sidedrawer {
-        transform: translate(250px) !important;
+        transform: translate(250px);
     }
 
     #content-wrapper {
-     margin-left: 250px !important;
+     margin-left: 250px;
   }
 
     #footer {
-        margin-left: 250px !important;
+  margin-left: 250px;
     }
 
-    /* DISABLE hide-sidedrawer class on desktop - sidebar always visible */
+    /* Enable hide-sidedrawer class on desktop */
     body.hide-sidedrawer #header {
-        margin-left: 250px !important;
+      margin-left: 0 !important;
     }
 
     body.hide-sidedrawer #sidedrawer {
-        transform: translate(250px) !important; /* KEEP SIDEBAR VISIBLE */
+      transform: translate(0) !important; /* HIDE SIDEBAR */
     }
 
     body.hide-sidedrawer #content-wrapper {
-        margin-left: 250px !important;
+   margin-left: 0 !important;
     }
 
     body.hide-sidedrawer #footer {
-     margin-left: 250px !important;
+     margin-left: 0 !important;
     }
 }
 

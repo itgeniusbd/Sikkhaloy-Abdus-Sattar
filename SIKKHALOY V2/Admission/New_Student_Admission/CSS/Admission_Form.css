@@ -1,0 +1,321 @@
+﻿/* Hide Master Page Elements */
+.navbar, .sidebar, .header, .footer, .main-header, .main-sidebar, 
+.navbar-nav, .navbar-custom-menu, .sidebar-menu, .content-header,
+nav, aside, .skin-blue {
+    display: none !important;
+}
+
+/* Override Master Page Styles */
+html, body {
+    background: white !important;
+    margin: 0 !important;
+padding: 0 !important;
+}
+
+.content-wrapper {
+    margin-left: 0 !important;
+margin-right: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+}
+
+/* Apply Arial font only to specific elements, NOT to Font Awesome icons */
+body,
+.print-container,
+.print-container p,
+.print-container span:not([class*="fa"]):not([class*="icon"]),
+.print-container div:not([class*="fa"]):not([class*="icon"]),
+.print-container td,
+.print-container th,
+.print-container legend,
+.print-container label,
+.print-container input,
+.print-container button:not([class*="fa"]):not([class*="icon"]),
+.print-container a:not([class*="fa"]):not([class*="icon"]) {
+    font-family: Arial, sans-serif !important;
+}
+
+* {
+    margin: 0;
+ padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    line-height: 1.4;
+ color: #000;
+}
+
+@page {
+    size: A4;
+    margin: 8mm 10mm;
+}
+
+@media print {
+  .d-print-none {
+      display: none !important;
+    }
+
+    body {
+    margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .print-container {
+        padding: 0 !important;
+    }
+
+    fieldset {
+    page-break-inside: avoid;
+  break-inside: avoid;
+    }
+
+ .form-header {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+
+    .signature-section {
+        page-break-inside: avoid;
+    margin-top: 15px !important;
+    }
+}
+
+.print-container {
+    max-width: 210mm;
+ margin: 0 auto;
+    padding: 11px;
+    background: white;
+  position: relative;
+}
+
+/* Form Header - Simple Black */
+.form-header {
+    position: relative;
+    text-align: center;
+    display: flex;
+ align-items: center;
+    justify-content: space-between;
+    min-height: 110px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.admission-date {
+    width: 90px;
+    font-size: 13px;
+    font-weight: bold;
+    background: #fff;
+    color: #000;
+    padding: 5px 8px;
+  border: 2px solid #000;
+ text-align: center;
+line-height: 1.3;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
+
+.form-title {
+    font-size: 20px;
+    font-weight: 900;
+  color: #000;
+    background: #fff;
+    display: inline-block;
+    padding: 6px 24px;
+    border: 2px solid #000;
+}
+
+.student-photo {
+  width: 90px;
+}
+
+.img-thumbnail {
+    padding: 3px;
+    background: #fff;
+ border: 2px solid #000;
+    width: 90px;
+    height: 110px;
+    object-fit: cover;
+}
+
+/* Action Buttons - Simple Black */
+.action-buttons {
+    text-align: center;
+ margin-bottom: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    margin: 3px;
+    border: 2px solid #000;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.btn-blue {
+    background: #fff;
+    color: #000;
+}
+
+.btn-blue:hover {
+    background: #000;
+    color: #fff;
+}
+
+/* Content Wrapper */
+.content-wrapper {
+    margin-bottom: 15px;
+}
+
+/* Fieldset Styles - Simple Black */
+fieldset {
+    border: 2px solid #000;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+ background: #fff;
+}
+
+legend {
+    font-size: 17px;
+    font-weight: 900;
+    padding: 3px 12px;
+    color: #000;
+background: #fff;
+  border: 2px solid #000;
+}
+
+/* Table Styles - ONLY for info-table inside print-container */
+.print-container .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+.print-container .info-table td {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 6px;
+    border-bottom: 1px solid #ddd;
+}
+
+.print-container .label {
+ font-weight: 700;
+    color: #000;
+    display: inline-block;
+    font-size: 15px;
+}
+
+.print-container .value {
+    color: #000;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* Signature Section */
+.signature-section {
+ display: flex;
+justify-content: space-between;
+    padding: 12px 20px;
+    margin-top: 20px;
+    border-top: 2px solid #000;
+    padding-top: 20px;
+}
+
+.signature-box {
+    text-align: center;
+    flex: 1;
+}
+
+.signature-line {
+    border-top: 2px solid #000;
+    width: 140px;
+  margin: 35px auto 5px;
+ padding-top: 5px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #000;
+}
+
+.signature-date {
+    font-size: 13px;
+    color: #000;
+    margin-top: 3px;
+}
+
+/* Print Optimizations */
+@media print {
+    .content-wrapper {
+    margin-bottom: 12px;
+    }
+
+    fieldset {
+     margin-bottom: 8px;
+   padding: 8px 10px;
+  }
+
+  legend {
+  font-size: 16px;
+ padding: 2px 10px;
+  }
+
+  .print-container .label, 
+    .print-container .value {
+    font-size: 14px;
+    }
+
+    .print-container .info-table td {
+      font-size: 14px;
+    }
+
+    .form-header {
+     position: relative;
+        text-align: center;
+     padding-bottom: 5px;
+ padding-top: 5px;
+  display: flex;
+        align-items: center;
+        justify-content: space-between;
+  min-height: 110px;
+  }
+
+  .form-title {
+ font-size: 18px;
+  padding: 5px 20px;
+    }
+
+ .signature-section {
+      padding: 10px 20px;
+     margin-top: 15px;
+    }
+
+    .signature-line {
+        width: 130px;
+      margin: 30px auto 5px;
+    font-size: 14px;
+    }
+
+  .img-thumbnail {
+     width: 85px;
+        height: 105px;
+    }
+
+.admission-date {
+     font-size: 12px;
+     padding: 4px 6px;
+ width: 85px;
+  }
+
+    .student-photo {
+  width: 85px;
+    }
+}
+
+

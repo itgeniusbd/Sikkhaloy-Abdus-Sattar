@@ -1,8 +1,23 @@
 ﻿* {
-    font-family: 'Kalpurush', Arial, sans-serif !important;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Apply Kalpurush font only to specific elements, not all (*) */
+body,
+.print-container,
+.print-container p,
+.print-container span:not([class*="fa"]):not([class*="icon"]),
+.print-container div:not([class*="fa"]):not([class*="icon"]),
+.print-container td,
+.print-container th,
+.print-container legend,
+.print-container label,
+.print-container input,
+.print-container button:not([class*="fa"]):not([class*="icon"]),
+.print-container a:not([class*="fa"]):not([class*="icon"]) {
+    font-family: 'Kalpurush', Arial, sans-serif !important;
 }
 
 body {
@@ -156,7 +171,7 @@ fieldset {
 
 legend {
  display: block;
-    width: 30%;
+    width: 35%;
     max-width: 100%;
  margin-bottom: .5rem;
   color: inherit;

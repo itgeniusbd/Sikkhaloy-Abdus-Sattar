@@ -19,7 +19,7 @@
 (function(){
  var b=document.body;
  if(!b) return;
- // Only lock if explicitly requested, removed auto-lock for useraccount.aspx
+ // Only lock if explicitly requested
  if(window.forceLockSidebar){
  b.classList.add('lock-sidebar');
  b.classList.remove('hide-sidedrawer');
@@ -49,9 +49,8 @@ jQuery(function ($) {
  // Show Sidedrawer (mobile overlay)
  // =====================================================================
  function showSidedrawer() {
- // If page prevents hiding, suppress overlay behavior
- if ($bodyEl.hasClass('lock-sidebar') || window.preventSidebarHide) {
- // Just ensure visible and do nothing
+ // Only check if forceLockSidebar is explicitly true
+ if (window.forceLockSidebar === true) {
  $bodyEl.removeClass('hide-sidedrawer');
  return;
  }
@@ -69,8 +68,8 @@ jQuery(function ($) {
  // Hide / Toggle Sidedrawer (desktop)
  // =====================================================================
  function hideSidedrawer() {
- // Check if page prevents sidebar hiding
- if ($bodyEl.hasClass('lock-sidebar') || window.preventSidebarHide) {
+ // Only check if forceLockSidebar is explicitly true
+ if (window.forceLockSidebar === true) {
  console.warn('Sidebar toggle prevented (page protection active)');
  $bodyEl.removeClass('hide-sidedrawer');
  return;
@@ -83,6 +82,7 @@ jQuery(function ($) {
  showSidedrawer();
  return false;
  });
+ 
  $('.js-hide-sidedrawer').on('click', function (e) {
  e.preventDefault();
  hideSidedrawer();
@@ -99,9 +99,9 @@ jQuery(function ($) {
  });
 
  // =====================================================================
- // Page-level lock support (only if explicitly set)
+ // Page-level lock support (only if explicitly set to true)
  // =====================================================================
- if ($bodyEl.hasClass('lock-sidebar') || window.preventSidebarHide) {
+ if (window.forceLockSidebar === true) {
  // Make sure it is visible immediately
  $bodyEl.removeClass('hide-sidedrawer');
  // Neutralise toggles completely

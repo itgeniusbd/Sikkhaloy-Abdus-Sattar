@@ -19,8 +19,23 @@ html, body {
     background: white !important;
 }
 
-* {
+/* Apply Kalpurush font only to specific elements, NOT to Font Awesome icons */
+body,
+.print-container,
+.print-container p,
+.print-container span:not([class*="fa"]):not([class*="icon"]),
+.print-container div:not([class*="fa"]):not([class*="icon"]),
+.print-container td,
+.print-container th,
+.print-container legend,
+.print-container label,
+.print-container input,
+.print-container button:not([class*="fa"]):not([class*="icon"]),
+.print-container a:not([class*="fa"]):not([class*="icon"]) {
     font-family: 'Kalpurush', Arial, sans-serif !important;
+}
+
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -39,9 +54,9 @@ body {
 @media print {
   .d-print-none {
         display: none !important;
-    }
+  }
 
-    body {
+ body {
         margin: 0 !important;
         padding: 0 !important;
     }
@@ -51,7 +66,7 @@ body {
     }
 
     fieldset {
-        page-break-inside: avoid;
+  page-break-inside: avoid;
         break-inside: avoid;
     }
 
@@ -76,11 +91,11 @@ body {
 
 /* Form Header - Simple Black */
 .form-header {
-    position: relative;
+  position: relative;
     text-align: center;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+justify-content: space-between;
     min-height: 110px;
     border-bottom: 2px solid #000;
     padding-bottom: 10px;
@@ -91,7 +106,7 @@ body {
     width: 90px;
     font-size: 13px;
     font-weight: bold;
-    background: #fff;
+  background: #fff;
     color: #000;
     padding: 5px 8px;
     border: 2px solid #000;
@@ -109,7 +124,7 @@ body {
     font-weight: 900;
   color: #000;
     background: #fff;
-    display: inline-block;
+display: inline-block;
     padding: 6px 24px;
     border: 2px solid #000;
 }
@@ -120,7 +135,7 @@ body {
 
 .img-thumbnail {
     padding: 3px;
-    background: #fff;
+background: #fff;
  border: 2px solid #000;
     width: 90px;
     height: 110px;
@@ -130,7 +145,7 @@ body {
 /* Action Buttons - Simple Black */
 .action-buttons {
     text-align: center;
-    margin-bottom: 10px;
+  margin-bottom: 10px;
 }
 
 .btn {
@@ -171,7 +186,7 @@ fieldset {
 legend {
     font-size: 17px;
     font-weight: 900;
-    padding: 3px 12px;
+padding: 3px 12px;
     color: #000;
 background: #fff;
     border: 2px solid #000;
@@ -209,7 +224,7 @@ background: #fff;
  display: flex;
     justify-content: space-between;
     padding: 12px 20px;
-    margin-top: 20px;
+margin-top: 20px;
     border-top: 2px solid #000;
     padding-top: 20px;
 }
@@ -237,11 +252,11 @@ background: #fff;
 
 /* Print Optimizations */
 @media print {
-    .content-wrapper {
+  .content-wrapper {
     margin-bottom: 12px;
     }
 
-    fieldset {
+fieldset {
      margin-bottom: 8px;
    padding: 8px 10px;
     }
@@ -252,7 +267,7 @@ background: #fff;
     }
 
   .print-container .label, 
-    .print-container .value {
+ .print-container .value {
     font-size: 14px;
     }
 
@@ -268,12 +283,12 @@ background: #fff;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        min-height: 110px;
+   min-height: 110px;
     }
 
   .form-title {
         font-size: 18px;
-        padding: 5px 20px;
+     padding: 5px 20px;
     }
 
     .signature-section {
@@ -282,14 +297,14 @@ background: #fff;
     }
 
     .signature-line {
-        width: 130px;
+   width: 130px;
         margin: 30px auto 5px;
     font-size: 14px;
     }
 
     .img-thumbnail {
         width: 85px;
-        height: 105px;
+  height: 105px;
     }
 
     .admission-date {
@@ -300,7 +315,7 @@ background: #fff;
 
     .student-photo {
   width: 85px;
-    }
+ }
 }
 
 

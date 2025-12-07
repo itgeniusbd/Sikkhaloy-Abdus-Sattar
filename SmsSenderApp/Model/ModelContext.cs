@@ -5,8 +5,13 @@ namespace SmsSenderApp
     public class ModelContext : DbContext
     {
         public ModelContext()
-            : base(@"Data Source=.\;Initial Catalog=Edu;Integrated Security=SSPI")
+            : base("name=EduEntities")
         {
+            // Disable initializer to prevent database creation attempts
+            Database.SetInitializer<ModelContext>(null);
+
+            // Set timeout for slow connections
+            this.Database.CommandTimeout = 30;
         }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)

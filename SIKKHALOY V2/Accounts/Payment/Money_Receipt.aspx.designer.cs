@@ -132,24 +132,6 @@ namespace EDUCATION.COM.Accounts.Payment
         protected global::System.Web.UI.WebControls.SqlDataSource SMS_OtherInfoSQL;
 
         /// <summary>
-        /// RoleCheckBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox RoleCheckBox;
-
-        /// <summary>
-        /// CurrentDueCheckBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox CurrentDueCheckBox;
-
-        /// <summary>
         /// SMSButton control.
         /// </summary>
         /// <remarks>

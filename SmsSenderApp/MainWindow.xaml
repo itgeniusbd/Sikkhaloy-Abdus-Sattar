@@ -6,21 +6,21 @@
         WindowStartupLocation="CenterScreen"
         Topmost="True"
         mc:Ignorable="d"
-        Title="Home"
+        Title="Sikkhaloy SMS Sender"
         Height="450"
         Width="800" 
         Closing="Window_Closing">
     
     <Grid>
         <TextBlock x:Name="txtStatus"
-                   Text="This application is running in the background"
-                   FontSize="25"
+                   Text="Sikkhaloy SMS Sender is running in the background&#x0a;App Started at 04 Dec, 2025 (09:07 PM)&#x0a;Total events: 0, SMS sent: 0, Failed: 0"
+                   FontSize="20"
                    FontWeight="Bold"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    TextWrapping="Wrap"
                    TextAlignment="Center"
-                   Padding="20"
-                   />
+                   Padding="40"
+                   Foreground="#2C3E50"/>
     </Grid>
 </Window>

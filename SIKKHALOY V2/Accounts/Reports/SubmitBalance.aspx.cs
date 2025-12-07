@@ -14,9 +14,9 @@ namespace EDUCATION.COM.Accounts.Reports
         protected Label CurrentBalanceLabel;
  protected Label TotalSubmissionLabel;
         protected Label TotalTransactionsLabel;
-        protected Label ModalBalanceLabel;
-        protected TextBox SubmissionAmountTextBox;
-        protected TextBox SubmissionDateTextBox;
+    protected Label ModalBalanceLabel;
+  protected TextBox SubmissionAmountTextBox;
+      protected TextBox SubmissionDateTextBox;
         protected TextBox ReceivedByTextBox;
         protected TextBox ReceiverPhoneTextBox;
     protected TextBox OTPTextBox;
@@ -25,31 +25,44 @@ namespace EDUCATION.COM.Accounts.Reports
         protected Button SubmitButton;
       protected Button SendOTPButton;
     protected Button ResendOTPButton;
-        protected GridView SubmissionGridView;
+      protected GridView SubmissionGridView;
  protected DropDownList UserDropDown;
       protected TextBox FromDateTextBox;
-        protected TextBox ToDateTextBox;
+  protected TextBox ToDateTextBox;
+        protected TextBox ReceiverNameTextBox;
+        protected TextBox ReceiverMobileTextBox;
       protected HtmlGenericControl otpSection;
-        protected HtmlGenericControl ErrorMsg;
+    protected HtmlGenericControl ErrorMsg;
 
         protected void Page_Load(object sender, EventArgs e)
         {
             // Set response encoding to UTF-8
-          Response.Charset = "UTF-8";
-      Response.ContentEncoding = System.Text.Encoding.UTF8;
+     Response.Charset = "UTF-8";
+Response.ContentEncoding = System.Text.Encoding.UTF8;
 
             if (!IsPostBack)
  {
     LoadSummary();
  // Set today's date in dd/MM/yyyy format
-          SubmissionDateTextBox.Text = DateTime.Now.ToString("dd/MM/yyyy");
-      }
-        }
+   SubmissionDateTextBox.Text = DateTime.Now.ToString("dd/MM/yyyy");
+    }
+ }
 
-        protected void Page_PreRender(object sender, EventArgs e)
+   protected void FindButton_Click(object sender, EventArgs e)
         {
-            LoadSummary();
-  }
+            // Reload summary with current filter values
+      LoadSummary();
+   // Rebind GridView to show filtered data
+SubmissionGridView.DataBind();
+     }
+
+  protected void UserDropDown_SelectedIndexChanged(object sender, EventArgs e)
+        {
+   // Reload summary when user selection changes
+    LoadSummary();
+       // Rebind GridView to show filtered data
+      SubmissionGridView.DataBind();
+        }
 
         protected void SendOTPButton_Click(object sender, EventArgs e)
         {
@@ -342,17 +355,19 @@ $"alert('Error: {ex.Message}');", true);
         {
             try
             {
-    int schoolID = Convert.ToInt32(Session["SchoolID"]);
-        int loggedInUserID = Convert.ToInt32(Session["RegistrationID"]);
-         int selectedUserID = UserDropDown.SelectedValue != null ? Convert.ToInt32(UserDropDown.SelectedValue) : 0;
-  string fromDate = FromDateTextBox.Text;
-           string toDate = ToDateTextBox.Text;
+                int schoolID = Convert.ToInt32(Session["SchoolID"]);
+                int loggedInUserID = Convert.ToInt32(Session["RegistrationID"]);
+                int selectedUserID = UserDropDown.SelectedValue != null ? Convert.ToInt32(UserDropDown.SelectedValue) : 0;
+                string fromDate = FromDateTextBox != null ? FromDateTextBox.Text : string.Empty;
+                string toDate = ToDateTextBox != null ? ToDateTextBox.Text : string.Empty;
+                string receiverName = ReceiverNameTextBox != null ? ReceiverNameTextBox.Text.Trim() : string.Empty;
+                string receiverMobile = ReceiverMobileTextBox != null ? ReceiverMobileTextBox.Text.Trim() : string.Empty;
 
-        // Get the RegistrationID of the selected user, or use logged-in user's ID if none selected
-              int userIDForBalance = selectedUserID > 0 ? selectedUserID : loggedInUserID;
+                // Get the RegistrationID of the selected user, or use logged-in user's ID if none selected
+                int userIDForBalance = selectedUserID > 0 ? selectedUserID : loggedInUserID;
 
-        // Load selected user's balance
-    string balanceQuery = @"
+                // Load selected user's balance
+                string balanceQuery = @"
 SELECT 
   ISNULL(Income, 0) - ISNULL(Expense, 0) - ISNULL(Submitted, 0) AS RemainingBalance
 FROM 
@@ -361,7 +376,7 @@ FROM
     (ISNULL(EX_In_T.Other_Income, 0) + ISNULL(Stu_P_T.Student_Income, 0) + ISNULL(Com_In_T.CommitteeDonation, 0)) AS Income,
 (ISNULL(Ex_T.Expenditure, 0) + ISNULL(Emp_P_T.Employee_Paid, 0)) AS Expense,
     ISNULL(Sub_T.TotalSubmitted, 0) AS Submitted
-    FROM 
+ FROM 
 Registration 
     LEFT OUTER JOIN 
      (SELECT RegistrationID, ISNULL(SUM(Extra_IncomeAmount), 0) AS Other_Income 
@@ -369,15 +384,15 @@ Registration
     ON Registration.RegistrationID = EX_In_T.RegistrationID
   LEFT OUTER JOIN 
         (SELECT RegistrationId, ISNULL(SUM(TotalAmount), 0) AS CommitteeDonation 
-       FROM CommitteeMoneyReceipt WHERE SchoolId = @SchoolID GROUP BY RegistrationId) AS Com_In_T 
-    ON Registration.RegistrationID = Com_In_T.RegistrationId
+   FROM CommitteeMoneyReceipt WHERE SchoolId = @SchoolID GROUP BY RegistrationId) AS Com_In_T 
+ON Registration.RegistrationID = Com_In_T.RegistrationId
     LEFT OUTER JOIN 
         (SELECT RegistrationID, ISNULL(SUM(PaidAmount), 0) AS Student_Income 
     FROM Income_PaymentRecord WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Stu_P_T 
     ON Registration.RegistrationID = Stu_P_T.RegistrationID
-    LEFT OUTER JOIN 
-        (SELECT RegistrationID, ISNULL(SUM(Amount), 0) AS Expenditure 
-       FROM Expenditure WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Ex_T 
+  LEFT OUTER JOIN 
+     (SELECT RegistrationID, ISNULL(SUM(Amount), 0) AS Expenditure 
+    FROM Expenditure WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Ex_T 
   ON Registration.RegistrationID = Ex_T.RegistrationID
     LEFT OUTER JOIN 
    (SELECT RegistrationID, ISNULL(SUM(Amount), 0) AS Employee_Paid 
@@ -388,12 +403,12 @@ Registration
   FROM User_Balance_Submission WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Sub_T 
     ON Registration.RegistrationID = Sub_T.RegistrationID
     WHERE 
-        Registration.SchoolID = @SchoolID 
+   Registration.SchoolID = @SchoolID 
    AND Registration.RegistrationID = @RegistrationID
 ) AS T";
 
-          // Load summary statistics
-     string summaryQuery = @"
+                // Load summary statistics with filtering
+                string summaryQuery = @"
 SELECT 
     ISNULL(SUM(SubmissionAmount), 0) AS TotalSubmission,
     COUNT(*) AS TotalTransactions
@@ -401,54 +416,61 @@ FROM User_Balance_Submission
 WHERE SchoolID = @SchoolID
     AND (@SelectedUserID = 0 OR RegistrationID = @SelectedUserID)
     AND (SubmissionDate >= CASE WHEN NULLIF(@FromDate, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @FromDate, 103) END)
-    AND (SubmissionDate <= CASE WHEN NULLIF(@ToDate, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @ToDate, 103) END)";
+    AND (SubmissionDate <= CASE WHEN NULLIF(@ToDate, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @ToDate, 103) END)
+    AND (NULLIF(@ReceiverName, '') IS NULL OR ReceivedBy LIKE '%' + @ReceiverName + '%')
+    AND (NULLIF(@ReceiverMobile, '') IS NULL OR ReceiverPhone LIKE '%' + @ReceiverMobile + '%')";
 
-      using (SqlConnection conn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-         {
-  conn.Open();
+                using (SqlConnection conn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                {
+                    conn.Open();
 
-  // Get selected user's balance
-     using (SqlCommand cmd = new SqlCommand(balanceQuery, conn))
-     {
-   cmd.Parameters.AddWithValue("@SchoolID", schoolID);
-   cmd.Parameters.AddWithValue("@RegistrationID", userIDForBalance);
+                    // Get selected user's balance
+                    using (SqlCommand cmd = new SqlCommand(balanceQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                        cmd.Parameters.AddWithValue("@RegistrationID", userIDForBalance);
 
-    object result = cmd.ExecuteScalar();
-          decimal balance = result != null && result != DBNull.Value ? Convert.ToDecimal(result) : 0;
-     CurrentBalanceLabel.Text = balance.ToString("N0");
-           ModalBalanceLabel.Text = balance.ToString("N0");
-          }
+                        object result = cmd.ExecuteScalar();
+                        decimal balance = result != null && result != DBNull.Value ? Convert.ToDecimal(result) : 0;
+                        CurrentBalanceLabel.Text = balance.ToString("N0");
+                        if (ModalBalanceLabel != null)
+                        {
+                            ModalBalanceLabel.Text = balance.ToString("N0");
+                        }
+                    }
 
-           // Get summary
-         using (SqlCommand cmd = new SqlCommand(summaryQuery, conn))
-         {
-         cmd.Parameters.AddWithValue("@SchoolID", schoolID);
- cmd.Parameters.AddWithValue("@SelectedUserID", selectedUserID);
-      cmd.Parameters.AddWithValue("@FromDate", string.IsNullOrEmpty(fromDate) ? (object)DBNull.Value : fromDate);
-            cmd.Parameters.AddWithValue("@ToDate", string.IsNullOrEmpty(toDate) ? (object)DBNull.Value : toDate);
+                    // Get summary with filtering
+                    using (SqlCommand cmd = new SqlCommand(summaryQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                        cmd.Parameters.AddWithValue("@SelectedUserID", selectedUserID);
+                        cmd.Parameters.AddWithValue("@FromDate", string.IsNullOrEmpty(fromDate) ? (object)DBNull.Value : fromDate);
+                        cmd.Parameters.AddWithValue("@ToDate", string.IsNullOrEmpty(toDate) ? (object)DBNull.Value : toDate);
+                        cmd.Parameters.AddWithValue("@ReceiverName", string.IsNullOrEmpty(receiverName) ? (object)DBNull.Value : receiverName);
+                        cmd.Parameters.AddWithValue("@ReceiverMobile", string.IsNullOrEmpty(receiverMobile) ? (object)DBNull.Value : receiverMobile);
 
-       using (SqlDataReader reader = cmd.ExecuteReader())
-          {
-      if (reader.Read())
-    {
-      decimal totalSubmission = reader["TotalSubmission"] != DBNull.Value ? Convert.ToDecimal(reader["TotalSubmission"]) : 0;
-      int totalTransactions = reader["TotalTransactions"] != DBNull.Value ? Convert.ToInt32(reader["TotalTransactions"]) : 0;
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                decimal totalSubmission = reader["TotalSubmission"] != DBNull.Value ? Convert.ToDecimal(reader["TotalSubmission"]) : 0;
+                                int totalTransactions = reader["TotalTransactions"] != DBNull.Value ? Convert.ToInt32(reader["TotalTransactions"]) : 0;
 
-       TotalSubmissionLabel.Text = totalSubmission.ToString("N0");
-        TotalTransactionsLabel.Text = totalTransactions.ToString();
-         }
+                                TotalSubmissionLabel.Text = totalSubmission.ToString("N0");
+                                TotalTransactionsLabel.Text = totalTransactions.ToString();
+                            }
+                        }
+                    }
+                }
             }
-      }
-         }
-            }
-         catch (Exception ex)
+            catch (Exception ex)
             {
-     CurrentBalanceLabel.Text = "0";
-    TotalSubmissionLabel.Text = "0";
-    TotalTransactionsLabel.Text = "0";
-            // Log error for debugging
-     System.Diagnostics.Debug.WriteLine("LoadSummary Error: " + ex.Message);
-      }
+                CurrentBalanceLabel.Text = "0";
+                TotalSubmissionLabel.Text = "0";
+                TotalTransactionsLabel.Text = "0";
+                // Log error for debugging
+                System.Diagnostics.Debug.WriteLine("LoadSummary Error: " + ex.Message);
+            }
         }
     }
 }

@@ -31,6 +31,7 @@
    <!-- Action Buttons -->
  <div class="action-buttons d-print-none">
          <input class="btn btn-blue" onclick="window.print();" type="button" value="প্রিন্ট করুন" style="font-weight: 700 !important;" />
+      <a href="Online_Admission_Form_EN.aspx"> Print Admission Form English >> </a> 
         </div>
 
         <!-- Form Header -->

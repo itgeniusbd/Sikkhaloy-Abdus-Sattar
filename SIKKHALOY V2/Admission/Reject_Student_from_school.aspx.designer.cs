@@ -42,6 +42,51 @@ namespace EDUCATION.COM.ADMISSION_REGISTER
         protected global::System.Web.UI.WebControls.Button FindButton;
 
         /// <summary>
+        /// hdnStudentID control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputHidden hdnStudentID;
+
+        /// <summary>
+        /// hdnStudentClassID control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputHidden hdnStudentClassID;
+
+        /// <summary>
+        /// hdnStudentIDText control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputHidden hdnStudentIDText;
+
+        /// <summary>
+        /// hdnDeactivateTime control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputHidden hdnDeactivateTime;
+
+        /// <summary>
+        /// UpdatePanelStudentInfo control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.UpdatePanel UpdatePanelStudentInfo;
+
+        /// <summary>
         /// StudentInfoFormView control.
         /// </summary>
         /// <remarks>
@@ -78,13 +123,22 @@ namespace EDUCATION.COM.ADMISSION_REGISTER
         protected global::System.Web.UI.WebControls.Button ActiveButton;
 
         /// <summary>
-        /// ModalUpdatePanel control.
+        /// UpdatePanelActiveStudent control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.UpdatePanel ModalUpdatePanel;
+        protected global::System.Web.UI.UpdatePanel UpdatePanelActiveStudent;
+
+        /// <summary>
+        /// ActiveStudentPanel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Panel ActiveStudentPanel;
 
         /// <summary>
         /// ActiveClassDropDown control.
@@ -105,6 +159,15 @@ namespace EDUCATION.COM.ADMISSION_REGISTER
         protected global::System.Web.UI.WebControls.SqlDataSource ActiveClassSQL;
 
         /// <summary>
+        /// divSection control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl divSection;
+
+        /// <summary>
         /// ActiveSectionDropDown control.
         /// </summary>
         /// <remarks>
@@ -123,6 +186,15 @@ namespace EDUCATION.COM.ADMISSION_REGISTER
         protected global::System.Web.UI.WebControls.SqlDataSource ActiveSectionSQL;
 
         /// <summary>
+        /// divGroup control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl divGroup;
+
+        /// <summary>
         /// ActiveGroupDropDown control.
         /// </summary>
         /// <remarks>
@@ -139,6 +211,15 @@ namespace EDUCATION.COM.ADMISSION_REGISTER
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ActiveGroupSQL;
+
+        /// <summary>
+        /// divShift control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl divShift;
 
         /// <summary>
         /// ActiveShiftDropDown control.
@@ -184,6 +265,33 @@ namespace EDUCATION.COM.ADMISSION_REGISTER
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button ConfirmActiveButton;
+
+        /// <summary>
+        /// CancelActiveButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button CancelActiveButton;
+
+        /// <summary>
+        /// rfvClass control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator rfvClass;
+
+        /// <summary>
+        /// rfvSession control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator rfvSession;
 
         /// <summary>
         /// Reject_StudentInfoSQL control.
@@ -302,6 +410,7 @@ namespace EDUCATION.COM.ADMISSION_REGISTER
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource StatusSQL;
 
+      
         /// <summary>
         /// UpdateProgress control.
         /// </summary>

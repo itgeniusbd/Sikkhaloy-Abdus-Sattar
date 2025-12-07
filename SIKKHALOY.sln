@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmsService", "SmsService\Sm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmsSenderApp", "SmsSenderApp\SmsSenderApp.csproj", "{FFB8F638-3517-4F5B-9513-39AABA098E5D}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Sikkhaloy SMS Sender", "Sikkhaloy SMS Sender\Sikkhaloy SMS Sender.vdproj", "{036BA61B-AA19-309D-9031-E41ABA933CA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		All|Any CPU = All|Any CPU
@@ -71,6 +73,10 @@ Global
 		{FFB8F638-3517-4F5B-9513-39AABA098E5D}.DefaultBuild|Any CPU.Build.0 = Debug|Any CPU
 		{FFB8F638-3517-4F5B-9513-39AABA098E5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFB8F638-3517-4F5B-9513-39AABA098E5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{036BA61B-AA19-309D-9031-E41ABA933CA0}.All|Any CPU.ActiveCfg = Debug
+		{036BA61B-AA19-309D-9031-E41ABA933CA0}.Debug|Any CPU.ActiveCfg = Debug
+		{036BA61B-AA19-309D-9031-E41ABA933CA0}.DefaultBuild|Any CPU.ActiveCfg = Release
+		{036BA61B-AA19-309D-9031-E41ABA933CA0}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

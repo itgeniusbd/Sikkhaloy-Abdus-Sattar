@@ -27,15 +27,15 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
             {
                 try
                 {
-                    if (Session["Edu_Year"] == null && EducationYearDropDownList.Items.Count > 0)
+                    // Set dropdown to current session year if available, otherwise let user choose
+                    if (Session["Edu_Year"] != null && EducationYearDropDownList.Items.Count > 0)
                     {
-                        Session["Edu_Year"] = EducationYearDropDownList.SelectedValue;
+                        var item = EducationYearDropDownList.Items.FindByValue(Session["Edu_Year"].ToString());
+                        if (item != null)
+                        {
+                            EducationYearDropDownList.SelectedValue = Session["Edu_Year"].ToString();
+                        }
                     }
-
-                    // Dropdowns will be hidden via CSS initially
-                    // GroupDropDownList.Visible = false;
-                    // SectionDropDownList.Visible = false;
-                    // ShiftDropDownList.Visible = false;
 
                     using (SqlConnection con = new SqlConnection(connectionString))
                     {
@@ -120,9 +120,12 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
                     return;
                 }
 
-                if (Session["Edu_Year"] == null)
+                // Check if education year is selected
+                if (string.IsNullOrEmpty(EducationYearDropDownList.SelectedValue) || EducationYearDropDownList.SelectedValue == "0")
                 {
-                    Session["Edu_Year"] = EducationYearDropDownList.SelectedValue;
+                    ClientScript.RegisterStartupScript(this.GetType(), "YearError",
+                        "alert('Please select a session year.');", true);
+                    return;
                 }
 
                 if (ClassDropDownList.SelectedValue == "0")
@@ -242,26 +245,29 @@ else if (BanglaPrintCheckBox.Checked)
 
     protected void GoPayorderButton_Click(object sender, EventArgs e)
         {
-            if (!Page.IsValid)
+      if (!Page.IsValid)
         {
-                ClientScript.RegisterStartupScript(this.GetType(), "ValidationError",
-           "alert('Please fill in all required fields correctly.');", true);
+           ClientScript.RegisterStartupScript(this.GetType(), "ValidationError",
+ "alert('Please fill in all required fields correctly.');", true);
        return;
   }
 
 try
     {
         if (Session["SchoolID"] == null)
-         {
-     ClientScript.RegisterStartupScript(this.GetType(), "SessionError",
+    {
+   ClientScript.RegisterStartupScript(this.GetType(), "SessionError",
     "alert('Session expired. Please login again.');", true);
-       return;
-            }
+     return;
+       }
 
-     if (Session["Edu_Year"] == null)
-  {
-           Session["Edu_Year"] = EducationYearDropDownList.SelectedValue;
-      }
+    // Check if education year is selected
+      if (string.IsNullOrEmpty(EducationYearDropDownList.SelectedValue) || EducationYearDropDownList.SelectedValue == "0")
+    {
+       ClientScript.RegisterStartupScript(this.GetType(), "YearError",
+         "alert('Please select a session year.');", true);
+     return;
+        }
 
        if (ClassDropDownList.SelectedValue == "0")
        {
@@ -270,89 +276,89 @@ try
   return;
       }
 
-         // Check for duplicate ID before proceeding
-     if (IsIDDuplicate(IDTextBox.Text.Trim()))
-              {
+  // Check for duplicate ID before proceeding
+  if (IsIDDuplicate(IDTextBox.Text.Trim()))
+      {
         ClientScript.RegisterStartupScript(this.GetType(), "DuplicateIDError",
-              $"alert('⚠️ Student ID \"{IDTextBox.Text.Trim()}\" already exists!\\n\\nPlease use a different ID.');", true);
+     $"alert('⚠️ Student ID \"{IDTextBox.Text.Trim()}\" already exists!\\n\\nPlease use a different ID.');", true);
       IDTextBox.Focus();
        return;
-      }
+  }
 
      StudentImageSQL.Insert();
    int ImageID = GetLastIdentity("Student_Image");
 
       StudentInfoSQL.InsertParameters["StudentImageID"].DefaultValue = ImageID.ToString();
          StudentInfoSQL.Insert();
-             int StudentID = GetLastIdentity("Student");
+           int StudentID = GetLastIdentity("Student");
 
         if (GroupDropDownList.SelectedValue == "%")
         {
-          Session["GroupID"] = "0";
+    Session["GroupID"] = "0";
       }
    else
-      {
-            Session["GroupID"] = GroupDropDownList.SelectedValue;
+   {
+ Session["GroupID"] = GroupDropDownList.SelectedValue;
              }
 
  if (SectionDropDownList.SelectedValue == "%")
       {
-            Session["SectionID"] = "0";
-     }
+ Session["SectionID"] = "0";
+   }
    else
      {
-            Session["SectionID"] = SectionDropDownList.SelectedValue;
-            }
+          Session["SectionID"] = SectionDropDownList.SelectedValue;
+  }
 
        if (ShiftDropDownList.SelectedValue == "%")
-         {
+     {
           Session["ShiftID"] = "0";
        }
         else
-      {
+   {
     Session["ShiftID"] = ShiftDropDownList.SelectedValue;
        }
 
      StudentClassSQL.InsertParameters["StudentID"].DefaultValue = StudentID.ToString();
     StudentClassSQL.Insert();
     int StudentClassID = GetLastIdentity("StudentsClass");
-        Session["StudentClassID"] = StudentClassID;
+    Session["StudentClassID"] = StudentClassID;
 
-          foreach (GridViewRow row in GroupGridView.Rows)
+     foreach (GridViewRow row in GroupGridView.Rows)
      {
   CheckBox SubjectCheckBox = (CheckBox)row.FindControl("SubjectCheckBox");
 if (SubjectCheckBox != null && SubjectCheckBox.Checked)
-       {
-           RadioButtonList SubjectTypeRadioButtonList = (RadioButtonList)row.FindControl("SubjectTypeRadioButtonList");
-       if (SubjectTypeRadioButtonList != null && !string.IsNullOrEmpty(SubjectTypeRadioButtonList.SelectedValue))
     {
-                StudentRecordSQL.InsertParameters["StudentID"].DefaultValue = StudentID.ToString();
-     StudentRecordSQL.InsertParameters["SubjectID"].DefaultValue = GroupGridView.DataKeys[row.RowIndex].Values["SubjectID"].ToString();
+      RadioButtonList SubjectTypeRadioButtonList = (RadioButtonList)row.FindControl("SubjectTypeRadioButtonList");
+       if (SubjectTypeRadioButtonList != null && !string.IsNullOrEmpty(SubjectTypeRadioButtonList.SelectedValue))
+ {
+    StudentRecordSQL.InsertParameters["StudentID"].DefaultValue = StudentID.ToString();
+   StudentRecordSQL.InsertParameters["SubjectID"].DefaultValue = GroupGridView.DataKeys[row.RowIndex].Values["SubjectID"].ToString();
     StudentRecordSQL.InsertParameters["SubjectType"].DefaultValue = SubjectTypeRadioButtonList.SelectedValue;
            StudentRecordSQL.Insert();
-            }
+       }
    }
-        }
+ }
 
-           // Send admission SMS if checkbox is checked
+      // Send admission SMS if checkbox is checked
     if (SendAdmissionSMSCheckBox.Checked && !string.IsNullOrEmpty(SMSPhoneNoTextBox.Text))
  {
       SendAdmissionSMS(StudentNameTextBox.Text, IDTextBox.Text, ClassDropDownList.SelectedItem.Text,
    RollNumberTextBox.Text, SMSPhoneNoTextBox.Text, StudentID.ToString(), false);
      }
 
-           Response.Cookies["Class"].Value = ClassDropDownList.SelectedItem.Text;
+        Response.Cookies["Class"].Value = ClassDropDownList.SelectedItem.Text;
       Response.Cookies["RollNo"].Value = RollNumberTextBox.Text;
-   Response.Cookies["Admission_Year"].Value = Session["Edu_Year"].ToString();
+   Response.Cookies["Admission_Year"].Value = EducationYearDropDownList.SelectedValue;
    Response.Cookies["Admission_Year"].Expires = DateTime.Now.AddDays(1);
 
    Response.Redirect($"Payments.aspx?Student={StudentID}&Class={ClassDropDownList.SelectedValue}&StudentClass={StudentClassID}", false);
  Context.ApplicationInstance.CompleteRequest();
-         }
+     }
             catch (SqlException sqlEx)
-            {
-                // Check if it's a unique constraint violation
-           if (sqlEx.Number == 2627 || sqlEx.Number == 2601) // Unique constraint violation
+        {
+  // Check if it's a unique constraint violation
+       if (sqlEx.Number == 2627 || sqlEx.Number == 2601) // Unique constraint violation
 {
       ClientScript.RegisterStartupScript(this.GetType(), "DuplicateError",
       $"alert('⚠️ Student ID \"{IDTextBox.Text.Trim()}\" already exists!\\n\\nThis ID is already registered in the system.');", true);
@@ -361,8 +367,8 @@ if (SubjectCheckBox != null && SubjectCheckBox.Checked)
     {
               ClientScript.RegisterStartupScript(this.GetType(), "SQLError",
     $"alert('Database Error: {sqlEx.Message.Replace("'", "\\'")}');", true);
-             }
-            }
+   }
+     }
  catch (Exception ex)
 {
     ClientScript.RegisterStartupScript(this.GetType(), "Error",
@@ -432,7 +438,7 @@ if (SubjectCheckBox != null && SubjectCheckBox.Checked)
                                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
                                     cmd.Parameters.AddWithValue("@StudentID", studentIDforDB);
                                     cmd.Parameters.AddWithValue("@TeacherID", "");
-                                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+                                    cmd.Parameters.AddWithValue("@EducationYearID", EducationYearDropDownList.SelectedValue);
                                     cmd.ExecuteNonQuery();
                                 }
                             }

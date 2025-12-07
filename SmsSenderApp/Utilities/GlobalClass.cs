@@ -17,9 +17,33 @@ namespace SmsSenderApp
         private GlobalClass()
         {
             // Private constructor to prevent instantiation from outside the class
-            using (var db = new ModelContext())
+            try
             {
-                Setting = db.SikkhaloySettings.FirstOrDefault();
+                using (var db = new EduEntities())
+                {
+                    Setting = db.SikkhaloySettings.FirstOrDefault();
+
+                    // If no setting found, create default
+                    if (Setting == null)
+                    {
+                        Setting = new SikkhaloySetting
+                        {
+                            SmsSendInterval = 5, // Default 5 minutes
+                            SmsProcessingUnit = 100 // Default 100 SMS per batch
+                        };
+                        Log.Warning("No SikkhaloySetting found in database, using default values");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to load settings from database");
+                // Create default setting if database connection fails
+                Setting = new SikkhaloySetting
+                {
+                    SmsSendInterval = 5,
+                    SmsProcessingUnit = 100
+                };
             }
         }
 
@@ -36,7 +60,7 @@ namespace SmsSenderApp
                     AppStartTime = DateTime.Now,
                 };
 
-                using (var db = new ModelContext())
+                using (var db = new EduEntities())
                 {
                     db.Attendance_SMS_Sender.Add(sender);
                     db.SaveChanges();
@@ -47,7 +71,11 @@ namespace SmsSenderApp
             catch (Exception e)
             {
                 Log.Error(e, e.Message);
-                throw;
+                // Don't throw, continue with null SmsSender
+                SmsSender = new Attendance_SMS_Sender
+                {
+                    AppStartTime = DateTime.Now,
+                };
             }
 
         }
@@ -56,7 +84,13 @@ namespace SmsSenderApp
         {
             try
             {
-                using (var db = new ModelContext())
+                if (SmsSender == null)
+                {
+                    Log.Warning("SmsSender is null, skipping update");
+                    return;
+                }
+
+                using (var db = new EduEntities())
                 {
                     SmsSender.AppCloseTime = DateTime.Now;
                     db.Attendance_SMS_Sender.AddOrUpdate(SmsSender);
@@ -67,8 +101,7 @@ namespace SmsSenderApp
             catch (Exception e)
             {
                 Log.Error(e, e.Message);
-
-                throw;
+                // Don't throw on exit
             }
         }
 
@@ -78,7 +111,7 @@ namespace SmsSenderApp
             {
                 var smsList = new List<Attendance_SMS>();
 
-                using (var db = new ModelContext())
+                using (var db = new EduEntities())
                 {
                     smsList = await db.Attendance_SMS.Take(Setting.SmsProcessingUnit).ToListAsync();
                     db.Attendance_SMS.RemoveRange(smsList);
@@ -99,72 +132,87 @@ namespace SmsSenderApp
 
         public async Task<List<int>> NoSmsBalanceSchoolIdsAsync(List<int> allSchoolIds)
         {
-            try
-            {
-                var ids = new List<int>();
+   try
+          {
+  var ids = new List<int>();
 
-                using (var db = new ModelContext())
-                {
-                    ids = await db.SMS.Where(s => s.SMS_Balance < 1 && allSchoolIds.Contains(s.SchoolID)).Select(s => s.SchoolID).ToListAsync();
-                }
-
-                return ids;
-
+using (var db = new EduEntities())
+       {
+         // Query SMS table directly using SQL
+      var sql = @"SELECT SchoolID FROM SMS 
+  WHERE SMS_Balance < 1 
+       AND SchoolID IN (" + string.Join(",", allSchoolIds) + ")";
+  
+   try
+      {
+ids = await db.Database.SqlQuery<int>(sql).ToListAsync();
             }
-            catch (Exception e)
-            {
-                Log.Error(e, e.Message);
-                throw;
-            }
+          catch (Exception ex)
+{
+      Log.Warning(ex, "Failed to query SMS balance, assuming all schools have balance");
+         // If query fails, return empty list (assume all have balance)
+    ids = new List<int>();
+ }
         }
+
+    return ids;
+
+     }
+          catch (Exception e)
+     {
+     Log.Error(e, e.Message);
+      // Don't throw, return empty list
+return new List<int>();
+      }
+    }
 
         public async Task SMS_OtherInfoAddAsync(IEnumerable<SMS_OtherInfo> dataList)
         {
-            try
-            {
-                using (var db = new ModelContext())
-                {
-                    db.SMS_OtherInfo.AddRange(dataList);
-                    await db.SaveChangesAsync();
-                }
+     try
+   {
+  using (var db = new EduEntities())
+         {
+          db.SMS_OtherInfo.AddRange(dataList);
+       await db.SaveChangesAsync();
+     }
             }
-            catch (Exception e)
-            {
-                Log.Error(e, e.Message);
-            }
+     catch (Exception e)
+   {
+    Log.Error(e, e.Message);
+  }
         }
 
         public async Task SMS_Send_RecordAddAsync(IEnumerable<SMS_Send_Record> dataList)
         {
             try
-            {
-                using (var db = new ModelContext())
-                {
-                    db.SMS_Send_Record.AddRange(dataList);
-                    await db.SaveChangesAsync();
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, e.Message);
-            }
+   {
+     using (var db = new EduEntities())
+     {
+    db.SMS_Send_Record.AddRange(dataList);
+        await db.SaveChangesAsync();
+       }
+  }
+    catch (Exception e)
+   {
+       Log.Error(e, e.Message);
+  }
         }
 
         public async Task Attendance_SMS_FailedAddAsync(IEnumerable<Attendance_SMS_Failed> dataList)
         {
-            try
-            {
-                using (var db = new ModelContext())
-                {
-                    db.Attendance_SMS_Failed.AddRange(dataList);
-                    await db.SaveChangesAsync();
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, e.Message);
-                throw;
-            }
+    try
+       {
+         using (var db = new EduEntities())
+     {
+            db.Attendance_SMS_Failed.AddRange(dataList);
+    await db.SaveChangesAsync();
+      }
+     }
+  catch (Exception e)
+ {
+  Log.Error(e, e.Message);
+            throw;
+ }
         }
     }
 }

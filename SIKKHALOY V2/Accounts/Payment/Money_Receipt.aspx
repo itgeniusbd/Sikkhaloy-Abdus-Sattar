@@ -5,6 +5,13 @@
 
     <!--add dynamic css for printing-->
     <style type="text/css" media="print" id="print-content"></style>
+    
+    <style>
+        /* Discount column styling */
+        .discount-column-hidden {
+            display: none !important;
+        }
+    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -100,6 +107,16 @@ UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceipt
                 <FooterStyle HorizontalAlign="Right" />
                 <ItemStyle HorizontalAlign="Right" />
             </asp:TemplateField>
+            <asp:TemplateField HeaderText="Discount">
+                <ItemTemplate>
+                    <asp:Label ID="DiscountLabel" runat="server" Text='<%# Bind("Total_Discount") %>'></asp:Label>
+                    TK
+                </ItemTemplate>
+                <FooterTemplate>
+                    <span id="DiscountTotalLabel"></span>
+                    TK
+                </FooterTemplate>
+            </asp:TemplateField>
             <asp:TemplateField HeaderText="Paid">
                 <ItemTemplate>
                     <asp:Label ID="PaidAmountLabel" runat="server" Text='<%# Bind("PaidAmount") %>'></asp:Label>
@@ -122,7 +139,27 @@ UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceipt
         <RowStyle CssClass="Rows" />
     </asp:GridView>
     <asp:SqlDataSource ID="PaidDetailsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-        SelectCommand="SELECT Income_PaymentRecord.MoneyReceiptID, Income_Roles.Role, Income_PaymentRecord.PayFor + ' (' + Education_Year.EducationYear + ')' AS PayFor, Income_PaymentRecord.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount , 0) + ISNULL(Income_PayOrder.LateFee , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PaymentRecord.PaidAmount , 0) - ISNULL(Income_PayOrder.LateFee_Discount , 0) ELSE ISNULL(Income_PayOrder.Amount , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PaymentRecord.PaidAmount , 0) END AS Due, Income_PaymentRecord.PaidDate, Income_PayOrder.Amount FROM Income_PaymentRecord INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID INNER JOIN Income_PayOrder ON Income_PaymentRecord.PayOrderID = Income_PayOrder.PayOrderID INNER JOIN Education_Year ON Income_PaymentRecord.EducationYearID = Education_Year.EducationYearID WHERE (Income_PaymentRecord.MoneyReceiptID = @MoneyReceiptID) AND (Income_PaymentRecord.SchoolID = @SchoolID) ORDER BY Income_PayOrder.EndDate">
+        SelectCommand="SELECT 
+    Income_PaymentRecord.MoneyReceiptID, 
+    Income_Roles.Role, 
+    Income_PaymentRecord.PayFor + ' (' + Education_Year.EducationYear + ')' AS PayFor, 
+    Income_PaymentRecord.PaidAmount,
+    ISNULL(Income_PayOrder.Discount, 0) + ISNULL(Income_PayOrder.LateFee_Discount, 0) AS Total_Discount,
+    CASE 
+        WHEN Income_PayOrder.EndDate < GETDATE() - 1 THEN 
+            ISNULL(Income_PayOrder.Receivable_Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0)
+        ELSE 
+            ISNULL(Income_PayOrder.Receivable_Amount, 0)
+    END AS Due,
+    Income_PaymentRecord.PaidDate, 
+    Income_PayOrder.Amount
+FROM Income_PaymentRecord 
+INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID 
+INNER JOIN Income_PayOrder ON Income_PaymentRecord.PayOrderID = Income_PayOrder.PayOrderID 
+INNER JOIN Education_Year ON Income_PaymentRecord.EducationYearID = Education_Year.EducationYearID 
+WHERE (Income_PaymentRecord.MoneyReceiptID = @MoneyReceiptID) 
+  AND (Income_PaymentRecord.SchoolID = @SchoolID) 
+ORDER BY Income_PayOrder.EndDate">
         <SelectParameters>
       <asp:Parameter Name="MoneyReceiptID" />
          <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -288,6 +325,34 @@ UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceipt
 
           const inWord = number2text(PaidTotal);
    document.getElementById("amount-in-word").textContent = inWord;
+
+ //Discount Grand Total and Hide/Show Discount Column
+ var DiscountTotal = 0;
+ var hasDiscount = false;
+ 
+ $("[id*=DiscountLabel]").each(function () { 
+     var val = parseFloat($(this).text());
+     if (!isNaN(val) && val > 0) {
+         hasDiscount = true;
+         DiscountTotal = DiscountTotal + val;
+     }
+ });
+ 
+ // Show/Hide Discount Column based on whether there's any discount
+ var gridView = $('#<%= PaidDetailsGridView.ClientID %>');
+ 
+ if (!hasDiscount || DiscountTotal === 0) {
+     // Hide Discount column (header and all cells) - it's the 3rd column
+     gridView.find('tr').each(function() {
+         $(this).find('th:eq(2), td:eq(2)').addClass('discount-column-hidden');
+     });
+     
+     console.log('Discount column hidden - no discounts found');
+ } else {
+     // Show discount total in footer
+     $("#DiscountTotalLabel").text(DiscountTotal.toFixed(2));
+     console.log('Discount column visible - Total discount: ' + DiscountTotal.toFixed(2));
+ }
 
  //Due Grand Total
   var DueTotal = 0;

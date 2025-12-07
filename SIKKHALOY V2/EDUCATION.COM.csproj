@@ -306,6 +306,7 @@
     <Content Include="Accounts\Reports\CSS\Income_Expense_Net.css" />
     <Content Include="Accounts\Reports\CSS\Payorder_Report.css" />
     <Content Include="Accounts\Reports\CSS\Student_Paid.css" />
+    <Content Include="Accounts\Reports\CSS\SubmitBalance.css" />
     <Content Include="Accounts\Reports\Expense.aspx" />
     <Content Include="Accounts\Reports\Final_Reports.aspx" />
     <Content Include="Accounts\Reports\Income.aspx" />
@@ -321,6 +322,7 @@
     <Content Include="Administration_Basic_Settings\Active_Deactivate_Teacher.aspx" />
     <Content Include="Administration_Basic_Settings\AllCertificate\CharecterCertificate_Bangla.aspx" />
     <Content Include="Administration_Basic_Settings\AllCertificate\CharecterCertificate_English.aspx" />
+    <Content Include="Administration_Basic_Settings\AllCertificate\Prottoyon_Bangla.aspx" />
     <Content Include="Administration_Basic_Settings\AllCertificate\Testimonial_Bangla.aspx" />
     <Content Include="Administration_Basic_Settings\AllCertificate\Testimonial_English.aspx" />
     <Content Include="Administration_Basic_Settings\Assigning_subject_in_classes.aspx" />
@@ -345,8 +347,9 @@
     <Content Include="Admission\CSS\Reject_Student.css" />
     <Content Include="Admission\CSS\Report.css" />
     <Content Include="Admission\Edit_Student_Info\Find_Student.aspx" />
-    <Content Include="Admission\New_Student_Admission\Form_Bangla.aspx" />
     <Content Include="Admission\New_Student_Admission\Admission_Form.aspx" />
+    <Content Include="Admission\New_Student_Admission\CSS\Admission_Form.css" />
+    <Content Include="Admission\New_Student_Admission\Form_Bangla.aspx" />
     <Content Include="Admission\New_Student_Admission\Admission_New_Student_old.aspx" />
     <Content Include="Admission\Blocked_Unblocked_Student_Temporarily.aspx" />
     <Content Include="Admission\CSS\Admission_New_Student.css" />
@@ -357,6 +360,7 @@
     <Content Include="Admission\New_Student_Admission\CSS\New_Students_Payments.css" />
     <Content Include="Admission\New_Student_Admission\CSS\New_Student_Admission.css" />
     <Content Include="Admission\New_Student_Admission\Online_Admission_Form.aspx" />
+    <Content Include="Admission\New_Student_Admission\Online_Admission_Form_EN.aspx" />
     <Content Include="Admission\New_Student_Admission\Payments.aspx" />
     <Content Include="Admission\New_Student_Admission\Admission_New_Student.aspx" />
     <Content Include="Admission\Print_TC.aspx" />
@@ -675,10 +679,6 @@
     <Content Include="Profile\WordOfTheDay_Simplified.sql" />
     <Content Include="SMS\SMS_Template.aspx" />
     <Content Include="SQL\Create_SMS_Template_Table.sql" />
-    <Content Include="SQL\Debug_Student_Grade.sql" />
-    <Content Include="SQL\Insert_All_Default_SMS_Templates.sql" />
-    <Content Include="SQL\Insert_Essential_SMS_Templates.sql" />
-    <Content Include="SQL\Insert_Payment_SMS_Templates.sql" />
     <Content Include="Student\Exam_Routine_forStudent.aspx" />
     <Content Include="Student\Notice.aspx" />
     <Content Include="Student\OnlinePayment\Success.aspx" />
@@ -687,6 +687,7 @@
     <Content Include="Teacher\StudentNotice.aspx" />
     <Content Include="Teacher\Input_Marks.aspx" />
     <Content Include="W_Test.aspx" />
+    <Content Include="Accounts\Payment\MONEY_RECEIPT_FIX_README.md" />
     <None Include="API\Attendance_DataSet.xsd">
       <SubType>Designer</SubType>
       <Generator>MSDataSetGenerator</Generator>
@@ -1106,6 +1107,13 @@
     <Compile Include="Administration_Basic_Settings\AllCertificate\CharecterCertificate_English.aspx.designer.cs">
       <DependentUpon>CharecterCertificate_English.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Administration_Basic_Settings\AllCertificate\Prottoyon_Bangla.aspx.cs">
+      <DependentUpon>Prottoyon_Bangla.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administration_Basic_Settings\AllCertificate\Prottoyon_Bangla.aspx.designer.cs">
+      <DependentUpon>Prottoyon_Bangla.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Administration_Basic_Settings\AllCertificate\Testimonial_Bangla.aspx.cs">
       <DependentUpon>Testimonial_Bangla.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -1232,19 +1240,19 @@
     <Compile Include="Admission\Edit_Student_Info\Find_Student.aspx.designer.cs">
       <DependentUpon>Find_Student.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.cs">
-      <DependentUpon>Form_Bangla.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.designer.cs">
-      <DependentUpon>Form_Bangla.aspx</DependentUpon>
-    </Compile>
     <Compile Include="Admission\New_Student_Admission\Admission_Form.aspx.cs">
       <DependentUpon>Admission_Form.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Admission\New_Student_Admission\Admission_Form.aspx.designer.cs">
       <DependentUpon>Admission_Form.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.cs">
+      <DependentUpon>Form_Bangla.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Admission\New_Student_Admission\Form_Bangla.aspx.designer.cs">
+      <DependentUpon>Form_Bangla.aspx</DependentUpon>
     </Compile>
     <Compile Include="Admission\New_Student_Admission\Admission_New_Student.aspx.cs">
       <DependentUpon>Admission_New_Student.aspx</DependentUpon>
@@ -1284,6 +1292,13 @@
     </Compile>
     <Compile Include="Admission\New_Student_Admission\Online_Admission_Form.aspx.designer.cs">
       <DependentUpon>Online_Admission_Form.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Admission\New_Student_Admission\Online_Admission_Form_EN.aspx.cs">
+      <DependentUpon>Online_Admission_Form_EN.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Admission\New_Student_Admission\Online_Admission_Form_EN.aspx.designer.cs">
+      <DependentUpon>Online_Admission_Form_EN.aspx</DependentUpon>
     </Compile>
     <Compile Include="Admission\New_Student_Admission\Payments.aspx.cs">
       <DependentUpon>Payments.aspx</DependentUpon>
@@ -2769,7 +2784,6 @@
     <Content Include="PaymentDataSet.xss">
       <DependentUpon>PaymentDataSet.xsd</DependentUpon>
     </Content>
-    <Content Include="SQL\README_SQL_SCRIPTS.md" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
