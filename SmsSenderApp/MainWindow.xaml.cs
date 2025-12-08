@@ -385,10 +385,12 @@ namespace SmsSenderApp
                 GlobalClass.Instance.SmsSender.TotalSmsFailed += failedSmsList.Count;
                 GlobalClass.Instance.SmsSender.TotalEventCall++;
                 
+                Log.Information($"Before SenderUpdate - Event: {GlobalClass.Instance.SmsSender.TotalEventCall}, Sent: {GlobalClass.Instance.SmsSender.TotalSmsSend}, Failed: {GlobalClass.Instance.SmsSender.TotalSmsFailed}");
+                
                 // Update in database
                 GlobalClass.Instance.SenderUpdate();
                 
-                Log.Information($"Event call completed - Total: {GlobalClass.Instance.SmsSender.TotalEventCall}, Sent: {GlobalClass.Instance.SmsSender.TotalSmsSend}, Failed: {GlobalClass.Instance.SmsSender.TotalSmsFailed}");
+                Log.Information($"After SenderUpdate - Event: {GlobalClass.Instance.SmsSender.TotalEventCall}, Sent: {GlobalClass.Instance.SmsSender.TotalSmsSend}, Failed: {GlobalClass.Instance.SmsSender.TotalSmsFailed}");
                 
                 ShowAppInfo();
             }

@@ -687,7 +687,6 @@
     <Content Include="Teacher\StudentNotice.aspx" />
     <Content Include="Teacher\Input_Marks.aspx" />
     <Content Include="W_Test.aspx" />
-    <Content Include="Accounts\Payment\MONEY_RECEIPT_FIX_README.md" />
     <None Include="API\Attendance_DataSet.xsd">
       <SubType>Designer</SubType>
       <Generator>MSDataSetGenerator</Generator>

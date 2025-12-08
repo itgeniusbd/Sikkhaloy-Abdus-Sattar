@@ -87,6 +87,42 @@ namespace EDUCATION.COM.Authority
         protected global::System.Web.UI.WebControls.SqlDataSource SmsSettingSQL;
 
         /// <summary>
+        /// RecordsStartDateTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox RecordsStartDateTextBox;
+
+        /// <summary>
+        /// RecordsEndDateTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox RecordsEndDateTextBox;
+
+        /// <summary>
+        /// SearchRecordsButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button SearchRecordsButton;
+
+        /// <summary>
+        /// ClearRecordsFilterButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button ClearRecordsFilterButton;
+
+        /// <summary>
         /// SmsSenderGridView control.
         /// </summary>
         /// <remarks>
@@ -103,6 +139,87 @@ namespace EDUCATION.COM.Authority
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SmsSenderSQL;
+
+        /// <summary>
+        /// FailedStartDateTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox FailedStartDateTextBox;
+
+        /// <summary>
+        /// FailedEndDateTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox FailedEndDateTextBox;
+
+        /// <summary>
+        /// FailedReasonDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList FailedReasonDropDown;
+
+        /// <summary>
+        /// InstitutionDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList InstitutionDropDown;
+
+        /// <summary>
+        /// InstitutionSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource InstitutionSQL;
+
+        /// <summary>
+        /// SearchFailedButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button SearchFailedButton;
+
+        /// <summary>
+        /// ClearFailedFilterButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button ClearFailedFilterButton;
+
+        /// <summary>
+        /// FailedStatsFormView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.FormView FailedStatsFormView;
+
+        /// <summary>
+        /// FailedStatsSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource FailedStatsSQL;
 
         /// <summary>
         /// SmsFailGridView control.

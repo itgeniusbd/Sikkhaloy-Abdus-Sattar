@@ -116,23 +116,31 @@ namespace SmsSenderApp
                 var sender = new Attendance_SMS_Sender
                 {
                     AppStartTime = DateTime.Now,
+                    TotalEventCall = 0,
+                    TotalSmsSend = 0,
+                    TotalSmsFailed = 0
                 };
 
                 using (var db = new EduEntities())
                 {
                     db.Attendance_SMS_Sender.Add(sender);
-                    db.SaveChanges();
+                    var changes = db.SaveChanges();
+                    Log.Information($"SenderInsert - Created new sender record with ID: {sender.AttendanceSmsSenderId}, Changes saved: {changes}");
                 }
 
                 SmsSender = sender;
+                Log.Information($"SmsSender initialized - ID: {SmsSender.AttendanceSmsSenderId}, StartTime: {SmsSender.AppStartTime}");
             }
             catch (Exception e)
             {
-                Log.Error(e, e.Message);
-                // Don't throw, continue with null SmsSender
+                Log.Error(e, "Failed to insert SmsSender");
+                // Don't throw, continue with default instance
                 SmsSender = new Attendance_SMS_Sender
                 {
                     AppStartTime = DateTime.Now,
+                    TotalEventCall = 0,
+                    TotalSmsSend = 0,
+                    TotalSmsFailed = 0
                 };
             }
 
@@ -157,8 +165,9 @@ namespace SmsSenderApp
                         existing.TotalSmsSend = SmsSender.TotalSmsSend;
                         existing.TotalSmsFailed = SmsSender.TotalSmsFailed;
                         existing.AppCloseTime = DateTime.Now;
-                        db.SaveChanges();
-                        Log.Debug($"Updated SmsSender in DB - ID: {SmsSender.AttendanceSmsSenderId}, Event: {SmsSender.TotalEventCall}, Sent: {SmsSender.TotalSmsSend}, Failed: {SmsSender.TotalSmsFailed}");
+                        
+                        var changes = db.SaveChanges();
+                        Log.Information($"Updated SmsSender in DB - ID: {SmsSender.AttendanceSmsSenderId}, Event: {SmsSender.TotalEventCall}, Sent: {SmsSender.TotalSmsSend}, Failed: {SmsSender.TotalSmsFailed}, Changes: {changes}");
                     }
                     else
                     {
