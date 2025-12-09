@@ -444,7 +444,6 @@ var phoneNo = StudentInfoFormView.DataKey["SMSPhoneNo"].ToString();
      // Use default message if no template found
  msg = "অভিনন্দন ! ";
        msg += $"{studentName} (ID: {studentId}). আপনি: {totalAmount} টাকা পরিশোধ করেছেন. রিসিট নম্বর: {moneyReceiptNo}";
-    msg += mess.ToString();
    msg += ". ধন্যবাদ, " + Session["School_Name"];
   }
 

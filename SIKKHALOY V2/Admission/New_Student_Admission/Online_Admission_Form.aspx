@@ -2,15 +2,15 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="https://fonts.maateen.me/kalpurush/font.css" rel="stylesheet">
-    <link href="../CSS/OnlineAdmissionForm.css?v=3.1" rel="stylesheet" />
+    <link href="../CSS/OnlineAdmissionForm.css?v=3.2" rel="stylesheet" />
     <style>
-  /* Force bold font with highest priority */
-      body, .print-container, .print-container * {
-         font-weight: 700 !important;
+        /* Force bold font with highest priority */
+        body, .print-container, .print-container * {
+            font-weight: 700 !important;
         }
    
         .label {
- font-weight: 900 !important;
+            font-weight: 900 !important;
         }
         
         legend {
@@ -18,36 +18,93 @@
         }
         
         .form-title {
-    font-weight: 900 !important;
-  }
+            font-weight: 900 !important;
+        }
+  
+        /* Navigation Bar Button Hover Effects */
+        .d-print-none a:hover,
+        .d-print-none button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+        }
+        
+        .d-print-none a:active,
+        .d-print-none button:active {
+            transform: translateY(-1px);
+        }
+        
+        /* Responsive design for navigation bar */
+        @media (max-width: 768px) {
+            .d-print-none > div > div:last-child {
+                flex-direction: column !important;
+            }
+            
+            .d-print-none a,
+            .d-print-none button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Print styles - hide navigation */
+        @media print {
+            .d-print-none {
+                display: none !important;
+            }
+        }
     </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
+    <!-- Modern Navigation Bar at Top -->
+    <div class="d-print-none" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 40px; margin: -20px -20px 30px -20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-radius: 0 0 15px 15px;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <!-- Header Title -->
+          
+            <!-- Navigation Buttons -->
+            <div style="display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-blue" onclick="window.print();" style="background: white; color: #667eea; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-print" style="font-size: 16px;"></i>
+                    <span>প্রিন্ট করুন</span>
+                </button>
+                
+                <a href="Online_Admission_Form_EN.aspx" style="background: white; color: #000; text-decoration: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-language" style="font-size: 18px;"></i>
+                    <span>English Form</span>
+                </a>
+                
+                <a href="Admission_Form.aspx" style="background: white; color: #000; text-decoration: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-file-text-o" style="font-size: 18px;"></i>
+                    <span>Information Form</span>
+                </a>
+                
+                <a href="Form_Bangla.aspx" style="background: white; color: #000; text-decoration: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-file-text" style="font-size: 18px;"></i>
+                    <span>তথ্যসহ ফরম</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div class="print-container" style="font-weight: 700 !important;">
         <!-- Watermark -->
         <div class="watermark">ভর্তি ফরম</div>
 
-   <!-- Action Buttons -->
- <div class="action-buttons d-print-none">
-         <input class="btn btn-blue" onclick="window.print();" type="button" value="প্রিন্ট করুন" style="font-weight: 700 !important;" />
-      <a href="Online_Admission_Form_EN.aspx"> Print Admission Form English >> </a> 
-        </div>
-
         <!-- Form Header -->
         <div class="form-header">
             <!-- Left: Admission Date -->
- <div class="admission-date" style="font-weight: 700 !important;">
-        ভর্তির তারিখ<br/>___/___/___
-       </div>
+            <div class="admission-date" style="font-weight: 700 !important;">
+                ভর্তির তারিখ<br/>___/___/___
+            </div>
      
             <!-- Center: Title -->
-      <div class="header-center">
-          <div class="form-title" style="font-weight: 900 !important;">ভর্তি ফরম</div>
-       </div
+            <div class="header-center">
+                <div class="form-title" style="font-weight: 900 !important;">ভর্তি ফরম</div>
+            </div>
+            
             <!-- Right: Photo Box -->
-   <div class="student-photo-box" style="font-weight: 700 !important;">
-           ছবি<br/>স্থান
+            <div class="student-photo-box" style="font-weight: 700 !important;">
+                ছবি<br/>স্থান
             </div>
         </div>
 

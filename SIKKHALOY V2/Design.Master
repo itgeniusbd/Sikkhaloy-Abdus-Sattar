@@ -19,7 +19,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.5.15/css/mdb.min.css" rel="stylesheet" />
 
     <!-- Custom -->
-    <link href="/CSS/External_Master.css?v=15.3" rel="stylesheet" />
+    <link href="/CSS/External_Master.css?v=16.2" rel="stylesheet" />
 
     <!--[if lt IE 9]>
      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
@@ -126,30 +126,36 @@
 
         <!--Login-->
         <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-            <div class="modal-dialog cascading-modal" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h4 class="title"><i class="fa fa-lock"></i>Login</h4>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content modern-login-modal">
+                    <div class="modal-header modern-modal-header">
+                        <h4 class="title"><i class="fa fa-lock"></i> Login</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
-                    <div class="modal-body mb-0">
+                    <div class="modal-body modern-modal-body">
                         <asp:UpdatePanel ID="UpdatePanel2" runat="server">
                             <ContentTemplate>
                                 <asp:Login ID="UserLogin" runat="server" OnLoginError="UserLogin_LoginError" OnLoggedIn="UserLogin_LoggedIn" DestinationPageUrl="~/Profile_Redirect.aspx" Width="100%">
                                     <LayoutTemplate>
-                                        <div class="md-form">
-                                            <i class="fa fa-envelope prefix grey-text"></i>
-                                            <asp:TextBox ID="UserName" runat="server" class="form-control" placeholder="username"></asp:TextBox>
+                                        <div class="modern-form-group">
+                                            <div class="input-icon-wrapper">
+                                                <i class="fa fa-user input-icon"></i>
+                                                <asp:TextBox ID="UserName" runat="server" class="modern-input" placeholder="Username"></asp:TextBox>
+                                            </div>
                                             <asp:RequiredFieldValidator ID="UserNameRequired" runat="server" ControlToValidate="UserName" ErrorMessage="User Name is required." ForeColor="#CC0000" ToolTip="User Name is required." ValidationGroup="Login1">*</asp:RequiredFieldValidator>
                                         </div>
-                                        <div class="md-form">
-                                            <i class="fa fa-lock prefix grey-text"></i>
-                                            <asp:TextBox ID="Password" runat="server" class="form-control" TextMode="Password" placeholder="password"></asp:TextBox>
+                                        <div class="modern-form-group">
+                                            <div class="input-icon-wrapper">
+                                                <i class="fa fa-lock input-icon"></i>
+                                                <asp:TextBox ID="Password" runat="server" class="modern-input" TextMode="Password" placeholder="Password"></asp:TextBox>
+                                            </div>
                                             <asp:RequiredFieldValidator ID="PasswordRequired" runat="server" ControlToValidate="Password" ErrorMessage="Password is required." ForeColor="Red" ToolTip="Password is required." ValidationGroup="Login1">*</asp:RequiredFieldValidator>
                                         </div>
-                                        <div class="md-form">
+                                        <div class="modern-form-group">
                                             <div class="text-center">
-                                                <asp:Button ID="LoginButton" runat="server" CommandName="Login" class="btn btn-default waves-effect waves-light" Text="Log In" ValidationGroup="Login1" />
+                                                <asp:Button ID="LoginButton" runat="server" CommandName="Login" class="modern-login-btn" Text="Log In" ValidationGroup="Login1" OnClientClick="showLoginAnimation(); return true;" />
                                             </div>
                                         </div>
                                         <div class="alert-danger">
@@ -160,12 +166,52 @@
                                 <asp:Label ID="InvalidErrorLabel" runat="server" CssClass="Error"></asp:Label>
                             </ContentTemplate>
                         </asp:UpdatePanel>
+                        
+                        <!-- Loading Animation -->
+                        <div id="loginLoadingAnimation" class="login-animation-overlay" style="display: none;">
+                            <div class="animation-container">
+                                <!-- Floating Particles -->
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                                
+                                <!-- Loading Ring -->
+                                <div class="loading-ring">
+                                    <div class="loading-ring-circle"></div>
+                                </div>
+                                
+                                <!-- Logo Container -->
+                                <div class="logo-container">
+                                    <img src="/CSS/Image/SikkhaloyLogo.png" alt="Sikkhaloy Logo" class="sikkhaloy-logo" />
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill"></div>
+                                </div>
+                                
+                                <!-- Loading Text -->
+                                <div class="loading-text">
+                                    Logging in<span class="loading-dots"><span></span><span></span><span></span></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </form>
     <script>
+        function showLoginAnimation() {
+            $('#loginLoadingAnimation').fadeIn(300);
+        }
+
+        function hideLoginAnimation() {
+            $('#loginLoadingAnimation').fadeOut(300);
+        }
+
         $(function () {
             //Remove Session ID
             localStorage.removeItem("_sid");
@@ -194,6 +240,15 @@
             $('#toTop').click(function () {
                 $("html, body").animate({ scrollTop: 0 }, 600);
                 return false;
+            });
+
+            // Hide animation on login error
+            var prm = Sys.WebForms.PageRequestManager.getInstance();
+            prm.add_endRequest(function() {
+                var failureText = $('[id*=FailureText]').text();
+                if (failureText && failureText.length > 0) {
+                    hideLoginAnimation();
+                }
             });
         });
     </script>

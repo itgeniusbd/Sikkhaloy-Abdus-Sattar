@@ -118,11 +118,11 @@ namespace EDUCATION.COM.Accounts.Payment
                     msg = "Congrats! ";
                     msg += $"(ID: {studentId}) {studentName}. You've Paid: {paid} Tk. Receipt No: {receiptNo}";
 
-                    // Optionally include payment details in default message
-                    if (!string.IsNullOrEmpty(paymentDetails))
-                    {
-                        msg += paymentDetails;
-                    }
+                    //Optionally include payment details in default message
+                    //if (!string.IsNullOrEmpty(paymentDetails))
+                    //{
+                    //    msg += paymentDetails;
+                    //}
 
                     msg += ". Regards, " + Session["School_Name"];
                 }

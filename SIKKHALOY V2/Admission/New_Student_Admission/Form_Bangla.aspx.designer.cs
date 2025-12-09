@@ -15,6 +15,33 @@ namespace EDUCATION.COM.Admission.New_Student_Admission
     {
 
         /// <summary>
+        /// StudentIDTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox StudentIDTextBox;
+
+        /// <summary>
+        /// SearchButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button SearchButton;
+
+        /// <summary>
+        /// MessageLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label MessageLabel;
+
+        /// <summary>
         /// FormView1 control.
         /// </summary>
         /// <remarks>

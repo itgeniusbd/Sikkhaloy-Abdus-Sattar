@@ -87,7 +87,6 @@ ORDER BY CreateClass.SN">
                                         </td>
                                         <td>
                                             <asp:RegularExpressionValidator ID="FRex" runat="server" ControlToValidate="HMforExamTextBox" CssClass="EroorStar" ErrorMessage="*" SetFocusOnError="True" ValidationExpression="^\s*(?=.*[1-9])\d*(?:\.\d{1,2})?\s*$" ValidationGroup="Ex"></asp:RegularExpressionValidator>
-                                            <asp:RequiredFieldValidator ID="ExamMarksRequired" runat="server" ControlToValidate="HMforExamTextBox" CssClass="EroorStar" ErrorMessage="*" SetFocusOnError="True" ValidationGroup="Ex"></asp:RequiredFieldValidator>
 
                                             <asp:CheckBox ID="AddSubExamCheckBox" runat="server" AutoPostBack="True" OnCheckedChanged="AddSubExamCheckBox_CheckedChanged" Text="Sub-Exam" />
                                         </td>
@@ -104,7 +103,6 @@ ORDER BY CreateClass.SN">
                                         </asp:TemplateField>
                                         <asp:TemplateField HeaderText="Full Marks">
                                             <ItemTemplate>
-                                                <asp:RequiredFieldValidator ID="SubExamRequired" runat="server" ControlToValidate="SubExamFullMarkTextBox" CssClass="EroorStar" Display="Dynamic" Enabled="False" ErrorMessage="Enter Marks" SetFocusOnError="True" ValidationGroup="Ex"></asp:RequiredFieldValidator>
                                                 <asp:RegularExpressionValidator ID="SubRV" runat="server" ControlToValidate="SubExamFullMarkTextBox" CssClass="EroorStar" ErrorMessage="Not Allowed" SetFocusOnError="True" ValidationExpression="^\s*(?=.*[1-9])\d*(?:\.\d{1,2})?\s*$" ValidationGroup="Ex"></asp:RegularExpressionValidator>
                                                 <asp:TextBox ID="SubExamFullMarkTextBox" onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" runat="server" CssClass="form-control" Enabled="False" placeholder="Sub-Exam Full Marks"></asp:TextBox>
                                             </ItemTemplate>
@@ -330,11 +328,9 @@ SELECT @SchoolID, @RegistrationID, SubjectID, @To_ExamID, @ClassID, SubExamID, @
 
                 if ($(this).is(":checked")) {
                     $("[id*=SubExamFullMarkTextBox]", td).prop("disabled", false);
-                    ValidatorEnable($("[id*=SubExamRequired]", td)[0], true);
                 }
                 else {
                     $("[id*=SubExamFullMarkTextBox]", td).prop("disabled", true).val('');
-                    ValidatorEnable($("[id*=SubExamRequired]", td)[0], false);
                 }
             });
 
@@ -343,11 +339,6 @@ SELECT @SchoolID, @RegistrationID, SubjectID, @To_ExamID, @ClassID, SubExamID, @
                 var ischecked = $(this).is(":checked");
                 if (ischecked) {
                     $(this).parent().next().find("input[type='text']").prop("disabled", false);
-
-                    var txt = $(this).parent().next().find("input[type='text']").val();
-                    if (txt == "") {
-                        ValidatorEnable($(this).parent().next().find("[id*=SubExamRequired]")[0], true);
-                    }
                 }
             });
         });

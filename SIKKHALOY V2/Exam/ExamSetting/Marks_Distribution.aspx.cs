@@ -21,7 +21,6 @@ namespace EDUCATION.COM.EXAM.ExamSetting
                 CheckBox AddSubExamCheckBox = (CheckBox)row.FindControl("AddSubExamCheckBox");
                 GridView SubExamGridView = (GridView)row.FindControl("SubExamGridView");
                 TextBox HMforExamTextBox = (TextBox)row.FindControl("HMforExamTextBox");
-                RequiredFieldValidator ExamMarksRequired = row.FindControl("ExamMarksRequired") as RequiredFieldValidator;
 
                 con.Open();
                 SqlCommand SubExam_CheckCMD = new SqlCommand("Select FullMarks from Exam_Full_Marks Where SchoolID = @SchoolID and ClassID = @ClassID and ExamID = @ExamID and SubjectID = @SubjectID and SubExamID is null", con);
@@ -34,8 +33,6 @@ namespace EDUCATION.COM.EXAM.ExamSetting
                 if (checke != null)
                 {
                     HMforExamTextBox.Text = SubExam_CheckCMD.ExecuteScalar().ToString();
-                    ExamMarksRequired.Enabled = true;
-
                 }
                 else
                 {
@@ -43,7 +40,6 @@ namespace EDUCATION.COM.EXAM.ExamSetting
                     {
                         CheckBox SubExamCheckBox = (CheckBox)SXrow.FindControl("SubExamCheckBox");
                         TextBox SubExamFullMarkTextBox = (TextBox)SXrow.FindControl("SubExamFullMarkTextBox");
-                        RequiredFieldValidator SubExamRequired = SXrow.FindControl("SubExamRequired") as RequiredFieldValidator;
 
                         SqlCommand ExamRoleCheckcmd = new SqlCommand("Select FullMarks from Exam_Full_Marks Where SchoolID = @SchoolID and ClassID = @ClassID and ExamID = @ExamID and SubjectID = @SubjectID and SubExamID = @SubExamID", con);
                         ExamRoleCheckcmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
@@ -59,8 +55,6 @@ namespace EDUCATION.COM.EXAM.ExamSetting
                             AddSubExamCheckBox.Checked = true;
                             HMforExamTextBox.Visible = false;
                             SubExamGridView.Visible = true;
-                            ExamMarksRequired.Enabled = false;
-                            SubExamRequired.Enabled = true;
                             SubExamCheckBox.Checked = true;
                             SubExamFullMarkTextBox.Enabled = true;
                             SubExamFullMarkTextBox.CssClass = "form-control";
@@ -90,20 +84,17 @@ namespace EDUCATION.COM.EXAM.ExamSetting
             CheckBox AddSubExamCheckBox = (CheckBox)gvRow.FindControl("AddSubExamCheckBox");
             TextBox HMforExamTextBox = (TextBox)gvRow.FindControl("HMforExamTextBox");
             GridView SubExamGridView = (GridView)gvRow.FindControl("SubExamGridView");
-            RequiredFieldValidator ExamMarksRequired = gvRow.FindControl("ExamMarksRequired") as RequiredFieldValidator;
 
             if (AddSubExamCheckBox.Checked)
             {
                 HMforExamTextBox.Visible = false;
                 SubExamGridView.Visible = true;
-                ExamMarksRequired.Enabled = false;
                 HMforExamTextBox.Text = "";
             }
             else
             {
                 HMforExamTextBox.Visible = true;
                 SubExamGridView.Visible = false;
-                ExamMarksRequired.Enabled = true;
             }
         }
 
@@ -112,42 +103,10 @@ namespace EDUCATION.COM.EXAM.ExamSetting
         {
             if (Grading_System_DropDownList.Items.Count > 0)
             {
-                bool IsChecked = true;
                 string ErrorMgs = "";
+                int marksEntered = 0;
 
-                foreach (GridViewRow gvRow in SubjectGridView.Rows)
-                {
-                    CheckBox AddSubExamCheckBox = (CheckBox)gvRow.FindControl("AddSubExamCheckBox");
-
-                    if (AddSubExamCheckBox.Checked)
-                    {
-                        IsChecked = false;
-                        GridView SubExamGridView = (GridView)gvRow.FindControl("SubExamGridView");
-
-                        if (SubExamGridView.Rows.Count > 0)
-                        {
-                            foreach (GridViewRow InnerRow in SubExamGridView.Rows)
-                            {
-                                CheckBox SubExamCheckBox = (CheckBox)InnerRow.FindControl("SubExamCheckBox");
-                                if (SubExamCheckBox.Checked)
-                                {
-                                    IsChecked = true;
-                                }
-                                else
-                                {
-                                    ErrorMgs = "Select Sub-Exam";
-                                }
-                            }
-                        }
-                        else
-                        {
-                            IsChecked = false;
-                            ErrorMgs = "Sub-Exam Not Created";
-                        }
-                    }
-                }
-
-                if (IsChecked)
+                try
                 {
                     ExamFullMarksSQL.Delete();
 
@@ -157,41 +116,88 @@ namespace EDUCATION.COM.EXAM.ExamSetting
 
                         if (!AddSubExamCheckBox.Checked)
                         {
+                            // Regular exam marks
                             TextBox HMforExamTextBox = (TextBox)gvRow.FindControl("HMforExamTextBox");
-                            ExamFullMarksSQL.InsertParameters["SubjectID"].DefaultValue = SubjectGridView.DataKeys[gvRow.RowIndex]["SubjectID"].ToString();
-                            ExamFullMarksSQL.InsertParameters["FullMarks"].DefaultValue = HMforExamTextBox.Text;
-                            ExamFullMarksSQL.InsertParameters["SubExamID"].DefaultValue = "";
-                            ExamFullMarksSQL.Insert();
-                            ErrorMgs = "Marks Distributed Successfully!!";
+                            
+                            // Only insert if marks are entered
+                            if (!string.IsNullOrWhiteSpace(HMforExamTextBox.Text))
+                            {
+                                double marks;
+                                if (double.TryParse(HMforExamTextBox.Text, out marks) && marks > 0)
+                                {
+                                    ExamFullMarksSQL.InsertParameters["SubjectID"].DefaultValue = SubjectGridView.DataKeys[gvRow.RowIndex]["SubjectID"].ToString();
+                                    ExamFullMarksSQL.InsertParameters["FullMarks"].DefaultValue = HMforExamTextBox.Text;
+                                    ExamFullMarksSQL.InsertParameters["SubExamID"].DefaultValue = "";
+                                    ExamFullMarksSQL.Insert();
+                                    marksEntered++;
+                                }
+                            }
                         }
                         else
                         {
+                            // Sub-exam marks
                             GridView SubExamGridView = (GridView)gvRow.FindControl("SubExamGridView");
-                            foreach (GridViewRow InnerRow in SubExamGridView.Rows)
+                            bool subExamMarksEntered = false;
+                            
+                            if (SubExamGridView.Rows.Count > 0)
                             {
-                                CheckBox SubExamCheckBox = (CheckBox)InnerRow.FindControl("SubExamCheckBox");
-
-                                if (SubExamCheckBox.Checked)
+                                foreach (GridViewRow InnerRow in SubExamGridView.Rows)
                                 {
-                                    TextBox SubExamFullMarkTextBox = (TextBox)InnerRow.FindControl("SubExamFullMarkTextBox");
-                                    ExamFullMarksSQL.InsertParameters["SubjectID"].DefaultValue = SubjectGridView.DataKeys[gvRow.RowIndex]["SubjectID"].ToString();
-                                    ExamFullMarksSQL.InsertParameters["FullMarks"].DefaultValue = SubExamFullMarkTextBox.Text;
-                                    ExamFullMarksSQL.InsertParameters["SubExamID"].DefaultValue = SubExamGridView.DataKeys[InnerRow.RowIndex]["SubExamID"].ToString();
-                                    ExamFullMarksSQL.Insert();
-                                    ErrorMgs = "Marks Distributed Successfully!!";
+                                    CheckBox SubExamCheckBox = (CheckBox)InnerRow.FindControl("SubExamCheckBox");
+
+                                    if (SubExamCheckBox.Checked)
+                                    {
+                                        TextBox SubExamFullMarkTextBox = (TextBox)InnerRow.FindControl("SubExamFullMarkTextBox");
+                                        
+                                        // Only insert if marks are entered
+                                        if (!string.IsNullOrWhiteSpace(SubExamFullMarkTextBox.Text))
+                                        {
+                                            double marks;
+                                            if (double.TryParse(SubExamFullMarkTextBox.Text, out marks) && marks > 0)
+                                            {
+                                                ExamFullMarksSQL.InsertParameters["SubjectID"].DefaultValue = SubjectGridView.DataKeys[gvRow.RowIndex]["SubjectID"].ToString();
+                                                ExamFullMarksSQL.InsertParameters["FullMarks"].DefaultValue = SubExamFullMarkTextBox.Text;
+                                                ExamFullMarksSQL.InsertParameters["SubExamID"].DefaultValue = SubExamGridView.DataKeys[InnerRow.RowIndex]["SubExamID"].ToString();
+                                                ExamFullMarksSQL.Insert();
+                                                subExamMarksEntered = true;
+                                            }
+                                        }
+                                    }
                                 }
+                                
+                                if (subExamMarksEntered)
+                                {
+                                    marksEntered++;
+                                }
+                            }
+                            else
+                            {
+                                ErrorMgs = "Warning: Sub-Exam Not Created for some subjects!";
                             }
                         }
                     }
 
-                    //Update Grade System or Insert
-                    UpdateGradeSQL.Insert();
+                    if (marksEntered > 0)
+                    {
+                        //Update Grade System or Insert
+                        UpdateGradeSQL.Insert();
 
-                    //PassMark update
-                    ExamFullMarksSQL.Update();
+                        //PassMark update
+                        ExamFullMarksSQL.Update();
 
-                    //SP Update Exam_Mark_Re_Submit
-                    Mark4ClassSQL.Update();
+                        //SP Update Exam_Mark_Re_Submit
+                        Mark4ClassSQL.Update();
+
+                        ErrorMgs = $"Success! Marks distributed for {marksEntered} subject(s)";
+                    }
+                    else
+                    {
+                        ErrorMgs = "No marks entered! Please enter marks for at least one subject.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ErrorMgs = "Error: " + ex.Message;
                 }
 
                 ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('" + ErrorMgs + "')", true);

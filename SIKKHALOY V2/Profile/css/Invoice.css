@@ -1,11 +1,14 @@
-﻿
-.invoice-wraper { position: relative; }
+﻿.invoice-wraper { 
+    position: relative;
+    padding: 0 1rem;
+    box-sizing: border-box;
+}
 
-.Inst_Name { display: flex; margin-bottom: 1.1rem; margin-top: 2rem; padding-left: 2.5rem; }
+.Inst_Name { display: flex; margin-bottom: 1.1rem; margin-top: 1rem; padding-left: 0; }
 .Inst_Name h2 { font-family: Roboto,sans-serif; font-weight: 700; margin-bottom: -5px; padding: 0; color: #3a3d42; line-height: 35px; font-size: 1.7rem; }
 .Inst_Name small { color: #3a3d42; }
 
-.Ititle { background-color: #00ca51; text-align: right; padding-right: 90px; padding-top: 3px; padding-bottom: 3px; }
+.Ititle { background-color: #00ca51; text-align: right; padding-right: 90px; padding-top: 3px; padding-bottom: 3px; margin: 0 -1rem; }
 .Ititle b { background-color: #fff; padding: 10px; font-size: 27px; }
 
 .invoice-table { width: 100%; }
@@ -40,15 +43,93 @@
 .conclusion table tr td { font-weight: 400; font-size: .8rem; }
 .conclusion table tr td:nth-child(2) { padding-left: 25px; }
 
-.invc-footer { width: 100%; color: #3C525B; }
+.invc-footer { width: 100%; color: #3C525B;font-size:12px !important; }
 .footer_title { background-color: #00ca51; height: 4px; margin-bottom: 10px; }
 .footer_title b { background-color: #fff; }
 
 .auto-sign { color: #000; display: flex; justify-content: end; margin: 1rem 0; }
 
-/*@page { margin: 0 !important; }
-*/
+.signature-section { 
+    display: flex; 
+    justify-content: space-between; 
+    margin: 2rem 0 1rem 0; 
+    padding: 0;
+}
+
+.signature-box { 
+    flex: 1; 
+    text-align: center; 
+    padding: 0 10px;
+}
+
+.signature-line { 
+    
+    padding-top: 5px; 
+    margin-top: 50px; 
+    color: #000; 
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+@page { 
+    size: A4;
+    margin: 8mm 5mm;
+}
+
 @media print {
-    #header { display: none; }
+    #header, .d-print-none { 
+        display: none !important; 
+    }
+    
+    html { 
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+    
+    body { 
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100%;
+        height: auto;
+        overflow: visible !important;
+    }
+    
+    .invoice-wraper {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        margin: 0 !important;
+        padding: 5mm 8mm !important;
+        box-sizing: border-box;
+        overflow: visible !important;
+    }
+    
+    .Inst_Name {
+        margin-top: 0 !important;
+    }
+    
+    .Ititle {
+        margin: 0 -8mm !important;
+    }
+    
+    table {
+        page-break-inside: auto;
+        width: 100%;
+    }
+    
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+    
+    thead {
+        display: table-header-group;
+    }
+    
+    tfoot {
+        display: table-footer-group;
+    }
 }
 

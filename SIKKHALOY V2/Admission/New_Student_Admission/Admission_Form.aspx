@@ -4,6 +4,16 @@
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
+    <!-- Student ID Search Section -->
+    <div class="d-print-none" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+        <h5>Search Student by ID</h5>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <asp:TextBox ID="StudentIDTextBox" runat="server" placeholder="Enter Student ID" CssClass="form-control" style="width: 250px;"></asp:TextBox>
+            <asp:Button ID="SearchButton" runat="server" Text="Search" CssClass="btn btn-primary" OnClick="SearchButton_Click" />
+            <asp:Label ID="MessageLabel" runat="server" CssClass="text-danger"></asp:Label>
+        </div>
+    </div>
+
     <div class="print-container">
         <!-- Action Buttons (Print/Edit) -->
         <asp:FormView ID="FormView1" runat="server" DataSourceID="FormSQL" Width="100%">
@@ -127,7 +137,7 @@
         </div>
 
         <!-- Signature Section -->
-        <div class="signature-section">
+        <div class="signature-section" id="signatureSection" style="display: none;">
             <div class="signature-box">
                 <div class="signature-line">Student's Signature</div>
                 <div class="signature-date">Date: _______</div>
@@ -146,7 +156,7 @@
 <asp:SqlDataSource ID="FormSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.StudentsName, Student.FathersName, CreateClass.Class, StudentsClass.RollNo, CreateSection.Section, CreateSubjectGroup.SubjectGroup, CreateShift.Shift, Student.SMSPhoneNo, Student.StudentImageID, Student.StudentID, Student.SchoolID, Student.StudentEmailAddress, Student.DateofBirth, Student.BloodGroup, Student.Religion, Student.Gender, Student.StudentPermanentAddress, Student.StudentsLocalAddress, Student.PrevSchoolName, Student.PrevClass, Student.PrevExamYear, Student.PrevExamGrade, Student.MothersName, Student.MotherOccupation, Student.MotherPhoneNumber, Student.FatherOccupation, Student.FatherPhoneNumber, Student.GuardianName, Student.GuardianRelationshipwithStudent, Student.GuardianPhoneNumber, Student.OtherDetails, Student.AdmissionDate, StudentsClass.ClassID, StudentsClass.StudentClassID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.SchoolID = @SchoolID) AND (Student.StudentID = @StudentID) AND (StudentsClass.StudentClassID = @StudentClassID)">
         <SelectParameters>
      <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-  <asp:QueryStringParameter Name="StudentClassID" QueryStringField="StudentClass" />
+  <asp:QueryStringParameter Name="StudentClassID" QueryStringField="Student_Class" />
             <asp:QueryStringParameter Name="StudentID" QueryStringField="Student" />
         </SelectParameters>
     </asp:SqlDataSource>

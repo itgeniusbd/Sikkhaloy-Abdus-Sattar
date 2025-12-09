@@ -1,4 +1,4 @@
-﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="BASIC.master.cs" Inherits="EDUCATION.COM.BASIC" %>
+﻿﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="BASIC.master.cs" Inherits="EDUCATION.COM.BASIC" %>
 
 <!DOCTYPE html>
 
@@ -492,7 +492,7 @@
         </div>
 
         <script>
-            
+
             // Language Translation Dictionary
             var menuTranslations = {
                 'Basic Settings': 'মূল সেটিংস',
@@ -745,15 +745,15 @@
                     cursorborderradius: "3px",
                     emulatetouch: true
                 });
-                
+
                 $("#sidedrawer").mouseover(function () {
                     $("#sidedrawer").getNiceScroll().resize();
                 });
-                
+
                 new WOW().init();
-                
+
                 $('body').append('<div id="toTop" class="btn btn-info d-print-none"><span class="glyphicon glyphicon-chevron-up"></span> TOP</div>');
-                
+
                 $(window).scroll(function () {
                     if ($(this).scrollTop() !== 0) {
                         $('#toTop').fadeIn();
@@ -761,23 +761,23 @@
                         $('#toTop').fadeOut();
                     }
                 });
-                
+
                 $('#toTop').click(function () {
                     $("html, body").animate({ scrollTop: 0 }, 600);
                     return false;
                 });
-                
+
                 $("#CurrentYear").text((new Date).getFullYear());
-                
+
                 $('a[href$=_SkipLink]').each(function () {
                     $(this).remove();
                 });
-                
+
                 storeUser();
-                
+
                 // Initialize language system
                 initializeLanguageToggle();
-                
+
                 // Initialize header color picker
                 initializeHeaderColorPicker();
 
@@ -909,11 +909,11 @@
                     applyHeaderColor(color);
                     saveHeaderColor(color);
                     $('#customColorPicker').val(color);
-                    
+
                     // Visual feedback
                     $('.color-option').removeClass('selected');
                     $(this).addClass('selected');
-                    
+
                     // Show success message
                     showColorChangeMessage('কালার সফলভাবে পরিবর্তন হয়েছে!');
                 });
@@ -923,10 +923,10 @@
                     var color = $('#customColorPicker').val();
                     applyHeaderColor(color);
                     saveHeaderColor(color);
-                    
+
                     // Visual feedback
                     $('.color-option').removeClass('selected');
-                    
+
                     // Show success message
                     showColorChangeMessage('কাস্টম কালার সফলভাবে প্রয়োগ হয়েছে!');
                 });
@@ -937,11 +937,11 @@
                     applyHeaderColor(defaultColor);
                     saveHeaderColor(defaultColor);
                     $('#customColorPicker').val(defaultColor);
-                    
+
                     // Visual feedback
                     $('.color-option').removeClass('selected');
                     $('.color-option[data-color="' + defaultColor + '"]').addClass('selected');
-                    
+
                     // Show success message
                     showColorChangeMessage('ডিফল্ট কালার রিসেট হয়েছে!');
                 });
@@ -1003,7 +1003,7 @@
                 $('#languageToggle, #languageToggle2').off('click').on('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     var $btn = $(this);
                     var $allBtns = $('#languageToggle, #languageToggle2');
                     $allBtns.html('<i class="fa fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
@@ -1034,7 +1034,7 @@
 
                         $allBtns.prop('disabled', false);
                     }, 100);
-                    
+
                     return false;
                 });
 

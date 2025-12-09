@@ -97,12 +97,19 @@
                 <div class="form-group">
                     <asp:DropDownList ID="SubjectDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" DataSourceID="SubjectSQL" DataTextField="SubjectName" DataValueField="SubjectID" OnDataBound="SubjectDropDownList_DataBound" OnSelectedIndexChanged="SubjectDropDownList_SelectedIndexChanged">
                     </asp:DropDownList>
-                    <asp:SqlDataSource ID="SubjectSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT DISTINCT Subject.SubjectID, Subject.SubjectName FROM Subject INNER JOIN StudentRecord ON Subject.SubjectID = StudentRecord.SubjectID INNER JOIN StudentsClass ON StudentRecord.StudentClassID = StudentsClass.StudentClassID INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SchoolID = @SchoolID) AND (Student.Status = N'Active') AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID)">
+                    <asp:SqlDataSource ID="SubjectSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT DISTINCT Subject.SubjectID, Subject.SubjectName 
+FROM Subject 
+INNER JOIN Exam_Full_Marks ON Subject.SubjectID = Exam_Full_Marks.SubjectID 
+WHERE (Exam_Full_Marks.EducationYearID = @EducationYearID) 
+AND (Exam_Full_Marks.ClassID = @ClassID) 
+AND (Exam_Full_Marks.SchoolID = @SchoolID) 
+AND (Exam_Full_Marks.ExamID = @ExamID)
+ORDER BY Subject.SubjectName">
                         <SelectParameters>
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                             <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
-                            <asp:ControlParameter ControlID="GroupDropDownList" Name="SubjectGroupID" PropertyName="SelectedValue" />
+                            <asp:ControlParameter ControlID="ExamDropDownList" Name="ExamID" PropertyName="SelectedValue" />
                         </SelectParameters>
                     </asp:SqlDataSource>
                     <asp:RequiredFieldValidator ID="RequiredFieldValidator7" runat="server" ControlToValidate="SubjectDropDownList" CssClass="EroorStar" ErrorMessage="Select subject" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
