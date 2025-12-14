@@ -45,13 +45,79 @@
 
 @media (max-width:767px) {
     .d-flex {
- flex-direction: column;
+        flex-direction: column;
         align-items: flex-start !important;
     }
     
     .d-flex .NoPrint {
-   margin-top: 10px;
-  }
+        margin-top: 10px;
+    }
+    
+    /* Mobile: Center logo in header for Traditional Header */
+    body #header .bg-main .container-fluid > .d-flex.flex-sm-row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+    
+    body #header .bg-main .sidedrawer-toggle {
+        order: 1;
+        flex: 0 0 40px !important;
+        margin-right: 10px;
+    }
+    
+    body #header .bg-main .logo-waper {
+        order: 2;
+        flex: 1 1 auto !important;
+        text-align: center !important;
+        margin: 0 auto !important;
+    }
+    
+    body #header .bg-main .InsInfo {
+        order: 2;
+        flex: 1 1 auto !important;
+        text-align: center !important;
+        margin: 0 auto !important;
+    }
+    
+    body #header .bg-main .d-print-none.d-flex.align-items-center {
+        order: 3;
+        flex: 0 0 auto !important;
+        margin-left: 10px;
+    }
+    
+    /* For school name logo wrapper - if it exists */
+    body #header .school-name-logo-wrapper .container-fluid {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0 10px !important;
+    }
+    
+    body #header .school-name-logo-wrapper .sidedrawer-toggle {
+        order: 1;
+        flex: 0 0 40px !important;
+    }
+    
+    body #header .school-name-logo-wrapper .flex-grow-1 {
+        order: 2;
+        flex: 1 1 auto !important;
+        text-align: center !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    body #header .school-name-logo-wrapper .flex-grow-1 a {
+        display: inline-block !important;
+        margin: 0 auto !important;
+    }
+    
+    body #header .school-name-logo-wrapper .d-print-none {
+        order: 3;
+        flex: 0 0 auto !important;
+    }
 }
 
 

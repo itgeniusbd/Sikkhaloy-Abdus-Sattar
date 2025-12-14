@@ -2,28 +2,7 @@
 <%@ OutputCache Duration="1" VaryByParam="*" Location="Client" NoStore="true" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
- <link href="CSS/Accounts_By_User.css?v=10" rel="stylesheet" />
- 
- <style type="text/css">
- @media (min-width: 768px) {
- body #sidedrawer,
- body.hide-sidedrawer #sidedrawer {
- transform: translate(250px) !important;
- left: -250px !important;
- visibility: visible !important;
- display: block !important;
- }
- 
- body #header,
- body #content-wrapper,
- body #footer,
- body.hide-sideddrawer #header,
- body.hide-sidedrawer #content-wrapper,
- body.hide-sidedrawer #footer {
- margin-left: 250px !important;
- }
- }
- </style>
+ <link href="CSS/Accounts_By_User.css?v=12" rel="stylesheet" />
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -380,39 +359,6 @@ GROUP BY Expense_CategoryName.CategoryName)as t GROUP BY Category" CancelSelectO
  </div>
 
     <script>
-        // =================== SIDEBAR FIX ===================
-(function() {
- 'use strict';
- 
- window.preventSidebarHide = true;
- window.forceLockSidebar = true;
- 
- function fixSidebar() {
- if (document.body) {
- document.body.classList.remove('hide-sidedrawer');
- document.body.classList.add('lock-sidebar');
- }
- var sidebar = document.getElementById('sidedrawer');
- if (sidebar) {
- sidebar.style.transform = 'translate(250px)';
- sidebar.style.visibility = 'visible';
- sidebar.style.display = 'block';
- sidebar.style.left = '-250px';
- sidebar.style.opacity = '1';
- }
- }
- 
- fixSidebar();
- 
- if (document.readyState === 'loading') {
- document.addEventListener('DOMContentLoaded', fixSidebar);
- } else {
- fixSidebar();
- }
- 
- setInterval(fixSidebar, 200);
-})();
-
 // =================== FORCE CLEAR CACHE ON LOAD ===================
 (function() {
  // Clear any cached date values

@@ -1,0 +1,231 @@
+# iClock9000-G Push API Configuration Guide
+
+## Device Information
+- **Model:** iClock9000-G
+- **Serial:** SMRS25200106
+- **IP Address:** 192.168.0.201
+- **Protocol:** ADMS (ZKTeco proprietary protocol)
+
+## Configuration Steps
+
+### Method 1: ADMS Protocol (Recommended for iClock9000-G)
+
+#### Step 1: Access Device Menu
+```
+[MENU] ? Enter Password: 123456
+```
+
+#### Step 2: Navigate to ADMS Settings
+```
+Main Menu
+?? System
+    ?? Communications
+        ?? ADMS Settings
+```
+
+#### Step 3: Configure ADMS
+```
+Server IP   : pushapi.sikkhaloy.com
+Server Port : 4370
+Enable ADMS : YES
+Auto Upload : YES
+Upload Time : 30 seconds
+```
+
+#### Step 4: Save & Reboot
+```
+Press [OK] ? Save
+MENU ? System ? Power ? Reboot
+```
+
+### Method 2: Cloud/Push Protocol (Alternative)
+
+If ADMS option is not available:
+
+```
+MENU ? System ? Communications ? CloudServer
+Server  : pushapi.sikkhaloy.com/iclock/cdata
+Port    : 443 or 80
+Enable  : YES
+```
+
+## Network Requirements
+
+### Firewall Ports
+- **ADMS:** Port 4370 (outbound)
+- **Push:** Port 443 (HTTPS) or Port 80 (HTTP)
+
+### Server Endpoints
+- **Handshake:** `https://pushapi.sikkhaloy.com/iclock/cdata?SN={SERIAL}&options=all`
+- **Data Upload:** `https://pushapi.sikkhaloy.com/iclock/cdata?SN={SERIAL}&table=ATTLOG`
+- **Heartbeat:** `https://pushapi.sikkhaloy.com/iclock/ping`
+
+## Testing & Verification
+
+### Step 1: Check Device Connection
+After configuration, wait 2-3 minutes and check:
+```
+https://pushapi.sikkhaloy.com/
+```
+Device should show as "Connected" with green status.
+
+### Step 2: Test Attendance Upload
+1. Scan fingerprint on device
+2. Wait 30 seconds (upload interval)
+3. Check logs:
+```
+https://pushapi.sikkhaloy.com/iclock/test/logs
+```
+
+### Step 3: Verify Database
+Check if data is in database:
+```
+https://pushapi.sikkhaloy.com/iclock/test/database
+```
+
+## Troubleshooting
+
+### Issue 1: Device Showing "Disconnected"
+**Causes:**
+- ADMS not enabled
+- Wrong server address
+- Network/firewall blocking
+- Device time incorrect
+
+**Solutions:**
+1. Verify ADMS is enabled: Menu ? Comm ? ADMS ? Enable: YES
+2. Check server address: `pushapi.sikkhaloy.com` (without http://)
+3. Ping test from device: Menu ? System ? Network ? Ping Test
+4. Sync device time: Menu ? System ? DateTime ? Sync
+
+### Issue 2: No Data Uploading
+**Check:**
+1. Device registered in database?
+```sql
+SELECT * FROM Device_Institution_Mapping 
+WHERE DeviceSerialNumber = 'SMRS25200106'
+```
+
+2. Upload interval too long?
+   - Change to 30 seconds: Menu ? Comm ? ADMS ? Upload Time: 30
+
+3. Network connection stable?
+   - Check: Menu ? System ? Network ? Status
+
+### Issue 3: Authentication Failed
+**Solution:**
+1. Verify device serial in database matches actual serial
+2. Check SchoolID mapping is correct
+3. Ensure device is marked as Active (IsActive = 1)
+
+## Device LCD Password Reset
+
+If you can't access device menu:
+
+### Method A: Default Passwords
+Try these in order:
+- `123456` (most common)
+- `admin`
+- `888888`
+- `12345`
+
+### Method B: Hardware Reset
+1. Power off device
+2. Hold F1 button + Power on
+3. Release when menu appears
+4. Select "Reset Password"
+5. Default will be: `123456`
+
+## ZKTime Software Configuration
+
+Alternative method using ZKTime 5.0:
+
+1. Open ZKTime 5.0
+2. Connect device (already done ?)
+3. Right-click device ? Device Parameters
+4. Communication tab ? ADMS Settings:
+   ```
+   Server: pushapi.sikkhaloy.com
+   Port: 4370
+   Enable: Yes
+   ```
+5. Download to Device ? OK
+
+## API Endpoints Reference
+
+### Device Communication
+```
+GET  /iclock/cdata?SN={serial}&options=all    # Handshake
+POST /iclock/cdata?SN={serial}&table=ATTLOG   # Upload attendance
+GET  /iclock/getrequest?SN={serial}           # Get commands (ADMS)
+GET  /iclock/ping                              # Heartbeat
+```
+
+### Dashboard & Management
+```
+GET  /                                         # Dashboard
+GET  /device-mapping.html                      # Add device mapping
+GET  /iclock/test/logs                        # View logs
+GET  /iclock/test/database                    # Test database
+GET  /iclock/test/devices                     # View all devices
+```
+
+### API Endpoints
+```
+GET  /api/dashboard/devices                    # Get devices
+GET  /api/dashboard/stats                      # Get statistics
+POST /api/dashboard/add-device                 # Add device mapping
+```
+
+## Database Configuration
+
+Ensure device is registered:
+```sql
+-- Check if device exists
+SELECT * FROM Device_Institution_Mapping 
+WHERE DeviceSerialNumber = 'SMRS25200106'
+
+-- If not exists, add it
+INSERT INTO Device_Institution_Mapping 
+(SchoolID, DeviceSerialNumber, DeviceName, DeviceLocation, IsActive)
+VALUES 
+(1012, 'SMRS25200106', 'Main Gate Device', 'School Main Entrance', 1)
+```
+
+## Support
+
+### Check Device Status
+```
+Dashboard: https://pushapi.sikkhaloy.com/
+Logs: https://pushapi.sikkhaloy.com/iclock/test/logs
+```
+
+### Common Commands
+```sql
+-- Update device mapping
+UPDATE Device_Institution_Mapping 
+SET LastPushTime = NULL, IsActive = 1 
+WHERE DeviceSerialNumber = 'SMRS25200106'
+
+-- View recent attendance
+SELECT TOP 10 * FROM Employee_Attendance_Record 
+ORDER BY AttendanceDate DESC, EntryTime DESC
+```
+
+## Quick Reference
+
+| Setting | Value |
+|---------|-------|
+| Server | pushapi.sikkhaloy.com |
+| Port (ADMS) | 4370 |
+| Port (Push) | 443 or 80 |
+| URL Path | /iclock/cdata |
+| Enable | YES |
+| Upload Interval | 30 seconds |
+| Protocol | ADMS or Push |
+
+---
+
+**Last Updated:** 2024-12-12
+**Device Model:** iClock9000-G
+**API Version:** 1.0.5

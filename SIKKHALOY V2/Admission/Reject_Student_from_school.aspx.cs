@@ -485,9 +485,9 @@ SET SectionID = @SectionID,
 WHERE StudentClassID = @StudentClassID";
 
  SqlCommand cmdUpdateSameClass = new SqlCommand(updateSameClassSQL, con, transaction);
-  cmdUpdateSameClass.Parameters.AddWithValue("@SectionID", sectionID == 0 ? (object)DBNull.Value : sectionID);
-        cmdUpdateSameClass.Parameters.AddWithValue("@SubjectGroupID", groupID == 0 ? (object)DBNull.Value : groupID);
-        cmdUpdateSameClass.Parameters.AddWithValue("@ShiftID", shiftID == 0 ? (object)DBNull.Value : shiftID);
+  cmdUpdateSameClass.Parameters.AddWithValue("@SectionID", sectionID);
+        cmdUpdateSameClass.Parameters.AddWithValue("@SubjectGroupID", groupID);
+        cmdUpdateSameClass.Parameters.AddWithValue("@ShiftID", shiftID);
         cmdUpdateSameClass.Parameters.AddWithValue("@StudentClassID", existingStudentClassID);
         cmdUpdateSameClass.ExecuteNonQuery();
     }
@@ -505,9 +505,9 @@ WHERE StudentClassID = @StudentClassID";
 
    SqlCommand cmdUpdateDiffClass = new SqlCommand(updateDifferentClassSQL, con, transaction);
     cmdUpdateDiffClass.Parameters.AddWithValue("@ClassID", newClassID);
-        cmdUpdateDiffClass.Parameters.AddWithValue("@SectionID", sectionID == 0 ? (object)DBNull.Value : sectionID);
-   cmdUpdateDiffClass.Parameters.AddWithValue("@SubjectGroupID", groupID == 0 ? (object)DBNull.Value : groupID);
-   cmdUpdateDiffClass.Parameters.AddWithValue("@ShiftID", shiftID == 0 ? (object)DBNull.Value : shiftID);
+        cmdUpdateDiffClass.Parameters.AddWithValue("@SectionID", sectionID);
+   cmdUpdateDiffClass.Parameters.AddWithValue("@SubjectGroupID", groupID);
+   cmdUpdateDiffClass.Parameters.AddWithValue("@ShiftID", shiftID);
         cmdUpdateDiffClass.Parameters.AddWithValue("@StudentClassID", existingStudentClassID);
     cmdUpdateDiffClass.ExecuteNonQuery();
     }
@@ -546,14 +546,14 @@ VALUES
     cmdInsertNew.Parameters.AddWithValue("@RegistrationID", registrationID);
     cmdInsertNew.Parameters.AddWithValue("@StudentID", studentID);
     cmdInsertNew.Parameters.AddWithValue("@ClassID", newClassID);
-    cmdInsertNew.Parameters.AddWithValue("@SectionID", sectionID == 0 ? (object)DBNull.Value : sectionID);
-    cmdInsertNew.Parameters.AddWithValue("@SubjectGroupID", groupID == 0 ? (object)DBNull.Value : groupID);
-    cmdInsertNew.Parameters.AddWithValue("@ShiftID", shiftID == 0 ? (object)DBNull.Value : shiftID);
+    cmdInsertNew.Parameters.AddWithValue("@SectionID", sectionID);
+    cmdInsertNew.Parameters.AddWithValue("@SubjectGroupID", groupID);
+    cmdInsertNew.Parameters.AddWithValue("@ShiftID", shiftID);
     cmdInsertNew.Parameters.AddWithValue("@EducationYearID", newEducationYearID);
     cmdInsertNew.ExecuteNonQuery();
 }
 
-  // Step 3: Log the activation
+          // Step 3: Log the activation
    ActDeActLogSQL.InsertParameters["StudentClassID"].DefaultValue = currentStudentClassID;
       ActDeActLogSQL.InsertParameters["StudentID"].DefaultValue = studentID;
      ActDeActLogSQL.InsertParameters["Status"].DefaultValue = "Rejected";

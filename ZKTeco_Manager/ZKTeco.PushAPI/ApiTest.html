@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ZKTeco Push API Test</title>
+    <meta charset="utf-8" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 5px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .endpoint {
+            background: #34495e;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 3px;
+            display: inline-block;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .info {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 3px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>?? ZKTeco Push API Test Panel</h1>
+        
+        <div class="info">
+            <strong>?? ZKTeco ?????? ??????????:</strong><br/>
+            <strong>Server Address:</strong> api.sikkhaloy.com<br/>
+            <strong>Server Port:</strong> 80 (HTTP) or 443 (HTTPS)<br/>
+            <strong>Push URL Path:</strong> /iclock or /PushAPI/iclock
+        </div>
+
+        <div class="test-section">
+            <h2>1?? Ping Test (Heartbeat)</h2>
+            <p>?????? ???????? ????? - API ???? ???? ??? ????</p>
+            <div class="endpoint">GET /iclock/ping</div>
+            <div class="endpoint">GET /PushAPI/iclock/ping</div>
+            <br/><br/>
+            <button onclick="testPing()">Test /iclock/ping</button>
+            <button onclick="testPushApiPing()">Test /PushAPI/iclock/ping</button>
+            <div id="pingResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2?? Device Handshake Test</h2>
+            <p>?????? ??????? ????? - ?????? ???????? ??????? ??? ?? call ???</p>
+            <div class="endpoint">GET /iclock/cdata?SN=DEVICE_SERIAL&options=all</div>
+            <br/><br/>
+            <label>Device Serial:</label>
+            <input type="text" id="serialNumber" value="CKLT123456" placeholder="Enter device serial"/>
+            <br/><br/>
+            <button onclick="testHandshake()">Test /iclock/cdata</button>
+            <button onclick="testPushApiHandshake()">Test /PushAPI/iclock/cdata</button>
+            <div id="handshakeResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3?? Attendance Data Test</h2>
+            <p>???????? ???? ?????? ????? - ?????? attendance punch ???? ?? data ??????</p>
+            <div class="endpoint">POST /iclock/cdata?SN=DEVICE_SERIAL&table=ATTLOG</div>
+            <br/><br/>
+            <label>Device Serial:</label>
+            <input type="text" id="attSerial" value="CKLT123456" placeholder="Enter device serial"/>
+            <br/>
+            <label>User ID:</label>
+            <input type="text" id="userId" value="1001" placeholder="Enter user ID"/>
+            <br/><br/>
+            <button onclick="testAttendancePost()">Test POST /iclock/cdata</button>
+            <button onclick="testPushApiAttendancePost()">Test POST /PushAPI/iclock/cdata</button>
+            <div id="attendanceResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4?? Get Request Test</h2>
+            <p>??????? command ?????? (optional)</p>
+            <div class="endpoint">GET /iclock/getrequest?SN=DEVICE_SERIAL</div>
+            <br/><br/>
+            <button onclick="testGetRequest()">Test /iclock/getrequest</button>
+            <button onclick="testPushApiGetRequest()">Test /PushAPI/iclock/getrequest</button>
+            <div id="getRequestResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="info">
+            <strong>? Test Results Legend:</strong><br/>
+            <span class="success">? Green = Success (200 OK)</span><br/>
+            <span class="error">? Red = Error (404, 500, etc.)</span>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin;
+
+        async function testPing() {
+            await testEndpoint('/iclock/ping', 'GET', null, 'pingResult');
+        }
+
+        async function testPushApiPing() {
+            await testEndpoint('/PushAPI/iclock/ping', 'GET', null, 'pingResult');
+        }
+
+        async function testHandshake() {
+            const serial = document.getElementById('serialNumber').value;
+            await testEndpoint(`/iclock/cdata?SN=${serial}&options=all`, 'GET', null, 'handshakeResult');
+        }
+
+        async function testPushApiHandshake() {
+            const serial = document.getElementById('serialNumber').value;
+            await testEndpoint(`/PushAPI/iclock/cdata?SN=${serial}&options=all`, 'GET', null, 'handshakeResult');
+        }
+
+        async function testAttendancePost() {
+            const serial = document.getElementById('attSerial').value;
+            const userId = document.getElementById('userId').value;
+            const now = new Date();
+            const datetime = now.toISOString().replace('T', ' ').substring(0, 19);
+            
+            // ATTLOG format: USER_ID\tATT_TIME\tSTATUS\tVERIFY_TYPE\tWORK_CODE\tRESERVED1\tRESERVED2
+            const body = `${userId}\t${datetime}\t0\t1\t0\t0\t0`;
+            
+            await testEndpoint(`/iclock/cdata?SN=${serial}&table=ATTLOG&Stamp=1`, 'POST', body, 'attendanceResult');
+        }
+
+        async function testPushApiAttendancePost() {
+            const serial = document.getElementById('attSerial').value;
+            const userId = document.getElementById('userId').value;
+            const now = new Date();
+            const datetime = now.toISOString().replace('T', ' ').substring(0, 19);
+            
+            const body = `${userId}\t${datetime}\t0\t1\t0\t0\t0`;
+            
+            await testEndpoint(`/PushAPI/iclock/cdata?SN=${serial}&table=ATTLOG&Stamp=1`, 'POST', body, 'attendanceResult');
+        }
+
+        async function testGetRequest() {
+            const serial = document.getElementById('serialNumber').value;
+            await testEndpoint(`/iclock/getrequest?SN=${serial}`, 'GET', null, 'getRequestResult');
+        }
+
+        async function testPushApiGetRequest() {
+            const serial = document.getElementById('serialNumber').value;
+            await testEndpoint(`/PushAPI/iclock/getrequest?SN=${serial}`, 'GET', null, 'getRequestResult');
+        }
+
+        async function testEndpoint(url, method, body, resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '? Testing...';
+
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    }
+                };
+
+                if (body) {
+                    options.body = body;
+                }
+
+                const fullUrl = baseUrl + url;
+                resultDiv.innerHTML = `?? Request: ${method} ${fullUrl}\n`;
+                
+                if (body) {
+                    resultDiv.innerHTML += `\n?? Request Body:\n${body}\n`;
+                }
+
+                resultDiv.innerHTML += '\n? Sending request...\n';
+
+                const response = await fetch(fullUrl, options);
+                const text = await response.text();
+
+                resultDiv.innerHTML += `\n?? Response Status: ${response.status} ${response.statusText}\n`;
+                resultDiv.innerHTML += `\n?? Response Body:\n${text}`;
+
+                if (response.ok) {
+                    resultDiv.innerHTML = '<span class="success">? SUCCESS!</span>\n\n' + resultDiv.innerHTML;
+                } else {
+                    resultDiv.innerHTML = '<span class="error">? ERROR!</span>\n\n' + resultDiv.innerHTML;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">? ERROR!</span>\n\nException: ${error.message}`;
+                console.error('Test error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -135,7 +135,7 @@
                         </button>
                     </div>
                     <div class="modal-body modern-modal-body">
-                        <asp:UpdatePanel ID="UpdatePanel2" runat="server">
+                        <asp:UpdatePanel ID="UpdatePanel2" runat="server" UpdateMode="Conditional">
                             <ContentTemplate>
                                 <asp:Login ID="UserLogin" runat="server" OnLoginError="UserLogin_LoginError" OnLoggedIn="UserLogin_LoggedIn" DestinationPageUrl="~/Profile_Redirect.aspx" Width="100%">
                                     <LayoutTemplate>
@@ -144,26 +144,26 @@
                                                 <i class="fa fa-user input-icon"></i>
                                                 <asp:TextBox ID="UserName" runat="server" class="modern-input" placeholder="Username"></asp:TextBox>
                                             </div>
-                                            <asp:RequiredFieldValidator ID="UserNameRequired" runat="server" ControlToValidate="UserName" ErrorMessage="User Name is required." ForeColor="#CC0000" ToolTip="User Name is required." ValidationGroup="Login1">*</asp:RequiredFieldValidator>
+                                            <asp:RequiredFieldValidator ID="UserNameRequired" runat="server" ControlToValidate="UserName" ErrorMessage="User Name is required." ForeColor="#CC0000" ToolTip="User Name is required." ValidationGroup="Login1" Display="Dynamic">*</asp:RequiredFieldValidator>
                                         </div>
                                         <div class="modern-form-group">
                                             <div class="input-icon-wrapper">
                                                 <i class="fa fa-lock input-icon"></i>
                                                 <asp:TextBox ID="Password" runat="server" class="modern-input" TextMode="Password" placeholder="Password"></asp:TextBox>
                                             </div>
-                                            <asp:RequiredFieldValidator ID="PasswordRequired" runat="server" ControlToValidate="Password" ErrorMessage="Password is required." ForeColor="Red" ToolTip="Password is required." ValidationGroup="Login1">*</asp:RequiredFieldValidator>
+                                            <asp:RequiredFieldValidator ID="PasswordRequired" runat="server" ControlToValidate="Password" ErrorMessage="Password is required." ForeColor="Red" ToolTip="Password is required." ValidationGroup="Login1" Display="Dynamic">*</asp:RequiredFieldValidator>
                                         </div>
                                         <div class="modern-form-group">
                                             <div class="text-center">
-                                                <asp:Button ID="LoginButton" runat="server" CommandName="Login" class="modern-login-btn" Text="Log In" ValidationGroup="Login1" OnClientClick="showLoginAnimation(); return true;" />
+                                                <asp:Button ID="LoginButton" runat="server" CommandName="Login" class="modern-login-btn" Text="Log In" ValidationGroup="Login1" OnClientClick="return showLoginAnimation();" />
                                             </div>
                                         </div>
-                                        <div class="alert-danger">
+                                        <div class="alert-danger" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none;">
                                             <asp:Literal ID="FailureText" runat="server" EnableViewState="False"></asp:Literal>
                                         </div>
                                     </LayoutTemplate>
                                 </asp:Login>
-                                <asp:Label ID="InvalidErrorLabel" runat="server" CssClass="Error"></asp:Label>
+                                <asp:Label ID="InvalidErrorLabel" runat="server" CssClass="Error" style="display: none; color: #ff6b6b; margin-top: 10px;"></asp:Label>
                             </ContentTemplate>
                         </asp:UpdatePanel>
                         
@@ -205,7 +205,12 @@
     </form>
     <script>
         function showLoginAnimation() {
-            $('#loginLoadingAnimation').fadeIn(300);
+            // Only show animation if form validation passes
+            if (Page_ClientValidate('Login1')) {
+                $('#loginLoadingAnimation').fadeIn(300);
+                return true;
+            }
+            return false;
         }
 
         function hideLoginAnimation() {
@@ -242,13 +247,82 @@
                 return false;
             });
 
-            // Hide animation on login error
+            // ✅ IMPROVED: Hide animation on any postback completion or error
             var prm = Sys.WebForms.PageRequestManager.getInstance();
-            prm.add_endRequest(function() {
-                var failureText = $('[id*=FailureText]').text();
-                if (failureText && failureText.length > 0) {
-                    hideLoginAnimation();
+            
+            // Hide animation when request starts (in case of validation error)
+            prm.add_beginRequest(function(sender, args) {
+                console.log('Login request starting');
+                
+                // Check if this is a validation failure
+                var eventTarget = args.get_postBackElement();
+                if (eventTarget && eventTarget.id && eventTarget.id.indexOf('LoginButton') > -1) {
+                    // Check validation
+                    if (!Page_ClientValidate('Login1')) {
+                        console.log('Validation failed - preventing animation');
+                        hideLoginAnimation();
+                        args.set_cancel(true);
+                    }
                 }
+            });
+            
+            // Hide animation when request completes (success or error)
+            prm.add_endRequest(function(sender, args) {
+                console.log('Login request completed');
+                
+                // Always hide animation after request completes
+                setTimeout(function() {
+                    hideLoginAnimation();
+                    
+                    // Check if there was an error
+                    var failureText = $('[id*=FailureText]').text().trim();
+                    var invalidError = $('[id*=InvalidErrorLabel]').text().trim();
+                    
+                    if (failureText || invalidError) {
+                        console.log('Login error detected:', failureText || invalidError);
+                        
+                        // Show error in modal
+                        if (failureText) {
+                            $('.alert-danger').show();
+                        }
+                        if (invalidError) {
+                            $('.Error').show();
+                        }
+                    } else {
+                        console.log('Login successful, page will redirect');
+                        // Success case - modal will close and page will redirect
+                    }
+                }, 500);
+            });
+            
+            // Handle errors during postback
+            prm.add_pageLoading(function(sender, args) {
+                console.log('Page loading started');
+            });
+            
+            // Fallback: Hide animation after 30 seconds if still showing
+            $('#myModal').on('shown.bs.modal', function () {
+                setTimeout(function() {
+                    if ($('#loginLoadingAnimation').is(':visible')) {
+                        console.warn('Login animation timeout - forcing hide');
+                        hideLoginAnimation();
+                        alert('লগইন প্রসেস খুব বেশি সময় নিচ্ছে। আবার চেষ্টা করুন।\nLogin process taking too long. Please try again.');
+                    }
+                }, 30000);
+            });
+            
+            // Hide animation when modal is closed
+            $('#myModal').on('hide.bs.modal', function () {
+                hideLoginAnimation();
+                // Also hide error messages
+                $('.alert-danger').hide();
+                $('.Error').hide();
+            });
+            
+            // Clear errors when user starts typing
+            $('[id*=UserName], [id*=Password]').on('input', function() {
+                $('.alert-danger').hide();
+                $('.Error').hide();
             });
         });
     </script>

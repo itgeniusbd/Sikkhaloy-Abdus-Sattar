@@ -1,4 +1,4 @@
-﻿﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="BASIC.master.cs" Inherits="EDUCATION.COM.BASIC" %>
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="BASIC.master.cs" Inherits="EDUCATION.COM.BASIC" %>
 
 <!DOCTYPE html>
 
@@ -499,7 +499,7 @@
                 'Settings': 'সেটিংস',
                 'Teacher & Staff': 'শিক্ষক ও কর্মচারী',
                 'Admission': 'ভর্তি',
-                'Student Management': 'শিক্ষার্থী ব্যবস্থাপনা',
+                'Student Management': 'শিক্ষার্থী ব্যবস্থাাপনা',
                 'Student\'s Info': 'শিক্ষার্থীর তথ্য',
                 'Attendances': 'উপস্থিতি',
 
@@ -634,7 +634,7 @@
                 'Payment Collection': 'পেমেন্ট সংগ্রহ',
                 'Payment Collection By Date': 'তারিখ অনুসারে পেমেন্ট সংগ্রহ',
                 'Fee Concession': 'ফি ছাড় প্রদান',
-                'Others Income': 'অন্যান্য আয়সমূহ',
+                'Others Income': 'অনুষ্ঠান আয়সমূহ',
                 'Expense': 'খরচসমূহ',
                 'Edit Expense': 'খরচ ইডিট/সংশোধন',
                 'All Session Report': 'সকল সেশনের রিপোর্ট',

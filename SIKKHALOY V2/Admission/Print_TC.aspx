@@ -10,14 +10,14 @@
 
     <asp:FormView ID="TCFormView" runat="server" DataSourceID="TC_SQL" RenderOuterTable="false">
         <ItemTemplate>
-            <a class="btn btn-dark-green d-print-none" href="/Admission/Edit_Student_Info/Edit_Student_information.aspx?Student=<%#Eval("StudentID") %>&Student_Class=<%#Eval("StudentClassID") %>">
+            <a class="btn btn-dark-green d-print-none" href="/Admission/Edit_Student_Info/Edit_Student_information.aspx?Student=<%#Eval("ID") %>&Student_Class=<%#Eval("StudentClassID") %>">
                 <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                 Update Information
             </a>
 
             <asp:Panel ID="Data_Panel" runat="server" CssClass="word-style">
                 <div class="Head">
-                    It is hereby gladly declared that <b><%# Eval("StudentsName") %></b> Student ID: <b><%# Eval("StudentID") %> </b>, 
+                    It is hereby gladly declared that <b><%# Eval("StudentsName") %></b> Student ID: <b><%# Eval("ID") %> </b>, 
                  <%#(string)Eval("Gender") == "Male" ? "son of" : "daughter of" %> <b><%# Eval("FathersName") %></b>
                     of residence- <b><%# Eval("StudentsLocalAddress") %></b>
                     had been reading in this institution in class <b><%# Eval("Class") %></b> Roll No. <b><%# Eval("RollNo") %></b> upto <b>
@@ -54,7 +54,7 @@
         </ItemTemplate>
     </asp:FormView>
 
-    <asp:SqlDataSource ID="TC_SQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.RejectedDate, Student.FathersName, Student.StudentsLocalAddress, Education_Year.EducationYear, SchoolInfo.SchoolName, SchoolInfo.Address, Student.DateofBirth, StudentsClass.StudentClassID, Student.StudentID, StudentsClass.RollNo FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID INNER JOIN SchoolInfo ON Student.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.Status = @Status) AND (Student.SchoolID = @SchoolID) AND (Student.StudentID = @StudentID) AND (StudentsClass.StudentClassID = @StudentClassID)">
+    <asp:SqlDataSource ID="TC_SQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class,ID, Student.StudentsName, Student.Gender, Student.RejectedDate, Student.FathersName, Student.StudentsLocalAddress, Education_Year.EducationYear, SchoolInfo.SchoolName, SchoolInfo.Address, Student.DateofBirth, StudentsClass.StudentClassID, Student.ID, StudentsClass.RollNo FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID INNER JOIN SchoolInfo ON Student.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.Status = @Status) AND (Student.SchoolID = @SchoolID) AND (Student.StudentID = @StudentID) AND (StudentsClass.StudentClassID = @StudentClassID)">
         <SelectParameters>
             <asp:Parameter DefaultValue="Rejected" Name="Status" />
             <asp:SessionParameter DefaultValue="" Name="SchoolID" SessionField="SchoolID" />

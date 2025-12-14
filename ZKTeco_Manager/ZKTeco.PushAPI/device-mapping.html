@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device-Institution Mapping</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            color: #5568d3;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #1f2937;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        label.required::after {
+            content: " *";
+            color: #ef4444;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input.error {
+            border-color: #ef4444;
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert.info {
+            background: #e0e7ff;
+            color: #3730a3;
+            border-left: 4px solid #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .help-text {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .existing-devices {
+            margin-top: 30px;
+        }
+
+        .device-row {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-info {
+            flex: 1;
+        }
+
+        .device-info h4 {
+            color: #1f2937;
+            margin-bottom: 5px;
+        }
+
+        .device-info p {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin: 2px 0;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            width: auto;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">? Back to Dashboard</a>
+
+        <div class="header">
+            <h1>?? Device-Institution Mapping</h1>
+            <p>Register your ZKTeco device with your institution</p>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <div class="card">
+            <h2>Add New Device</h2>
+            <form id="deviceForm">
+                <div class="form-group">
+                    <label for="schoolId" class="required">School/Institution ID</label>
+                    <input type="number" id="schoolId" name="schoolId" required min="1">
+                    <div class="help-text">Enter your institution ID number</div>
+                    <div class="error-message" id="schoolIdError">Please enter a valid School ID</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="deviceSerial" class="required">Device Serial Number</label>
+                    <input type="text" id="deviceSerial" name="deviceSerial" required placeholder="e.g., CKLT123456">
+                    <div class="help-text">Device serial number (Can be found on device)</div>
+                    <div class="error-message" id="deviceSerialError">Please enter device serial number</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="deviceName">Device Name</label>
+                    <input type="text" id="deviceName" name="deviceName" placeholder="e.g., Main Gate Device">
+                    <div class="help-text">Device name (optional)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="deviceLocation">Device Location</label>
+                    <input type="text" id="deviceLocation" name="deviceLocation" placeholder="e.g., Main Entrance">
+                    <div class="help-text">Device location (optional)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="remarks">Remarks</label>
+                    <textarea id="remarks" name="remarks" placeholder="Any additional notes..."></textarea>
+                    <div class="help-text">Additional notes or comments (optional)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="isActive">Status</label>
+                    <select id="isActive" name="isActive">
+                        <option value="1" selected>Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">
+                    Add Device Mapping
+                </button>
+
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                    Cancel
+                </button>
+            </form>
+        </div>
+
+        <div class="card existing-devices">
+            <h2>?? Existing Device Mappings</h2>
+            <div id="deviceList">
+                <div style="text-align: center; padding: 20px; color: #9ca3af;">
+                    <div class="spinner"></div>
+                    Loading devices...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load existing devices
+        async function loadDevices() {
+            try {
+                const response = await fetch('/api/dashboard/devices');
+                const data = await response.json();
+
+                const deviceList = document.getElementById('deviceList');
+
+                if (data.devices && data.devices.length > 0) {
+                    deviceList.innerHTML = data.devices.map(device => `
+                        <div class="device-row">
+                            <div class="device-info">
+                                <h4>${device.deviceName || 'Unnamed Device'}</h4>
+                                <p><strong>Serial:</strong> ${device.deviceSerial}</p>
+                                <p><strong>School ID:</strong> ${device.schoolID} - ${device.schoolName}</p>
+                                <p><strong>Location:</strong> ${device.deviceLocation || 'Not specified'}</p>
+                                <p><strong>Status:</strong> ${device.isActive ? '? Active' : '? Inactive'}</p>
+                                <p><strong>Last Push:</strong> ${device.lastPushTime ? new Date(device.lastPushTime).toLocaleString() : 'Never'}</p>
+                                ${device.remarks ? `<p><strong>Remarks:</strong> ${device.remarks}</p>` : ''}
+                            </div>
+                            <div class="device-actions">
+                                <button class="btn btn-sm btn-danger" onclick="deleteDevice(${device.mappingID}, '${device.deviceSerial}')">
+                                    ??? Delete
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    deviceList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                            <p>?? No devices registered yet</p>
+                            <p style="font-size: 0.9em; margin-top: 10px;">Add your first device using the form above</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                document.getElementById('deviceList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                        ? Error loading devices
+                    </div>
+                `;
+            }
+        }
+
+        // Show alert
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert ${type}`;
+            alertBox.textContent = message;
+            alertBox.style.display = 'block';
+
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        // Form submission
+        document.getElementById('deviceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Adding...';
+
+            const formData = {
+                SchoolID: parseInt(document.getElementById('schoolId').value),
+                DeviceSerialNumber: document.getElementById('deviceSerial').value.trim(),
+                DeviceName: document.getElementById('deviceName').value.trim() || null,
+                DeviceLocation: document.getElementById('deviceLocation').value.trim() || null,
+                IsActive: document.getElementById('isActive').value === '1',
+                Remarks: document.getElementById('remarks').value.trim() || null
+            };
+
+            try {
+                const response = await fetch('/api/dashboard/add-device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert('? Device mapping added successfully!', 'success');
+                    document.getElementById('deviceForm').reset();
+                    loadDevices();
+                } else {
+                    showAlert('? Error: ' + (result.message || 'Failed to add device'), 'error');
+                }
+            } catch (error) {
+                console.error('Error adding device:', error);
+                showAlert('? Error: Failed to add device mapping', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Add Device Mapping';
+            }
+        });
+
+        // Delete device
+        async function deleteDevice(mappingId, serial) {
+            if (!confirm(`Are you sure you want to delete device mapping for ${serial}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/dashboard/delete-device/${mappingId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert('? Device mapping deleted successfully!', 'success');
+                    loadDevices();
+                } else {
+                    showAlert('? Error: ' + (result.message || 'Failed to delete device'), 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting device:', error);
+                showAlert('? Error: Failed to delete device mapping', 'error');
+            }
+        }
+
+        // Load devices on page load
+        loadDevices();
+    </script>
+</body>
+</html>

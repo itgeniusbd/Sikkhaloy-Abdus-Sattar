@@ -1,7 +1,7 @@
 ﻿<%@ Page Title="Exam Position" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" EnableEventValidation="false" CodeBehind="ExamPosition.aspx.cs" Inherits="EDUCATION.COM.Exam.ExamPosition" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="CSS/ExamPosition.css?v=1.0.1" rel="stylesheet" />
+    <link href="CSS/ExamPosition.css?v=1.0.5" rel="stylesheet" />
     <style>
         .FthSub { color: #304ffe; font-size: 12px; }
 
@@ -18,6 +18,14 @@ h3 {
   margin-bottom: 1.5rem !important;
   text-align: center;
   font-weight: bold;
+}
+
+/* Enhanced print CSS for column hiding */
+@media print {
+    .d-print-none {
+        display: none !important;
+        visibility: hidden !important;
+    }
 }
 
     </style>
@@ -287,11 +295,11 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <input onchange="printHiddenTableColumn(10,self);" type="checkbox" id="isHiddenPrintClassCol" />
+                        <input onchange="printHiddenTableColumn(10, this);" type="checkbox" id="isHiddenPrintClassCol" />
                         <label for="isHiddenPrintClassCol">Hide Class Position Column</label>
                     </div>
                     <div class="form-group">
-                        <input onchange="printHiddenTableColumn(11,self);" type="checkbox" id="isHiddenPrintSectionCol" />
+                        <input onchange="printHiddenTableColumn(11, this);" type="checkbox" id="isHiddenPrintSectionCol" />
                         <label for="isHiddenPrintSectionCol">Hide Section Position Column</label>
                     </div>
                 </div>
@@ -356,20 +364,54 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
             c.IsValid = !1;
         };
 
-        // Print Option
-        function printHiddenTableColumn(columnNumber, selft) {
-            const header = $('#<%=StudentsGridView.ClientID %> thead tr');
-            const body = $('#<%=StudentsGridView.ClientID %> tbody tr');
+        // Print Option - Add class for print media only (don't hide on screen)
+        function printHiddenTableColumn(columnNumber, checkbox) {
+            const gridViewId = '<%=StudentsGridView.ClientID %>';
+            const table = document.getElementById(gridViewId);
+            
+            if (!table) {
+                console.error('GridView not found!');
+                return;
+            }
 
-            console.log(selft, columnNumber);
+            const isChecked = checkbox.checked;
+            console.log('Column:', columnNumber, 'Checked:', isChecked);
 
-            // if checked then hide the column
-            if ($(selft).is(':checked')) {
-                header.find('th:nth-child(' + columnNumber + ')').addClass('d-print-none');
-                body.find('td:nth-child(' + columnNumber + ')').addClass('d-print-none');
+            // Get header cell
+            const headerRow = table.querySelector('thead tr');
+            const headerCell = headerRow ? headerRow.querySelector(`th:nth-child(${columnNumber})`) : null;
+
+            // Get all body cells in this column
+            const bodyRows = table.querySelectorAll('tbody tr');
+
+            if (isChecked) {
+                // Add class to hide only in print (NOT on screen)
+                if (headerCell) {
+                    headerCell.classList.add('d-print-none');
+                    console.log('Added d-print-none to header column', columnNumber);
+                }
+
+                bodyRows.forEach(row => {
+                    const cell = row.querySelector(`td:nth-child(${columnNumber})`);
+                    if (cell) {
+                        cell.classList.add('d-print-none');
+                    }
+                });
+                console.log('Added d-print-none to', bodyRows.length, 'body rows');
             } else {
-                header.find('th:nth-child(' + columnNumber + ')').removeClass('d-print-none');
-                body.find('td:nth-child(' + columnNumber + ')').removeClass('d-print-none');
+                // Remove class to show in print
+                if (headerCell) {
+                    headerCell.classList.remove('d-print-none');
+                    console.log('Removed d-print-none from header column', columnNumber);
+                }
+
+                bodyRows.forEach(row => {
+                    const cell = row.querySelector(`td:nth-child(${columnNumber})`);
+                    if (cell) {
+                        cell.classList.remove('d-print-none');
+                    }
+                });
+                console.log('Removed d-print-none from', bodyRows.length, 'body rows');
             }
         };
     </script>
