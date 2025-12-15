@@ -217,6 +217,7 @@
                 <input type="date" id="ResultDatePicker" class="form-control" style="width: 150px;" />
             </div>
 
+            <!-- Class Teacher Signature -->
             <div class="form-group NoPrint" style="margin-right: 15px;">
                 <asp:TextBox ID="TeacherSignTextBox" Text="শ্রেনি শিক্ষক" runat="server" placeholder="শ্রেষ্ঠ শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
                 <label class="btn btn-secondary btn-sm NoPrint" for="Tfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
@@ -224,6 +225,17 @@
                 </label>
                 <input id="Tfileupload" type="file" accept="image/*" style="position: absolute; left: -9999px; opacity: 0;" />
             </div>
+            
+            <!-- ✅ Guardian Signature (Client-side Only) -->
+            <div class="form-group NoPrint" style="margin-right: 15px;">
+                <input type="text" id="GuardianSignTextBox" value="অভিভাবক" placeholder="অভিভাবক নাম" class="form-control" autocomplete="off" style="width: 150px;" />
+                <label class="btn btn-secondary btn-sm NoPrint" for="Gfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
+                    Browse
+                </label>
+                <input id="Gfileupload" type="file" accept="image/*" style="position: absolute; left: -9999px; opacity: 0;" />
+            </div>
+            
+            <!-- Principal Signature -->
             <div class="form-group NoPrint" style="margin-right: 15px;">
                 <asp:TextBox ID="HeadTeacherSignTextBox" Text="প্রধান শিক্ষক" runat="server" placeholder="মুখ্য শিক্ষকের স্বাক্ষর" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
                 <label class="btn btn-secondary btn-sm" for="Hfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
@@ -368,19 +380,18 @@
 
                     <!-- Footer -->
                     <div class="footer">
-
-                        
                         <div style="text-align: center;">
                             <div class="SignTeacher" style="height: 40px; margin-bottom: 5px;"></div>
                             <div class="Teacher" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">শ্রেণি শিক্ষক</div>
                         </div>
 
-                                                <!-- Date Display for Traditional Header - Only visible when traditional header is shown -->
-                        <div class="footer-date-display">
-                            <span style="margin-bottom:10px;color:#0072bc"> ফলাফল প্রকাশের তারিখ</span>
-                            <span class="date-text-display"> ।</span>
-                            <span style="margin-bottom:10px;color:#0072bc"> কারিগরি সহায়তায় : www.sikkhaloy.com</span>
+                        <!-- ✅ Guardian Signature Display -->
+                        <div style="text-align: center;">
+                            <div class="SignGuardian" style="height: 40px; margin-bottom: 5px;"></div>
+                            <div class="GuardianText" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">অভিভাবক</div>
                         </div>
+
+             
 
                         <div style="text-align: center;">
                             <div class="SignHead" style="height: 40px; margin-bottom: 5px;"></div>
@@ -405,7 +416,7 @@
                 baseMessages: [
                     { step: 1, message: "ডেটাবেসে সংযুক্ত হচ্ছে...", detail: "নিরাপদ ডেটাবেস সংযোগ স্থাপন করা হচ্ছে", duration: 1000 },
                     { step: 2, message: "প্যারামিটার যাচাই...", detail: "ক্লাস, পরীক্ষা এবং শিক্ষার্থী নির্বাচন পরীক্ষা করা হচ্ছে", duration: 800 },
-                    { step: 3, message: "ক্লাস কনফিগারেশন লোড হচ্ছে...", detail: "ক্লাস, শাখা, গ্রুপের তথ্য সংগ্রহ করা হচ্ছে", duration: 600 },
+                    { step: 3, message: "ক্লাস কনফিগারেশন লোড হচ্ছে...", detail: "ক্লাস, শাখা, গ্রূপের তথ্য সংগ্রহ করা হচ্ছে", duration: 600 },
                     { step: 4, message: "শিক্ষার্থী সংখ্যা গণনা হচ্ছে...", detail: "মোট শিক্ষার্থী সংখ্যা নির্ণয় করা হচ্ছে", duration: 1200 },
                     { step: 5, message: "শিক্ষার্থীর তথ্য প্রক্রিয়াকরণ...", detail: "শিক্ষার্থী তথ্য এবং ছবি লোড করা হচ্ছে", duration: 0 }, // Dynamic
                     { step: 6, message: "পরীক্ষার ফলাফল গণনা হচ্ছে...", detail: "নম্বর এবং গ্রেড প্রক্রিয়াকরণ", duration: 0 }, // Dynamic
@@ -870,27 +881,31 @@
 
         function updateSignatureTexts() {
             // Update signature text displays
-            var teacherText = $("[id*=TeacherSignTextBox]").val();
-            var headText = $("[id*=HeadTeacherSignTextBox]").val();
+            var teacherText = $("[id*=TeacherSignTextBox]").val() || 'শ্রেণি শিক্ষক';
+            var guardianText = $('#GuardianSignTextBox').val() || 'অভিভাবক';
+            var headText = $("[id*=HeadTeacherSignTextBox]").val() || 'প্রধান শিক্ষক';
 
-            if (teacherText) {
-                $('.Teacher').text(teacherText);
-            }
-            if (headText) {
-                $('.Head').text(headText);
-            }
+            $('.Teacher').text(teacherText);
+            $('.GuardianText').text(guardianText);
+            $('.Head').text(headText);
         }
 
         function initializeSignatureUpload() {
             console.log('Initializing signature upload functionality');
 
-            // Teacher signature upload
+            // Teacher signature upload (with database)
             $('#Tfileupload').off('change').on('change', function (e) {
                 console.log('Teacher file selected');
                 handleSignatureUpload(e, 'teacher');
             });
 
-            // Principal signature upload
+            // ✅ Guardian signature upload (client-side only - NO DATABASE)
+            $('#Gfileupload').off('change').on('change', function (e) {
+                console.log('Guardian file selected (client-side only)');
+                handleGuardianSignatureUpload(e);
+            });
+
+            // Principal signature upload (with database)
             $('#Hfileupload').off('change').on('change', function (e) {
                 console.log('Principal file selected');
                 handleSignatureUpload(e, 'principal');
@@ -898,344 +913,268 @@
 
             // Teacher text change event
             $("[id*=TeacherSignTextBox]").off('input').on('input', function () {
-                $('.Teacher').text($(this).val());
+                var text = $(this).val() || 'শ্রেণি শিক্ষক';
+                $('.Teacher').text(text);
+            });
+
+            // ✅ Guardian text change event (client-side only)
+            $('#GuardianSignTextBox').off('input').on('input', function () {
+                var text = $(this).val() || 'অভিভাবক';
+                $('.GuardianText').text(text);
             });
 
             // Head teacher text change event
             $("[id*=HeadTeacherSignTextBox]").off('input').on('input', function () {
-                $('.Head').text($(this).val());
+                var text = $(this).val() || 'প্রধান শিক্ষক';
+                $('.Head').text(text);
             });
         }
 
-        // ============================================
-        // SIGNATURE LOADING - COMPLETE WORKING VERSION
-        // ============================================
+        // ✅ NEW: Guardian signature upload handler (CLIENT-SIDE ONLY - NO DATABASE)
+        function handleGuardianSignatureUpload(event) {
+            var file = event.target.files[0];
+            if (!file) return;
 
-        function loadSignatureImage(imagePath, signatureType) {
-            var targetClass = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
-            if (!imagePath) { console.log('No path for', signatureType); return; }
+            console.log('📸 Guardian signature upload (client-side only):', { 
+                fileName: file.name, 
+                fileSize: file.size 
+            });
 
-            var img = new Image();
-            img.onload = function () {
-                $(targetClass).each(function () {
-                    $(this).empty().append($('<img>').attr({
-                        'src': imagePath,
-                        'style': 'height:35px;width:80px;object-fit:contain;'
-                    })).css({
-                        'display': 'flex',
-                        'visibility': 'visible',
-                        'min-height': '40px'
-                    });
-                });
-                console.log('?', signatureType, 'loaded -', $(targetClass + ' img').length, 'images');
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('অনুগ্রহ করে একটি ছবি ফাইল নির্বাচন করুন।');
+                return;
+            }
+
+            // Validate file size
+            if (file.size > 2 * 1024 * 1024) {
+                alert('ফাইলের আকার ২MB এর কম হতে হবে।');
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var imageData = e.target.result;
+
+                // ✅ Apply to ALL result cards (client-side only)
+                $('.SignGuardian').html('<img src="' + imageData + '" style="height:35px;width:80px;object-fit:contain;">');
+                
+                console.log('✅ অভিভাবকের স্বাক্ষর সব রেজাল্ট কার্ডে যুক্ত হয়েছে (শুধুমাত্র ক্লায়েন্ট-সাইড)');
+                
+                // Show success notification
+                showBanglaNotification('অভিভাবকের স্বাক্ষর আপলোড সফল! (শুধু ব্রাউজারে - ডাটাবেসে সংরক্ষিত নয়)', 'success');
             };
-            img.onerror = function () { console.error('? Failed:', signatureType); };
-            img.src = imagePath + (imagePath.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now();
+
+            reader.onerror = function (error) {
+                console.error('FileReader error:', error);
+                alert('ফাইল পড়তে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+            };
+
+            reader.readAsDataURL(file);
         }
 
         function loadDatabaseSignatures() {
-            console.log('?? Loading signatures...');
+            console.log('🔄 Loading database signatures...');
             try {
-                var logoSrc = $('img[src*="SchoolLogo"]').first().attr('src');
-                var schoolId = logoSrc ? logoSrc.match(/SLogo=(\d+)/)?.[1] : null;
-                if (!schoolId) { console.error('? No SchoolID'); return; }
-                console.log('?? SchoolID:', schoolId);
+                var teacherPath = $("[id$='HiddenTeacherSign']").val();
+                var principalPath = $("[id$='HiddenPrincipalSign']").val();
 
-                var teacherPath = $("[id$='HiddenTeacherSign']").val() || '/Handeler/Sign_Teacher.ashx?sign=' + schoolId;
-                var principalPath = $("[id$='HiddenPrincipalSign']").val() || '/Handeler/Sign_Principal.ashx?sign=' + schoolId;
+                console.log('Teacher path:', teacherPath);
+                console.log('Principal path:', principalPath);
 
-                loadSignatureImage(teacherPath, 'teacher');
-                loadSignatureImage(principalPath, 'principal');
+                if (teacherPath && teacherPath.trim() !== '') {
+                    var teacherImg = '<img src="' + teacherPath + '" style="height:35px;max-width:80px;object-fit:contain;display:block;margin:0 auto;" onerror="console.error(\'Failed to load teacher signature\');">';
+                    $('.SignTeacher').html(teacherImg);
+                    console.log('✅ Teacher signature loaded');
+                } else {
+                    console.warn('⚠️ No teacher signature path found');
+                }
+
+                if (principalPath && principalPath.trim() !== '') {
+                    var principalImg = '<img src="' + principalPath + '" style="height:35px;max-width:80px;object-fit:contain;display:block;margin:0 auto;" onerror="console.error(\'Failed to load principal signature\');">';
+                    $('.SignHead').html(principalImg);
+                    console.log('✅ Principal signature loaded');
+                } else {
+                    console.warn('⚠️ No principal signature path found');
+                }
 
                 setTimeout(function () {
-                    console.log('?? Teacher:', $('.SignTeacher img').length, 'Principal:', $('.SignHead img').length);
-                }, 2000);
-            } catch (error) { console.error('? Error:', error); }
-        }
-
-        // Number language toggle functionality
-        var isNumbersBengali = false;
-
-        function toggleNumberLanguage() {
-            isNumbersBengali = !isNumbersBengali;
-
-            if (isNumbersBengali) {
-                convertNumbersToBengali();
-                $('#NumberToggleButton').html('<i class="fa fa-language"></i> English সংখ্যা').removeClass('btn-warning').addClass('btn-info');
-            } else {
-                convertNumbersToEnglish();
-                $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').removeClass('btn-info').addClass('btn-warning');
-            }
-        }
-
-        function convertNumbersToBengali() {
-            console.log('Converting numbers to Bengali...');
-            
-            var bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-            
-            $('.result-card').find('td, th, span, div, p').not('.date-text-display').each(function() {
-                var $element = $(this);
-                
-                // Skip if already converted or has child elements
-                if ($element.data('original-number') || $element.children().length > 0) return;
-                
-                var text = $element.text();
-                var originalText = text;
-                
-                // Convert English digits to Bengali
-                var convertedText = text.replace(/[0-9]/g, function(digit) {
-                    return bengaliDigits[parseInt(digit)];
-                });
-                
-                if (originalText !== convertedText) {
-                    $element.data('original-number', originalText);
-                    $element.text(convertedText);
-                }
-            });
-            
-            console.log('✅ Numbers converted to Bengali');
-        }
-
-        function convertNumbersToEnglish() {
-            console.log('Converting numbers to English...');
-            
-            $('.result-card').find('td, th, span, div, p').each(function() {
-                var $element = $(this);
-                var originalNumber = $element.data('original-number');
-                
-                if (originalNumber) {
-                    $element.text(originalNumber);
-                    $element.removeData('original-number');
-                }
-            });
-            
-            console.log('✅ Numbers converted to English');
-        }
-
-        function convertNumbersAfterPostback() {
-            // Auto-apply conversion after postback if toggle is in Bengali mode
-            if (isNumbersBengali) {
-                setTimeout(function() {
-                    convertNumbersToBengali();
-                }, 200);
-            }
-        }
-
-        // Print function to prevent double-click issue
-        var isPrinting = false;
-        function printResults() {
-            if (isPrinting) {
-                console.log('Print already in progress, ignoring duplicate call');
-                return false;
-            }
-
-            isPrinting = true;
-            console.log('🖨️ Print initiated');
-
-            try {
-                window.print();
+                    console.log('📊 Final check - Teacher:', $('.SignTeacher img').length, 'Principal:', $('.SignHead img').length);
+                }, 1000);
             } catch (error) {
-                console.error('Print error:', error);
+                console.error('❌ Error loading signatures:', error);
             }
-
-            // Reset flag after print dialog closes
-            setTimeout(function () {
-                isPrinting = false;
-                console.log('Print flag reset');
-            }, 1000);
-
-            return false;
         }
 
-        // ASP.NET Postback Handler
-        function pageLoad(sender, args) {
-            console.log('📄 Page loaded - checking for results...');
+        // ✅ ADD: handleSignatureUpload function for Teacher and Principal signatures with database save
+        function handleSignatureUpload(event, signatureType) {
+            var file = event.target.files[0];
+            if (!file) return;
 
-            // Re-initialize date picker after postback and update date display
+            console.log('📤 Uploading signature:', signatureType);
+
+            if (!file.type.match('image.*')) {
+                alert('অনুগ্রহ করে একটি ছবি ফাইল নির্বাচন করুন।');
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert('ফাইলের আকার ২MB এর কম হতে হবে।');
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var imageData = e.target.result;
+                var targetClass = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
+
+                // Show preview immediately
+                $(targetClass).html('<img src="' + imageData + '" style="height:35px;max-width:80px;object-fit:contain;display:block;margin:0 auto;">');
+                console.log('✅ Preview set for:', signatureType);
+
+                var base64Data = imageData.split(',')[1];
+
+                // Upload to database
+                $.ajax({
+                    type: 'POST',
+                    url: window.location.pathname + '/SaveSignature',
+                    data: JSON.stringify({
+                        signatureType: signatureType,
+                        imageData: base64Data
+                    }),
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    success: function (response) {
+                        console.log('Server response:', response);
+
+                        if (response && response.d && response.d.success) {
+                            console.log('✅ Signature saved successfully');
+                            
+                            var successMsg = signatureType === 'teacher' ?
+                                'শ্রেণি শিক্ষকের স্বাক্ষর সফলভাবে সংরক্ষিত হয়েছে!' :
+                                'প্রধান শিক্ষকের স্বাক্ষর সফলভাবে সংরক্ষিত হয়েছে!';
+                            
+                            showBanglaNotification(successMsg, 'success');
+
+                            // Reload signature from database
+                            setTimeout(function () {
+                                loadDatabaseSignatures();
+                            }, 500);
+                        } else {
+                            console.error('❌ Signature save failed:', response.d ? response.d.message : 'Unknown error');
+                            alert('স্বাক্ষর সংরক্ষণে ত্রুটি: ' + (response.d ? response.d.message : 'Unknown error'));
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('❌ AJAX Error:', error);
+                        console.error('Response:', xhr.responseText);
+                        alert('স্বাক্ষর সংরক্ষণে ত্রুটি হয়েছে।');
+                    }
+                });
+            };
+
+            reader.onerror = function (error) {
+                console.error('FileReader error:', error);
+                alert('ফাইল পড়তে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function showBanglaNotification(message, type) {
+            var bgColor = type === 'success' ? '#4CAF50' : '#f44336';
+            var notification = $('<div>')
+                .css({
+                    'position': 'fixed',
+                    'top': '20px',
+                    'right': '20px',
+                    'background': bgColor,
+                    'color': 'white',
+                    'padding': '15px 25px',
+                    'border-radius': '5px',
+                    'box-shadow': '0 4px 6px rgba(0,0,0,0.1)',
+                    'z-index': 10000,
+                    'font-size': '16px',
+                    'font-weight': 'bold'
+                })
+                .text(message)
+                .appendTo('body');
+
             setTimeout(function () {
-                initializeDatePicker();
+                notification.fadeOut(500, function () {
+                    $(this).remove();
+                });
+            }, 3000);
+        }
+
+        // Initialize everything when document is ready
+        $(document).ready(function () {
+            console.log('🚀 Initializing BanglaResult page...');
+            
+            initializeDatePicker();
+            updateResultDate();
+            initializeSignatureUpload();
+            updateSignatureTexts();
+            
+            // Load signatures from database on page load
+            setTimeout(function() {
+                loadDatabaseSignatures();
+            }, 500);
+        });
+
+        // Also load signatures when results are loaded
+        function onResultsLoaded() {
+            console.log('📋 Results loaded, loading signatures...');
+            setTimeout(function() {
+                loadDatabaseSignatures();
                 updateResultDate();
+                updateSignatureTexts(); // ✅ Ensure signature labels are updated too
+            }, 500);
+        }
 
-                // Force display of all date elements after postback
-                $('.result-date-display, .footer-date-display').css({
-                    'display': 'block',
-                    'visibility': 'visible',
-                    'opacity': '1'
-                });
+        // Print function
+        function printResults() {
+            window.print();
+        }
 
-                console.log('Date elements after postback:', {
-                    resultDateDisplay: $('.result-date-display').length,
-                    footerDisplay: $('.footer-date-display').length,
-                    datePickerValue: $('#ResultDatePicker').val()
-                });
-            }, 100);
-
-            var hasResults = $('.result-card').length > 0;
-
-            console.log('Results found:', hasResults, 'Count:', $('.result-card').length);
-
-            if (hasResults) {
-                console.log('✅ Results detected - showing controls');
-
-                // Show print and toggle buttons with Font Awesome icons
-                $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
-                $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').show();
-
-                // Reset number toggle to English
-                $('#NumberToggleButton').removeClass('btn-info').addClass('btn-warning');
-                isNumbersBengali = false;
-
-                // Load database signatures
-                setTimeout(function () {
-                    loadDatabaseSignatures();
-                }, 200);
-
-                // Apply postback conversions
-                if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
-                    console.log('Partial postback detected - applying conversions');
-                    setTimeout(function () {
-                        convertNumbersAfterPostback();
-                        updateSignatureTexts();
-                    }, 300);
+        // Number language toggle function
+        var isEnglishNumber = true;
+        function toggleNumberLanguage() {
+            var numberToggleBtn = document.getElementById('NumberToggleButton');
+            
+            if (isEnglishNumber) {
+                convertAllNumbersToBengali();
+                if (numberToggleBtn) {
+                    numberToggleBtn.innerHTML = '<i class="fa fa-language"></i> English সংখ্যা';
                 }
             } else {
-                console.log('❌ No results found - hiding controls');
-                $('#PrintButton').hide();
-                $('#NumberToggleButton').hide();
+                convertAllNumbersToEnglish();
+                if (numberToggleBtn) {
+                    numberToggleBtn.innerHTML = '<i class="fa fa-language"></i> বাংলা সংখ্যা';
+                }
             }
+            
+            isEnglishNumber = !isEnglishNumber;
         }
 
-        // Main jQuery Document Ready
-        $(document).ready(function () {
-            console.log('🚀 Document ready - initializing BanglaResult...');
-
-            // ============================================
-            // 1. Initialize Date Picker FIRST
-            // ============================================
-            console.log('Step 1: Initializing date picker...');
-            initializeDatePicker();
-
-            // Force initial date update after a short delay
-            setTimeout(function () {
-                updateResultDate();
-                // Force display of all date elements
-                $('.result-date-display, .footer-date-display').css({
-                    'display': 'block',
-                    'visibility': 'visible',
-                    'opacity': '1'
+        function convertAllNumbersToBengali() {
+            $('.result-card').each(function() {
+                var html = $(this).html();
+                html = html.replace(/(\d+)/g, function(match) {
+                    return convertToBengaliNumber(parseInt(match));
                 });
-                console.log('✅ Date picker initialized and updated');
-            }, 100);
-
-            // ============================================
-            // 2. Initialize Signature Upload
-            // ============================================
-            console.log('Step 2: Initializing signature upload...');
-            initializeSignatureUpload();
-            console.log('✅ Signature upload initialized');
-
-            // ============================================
-            // 3. Load Database Signatures if Results Exist
-            // ============================================
-            if ($('.result-card').length > 0) {
-                console.log('Step 3: Results already loaded, loading signatures...');
-                setTimeout(function () {
-                    loadDatabaseSignatures();
-                    console.log('✅ Database signatures loaded');
-                }, 300);
-            }
-
-            // ============================================
-            // 4. Show Toggle Button if Results Already Loaded
-            // ============================================
-            if ($('.result-card').length > 0) {
-                console.log('Step 4: Showing control buttons...');
-                $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা').show();
-                $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
-                // Set initial button state
-                $('#NumberToggleButton').removeClass('btn-info').addClass('btn-warning');
-                isNumbersBengali = false;
-                console.log('✅ Control buttons shown');
-            }
-
-            // ============================================
-            // 5. Load Results Button Handler
-            // ============================================
-            $("[id*=LoadResultsButton]").click(function () {
-                console.log('🔄 LOAD button clicked - showing progress bar...');
-
-                // Show progress bar
-                ProgressBarManager.show();
-
-                // After postback, check for results with increased delay
-                setTimeout(function () {
-                    console.log('Checking for results after delay...');
-
-                    if ($('.result-card').length > 0) {
-                        console.log('✅ Results loaded successfully, count:', $('.result-card').length);
-
-                        // Show controls with Font Awesome icons
-                        $('#NumberToggleButton').html('<i class="fa fa-language"></i> বাংলা সংখ্যা')
-                            .removeClass('btn-info').addClass('btn-warning').show();
-                        $('#PrintButton').html('<i class="fa fa-print"></i> PRINT').show();
-                        isNumbersBengali = false;
-
-                        // Update date display after results load
-                        setTimeout(function () {
-                            updateResultDate();
-
-                            // Force display of date elements
-                            $('.result-date-display, .footer-date-display').css({
-                                'display': 'block',
-                                'visibility': 'visible',
-                                'opacity': '1'
-                            });
-                        }, 300);
-
-                        // Load database signatures with delay to ensure DOM is ready
-                        setTimeout(function () {
-                            console.log('Loading signatures...');
-                            loadDatabaseSignatures();
-
-                            // Double-check signature loading after a short delay
-                            setTimeout(function () {
-                                var teacherCount = $('.SignTeacher img').length;
-                                var principalCount = $('.SignHead img').length;
-                                console.log('Signature check - Teacher:', teacherCount, 'Principal:', principalCount);
-
-                                if (teacherCount === 0 || principalCount === 0) {
-                                    console.log('Signatures missing, retrying...');
-                                    loadDatabaseSignatures();
-                                }
-                            }, 1000);
-                        }, 500);
-
-                        // Force complete progress bar with additional delay
-                        setTimeout(function () {
-                            console.log('Completing progress bar...');
-                            ProgressBarManager.forceComplete();
-                        }, 3500); // Increased to 3.5 seconds for full loading
-                    } else {
-                        console.log('❌ No results found');
-                        ProgressBarManager.completeWithMessage('লোডিং সম্পন্ন', 'কোন ফলাফল পাওয়া যায়নি');
-                    }
-                }, 4000); // Increased main delay to 4 seconds for server processing
+                $(this).html(html);
             });
+        }
 
-            // ============================================
-            // 6. Date Picker Change Handler
-            // ============================================
-            $('#ResultDatePicker').on('change', function () {
-                console.log('📅 Date changed:', this.value);
-                updateResultDate();
+        function convertAllNumbersToEnglish() {
+            $('.result-card').each(function() {
+                var html = $(this).html();
+                html = html.replace(/([০-৯]+)/g, function(match) {
+                    return convertBengaliToEnglishJS(match);
+                });
+                $(this).html(html);
             });
-
-            // ============================================
-            // 7. Print Button - Remove inline handler, use dedicated function
-            // ============================================
-            // Print function is now handled by printResults() function
-
-            console.log('✅ All initialization complete!');
-        });
+        }
     </script>
 </asp:Content>

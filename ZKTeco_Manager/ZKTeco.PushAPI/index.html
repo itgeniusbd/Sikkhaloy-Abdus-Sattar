@@ -299,7 +299,7 @@
                         <p>Loading devices...</p>
                     </div>
                 </div>
-                <div class="refresh-timer" id="refreshTimer">Auto-refresh in <span id="countdown">30</span>s</div>
+                <div class="refresh-timer" id="refreshTimer">Auto-refresh in <span id="countdown">10</span>s</div>
             </div>
 
             <div class="card">
@@ -446,6 +446,9 @@
                     logList.innerHTML = `
                         <div class="no-data">
                             <p>📭 No recent activity</p>
+                            <p style="font-size: 0.9em; margin-top: 10px;">
+                                Logs will appear here when devices connect and send data.
+                            </p>
                         </div>
                     `;
                 }
@@ -454,6 +457,7 @@
                 document.getElementById('logList').innerHTML = `
                     <div class="no-data">
                         <p style="color: #ef4444;">❌ Error loading logs</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">${error.message}</p>
                     </div>
                 `;
             }
@@ -482,17 +486,17 @@
             if (refreshInterval) clearInterval(refreshInterval);
             if (countdownInterval) clearInterval(countdownInterval);
 
-            // Refresh data every 30 seconds
+            // Refresh data every 10 seconds (faster for live monitoring)
             refreshInterval = setInterval(() => {
                 loadDashboard();
-                countdown = 30;
-            }, 30000);
+                countdown = 10;
+            }, 10000);
 
             // Update countdown every second
             countdownInterval = setInterval(() => {
                 countdown--;
                 document.getElementById('countdown').textContent = countdown;
-                if (countdown <= 0) countdown = 30;
+                if (countdown <= 0) countdown = 10;
             }, 1000);
         }
 
@@ -505,7 +509,7 @@
             if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
                 e.preventDefault();
                 loadDashboard();
-                countdown = 30;
+                countdown = 10;
             }
         });
     </script>

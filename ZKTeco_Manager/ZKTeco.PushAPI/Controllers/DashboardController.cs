@@ -180,47 +180,100 @@ namespace ZKTeco.PushAPI.Controllers
                     logPath = Path.Combine(Path.GetTempPath(), "PushAPI_DeviceLogs");
                 }
 
+                // Check both today's and yesterday's logs
                 var todayLog = Path.Combine(logPath, $"{DateTime.Now:yyyy-MM-dd}.log");
+                var yesterdayLog = Path.Combine(logPath, $"{DateTime.Now.AddDays(-1):yyyy-MM-dd}.log");
 
-                if (File.Exists(todayLog))
+                var allLines = new List<string>();
+
+                // Read yesterday's logs (last 30 lines only)
+                if (File.Exists(yesterdayLog))
                 {
-                    var lines = File.ReadAllLines(todayLog);
-                    var recentLines = lines.Length > 20 ? lines.Skip(lines.Length - 20).ToArray() : lines;
-
-                    foreach (var line in recentLines)
+                    try
                     {
-                        if (string.IsNullOrWhiteSpace(line)) continue;
-
-                        // Parse log entry
-                        // Format: [2024-12-11 10:30:45] [SERIAL] [TYPE] Message
-                        var type = "info";
-                        if (line.Contains("ERROR")) type = "error";
-                        else if (line.Contains("HANDSHAKE") || line.Contains("DATA_RECEIVED")) type = "success";
-                        else if (line.Contains("WARNING")) type = "warning";
-
-                        // Extract timestamp
-                        var timestampStart = line.IndexOf('[');
-                        var timestampEnd = line.IndexOf(']');
-                        var timestamp = timestampStart >= 0 && timestampEnd > timestampStart
-                            ? line.Substring(timestampStart + 1, timestampEnd - timestampStart - 1)
-                            : DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
-                        // Extract message (after third bracket)
-                        var thirdBracket = line.IndexOf(']', timestampEnd + 1);
-                        var message = thirdBracket > 0 && thirdBracket + 1 < line.Length
-                            ? line.Substring(thirdBracket + 2)
-                            : line;
-
-                        logs.Add(new
+                        var yesterdayLines = File.ReadAllLines(yesterdayLog);
+                        if (yesterdayLines.Length > 30)
                         {
-                            timestamp = timestamp,
-                            type = type,
-                            message = message
-                        });
+                            allLines.AddRange(yesterdayLines.Skip(yesterdayLines.Length - 30));
+                        }
+                        else
+                        {
+                            allLines.AddRange(yesterdayLines);
+                        }
                     }
+                    catch { }
                 }
 
-                return Ok(new { success = true, logs = logs });
+                // Read today's logs (all lines)
+                if (File.Exists(todayLog))
+                {
+                    try
+                    {
+                        allLines.AddRange(File.ReadAllLines(todayLog));
+                    }
+                    catch { }
+                }
+
+                // Get last 50 lines (most recent)
+                var recentLines = allLines.Count > 50 
+                    ? allLines.Skip(allLines.Count - 50).ToList() 
+                    : allLines;
+
+                // Reverse to show newest first
+                recentLines.Reverse();
+
+                foreach (var line in recentLines)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    // Parse log entry
+                    // Format: [2024-12-14 10:30:45] [SERIAL] [TYPE] Message
+                    var type = "info";
+                    if (line.Contains("ERROR") || line.Contains("FAILED")) type = "error";
+                    else if (line.Contains("HANDSHAKE") || line.Contains("DATA_RECEIVED") || line.Contains("SAVED") || line.Contains("SUCCESS") || line.Contains("CONNECTED")) type = "success";
+                    else if (line.Contains("WARNING")) type = "warning";
+
+                    // Extract timestamp
+                    var timestampStart = line.IndexOf('[');
+                    var timestampEnd = line.IndexOf(']');
+                    var timestamp = timestampStart >= 0 && timestampEnd > timestampStart
+                        ? line.Substring(timestampStart + 1, timestampEnd - timestampStart - 1)
+                        : DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+                    // Extract serial number (second bracket)
+                    var serialStart = line.IndexOf('[', timestampEnd + 1);
+                    var serialEnd = line.IndexOf(']', serialStart + 1);
+                    var serialNumber = serialStart >= 0 && serialEnd > serialStart
+                        ? line.Substring(serialStart + 1, serialEnd - serialStart - 1)
+                        : "N/A";
+
+                    // Extract activity type (third bracket)
+                    var typeStart = line.IndexOf('[', serialEnd + 1);
+                    var typeEnd = line.IndexOf(']', typeStart + 1);
+                    var activityType = typeStart >= 0 && typeEnd > typeStart
+                        ? line.Substring(typeStart + 1, typeEnd - typeStart - 1)
+                        : "INFO";
+
+                    // Extract message (after third bracket)
+                    var messageStart = typeEnd + 1;
+                    var message = messageStart > 0 && messageStart < line.Length
+                        ? line.Substring(messageStart).Trim()
+                        : line;
+
+                    // Build display message
+                    var displayMessage = $"[{serialNumber}] {activityType}: {message}";
+
+                    logs.Add(new
+                    {
+                        timestamp = timestamp,
+                        type = type,
+                        message = displayMessage,
+                        serialNumber = serialNumber,
+                        activityType = activityType
+                    });
+                }
+
+                return Ok(new { success = true, logs = logs, totalLogs = logs.Count });
             }
             catch (Exception ex)
             {
@@ -233,9 +286,12 @@ namespace ZKTeco.PushAPI.Controllers
                         {
                             timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                             type = "error",
-                            message = $"Error loading logs: {ex.Message}"
+                            message = $"Error loading logs: {ex.Message}",
+                            serialNumber = "SYSTEM",
+                            activityType = "ERROR"
                         }
-                    }
+                    },
+                    error = ex.Message
                 });
             }
         }

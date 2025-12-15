@@ -120,8 +120,91 @@ namespace EDUCATION.COM.Exam
                 //----------------------Add Optional Mark in Total Mark CheckBox
                 AddOptionalinTotalMarkCheckBox.Checked = Convert.ToBoolean(ResetDv[0]["IS_Add_Optional_Mark_In_FullMarks"]);
 
-                //----------------------Grade Setting
-                GradeSetting_RBList.SelectedValue = ResetDv[0]["IS_Grade_BasePoint"].ToString();
+                //----------------------Grade Setting (COMPLETE FIX - Handle both bit and string values)
+                try
+                {
+                    if (ResetDv[0]["IS_Grade_BasePoint"] != DBNull.Value && ResetDv[0]["IS_Grade_BasePoint"] != null)
+                    {
+                        // Get raw value from database
+                        object rawValue = ResetDv[0]["IS_Grade_BasePoint"];
+                        bool gradeBasePoint = false;
+
+                        // Handle different data types that might come from database
+                        if (rawValue is bool)
+                        {
+                            // If it's already a boolean
+                            gradeBasePoint = (bool)rawValue;
+                        }
+                        else if (rawValue is int || rawValue is short || rawValue is byte)
+                        {
+                            // If it's a numeric type (0 or 1)
+                            gradeBasePoint = Convert.ToInt32(rawValue) == 1;
+                        }
+                        else
+                        {
+                            // Try to parse as string
+                            string stringValue = rawValue.ToString().Trim();
+                            gradeBasePoint = (stringValue == "1" || stringValue.Equals("True", StringComparison.OrdinalIgnoreCase));
+                        }
+
+                        // Detailed logging for debugging
+                        System.Diagnostics.Debug.WriteLine($"=== Grade Setting Debug ===");
+                        System.Diagnostics.Debug.WriteLine($"Raw DB Value Type: {rawValue.GetType().Name}");
+                        System.Diagnostics.Debug.WriteLine($"Raw DB Value: '{rawValue}'");
+                        System.Diagnostics.Debug.WriteLine($"Parsed Boolean: {gradeBasePoint}");
+                        System.Diagnostics.Debug.WriteLine($"RadioButton Items Count: {GradeSetting_RBList.Items.Count}");
+
+                        // List all radio button items
+                        for (int i = 0; i < GradeSetting_RBList.Items.Count; i++)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Item {i}: Text='{GradeSetting_RBList.Items[i].Text}', Value='{GradeSetting_RBList.Items[i].Value}', Selected={GradeSetting_RBList.Items[i].Selected}");
+                        }
+
+                        // Clear any existing selection first
+                        GradeSetting_RBList.ClearSelection();
+
+                        // Set the radio button based on the boolean value
+                        if (gradeBasePoint)
+                        {
+                            // True/1 = Grade Based On GPA
+                            GradeSetting_RBList.Items.FindByValue("1").Selected = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set to 'Grade Based On GPA' (value=1)");
+                        }
+                        else
+                        {
+                            // False/0 = Grade Based On Average Mark
+                            GradeSetting_RBList.Items.FindByValue("0").Selected = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set to 'Grade Based On Average Mark' (value=0)");
+                        }
+
+                        System.Diagnostics.Debug.WriteLine($"Final Selected Value: '{GradeSetting_RBList.SelectedValue}'");
+                        System.Diagnostics.Debug.WriteLine($"Final Selected Index: {GradeSetting_RBList.SelectedIndex}");
+                        System.Diagnostics.Debug.WriteLine($"=========================");
+
+                        // Also log to browser console via JavaScript
+                        string jsValue = gradeBasePoint ? "1 (GPA)" : "0 (Average Mark)";
+                        ScriptManager.RegisterStartupScript(this, GetType(), "gradeDebug",
+                            $"console.log('✅ Grade Setting Loaded from DB: {jsValue}, RadioButton Selected: ' + document.querySelector('[id*=GradeSetting_RBList] input:checked')?.value);", true);
+                    }
+                    else
+                    {
+                        // Default to Grade Based On GPA if field is null
+                        GradeSetting_RBList.ClearSelection();
+                        GradeSetting_RBList.Items.FindByValue("1").Selected = true;
+                        System.Diagnostics.Debug.WriteLine($"⚠️ IS_Grade_BasePoint is null, defaulting to GPA (value=1)");
+                        ScriptManager.RegisterStartupScript(this, GetType(), "gradeDebugNull",
+                            "console.warn('IS_Grade_BasePoint is NULL - defaulting to GPA');", true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error setting Grade Setting: {ex.Message}");
+                    // Default to Grade Based On GPA on error
+                    GradeSetting_RBList.ClearSelection();
+                    GradeSetting_RBList.Items.FindByValue("1").Selected = true;
+                    ScriptManager.RegisterStartupScript(this, GetType(), "gradeDebugError",
+                        $"console.error('Error loading grade setting: {ex.Message.Replace("'", "\\'")}');", true);
+                }
 
                 //----------------------Grade AS It is CheckBox
                 Grade_AS_ItisCheckBox.Checked = Convert.ToBoolean(ResetDv[0]["IS_Enable_Grade_as_it_is_if_Fail"]);
@@ -166,6 +249,13 @@ namespace EDUCATION.COM.Exam
                 MinPercentageTextBox.Text = string.Empty;
                 FromDateTextBox.Text = string.Empty;
                 ToDateTextBox.Text = string.Empty;
+                
+                // Set default grade setting when no previous data
+                GradeSetting_RBList.ClearSelection();
+                GradeSetting_RBList.Items.FindByValue("1").Selected = true;
+                System.Diagnostics.Debug.WriteLine($"No previous publish data found, defaulting to GPA (value=1)");
+                ScriptManager.RegisterStartupScript(this, GetType(), "gradeDebugNoData",
+                    "console.log('No previous publish data - defaulting to GPA');", true);
             }
 
             DataView ResetExamDV = new DataView();

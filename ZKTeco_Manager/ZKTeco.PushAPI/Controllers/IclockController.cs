@@ -55,6 +55,19 @@ namespace ZKTeco.PushAPI.Controllers
                 // Update LastPushTime in database
                 _repository.UpdateDeviceLastPushTime(serialNumber);
 
+                // Log connection success
+                var deviceInfo = _repository.GetDeviceInfo(serialNumber);
+                if (deviceInfo != null)
+                {
+                    LogDeviceActivity(serialNumber, "HANDSHAKE_SUCCESS", 
+                        $"Device '{deviceInfo.DeviceName}' connected for {deviceInfo.SchoolName}. Last push updated.");
+                }
+                else
+                {
+                    LogDeviceActivity(serialNumber, "HANDSHAKE_WARNING", 
+                        "Device not registered in database. Please register device.");
+                }
+
                 // Response format for ZKTeco device (ADMS compatible)
                 var response = new StringBuilder();
                 response.AppendLine("GET OPTION FROM: " + serialNumber);
@@ -120,14 +133,63 @@ namespace ZKTeco.PushAPI.Controllers
                 LogDeviceActivity(serialNumber, "ADMS_CONNECTED", 
                     $"Device '{deviceInfo.DeviceName}' connected for {deviceInfo.SchoolName}");
 
-                // Return OK or commands for device
-                // Format: C:ID:COMMAND for sending commands to device
-                // For now, just acknowledge
-                return CreateTextResponse("OK");
+                // IMPORTANT: Tell device to send attendance data
+                // Format: C:ID:DATA UPDATE ATTLOG Stamp=timestamp
+                var commands = new StringBuilder();
+                commands.AppendLine("C:1:DATA UPDATE ATTLOG Stamp=" + DateTime.Now.Ticks);
+                
+                LogDeviceActivity(serialNumber, "ADMS_COMMAND_SENT", 
+                    "Requested ATTLOG data from device");
+
+                return CreateTextResponse(commands.ToString());
             }
             catch (Exception ex)
             {
                 LogError("GetRequest", ex);
+                return CreateTextResponse("OK");
+            }
+        }
+
+        /// <summary>
+        /// ADMS Device Command Handler
+        /// GET /iclock/devicecmd?SN=DEVICE_SERIAL
+        /// Alternative endpoint for ADMS devices to get commands
+        /// </summary>
+        [HttpGet]
+        [Route("devicecmd")]
+        public HttpResponseMessage DeviceCommand()
+        {
+            try
+            {
+                var queryParams = HttpContext.Current.Request.QueryString;
+                var serialNumber = queryParams["SN"] ?? "";
+
+                LogDeviceActivity(serialNumber, "ADMS_DEVICECMD", 
+                    "ADMS device requesting commands via devicecmd endpoint");
+
+                // Update LastPushTime
+                _repository.UpdateDeviceLastPushTime(serialNumber);
+
+                // Check if device is registered
+                var deviceInfo = _repository.GetDeviceInfo(serialNumber);
+                if (deviceInfo == null)
+                {
+                    LogDeviceActivity(serialNumber, "DEVICECMD_ERROR", "Device not registered in database");
+                    return CreateTextResponse("OK");
+                }
+
+                // Request attendance data
+                var commands = new StringBuilder();
+                commands.AppendLine("C:1:DATA UPDATE ATTLOG Stamp=" + DateTime.Now.Ticks);
+                
+                LogDeviceActivity(serialNumber, "DEVICECMD_SENT", 
+                    "Sent DATA UPDATE command to device");
+
+                return CreateTextResponse(commands.ToString());
+            }
+            catch (Exception ex)
+            {
+                LogError("DeviceCommand", ex);
                 return CreateTextResponse("OK");
             }
         }
@@ -297,6 +359,11 @@ namespace ZKTeco.PushAPI.Controllers
                     _repository.UpdateDeviceLastPushTime(serialNumber);
                     LogDeviceActivity(serialNumber, "PING", "Device heartbeat received");
                 }
+                else
+                {
+                    // If no serial number provided, just log a test ping
+                    LogDeviceActivity("TEST", "PING", "Test ping received - no serial number provided");
+                }
 
                 return CreateTextResponse("OK");
             }
@@ -308,63 +375,25 @@ namespace ZKTeco.PushAPI.Controllers
         }
 
         /// <summary>
-        /// Test endpoint to check ADMS device status
-        /// GET /iclock/test-adms?SN=DEVICE_SERIAL
+        /// Test log writing - For debugging
+        /// GET /iclock/test-log?message=Test
         /// </summary>
         [HttpGet]
-        [Route("test-adms")]
-        public HttpResponseMessage TestAdms()
+        [Route("test-log")]
+        public HttpResponseMessage TestLog()
         {
             try
             {
                 var queryParams = HttpContext.Current.Request.QueryString;
-                var serialNumber = queryParams["SN"] ?? "";
+                var message = queryParams["message"] ?? "Test log entry";
+                var serialNumber = queryParams["SN"] ?? "TEST_DEVICE";
 
-                if (string.IsNullOrEmpty(serialNumber))
-                {
-                    return CreateTextResponse("ERROR: SN parameter required. Use: /iclock/test-adms?SN=YOUR_SERIAL");
-                }
+                LogDeviceActivity(serialNumber, "TEST_LOG", message);
 
-                // Get device info
-                var deviceInfo = _repository.GetDeviceInfo(serialNumber);
-
-                if (deviceInfo == null)
-                {
-                    return CreateTextResponse($"ERROR: Device '{serialNumber}' not found in database.\n" +
-                        "Please register device in Device_Institution_Mapping table.");
-                }
-
-                // Update last push time
-                _repository.UpdateDeviceLastPushTime(serialNumber);
-
-                // Log the test
-                LogDeviceActivity(serialNumber, "TEST_ADMS", "ADMS test endpoint called");
-
-                // Return detailed info
-                var response = new StringBuilder();
-                response.AppendLine("=== ADMS Device Test ===");
-                response.AppendLine($"Device Serial: {deviceInfo.DeviceSerialNumber}");
-                response.AppendLine($"Device Name: {deviceInfo.DeviceName}");
-                response.AppendLine($"School: {deviceInfo.SchoolName} (ID: {deviceInfo.SchoolID})");
-                response.AppendLine($"Location: {deviceInfo.DeviceLocation}");
-                response.AppendLine($"Is Active: {deviceInfo.IsActive}");
-                response.AppendLine($"Last Push Time: {deviceInfo.LastPushTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Never"}");
-                response.AppendLine($"Server Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-                response.AppendLine();
-                response.AppendLine("=== ADMS Endpoints Available ===");
-                response.AppendLine("1. Handshake: GET /iclock/cdata?SN=" + serialNumber);
-                response.AppendLine("2. Get Request: GET /iclock/getrequest?SN=" + serialNumber);
-                response.AppendLine("3. Device Info: GET /iclock/deviceinfo?SN=" + serialNumber);
-                response.AppendLine("4. Post Data: POST /iclock/cdata?SN=" + serialNumber + "&table=ATTLOG");
-                response.AppendLine("5. Ping: GET /iclock/ping?SN=" + serialNumber);
-                response.AppendLine();
-                response.AppendLine("STATUS: OK - Device is properly configured!");
-
-                return CreateTextResponse(response.ToString());
+                return CreateTextResponse($"OK - Log written: [{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{serialNumber}] [TEST_LOG] {message}");
             }
             catch (Exception ex)
             {
-                LogError("TestAdms", ex);
                 return CreateTextResponse($"ERROR: {ex.Message}");
             }
         }
@@ -559,9 +588,20 @@ namespace ZKTeco.PushAPI.Controllers
             dateTimeStr = dateTimeStr.Trim();
 
             // Try multiple date formats - MOST SPECIFIC FIRST
+            // Including 12-hour format with AM/PM
             string[] formats = new[]
             {
-                // DD-MM-YY format (Device default format) - PRIORITY
+                // 12-HOUR FORMATS WITH AM/PM (AttendanceDevice style)
+                "dd-MM-yy hh:mm:ss tt",  // 13-12-24 01:10:38 PM
+                "dd-MM-yy h:mm:ss tt",   // 13-12-24 1:10:38 PM
+                "dd-MM-yyyy hh:mm:ss tt", // 13-12-2024 01:10:38 PM
+                "dd-MM-yyyy h:mm:ss tt",  // 13-12-2024 1:10:38 PM
+                "dd/MM/yy hh:mm:ss tt",  // 13/12/24 01:10:38 PM
+                "dd/MM/yy h:mm:ss tt",   // 13/12/24 1:10:38 PM
+                "dd/MM/yyyy hh:mm:ss tt", // 13/12/2024 01:10:38 PM
+                "dd/MM/yyyy h:mm:ss tt",  // 13/12/2024 1:10:38 PM
+                
+                // 24-HOUR FORMATS (Device default format) - PRIORITY
                 "dd-MM-yy HH:mm:ss",
                 "dd-MM-yy H:mm:ss",
                 "dd-MM-yyyy HH:mm:ss",

@@ -5,14 +5,96 @@
     <!-- Use Google Fonts for better reliability -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- Additional Font Awesome support for this page -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    <!-- Font Awesome - Multiple CDN fallbacks -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous" />
 
     <!-- External CSS for English Result Card with cache busting -->
     <link href="../Result/Assets/Cumulative_Result.css?v=<%= DateTime.Now.Ticks %>" rel="stylesheet" type="text/css" />
   
+    <style>
+        /* Force Font Awesome to load */
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
 
+        /* Ensure icons display properly */
+        .fa, .fas, .far, .fal, .fad, .fab {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
+            font-weight: 900;
+            font-style: normal;
+            display: inline-block;
+            line-height: 1;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
+        .fa-map-marker-alt:before, .fa-location-dot:before {
+            content: "\f3c5";
+        }
+
+        .fa-phone:before {
+            content: "\f095";
+        }
+
+        /* Icon fallback support */
+        .icon-fallback {
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        /* Guardian signature section styles */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 10px 20px;
+            margin-top: 15px;
+            page-break-inside: avoid;
+        }
+
+        .footer > div {
+            text-align: center;
+            flex: 1;
+            padding: 0 10px;
+        }
+
+        .signature-container {
+            min-height: 45px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .signature-container img {
+            max-height: 35px;
+            max-width: 120px;
+            object-fit: contain;
+        }
+
+        .signature-label {
+            font-weight: 600;
+            font-size: 11px;
+            border-top: 1px solid #000;
+            padding-top: 3px;
+            margin-top: 5px;
+            min-width: 100px;
+            display: inline-block;
+        }
+
+        /* Signature upload controls styling */
+        .signature-upload-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .signature-upload-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -172,40 +254,66 @@
 
    
 
-    <!-- Teacher and Head Teacher Signature Controls with Pagination -->
-    <div class="form-inline NoPrint Card-space" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center;">
-            <div class="form-group NoPrint" style="margin-right: 15px;">
-                <asp:TextBox ID="TeacherSignTextBox" Text="Class Teacher" runat="server" placeholder="Class Teacher Signature" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
-                <label class="btn btn-secondary btn-sm NoPrint" for="Tfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
+    <!-- Signature Controls with Guardian Section -->
+    <div class="form-inline NoPrint Card-space" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+        <div class="signature-upload-section">
+            <!-- Class Teacher Signature -->
+            <div class="signature-upload-group">
+                <asp:TextBox ID="TeacherSignTextBox" Text="Class Teacher" runat="server" 
+                    placeholder="Class Teacher" CssClass="form-control" style="width: 130px;"
+                    autocomplete="off"></asp:TextBox>
+                <label class="btn btn-secondary btn-sm NoPrint" for="Tfileupload" 
+                    style="cursor: pointer; margin: 0;">
                     Browse
                 </label>
-                <input id="Tfileupload" type="file" accept="image/*" style="position: absolute; left: -9999px; opacity: 0;" />
+                <input id="Tfileupload" type="file" accept="image/*" 
+                    style="position: absolute; left: -9999px; opacity: 0;" />
             </div>
-            <div class="form-group NoPrint" style="margin-right: 15px;">
-                <asp:TextBox ID="HeadTeacherSignTextBox" Text="Principal" runat="server" placeholder="Principal Signature" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
-                <label class="btn btn-secondary btn-sm" for="Hfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
+
+            <!-- Guardian Signature (NEW - EDITABLE LABEL) -->
+            <div class="signature-upload-group">
+                <asp:TextBox ID="GuardianSignTextBox" Text="Guardian" runat="server" 
+                    placeholder="Guardian/Manager" CssClass="form-control" style="width: 130px;"
+                    autocomplete="off"></asp:TextBox>
+                <label class="btn btn-secondary btn-sm NoPrint" for="Gfileupload" 
+                    style="cursor: pointer; margin: 0;">
                     Browse
                 </label>
-                <input id="Hfileupload" type="file" accept="image/*" style="position: absolute; left: -9999px; opacity: 0;" />
+                <input id="Gfileupload" type="file" accept="image/*" 
+                    style="position: absolute; left: -9999px; opacity: 0;" />
             </div>
-        </div>
-                <div class="pagination-inline NoPrint" style="margin-bottom: 15px; text-align: center;">
-            <asp:Label ID="PaginationInfoLabel" runat="server" CssClass="pagination-label" 
-                Text="Loaded 0 to 0 students. Total 0 students"></asp:Label>
-        </div>
-        <!-- Pagination Controls -->
-        <div class="pagination-inline NoPrint" style="display: flex; align-items: center;">
-            <asp:Button ID="FirstPageButton" runat="server" Text="First" CssClass="btn btn-xs btn-outline-primary" 
-                OnClick="FirstPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
-            <asp:Button ID="PrevPageButton" runat="server" Text="Prev" CssClass="btn btn-xs btn-outline-primary" 
-                OnClick="PrevPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
-            <asp:Label ID="PageInfoLabel" runat="server" CssClass="page-info-inline" 
-                Text="Page 1 of 1" style="margin: 0 8px; font-size: 12px; font-weight: bold; color: #495057;"></asp:Label>
-            <asp:Button ID="NextPageButton" runat="server" Text="Next" CssClass="btn btn-xs btn-outline-primary" 
-                OnClick="NextPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
-            <asp:Button ID="LastPageButton" runat="server" Text="Last" CssClass="btn btn-xs btn-outline-primary" 
-                OnClick="LastPageButton_Click" style="margin: 0 2px; padding: 2px 6px; font-size: 11px;" />
+
+            <!-- Principal Signature -->
+            <div class="signature-upload-group">
+                <asp:TextBox ID="HeadTeacherSignTextBox" Text="Principal" runat="server" 
+                    placeholder="Principal" CssClass="form-control" style="width: 130px;"
+                    autocomplete="off"></asp:TextBox>
+                <label class="btn btn-secondary btn-sm" for="Hfileupload" 
+                    style="cursor: pointer; margin: 0;">
+                    Browse
+                </label>
+                <input id="Hfileupload" type="file" accept="image/*" 
+                    style="position: absolute; left: -9999px; opacity: 0;" />
+            </div>
+
+            <div class="pagination-inline NoPrint" style="margin-left: auto;">
+                <asp:Label ID="PaginationInfoLabel" runat="server" CssClass="pagination-label" 
+                    Text="Loaded 0 to 0 students. Total 0 students"></asp:Label>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-inline NoPrint" style="display: flex; align-items: center; gap: 2px;">
+                <asp:Button ID="FirstPageButton" runat="server" Text="First" CssClass="btn btn-xs btn-outline-primary" 
+                    OnClick="FirstPageButton_Click" style="padding: 2px 6px; font-size: 11px;" />
+                <asp:Button ID="PrevPageButton" runat="server" Text="Prev" CssClass="btn btn-xs btn-outline-primary" 
+                    OnClick="PrevPageButton_Click" style="padding: 2px 6px; font-size: 11px;" />
+                <asp:Label ID="PageInfoLabel" runat="server" CssClass="page-info-inline" 
+                    Text="Page 1 of 1" style="margin: 0 8px; font-size: 12px; font-weight: bold; color: #495057;"></asp:Label>
+                <asp:Button ID="NextPageButton" runat="server" Text="Next" CssClass="btn btn-xs btn-outline-primary" 
+                    OnClick="NextPageButton_Click" style="padding: 2px 6px; font-size: 11px;" />
+                <asp:Button ID="LastPageButton" runat="server" Text="Last" CssClass="btn btn-xs btn-outline-primary" 
+                    OnClick="LastPageButton_Click" style="padding: 2px 6px; font-size: 11px;" />
+            </div>
         </div>
     </div>
 
@@ -214,10 +322,6 @@
     <asp:HiddenField ID="HiddenPrincipalSign" runat="server" />
 
     <asp:Panel ID="ResultPanel" runat="server" Visible="false">
-        <!-- Pagination Info -->
-
-
-        <!-- Results -->
         <asp:Repeater ID="ResultRepeater" runat="server" OnItemDataBound="ResultRepeater_ItemDataBound">
             <ItemTemplate>
                 <div class="result-card">
@@ -226,8 +330,8 @@
                         <img src="/Handeler/SchoolLogo.ashx?SLogo=<%# Eval("SchoolID") %>" alt="School Logo" onerror="this.style.display='none';" />
                         <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>" alt="Student Photo" class="student-photo" onerror="this.style.display='none';" />
                         <h2><%# Eval("SchoolName") %></h2>
-                        <p><i class="fa fa-map-marker icon-fallback" data-fallback="📍"></i> <%# Eval("Address") %></p>
-                        <p><i class="fa fa-phone icon-fallback" data-fallback="📞"></i> <%# Eval("Phone") %></p>
+                        <p><i class="fa-solid fa-location-dot icon-fallback"></i> <%# Eval("Address") %></p>
+                        <p><i class="fa-solid fa-phone icon-fallback"></i> <%# Eval("Phone") %></p>
                     </div>
 
                     <!-- Title Section -->
@@ -279,15 +383,19 @@
                     <!-- Dynamic Subject Marks Table -->
                     <%# GenerateSubjectMarksTable(Eval("StudentResultID").ToString(), Eval("Student_Grade").ToString(), Eval("Student_Point") == DBNull.Value ? 0m : Convert.ToDecimal(Eval("Student_Point"))) %>
 
-                    <!-- Footer -->
+                    <!-- Footer with 3 Signatures (Class Teacher | Guardian | Principal) -->
                     <div class="footer">
                         <div>
-                            <div class="SignTeacher" style="height: 45px; margin-bottom: 5px;"></div>
-                            <div class="Teacher">Class Teacher</div>
+                            <div class="SignTeacher signature-container"></div>
+                            <div class="Teacher signature-label">Class Teacher</div>
                         </div>
                         <div>
-                            <div class="SignHead" style="height: 45px; margin-bottom: 5px;"></div>
-                            <div class="Head">Principal</div>
+                            <div class="SignGuardian signature-container"></div>
+                            <div class="Guardian signature-label">Guardian</div>
+                        </div>
+                        <div>
+                            <div class="SignHead signature-container"></div>
+                            <div class="Head signature-label">Principal</div>
                         </div>
                     </div>
                     <p class="note">WD: Working Days.PM: Pass Marks. FM: Full Marks. OM: Obtained Marks. PC: Position in Class. PS: Position in Section.HMC: Highest Marks in Class. HMS: Highest Marks in Section</p>
@@ -297,313 +405,41 @@
     </asp:Panel>
 
     <script type="text/javascript">
-        // Enhanced Progress Bar Control Object with Dynamic Server Integration
-        var ProgressBarManager = {
-            // Configuration
-            config: {
-                polling: {
-                    interval: 300, // Check every 300ms
-                    maxAttempts: 200, // Maximum 60 seconds (200 * 300ms)
-                    currentAttempt: 0
-                },
-                baseMessages: [
-                    { step: 1, message: "Connecting to database...", detail: "Establishing secure connection", duration: 1000 },
-                    { step: 2, message: "Validating parameters...", detail: "Checking class, exam and student selections", duration: 800 },
-                    { step: 3, message: "Loading class configuration...", detail: "Fetching class, section, group information", duration: 600 },
-                    { step: 4, message: "Counting students...", detail: "Determining total number of students", duration: 1200 },
-                    { step: 5, message: "Processing student data...", detail: "Loading student information and photos", duration: 0 }, // Dynamic
-                    { step: 6, message: "Calculating exam results...", detail: "Processing marks and grades", duration: 0 }, // Dynamic
-                    { step: 7, message: "Generating result cards...", detail: "Formatting and preparing display", duration: 0 }, // Dynamic
-                    { step: 8, message: "Finalizing...", detail: "Preparing final output", duration: 500 }
-                ]
-            },
-
-            // State management
-            state: {
-                isRunning: false,
-                currentStep: 0,
-                estimatedStudentCount: 0,
-                actualStudentCount: 0,
-                startTime: 0,
-                pollingTimer: null,
-                stepTimer: null
-            },
-
-            // Show progress overlay
-            show: function () {
-                $('#loadingOverlay').css('display', 'flex');
-                this.state.isRunning = true;
-                this.state.currentStep = 0;
-                this.state.startTime = Date.now();
-                this.state.pollingTimer = null;
-                this.state.stepTimer = null;
-                this.config.polling.currentAttempt = 0;
-                this.reset();
-                this.startDynamicProgress();
-            },
-
-            // Hide progress overlay
-            hide: function () {
-                var self = this;
-                setTimeout(function () {
-                    $('#loadingOverlay').fadeOut(300, function () {
-                        self.cleanup();
-                    });
-                }, 500);
-            },
-
-            // Cleanup timers and state
-            cleanup: function () {
-                this.state.isRunning = false;
-                if (this.state.pollingTimer) {
-                    clearInterval(this.state.pollingTimer);
-                    this.state.pollingTimer = null;
-                }
-                if (this.state.stepTimer) {
-                    clearTimeout(this.state.stepTimer);
-                    this.state.stepTimer = null;
-                }
-            },
-
-            // Reset progress bar
-            reset: function () {
-                $('#progressBar').css('width', '0%');
-                $('#progressPercentage').text('0%');
-                $('#progressMessage').text('Preparing to load results...');
-                $('#progressDetails').text('Please wait while we fetch the data');
-            },
-
-            // Start dynamic progress with server monitoring
-            startDynamicProgress: function () {
-                var self = this;
-
-                // Start initial steps (before server processing)
-                self.processInitialSteps();
-
-                // Start polling for server completion after initial steps
-                setTimeout(function () {
-                    self.startServerPolling();
-                }, 2500); // Start polling after initial 2.5 seconds
-            },
-
-            // Process initial steps (database connection, validation, etc.)
-            processInitialSteps: function () {
-                var self = this;
-                var initialSteps = self.config.baseMessages.slice(0, 4); // First 4 steps
-
-                function processStep(stepIndex) {
-                    if (stepIndex >= initialSteps.length || !self.state.isRunning) {
-                        return;
-                    }
-
-                    var step = initialSteps[stepIndex];
-                    self.state.currentStep = step.step;
-
-                    $('#progressMessage').text(step.message);
-                    $('#progressDetails').text(step.detail);
-
-                    // Calculate progress for initial steps (0-40%)
-                    var progress = ((stepIndex + 1) / initialSteps.length) * 40;
-                    self.animateProgressTo(progress);
-
-                    // Scheduled
-                    if (stepIndex < initialSteps.length - 1) {
-                        self.state.stepTimer = setTimeout(function () {
-                            processStep(stepIndex + 1);
-                        }, step.duration);
-                    }
-                }
-
-                processStep(0);
-            },
-
-            // Start polling server for completion status
-            startServerPolling: function () {
-                var self = this;
-
-                // Update message to show we're processing
-                $('#progressMessage').text('Processing student data...');
-                $('#progressDetails').text('Loading and calculating results');
-
-                self.state.pollingTimer = setInterval(function () {
-                    self.checkServerStatus();
-                }, self.config.polling.interval);
-            },
-
-            // Check if results are loaded on server
-            checkServerStatus: function () {
-                var self = this;
-                self.config.polling.currentAttempt++;
-
-                // Calculate elapsed time
-                var elapsedTime = Date.now() - self.state.startTime;
-                var elapsedSeconds = Math.floor(elapsedTime / 1000);
-
-                // Progressive progress updates while polling
-                var baseProgress = 40; // Starting from 40% after initial steps
-                var pollingProgress = Math.min(50, (self.config.polling.currentAttempt / self.config.polling.maxAttempts) * 50);
-                var currentProgress = baseProgress + pollingProgress;
-
-                // Update progress and details
-                self.animateProgressTo(Math.min(currentProgress, 90));
-                $('#progressDetails').text(`Processing... (${elapsedSeconds}s elapsed)`);
-
-                // Check if results panel is visible (indicates completion)
-                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
-                var hasResults = false;
-
-                if (resultPanel) {
-                    hasResults = $(resultPanel).is(':visible') && $('.result-card').length > 0;
-                }
-
-                if (hasResults) {
-                    // Results found - complete immediately
-                    self.state.actualStudentCount = $('.result-card').length;
-                    self.completeWithResults();
-                    return;
-                }
-
-                // Check for timeout
-                if (self.config.polling.currentAttempt >= self.config.polling.maxAttempts) {
-                    // Timeout reached - check one more time then complete
-                    setTimeout(function () {
-                        var finalCheck = $('.result-card').length > 0;
-                        if (finalCheck) {
-                            self.state.actualStudentCount = $('.result-card').length;
-                            self.completeWithResults();
-                        } else {
-                            self.completeWithTimeout();
-                        }
-                    }, 500);
-
-                    if (self.state.pollingTimer) {
-                        clearInterval(self.state.pollingTimer);
-                        self.state.pollingTimer = null;
-                    }
-                }
-            },
-
-            // Complete progress when results are loaded
-            completeWithResults: function () {
-                var self = this;
-
-                // Stop polling
-                if (self.state.pollingTimer) {
-                    clearInterval(self.state.pollingTimer);
-                    self.state.pollingTimer = null;
-                }
-
-                // Show completion messages
-                $('#progressMessage').text('Results loaded successfully!');
-                $('#progressDetails').text(`Displaying ${self.state.actualStudentCount} result card(s)`);
-
-                // Animate to 100%
-                self.animateProgressTo(100);
-
-                // Hide after showing completion
-                setTimeout(function () {
-                    self.hide();
-
-                    // Show success notification
-                    console.log(`✅ Results loaded: ${self.state.actualStudentCount} students in ${Math.floor((Date.now() - self.state.startTime) / 1000)} seconds`);
-
-                    // Ensure print button is visible
-                    setTimeout(function () {
-                        var printBtn = document.getElementById('PrintButton');
-                        if (printBtn && $('.result-card').length > 0) {
-                            printBtn.style.display = 'inline-block';
-                        }
-                    }, 100);
-
-                }, 800);
-            },
-
-            // Handle timeout case
-            completeWithTimeout: function () {
-                var self = this;
-
-                $('#progressMessage').text('Loading completed');
-                $('#progressDetails').text('Processing finished');
-                self.animateProgressTo(100);
-
-                setTimeout(function () {
-                    self.hide();
-                }, 1000);
-            },
-
-            // Animate progress bar to target percentage
-            animateProgressTo: function (targetPercentage) {
-                var $progressBar = $('#progressBar');
-                var $progressPercentage = $('#progressPercentage');
-
-                $progressBar.css('width', Math.min(targetPercentage, 100) + '%');
-                $progressPercentage.text(Math.round(Math.min(targetPercentage, 100)) + '%');
-
-                // Add pulse effect for active progress
-                if (targetPercentage < 95) {
-                    $progressBar.addClass('animate');
-                } else {
-                    $progressBar.removeClass('animate');
-                }
-            },
-
-            // Force completion (called externally when we know results are ready)
-            forceComplete: function () {
-                if (!this.state.isRunning) return;
-
-                this.state.actualStudentCount = $('.result-card').length;
-                this.completeWithResults();
-            },
-
-            // Manual completion with custom message
-            completeWithMessage: function (message, detail) {
-                var self = this;
-
-                if (self.state.pollingTimer) {
-                    clearInterval(self.state.pollingTimer);
-                    self.state.pollingTimer = null;
-                }
-
-                $('#progressMessage').text(message || 'Loading completed');
-                $('#progressDetails').text(detail || 'Process finished');
-                self.animateProgressTo(100);
-
-                setTimeout(function () {
-                    self.hide();
-                }, 800);
-            }
-        };
-
-        // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
         $(document).ready(function () {
-            // Check if Font Awesome is loaded properly
+            // Force load Font Awesome if not loaded
+            if (!$('link[href*="font-awesome"]').length || !document.fonts || !document.fonts.check('16px "Font Awesome 6 Free"')) {
+                console.warn('🔄 Font Awesome not detected, force loading...');
+                var faLink = document.createElement('link');
+                faLink.rel = 'stylesheet';
+                faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
+                faLink.crossOrigin = 'anonymous';
+                document.head.appendChild(faLink);
+                
+                setTimeout(checkAndFixFontAwesome, 1000);
+            }
+
+            // Initialize everything
             checkAndFixFontAwesome();
-
-            // Fix absent marks display
             fixAbsentMarksDisplay();
-
-            // Load database signatures when page loads
             loadDatabaseSignatures();
-
-            // Initialize teacher and head teacher text
-            updateSignatureTexts();
-
-            // Initialize signature upload functionality
+            updateSignatureTexts(); // Initial update
             initializeSignatureUpload();
-
-            // Apply pagination button styles
             applyPaginationStyles();
 
-            // Show toggle button if results are already loaded
             if ($('.result-card').length > 0) {
                 $('#PrintButton').show();
                 fixResultCardIcons();
                 fixPositionColumnsAlignment();
             }
 
-            // Handle Enter key press in Student ID textbox
+            // Real-time update when typing in textboxes
+            $('[id$="TeacherSignTextBox"], [id$="GuardianSignTextBox"], [id$="HeadTeacherSignTextBox"]').on('keyup change paste input', function() {
+                updateSignatureTexts();
+            });
+
+            // Handle Enter key in Student ID textbox
             $("[id*=StudentIDTextBox]").keypress(function (e) {
-                if (e.which == 13) { // Enter key
+                if (e.which == 13) {
                     e.preventDefault();
                     $("[id*=LoadResultsButton]").click();
                 }
@@ -614,31 +450,12 @@
                 $("[id*=StudentIDTextBox]").val('');
             });
 
-            // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
+            // Load Results Button Handler
             $("[id*=LoadResultsButton]").off('click').on('click', function (e) {
-                console.log('🚀 Load Results button clicked - starting dynamic progress monitoring');
+                console.log('🚀 Load Results button clicked');
 
-                // Test if progress bar manager exists
-                if (typeof ProgressBarManager === 'undefined') {
-                    console.error('❌ ProgressBarManager is not defined!');
-                    alert('Progress bar system not loaded properly. Please refresh the page.');
-                    return false;
-                }
-
-                // Test if jQuery is loaded
-                if (typeof $ === 'undefined') {
-                    console.error('❌ jQuery is not loaded!');
-                    alert('jQuery not loaded. Please refresh the page.');
-                    return false;
-                }
-
-                console.log('✅ Dependencies check passed');
-
-                // Check if required selections are made
                 var classValue = $("[id*=ClassDropDownList]").val();
                 var examValue = $("[id*=ExamDropDownList]").val();
-
-                console.log('📋 Form values:', { class: classValue, exam: examValue });
 
                 if (!classValue || classValue === "0") {
                     alert("Please select a class first!");
@@ -652,134 +469,44 @@
                     return false;
                 }
 
-                // Hide any existing results during new load
                 var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
                 if (resultPanel) {
                     $(resultPanel).hide();
                 }
                 $('.result-card').remove();
 
-                // Test progress bar show function
-                console.log('🎯 About to show progress bar...');
-
-                try {
-                    // Show dynamic progress bar
+                if (typeof ProgressBarManager !== 'undefined') {
                     ProgressBarManager.show();
-                    console.log('✅ Progress bar show() called successfully');
-                } catch (error) {
-                    console.error('❌ Error showing progress bar:', error);
-                    alert('Error starting progress bar: ' + error.message);
                 }
 
-                // Add debug logging
-                console.log('📊 Progress tracking started with dynamic server monitoring');
-                console.log(`📋 Loading results for Class: ${classValue}, Exam: ${examValue}`);
-
-                // Let the postback continue normally
                 return true;
-            });
-
-            // Add input validation for Student ID textbox
-            $("[id*=StudentIDTextBox]").on('input', function () {
-                var value = $(this).val();
-                var validChars = /^[a-zA-Z0-9,\s]*$/;
-
-                if (!validChars.test(value)) {
-                    value = value.replace(/[^a-zA-Z0-9,\s]/g, '');
-                    $(this).val(value);
-                }
-            });
-
-            // Add helpful tooltips and validation feedback
-            $("[id*=StudentIDTextBox]").on('blur', function () {
-                var value = $(this).val().trim();
-                if (value) {
-                    var ids = value.split(/[,]/).map(function (id) { return id.trim(); }).filter(function (id) { return id; });
-
-                    var invalidIds = ids.filter(function (id) { return !/^[a-zA-Z0-9]+$/.test(id) || id.length === 0; });
-                    if (invalidIds.length > 0) {
-                        $(this).addClass('is-invalid');
-                        $(this).attr('title', 'Invalid IDs: ' + invalidIds.join(', '));
-                    } else {
-                        $(this).removeClass('is-invalid');
-                        $(this).attr('title', 'Valid IDs: ' + ids.length + ' student(s)');
-                    }
-                }
             });
         });
 
-        // Enhanced pageLoad function for ASP.NET postbacks
-        function pageLoad(sender, args) {
-            console.log('📄 Page loaded - checking for results...');
-
-            if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
-                // Partial postback
-                setTimeout(function () {
-                    applyPaginationStyles();
-                    fixPositionColumnsAlignment();
-
-                    // Check if progress bar is running and complete it if results are loaded
-                    if (ProgressBarManager.state.isRunning && $('.result-card').length > 0) {
-                        console.log('✅ Partial postback completed with results - completing progress bar');
-                        ProgressBarManager.forceComplete();
-                    }
-                }, 100);
-            } else {
-                // Full postback
-                setTimeout(function () {
-                    var resultCount = $('.result-card').length;
-                    console.log(`📊 Full postback completed - found ${resultCount} result cards`);
-
-                    if (ProgressBarManager && ProgressBarManager.state && ProgressBarManager.state.isRunning) {
-                        if (resultCount > 0) {
-                            console.log('✅ Full postback completed with results - completing progress bar');
-                            ProgressBarManager.forceComplete();
-                        } else {
-                            console.log('⚠️ Full postback completed but no results found');
-                            ProgressBarManager.completeWithMessage('No results found', 'Please check your selections and try again');
-                        }
-                    }
-                }, 500);
-            }
-        }
-
-        // Function implementations
         function checkAndFixFontAwesome() {
-            console.log('Checking Font Awesome icons...');
-            var testIcon = $('<i class="fa fa-home"></i>').appendTo('body');
-            var iconWidth = testIcon.width();
-            testIcon.remove();
-
-            if (iconWidth > 0) {
-                console.log('Font Awesome loaded successfully');
+            console.log('✅ Checking Font Awesome icons...');
+            
+            setTimeout(function() {
                 fixResultCardIcons();
-            } else {
-                console.warn('Font Awesome not loaded properly, using fallback');
-                if (!$('link[href*="font-awesome"]').length) {
-                    $('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">').appendTo('head');
-                    setTimeout(fixResultCardIcons, 500);
-                }
-            }
+            }, 500);
         }
 
         function fixResultCardIcons() {
-            $('.result-card').each(function () {
-                var $card = $(this);
-                $card.find('.fa-map-marker, .fa-map-marker-alt').each(function () {
-                    if ($(this).text().trim() === '' || $(this).is(':empty')) {
-                        $(this).attr('data-fallback', '📍');
+            $('.result-card').find('.fa-location-dot, .fa-map-marker-alt, .fa-phone').each(function() {
+                var $icon = $(this);
+                
+                // Check if icon is rendering properly
+                var hasContent = $icon.text().trim().length > 0;
+                var hasBeforeContent = window.getComputedStyle($icon[0], ':before').content;
+                
+                if (!hasContent || hasBeforeContent === 'none' || hasBeforeContent === '""') {
+                    // Fallback to emoji if icon doesn't load
+                    if ($icon.hasClass('fa-location-dot') || $icon.hasClass('fa-map-marker-alt')) {
+                        $icon.html('📍 ');
+                    } else if ($icon.hasClass('fa-phone')) {
+                        $icon.html('📞 ');
                     }
-                });
-                $card.find('.fa-phone').each(function () {
-                    if ($(this).text().trim() === '' || $(this).is(':empty')) {
-                        $(this).attr('data-fallback', '📞');
-                    }
-                });
-                $card.find('.fa-envelope, .fa-envelope-o').each(function () {
-                    if ($(this).text().trim() === '' || $(this).is(':empty')) {
-                        $(this).attr('data-fallback', '✉️');
-                    }
-                });
+                }
             });
         }
 
@@ -804,11 +531,6 @@
             var teacherSignPath = $('[id$="HiddenTeacherSign"]').val();
             var principalSignPath = $('[id$="HiddenPrincipalSign"]').val();
 
-            console.log('Loading database signatures:', {
-                teacher: teacherSignPath,
-                principal: principalSignPath
-            });
-
             if (teacherSignPath && teacherSignPath.trim() !== '') {
                 $('.SignTeacher').html('<img src="' + teacherSignPath + '" style="max-height: 35px; max-width: 120px;">');
             }
@@ -820,37 +542,36 @@
 
         function updateSignatureTexts() {
             var teacherText = $('[id$="TeacherSignTextBox"]').val() || 'Class Teacher';
+            var guardianText = $('[id$="GuardianSignTextBox"]').val() || 'Guardian';
             var principalText = $('[id$="HeadTeacherSignTextBox"]').val() || 'Principal';
 
             $('.Teacher').text(teacherText);
+            $('.Guardian').text(guardianText);
             $('.Head').text(principalText);
+            
+            console.log('📝 Signature labels updated:', { teacher: teacherText, guardian: guardianText, principal: principalText });
         }
 
         function initializeSignatureUpload() {
-            console.log('Initializing signature upload functionality...');
-
+            // Teacher signature
             $('#Tfileupload').off('change').on('change', function (e) {
-                console.log('Teacher file input changed');
-                handleSignatureUpload(e, 'teacher', '.SignTeacher');
+                handleSignatureUpload(e, '.SignTeacher');
             });
 
+            // Guardian signature (MIDDLE)
+            $('#Gfileupload').off('change').on('change', function (e) {
+                handleSignatureUpload(e, '.SignGuardian');
+            });
+
+            // Principal signature
             $('#Hfileupload').off('change').on('change', function (e) {
-                console.log('Principal file input changed');
-                handleSignatureUpload(e, 'principal', '.SignHead');
+                handleSignatureUpload(e, '.SignHead');
             });
 
-            $('[id$="TeacherSignTextBox"]').off('input').on('input', function () {
-                var text = $(this).val() || 'Class Teacher';
-                $('.Teacher').text(text);
-            });
-
-            $('[id$="HeadTeacherSignTextBox"]').off('input').on('input', function () {
-                var text = $(this).val() || 'Principal';
-                $('.Head').text(text);
-            });
+            console.log('✅ Signature upload handlers initialized with Guardian support');
         }
 
-        function handleSignatureUpload(event, signatureType, targetSelector) {
+        function handleSignatureUpload(event, targetSelector) {
             var file = event.target.files[0];
             if (!file) return;
 
@@ -867,145 +588,68 @@
             var reader = new FileReader();
             reader.onload = function (e) {
                 var imageData = e.target.result;
-                $(targetSelector).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px;">');
-
-                var base64Data = imageData.split(',')[1];
-
-                $.ajax({
-                    type: 'POST',
-                    url: 'CumulativeResultCardt.aspx/SaveSignature',
-                    data: JSON.stringify({
-                        signatureType: signatureType,
-                        imageData: base64Data
-                    }),
-                    contentType: 'application/json; charset=utf-8',
-                    dataType: 'json',
-                    success: function (response) {
-                        console.log('Signature saved successfully:', response);
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Error saving signature:', error);
-                        alert('Error saving signature. Please try again.');
-                    }
-                });
+                $(targetSelector).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px; object-fit: contain;">');
+                console.log('✅ Signature uploaded to:', targetSelector);
             };
 
             reader.readAsDataURL(file);
         }
 
         function applyPaginationStyles() {
-            $('.pagination-inline .btn').each(function () {
-                var $btn = $(this);
-                if ($btn.hasClass('aspNetDisabled') || $btn.prop('disabled')) {
-                    $btn.removeClass('btn-outline-primary').addClass('btn-outline-secondary');
-                } else {
-                    $btn.removeClass('btn-outline-secondary').addClass('btn-outline-primary');
-                }
+            // Apply black background with white text to pagination buttons
+            $('.btn-xs.btn-outline-primary').css({
+                'color': '#ffffff',
+                'background-color': '#000000',
+                'border-color': '#000000'
+            });
+            
+            $('.btn-xs.btn-outline-primary:disabled').css({
+                'color': '#6c757d',
+                'background-color': '#f8f9fa',
+                'border-color': '#dee2e6',
+                'opacity': '0.65'
             });
         }
 
         function fixPositionColumnsAlignment() {
-            console.log('Fixing position columns alignment...');
-
-            $('.marks-table').each(function () {
-                var $table = $(this);
-                var $headerRows = $table.find('tr').slice(0, 2);
-                var headerTexts = [];
-                var $titleHeader = $headerRows.last();
-                var $headerCells = $titleHeader.find('th');
-
-                $headerCells.each(function (i) {
-                    headerTexts.push($(this).text().trim().toUpperCase());
-                });
-
-                function findIndexByTitle(title) {
-                    var upper = title.toUpperCase();
-                    for (var i = 0; i < headerTexts.length; i++) {
-                        if (headerTexts[i] === upper) return i;
-                    }
-                    return -1;
-                }
-
-                var pcIndex = findIndexByTitle('PC');
-                var psIndex = findIndexByTitle('PS');
-                var hmcIndex = findIndexByTitle('HMC');
-                var hmsIndex = findIndexByTitle('HMS');
-
-                if (pcIndex === -1 && hmcIndex === -1) {
-                    var totalCells = $titleHeader.find('th').length;
-                    var hasSection = $table.find('th').filter(function () {
-                        return $(this).text().trim().toUpperCase() === 'PS' || $(this).text().trim().toUpperCase() === 'HMS';
-                    }).length > 0;
-
-                    if (hasSection) {
-                        pcIndex = totalCells - 4;
-                        psIndex = totalCells - 3;
-                        hmcIndex = totalCells - 2;
-                        hmsIndex = totalCells - 1;
-                    } else {
-                        pcIndex = totalCells - 2;
-                        hmcIndex = totalCells - 1;
-                        psIndex = -1;
-                        hmsIndex = -1;
-                    }
-                }
-
-                $table.find('tr').each(function () {
-                    var $row = $(this);
-                    var $cells = $row.find('th, td');
-                    $cells.removeClass('position-col-pc position-col-ps position-col-hmc position-col-hms');
-
-                    if (pcIndex >= 0 && $cells.eq(pcIndex).length) $cells.eq(pcIndex).addClass('position-col-pc');
-                    if (psIndex >= 0 && $cells.eq(psIndex).length) $cells.eq(psIndex).addClass('position-col-ps');
-                    if (hmcIndex >= 0 && $cells.eq(hmcIndex).length) $cells.eq(hmcIndex).addClass('position-col-hmc');
-                    if (hmsIndex >= 0 && $cells.eq(hmsIndex).length) $cells.eq(hmsIndex).addClass('position-col-hms');
-                });
-
-                var totalCells = $titleHeader.find('th').length;
-                var columnWidth = Math.max(28, Math.min(40, Math.floor(100 / totalCells)));
-                var rightOffset = 0;
-
-                if ($table.find('.position-col-hms').length) {
-                    $table.find('.position-col-hms').css({
-                        'right': '0px',
-                        'min-width': columnWidth + 'px',
-                        'background-color': '#f8f9fa',
-                        'font-weight': 'bold'
-                    });
-                    rightOffset += columnWidth;
-                }
-
-                if ($table.find('.position-col-hmc').length) {
-                    $table.find('.position-col-hmc').css({
-                        'right': (rightOffset) + 'px',
-                        'min-width': columnWidth + 'px',
-                        'background-color': '#f8f9fa',
-                        'font-weight': 'bold'
-                    });
-                    rightOffset += columnWidth;
-                }
-
-                if ($table.find('.position-col-ps').length) {
-                    $table.find('.position-col-ps').css({
-                        'right': (rightOffset) + 'px',
-                        'min-width': columnWidth + 'px',
-                        'background-color': '#f8f9fa',
-                        'font-weight': 'bold'
-                    });
-                    rightOffset += columnWidth;
-                }
-
-                if ($table.find('.position-col-pc').length) {
-                    $table.find('.position-col-pc').css({
-                        'right': (rightOffset) + 'px',
-                        'min-width': columnWidth + 'px',
-                        'background-color': '#f8f9fa',
-                        'font-weight': 'bold'
-                    });
-                }
-
-                console.log('Applied position column styling with width:', columnWidth);
+            // Fix position column alignment if needed
+            $('.position-col-pc, .position-col-ps, .position-col-hmc, .position-col-hms').css({
+                'text-align': 'center'
             });
         }
+
+        // Enhanced pageLoad function for ASP.NET postbacks
+        function pageLoad(sender, args) {
+            setTimeout(function () {
+                updateSignatureTexts(); // Update signature labels after postback
+                applyPaginationStyles();
+                fixPositionColumnsAlignment();
+
+                if (typeof ProgressBarManager !== 'undefined' && ProgressBarManager.state && ProgressBarManager.state.isRunning) {
+                    if ($('.result-card').length > 0) {
+                        ProgressBarManager.forceComplete();
+                    }
+                }
+                
+                // Fix icons after postback
+                fixResultCardIcons();
+            }, 100);
+        }
+
+        // ProgressBarManager implementation (minimal version)
+        var ProgressBarManager = {
+            state: { isRunning: false },
+            show: function() { 
+                $('#loadingOverlay').css('display', 'flex'); 
+                this.state.isRunning = true; 
+            },
+            hide: function() { 
+                $('#loadingOverlay').fadeOut(300); 
+                this.state.isRunning = false; 
+            },
+            forceComplete: function() { 
+                this.hide(); 
+            }
+        };
     </script>
 </asp:Content>

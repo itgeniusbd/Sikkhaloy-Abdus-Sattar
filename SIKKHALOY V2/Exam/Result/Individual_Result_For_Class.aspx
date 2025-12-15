@@ -176,6 +176,7 @@
     <!-- Teacher and Head Teacher Signature Controls with Pagination -->
     <div class="form-inline NoPrint Card-space" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center;">
+            <!-- Class Teacher Signature -->
             <div class="form-group NoPrint" style="margin-right: 15px;">
                 <asp:TextBox ID="TeacherSignTextBox" Text="Class Teacher" runat="server" placeholder="Class Teacher Signature" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
                 <label class="btn btn-secondary btn-sm NoPrint" for="Tfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
@@ -183,6 +184,17 @@
                 </label>
                 <input id="Tfileupload" type="file" accept="image/*" style="position: absolute; left: -9999px; opacity: 0;" />
             </div>
+            
+            <!-- ✅ Guardian Signature (Client-side Only) -->
+            <div class="form-group NoPrint" style="margin-right: 15px;">
+                <input type="text" id="GuardianSignTextBox" value="Guardian" placeholder="Guardian Name" class="form-control" autocomplete="off" style="width: 170px;" />
+                <label class="btn btn-secondary btn-sm NoPrint" for="Gfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
+                    Browse
+                </label>
+                <input id="Gfileupload" type="file" accept="image/*" style="position: absolute; left: -9999px; opacity: 0;" />
+            </div>
+            
+            <!-- Principal Signature -->
             <div class="form-group NoPrint" style="margin-right: 15px;">
                 <asp:TextBox ID="HeadTeacherSignTextBox" Text="Principal" runat="server" placeholder="Principal Signature" CssClass="form-control" autocomplete="off" onDrop="blur();return false;" onpaste="return false"></asp:TextBox>
                 <label class="btn btn-secondary btn-sm" for="Hfileupload" style="margin-left: 5px; margin-top: 5px; cursor: pointer;">
@@ -191,7 +203,7 @@
                 <input id="Hfileupload" type="file" accept="image/*" style="position: absolute; left: -9999px; opacity: 0;" />
             </div>
         </div>
-                <div class="pagination-inline NoPrint" style="margin-bottom: 15px; text-align: center;">
+        <div class="pagination-inline NoPrint" style="margin-bottom: 15px; text-align: center;">
             <asp:Label ID="PaginationInfoLabel" runat="server" CssClass="pagination-label" 
                 Text="Loaded 0 to 0 students. Total 0 students"></asp:Label>
         </div>
@@ -286,9 +298,9 @@
                             <div class="SignTeacher" style="height: 40px; margin-bottom: 5px;"></div>
                             <div class="Teacher" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">Class Teacher</div>
                         </div>
-                                                <div style="text-align: center;">
-                            <div class="Guardian" style="height: 40px; margin-bottom: 5px;"></div>
-                            <div class="Guardian" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">Guardian</div>
+                        <div style="text-align: center;">
+                            <div class="SignGuardian" style="height: 40px; margin-bottom: 5px;"></div>
+                            <div class="GuardianText" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">Guardian</div>
                         </div>
                         <div style="text-align: center;">
                             <div class="SignHead" style="height: 40px; margin-bottom: 5px;"></div>
@@ -720,328 +732,157 @@ self.animateProgressTo(100);
 
         function updateSignatureTexts() {
             var teacherText = $('[id$="TeacherSignTextBox"]').val() || 'Class Teacher';
-     var principalText = $('[id$="HeadTeacherSignTextBox"]').val() || 'Principal';
+            var guardianText = $('#GuardianSignTextBox').val() || 'Guardian';
+            var principalText = $('[id$="HeadTeacherSignTextBox"]').val() || 'Principal';
 
-      $('.Teacher').text(teacherText);
-        $('.Head').text(principalText);
+            $('.Teacher').text(teacherText);
+            $('.GuardianText').text(guardianText);
+            $('.Head').text(principalText);
         }
 
-      function initializeSignatureUpload() {
+        function initializeSignatureUpload() {
             console.log('Initializing signature upload functionality...');
 
-     $('#Tfileupload').off('change').on('change', function (e) {
-      console.log('Teacher file input changed');
-            handleSignatureUpload(e, 'teacher', '.SignTeacher');
+            // Teacher signature upload (with database)
+            $('#Tfileupload').off('change').on('change', function (e) {
+                console.log('Teacher file input changed');
+                handleSignatureUpload(e, 'teacher', '.SignTeacher');
             });
 
+            // ✅ Guardian signature upload (client-side only - NO DATABASE)
+            $('#Gfileupload').off('change').on('change', function (e) {
+                console.log('Guardian file input changed (client-side only)');
+                handleGuardianSignatureUpload(e);
+            });
+
+            // Principal signature upload (with database)
             $('#Hfileupload').off('change').on('change', function (e) {
-      console.log('Principal file input changed');
-      handleSignatureUpload(e, 'principal', '.SignHead');
-  });
-
-            $('[id$="TeacherSignTextBox"]').off('input').on('input', function () {
-     var text = $(this).val() || 'Class Teacher';
-       $('.Teacher').text(text);
+                console.log('Principal file input changed');
+                handleSignatureUpload(e, 'principal', '.SignHead');
             });
 
-            $('[id$="HeadTeacherSignTextBox"]').off('input').on('input', function () {
-          var text = $(this).val() || 'Principal';
-  $('.Head').text(text);
-    });
-    }
+            // Teacher text change
+            $('[id$="TeacherSignTextBox"]').off('input').on('input', function () {
+                var text = $(this).val() || 'Class Teacher';
+                $('.Teacher').text(text);
+            });
 
-     function handleSignatureUpload(event, signatureType, targetSelector) {
-       var file = event.target.files[0];
+            // ✅ Guardian text change (client-side only)
+            $('#GuardianSignTextBox').off('input').on('input', function () {
+                var text = $(this).val() || 'Guardian';
+                $('.GuardianText').text(text);
+            });
+
+            // Principal text change
+            $('[id$="HeadTeacherSignTextBox"]').off('input').on('input', function () {
+                var text = $(this).val() || 'Principal';
+                $('.Head').text(text);
+            });
+        }
+
+        // ✅ NEW: Guardian signature upload handler (CLIENT-SIDE ONLY - NO DATABASE)
+        function handleGuardianSignatureUpload(event) {
+            var file = event.target.files[0];
             if (!file) return;
 
-      console.log('Handling signature upload:', { type: signatureType, fileName: file.name, fileSize: file.size });
+            console.log('📸 Guardian signature upload (client-side only):', { 
+                fileName: file.name, 
+                fileSize: file.size 
+            });
 
-     if (!file.type.match('image.*')) {
-        alert('Please select an image file.');
-       return;
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file.');
+                return;
             }
 
-   if (file.size > 2 * 1024 * 1024) {
-         alert('File size should be less than 2MB.');
-      return;
- }
+            // Validate file size
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size should be less than 2MB.');
+                return;
+            }
 
-  var reader = new FileReader();
-  reader.onload = function (e) {
-  var imageData = e.target.result;
-    
-      // Show preview immediately
-                $(targetSelector).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px;">');
-     console.log('Preview image set for:', signatureType);
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var imageData = e.target.result;
 
-   var base64Data = imageData.split(',')[1];
-         
-  console.log('Uploading signature to server...', {
-  type: signatureType,
-     dataLength: base64Data.length
-         });
+                // ✅ Apply to ALL result cards (client-side only)
+                $('.SignGuardian').html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px; object-fit: contain;">');
+                
+                console.log('✅ Guardian signature applied to all result cards (client-side only)');
+                
+                // Show success notification
+                showBriefNotification('Guardian signature uploaded! (Client-side only - not saved to database)', 'success');
+            };
 
-     $.ajax({
-        type: 'POST',
-      url: window.location.pathname + '/SaveSignature',
-    data: JSON.stringify({
-      signatureType: signatureType,
-                  imageData: base64Data
-    }),
-          contentType: 'application/json; charset=utf-8',
-           dataType: 'json',
-       success: function (response) {
-      console.log('Server response:', response);
-             
-     if (response && response.d) {
-     var result = response.d;
-               
-             if (result.success) {
-      console.log('✅ Signature saved successfully:', result);
-          
-        // Show success notification
-        var successMsg = signatureType === 'teacher' ? 
-        'Class Teacher signature saved successfully!' : 
-    'Principal signature saved successfully!';
-         
-         // Optional: Show a brief success message
-      setTimeout(function() {
-      var notification = $('<div>')
-     .css({
-         position: 'fixed',
-       top: '20px',
-    right: '20px',
-         background: '#4CAF50',
-         color: 'white',
-     padding: '15px 25px',
-        borderRadius: '5px',
-    zIndex: 10000,
-         boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                  fontSize: '14px'
-   })
-     .text(successMsg)
-                  .appendTo('body');
-       
-              setTimeout(function() {
-            notification.fadeOut(500, function() {
-         $(this).remove();
-  });
-}, 3000);
-  }, 100);
-        
-       // Reload signature from database to verify
-        setTimeout(function() {
-               loadDatabaseSignatures();
-        }, 500);
-          } else {
-        console.error('❌ Signature save failed:', result.message);
-           alert('Error saving signature: ' + result.message);
-            
-    // Reload from database to show actual state
-               loadDatabaseSignatures();
-      }
-     } else {
-     console.error('❌ Invalid response format:', response);
-                alert('Invalid response from server');
+            reader.onerror = function (error) {
+                console.error('FileReader error:', error);
+                alert('Error reading file. Please try again.');
+            };
+
+            reader.readAsDataURL(file);
         }
- },
-                error: function (xhr, status, error) {
-          console.error('❌ AJAX Error:', {
-      status: status,
-       error: error,
-          responseText: xhr.responseText,
-   xhr: xhr
-              });
-       
-      var errorMsg = 'Error saving signature to database. ';
-     
-           if (xhr.responseText) {
-        try {
-        var errorResponse = JSON.parse(xhr.responseText);
- if (errorResponse.Message) {
-             errorMsg += errorResponse.Message;
-   } else {
-    errorMsg += xhr.responseText.substring(0, 200);
-      }
-     } catch (e) {
-    errorMsg += xhr.responseText.substring(0, 200);
-         }
-            } else {
-    errorMsg += error;
- }
-       
-   alert(errorMsg);
-      
-   // Reload from database to show actual state
-    loadDatabaseSignatures();
-             }
-        });
-          };
 
-  reader.onerror = function(error) {
-console.error('FileReader error:', error);
-         alert('Error reading file. Please try again.');
-  };
+        // Helper function to show brief notification
+        function showBriefNotification(message, type) {
+            var bgColor = type === 'success' ? '#4CAF50' : '#f44336';
+            
+            var notification = $('<div>')
+                .css({
+                    position: 'fixed',
+                    top: '20px',
+                    right: '20px',
+                    background: bgColor,
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: '5px',
+                    zIndex: 10000,
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    maxWidth: '350px'
+                })
+                .text(message)
+                .appendTo('body');
 
-   reader.readAsDataURL(file);
-    }
+            setTimeout(function () {
+                notification.fadeOut(400, function () {
+                    $(this).remove();
+                });
+            }, 3000);
+        }
 
-      // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
+        // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
         $(document).ready(function () {
-    console.log('✅ Document ready - initializing...');
+            console.log('✅ Document ready - initializing...');
 
-     // Force Font Awesome to load properly
+            // Force Font Awesome to load properly
             forceFontAwesomeLoad();
 
             // Check if Font Awesome is loaded properly
             checkAndFixFontAwesome();
 
-     // Fix absent marks display
+            // Fix absent marks display
             fixAbsentMarksDisplay();
 
-            // Load database signatures when page loads
+            // Load database signatures when page loads (Teacher and Principal only)
             loadDatabaseSignatures();
 
-  // Initialize teacher and head teacher text
+            // Initialize teacher, guardian and principal text
             updateSignatureTexts();
 
-        // Initialize signature upload functionality
-   initializeSignatureUpload();
+            // Initialize signature upload functionality (includes Guardian client-side)
+            initializeSignatureUpload();
 
-      // Apply pagination button styles
- applyPaginationStyles();
+            // Apply pagination button styles
+            applyPaginationStyles();
 
-        // Show toggle button if results are already loaded
-    if ($('.result-card').length > 0) {
-      $('#PrintButton').show();
-   fixResultCardIcons();
-      fixPositionColumnsAlignment();
+            // Show toggle button if results are already loaded
+            if ($('.result-card').length > 0) {
+                $('#PrintButton').show();
+                fixResultCardIcons();
+                fixPositionColumnsAlignment();
             }
-
-       // Handle Enter key press in Student ID textbox
-            $("[id*=StudentIDTextBox]").keypress(function (e) {
-        if (e.which == 13) { // Enter key
-         e.preventDefault();
-       $("[id*=LoadResultsButton]").click();
-   }
         });
-
-     // Clear Student ID textbox when Class dropdown changes
-    $("[id*=ClassDropDownList]").change(function () {
-     $("[id*=StudentIDTextBox]").val('');
-  });
-
-            // Enhanced Load Results Button Click Handler with Dynamic Progress Bar
-  $("[id*=LoadResultsButton]").off('click').on('click', function (e) {
-          console.log('🚀 Load Results button clicked - starting dynamic progress monitoring');
-
-          // Test if progress bar manager exists
-          if (typeof ProgressBarManager === 'undefined') {
-           console.error('❌ ProgressBarManager is not defined!');
-     alert('Progress bar system not loaded properly. Please refresh the page.');
-      return false;
-  }
-
-         // Test if jQuery is loaded
-    if (typeof $ === 'undefined') {
-     console.error('❌ jQuery is not loaded!');
-     alert('jQuery not loaded. Please refresh the page.');
-      return false;
-    }
-
-     console.log('✅ Dependencies check passed');
-
-          // Check if required selections are made
-   var classValue = $("[id*=ClassDropDownList]").val();
-     var examValue = $("[id*=ExamDropDownList]").val();
-
-       console.log('📋 Form values:', { class: classValue, exam: examValue });
-
-         if (!classValue || classValue === "0") {
-           alert("Please select a class first!");
-    e.preventDefault();
-         return false;
-             }
-
-            if (!examValue || examValue === "0") {
-    alert("Please select an exam first!");
-     e.preventDefault();
-      return false;
-           }
-
-  // Hide any existing results during new load
-      var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
-            if (resultPanel) {
-  $(resultPanel).hide();
- }
-      $('.result-card').remove();
-
-  // Test progress bar show function
-          console.log('🎯 About to show progress bar...');
-
-         try {
-                  // Show dynamic progress bar
-  ProgressBarManager.show();
-            console.log('✅ Progress bar show() called successfully');
-                } catch (error) {
-        console.error('❌ Error showing progress bar:', error);
- alert('Error starting progress bar: ' + error.message);
-       }
-
-   // Add debug logging
-          console.log('📊 Progress tracking started with dynamic server monitoring');
-    console.log('📋 Loading results for Class: ' + classValue + ', Exam: ' + examValue);
-
-     // Let the postback continue normally
-    return true;
-   });
-
-     // Add input validation for Student ID textbox
-            $("[id*=StudentIDTextBox]").on('input', function () {
-var value = $(this).val();
-   var validChars = /^[a-zA-Z0-9,\s]*$/;
-
-     if (!validChars.test(value)) {
-      value = value.replace(/[^a-zA-Z0-9,\s]/g, '');
-     $(this).val(value);
-                }
-   });
-        });
-
-      // Enhanced pageLoad function for ASP.NET postbacks
-    function pageLoad(sender, args) {
-    console.log('📄 Page loaded - checking for results...');
-
-            if (args && args.get_isPartialLoad && args.get_isPartialLoad()) {
-            // Partial postback
-           setTimeout(function () {
-   convertNumbersAfterPostback();
-         applyPaginationStyles();
-          fixPositionColumnsAlignment();
-
-           // Check if progress bar is running and complete it if results are loaded
-    if (ProgressBarManager.state.isRunning && $('.result-card').length > 0) {
-            console.log('✅ Partial postback completed with results - completing progress bar');
- ProgressBarManager.forceComplete();
-           }
-                }, 100);
-            } else {
-     // Full postback
-           setTimeout(function () {
-   var resultCount = $('.result-card').length;
-       console.log('📊 Full postback completed - found ' + resultCount + ' result cards');
-
-if (ProgressBarManager && ProgressBarManager.state && ProgressBarManager.state.isRunning) {
-  if (resultCount > 0) {
-   console.log('✅ Full postback completed with results - completing progress bar');
-         ProgressBarManager.forceComplete();
-    } else {
-        console.log('⚠️ Full postback completed but no results found');
-    ProgressBarManager.completeWithMessage('No results found', 'Please check your selections and try again');
-       }
-            }
-                }, 500);
-            }
-        }
     </script>
     </asp:Content>

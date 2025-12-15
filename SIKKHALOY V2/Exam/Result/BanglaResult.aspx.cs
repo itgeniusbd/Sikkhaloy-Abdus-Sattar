@@ -54,6 +54,9 @@ namespace EDUCATION.COM.Exam.Result
                     ShiftDropDownList.Visible = false;
                     CurrentPageIndex = 0;
                 }
+                
+                // ✅ Load signatures every time page loads (both initial and postback)
+                LoadSignatureImages();
             }
             catch (ThreadAbortException)
             {
@@ -399,6 +402,13 @@ namespace EDUCATION.COM.Exam.Result
                         // Show simple print button when results are available
                         SafeRegisterStartupScript("showPrintButton", "document.getElementById('PrintButton').style.display = 'inline-block';");
 
+                        // ✅ Trigger signature loading in JavaScript
+                        SafeRegisterStartupScript("loadSignatures", @"
+                            if (typeof onResultsLoaded === 'function') {
+                                onResultsLoaded();
+                            }
+                        ");
+
                         // Update page title with dynamic student count - use safe JavaScript
                         int studentCount = dt.Rows.Count;
                         string searchMethod = isSearchingByID ? "আইডি সার্চ" : "সাধারণ সার্চ";
@@ -566,7 +576,7 @@ namespace EDUCATION.COM.Exam.Result
             SqlConnection con = null;
             try
             {
-                System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: Starting for SchoolID: {Session["SchoolID"]}");
+                System.Diagnostics.Debug.WriteLine($"✅ LoadSignatureImages: Starting for SchoolID: {Session["SchoolID"]}");
 
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
@@ -589,20 +599,37 @@ namespace EDUCATION.COM.Exam.Result
                             bool hasTeacherSign = Convert.ToBoolean(reader["HasTeacherSign"]);
                             bool hasPrincipalSign = Convert.ToBoolean(reader["HasPrincipalSign"]);
 
-                            System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: SchoolID: {Session["SchoolID"]}, HasTeacherSign: {hasTeacherSign}, HasPrincipalSign: {hasPrincipalSign}");
+                            System.Diagnostics.Debug.WriteLine($"✅ LoadSignatureImages: SchoolID: {Session["SchoolID"]}, HasTeacherSign: {hasTeacherSign}, HasPrincipalSign: {hasPrincipalSign}");
 
                             // Add timestamp to avoid caching issues
                             string timestamp = DateTime.Now.Ticks.ToString();
 
                             // Set paths to signature handler if signatures exist
-                            HiddenTeacherSign.Value = hasTeacherSign ?
-                                $"/Handeler/SignatureHandler.ashx?type=teacher&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
-                            HiddenPrincipalSign.Value = hasPrincipalSign ?
-                                $"/Handeler/SignatureHandler.ashx?type=principal&schoolId={Session["SchoolID"]}&t={timestamp}" : "";
+                            if (hasTeacherSign)
+                            {
+                                HiddenTeacherSign.Value = $"/Handeler/SignatureHandler.ashx?type=teacher&schoolId={Session["SchoolID"]}&t={timestamp}";
+                                System.Diagnostics.Debug.WriteLine($"✅ Teacher signature path set: {HiddenTeacherSign.Value}");
+                            }
+                            else
+                            {
+                                HiddenTeacherSign.Value = "";
+                                System.Diagnostics.Debug.WriteLine("⚠️ No teacher signature found in database");
+                            }
+
+                            if (hasPrincipalSign)
+                            {
+                                HiddenPrincipalSign.Value = $"/Handeler/SignatureHandler.ashx?type=principal&schoolId={Session["SchoolID"]}&t={timestamp}";
+                                System.Diagnostics.Debug.WriteLine($"✅ Principal signature path set: {HiddenPrincipalSign.Value}");
+                            }
+                            else
+                            {
+                                HiddenPrincipalSign.Value = "";
+                                System.Diagnostics.Debug.WriteLine("⚠️ No principal signature found in database");
+                            }
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"LoadSignatureImages: No SchoolInfo record found for SchoolID: {Session["SchoolID"]}");
+                            System.Diagnostics.Debug.WriteLine($"⚠️ LoadSignatureImages: No SchoolInfo record found for SchoolID: {Session["SchoolID"]}");
                             // Set empty values if no school record found
                             HiddenTeacherSign.Value = "";
                             HiddenPrincipalSign.Value = "";
@@ -613,7 +640,7 @@ namespace EDUCATION.COM.Exam.Result
             catch (Exception ex)
             {
                 // Log error but don't stop the main process
-                System.Diagnostics.Debug.WriteLine($"LoadSignatureImages error: {ex.Message}\nStack: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"❌ LoadSignatureImages error: {ex.Message}\nStack: {ex.StackTrace}");
                 // Set empty values if error occurs
                 HiddenTeacherSign.Value = "";
                 HiddenPrincipalSign.Value = "";

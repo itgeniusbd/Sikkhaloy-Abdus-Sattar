@@ -19,7 +19,7 @@ namespace EDUCATION.COM.Handeler
             
             try
             {
-                string signType = context.Request.QueryString["type"]; // "teacher" or "principal"
+                string signType = context.Request.QueryString["type"]; // "teacher", "guardian" or "principal"
                 string schoolId = context.Request.QueryString["schoolId"];
                 
                 // Debug logging
@@ -54,7 +54,25 @@ namespace EDUCATION.COM.Handeler
                     
                     System.Diagnostics.Debug.WriteLine($"SignatureHandler: Database connection opened successfully");
                     
-                    string column = signType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
+                    // Determine column based on signature type
+                    string column;
+                    switch (signType.ToLower())
+                    {
+                        case "teacher":
+                            column = "Teacher_Sign";
+                            break;
+                        case "guardian":
+                            column = "Guardian_Sign";
+                            break;
+                        case "principal":
+                            column = "Principal_Sign";
+                            break;
+                        default:
+                            context.Response.StatusCode = 400;
+                            context.Response.Write($"Invalid signature type: {signType}");
+                            return;
+                    }
+                    
                     string query = $"SELECT {column} FROM SchoolInfo WHERE SchoolID = @SchoolID";
                     
                     System.Diagnostics.Debug.WriteLine($"SignatureHandler: Executing query for column {column}, SchoolID: {schoolId}");

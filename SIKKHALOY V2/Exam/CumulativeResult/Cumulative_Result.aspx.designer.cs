@@ -132,6 +132,15 @@ namespace EDUCATION.COM.Exam.CumulativeResult
         protected global::System.Web.UI.WebControls.TextBox TeacherSignTextBox;
 
         /// <summary>
+        /// GuardianSignTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox GuardianSignTextBox;
+
+        /// <summary>
         /// HeadTeacherSignTextBox control.
         /// </summary>
         /// <remarks>
