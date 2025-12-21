@@ -158,4 +158,29 @@ namespace ZKTeco.PushAPI.Models
         public int Flag { get; set; }
         public string UserType { get; set; }
     }
+
+    /// <summary>
+    /// Device Connection Model
+    /// ??????? ??????? ???? ????
+    /// </summary>
+    public class DeviceConnectionModel
+    {
+        public string DeviceIP { get; set; }
+        public int Port { get; set; } = 4370;
+        public int CommKey { get; set; } = 0;
+        public string DeviceSerial { get; set; }
+        public int SchoolID { get; set; }
+    }
+
+    /// <summary>
+    /// Device Upload Model
+    /// ??????? ????? ????? ???? ????
+    /// </summary>
+    public class DeviceUploadModel
+    {
+        public string DeviceIP { get; set; }
+        public int Port { get; set; } = 4370;
+        public int SchoolID { get; set; }
+        public string DeviceSerial { get; set; }
+    }
 }

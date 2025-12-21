@@ -312,15 +312,6 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
         protected global::System.Web.UI.WebControls.RadioButton rbInactive;
 
         /// <summary>
-        /// RoleCheckBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox RoleCheckBox;
-
-        /// <summary>
         /// RequiredFieldValidator6 control.
         /// </summary>
         /// <remarks>

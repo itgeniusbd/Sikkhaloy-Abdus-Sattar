@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Management - ZKTeco Push API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+        }
+
+        .header a {
+            text-decoration: none;
+            color: #667eea;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .header a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin: 5px;
+        }
+
+        .status-badge.connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .device-info {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .device-info h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: #1f2937;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .data-table th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #1f2937;
+        }
+
+        .data-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .scroll-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            color: #6b7280;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>??? Device Management</h1>
+            <div>
+                <button class="btn btn-secondary" onclick="testApiConnection()" style="margin-right: 10px;">
+                    ?? Test API Connection
+                </button>
+                <a href="/">? Back to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Connection Section -->
+        <div class="card">
+            <h2>?? Connect to Device</h2>
+            
+            <div id="alertContainer"></div>
+
+            <div class="alert alert-info" style="margin-bottom: 20px;">
+                ?? <strong>Important:</strong> You can only connect to devices registered in your school's Device-Institution mapping.
+            </div>
+
+            <!-- Step 1: Select Device from Database -->
+            <div class="form-group">
+                <label for="deviceSelect">Select Your Device *</label>
+                <select id="deviceSelect" onchange="loadDeviceInfo()">
+                    <option value="">-- Select a device --</option>
+                </select>
+            </div>
+
+            <div id="deviceMappingInfo" style="display: none;">
+                <div class="device-info" style="margin-bottom: 20px;">
+                    <h3>Device Information from Database</h3>
+                    <div class="info-row">
+                        <span class="info-label">Device Name:</span>
+                        <span class="info-value" id="dbDeviceName">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Serial Number:</span>
+                        <span class="info-value" id="dbDeviceSerial">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">School:</span>
+                        <span class="info-value" id="dbSchoolName">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Location:</span>
+                        <span class="info-value" id="dbDeviceLocation">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Enter Device Connection Details -->
+            <div id="connectionForm" style="display: none;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">Connection Details</h3>
+                
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="deviceIP">Device IP Address (Local Network) *</label>
+                        <input type="text" id="deviceIP" placeholder="192.168.1.201">
+                        <small style="color: #6b7280;">Enter the local IP of the device in your network</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="devicePort">Device Port</label>
+                        <input type="number" id="devicePort" placeholder="4370" value="4370">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="commKey">Communication Key (CommKey)</label>
+                    <input type="number" id="commKey" placeholder="0" value="0">
+                    <small style="color: #6b7280;">Default is 0. Change only if you modified it on device.</small>
+                </div>
+
+                <div>
+                    <button class="btn" onclick="connectDevice()">
+                        ?? Connect to Device
+                    </button>
+                    <button class="btn btn-danger" onclick="disconnectDevice()" id="disconnectBtn" disabled>
+                        ?? Disconnect
+                    </button>
+                    <button class="btn btn-secondary" onclick="getDeviceStatus()" id="statusBtn" disabled>
+                        ?? Get Status
+                    </button>
+                </div>
+            </div>
+
+            <!-- Device Info Section -->
+            <div id="deviceInfoSection" style="display: none;">
+                <div class="device-info">
+                    <h3>Device Live Status</h3>
+                    <div class="info-row">
+                        <span class="info-label">Connection Status:</span>
+                        <span class="info-value" id="connectionStatus">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Device IP:</span>
+                        <span class="info-value" id="infoDeviceIP">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Serial Number (Live):</span>
+                        <span class="info-value" id="infoSerial">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Firmware Version:</span>
+                        <span class="info-value" id="infoFirmware">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Users:</span>
+                        <span class="info-value" id="infoUsers">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fingerprints:</span>
+                        <span class="info-value" id="infoFingerprints">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Attendance Records:</span>
+                        <span class="info-value" id="infoRecords">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Management Tabs -->
+        <div class="card" id="managementSection" style="display: none;">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('users', event)">?? Users</button>
+                <button class="tab" onclick="switchTab('logs', event)">?? Logs</button>
+                <button class="tab" onclick="switchTab('actions', event)">?? Actions</button>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="usersTab" class="tab-content active">
+                <h2>?? Device Users</h2>
+                <div>
+                    <button class="btn" onclick="getDeviceUsers()">
+                        ?? Load Users from Device
+                    </button>
+                    <button class="btn btn-success" onclick="uploadUsers()">
+                        ?? Upload Users to Device
+                    </button>
+                </div>
+
+                <div id="usersContainer" class="scroll-container">
+                    <p class="loading">Click "Load Users from Device" to see users</p>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logsTab" class="tab-content">
+                <h2>?? Attendance Logs</h2>
+                
+                <div class="form-group">
+                    <label for="logDays">Show logs for last:</label>
+                    <select id="logDays">
+                        <option value="1">1 Day</option>
+                        <option value="3">3 Days</option>
+                        <option value="7" selected>7 Days</option>
+                        <option value="15">15 Days</option>
+                        <option value="30">30 Days</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button class="btn" onclick="getDeviceLogs()">
+                        ?? Load Logs from Device
+                    </button>
+                </div>
+
+                <div id="logsContainer" class="scroll-container">
+                    <p class="loading">Click "Load Logs from Device" to see logs</p>
+                </div>
+            </div>
+
+            <!-- Actions Tab -->
+            <div id="actionsTab" class="tab-content">
+                <h2>?? Device Actions</h2>
+
+                <div class="alert alert-info">
+                    ?? Warning: These actions will affect the physical device. Use with caution.
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-danger" onclick="clearLogs()">
+                        ??? Clear All Logs from Device
+                    </button>
+                    
+                    <button class="btn btn-danger" onclick="restartDevice()">
+                        ?? Restart Device
+                    </button>
+
+                    <button class="btn btn-secondary" onclick="syncTime()">
+                        ?? Sync Device Time
+                    </button>
+                </div>
+
+                <div class="device-info" style="margin-top: 30px;">
+                    <h3>?? Information</h3>
+                    <p style="color: #6b7280; line-height: 1.6;">
+                        <strong>Clear All Logs:</strong> This will delete all attendance records from the device. 
+                        Make sure you have downloaded and saved the logs before clearing.<br><br>
+                        
+                        <strong>Restart Device:</strong> This will restart the device. The device will be 
+                        unavailable for about 30-60 seconds.<br><br>
+                        
+                        <strong>Sync Device Time:</strong> This will synchronize the device time with the server time.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isConnected = false;
+        let currentDeviceIP = '';
+        let currentPort = 4370;
+        let selectedDeviceSerial = '';
+        let selectedSchoolID = 0;
+        let registeredDevices = [];
+
+        // Load devices on page load
+        window.addEventListener('DOMContentLoaded', async function() {
+            console.log('Device Management page loaded');
+            
+            // Test API availability first
+            try {
+                const versionResponse = await fetch('/api/devices/version');
+                const versionData = await versionResponse.json();
+                console.log('API version:', versionData.version);
+            } catch (error) {
+                console.error('API connection error:', error);
+                showAlert('?? Cannot connect to API. Please make sure the server is running.', 'error');
+                return;
+            }
+            
+            // Load registered devices
+            await loadRegisteredDevices();
+        });
+
+        async function testApiConnection() {
+            showAlert('Testing API connection...', 'info');
+            
+            try {
+                // Test 1: Test basic API
+                const response1 = await fetch('/api/device/test');
+                const data1 = await response1.json();
+                
+                if (data1.success) {
+                    console.log('API Test passed:', data1);
+                    
+                    // Test 2: Test database connection
+                    const response2 = await fetch('/api/dashboard/devices');
+                    const data2 = await response2.json();
+                    
+                    if (data2.devices) {
+                        showAlert(`? API is working! Found ${data2.devices.length} registered devices.`, 'success');
+                        console.log('Registered devices:', data2.devices);
+                    } else {
+                        showAlert('?? API is working but no devices found. Please register devices first.', 'info');
+                    }
+                } else {
+                    showAlert('? API test failed. Please check server logs.', 'error');
+                }
+            } catch (error) {
+                console.error('API test error:', error);
+                showAlert(`? Cannot connect to API: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadRegisteredDevices() {
+            try {
+                // Load all registered devices from Device_Institution_Mapping
+                const response = await fetch('/api/dashboard/devices');
+                const data = await response.json();
+
+                if (data.devices && data.devices.length > 0) {
+                    registeredDevices = data.devices;
+                    
+                    const select = document.getElementById('deviceSelect');
+                    select.innerHTML = '<option value="">-- Select a device --</option>';
+                    
+                    data.devices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceSerial;
+                        option.textContent = `${device.deviceName} (${device.schoolName}) - SN: ${device.deviceSerial}`;
+                        option.dataset.device = JSON.stringify(device);
+                        select.appendChild(option);
+                    });
+
+                    console.log('Loaded', data.devices.length, 'registered devices');
+                } else {
+                    showAlert('?? No devices registered. Please add devices in Device-Institution mapping first.', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                showAlert('? Cannot load registered devices. Please check API connection.', 'error');
+            }
+        }
+
+        function loadDeviceInfo() {
+            const select = document.getElementById('deviceSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (!selectedOption.value) {
+                document.getElementById('deviceMappingInfo').style.display = 'none';
+                document.getElementById('connectionForm').style.display = 'none';
+                return;
+            }
+
+            const device = JSON.parse(selectedOption.dataset.device);
+            selectedDeviceSerial = device.deviceSerial;
+            selectedSchoolID = device.schoolID;
+
+            // Show device info from database
+            document.getElementById('dbDeviceName').textContent = device.deviceName || '-';
+            document.getElementById('dbDeviceSerial').textContent = device.deviceSerial || '-';
+            document.getElementById('dbSchoolName').textContent = device.schoolName || '-';
+            document.getElementById('dbDeviceLocation').textContent = device.deviceLocation || '-';
+
+            document.getElementById('deviceMappingInfo').style.display = 'block';
+            document.getElementById('connectionForm').style.display = 'block';
+
+            showAlert(`? Device selected: ${device.deviceName}. Now enter the local IP address to connect.`, 'success');
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = `alert-${type}`;
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        async function connectDevice() {
+            const ip = document.getElementById('deviceIP').value;
+            const port = document.getElementById('devicePort').value;
+            const commKey = document.getElementById('commKey').value;
+
+            if (!selectedDeviceSerial) {
+                showAlert('Please select a device first', 'error');
+                return;
+            }
+
+            if (!ip) {
+                showAlert('Please enter device IP address', 'error');
+                return;
+            }
+
+            showAlert('Connecting to device...', 'info');
+
+            try {
+                console.log('Attempting connection to:', ip, port, 'for device:', selectedDeviceSerial);
+                
+                const response = await fetch('/api/device/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        DeviceIP: ip,
+                        Port: parseInt(port) || 4370,
+                        CommKey: parseInt(commKey) || 0,
+                        DeviceSerial: selectedDeviceSerial,
+                        SchoolID: selectedSchoolID
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    // Verify serial number matches
+                    if (data.serialNumber && data.serialNumber !== selectedDeviceSerial) {
+                        showAlert(`?? Warning: Device serial mismatch! Expected: ${selectedDeviceSerial}, Got: ${data.serialNumber}. This might be a wrong device.`, 'error');
+                        return;
+                    }
+
+                    isConnected = true;
+                    currentDeviceIP = ip;
+                    currentPort = parseInt(port) || 4370;
+
+                    showAlert(`? ${data.message}`, 'success');
+                    
+                    // Update UI
+                    document.getElementById('disconnectBtn').disabled = false;
+                    document.getElementById('statusBtn').disabled = false;
+                    document.getElementById('managementSection').style.display = 'block';
+                    
+                    // Show device info
+                    document.getElementById('deviceInfoSection').style.display = 'block';
+                    document.getElementById('connectionStatus').innerHTML = '<span class="status-badge connected">Connected ?</span>';
+                    document.getElementById('infoDeviceIP').textContent = ip;
+                    document.getElementById('infoSerial').textContent = data.serialNumber || 'N/A';
+                    document.getElementById('infoFirmware').textContent = data.firmwareVersion || 'N/A';
+
+                    // Auto-load status
+                    setTimeout(() => getDeviceStatus(), 1000);
+                } else {
+                    showAlert(`? ${data.message || 'Connection failed'}`, 'error');
+                    console.error('Connection failed:', data);
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                showAlert(`? Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function disconnectDevice() {
+            try {
+                const response = await fetch('/api/device/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        DeviceIP: currentDeviceIP,
+                        Port: currentPort
+                    })
+                });
+
+                const data = await response.json();
+                showAlert(data.message, data.success ? 'success' : 'error');
+
+                if (data.success) {
+                    isConnected = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    document.getElementById('statusBtn').disabled = true;
+                    document.getElementById('managementSection').style.display = 'none';
+                    document.getElementById('deviceInfoSection').style.display = 'none';
+                    document.getElementById('connectionStatus').innerHTML = '<span class="status-badge disconnected">Disconnected</span>';
+                }
+            } catch (error) {
+                showAlert(`? Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getDeviceStatus() {
+            if (!isConnected) {
+                showAlert('Please connect to device first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/device/status?ip=${currentDeviceIP}&port=${currentPort}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('infoUsers').textContent = data.usedStorage.users;
+                    document.getElementById('infoFingerprints').textContent = data.usedStorage.fingerprints;
+                    document.getElementById('infoRecords').textContent = data.usedStorage.records;
+                    showAlert('? Device status updated', 'success');
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            } catch (error) {
+                showAlert(`? Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getDeviceUsers() {
+            if (!isConnected) {
+                showAlert('Please connect to device first', 'error');
+                return;
+            }
+
+            const container = document.getElementById('usersContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading users...</p></div>';
+
+            try {
+                const response = await fetch(`/api/device/users?ip=${currentDeviceIP}&port=${currentPort}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.users.length > 0) {
+                        let html = `
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Enroll Number</th>
+                                        <th>Name</th>
+                                        <th>Card Number</th>
+                                        <th>Privilege</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        data.users.forEach(user => {
+                            html += `
+                                <tr>
+                                    <td>${user.enrollNumber}</td>
+                                    <td>${user.name || '-'}</td>
+                                    <td>${user.cardNumber || '-'}</td>
+                                    <td>${user.privilege === 3 ? 'Admin' : 'User'}</td>
+                                    <td>${user.enabled ? '? Enabled' : '? Disabled'}</td>
+                                </tr>
+                            `;
+                        });
+
+                        html += '</tbody></table>';
+                        container.innerHTML = html;
+                        showAlert(`? Loaded ${data.totalUsers} users from device`, 'success');
+                    } else {
+                        container.innerHTML = '<p class="loading">No users found in device</p>';
+                    }
+                } else {
+                    container.innerHTML = `<p class="loading" style="color: #ef4444;">${data.message}</p>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<p class="loading" style="color: #ef4444;">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function getDeviceLogs() {
+            if (!isConnected) {
+                showAlert('Please connect to device first', 'error');
+                return;
+            }
+
+            const days = document.getElementById('logDays').value;
+            const container = document.getElementById('logsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading logs...</p></div>';
+
+            try {
+                const response = await fetch(`/api/device/logs?ip=${currentDeviceIP}&port=${currentPort}&days=${days}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.logs.length > 0) {
+                        let html = `
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Enroll Number</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Verify Mode</th>
+                                        <th>In/Out</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        data.logs.forEach(log => {
+                            const verifyMode = log.verifyMode === 1 ? 'Fingerprint' : 
+                                             log.verifyMode === 2 ? 'Card' : 
+                                             log.verifyMode === 15 ? 'Face' : 'Password';
+                            const inOut = log.inOutMode === 0 ? 'In' : log.inOutMode === 1 ? 'Out' : '-' ;
+
+                            html += `
+                                <tr>
+                                    <td>${log.enrollNumber}</td>
+                                    <td>${log.date}</td>
+                                    <td>${log.time}</td>
+                                    <td>${verifyMode}</td>
+                                    <td>${inOut}</td>
+                                </tr>
+                            `;
+                        });
+
+                        html += '</tbody></table>';
+                        container.innerHTML = html;
+                        showAlert(`? Loaded ${data.totalLogs} logs from device`, 'success');
+                    } else {
+                        container.innerHTML = '<p class="loading">No logs found in device</p>';
+                    }
+                } else {
+                    container.innerHTML = `<p class="loading" style="color: #ef4444;">${data.message}</p>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<p class="loading" style="color: #ef4444;">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function uploadUsers() {
+            if (!isConnected) {
+                showAlert('Please connect to device first', 'error');
+                return;
+            }
+
+            if (!selectedDeviceSerial) {
+                showAlert('Device serial not found. Please reconnect.', 'error');
+                return;
+            }
+
+            if (!confirm('This will upload all users from database to device. Continue?')) {
+                return;
+            }
+
+            showAlert('Uploading users to device... This may take a few minutes.', 'info');
+
+            try {
+                const response = await fetch('/api/device/upload-users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        DeviceIP: currentDeviceIP,
+                        Port: currentPort,
+                        DeviceSerial: selectedDeviceSerial,
+                        SchoolID: selectedSchoolID
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert(`? ${data.message}. Uploaded: ${data.uploadedCount}, Failed: ${data.failedCount}`, 'success');
+                    getDeviceStatus(); // Refresh device status
+                } else {
+                    showAlert(`? ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`? Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearLogs() {
+            if (!isConnected) {
+                showAlert('Please connect to device first', 'error');
+                return;
+            }
+
+            if (!confirm('?? WARNING: This will permanently delete all attendance logs from the device. Are you sure?')) {
+                return;
+            }
+
+            showAlert('Clearing logs from device...', 'info');
+
+            try {
+                const response = await fetch('/api/device/clear-logs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        DeviceIP: currentDeviceIP,
+                        Port: currentPort
+                    })
+                });
+
+                const data = await response.json();
+                showAlert(data.message, data.success ? 'success' : 'error');
+
+                if (data.success) {
+                    getDeviceStatus(); // Refresh device status
+                }
+            } catch (error) {
+                showAlert(`? Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function restartDevice() {
+            if (!isConnected) {
+                showAlert('Please connect to device first', 'error');
+                return;
+            }
+
+            if (!confirm('This will restart the device. The device will be offline for about 30-60 seconds. Continue?')) {
+                return;
+            }
+
+            showAlert('Sending restart command to device...', 'info');
+
+            try {
+                const response = await fetch('/api/device/restart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        DeviceIP: currentDeviceIP,
+                        Port: currentPort
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('? Device restart command sent. Please reconnect after 30-60 seconds.', 'success');
+                    
+                    // Auto disconnect
+                    isConnected = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+                    document.getElementById('statusBtn').disabled = true;
+                    document.getElementById('managementSection').style.display = 'none';
+                    document.getElementById('connectionStatus').innerHTML = '<span class="status-badge disconnected">Device Restarting...</span>';
+                } else {
+                    showAlert(`? ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`? Error: ${error.message}`, 'error');
+            }
+        }
+
+        function syncTime() {
+            showAlert('?? Time sync feature will be implemented in next version', 'info');
+        }
+
+        function switchTab(tabName, event) {
+            // Prevent default if event exists
+            if (event) {
+                event.preventDefault();
+            }
+
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            const targetTab = document.getElementById(tabName + 'Tab');
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            // Highlight the clicked button
+            const clickedButton = event ? event.target : document.querySelector(`.tab[onclick*="${tabName}"]`);
+            if (clickedButton) {
+                clickedButton.classList.add('active');
+            }
+        }
+
+        // Handle errors globally
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.message);
+        });
+    </script>
+</body>
+</html>

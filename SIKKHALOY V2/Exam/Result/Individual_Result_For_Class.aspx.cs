@@ -1717,7 +1717,20 @@ namespace EDUCATION.COM.Exam.Result
                     con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                     con.Open();
 
-                    string column = signatureType.ToLower() == "teacher" ? "Teacher_Sign" : "Principal_Sign";
+                    // Determine which column to update based on signature type
+                    string column;
+                    switch (signatureType.ToLower())
+                    {
+                        case "teacher":
+                            column = "Teacher_Sign";
+                            break;
+                        case "principal":
+                            column = "Principal_Sign";
+                            break;
+                        default:
+                            return new { success = false, message = "Invalid signature type" };
+                    }
+
                     string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
 
                     using (SqlCommand cmd = new SqlCommand(updateQuery, con))
@@ -1729,25 +1742,102 @@ namespace EDUCATION.COM.Exam.Result
 
                         if (rowsAffected > 0)
                         {
-                            return new { success = true, message = "Signature saved successfully", schoolId = schoolId };
+                            System.Diagnostics.Debug.WriteLine($"✅ {signatureType} signature saved successfully for SchoolID: {schoolId}");
+                            return new { success = true, message = $"{signatureType} signature saved successfully", schoolId = schoolId };
                         }
                         else
                         {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ No rows updated for {signatureType} signature");
                             return new { success = false, message = "No rows updated" };
                         }
                     }
                 }
                 finally
                 {
-                    if (con != null && con.State == System.Data.ConnectionState.Open)
+                    if (con != null && con.State == ConnectionState.Open)
                     {
                         con.Close();
+                        con.Dispose();
                     }
                 }
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"❌ Error in SaveSignature: {ex.Message}");
                 return new { success = false, message = ex.Message };
+            }
+        }
+
+        [System.Web.Services.WebMethod]
+        public static object SaveSignatureImage(string signatureType, string imageData)
+        {
+            try
+            {
+                var context = HttpContext.Current;
+                var schoolId = context.Session["SchoolID"];
+
+                if (schoolId == null)
+                {
+                    return new { success = false, message = "School ID not found in session" };
+                }
+
+                // Convert base64 to byte array
+                byte[] imageBytes = Convert.FromBase64String(imageData);
+
+                SqlConnection con = null;
+                try
+                {
+                    con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                    con.Open();
+
+                    // Determine which column to update based on signature type
+                    string column;
+                    switch (signatureType.ToLower())
+                    {
+                        case "teacher":
+                            column = "Teacher_Sign";
+                            break;
+                        case "principal":
+                            column = "Principal_Sign";
+                            break;
+                        default:
+                            return new { success = false, message = "Invalid signature type" };
+                    }
+
+                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@ImageData", imageBytes);
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✅ {signatureType} signature saved successfully for SchoolID: {schoolId}");
+                            return new { success = true, message = $"{signatureType} signature saved successfully", schoolId = schoolId };
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"⚠️ No rows updated for {signatureType} signature");
+                            return new { success = false, message = "No rows updated" };
+                        }
+                    }
+                }
+                finally
+                {
+                    if (con != null && con.State == ConnectionState.Open)
+                    {
+                        con.Close();
+                        con.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error in SaveSignatureImage: {ex.Message}");
+                return new { success = false, message = $"Error: {ex.Message}" };
             }
         }
 

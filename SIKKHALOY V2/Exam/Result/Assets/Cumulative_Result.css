@@ -8,24 +8,103 @@ body {
     font-family: Arial, sans-serif !important;
     background: #fff;
     margin: 0;
-    font-size: 13px;
+    font-size: 12px;
     overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 .result-card {
     border: 2px solid #0072bc;
     border-radius: 5px;
-    padding: 8px;
+    padding: 5px;
     max-width: 1100px;
-    margin: 20px auto;
+    margin: 10px auto;
     background: white;
     box-sizing: border-box;
     display: block;
-    font-size: 13px;
+    font-size: 12px;
     font-family: Arial, sans-serif !important;
     overflow: hidden; /* Prevent scrollbar inside card */
     position: relative; /* For proper note positioning */
 }
+
+.fa, .fas, .far, .fal, .fad, .fab {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro", "FontAwesome" !important;
+    font-weight: 900;
+    font-style: normal;
+    display: inline-block;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.fa-map-marker-alt:before, .fa-location-dot:before {
+    content: "\f3c5";
+}
+
+.fa-phone:before {
+    content: "\f095";
+}
+
+/* Icon fallback support */
+.icon-fallback {
+    display: inline-block;
+    margin-right: 5px;
+}
+
+/* Guardian signature section styles */
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 10px 20px;
+    margin-top: 15px;
+    page-break-inside: avoid;
+}
+
+    .footer > div {
+        text-align: center;
+        flex: 1;
+        padding: 0 10px;
+    }
+
+.signature-container {
+    min-height: 45px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+    .signature-container img {
+        max-height: 35px;
+        max-width: 120px;
+        object-fit: contain;
+    }
+
+.signature-label {
+    font-weight: 600;
+    font-size: 11px;
+    border-top: 1px solid #000;
+    padding-top: 3px;
+    margin-top: 5px;
+    min-width: 100px;
+    display: inline-block;
+}
+
+/* Signature upload controls styling */
+.signature-upload-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.signature-upload-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
 
 .header {
     text-align: center;
@@ -130,7 +209,7 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: Arial, sans-serif !important;
-    text-align:center;
+    text-align: center;
 }
 
 .grade-chart {
@@ -233,7 +312,7 @@ body {
         .marks-table th:first-child {
             background-color: #c8e6c9 !important;
             font-weight: bold;
-            text-align:center;
+            text-align: center;
         }
 
         /* Data columns - compact */
@@ -241,15 +320,15 @@ body {
         .marks-table td:nth-child(n+2) {
             max-width: 30px;
             min-width: 24px;
-            padding: 2px 1px;
+            padding: 0px 0px;
         }
-        
-        /* Force data cells to stay single line */
-        .marks-table td:nth-child(n+2) {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+
+    /* Force data cells to stay single line */
+    .marks-table td:nth-child(n+2) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
 .footer {
     display: flex;
@@ -263,23 +342,23 @@ body {
     min-height: 50px;
 }
 
-.footer > div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
+    .footer > div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
 
-.footer .Teacher,
-.footer .Head {
-    border-top: 2px solid #333;
-    padding-top: 5px;
-    font-weight: bold;
-    margin-top: 5px;
-    display: inline-block;
-    min-width: 100px;
-    max-width: 150px;
-}
+    .footer .Teacher,
+    .footer .Head {
+        border-top: 2px solid #333;
+        padding-top: 5px;
+        font-weight: bold;
+        margin-top: 5px;
+        display: inline-block;
+        min-width: 100px;
+        max-width: 150px;
+    }
 
 .note {
     margin-top: 8px; /* Reduced from 15px */
@@ -306,7 +385,7 @@ body {
 
     @page {
         size: A4 landscape;
-        margin: 8mm 10mm;
+        margin: 8mm;
     }
 
     html, body {
@@ -319,6 +398,7 @@ body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         font-size: 12px !important;
+        width: 100% !important;
     }
 
     /* Remove problematic font forcing */
@@ -332,25 +412,23 @@ body {
 
     .result-card {
         margin: 0 !important;
-        width: 277mm !important;
-        max-width: 277mm !important;
+        width: 100% !important;
         height: auto !important;
-        max-height: 190mm !important;
         padding: 6mm !important;
         page-break-after: always !important;
         page-break-before: auto !important;
         page-break-inside: avoid !important;
         border: 1.5px solid #0072bc !important;
         box-sizing: border-box !important;
-        position: relative !important; /* Changed from static to relative */
+        position: relative !important;
         top: auto !important;
         left: auto !important;
         font-family: Arial, sans-serif !important;
         background: white !important;
         display: block !important;
         clear: both !important;
-        font-size: 11px !important;
-        overflow: hidden !important; /* Prevent overflow in print */
+        font-size: 10px !important;
+        overflow: hidden !important;
     }
 
         .result-card:last-child {
@@ -384,36 +462,36 @@ body {
     }
 
     .header {
-        padding-bottom: 8px !important;
+        padding-bottom: 7px !important;
         margin-bottom: 3px !important;
     }
 
-    .header h2 {
-        font-size: 17px !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-        color: #0072bc !important;
-        line-height: 1.1 !important;
-        margin: 2px 0 !important;
-    }
+        .header h2 {
+            font-size: 17px !important;
+            font-family: Arial, sans-serif !important;
+            font-weight: bold !important;
+            color: #0072bc !important;
+            line-height: 1.05 !important;
+            margin: 2px 0 !important;
+        }
 
-    .header p {
-        font-size: 11px !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: normal !important;
-        color: #000 !important;
-        line-height: 1.1 !important;
-        margin: 1px 0 !important;
-    }
+        .header p {
+            font-size: 11px !important;
+            font-family: Arial, sans-serif !important;
+            font-weight: normal !important;
+            color: #000 !important;
+            line-height: 1.1 !important;
+            margin: 1px 0 !important;
+        }
 
-    .header img {
-        width: 52px !important;
-        height: 52px !important;
-    }
+        .header img {
+            width: 51px !important;
+            height: 51px !important;
+        }
 
     .student-photo {
-        width: 52px !important;
-        height: 52px !important;
+        width: 51px !important;
+        height: 51px !important;
     }
 
     .title {
@@ -431,7 +509,7 @@ body {
         font-weight: bold !important;
         color: #0072bc !important;
         text-align: center !important;
-        margin: 0px 0 !important;
+        margin: 1px 0 !important;
     }
 
     .top-section {
@@ -440,19 +518,19 @@ body {
 
     .info-table td {
         border: 1px solid #0072bc;
-        padding: 1.5px 2px;
-        font-size: 13px;
+        padding: 1.5px 1px !important;
+        font-size: 12px !important;
         font-weight: bold;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-family: Arial, sans-serif !important;
-        text-align:center;
+        text-align: center;
     }
 
     .grade-chart th, .grade-chart td {
         border: 1px solid #0072bc;
-        padding: 3px 1px !important;
+        padding: 2px 1px !important;
         text-align: center;
         font-weight: bold;
         font-family: Arial, sans-serif !important;
@@ -464,106 +542,107 @@ body {
         font-size: 10px !important;
         width: 100% !important;
         table-layout: fixed !important;
+        margin: 2px 0 !important;
     }
 
-    .marks-table th,
-    .marks-table td {
-        padding: 2px !important;
-        font-size: 10px !important;
-        border: 1px solid #000 !important;
-    }
+        .marks-table th,
+        .marks-table td {
+            padding: 1.5px !important;
+            font-size: 10px !important;
+            border: 1px solid #000 !important;
+        }
 
-    /* Header cells in print - allow wrapping */
-    .marks-table th {
-        background-color: #c8e6c9 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        line-height: 1.3 !important;
-        height: auto !important;
-        min-height: 32px !important;
-        padding: 3px 2px !important;
-        overflow: visible !important;
-        vertical-align: middle !important;
-    }
+        /* Header cells in print - allow wrapping */
+        .marks-table th {
+            background-color: #c8e6c9 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            word-break: break-word !important;
+            line-height: 1.25 !important;
+            height: auto !important;
+            min-height: 30px !important;
+            padding: 2px 1px !important;
+            overflow: visible !important;
+            vertical-align: middle !important;
+        }
 
-    /* Subject column in print - wider */
-    .marks-table th:first-child,
-    .marks-table td:first-child {
-        min-width: 85px !important;
-        max-width: 110px !important;
-        width: 95px !important;
-        font-size: 10px !important;
-        padding-left: 5px !important;
-        padding-right: 5px !important;
-        text-align: left;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        vertical-align: middle !important;
-        line-height: 1.3 !important;
-        height: auto !important;
-    }
+            /* Subject column in print - wider */
+            .marks-table th:first-child,
+            .marks-table td:first-child {
+                min-width: 85px !important;
+                max-width: 105px !important;
+                width: 95px !important;
+                font-size: 10px !important;
+                padding-left: 4px !important;
+                padding-right: 4px !important;
+                text-align: left;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                vertical-align: middle !important;
+                line-height: 1.25 !important;
+                height: auto !important;
+            }
 
-    /* Data columns in print - compact */
-    .marks-table th:nth-child(n+2),
-    .marks-table td:nth-child(n+2) {
-        max-width: 26px !important;
-        min-width: 20px !important;
-        padding: 4px 1px !important;
-    }
-    
-    /* Force data cells to stay single line in print */
-    .marks-table td:nth-child(n+2) {
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
+            /* Data columns in print - compact */
+            .marks-table th:nth-child(n+2),
+            .marks-table td:nth-child(n+2) {
+                max-width: 26px !important;
+                min-width: 20px !important;
+                padding: 2px 0px !important;
+            }
+
+        /* Force data cells to stay single line in print */
+        .marks-table td:nth-child(n+2) {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
 
     .footer {
-        margin-top: 12px !important; /* Reduced from 20px */
-        padding: 0 30px !important;
+        margin-top: 10px !important;
+        padding: 0 25px !important;
         font-size: 11px !important;
-        min-height: 50px !important; /* Reduced from 55px */
-        margin-bottom: 0px !important; /* Ensure no bottom margin */
+        min-height: 48px !important;
+        margin-bottom: 0px !important;
     }
 
-    .footer > div {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
+        .footer > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
 
-    .footer .Teacher,
-    .footer .Head {
-        border-top: 2px solid #333;
-        padding-top: 5px;
-        font-weight: bold;
-        margin-top: 5px;
-        display: inline-block;
-        min-width: 100px;
-        max-width: 150px;
-    }
+        .footer .Teacher,
+        .footer .Head {
+            border-top: 1px solid #333;
+            padding-top: 4px;
+            font-weight: bold;
+            margin-top: 4px;
+            display: inline-block;
+            min-width: 95px;
+            max-width: 135px;
+            font-size: 11px !important;
+        }
 
     .note {
-        margin-top: 6px !important; /* Reduced spacing in print */
-        margin-bottom: 0px !important; /* No bottom margin */
-        font-size: 9px !important; /* Slightly smaller in print */
+        margin-top: 5px !important;
+        margin-bottom: 0px !important;
+        font-size: 8.5px !important;
         text-align: center;
         color: green;
         font-weight: bold;
         font-family: Arial, sans-serif !important;
-        line-height: 1.2;
-        white-space: nowrap;
+        line-height: 1.15;
+        white-space: normal !important;
         clear: both;
-        padding-top: 2px !important;
-        padding-bottom: 3px !important; /* Add bottom padding to keep inside border */
-        position: relative !important; /* Keep in document flow */
+        padding: 2px 2px !important;
+        position: relative !important;
         display: block !important;
-        page-break-inside: avoid !important; /* Prevent breaking across pages */
+        page-break-inside: avoid !important;
         page-break-after: avoid !important;
     }
 }
@@ -579,10 +658,10 @@ body {
         font-size: 10px;
     }
 
-    .marks-table th,
-    .marks-table td {
-        padding: 3.5px;
-    }
+        .marks-table th,
+        .marks-table td {
+            padding: 0.5px;
+        }
 }
 
 /* PS Column Visibility Control */
@@ -602,8 +681,8 @@ body {
     overflow: visible !important;
     line-height: 1.3 !important;
     height: auto !important;
-    min-height: 35px !important;
-    padding: 3px 2px !important;
+    min-height: 30px !important;
+    padding: 2px 2px !important;
     vertical-align: middle !important;
 }
 
@@ -925,4 +1004,3 @@ body {
         animation: none;
     }
 }
-

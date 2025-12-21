@@ -823,24 +823,99 @@ self.animateProgressTo(100);
             reader.readAsDataURL(file);
         }
 
+        // ✅ ADD: handleSignatureUpload function for Teacher and Principal signatures with database save
+        function handleSignatureUpload(event, signatureType) {
+            var file = event.target.files[0];
+            if (!file) return;
+
+            console.log('📤 Uploading signature:', signatureType);
+
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file.');
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size must be less than 2MB.');
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var imageData = e.target.result;
+                var targetClass = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
+
+                // Show preview immediately
+                $(targetClass).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 80px; object-fit: contain;">');
+                console.log('✅ Preview set for:', signatureType);
+
+                var base64Data = imageData.split(',')[1];
+
+                // Upload to database
+                $.ajax({
+                    type: 'POST',
+                    url: window.location.pathname + '/SaveSignatureImage',
+                    data: JSON.stringify({
+                        signatureType: signatureType,
+                        imageData: base64Data
+                    }),
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    success: function (response) {
+                        console.log('Server response:', response);
+
+                        if (response && response.d && response.d.success) {
+                            console.log('✅ Signature saved successfully');
+                            
+                            var successMsg = signatureType === 'teacher' ?
+                                'Class Teacher signature saved successfully!' :
+                                'Principal signature saved successfully!';
+                            
+                            showBriefNotification(successMsg, 'success');
+
+                            // Reload signature from database
+                            setTimeout(function () {
+                                loadDatabaseSignatures();
+                            }, 500);
+                        } else {
+                            console.error('❌ Signature save failed:', response.d ? response.d.message : 'Unknown error');
+                            showBriefNotification('Error saving signature', 'error');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('❌ AJAX Error:', error);
+                        console.error('Response:', xhr.responseText);
+                        showBriefNotification('Error uploading signature', 'error');
+                    }
+                });
+            };
+
+            reader.onerror = function (error) {
+                console.error('FileReader error:', error);
+                alert('Error reading file. Please try again.');
+            };
+
+            reader.readAsDataURL(file);
+        }
+
         // Helper function to show brief notification
         function showBriefNotification(message, type) {
             var bgColor = type === 'success' ? '#4CAF50' : '#f44336';
             
             var notification = $('<div>')
                 .css({
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    background: bgColor,
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: '5px',
-                    zIndex: 10000,
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-                    fontSize: '13px',
-                    fontWeight: 'bold',
-                    maxWidth: '350px'
+                    'position': 'fixed',
+                    'top': '20px',
+                    'right': '20px',
+                    'background': bgColor,
+                    'color': 'white',
+                    'padding': '12px 20px',
+                    'border-radius': '5px',
+                    'z-index': 10000,
+                    'box-shadow': '0 4px 8px rgba(0,0,0,0.3)',
+                    'font-size': '13px',
+                    'font-weight': 'bold',
+                    'max-width': '350px'
                 })
                 .text(message)
                 .appendTo('body');
