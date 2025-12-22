@@ -238,5 +238,23 @@ namespace EDUCATION.COM.Exam.CumulativeResult
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater ResultRepeater;
+
+        /// <summary>
+        /// GradingSystemRepeater control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater GradingSystemRepeater;
+
+        /// <summary>
+        /// GradingSystemRepeater control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        
     }
 }

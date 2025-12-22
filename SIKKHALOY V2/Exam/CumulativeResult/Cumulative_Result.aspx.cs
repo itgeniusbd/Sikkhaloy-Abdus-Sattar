@@ -1109,6 +1109,11 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             try
             {
                 var context = HttpContext.Current;
+                if (context == null || context.Session == null)
+                {
+                    return new { success = false, message = "Session context not available" };
+                }
+
                 var schoolId = context.Session["SchoolID"];
 
                 if (schoolId == null)
@@ -1116,8 +1121,27 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                     return new { success = false, message = "School ID not found in session" };
                 }
 
+                // Validate and clean base64 data
+                if (string.IsNullOrEmpty(imageData))
+                {
+                    return new { success = false, message = "No image data provided" };
+                }
+
                 // Convert base64 to byte array
-                byte[] imageBytes = Convert.FromBase64String(imageData);
+                byte[] imageBytes;
+                try
+                {
+                    imageBytes = Convert.FromBase64String(imageData);
+                }
+                catch
+                {
+                    return new { success = false, message = "Invalid image data format" };
+                }
+
+                if (imageBytes.Length == 0)
+                {
+                    return new { success = false, message = "Image data is empty" };
+                }
 
                 SqlConnection con = null;
                 try
@@ -1139,7 +1163,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                             column = "Principal_Sign";
                             break;
                         default:
-                            return new { success = false, message = "Invalid signature type" };
+                            return new { success = false, message = "Invalid signature type: " + signatureType };
                     }
 
                     string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
@@ -1153,11 +1177,13 @@ namespace EDUCATION.COM.Exam.CumulativeResult
 
                         if (rowsAffected > 0)
                         {
-                            return new { success = true, message = $"{signatureType} signature saved successfully", schoolId = schoolId };
+                            System.Diagnostics.Debug.WriteLine($"✅ {signatureType} signature saved successfully for SchoolID: {schoolId}");
+                            return new { success = true, message = signatureType.Substring(0, 1).ToUpper() + signatureType.Substring(1) + " signature saved successfully", schoolId = schoolId };
                         }
                         else
                         {
-                            return new { success = false, message = "No rows updated" };
+                            System.Diagnostics.Debug.WriteLine($"⚠️ No rows updated for {signatureType} signature, SchoolID: {schoolId}");
+                            return new { success = false, message = "No records updated. Please check if school exists." };
                         }
                     }
                 }
@@ -1172,7 +1198,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in SaveSignature: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ Error in SaveSignature: {ex.Message}\n{ex.StackTrace}");
                 return new { success = false, message = $"Error: {ex.Message}" };
             }
         }

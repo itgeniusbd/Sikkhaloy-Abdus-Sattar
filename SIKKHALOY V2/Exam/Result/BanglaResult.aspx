@@ -833,7 +833,7 @@
                 // Bengali month names
                 var bengaliMonths = [
                     'জানুয়ারী', 'ফেব্রুয়ারী', 'মার্চ', 'এপ্রি্েল', 'মে', 'জুন',
-                    'জুলাই', 'আগষ্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
+                    'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
                 ];
 
                 // Convert to Bengali numbers
@@ -1120,6 +1120,67 @@
             setTimeout(function() {
                 loadDatabaseSignatures();
             }, 500);
+
+            // Load Results Button Handler
+            $("[id*=LoadResultsButton]").off('click').on('click', function (e) {
+                console.log('🚀 Load Results button clicked');
+
+                var classValue = $("[id*=ClassDropDownList]").val();
+                var examValue = $("[id*=ExamDropDownList]").val();
+
+                if (!classValue || classValue === "0") {
+                    alert("দয়া করে একটি ক্লাস নির্বাচন করুন!");
+                    e.preventDefault();
+                    return false;
+                }
+
+                if (!examValue || examValue === "0") {
+                    alert("দয়া করে একটি পরীক্ষা নির্বাচন করুন!");
+                    e.preventDefault();
+                    return false;
+                }
+
+                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
+                if (resultPanel) {
+                    $(resultPanel).hide();
+                }
+                $('.result-card').remove();
+
+                if (typeof ProgressBarManager !== 'undefined') {
+                    ProgressBarManager.show();
+                }
+
+                return true;
+            });
+
+            // Function to check when results are loaded (ASP.NET postback)
+            function checkResultsLoaded() {
+                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
+                if (resultPanel && $(resultPanel).is(':visible') && $('.result-card').length > 0) {
+                    console.log('✅ Results detected, completing progress bar');
+                    if (typeof ProgressBarManager !== 'undefined') {
+                        ProgressBarManager.forceComplete();
+                    }
+                    // Call signature loading and other initialization
+                    onResultsLoaded();
+                    return true;
+                }
+                return false;
+            }
+
+            // Call checkResultsLoaded periodically to detect when results are ready
+            var checkInterval = setInterval(function () {
+                if (checkResultsLoaded()) {
+                    clearInterval(checkInterval);
+                }
+            }, 500);
+
+            // Also check on page visibility changes (for tab switching)
+            $(document).on('visibilitychange', function () {
+                if (!document.hidden && !checkResultsLoaded()) {
+                    // Page became visible, check again
+                }
+            });
         });
 
         // Also load signatures when results are loaded
@@ -1158,23 +1219,83 @@
         }
 
         function convertAllNumbersToBengali() {
+            console.log('Converting numbers to Bengali...');
+            var englishToBengaliMap = {
+                '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
+                '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
+            };
+
+            // Convert in text nodes only, not in HTML attributes or tags
             $('.result-card').each(function() {
-                var html = $(this).html();
-                html = html.replace(/(\d+)/g, function(match) {
-                    return convertToBengaliNumber(parseInt(match));
-                });
-                $(this).html(html);
+                convertTextNodesToBengali(this, englishToBengaliMap);
             });
+
+            console.log('Conversion to Bengali completed');
         }
 
         function convertAllNumbersToEnglish() {
+            console.log('Converting numbers to English...');
+            var bengaliToEnglishMap = {
+                '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+                '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+            };
+
+            // Convert in text nodes only, not in HTML attributes or tags
             $('.result-card').each(function() {
-                var html = $(this).html();
-                html = html.replace(/([০-৯]+)/g, function(match) {
-                    return convertBengaliToEnglishJS(match);
-                });
-                $(this).html(html);
+                convertTextNodesToEnglish(this, bengaliToEnglishMap);
             });
+
+            console.log('Conversion to English completed');
+        }
+
+        function convertTextNodesToBengali(element, map) {
+            // Only process text nodes, skip HTML tags
+            if (element.nodeType === Node.TEXT_NODE) {
+                var text = element.nodeValue;
+                var converted = false;
+
+                for (var digit in map) {
+                    if (text.indexOf(digit) !== -1) {
+                        element.nodeValue = text.replace(/[0-9]/g, function(match) {
+                            return map[match] || match;
+                        });
+                        converted = true;
+                        break;
+                    }
+                }
+            } else {
+                // Recursively process child nodes, but skip script and style tags
+                if (element.tagName !== 'SCRIPT' && element.tagName !== 'STYLE') {
+                    for (var i = 0; i < element.childNodes.length; i++) {
+                        convertTextNodesToBengali(element.childNodes[i], map);
+                    }
+                }
+            }
+        }
+
+        function convertTextNodesToEnglish(element, map) {
+            // Only process text nodes, skip HTML tags
+            if (element.nodeType === Node.TEXT_NODE) {
+                var text = element.nodeValue;
+                var converted = false;
+
+                for (var digit in map) {
+                    if (text.indexOf(digit) !== -1) {
+                        element.nodeValue = text.replace(/[০-৯]/g, function(match) {
+                            return map[match] || match;
+                        });
+                        converted = true;
+                        break;
+                    }
+                }
+            } else {
+                // Recursively process child nodes, but skip script and style tags
+                if (element.tagName !== 'SCRIPT' && element.tagName !== 'STYLE') {
+                    for (var i = 0; i < element.childNodes.length; i++) {
+                        convertTextNodesToEnglish(element.childNodes[i], map);
+                    }
+                }
+            }
         }
     </script>
 </asp:Content>

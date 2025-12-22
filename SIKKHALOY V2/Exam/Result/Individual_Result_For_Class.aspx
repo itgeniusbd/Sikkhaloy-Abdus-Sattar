@@ -958,6 +958,43 @@ self.animateProgressTo(100);
                 fixResultCardIcons();
                 fixPositionColumnsAlignment();
             }
+
+            // Attach click handler to Load Results button
+            $("[id*=LoadResultsButton]").off('click').on('click', function (e) {
+                console.log('🚀 Load Results button clicked');
+                
+                // Show progress bar
+                if (typeof ProgressBarManager !== 'undefined') {
+                    ProgressBarManager.show();
+                }
+            });
+
+            // Function to check when results are loaded (ASP.NET postback)
+            function checkResultsLoaded() {
+                var resultPanel = document.getElementById('<%=ResultPanel.ClientID%>');
+                if (resultPanel && $(resultPanel).is(':visible') && $('.result-card').length > 0) {
+                    console.log('✅ Results detected, completing progress bar');
+                    if (typeof ProgressBarManager !== 'undefined') {
+                        ProgressBarManager.forceComplete();
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            // Call checkResultsLoaded periodically to detect when results are ready
+            var checkInterval = setInterval(function () {
+                if (checkResultsLoaded()) {
+                    clearInterval(checkInterval);
+                }
+            }, 500);
+
+            // Also check on page visibility changes (for tab switching)
+            $(document).on('visibilitychange', function () {
+                if (!document.hidden && !checkResultsLoaded()) {
+                    // Page became visible, check again
+                }
+            });
         });
     </script>
     </asp:Content>
