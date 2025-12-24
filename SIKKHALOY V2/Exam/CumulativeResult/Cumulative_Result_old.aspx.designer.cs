@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Exam.CumulativeResult {
-    
-    
-    public partial class Cumulative_Result {
-        
+namespace EDUCATION.COM.Exam.CumulativeResult
+{
+
+
+    public partial class Cumulative_Result
+    {
+
         /// <summary>
         /// UpdatePanel1 control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel1;
-        
+
         /// <summary>
         /// ClassDropDownList control.
         /// </summary>
@@ -29,7 +31,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ClassDropDownList;
-        
+
         /// <summary>
         /// ClassSQL control.
         /// </summary>
@@ -38,7 +40,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ClassSQL;
-        
+
         /// <summary>
         /// GroupDropDownList control.
         /// </summary>
@@ -47,7 +49,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList GroupDropDownList;
-        
+
         /// <summary>
         /// GroupSQL control.
         /// </summary>
@@ -56,7 +58,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource GroupSQL;
-        
+
         /// <summary>
         /// SectionDropDownList control.
         /// </summary>
@@ -65,7 +67,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList SectionDropDownList;
-        
+
         /// <summary>
         /// SectionSQL control.
         /// </summary>
@@ -74,7 +76,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SectionSQL;
-        
+
         /// <summary>
         /// ShiftDropDownList control.
         /// </summary>
@@ -83,7 +85,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ShiftDropDownList;
-        
+
         /// <summary>
         /// ShiftSQL control.
         /// </summary>
@@ -92,7 +94,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ShiftSQL;
-        
+
         /// <summary>
         /// ExamDropDownList control.
         /// </summary>
@@ -101,7 +103,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ExamDropDownList;
-        
+
         /// <summary>
         /// ExamNameSQl control.
         /// </summary>
@@ -110,7 +112,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ExamNameSQl;
-        
+
         /// <summary>
         /// ResultReportViewer control.
         /// </summary>
@@ -119,7 +121,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::Microsoft.Reporting.WebForms.ReportViewer ResultReportViewer;
-        
+
         /// <summary>
         /// ExamResultODS control.
         /// </summary>
@@ -128,7 +130,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.ObjectDataSource ExamResultODS;
-        
+
         /// <summary>
         /// GradingSystemODS control.
         /// </summary>
@@ -137,7 +139,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.ObjectDataSource GradingSystemODS;
-        
+
         /// <summary>
         /// UpdateProgress control.
         /// </summary>

@@ -13,6 +13,9 @@ namespace EDUCATION.COM.Exam.CumulativeResult
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            // Increase server script timeout for large data - 15 minutes
+            Server.ScriptTimeout = 900;
+            
             Session["Group"] = GroupDropDownList.SelectedValue;
             Session["Shift"] = ShiftDropDownList.SelectedValue;
             Session["Section"] = SectionDropDownList.SelectedValue;
@@ -22,15 +25,13 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 if (!IsPostBack)
                 {
                     GroupDropDownList.Visible = false;
-
                     SectionDropDownList.Visible = false;
-
                     ShiftDropDownList.Visible = false;
                 }
             }
-
             catch { }
         }
+        
         protected void view()
         {
             DataView GroupDV = new DataView();
@@ -83,7 +84,6 @@ namespace EDUCATION.COM.Exam.CumulativeResult
         protected void GroupDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             view();
-
             ResultReportViewer.LocalReport.Refresh();
             this.ResultReportViewer.LocalReport.SubreportProcessing += new SubreportProcessingEventHandler(ResultReportViewer_SubreportProcessing);
         }
@@ -124,12 +124,12 @@ namespace EDUCATION.COM.Exam.CumulativeResult
         }
         //End DDL
 
-
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             ResultReportViewer.LocalReport.Refresh();
             this.ResultReportViewer.LocalReport.SubreportProcessing += new SubreportProcessingEventHandler(ResultReportViewer_SubreportProcessing);
         }
+        
         void ResultReportViewer_SubreportProcessing(object sender, SubreportProcessingEventArgs e)
         {
             e.DataSources.Add(new ReportDataSource("DataSet1", GradingSystemODS));
