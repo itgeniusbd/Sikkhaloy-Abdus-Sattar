@@ -41,6 +41,10 @@ namespace EDUCATION.COM.Exam.Result
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            // ✅ CRITICAL: Clear all caches FIRST before any data operations
+            ClearAllApplicationCaches();
+            ClearBrowserCache();
+            
             try
             {
                 Session["Group"] = GroupDropDownList.SelectedValue;
@@ -54,7 +58,7 @@ namespace EDUCATION.COM.Exam.Result
                     ShiftDropDownList.Visible = false;
                     CurrentPageIndex = 0;
                 }
-                
+
                 // ✅ Load signatures every time page loads (both initial and postback)
                 LoadSignatureImages();
             }
@@ -432,7 +436,7 @@ namespace EDUCATION.COM.Exam.Result
 
                         string noResultsMessage = isSearchingByID ?
                             "নির্দিষ্ট Student ID এর জন্য কোন ফলাফল পাওয়া যায়নি" :
-                            "নির্বাচিত শর্তের জন্য কোন ফলাফল পাওয়া যাচ্ছেনা";
+                            "নির্বাচিত শর্তের জন্য কোন ফলাফল পাওয়া যাচ্ছে না";
 
                         SafeRegisterStartupScript("nodata", $"alert('{EscapeForJavaScript(noResultsMessage)}');");
                     }
@@ -1276,7 +1280,7 @@ namespace EDUCATION.COM.Exam.Result
                     int subjectID = Convert.ToInt32(GetSafeColumnValue(row, "SubjectID"));
 
                     if (passStatus == "") passStatus = "Pass";
-                    
+
                     // Check if failed - use Grade F OR PassStatus Fail
                     bool isFailed = (subjectGrades.ToUpper() == "F" || passStatus == "Fail");
                     string rowClass = isFailed ? "failed-row" : "";
@@ -1306,7 +1310,7 @@ namespace EDUCATION.COM.Exam.Result
                         // No sub-exams - check if failed and add red background
                         string omCellClass = "";
                         bool isAbsent = (obtainedMark == "A" || obtainedMark == "0");
-                        
+
                         if (isFailed && !isAbsent)
                         {
                             // Add red background for failed subject
@@ -1326,7 +1330,7 @@ namespace EDUCATION.COM.Exam.Result
                                 }
                             }
                         }
-                        
+
                         // Simple row structure WITHOUT sub-exams:
                         // Subject Name | Obtained Marks | Full Marks | Grade | Points
                         html += @"
@@ -1633,7 +1637,7 @@ namespace EDUCATION.COM.Exam.Result
 
                                 string cellClass = "";
                                 string cellStyle = "";
-                                
+
                                 // If this sub-exam is not applicable for this subject, add special styling
                                 if (isNotApplicable)
                                 {
@@ -1828,10 +1832,10 @@ namespace EDUCATION.COM.Exam.Result
                 decimal studentPoint = row["Student_Point"] != DBNull.Value ? Convert.ToDecimal(row["Student_Point"]) : 0m;
 
                 string resultStatus = GetResultStatus(studentGrade, studentPoint);
-                
+
                 // Add CSS class based on pass/fail
                 string cssClass = (studentGrade.ToUpper() == "F") ? "result-fail" : "result-pass";
-                
+
                 return $"<td class=\"{cssClass}\">{resultStatus}</td>";
             }
             catch (Exception ex)
@@ -1925,5 +1929,57 @@ namespace EDUCATION.COM.Exam.Result
                 ");
             }
         }
+
+        #region Cache Management
+
+        private void ClearAllApplicationCaches()
+        {
+            try
+            {
+                // Clear any exam result cache for this school
+                string schoolResultsKey = $"BanglaResults_{Session["SchoolID"]}_{Session["Edu_Year"]}";
+                if (Cache[schoolResultsKey] != null)
+                {
+                    Cache.Remove(schoolResultsKey);
+                    System.Diagnostics.Debug.WriteLine($"✅ Cleared Bangla results cache: {schoolResultsKey}");
+                }
+
+                // Clear student data cache
+                string studentDataKey = $"StudentResults_{Session["SchoolID"]}";
+                if (Cache[studentDataKey] != null)
+                {
+                    Cache.Remove(studentDataKey);
+                    System.Diagnostics.Debug.WriteLine($"✅ Cleared student data cache: {studentDataKey}");
+                }
+
+                System.Diagnostics.Debug.WriteLine("✅ All BanglaResult application caches cleared");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error clearing caches: {ex.Message}");
+            }
+        }
+
+        private void ClearBrowserCache()
+        {
+            try
+            {
+                // Add cache-control headers to prevent browser caching
+                Response.Cache.SetCacheability(HttpCacheability.NoCache);
+                Response.Cache.SetNoStore();
+                Response.Cache.SetExpires(DateTime.UtcNow.AddDays(-1));
+                Response.CacheControl = "no-cache, no-store, must-revalidate";
+                Response.AddHeader("Pragma", "no-cache");
+                Response.AddHeader("Expires", "-1");
+                
+                System.Diagnostics.Debug.WriteLine("✅ Browser cache headers set for BanglaResult");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error setting cache headers: {ex.Message}");
+            }
+        }
+
+        #endregion
     }
 }

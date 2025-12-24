@@ -1,5 +1,4 @@
-﻿
-using Microsoft.Reporting.WebForms;
+﻿using Microsoft.Reporting.WebForms;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -77,6 +76,10 @@ namespace EDUCATION.COM.Exam.Result
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            // ✅ CRITICAL: Clear all caches FIRST before any data operations
+            ClearAllApplicationCaches();
+            ClearBrowserCache();
+            
             try
             {
                 Session["Group"] = GroupDropDownList.SelectedValue;
@@ -1412,7 +1415,9 @@ namespace EDUCATION.COM.Exam.Result
                         }
 
                         // Build FM/PM/OM cells per sub-exam in header order
-                        string subExamData = GetSubExamCellsHtml(studentResultID, subjectID, examID, standardCellStyle);
+                        int curExamID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                        List<int> availableSubExamIDs = GetAvailableSubExamIDs(curExamID);
+                        string subExamData = GetSubExamCellsHtml(studentResultID, subjectID, availableSubExamIDs, standardCellStyle);
 
                         html += $@"<tr class=""{rowClass}"">
     <td style=""{subjectCellStyle}"" title=""{subjectName}"">{subjectName}</td>
@@ -1522,25 +1527,45 @@ namespace EDUCATION.COM.Exam.Result
         }
 
         // Return sub-exam cells for a specific subject in header order
-        private string GetSubExamCellsHtml(string studentResultID, int subjectID, int examID, string standardCellStyle)
+        private string GetSubExamCellsHtml(string studentResultID, int subjectID, List<int> availableSubExamIDs, string standardCellStyle)
         {
-            // Build list of available SubExamIDs for this exam/class
-            List<int> subExamIDs = GetAvailableSubExamIDs(examID);
-
-            // Ensure ordered header list available
-            var ordered = ViewState["OrderedSubExamIDs"] as List<int>;
-            var loopIds = (ordered != null && ordered.Count > 0)
-                ? ordered.Where(id => subExamIDs.Contains(id)).ToList()
-                : subExamIDs;
-
-            // If none available, still generate the correct number of dash cells
-            if (loopIds.Count == 0)
+            SqlConnection con = null;
+            try
             {
-                int count = GetSubExamCount(examID);
-                return GenerateDashCellsForSubExams(count, standardCellStyle);
-            }
+                con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
+                con.Open();
 
-            return GetSubExamMarksForSpecificSubject(studentResultID, subjectID, loopIds, standardCellStyle);
+                string cellsHtml = "";
+
+                // Use ordered sub-exam IDs if present to keep column alignment consistent with header
+                var ordered = ViewState["OrderedSubExamIDs"] as List<int>;
+                var loopIds = (ordered != null && ordered.Count > 0)
+                    ? ordered.Where(id => availableSubExamIDs.Contains(id)).ToList()
+                    : availableSubExamIDs;
+
+                // If none available, still generate the correct number of dash cells
+                if (loopIds.Count == 0)
+                {
+                    int curExamID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                    int count = GetSubExamCount(curExamID);
+                    return GenerateDashCellsForSubExams(count, standardCellStyle);
+                }
+
+                return GetSubExamMarksForSpecificSubject(studentResultID, subjectID, loopIds, standardCellStyle);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetSubExamCellsHtml: {ex.Message}");
+                return "";
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
         }
 
         private string GenerateDashCellsForSubExams(int subExamCount, string standardCellStyle)
@@ -2177,8 +2202,8 @@ namespace EDUCATION.COM.Exam.Result
                 con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString);
                 con.Open();
 
-                int examID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                int subExamCount = GetSubExamCount(examID);
+                int curExamID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                int subExamCount = GetSubExamCount(curExamID);
 
                 string fontSize = subExamCount >= 4 ? "9px" : (subExamCount >= 3 ? "10px" : "11px");
                 string cellPadding = subExamCount >= 4 ? "2px" : "3px";
@@ -2203,7 +2228,7 @@ namespace EDUCATION.COM.Exam.Result
                 {
                     cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
                     cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                    cmd.Parameters.AddWithValue("@ExamID", examID);
+                    cmd.Parameters.AddWithValue("@ExamID", curExamID);
                     cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
 
                     DataTable dt = new DataTable();
@@ -2279,125 +2304,15 @@ namespace EDUCATION.COM.Exam.Result
                     ? ordered.Where(id => availableSubExamIDs.Contains(id)).ToList()
                     : availableSubExamIDs;
 
-                // Get sub-exam data for each available sub-exam in order
-                foreach (int subExamID in loopIds)
+                // If none available, still generate the correct number of dash cells
+                if (loopIds.Count == 0)
                 {
-                    string query = @"
-                        SELECT 
-                            esn.SubExamName,
-                            eom.MarksObtained as ObtainedMarks,
-                            ISNULL(eom.FullMark, 0) as FullMark,
-                            ISNULL(eom.PassMark, 0) as PassMark,
-                            ISNULL(eom.AbsenceStatus, 'Present') as AbsenceStatus
-                        FROM Exam_SubExam_Name esn
-                        LEFT JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID 
-                            AND eom.StudentResultID = @StudentResultID 
-                            AND eom.SubjectID = @SubjectID
-                            AND eom.SchoolID = @SchoolID
-                            AND eom.EducationYearID = @EducationYearID
-                        WHERE esn.SubExamID = @SubExamID
-                        AND esn.SchoolID = @SchoolID
-                        AND esn.EducationYearID = @EducationYearID";
-
-                    using (SqlCommand cmd = new SqlCommand(query, con))
-                    {
-                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
-                        cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
-                        cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
-                        cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-                        cmd.Parameters.AddWithValue("@SubExamID", subExamID);
-
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                string fullMark = reader["FullMark"]?.ToString() ?? "0";
-                                string passMark = reader["PassMark"]?.ToString() ?? "0";
-                                var obtainedMarkValue = reader["ObtainedMarks"];
-                                string absenceStatus = reader["AbsenceStatus"]?.ToString() ?? "Present";
-
-                                // Check if this subject has data for this sub-exam
-                                if (obtainedMarkValue == DBNull.Value || obtainedMarkValue == null)
-                                {
-                                    // No data for this sub-exam, show dashes based on settings
-                                    if (!IS_Hide_FullMark)
-                                    {
-                                        cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
-                                    }
-                                    if (!IS_Hide_PassMark)
-                                    {
-                                        cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
-                                    }
-                                    // Always show OM
-                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
-                                }
-                                else
-                                {
-                                    string obtainedMark = obtainedMarkValue.ToString();
-
-                                    // Determine absence ONLY if DB marks indicates absence and final grade is fail OR explicit absence status
-                                    bool isAbsent =
-                                        string.Equals(absenceStatus, "Absent", StringComparison.OrdinalIgnoreCase) ||
-                                        (string.Equals(obtainedMark, "A", StringComparison.OrdinalIgnoreCase));
-
-                                    // If fullMark or passMark is 0, show dash for those
-                                    fullMark = (fullMark == "0") ? "-" : fullMark;
-                                    passMark = (passMark == "0") ? "-" : passMark;
-
-                                    // Check if student failed in this sub-exam
-                                    bool isFailedInSubExam = false;
-                                    if (!isAbsent && passMark != "-" && obtainedMark != "-")
-                                    {
-                                        decimal om = 0, pm = 0;
-                                        if (decimal.TryParse(obtainedMark, out om) && decimal.TryParse(passMark, out pm))
-                                        {
-                                            if (om < pm && pm > 0)
-                                            {
-                                                isFailedInSubExam = true;
-                                            }
-                                        }
-                                    }
-
-                                    // Style for absent or failed OM cell (red background)
-                                    string omCellStyle = (isAbsent || isFailedInSubExam) ?
-                                        $"{standardCellStyle}; background-color: #ffcccc !important; color: #d32f2f; font-weight: bold;" :
-                                        standardCellStyle;
-
-                                    // Show actual marks in FM and PM, but Abs in OM if absent
-                                    string displayObtainedMark = isAbsent ? "Abs" : obtainedMark;
-
-                                    // Build cells based on settings
-                                    if (!IS_Hide_FullMark)
-                                    {
-                                        cellsHtml += $@"<td style=""{standardCellStyle}"" title=""Full Mark: {fullMark}"">{fullMark}</td>";
-                                    }
-                                    if (!IS_Hide_PassMark)
-                                    {
-                                        cellsHtml += $@"<td style=""{standardCellStyle}"" title=""Pass Mark: {passMark}"">{passMark}</td>";
-                                    }
-                                    // Always show OM
-                                    cellsHtml += $@"<td style=""{omCellStyle}"" title=""Obtained Mark: {displayObtainedMark}"">{displayObtainedMark}</td>";
-                                }
-                            }
-                            else
-                            {
-                                // Sub-exam not found, show dashes based on settings
-                                if (!IS_Hide_FullMark)
-                                {
-                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
-                                }
-                                if (!IS_Hide_PassMark)
-                                {
-                                    cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
-                                }
-                                // Always show OM
-                                cellsHtml += $@"<td style=""{standardCellStyle}"">-</td>";
-                            }
-                        }
-                    }
+                    int curExamID = Convert.ToInt32(ExamDropDownList.SelectedValue);
+                    int count = GetSubExamCount(curExamID);
+                    return GenerateDashCellsForSubExams(count, standardCellStyle);
                 }
 
-                return cellsHtml;
+                return GetSubExamMarksForSpecificSubject(studentResultID, subjectID, loopIds, standardCellStyle);
             }
             catch (Exception ex)
             {
@@ -2413,5 +2328,66 @@ namespace EDUCATION.COM.Exam.Result
                 }
             }
         }
+
+        #region Cache Management
+
+        private void ClearAllApplicationCaches()
+        {
+            try
+            {
+                // Clear English result cache
+                string englishResultsKey = $"EnglishResults_{Session["SchoolID"]}_{Session["Edu_Year"]}";
+                if (Cache[englishResultsKey] != null)
+                {
+                    Cache.Remove(englishResultsKey);
+                    System.Diagnostics.Debug.WriteLine($"✅ Cleared English results cache: {englishResultsKey}");
+                }
+
+                // Clear student data cache
+                string studentDataKey = $"StudentResults_{Session["SchoolID"]}";
+                if (Cache[studentDataKey] != null)
+                {
+                    Cache.Remove(studentDataKey);
+                    System.Diagnostics.Debug.WriteLine($"✅ Cleared student data cache: {studentDataKey}");
+                }
+
+                // Clear subject data cache
+                string subjectDataKey = $"SubjectResults_{Session["SchoolID"]}";
+                if (Cache[subjectDataKey] != null)
+                {
+                    Cache.Remove(subjectDataKey);
+                    System.Diagnostics.Debug.WriteLine($"✅ Cleared subject data cache: {subjectDataKey}");
+                }
+
+                System.Diagnostics.Debug.WriteLine("✅ All English Result application caches cleared");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error clearing caches: {ex.Message}");
+            }
+        }
+
+        private void ClearBrowserCache()
+        {
+            try
+            {
+                // Add cache-control headers to prevent browser caching
+                Response.Cache.SetCacheability(HttpCacheability.NoCache);
+                Response.Cache.SetNoStore();
+                Response.Cache.SetExpires(DateTime.UtcNow.AddDays(-1));
+                Response.CacheControl = "no-cache, no-store, must-revalidate";
+                Response.AddHeader("Pragma", "no-cache");
+                Response.AddHeader("Expires", "-1");
+                Response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
+                
+                System.Diagnostics.Debug.WriteLine("✅ Browser cache headers set for English Result Card");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ Error setting cache headers: {ex.Message}");
+            }
+        }
+
+        #endregion
     }
 }

@@ -122,7 +122,6 @@
             </div>
             <% } %>
 
-            <% if (ExamDropDownList.Items.Count > 1) { %>
             <div class="col-md-2">
                 <div class="form-group">
                     <label>Exam</label>
@@ -142,7 +141,6 @@
                     </asp:SqlDataSource>
                 </div>
             </div>
-            <% } %>
 
             <div class="col-md-2">
                 <div class="form-group">

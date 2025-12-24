@@ -492,7 +492,8 @@
     <Content Include="CSS\Print.css" />
     <Content Include="CSS\Search_In_DropdownList.css" />
     <Content Include="CSS\SideNavbar.css" />
-    <Content Include="Database\CreateUserBalanceSubmissionTable.sql" />
+    <Content Include="Database\AdvancedOptimization.sql" />
+    <Content Include="Database\REFRESH_DATABASE_CACHE.sql" />
     <Content Include="Employee\Acadamic_Calender.aspx" />
     <Content Include="Employee\Add_Holidays.aspx" />
     <Content Include="Employee\Attendance_Schedule.aspx" />
@@ -761,6 +762,7 @@
     <Content Include="Handeler\TestHandler.ashx" />
     <Content Include="Handeler\SchoolNameLogo.ashx" />
     <Content Include="Home\.htaccess" />
+    <Content Include="FIX_CUMULATIVE_DRAWING_GRADE.md" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
     <Content Include="Routines\Modify_Routine.aspx" />
@@ -2783,6 +2785,7 @@
     <Content Include="PaymentDataSet.xss">
       <DependentUpon>PaymentDataSet.xsd</DependentUpon>
     </Content>
+    <Content Include="RESTART_APPLICATION.bat" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

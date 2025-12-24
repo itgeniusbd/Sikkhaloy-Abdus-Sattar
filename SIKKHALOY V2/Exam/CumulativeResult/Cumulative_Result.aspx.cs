@@ -17,7 +17,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult
         #region Properties and Variables
 
         private string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
-        private const int StudentsPerPage = 25; // ✅ Changed from 10 to 25
+        private const int StudentsPerPage = 25;
 
         private int CurrentPage
         {
@@ -42,7 +42,60 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             set { ViewState["FilteredStudentIDs"] = value; }
         }
 
-        // NEW: Publish Settings Properties
+        // ✅ OPTIMIZATION: Cache these values per page load to avoid repeated DB calls
+        private int? _cachedCumulativeSettingID;
+        private int CachedCumulativeSettingID
+        {
+            get
+            {
+                if (!_cachedCumulativeSettingID.HasValue)
+                {
+                    _cachedCumulativeSettingID = GetLatestCumulativeSettingIDFromDB();
+                }
+                return _cachedCumulativeSettingID.Value;
+            }
+        }
+
+        private List<ExamInfo> _cachedExamList;
+        private List<ExamInfo> CachedExamList
+        {
+            get
+            {
+                if (_cachedExamList == null)
+                {
+                    _cachedExamList = LoadExamListFromDB();
+                }
+                return _cachedExamList;
+            }
+        }
+
+        private Dictionary<int, string> _cachedCumulativeFMs;
+        private Dictionary<int, string> CachedCumulativeFMs
+        {
+            get
+            {
+                if (_cachedCumulativeFMs == null)
+                {
+                    _cachedCumulativeFMs = LoadCumulativeFullMarksFromDB();
+                }
+                return _cachedCumulativeFMs;
+            }
+        }
+
+        private DataTable _cachedGradingSystem;
+        private DataTable CachedGradingSystem
+        {
+            get
+            {
+                if (_cachedGradingSystem == null)
+                {
+                    _cachedGradingSystem = LoadGradingSystemFromDB();
+                }
+                return _cachedGradingSystem;
+            }
+        }
+
+        // Publish Settings Properties
         private bool IS_Hide_Sec_Position
         {
             get { return ViewState["IS_Hide_Sec_Position"] != null && (bool)ViewState["IS_Hide_Sec_Position"]; }
@@ -73,7 +126,6 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             set { ViewState["IS_Grade_BasePoint"] = value; }
         }
 
-        // Whether the current class/result set has sections
         private bool HasSections
         {
             get { return ViewState["HasSections"] != null && (bool)ViewState["HasSections"]; }
@@ -86,6 +138,8 @@ namespace EDUCATION.COM.Exam.CumulativeResult
 
         protected void Page_Load(object sender, EventArgs e)
         {
+
+
             // Update session management first for all postbacks
             Session["Group"] = GroupDropDownList.SelectedValue;
             Session["Shift"] = ShiftDropDownList.SelectedValue;
@@ -106,6 +160,14 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                     GroupDropDownList.Visible = false;
                     SectionDropDownList.Visible = false;
                     ShiftDropDownList.Visible = false;
+
+                    // ✅ Force cache clear on initial page load
+
+                }
+                else
+                {
+                    // ✅ Also clear cache on postbacks to ensure fresh data
+
                 }
             }
             catch { }
@@ -209,6 +271,9 @@ namespace EDUCATION.COM.Exam.CumulativeResult
 
         protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
+            // ✅ CRITICAL FIX: Clear ViewState to prevent caching issues
+            ViewState.Clear();
+
             // Reset session values for dependent dropdowns - exactly like Cumulative_Result.aspx
             Session["Group"] = "%";
             Session["Shift"] = "%";
@@ -334,6 +399,15 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 if (!ValidateInputs())
                     return;
 
+                // ✅ OPTIMIZATION: Clear all caches before loading new results
+                ClearAllCaches();
+
+                // Clear ViewState before loading results
+                ViewState["FilteredStudentIDs"] = null;
+                ViewState["TotalStudents"] = null;
+                ViewState["CurrentPage"] = null;
+                ViewState["HasSections"] = null;
+
                 // Load publish settings before loading results
                 LoadPublishSettings();
 
@@ -440,6 +514,11 @@ namespace EDUCATION.COM.Exam.CumulativeResult
         {
             try
             {
+                // ✅ CRITICAL FIX: Clear any cached student data
+                FilteredStudentIDs = new List<int>();
+                TotalStudents = 0;
+                CurrentPage = 1;
+
                 // Get filtered student list using correct structure from the original dataset query
                 var studentClassIDs = GetFilteredStudentClassIDs();
                 FilteredStudentIDs = studentClassIDs;
@@ -569,16 +648,41 @@ namespace EDUCATION.COM.Exam.CumulativeResult
         private List<int> GetFilteredStudentClassIDs()
         {
             var studentClassIDs = new List<int>();
-
             try
             {
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
+                    // ✅ CRITICAL FIX: Get LATEST Cumulative_SettingID first
+                    int latestCumulativeSettingID = 0;
+                    var getSettingQuery = @"
+                        SELECT TOP 1 Cumulative_SettingID
+                        FROM Exam_Cumulative_Setting
+                        WHERE SchoolID = @SchoolID
+                        AND EducationYearID = @EducationYearID
+                        AND ClassID = @ClassID
+                        AND CumulativeNameID = @CumulativeNameID
+                        ORDER BY Cumulative_SettingID DESC";
+
+                    using (var settingCmd = new SqlCommand(getSettingQuery, connection))
+                    {
+                        settingCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                        settingCmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+                        settingCmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                        settingCmd.Parameters.AddWithValue("@CumulativeNameID", ExamDropDownList.SelectedValue);
+
+                        var result = settingCmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            latestCumulativeSettingID = Convert.ToInt32(result);
+                        }
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"✅ GetFilteredStudentClassIDs using Cumulative_SettingID: {latestCumulativeSettingID}");
+
                     // Build query with Group, Section, and Shift filters
-                    // IMPORTANT: This query fetches students from Exam_Cumulative_Student table
-                    // which should be populated after cumulative result is published
+                    // ✅ CRITICAL FIX: Add Cumulative_SettingID filter
                     var query = new StringBuilder(@"
                         SELECT DISTINCT ecs.StudentClassID
                         FROM Exam_Cumulative_Student ecs
@@ -586,7 +690,8 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                         WHERE ecs.CumulativeNameID = @CumulativeNameID 
                         AND ecs.SchoolID = @SchoolID 
                         AND ecs.EducationYearID = @EducationYearID 
-                        AND ecs.ClassID = @ClassID");
+                        AND ecs.ClassID = @ClassID
+                        AND ecs.Cumulative_SettingID = @Cumulative_SettingID");
 
                     // Add Group filter if not ALL
                     var groupValue = GroupDropDownList.SelectedValue;
@@ -617,6 +722,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                         command.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
                         command.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
                         command.Parameters.AddWithValue("@CumulativeNameID", ExamDropDownList.SelectedValue);
+                        command.Parameters.AddWithValue("@Cumulative_SettingID", latestCumulativeSettingID);
 
                         // Add filter parameters
                         if (!string.IsNullOrEmpty(groupValue) && groupValue != "%" && groupValue != "0")
@@ -636,7 +742,7 @@ namespace EDUCATION.COM.Exam.CumulativeResult
 
                         // Debug logging
                         System.Diagnostics.Debug.WriteLine($"GetFilteredStudentClassIDs Query: {query}");
-                        System.Diagnostics.Debug.WriteLine($"Parameters - SchoolID: {Session["SchoolID"]}, EducationYearID: {Session["Edu_Year"]}, ClassID: {ClassDropDownList.SelectedValue}, CumulativeNameID: {ExamDropDownList.SelectedValue}");
+                        System.Diagnostics.Debug.WriteLine($"Parameters - SchoolID: {Session["SchoolID"]}, EducationYearID: {Session["Edu_Year"]}, ClassID: {ClassDropDownList.SelectedValue}, CumulativeNameID: {ExamDropDownList.SelectedValue}, SettingID: {latestCumulativeSettingID}");
 
                         using (var reader = command.ExecuteReader())
                         {
@@ -963,77 +1069,19 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             {
                 try
                 {
-                    var dataItem = (DataRowView)e.Item.DataItem;
-                    var studentClassID = dataItem["StudentClassID"].ToString();
-
-                    // Load grading system for each result card
+                    // ✅ OPTIMIZATION: Use cached grading system instead of querying each time
                     var gradingRepeater = (Repeater)e.Item.FindControl("GradingSystemRepeater");
                     if (gradingRepeater != null)
                     {
-                        LoadGradingSystem(gradingRepeater);
+                        gradingRepeater.DataSource = CachedGradingSystem;
+                        gradingRepeater.DataBind();
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Log error but don't break the page
                     System.Diagnostics.Debug.WriteLine("Error in ResultRepeater_ItemDataBound: " + ex.Message);
                 }
             }
-        }
-
-        private void LoadGradingSystem(Repeater gradingRepeater)
-        {
-            try
-            {
-                using (var connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-
-                    var query = @"
-                        SELECT MARKS, Grades, Point
-                        FROM Exam_Grading_System
-                        WHERE SchoolID = @SchoolID
-                        ORDER BY Point DESC";
-
-                    using (var command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-
-                        using (var adapter = new SqlDataAdapter(command))
-                        {
-                            var dataTable = new DataTable();
-                            adapter.Fill(dataTable);
-                            gradingRepeater.DataSource = dataTable;
-                            gradingRepeater.DataBind();
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Use default grading if error occurs
-                var defaultGrading = CreateDefaultGradingSystem();
-                gradingRepeater.DataSource = defaultGrading;
-                gradingRepeater.DataBind();
-            }
-        }
-
-        private DataTable CreateDefaultGradingSystem()
-        {
-            var table = new DataTable();
-            table.Columns.Add("MARKS", typeof(string));
-            table.Columns.Add("Grades", typeof(string));
-            table.Columns.Add("Point", typeof(decimal));
-
-            table.Rows.Add("80-100", "A+", 5.0);
-            table.Rows.Add("70-79", "A", 4.0);
-            table.Rows.Add("60-69", "A-", 3.5);
-            table.Rows.Add("50-59", "B", 3.0);
-            table.Rows.Add("40-49", "C", 2.0);
-            table.Rows.Add("33-39", "D", 1.0);
-            table.Rows.Add("0-32", "F", 0.0);
-
-            return table;
         }
 
         #endregion
@@ -1246,6 +1294,370 @@ namespace EDUCATION.COM.Exam.CumulativeResult
 
         #endregion
 
+        #region Cache Loading Methods (Called Once Per Page Load)
+
+        // ✅ OPTIMIZATION: Load Cumulative Setting ID once
+        private int GetLatestCumulativeSettingIDFromDB()
+        {
+            int settingID = 0;
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    var query = @"
+                        SELECT TOP 1 Cumulative_SettingID
+                        FROM Exam_Cumulative_Setting
+                        WHERE SchoolID = @SchoolID
+                        AND EducationYearID = @EducationYearID
+                        AND ClassID = @ClassID
+                        AND CumulativeNameID = @CumulativeNameID
+                        ORDER BY Cumulative_SettingID DESC";
+
+                    using (var cmd = new SqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                        cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+                        cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                        cmd.Parameters.AddWithValue("@CumulativeNameID", ExamDropDownList.SelectedValue);
+
+                        var result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            settingID = Convert.ToInt32(result);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting CumulativeSettingID: {ex.Message}");
+            }
+            return settingID;
+        }
+
+        // ✅ OPTIMIZATION: Load Exam List once
+        private List<ExamInfo> LoadExamListFromDB()
+        {
+            var examList = new List<ExamInfo>();
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    var query = @"
+                        SELECT DISTINCT 
+                            en.ExamName,
+                            cel.ExamID,
+                            cel.ExamAdd_Percentage,
+                            en.Period_StartDate
+                        FROM Exam_Cumulative_ExamList cel
+                        INNER JOIN Exam_Name en ON cel.ExamID = en.ExamID
+                        WHERE cel.Cumulative_SettingID = @Cumulative_SettingID
+                        AND cel.CumulativeNameID = @CumulativeNameID
+                        AND cel.SchoolID = @SchoolID
+                        AND cel.EducationYearID = @EducationYearID
+                        AND cel.ClassID = @ClassID
+                        ORDER BY en.Period_StartDate, cel.ExamID";
+
+                    using (var cmd = new SqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@Cumulative_SettingID", CachedCumulativeSettingID);
+                        cmd.Parameters.AddWithValue("@CumulativeNameID", ExamDropDownList.SelectedValue);
+                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                        cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+                        cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                examList.Add(new ExamInfo
+                                {
+                                    ExamID = Convert.ToInt32(reader["ExamID"]),
+                                    ExamName = reader["ExamName"].ToString(),
+                                    Percentage = Convert.ToDecimal(reader["ExamAdd_Percentage"])
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading ExamList: {ex.Message}");
+            }
+            return examList;
+        }
+
+        // ✅ OPTIMIZATION: Load Cumulative Full Marks once
+        private Dictionary<int, string> LoadCumulativeFullMarksFromDB()
+        {
+            var fmDict = new Dictionary<int, string>();
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    var query = @"
+                        SELECT SubjectID, FullMarks
+                        FROM Exam_Cumulative_FullMarks
+                        WHERE CumulativeNameID = @CumulativeNameID
+                        AND SchoolID = @SchoolID
+                        AND EducationYearID = @EducationYearID
+                        AND Cumulative_SettingID = @Cumulative_SettingID";
+
+                using (var cmd = new SqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@CumulativeNameID", ExamDropDownList.SelectedValue);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+                    cmd.Parameters.AddWithValue("@Cumulative_SettingID", CachedCumulativeSettingID);
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int subjectID = Convert.ToInt32(reader["SubjectID"]);
+                            string fullMarks = reader["FullMarks"].ToString();
+                            fmDict[subjectID] = fullMarks;
+                        }
+                    }
+                }
+            }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading CumulativeFMs: {ex.Message}");
+            }
+            return fmDict;
+        }
+
+        // ✅ OPTIMIZATION: Load Grading System once
+        private DataTable LoadGradingSystemFromDB()
+        {
+            var dt = new DataTable();
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // Get GradeNameID from Cumulative Setting
+                    int gradeNameID = 0;
+                    var gradeQuery = @"
+                        SELECT GradeNameID FROM Exam_Cumulative_Setting
+                        WHERE Cumulative_SettingID = @Cumulative_SettingID";
+
+                    using (var cmd = new SqlCommand(gradeQuery, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@Cumulative_SettingID", CachedCumulativeSettingID);
+                        var result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            gradeNameID = Convert.ToInt32(result);
+                        }
+                    }
+
+                    var query = @"
+                        SELECT 
+                            CAST(MinPercentage AS VARCHAR) + '-' + CAST(MaxPercentage AS VARCHAR) AS MARKS,
+                            Grades,
+                            Point
+                        FROM Exam_Grading_System
+                        WHERE SchoolID = @SchoolID
+                        AND GradeNameID = @GradeNameID
+                        ORDER BY Point DESC";
+
+                using (var cmd = new SqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    cmd.Parameters.AddWithValue("@GradeNameID", gradeNameID);
+
+                    using (var adapter = new SqlDataAdapter(cmd))
+                    {
+                        adapter.Fill(dt);
+                    }
+                }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading GradingSystem: {ex.Message}");
+            }
+            return dt;
+        }
+
+        // ✅ OPTIMIZATION: Clear all caches when new data is loaded
+        private void ClearAllCaches()
+        {
+            _cachedCumulativeSettingID = null;
+            _cachedExamList = null;
+            _cachedCumulativeFMs = null;
+            _cachedGradingSystem = null;
+        }
+
+        #endregion
+
+        #region Helper Class and Formatting Methods
+
+        // Helper class for exam information
+        private class ExamInfo
+        {
+            public int ExamID { get; set; }
+            public string ExamName { get; set; }
+            public decimal Percentage { get; set; }
+        }
+
+        private string FormatMarks(object marks)
+        {
+            if (marks == null || marks == DBNull.Value)
+                return "-";
+
+            var marksStr = marks.ToString();
+            if (marksStr == "0")
+                return "0";
+
+            if (decimal.TryParse(marksStr, out decimal marksValue))
+            {
+                if (marksValue == Math.Floor(marksValue))
+                    return marksValue.ToString("0");
+                else
+                    return marksValue.ToString("0.##");
+            }
+
+            return marksStr;
+        }
+
+        private string FormatPoint(object point)
+        {
+            if (point == null || point == DBNull.Value)
+                return "0.00";
+
+            if (decimal.TryParse(point.ToString(), out decimal pointValue))
+                return pointValue.ToString("0.00");
+
+            return "0.00";
+        }
+
+        private string FormatPosition(object position)
+        {
+            if (position == null || position == DBNull.Value)
+                return "-";
+
+            var posStr = position.ToString();
+            if (posStr == "0" || string.IsNullOrEmpty(posStr))
+                return "-";
+
+            return posStr;
+        }
+
+        private string BuildExamHeaderRows(List<ExamInfo> examList)
+        {
+            var html = new StringBuilder();
+
+            html.Append("<tr>");
+            html.Append("<th rowspan='2' style='background-color: #E6E6FA; width: 90px;'>SUBJECTS</th>");
+
+            foreach (var exam in examList)
+            {
+                int examColspan = 1;
+                if (!IS_Hide_FullMark) examColspan++;
+                if (!IS_Hide_PassMark) examColspan++;
+
+                html.Append($"<th colspan='{examColspan}' style='white-space: nowrap;'>{exam.ExamName} ({exam.Percentage}%)</th>");
+            }
+
+            int cumulativeColspan = 4;
+            if (!IS_Hide_Class_Position) cumulativeColspan++;
+            if (HasSections && !IS_Hide_Sec_Position) cumulativeColspan++;
+            cumulativeColspan++;
+            if (HasSections && !IS_Hide_Sec_Position) cumulativeColspan++;
+
+            html.Append($"<th colspan='{cumulativeColspan}' style='background-color: #E6E6FA;'>Cumulative Result</th>");
+            html.Append("</tr>");
+
+            html.Append("<tr>");
+
+            foreach (var exam in examList)
+            {
+                if (!IS_Hide_FullMark)
+                    html.Append("<th style='width: 30px;'>FM</th>");
+                if (!IS_Hide_PassMark)
+                    html.Append("<th style='width: 30px;'>PM</th>");
+                html.Append("<th style='width: 35px;'>OM</th>");
+            }
+
+            html.Append("<th style='background-color: #E6E6FA; width: 35px;'>FM</th>");
+            html.Append("<th style='background-color: #E6E6FA; width: 45px;'>OM</th>");
+            html.Append("<th style='background-color: #E6E6FA; width: 45px;'>GRADE</th>");
+            html.Append("<th style='background-color: #E6E6FA; width: 35px;'>GPA</th>");
+
+            if (!IS_Hide_Class_Position)
+                html.Append("<th style='background-color: #E6E6FA; width: 30px;'>PC</th>");
+
+            if (HasSections && !IS_Hide_Sec_Position)
+                html.Append("<th style='background-color: #E6E6FA; width: 30px;'>PS</th>");
+
+            html.Append("<th style='background-color: #E6E6FA; width: 45px;'>HMC</th>");
+
+            if (HasSections && !IS_Hide_Sec_Position)
+                html.Append("<th style='background-color: #E6E6FA; width: 45px;'>HMS</th>");
+
+            html.Append("</tr>");
+
+            return html.ToString();
+        }
+
+        private string BuildSubjectRows_Fixed(DataTable subjectData, List<ExamInfo> examList, Dictionary<int, string> cumulativeFMs = null)
+        {
+            var html = new StringBuilder();
+
+            foreach (DataRow row in subjectData.Rows)
+            {
+                html.Append("<tr>");
+                html.Append($"<td class='subject-name' style='background-color: #F5F5F5; text-align: left;'>{row["SubjectName"]}</td>");
+
+                foreach (var exam in examList)
+                {
+                    if (!IS_Hide_FullMark)
+                        html.Append($"<td>{row[$"FM_Exam{exam.ExamID}"]}</td>");
+                    if (!IS_Hide_PassMark)
+                        html.Append($"<td>{row[$"PM_Exam{exam.ExamID}"]}</td>");
+                    html.Append($"<td class='total-marks-cell'>{row[$"OM_Exam{exam.ExamID}"]}</td>");
+                }
+
+                int subjectID = Convert.ToInt32(row["SubjectID"]);
+                string cuFM = row["Cu_Sub_TM"].ToString();
+                if (cumulativeFMs != null && cumulativeFMs.ContainsKey(subjectID))
+                {
+                    cuFM = cumulativeFMs[subjectID];
+                }
+
+                html.Append($"<td style='background-color: #E6E6FA;'>{cuFM}</td>");
+                html.Append($"<td class='total-marks-cell' style='background-color: #E6E6FA;'>{row["Cu_Sub_OM"]}</td>");
+                html.Append($"<td class='grade-cell' style='background-color: #E6E6FA;'>{row["Cu_Sub_Grades"]}</td>");
+                html.Append($"<td style='background-color: #E6E6FA;'>{row["Cu_Sub_Point"]}</td>");
+
+                if (!IS_Hide_Class_Position)
+                    html.Append($"<td style='background-color: #E6E6FA;'>{row["Position_InSubject_Class"]}</td>");
+
+                if (HasSections && !IS_Hide_Sec_Position)
+                    html.Append($"<td style='background-color: #E6E6FA;'>{row["Position_InSubject_Subsection"]}</td>");
+
+                html.Append($"<td style='background-color: #E6E6FA;'>{row["HighestMark_InSubject_Class"]}</td>");
+
+                if (HasSections && !IS_Hide_Sec_Position)
+                    html.Append($"<td style='background-color: #E6E6FA;'>{row["HighestMark_InSubject_Subsection"]}</td>");
+
+                html.Append("</tr>");
+            }
+
+            return html.ToString();
+        }
+
+        #endregion
+
         #region Helper Methods for ASPX
 
         protected string GetDynamicInfoRow(object dataItem)
@@ -1301,7 +1713,6 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 var row = (DataRowView)dataItem;
                 var html = new StringBuilder();
 
-                // Get attendance and summary data
                 var workingDays = row["WorkingDays"] != DBNull.Value ? row["WorkingDays"].ToString() : "";
                 var totalPresent = row["TotalPresent"] != DBNull.Value ? row["TotalPresent"].ToString() : "";
                 var totalAbsent = row["TotalAbsent"] != DBNull.Value ? row["TotalAbsent"].ToString() : "";
@@ -1309,21 +1720,20 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 var totalMarks = row["Cu_Stu_TM"] != DBNull.Value ? row["Cu_Stu_TM"].ToString() : "";
                 var obtainedMarks = row["Cu_Stu_OM"] != DBNull.Value ? row["Cu_Stu_OM"].ToString() : "";
                 var percentage = row["ObtainedPercentage_ofStudent"] != DBNull.Value ?
-                    decimal.Parse(row["ObtainedPercentage_ofStudent"].ToString()).ToString("F2") + "%" : "98.52%";
+                    decimal.Parse(row["ObtainedPercentage_ofStudent"].ToString()).ToString("F2") + "%" : "0.00%";
                 var average = row["Average"] != DBNull.Value ?
-                    decimal.Parse(row["Average"].ToString()).ToString("F2") : "83.74";
-                var grade = row["Student_Grade"] != DBNull.Value ? row["Student_Grade"].ToString() : "A+";
+                    decimal.Parse(row["Average"].ToString()).ToString("F2") : "0.00";
+                var grade = row["Student_Grade"] != DBNull.Value ? row["Student_Grade"].ToString() : "";
                 var gpa = row["Student_Point"] != DBNull.Value ?
-                    decimal.Parse(row["Student_Point"].ToString()).ToString("F2") : "5.00";
+                    decimal.Parse(row["Student_Point"].ToString()).ToString("F2") : "0.00";
                 var positionClass = row["Position_InExam_Class"] != DBNull.Value && row["Position_InExam_Class"].ToString() != "0" ?
-                    row["Position_InExam_Class"].ToString() : "6";
+                    row["Position_InExam_Class"].ToString() : "-";
                 var positionSection = row["Position_InExam_Subsection"] != DBNull.Value && row["Position_InExam_Subsection"].ToString() != "0" ?
-                    row["Position_InExam_Subsection"].ToString() : "2";
-                var comments = row["Student_Comments"] != DBNull.Value ? row["Student_Comments"].ToString() : "Excellent";
+                    row["Position_InExam_Subsection"].ToString() : "-";
+                var comments = row["Student_Comments"] != DBNull.Value ? row["Student_Comments"].ToString() : "";
 
                 html.Append("<table class='summary-table' style='margin-top: 10px; width: 100%; border-collapse: collapse;'>");
 
-                // First row with all summary information - matching capture00.png exactly
                 html.Append("<tr class='summary-header' style='background-color: #f5f5f5; border: 1px solid #ddd;'>");
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>WD</strong></td>");
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>Pre</strong></td>");
@@ -1335,13 +1745,11 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>Grade</strong></td>");
                 html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>GPA</strong></td>");
 
-                // Conditional PC header based on IS_Hide_Class_Position
                 if (!IS_Hide_Class_Position)
                 {
                     html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>PC</strong></td>");
                 }
 
-                // Conditional PS header based on HasSections AND IS_Hide_Sec_Position
                 if (HasSections && !IS_Hide_Sec_Position)
                 {
                     html.Append("<td style='padding: 0px; text-align: center; border: 1px solid #ddd;'><strong>PS</strong></td>");
@@ -1361,13 +1769,11 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #6495ed; color: white;'><strong>{grade}</strong></td>");
                 html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #00008b; color: white;'><strong>{gpa}</strong></td>");
 
-                // Conditional PC data based on IS_Hide_Class_Position
                 if (!IS_Hide_Class_Position)
                 {
                     html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #228b22; color: white;'><strong>{positionClass}</strong></td>");
                 }
 
-                // Conditional PS data based on HasSections AND IS_Hide_Sec_Position
                 if (HasSections && !IS_Hide_Sec_Position)
                 {
                     html.Append($"<td style='padding: 8px; text-align: center; border: 1px solid #ddd; background-color: #228b22; color: white;'><strong>{positionSection}</strong></td>");
@@ -1385,67 +1791,33 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             }
         }
 
+        // ✅ OPTIMIZED: Uses cached data instead of repeated DB calls
         protected string GenerateSubjectMarksTable(string studentClassID, string studentGrade, object studentPoint)
         {
             try
             {
+                var examList = CachedExamList;
+
+                if (examList.Count == 0)
+                {
+                    return "<div class='error'>No exam data found for cumulative result.</div>";
+                }
+
+                var cumulativeFMs = CachedCumulativeFMs;
+
                 using (var connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
 
-                    // First, get the list of exams included in this cumulative result with their percentages
-                    var examList = GetCumulativeExamList(connection, studentClassID);
+                    var subjectData = GetSubjectExamWiseMarks_Optimized(connection, studentClassID, examList);
 
-                    if (examList.Count == 0)
-                    {
-                        return "<div class='error'>No exam data found for cumulative result.</div>";
-                    }
-
-                    // ✅ Load Cumulative Full Marks for each subject from Exam_Cumulative_FullMarks
-                    var cumulativeFMQuery = @"
-                        SELECT SubjectID, FullMarks
-                        FROM Exam_Cumulative_FullMarks
-                        WHERE CumulativeNameID = @CumulativeNameID
-                        AND SchoolID = @SchoolID
-                        AND EducationYearID = @EducationYearID";
-
-                    var cumulativeFMs = new Dictionary<int, string>();
-                    using (var fmCmd = new SqlCommand(cumulativeFMQuery, connection))
-                    {
-                        fmCmd.Parameters.AddWithValue("@CumulativeNameID", Convert.ToInt32(ExamDropDownList.SelectedValue));
-                        fmCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                        fmCmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
-
-                        using (var reader = fmCmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                int subjectID = Convert.ToInt32(reader["SubjectID"]);
-                                string fullMarks = reader["FullMarks"].ToString();
-                                cumulativeFMs[subjectID] = fullMarks;
-                            }
-                        }
-                    }
-
-                    System.Diagnostics.Debug.WriteLine($"✅ Loaded {cumulativeFMs.Count} Cumulative Subject Full Marks");
-
-                    // Get subject data with exam-wise marks
-                    var subjectData = GetSubjectExamWiseMarks_Fixed(connection, studentClassID, examList);
-
-                    // Build the enhanced table HTML
                     var html = new StringBuilder();
                     html.Append("<table class='marks-table'>");
-
-                    // Build header rows
                     html.Append(BuildExamHeaderRows(examList));
-
-                    // ✅ Pass cumulativeFMs dictionary to BuildSubjectRows_Fixed
                     html.Append(BuildSubjectRows_Fixed(subjectData, examList, cumulativeFMs));
-
-                    // Build cumulative result row
-                    html.Append(BuildCumulativeResultRow(connection, studentClassID, studentGrade, studentPoint, examList.Count));
-
+                    html.Append(BuildCumulativeResultRow_Optimized(connection, studentClassID, studentGrade, studentPoint, examList.Count));
                     html.Append("</table>");
+
                     return html.ToString();
                 }
             }
@@ -1455,278 +1827,180 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             }
         }
 
-        private List<ExamInfo> GetCumulativeExamList(SqlConnection connection, string studentClassID)
+        // ✅ OPTIMIZED: Single query to get all exam-wise marks for a student
+        private DataTable GetSubjectExamWiseMarks_Optimized(SqlConnection connection, string studentClassID, List<ExamInfo> examList)
         {
-            var examList = new List<ExamInfo>();
-
-            try
-            {
-                // CRITICAL FIX: Get the LATEST Cumulative_SettingID directly from Exam_Cumulative_Setting
-                // instead of relying on student data which may be from old publishes
-                var getLatestSettingQuery = @"
-                    SELECT TOP 1
-                        ecs.Cumulative_SettingID,
-                        ecs.CumulativeNameID,
-                        ecs.ClassID,
-                        ecs.SchoolID,
-                        ecs.EducationYearID
-                    FROM Exam_Cumulative_Setting ecs
-                    WHERE ecs.SchoolID = @SchoolID
-                    AND ecs.EducationYearID = @EducationYearID
-                    AND ecs.ClassID = @ClassID
-                    AND ecs.CumulativeNameID = @CumulativeNameID
-                    ORDER BY ecs.Cumulative_SettingID DESC";
-
-                int cumulativeNameID = Convert.ToInt32(ExamDropDownList.SelectedValue);
-                int classID = Convert.ToInt32(ClassDropDownList.SelectedValue);
-                int schoolID = Convert.ToInt32(Session["SchoolID"]);
-                int educationYearID = Convert.ToInt32(Session["Edu_Year"]);
-                int latestCumulativeSettingID = 0;
-
-                using (var cmd = new SqlCommand(getLatestSettingQuery, connection))
-                {
-                    cmd.Parameters.AddWithValue("@SchoolID", schoolID);
-                    cmd.Parameters.AddWithValue("@EducationYearID", educationYearID);
-                    cmd.Parameters.AddWithValue("@ClassID", classID);
-                    cmd.Parameters.AddWithValue("@CumulativeNameID", cumulativeNameID);
-
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            latestCumulativeSettingID = Convert.ToInt32(reader["Cumulative_SettingID"]);
-                        }
-                    }
-                }
-
-                if (latestCumulativeSettingID == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ No LATEST Cumulative_SettingID found");
-                    System.Diagnostics.Debug.WriteLine($"   SchoolID: {schoolID}, EducationYearID: {educationYearID}");
-                    System.Diagnostics.Debug.WriteLine($"   ClassID: {classID}, CumulativeNameID: {cumulativeNameID}");
-                    return examList;
-                }
-
-                System.Diagnostics.Debug.WriteLine($"✅ Using LATEST Cumulative_SettingID: {latestCumulativeSettingID}");
-                System.Diagnostics.Debug.WriteLine($"   CumulativeNameID: {cumulativeNameID}");
-                System.Diagnostics.Debug.WriteLine($"   ClassID: {classID}");
-                System.Diagnostics.Debug.WriteLine($"   SchoolID: {schoolID}");
-                System.Diagnostics.Debug.WriteLine($"   EducationYearID: {educationYearID}");
-
-                // STEP 2: Get the list of exams from Exam_Cumulative_ExamList table
-                // Using the LATEST Cumulative_SettingID (not from student data)
-                var query = @"
-                    SELECT DISTINCT 
-                        en.ExamName,
-                        cel.ExamID,
-                        cel.ExamAdd_Percentage,
-                        en.Period_StartDate
-                    FROM Exam_Cumulative_ExamList cel
-                    INNER JOIN Exam_Name en ON cel.ExamID = en.ExamID
-                    WHERE cel.Cumulative_SettingID = @Cumulative_SettingID
-                    AND cel.CumulativeNameID = @CumulativeNameID
-                    AND cel.SchoolID = @SchoolID
-                    AND cel.EducationYearID = @EducationYearID
-                    AND cel.ClassID = @ClassID
-                    ORDER BY en.Period_StartDate, cel.ExamID";
-
-                using (var command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@Cumulative_SettingID", latestCumulativeSettingID);
-                    command.Parameters.AddWithValue("@CumulativeNameID", cumulativeNameID);
-                    command.Parameters.AddWithValue("@SchoolID", schoolID);
-                    command.Parameters.AddWithValue("@EducationYearID", educationYearID);
-                    command.Parameters.AddWithValue("@ClassID", classID);
-
-                    System.Diagnostics.Debug.WriteLine($"🔍 Querying Exam_Cumulative_ExamList with LATEST Setting:");
-                    System.Diagnostics.Debug.WriteLine($"   Cumulative_SettingID: {latestCumulativeSettingID}");
-
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var examInfo = new ExamInfo
-                            {
-                                ExamID = Convert.ToInt32(reader["ExamID"]),
-                                ExamName = reader["ExamName"].ToString(),
-                                Percentage = Convert.ToDecimal(reader["ExamAdd_Percentage"])
-                            };
-                            examList.Add(examInfo);
-                            System.Diagnostics.Debug.WriteLine($"   ✅ Exam: {examInfo.ExamName} (ID: {examInfo.ExamID}, {examInfo.Percentage}%)");
-                        }
-                    }
-                }
-
-                if (examList.Count == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ No exams found in Exam_Cumulative_ExamList for LATEST setting");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"✅ Total exams from LATEST publish: {examList.Count}");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ Error in GetCumulativeExamList: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"   StackTrace: {ex.StackTrace}");
-            }
-
-            return examList;
-        }
-
-        private string BuildExamHeaderRows(List<ExamInfo> examList)
-        {
-            var html = new StringBuilder();
-
-            // First header row - Exam names with percentages and merged Cumulative Result
-            html.Append("<tr>");
-            html.Append("<th rowspan='2' style='background-color: #E6E6FA;'>SUBJECTS</th>");
+            var dataTable = new DataTable();
+            dataTable.Columns.Add("SubjectName", typeof(string));
+            dataTable.Columns.Add("SubjectID", typeof(int));
+            dataTable.Columns.Add("SN", typeof(int));
+            dataTable.Columns.Add("SubjectType", typeof(string));
 
             foreach (var exam in examList)
             {
-                // Calculate colspan based on visible columns
-                int examColspan = 1; // OM always shown
-                if (!IS_Hide_FullMark) examColspan++; // Add FM
-                if (!IS_Hide_PassMark) examColspan++; // Add PM
-
-                html.Append($"<th colspan='{examColspan}'>{exam.ExamName} ({exam.Percentage}%)</th>");
-            }
-
-            // Calculate cumulative result colspan based on visible columns
-            int cumulativeColspan = 4; // FM, OM, GRADE, GPA always shown
-            if (!IS_Hide_Class_Position) cumulativeColspan++; // PC
-            if (HasSections && !IS_Hide_Sec_Position) cumulativeColspan++; // PS
-            cumulativeColspan++; // HMC always shown
-            if (HasSections && !IS_Hide_Sec_Position) cumulativeColspan++; // HMS
-
-            // Merged Cumulative Result header spanning calculated columns
-            html.Append($"<th colspan='{cumulativeColspan}' style='background-color: #E6E6FA;'>Cumulative Result</th>");
-            html.Append("</tr>");
-
-            // Second header row - Conditional FM, PM, and OM labels for exams, then individual cumulative columns
-            html.Append("<tr>");
-
-            foreach (var exam in examList)
-            {
-                // Conditional FM header
                 if (!IS_Hide_FullMark)
-                {
-                    html.Append("<th>FM</th>");
-                }
-                // Conditional PM header
+                    dataTable.Columns.Add($"FM_Exam{exam.ExamID}", typeof(string));
                 if (!IS_Hide_PassMark)
+                    dataTable.Columns.Add($"PM_Exam{exam.ExamID}", typeof(string));
+                dataTable.Columns.Add($"OM_Exam{exam.ExamID}", typeof(string));
+            }
+
+            dataTable.Columns.Add("Cu_Sub_TM", typeof(string));
+            dataTable.Columns.Add("Cu_Sub_OM", typeof(string));
+            dataTable.Columns.Add("Cu_Sub_Grades", typeof(string));
+            dataTable.Columns.Add("Cu_Sub_Point", typeof(string));
+            dataTable.Columns.Add("Position_InSubject_Class", typeof(string));
+            dataTable.Columns.Add("Position_InSubject_Subsection", typeof(string));
+            dataTable.Columns.Add("HighestMark_InSubject_Class", typeof(string));
+            dataTable.Columns.Add("HighestMark_InSubject_Subsection", typeof(string));
+
+            int cumulativeSettingID = CachedCumulativeSettingID;
+
+            var cumulativeQuery = @"
+                SELECT 
+                    Subject.SubjectName,
+                    Subject.SN,
+                    ecs.SubjectID,
+                    ecs.TotalMark_ofSubject AS Cu_Sub_TM,
+                    ecs.ObtainedMark_ofSubject AS Cu_Sub_OM,
+                    ecs.SubjectGrades AS Cu_Sub_Grades,
+                    ecs.SubjectPoint AS Cu_Sub_Point,
+                    ecs.Position_InSubject_Class,
+                    ecs.Position_InSubject_Subsection,
+                    ecs.HighestMark_InSubject_Class,
+                    ecs.HighestMark_InSubject_Subsection,
+                    ISNULL(ecs.SubjectType, 'Compulsory') AS SubjectType
+                FROM Exam_Cumulative_Subject ecs
+                INNER JOIN Subject ON ecs.SubjectID = Subject.SubjectID
+                WHERE ecs.StudentClassID = @StudentClassID
+                AND ecs.Cumulative_SettingID = @Cumulative_SettingID
+                AND ecs.IS_Add_InExam = 1
+                ORDER BY ISNULL(Subject.SN, 9999), Subject.SubjectName";
+
+            var subjectsDict = new Dictionary<int, DataRow>();
+
+            using (var cmd = new SqlCommand(cumulativeQuery, connection))
+            {
+                cmd.Parameters.AddWithValue("@StudentClassID", studentClassID);
+                cmd.Parameters.AddWithValue("@Cumulative_SettingID", cumulativeSettingID);
+
+                using (var reader = cmd.ExecuteReader())
                 {
-                    html.Append("<th>PM</th>");
+                    while (reader.Read())
+                    {
+                        var row = dataTable.NewRow();
+
+                        string subjectName = reader["SubjectName"].ToString();
+                        string subjectType = reader["SubjectType"]?.ToString() ?? "Compulsory";
+                        if (subjectType.Equals("Optional", StringComparison.OrdinalIgnoreCase))
+                        {
+                            subjectName = subjectName + " *";
+                        }
+
+                        int subjectID = Convert.ToInt32(reader["SubjectID"]);
+                        row["SubjectName"] = subjectName;
+                        row["SubjectID"] = subjectID;
+                        row["SN"] = reader["SN"] == DBNull.Value ? 9999 : Convert.ToInt32(reader["SN"]);
+                        row["SubjectType"] = subjectType;
+                        row["Cu_Sub_TM"] = FormatMarks(reader["Cu_Sub_TM"]);
+                        row["Cu_Sub_OM"] = FormatMarks(reader["Cu_Sub_OM"]);
+                        row["Cu_Sub_Grades"] = reader["Cu_Sub_Grades"] == DBNull.Value ? "-" : reader["Cu_Sub_Grades"].ToString();
+                        row["Cu_Sub_Point"] = FormatPoint(reader["Cu_Sub_Point"]);
+                        row["Position_InSubject_Class"] = FormatPosition(reader["Position_InSubject_Class"]);
+                        row["Position_InSubject_Subsection"] = FormatPosition(reader["Position_InSubject_Subsection"]);
+                        row["HighestMark_InSubject_Class"] = FormatMarks(reader["HighestMark_InSubject_Class"]);
+                        row["HighestMark_InSubject_Subsection"] = FormatMarks(reader["HighestMark_InSubject_Subsection"]);
+
+                        foreach (var exam in examList)
+                        {
+                            if (!IS_Hide_FullMark)
+                                row[$"FM_Exam{exam.ExamID}"] = "-";
+                            if (!IS_Hide_PassMark)
+                                row[$"PM_Exam{exam.ExamID}"] = "-";
+                            row[$"OM_Exam{exam.ExamID}"] = "-";
+                        }
+
+                        subjectsDict[subjectID] = row;
+                    }
                 }
-                // OM always shown
-                html.Append("<th>OM</th>");
             }
 
-            // Individual cumulative column headers with lavender background
-            html.Append("<th style='background-color: #E6E6FA;'>FM</th>");
-            html.Append("<th style='background-color: #E6E6FA;'>OM</th>");
-            html.Append("<th style='background-color: #E6E6FA;'>GRADE</th>");
-            html.Append("<th style='background-color: #E6E6FA;'>GPA</th>");
+            if (subjectsDict.Count == 0)
+                return dataTable;
 
-            // Conditional PC header
-            if (!IS_Hide_Class_Position)
+            // ✅ OPTIMIZED: Single query to get ALL exam marks for ALL subjects at once
+            var examIDs = string.Join(",", examList.Select(e => e.ExamID));
+            var subjectIDs = string.Join(",", subjectsDict.Keys);
+
+            var examMarksQuery = $@"
+                SELECT 
+                    ers.SubjectID,
+                    erstu.ExamID,
+                    ers.TotalMark_ofSubject AS E_Subject_TM,
+                    ers.ObtainedMark_ofSubject AS E_Subject_OM,
+                    ers.SubjectAbsenceStatus AS E_Subject_Abs
+                FROM Exam_Result_of_Subject ers
+                INNER JOIN Exam_Result_of_Student erstu ON ers.StudentResultID = erstu.StudentResultID
+                WHERE erstu.StudentClassID = @StudentClassID
+                AND ers.SubjectID IN ({subjectIDs})
+                AND erstu.ExamID IN ({examIDs})
+                AND erstu.SchoolID = @SchoolID
+                AND erstu.EducationYearID = @EducationYearID";
+
+            using (var cmd = new SqlCommand(examMarksQuery, connection))
             {
-                html.Append("<th style='background-color: #E6E6FA;'>PC</th>");
+                cmd.Parameters.AddWithValue("@StudentClassID", studentClassID);
+                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"]);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        int subjectID = Convert.ToInt32(reader["SubjectID"]);
+                        int examID = Convert.ToInt32(reader["ExamID"]);
+
+                        if (subjectsDict.ContainsKey(subjectID))
+                        {
+                            var row = subjectsDict[subjectID];
+                            var fm = reader["E_Subject_TM"];
+                            var om = reader["E_Subject_OM"];
+                            var abs = reader["E_Subject_Abs"]?.ToString() ?? "";
+
+                            if (!IS_Hide_FullMark)
+                                row[$"FM_Exam{examID}"] = FormatMarks(fm);
+
+                            if (!IS_Hide_PassMark)
+                            {
+                                if (fm != DBNull.Value && fm != null && decimal.TryParse(fm.ToString(), out decimal fmValue))
+                                    row[$"PM_Exam{examID}"] = FormatMarks(fmValue * 0.33m);
+                                else
+                                    row[$"PM_Exam{examID}"] = "-";
+                            }
+
+                            if (abs == "Absent" || abs == "A")
+                            {
+                                row[$"OM_Exam{examID}"] = "Abs";
+                            }
+                            else
+                            {
+                                row[$"OM_Exam{examID}"] = FormatMarks(om);
+                            }
+                        }
+                    }
+                }
             }
 
-            // Conditional PS header
-            if (HasSections && !IS_Hide_Sec_Position)
+            foreach (var row in subjectsDict.Values)
             {
-                html.Append("<th style='background-color: #E6E6FA;'>PS</th>");
+                dataTable.Rows.Add(row);
             }
 
-            // HMC always shown
-            html.Append("<th style='background-color: #E6E6FA;'>HMC</th>");
-
-            // HMS only with sections and not hidden
-            if (HasSections && !IS_Hide_Sec_Position)
-            {
-                html.Append("<th style='background-color: #E6E6FA;'>HMS</th>");
-            }
-
-            html.Append("</tr>");
-
-            return html.ToString();
+            return dataTable;
         }
 
-        private string BuildSubjectRows_Fixed(DataTable subjectData, List<ExamInfo> examList, Dictionary<int, string> cumulativeFMs = null)
-        {
-            var html = new StringBuilder();
-
-            foreach (DataRow row in subjectData.Rows)
-            {
-                html.Append("<tr>");
-                html.Append($"<td class='subject-name' style='background-color: #F5F5F5; text-align: left;'>{row["SubjectName"]}</td>");
-
-                // Exam-wise marks with conditional FM and PM
-                foreach (var exam in examList)
-                {
-                    // Conditional FM column
-                    if (!IS_Hide_FullMark)
-                    {
-                        html.Append($"<td>{row[$"FM_Exam{exam.ExamID}"]}</td>");
-                    }
-                    // Conditional PM column
-                    if (!IS_Hide_PassMark)
-                    {
-                        html.Append($"<td>{row[$"PM_Exam{exam.ExamID}"]}</td>");
-                    }
-                    // OM always shown
-                    html.Append($"<td class='total-marks-cell'>{row[$"OM_Exam{exam.ExamID}"]}</td>");
-                }
-
-                // ✅ Use Cumulative FM from Exam_Cumulative_FullMarks instead of Cu_Sub_TM
-                int subjectID = Convert.ToInt32(row["SubjectID"]);
-                string cuFM = "0";
-                if (cumulativeFMs != null && cumulativeFMs.ContainsKey(subjectID))
-                {
-                    cuFM = cumulativeFMs[subjectID];
-                }
-                else
-                {
-                    // Fallback to database value if dictionary not provided
-                    cuFM = row["Cu_Sub_TM"].ToString();
-                }
-
-                html.Append($"<td style='background-color: #E6E6FA;'>{cuFM}</td>");
-                html.Append($"<td class='total-marks-cell' style='background-color: #E6E6FA;'>{row["Cu_Sub_OM"]}</td>");
-                html.Append($"<td class='grade-cell' style='background-color: #E6E6FA;'>{row["Cu_Sub_Grades"]}</td>");
-                html.Append($"<td style='background-color: #E6E6FA;'>{row["Cu_Sub_Point"]}</td>");
-
-                // Conditional PC column
-                if (!IS_Hide_Class_Position)
-                {
-                    html.Append($"<td class='position-col-pc' style='background-color: #E6E6FA;'>{row["Position_InSubject_Class"]}</td>");
-                }
-
-                // Conditional PS column
-                if (HasSections && !IS_Hide_Sec_Position)
-                {
-                    html.Append($"<td class='position-col-ps' style='background-color: #E6E6FA;'>{row["Position_InSubject_Subsection"]}</td>");
-                }
-
-                // HMC always shown
-                html.Append($"<td class='position-col-hmc' style='background-color: #E6E6FA;'>{row["HighestMark_InSubject_Class"]}</td>");
-
-                // HMS only with sections
-                if (HasSections && !IS_Hide_Sec_Position)
-                {
-                    html.Append($"<td class='position-col-hms' style='background-color: #E6E6FA;'>{row["HighestMark_InSubject_Subsection"]}</td>");
-                }
-
-                html.Append("</tr>");
-            }
-
-            return html.ToString();
-        }
-
-        private string BuildCumulativeResultRow(SqlConnection connection, string studentClassID, string studentGrade, object studentPoint, int examCount)
+        // ✅ OPTIMIZED: Uses cached setting ID
+        private string BuildCumulativeResultRow_Optimized(SqlConnection connection, string studentClassID, string studentGrade, object studentPoint, int examCount)
         {
             var html = new StringBuilder();
 
@@ -1736,6 +2010,8 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             string positionSection = "-";
             string highestClass = "-";
             string highestSection = "-";
+
+            int cumulativeSettingID = CachedCumulativeSettingID;
 
             var query = @"
                 SELECT TOP 1
@@ -1747,35 +2023,25 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                     HighestMark_InExam_Subsection
                 FROM Exam_Cumulative_Student
                 WHERE StudentClassID = @StudentClassID
-                ORDER BY Cumulative_StudentID DESC";
+                AND Cumulative_SettingID = @Cumulative_SettingID";
 
             try
             {
                 using (var command = new SqlCommand(query, connection))
                 {
-                    if (int.TryParse(studentClassID, out int studentClassIDInt))
-                    {
-                        command.Parameters.AddWithValue("@StudentClassID", studentClassIDInt);
-                    }
-                    else
-                    {
-                        command.Parameters.AddWithValue("@StudentClassID", studentClassID);
-                    }
+                    command.Parameters.AddWithValue("@StudentClassID", studentClassID);
+                    command.Parameters.AddWithValue("@Cumulative_SettingID", cumulativeSettingID);
 
                     using (var reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            totalMarks = reader["TotalMark_ofStudent"] == DBNull.Value ? "0" :
-                                FormatMarks(reader["TotalMark_ofStudent"]);
-                            obtainedMarks = reader["ObtainedMark_ofStudent"] == DBNull.Value ? "0" :
-                                FormatMarks(reader["ObtainedMark_ofStudent"]);
+                            totalMarks = FormatMarks(reader["TotalMark_ofStudent"]);
+                            obtainedMarks = FormatMarks(reader["ObtainedMark_ofStudent"]);
                             positionClass = FormatPosition(reader["Position_InExam_Class"]);
                             positionSection = FormatPosition(reader["Position_InExam_Subsection"]);
                             highestClass = FormatMarks(reader["HighestMark_InExam_Class"]);
                             highestSection = FormatMarks(reader["HighestMark_InExam_Subsection"]);
-
-                            System.Diagnostics.Debug.WriteLine($"✅ Overall Result: FM={totalMarks}, OM={obtainedMarks}");
                         }
                     }
                 }
@@ -1800,22 +2066,22 @@ namespace EDUCATION.COM.Exam.CumulativeResult
                 }
             }
 
-            html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{totalMarks}</strong></td>");
-            html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{obtainedMarks}</strong></td>");
-            html.Append($"<td class='grade-cell' style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{studentGrade}</strong></td>");
-            html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{FormatPoint(studentPoint)}</strong></td>");
+            html.Append($"<td style='background-color: #E6E6FA;'><strong>{totalMarks}</strong></td>");
+            html.Append($"<td style='background-color: #E6E6FA;'><strong>{obtainedMarks}</strong></td>");
+            html.Append($"<td class='grade-cell' style='background-color: #E6E6FA;'><strong>{studentGrade}</strong></td>");
+            html.Append($"<td style='background-color: #E6E6FA;'><strong>{FormatPoint(studentPoint)}</strong></td>");
 
             if (!IS_Hide_Class_Position)
             {
-                html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{positionClass}</strong></td>");
+                html.Append($"<td style='background-color: #E6E6FA;'><strong>{positionClass}</strong></td>");
             }
 
             if (HasSections && !IS_Hide_Sec_Position)
             {
-                html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{positionSection}</strong></td>");
+                html.Append($"<td style='background-color: #E6E6FA;'><strong>{positionSection}</strong></td>");
             }
 
-            html.Append($"<td style='background-color: #E6E6FA; border-right: 1px solid #ddd;'><strong>{highestClass}</strong></td>");
+            html.Append($"<td style='background-color: #E6E6FA;'><strong>{highestClass}</strong></td>");
 
             if (HasSections && !IS_Hide_Sec_Position)
             {
@@ -1825,204 +2091,6 @@ namespace EDUCATION.COM.Exam.CumulativeResult
             html.Append("</tr>");
 
             return html.ToString();
-        }
-
-        // Helper class for exam information
-        private class ExamInfo
-        {
-            public int ExamID { get; set; }
-            public string ExamName { get; set; }
-            public decimal Percentage { get; set; }
-        }
-
-        private string FormatMarks(object marks)
-        {
-            if (marks == null || marks == DBNull.Value)
-                return "-";
-
-            var marksStr = marks.ToString();
-            if (marksStr == "0")
-                return "0";
-
-            // Try to parse as decimal to format properly
-            if (decimal.TryParse(marksStr, out decimal marksValue))
-            {
-                // If it's a whole number, show without decimals
-                if (marksValue == Math.Floor(marksValue))
-                    return marksValue.ToString("0");
-                else
-                    return marksValue.ToString("0.##"); // Show up to 2 decimal places
-            }
-
-            return marksStr;
-        }
-
-        private string FormatPoint(object point)
-        {
-            if (point == null || point == DBNull.Value)
-                return "0.00";
-
-            if (decimal.TryParse(point.ToString(), out decimal pointValue))
-                return pointValue.ToString("0.00");
-
-            return "0.00";
-        }
-
-        private string FormatPosition(object position)
-        {
-            if (position == null || position == DBNull.Value)
-                return "-";
-
-            var posStr = position.ToString();
-            if (posStr == "0" || string.IsNullOrEmpty(posStr))
-                return "-";
-
-            return posStr;
-        }
-
-        private DataTable GetSubjectExamWiseMarks_Fixed(SqlConnection connection, string studentClassID, List<ExamInfo> examList)
-        {
-            var dataTable = new DataTable();
-            dataTable.Columns.Add("SubjectName", typeof(string));
-            dataTable.Columns.Add("SubjectID", typeof(int));
-            dataTable.Columns.Add("SN", typeof(int));
-
-            foreach (var exam in examList)
-            {
-                if (!IS_Hide_FullMark)
-                    dataTable.Columns.Add($"FM_Exam{exam.ExamID}", typeof(string));
-                if (!IS_Hide_PassMark)
-                    dataTable.Columns.Add($"PM_Exam{exam.ExamID}", typeof(string));
-                dataTable.Columns.Add($"OM_Exam{exam.ExamID}", typeof(string));
-            }
-
-            dataTable.Columns.Add("Cu_Sub_TM", typeof(string));
-            dataTable.Columns.Add("Cu_Sub_OM", typeof(string));
-            dataTable.Columns.Add("Cu_Sub_Grades", typeof(string));
-            dataTable.Columns.Add("Cu_Sub_Point", typeof(string));
-            dataTable.Columns.Add("Position_InSubject_Class", typeof(string));
-            dataTable.Columns.Add("Position_InSubject_Subsection", typeof(string));
-            dataTable.Columns.Add("HighestMark_InSubject_Class", typeof(string));
-            dataTable.Columns.Add("HighestMark_InSubject_Subsection", typeof(string));
-
-            var cumulativeQuery = @"
-                SELECT 
-                    Subject.SubjectName,
-                    Subject.SN,
-                    Exam_Cumulative_Subject.SubjectID,
-                    Exam_Cumulative_Subject.TotalMark_ofSubject AS Cu_Sub_TM,
-                    Exam_Cumulative_Subject.ObtainedMark_ofSubject AS Cu_Sub_OM,
-                    Exam_Cumulative_Subject.SubjectGrades AS Cu_Sub_Grades,
-                    Exam_Cumulative_Subject.SubjectPoint AS Cu_Sub_Point,
-                    Exam_Cumulative_Subject.Position_InSubject_Class,
-                    Exam_Cumulative_Subject.Position_InSubject_Subsection,
-                    Exam_Cumulative_Subject.HighestMark_InSubject_Class,
-                    Exam_Cumulative_Subject.HighestMark_InSubject_Subsection
-                FROM Exam_Cumulative_Subject 
-                INNER JOIN Subject ON Exam_Cumulative_Subject.SubjectID = Subject.SubjectID
-                WHERE Exam_Cumulative_Subject.StudentClassID = @StudentClassID
-                AND Exam_Cumulative_Subject.IS_Add_InExam = 1
-                ORDER BY ISNULL(Subject.SN, 9999), Subject.SubjectName";
-
-            using (var command = new SqlCommand(cumulativeQuery, connection))
-            {
-                command.Parameters.AddWithValue("@StudentClassID", studentClassID);
-
-                using (var reader = command.ExecuteReader())
-                {
-                    var subjectsData = new Dictionary<int, (DataRow row, decimal cumOM)>();
-
-                    while (reader.Read())
-                    {
-                        var row = dataTable.NewRow();
-                        row["SubjectName"] = reader["SubjectName"];
-                        row["SubjectID"] = reader["SubjectID"];
-                        row["SN"] = reader["SN"] == DBNull.Value ? 9999 : Convert.ToInt32(reader["SN"]);
-                        row["Cu_Sub_TM"] = FormatMarks(reader["Cu_Sub_TM"]);
-                        row["Cu_Sub_Grades"] = reader["Cu_Sub_Grades"];
-                        row["Cu_Sub_Point"] = FormatPoint(reader["Cu_Sub_Point"]);
-                        row["Position_InSubject_Class"] = FormatPosition(reader["Position_InSubject_Class"]);
-                        row["Position_InSubject_Subsection"] = FormatPosition(reader["Position_InSubject_Subsection"]);
-                        row["HighestMark_InSubject_Class"] = FormatMarks(reader["HighestMark_InSubject_Class"]);
-                        row["HighestMark_InSubject_Subsection"] = FormatMarks(reader["HighestMark_InSubject_Subsection"]);
-
-                        int subjectID = Convert.ToInt32(reader["SubjectID"]);
-                        subjectsData[subjectID] = (row, 0m);
-                    }
-
-                    foreach (var subjectID in subjectsData.Keys.ToList())
-                    {
-                        var (row, _) = subjectsData[subjectID];
-                        decimal cumulativeOM = 0;
-
-                        foreach (var exam in examList)
-                        {
-                            var examMarksQuery = @"
-                                SELECT 
-                                    ers.TotalMark_ofSubject AS E_Subject_TM,
-                                    ers.ObtainedMark_ofSubject AS E_Subject_OM,
-                                    ers.SubjectAbsenceStatus AS E_Subject_Abs
-                                FROM Exam_Result_of_Subject ers
-                                INNER JOIN Exam_Result_of_Student erstu ON ers.StudentResultID = erstu.StudentResultID
-                                WHERE erstu.StudentClassID = @StudentClassID
-                                AND ers.SubjectID = @SubjectID
-                                AND erstu.ExamID = @ExamID";
-
-                            using (var examCmd = new SqlCommand(examMarksQuery, connection))
-                            {
-                                examCmd.Parameters.AddWithValue("@StudentClassID", studentClassID);
-                                examCmd.Parameters.AddWithValue("@SubjectID", subjectID);
-                                examCmd.Parameters.AddWithValue("@ExamID", exam.ExamID);
-
-                                using (var examReader = examCmd.ExecuteReader())
-                                {
-                                    if (examReader.Read())
-                                    {
-                                        var fm = examReader["E_Subject_TM"];
-                                        var om = examReader["E_Subject_OM"];
-                                        var abs = examReader["E_Subject_Abs"]?.ToString() ?? "";
-
-                                        if (!IS_Hide_FullMark)
-                                            row[$"FM_Exam{exam.ExamID}"] = FormatMarks(fm);
-
-                                        if (!IS_Hide_PassMark)
-                                        {
-                                            if (fm != DBNull.Value && fm != null && decimal.TryParse(fm.ToString(), out decimal fmValue))
-                                                row[$"PM_Exam{exam.ExamID}"] = FormatMarks(fmValue * 0.33m);
-                                            else
-                                                row[$"PM_Exam{exam.ExamID}"] = "-";
-                                        }
-
-                                        if (abs == "Absent" || abs == "A")
-                                        {
-                                            row[$"OM_Exam{exam.ExamID}"] = "Abs";
-                                        }
-                                        else
-                                        {
-                                            row[$"OM_Exam{exam.ExamID}"] = FormatMarks(om);
-                                            if (om != DBNull.Value && om != null && decimal.TryParse(om.ToString(), out decimal omValue))
-                                                cumulativeOM += (omValue * exam.Percentage) / 100;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (!IS_Hide_FullMark)
-                                            row[$"FM_Exam{exam.ExamID}"] = "-";
-                                        if (!IS_Hide_PassMark)
-                                            row[$"PM_Exam{exam.ExamID}"] = "-";
-                                        row[$"OM_Exam{exam.ExamID}"] = "-";
-                                    }
-                                }
-                            }
-                        }
-
-                        row["Cu_Sub_OM"] = cumulativeOM > 0 ? FormatMarks(cumulativeOM) : "0";
-                        dataTable.Rows.Add(row);
-                    }
-                }
-            }
-
-            return dataTable;
         }
 
         #endregion
