@@ -2220,16 +2220,16 @@
     <Compile Include="Exam\Result\Delete_Exam_And_Result.aspx.designer.cs">
       <DependentUpon>Delete_Exam_And_Result.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Exam\Result\Individual_Result_For_Class.aspx.cs">
+      <DependentUpon>Individual_Result_For_Class.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
     <Compile Include="Exam\Result\Individual_Result_For_Class_old.aspx.cs">
       <DependentUpon>Individual_Result_For_Class_old.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Exam\Result\Individual_Result_For_Class_old.aspx.designer.cs">
       <DependentUpon>Individual_Result_For_Class_old.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="Exam\Result\Individual_Result_For_Class.aspx.cs">
-      <DependentUpon>Individual_Result_For_Class.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Exam\Result\Individual_Result_For_Class.aspx.designer.cs">
       <DependentUpon>Individual_Result_For_Class.aspx</DependentUpon>

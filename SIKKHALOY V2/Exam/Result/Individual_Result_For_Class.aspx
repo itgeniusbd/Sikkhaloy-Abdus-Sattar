@@ -5,12 +5,12 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <!-- Use Google Fonts for better reliability -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet"/>
 
     <!-- Font Awesome with multiple sources for reliability -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Fallback to Font Awesome 5 -->
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" crossorigin="anonymous"/>
 
     <!-- External CSS for English Result Card with cache busting -->
     <link href="Assets/Result_Card_English.css?v=<%= DateTime.Now.Ticks %>" rel="stylesheet" type="text/css" />
@@ -693,23 +693,6 @@ self.animateProgressTo(100);
             });
         }
 
-      function fixAbsentMarksDisplay() {
-            $('.marks-table').each(function () {
-      var $table = $(this);
-                $table.find('tr').each(function () {
-            var $row = $(this);
-        if ($row.find('th').length > 0) return;
-     $row.find('td').each(function () {
-     var $cell = $(this);
- var cellText = $cell.text().trim();
-       if (cellText === 'A' && !$cell.hasClass('grade-cell')) {
-     $cell.text('Abs').addClass('absent-mark');
-      }
-          });
-           });
-         });
-     }
-
         function loadDatabaseSignatures() {
      var teacherSignPath = $('[id$="HiddenTeacherSign"]').val();
        var principalSignPath = $('[id$="HiddenPrincipalSign"]').val();
@@ -869,6 +852,7 @@ self.animateProgressTo(100);
                                 'Class Teacher signature saved successfully!' :
                                 'Principal signature saved successfully!';
                             
+
                             showBriefNotification(successMsg, 'success');
 
                             // Reload signature from database
@@ -934,9 +918,6 @@ self.animateProgressTo(100);
 
             // Check if Font Awesome is loaded properly
             checkAndFixFontAwesome();
-
-            // Fix absent marks display
-            fixAbsentMarksDisplay();
 
             // Load database signatures when page loads (Teacher and Principal only)
             loadDatabaseSignatures();

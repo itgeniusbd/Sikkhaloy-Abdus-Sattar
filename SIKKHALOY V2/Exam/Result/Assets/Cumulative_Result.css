@@ -11,7 +11,10 @@ body {
     font-size: 12px;
     overflow-x: hidden;
 }
-
+table td {
+    font-size: .9rem;
+    font-weight: 600;
+}
 .result-card {
     border: 2px solid #0072bc;
     border-radius: 5px;
@@ -220,7 +223,7 @@ body {
 
     .grade-chart th, .grade-chart td {
         border: 1px solid #0072bc;
-        padding: 3px 1px;
+        padding: 4px 1px;
         text-align: center;
         font-weight: bold;
         font-family: Arial, sans-serif !important;
@@ -244,7 +247,7 @@ body {
     .marks-table td {
         border: 1px solid #000;
         padding: 3px 4px !important; /* Increased padding */
-        text-align: center;
+        text-align: center !important;
         vertical-align: middle;
         font-size: 10px;
         font-weight: bold;
@@ -260,12 +263,27 @@ body {
         height: auto !important;
         padding: 4px 3px !important;
         font-size: 9px !important;
+        text-align: center !important;
     }
 
-    /* Subject column - controlled width */
-    .marks-table th:first-child,
+    /* ✅ FIX: All header cells in second row (FM, PM, OM etc) must be centered */
+    .marks-table tr:nth-child(2) th {
+        text-align: center !important;
+    }
+
+    /* Subject column header - centered */
+    .marks-table th:first-child {
+        background-color: #E6E6FA !important;
+        font-weight: bold;
+        text-align: center !important;
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+        min-width: 85px;
+    }
+
+    /* Subject column data - left aligned */
     .marks-table td:first-child {
-        text-align: left;
+        text-align: left !important;
         padding-left: 5px !important;
         padding-right: 5px !important;
         min-width: 85px;
@@ -275,16 +293,20 @@ body {
         vertical-align: middle;
     }
 
-    .marks-table th:first-child {
-        background-color: #E6E6FA !important;
-        font-weight: bold;
-        text-align: center;
+    /* FM, PM, OM columns - fixed narrow width */
+    .marks-table th[style*="width: 28px"],
+    .marks-table td[style*="width: 28px"] {
+        width: 28px !important;
+        min-width: 28px !important;
+        max-width: 35px !important;
+        text-align: center !important;
     }
 
     /* Cumulative Result columns - lavender background */
     .marks-table td[style*="E6E6FA"],
     .marks-table th[style*="E6E6FA"] {
         background-color: #E6E6FA !important;
+        text-align: center !important;
     }
 
     /* Total row styling */
@@ -508,7 +530,7 @@ body {
 
     .grade-chart th, .grade-chart td {
         border: 1px solid #0072bc;
-        padding: 2px 1px !important;
+        padding: 3px 1px !important;
         text-align: center;
         font-weight: bold;
         font-family: Arial, sans-serif !important;
@@ -525,15 +547,17 @@ body {
         overflow: visible !important;
     }
 
+        /* ✅ FIX: All header and data cells centered by default */
         .marks-table th,
         .marks-table td {
             padding: 2px 3px !important;
             font-size: 9px !important;
             border: 1px solid #000 !important;
             white-space: nowrap !important;
+            text-align: center !important;
         }
 
-        /* Header cells in print - single line */
+        /* ✅ FIX: All header cells must be centered in print */
         .marks-table th {
             background-color: #c8e6c9 !important;
             -webkit-print-color-adjust: exact !important;
@@ -544,20 +568,47 @@ body {
             padding: 3px 2px !important;
             vertical-align: middle !important;
             font-size: 8px !important;
+            text-align: center !important;
         }
 
-            /* Subject column in print */
-            .marks-table th:first-child,
-            .marks-table td:first-child {
-                min-width: 70px !important;
-                font-size: 8px !important;
-                padding-left: 4px !important;
-                padding-right: 4px !important;
-                text-align: left;
-                white-space: nowrap !important;
-                vertical-align: middle !important;
-                line-height: 1.2 !important;
-            }
+        /* ✅ FIX: Second row headers (FM, PM, OM) must be centered */
+        .marks-table tr:nth-child(2) th {
+            text-align: center !important;
+        }
+
+        /* Subject column HEADER only - centered (first row, first column) */
+        .marks-table tr:first-child th:first-child {
+            min-width: 70px !important;
+            font-size: 8px !important;
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+            vertical-align: middle !important;
+            line-height: 1.2 !important;
+            background-color: #E6E6FA !important;
+        }
+
+        /* Subject column DATA only - left aligned */
+        .marks-table td:first-child {
+            min-width: 70px !important;
+            font-size: 8px !important;
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+            vertical-align: middle !important;
+            line-height: 1.2 !important;
+        }
+
+        /* FM, PM, OM columns in print - fixed narrow width and centered */
+        .marks-table th[style*="width: 28px"],
+        .marks-table td[style*="width: 28px"] {
+            width: 25px !important;
+            min-width: 25px !important;
+            max-width: 30px !important;
+            text-align: center !important;
+        }
 
     .footer {
         margin-top: 10px !important;
