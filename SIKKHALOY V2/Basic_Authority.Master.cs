@@ -26,6 +26,9 @@ namespace EDUCATION.COM
                 Response.Redirect("~/Default.aspx");
             }
 
+            // Update session activity timestamp
+            UpdateSessionActivity();
+
             if (!this.IsPostBack)
             {
                 if (Roles.IsUserInRole(HttpContext.Current.User.Identity.Name, "Authority"))
@@ -41,8 +44,65 @@ namespace EDUCATION.COM
             }
         }
 
+        private void UpdateSessionActivity()
+        {
+            try
+            {
+                string sessionKey = Session["SessionKey"] as string;
+                
+                if (!string.IsNullOrEmpty(sessionKey))
+                {
+                    string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                    
+                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    {
+                        string query = @"
+                            UPDATE User_Active_Sessions 
+                            SET LastActivity = GETDATE() 
+                            WHERE SessionKey = @SessionKey";
+                        
+                        using (SqlCommand command = new SqlCommand(query, connection))
+                        {
+                            command.Parameters.AddWithValue("@SessionKey", sessionKey);
+                            connection.Open();
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't throw - activity update is not critical
+                System.Diagnostics.Debug.WriteLine("UpdateSessionActivity Error: " + ex.Message);
+            }
+        }
+
         protected void LoginStatus1_LoggingOut(object sender, LoginCancelEventArgs e)
         {
+            // Remove session tracking before logout
+            try
+            {
+                string sessionKey = Session["SessionKey"] as string;
+                
+                if (!string.IsNullOrEmpty(sessionKey))
+                {
+                    string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                    
+                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    {
+                        string query = "DELETE FROM User_Active_Sessions WHERE SessionKey = @SessionKey";
+                        
+                        using (SqlCommand command = new SqlCommand(query, connection))
+                        {
+                            command.Parameters.AddWithValue("@SessionKey", sessionKey);
+                            connection.Open();
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+            catch { }
+
             string[] myCookies = Request.Cookies.AllKeys;
             foreach (string cookie in myCookies)
             {

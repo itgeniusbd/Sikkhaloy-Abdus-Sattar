@@ -532,6 +532,7 @@
     <Content Include="Exam\Admit_Card\Old_AdmitCard.aspx" />
     <Content Include="Exam\Admit_Card\Old_AdmitCardWithoutPhoto.aspx" />
     <Content Include="Exam\CumulativeResult\Cumulative_Result.aspx" />
+    <Content Include="Exam\ExamSetting\Marks_Collect_Paper_Bangla.aspx" />
     <Content Include="Exam\ExmamPositionBangla.aspx" />
     <Content Include="Exam\Input_Exam_Marks_WithSubExam.aspx" />
     <Content Include="Exam\Result\Assets\Analytical_Result.css" />
@@ -577,6 +578,7 @@
     <Content Include="Exam\WeeklyExam\Edit_Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Results.aspx" />
+    <Content Include="Global.asax" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
     <Content Include="Home\logo\mgc-logo.jpg" />
@@ -2058,6 +2060,13 @@
       <DependentUpon>ExamPosition.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
+    <Compile Include="Exam\ExamSetting\Marks_Collect_Paper_Bangla.aspx.cs">
+      <DependentUpon>Marks_Collect_Paper_Bangla.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Exam\ExamSetting\Marks_Collect_Paper_Bangla.aspx.designer.cs">
+      <DependentUpon>Marks_Collect_Paper_Bangla.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Exam\ExmamPositionBangla.aspx.cs">
       <DependentUpon>ExmamPositionBangla.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -2283,6 +2292,9 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Exam_Result.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="Global.asax.cs">
+      <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Handeler\Admin_Photo.ashx.cs">
       <DependentUpon>Admin_Photo.ashx</DependentUpon>

@@ -211,40 +211,144 @@
             font-weight: 500;
         }
 
-        /* Responsive Design */
+        /* Compact Active Users Bar */
+        .active-users-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .users-bar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            gap: 30px;
+        }
+
+        .users-main-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .users-icon {
+            font-size: 28px;
+            color: white;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .users-text {
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .users-text strong {
+            font-weight: 600;
+        }
+
+        .users-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            padding: 2px 16px;
+            border-radius: 20px;
+            min-width: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        .users-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+        }
+
+        .users-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .stat-item i {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .stat-item strong {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .stat-online strong {
+            color: #4ade80;
+            animation: numberPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes numberPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .stat-divider {
+            width: 1px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive */
         @media (max-width: 1200px) {
-            .search-col {
-                min-width: 150px;
+            .users-bar-content {
+                flex-direction: column;
+                gap: 15px;
+                padding: 20px;
             }
-            
-            .search-col-auto {
-                min-width: 250px;
+
+            .users-stats {
+                width: 100%;
+                justify-content: space-around;
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .stat-divider {
+                display: none;
             }
         }
-        
-        @media (max-width: 992px) {
-            .search-row {
+
+        @media (max-width: 768px) {
+            .users-text {
                 flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
             }
-            
-            .search-col {
-                min-width: 100%;
+
+            .stat-item {
+                font-size: 12px;
             }
-            
-            .search-col-auto {
-                min-width: 100%;
-            }
-            
-            .search-col-auto div {
-                justify-content: center !important;
-            }
-            
-            .summary-row {
-                flex-direction: column;
-            }
-            
-            .summary-item {
-                min-width: 100%;
+
+            .stat-item strong {
+                font-size: 14px;
             }
         }
     </style>
@@ -315,6 +419,38 @@
                 <i class="fa fa-calendar" aria-hidden="true"></i>
                 <strong>Date Range:</strong> <asp:Label ID="DateRangeLabel" runat="server" Text="All Time"></asp:Label>
             </small>
+        </div>
+    </div>
+
+    <!-- Compact Active Users Bar -->
+    <div class="active-users-bar mb-3">
+        <div class="users-bar-content">
+            <div class="users-main-info">
+                <i class="fa fa-users users-icon"></i>
+                <div class="users-text">
+                    <strong>Currently Active:</strong>
+                    <span class="users-count">
+                        <asp:Label ID="LoggedInUsersCountLabel" runat="server" Text="0"></asp:Label>
+                    </span>
+                    <span class="users-label">users online (last 15 min)</span>
+                </div>
+            </div>
+            <div class="users-stats">
+                <div class="stat-item">
+                    <i class="fa fa-calendar"></i>
+                    <span>Today: <strong><asp:Label ID="TodayLoginsLabel" runat="server" Text="0"></asp:Label></strong></span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <i class="fa fa-clock-o"></i>
+                    <span>Last Hour: <strong><asp:Label ID="LastHourLoginsLabel" runat="server" Text="0"></asp:Label></strong></span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item stat-online">
+                    <i class="fa fa-bolt"></i>
+                    <span>Online Now: <strong><asp:Label ID="OnlineNowLabel" runat="server" Text="0"></asp:Label></strong> (5 min)</span>
+                </div>
+            </div>
         </div>
     </div>
 

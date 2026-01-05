@@ -4,6 +4,14 @@
     <style>
         .Invaid_Ins td { color: #ff2b2b; }
         .Invaid_Ins td a { color: #ff2b2b; }
+        
+        /* Select2 custom styling for institution dropdown */
+        .select2-container--default .select2-results__option {
+            padding: 8px 12px;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -24,7 +32,7 @@
                             <asp:DropDownList ID="Month_DropDownList" CssClass="form-control" runat="server" DataSourceID="MonthSQL" DataTextField="Month" DataValueField="Date_N" AppendDataBoundItems="True" AutoPostBack="True">
                                 <asp:ListItem Value="0">[ SELECT MONTH ]</asp:ListItem>
                             </asp:DropDownList>
-                            <asp:SqlDataSource ID="MonthSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT EOMONTH(Max(Month)) AS Date_N, FORMAT(Month, 'MMM yyyy') AS Month FROM AAP_Student_Count_Monthly group by Month order by Date_N"></asp:SqlDataSource>
+                            <asp:SqlDataSource ID="MonthSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT DISTINCT EOMONTH(Month) AS Date_N, FORMAT(Month, 'MMM yyyy') AS Month FROM AAP_Student_Count_Monthly GROUP BY Month ORDER BY EOMONTH(Month) DESC"></asp:SqlDataSource>
                             <asp:RequiredFieldValidator ControlToValidate="Month_DropDownList" InitialValue="0" ValidationGroup="SC" ID="RequiredFieldValidator2" runat="server" ErrorMessage="*" CssClass="EroorStar"></asp:RequiredFieldValidator>
                         </div>
                     </div>
@@ -241,10 +249,10 @@ END"
                                     </div>
                                     <div class="form-group">
                                         <label>Institution<asp:RequiredFieldValidator ControlToValidate="School_DropDownList" ValidationGroup="I" InitialValue="0" ID="RequiredFieldValidator1" runat="server" ErrorMessage="*" CssClass="EroorStar"></asp:RequiredFieldValidator></label>
-                                        <asp:DropDownList ID="School_DropDownList" AutoPostBack="true" CssClass="form-control" runat="server" AppendDataBoundItems="True" DataSourceID="InstitutionSQL" DataTextField="SchoolName" DataValueField="SchoolID">
+                                        <asp:DropDownList ID="School_DropDownList" AutoPostBack="true" CssClass="form-control select2-dropdown" runat="server" AppendDataBoundItems="True" DataSourceID="InstitutionSQL" DataTextField="DisplayText" DataValueField="SchoolID">
                                             <asp:ListItem Value="0">[ INSTITUTION ]</asp:ListItem>
                                         </asp:DropDownList>
-                                        <asp:SqlDataSource ID="InstitutionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT [SchoolID], [SchoolName] FROM [SchoolInfo]"></asp:SqlDataSource>
+                                        <asp:SqlDataSource ID="InstitutionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SchoolID, CAST(SchoolID AS NVARCHAR) + ' - ' + SchoolName AS DisplayText FROM SchoolInfo ORDER BY SchoolID"></asp:SqlDataSource>
                                     </div>
                                     <div class="form-group">
                                         <label>
@@ -498,6 +506,9 @@ GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly
         }
 
         $(function () {
+            // Initialize Select2 for Institution dropdown
+            initializeSelect2();
+            
             $('.datepicker').datepicker({
                 format: 'dd M yyyy',
                 todayBtn: "linked",
@@ -519,7 +530,48 @@ GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly
             });
         });
 
+        // Function to initialize Select2
+        function initializeSelect2() {
+            // Destroy existing Select2 if any
+            if ($('.select2-dropdown').hasClass('select2-hidden-accessible')) {
+                $('.select2-dropdown').select2('destroy');
+            }
+            
+            // Initialize Select2 with search
+            $('.select2-dropdown').select2({
+                placeholder: "Search by ID or Name...",
+                allowClear: true,
+                width: '100%',
+                matcher: function(params, data) {
+                    // If there are no search terms, return all data
+                    if ($.trim(params.term) === '') {
+                        return data;
+                    }
+
+                    // Skip the default option
+                    if (data.id === '0') {
+                        return null;
+                    }
+
+                    // `params.term` is the user's search term
+                    var term = params.term.toLowerCase();
+                    var text = data.text.toLowerCase();
+
+                    // Check if the search term matches
+                    if (text.indexOf(term) > -1) {
+                        return data;
+                    }
+
+                    // Return null if no match
+                    return null;
+                }
+            });
+        }
+
         Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (a, b) {
+            // Re-initialize Select2 after UpdatePanel postback
+            initializeSelect2();
+            
             //Service charge Checkbox
             $("[id*=AllCheckBox]").on("click", function () {
                 var a = $(this), b = $(this).closest("table");

@@ -114,6 +114,42 @@ namespace EDUCATION.COM.Authority
         protected global::System.Web.UI.WebControls.Label DateRangeLabel;
 
         /// <summary>
+        /// LoggedInUsersCountLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label LoggedInUsersCountLabel;
+
+        /// <summary>
+        /// TodayLoginsLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label TodayLoginsLabel;
+
+        /// <summary>
+        /// LastHourLoginsLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label LastHourLoginsLabel;
+
+        /// <summary>
+        /// OnlineNowLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label OnlineNowLabel;
+
+        /// <summary>
         /// SchoolGridView control.
         /// </summary>
         /// <remarks>

@@ -57,6 +57,9 @@ namespace EDUCATION.COM
                 {
                     Session["SchoolID"] = "Authority";
                     Session["RegistrationID"] = authorityRegistrationId;
+                    
+                    // Track Authority login - SchoolID is 0 for Authority
+                    TrackUserLogin(constr, 0, Convert.ToInt32(authorityRegistrationId), UserLogin2.UserName.Trim(), "Authority");
                 }
                 else
                 {
@@ -99,6 +102,22 @@ namespace EDUCATION.COM
                 Session["School_Name"] = SchoolName;
                 Session["RegistrationID"] = RegistrationID;
                 Session["Edu_Year"] = EducationYearID;
+
+                // Track School login - properly convert SchoolID
+                if (!string.IsNullOrEmpty(RegistrationID) && !string.IsNullOrEmpty(SchoolID))
+                {
+                    int schoolIdInt = 0;
+                    if (int.TryParse(SchoolID, out schoolIdInt))
+                    {
+                        string category = "Admin";
+                        if (Roles.IsUserInRole(UserLogin2.UserName.Trim(), "Teacher"))
+                            category = "Teacher";
+                        else if (Roles.IsUserInRole(UserLogin2.UserName.Trim(), "Student"))
+                            category = "Student";
+                        
+                        TrackUserLogin(constr, schoolIdInt, Convert.ToInt32(RegistrationID), UserLogin2.UserName.Trim(), category);
+                    }
+                }
 
                 object oSutdentId;
                 using (var con = new SqlConnection(constr))
@@ -158,6 +177,129 @@ namespace EDUCATION.COM
                 {
                     Session["TeacherID"] = oTeacherId;
                 }
+            }
+        }
+
+        private void TrackUserLogin(string connectionString, int schoolId, int registrationId, string userName, string category)
+        {
+            string logMessage = "";
+            try
+            {
+                logMessage += $"Starting tracking for user: {userName}, Category: {category}\n";
+                
+                string sessionKey = Session.SessionID + "_" + DateTime.Now.Ticks;
+                Session["SessionKey"] = sessionKey;
+                
+                logMessage += $"Session Key: {sessionKey}\n";
+                logMessage += $"SchoolID: {schoolId}, RegID: {registrationId}\n";
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    // First, check if table exists
+                    string checkTableQuery = @"
+                        IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'User_Active_Sessions')
+                            SELECT 1
+                        ELSE
+                            SELECT 0";
+                    
+                    connection.Open();
+                    
+                    using (SqlCommand checkCmd = new SqlCommand(checkTableQuery, connection))
+                    {
+                        int tableExists = (int)checkCmd.ExecuteScalar();
+                        logMessage += $"Table exists: {tableExists}\n";
+                        
+                        if (tableExists == 0)
+                        {
+                            logMessage += "ERROR: User_Active_Sessions table does not exist!\n";
+                            throw new Exception("User_Active_Sessions table not found");
+                        }
+                    }
+
+                    // Check if user already has an active session - delete old ones
+                    string deleteOldQuery = @"
+                        DELETE FROM User_Active_Sessions 
+                        WHERE RegistrationID = @RegistrationID";
+                    
+                    using (SqlCommand deleteCmd = new SqlCommand(deleteOldQuery, connection))
+                    {
+                        deleteCmd.Parameters.AddWithValue("@RegistrationID", registrationId);
+                        int deletedRows = deleteCmd.ExecuteNonQuery();
+                        logMessage += $"Deleted {deletedRows} old session(s)\n";
+                    }
+
+                    // Now insert - use NULL for SchoolID if it's 0 (Authority users)
+                    string query = @"
+                        INSERT INTO User_Active_Sessions 
+                        (SchoolID, RegistrationID, UserName, Category, SessionKey, LastActivity, LoginTime)
+                        VALUES (@SchoolID, @RegistrationID, @UserName, @Category, @SessionKey, GETDATE(), GETDATE())";
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        // Use NULL for SchoolID if it's 0 (Authority users don't have a SchoolID)
+                        if (schoolId == 0)
+                        {
+                            command.Parameters.AddWithValue("@SchoolID", DBNull.Value);
+                            logMessage += "Using NULL for SchoolID (Authority user)\n";
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue("@SchoolID", schoolId);
+                            logMessage += $"Using SchoolID: {schoolId}\n";
+                        }
+                        
+                        command.Parameters.AddWithValue("@RegistrationID", registrationId);
+                        command.Parameters.AddWithValue("@UserName", userName);
+                        command.Parameters.AddWithValue("@Category", category);
+                        command.Parameters.AddWithValue("@SessionKey", sessionKey);
+
+                        int rowsAffected = command.ExecuteNonQuery();
+                        logMessage += $"Rows inserted: {rowsAffected}\n";
+                        logMessage += "SUCCESS: Session tracked successfully!\n";
+                    }
+                }
+                
+                // Write success log
+                WriteLog(logMessage, false);
+            }
+            catch (Exception ex)
+            {
+                logMessage += $"ERROR: {ex.Message}\n";
+                logMessage += $"Stack Trace: {ex.StackTrace}\n";
+                if (ex.InnerException != null)
+                {
+                    logMessage += $"Inner Exception: {ex.InnerException.Message}\n";
+                }
+                
+                // Write error log
+                WriteLog(logMessage, true);
+                
+                // Don't throw - let login continue
+                System.Diagnostics.Debug.WriteLine("TrackUserLogin Error: " + ex.Message);
+            }
+        }
+
+        private void WriteLog(string message, bool isError)
+        {
+            try
+            {
+                string logPath = Server.MapPath("~/App_Data/session_tracking_log.txt");
+                string logDir = System.IO.Path.GetDirectoryName(logPath);
+                
+                if (!System.IO.Directory.Exists(logDir))
+                {
+                    System.IO.Directory.CreateDirectory(logDir);
+                }
+                
+                string logEntry = $"\n========== {DateTime.Now:yyyy-MM-dd HH:mm:ss} {(isError ? "ERROR" : "SUCCESS")} ==========\n";
+                logEntry += message;
+                logEntry += "=".PadRight(60, '=') + "\n";
+                
+                System.IO.File.AppendAllText(logPath, logEntry);
+            }
+            catch
+            {
+                // Ignore log writing errors
             }
         }
     }

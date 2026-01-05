@@ -14,6 +14,7 @@ namespace EDUCATION.COM.Authority
             if (!IsPostBack)
             {
                 LoadSchoolData();
+                LoadLoggedInUsersCount();
             }
         }
 
@@ -262,6 +263,127 @@ namespace EDUCATION.COM.Authority
             }
 
             DateRangeLabel.Text = dateRangeText;
+        }
+
+        private void LoadLoggedInUsersCount()
+        {
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+
+                    // Clean up old sessions (older than 30 minutes)
+                    string cleanupQuery = @"
+                        DELETE FROM User_Active_Sessions 
+                        WHERE LastActivity < DATEADD(MINUTE, -30, GETDATE())";
+                    
+                    using (SqlCommand cleanupCmd = new SqlCommand(cleanupQuery, connection))
+                    {
+                        cleanupCmd.ExecuteNonQuery();
+                    }
+
+                    // Get active users (active in last 15 minutes) - distinct by SchoolID
+                    string activeUsersQuery = @"
+                        SELECT COUNT(DISTINCT 
+                            CASE 
+                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
+                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
+                            END
+                        ) as ActiveUsers
+                        FROM User_Active_Sessions
+                        WHERE LastActivity >= DATEADD(MINUTE, -15, GETDATE())";
+
+                    // Get today's unique logins
+                    string todayLoginsQuery = @"
+                        SELECT COUNT(DISTINCT 
+                            CASE 
+                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
+                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
+                            END
+                        ) as TodayLogins
+                        FROM User_Active_Sessions
+                        WHERE CAST(LoginTime AS DATE) = CAST(GETDATE() AS DATE)";
+
+                    // Get last hour active users
+                    string lastHourQuery = @"
+                        SELECT COUNT(DISTINCT 
+                            CASE 
+                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
+                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
+                            END
+                        ) as LastHourUsers
+                        FROM User_Active_Sessions
+                        WHERE LastActivity >= DATEADD(HOUR, -1, GETDATE())";
+
+                    // Get currently online (active in last 5 minutes)
+                    string onlineNowQuery = @"
+                        SELECT COUNT(DISTINCT 
+                            CASE 
+                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
+                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
+                            END
+                        ) as OnlineNow
+                        FROM User_Active_Sessions
+                        WHERE LastActivity >= DATEADD(MINUTE, -5, GETDATE())";
+
+                    // Get active users count (main display)
+                    using (SqlCommand cmd = new SqlCommand(activeUsersQuery, connection))
+                    {
+                        object result = cmd.ExecuteScalar();
+                        LoggedInUsersCountLabel.Text = result != null ? result.ToString() : "0";
+                    }
+
+                    // Get today's logins
+                    using (SqlCommand cmd = new SqlCommand(todayLoginsQuery, connection))
+                    {
+                        object result = cmd.ExecuteScalar();
+                        TodayLoginsLabel.Text = result != null ? result.ToString() : "0";
+                    }
+
+                    // Get last hour users
+                    using (SqlCommand cmd = new SqlCommand(lastHourQuery, connection))
+                    {
+                        object result = cmd.ExecuteScalar();
+                        LastHourLoginsLabel.Text = result != null ? result.ToString() : "0";
+                    }
+
+                    // Get online now count
+                    using (SqlCommand cmd = new SqlCommand(onlineNowQuery, connection))
+                    {
+                        object result = cmd.ExecuteScalar();
+                        OnlineNowLabel.Text = result != null ? result.ToString() : "0";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Show 0 on error but don't crash
+                LoggedInUsersCountLabel.Text = "0";
+                TodayLoginsLabel.Text = "0";
+                LastHourLoginsLabel.Text = "0";
+                OnlineNowLabel.Text = "0";
+                
+                // Log to debug
+                System.Diagnostics.Debug.WriteLine("Error loading active users: " + ex.Message);
+                
+                // Try to log to file
+                try
+                {
+                    string logPath = Server.MapPath("~/App_Data/session_tracking_errors.txt");
+                    string logDir = System.IO.Path.GetDirectoryName(logPath);
+                    if (!System.IO.Directory.Exists(logDir))
+                    {
+                        System.IO.Directory.CreateDirectory(logDir);
+                    }
+                    System.IO.File.AppendAllText(logPath,
+                        $"{DateTime.Now}: {ex.Message}\n{ex.StackTrace}\n\n"
+                    );
+                }
+                catch { }
+            }
         }
     }
 }

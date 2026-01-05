@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Marks Collect Paper" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Marks_Collect_Paper.aspx.cs" Inherits="EDUCATION.COM.Exam.ExamSetting.Marks_Collect_Paper" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true"  MasterPageFile="~/BASIC.Master" CodeBehind="Marks_Collect_Paper_Bangla.aspx.cs" Inherits="EDUCATION.COM.Exam.ExamSetting.WebForm1" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <style>
@@ -43,7 +43,7 @@
             background: #4f46e5;
             color: white;
             text-decoration: none;
-            transform: translateX(-3px);
+            transform: translateX(3px);
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
         }
         
@@ -70,18 +70,18 @@
         <ContentTemplate>
             <!-- Page Header with Badge -->
             <div class="page-header-section d-print-none">
-                <span class="page-title-main">Exam Marks Collect Paper</span>
-                <a href="Marks_Collect_Paper_Bangla.aspx" class="language-badge">
+                <span>পরীক্ষার নম্বর সংগ্রহের কাগজ</span>
+                <a href="Marks_Collect_Paper.aspx" class="language-badge">
+                    <i class="fa fa-arrow-left"></i>
+                    <span>Exam Marks Collect Paper</span>
                     <i class="fa fa-language"></i>
-                    <span>পরীক্ষার নম্বর সংগ্রহের কাগজ</span>
-                    <i class="fa fa-arrow-right"></i>
                 </a>
             </div>
 
             <div class=" form-inline d-print-none">
                 <div class="form-group">
                     <asp:DropDownList ID="ExamDropDownList" runat="server" AutoPostBack="True" CssClass="form-control" DataSourceID="ExamSQL" DataTextField="ExamName" DataValueField="ExamID" OnSelectedIndexChanged="ExamDropDownList_SelectedIndexChanged" AppendDataBoundItems="True">
-                        <asp:ListItem Value="0">[ SELECT EXAM ]</asp:ListItem>
+                        <asp:ListItem Value="0">[ পরীক্ষার নাম নির্বাচন করুন ]</asp:ListItem>
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="ExamSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ExamID, ExamName FROM Exam_Name WHERE (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID)">
                         <SelectParameters>
@@ -89,11 +89,11 @@
                             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                         </SelectParameters>
                     </asp:SqlDataSource>
-                    <asp:RequiredFieldValidator ID="RequiredFieldValidator2" runat="server" ControlToValidate="ExamDropDownList" CssClass="EroorSummer" ErrorMessage="Select Exam" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
+                    <asp:RequiredFieldValidator ID="RequiredFieldValidator2" runat="server" ControlToValidate="ExamDropDownList" CssClass="EroorSummer" ErrorMessage="পরীক্ষার নাম নির্বাচন করুন" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
                 </div>
                 <div class="form-group">
                     <asp:DropDownList ID="ClassDropDownList" runat="server" CssClass="form-control" AutoPostBack="True" DataSourceID="ClassNameSQL" DataTextField="Class" DataValueField="ClassID" OnSelectedIndexChanged="ClassDropDownList_SelectedIndexChanged" OnDataBound="ClassDropDownList_DataBound">
-                        <asp:ListItem Value="0">- Select -</asp:ListItem>
+                        <asp:ListItem Value="0">- নির্বাচন করুন -</asp:ListItem>
                     </asp:DropDownList>
                     <asp:SqlDataSource ID="ClassNameSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT DISTINCT CreateClass.Class, CreateClass.ClassID FROM CreateClass INNER JOIN Exam_Full_Marks ON CreateClass.ClassID = Exam_Full_Marks.ClassID WHERE (CreateClass.SchoolID = @SchoolID) AND (Exam_Full_Marks.EducationYearID = @EducationYearID) AND (Exam_Full_Marks.ExamID = @ExamID)">
                         <SelectParameters>
@@ -102,7 +102,7 @@
                             <asp:ControlParameter ControlID="ExamDropDownList" Name="ExamID" PropertyName="SelectedValue" />
                         </SelectParameters>
                     </asp:SqlDataSource>
-                    <asp:RequiredFieldValidator ID="RequiredFieldValidator6" runat="server" ControlToValidate="ClassDropDownList" CssClass="EroorStar" ErrorMessage="Select class" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
+                    <asp:RequiredFieldValidator ID="RequiredFieldValidator6" runat="server" ControlToValidate="ClassDropDownList" CssClass="EroorStar" ErrorMessage="শ্রেণি নির্বাচন করুন" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
                 </div>
                 <div class="form-group">
                     <asp:DropDownList ID="GroupDropDownList" runat="server" CssClass="form-control" AutoPostBack="True" DataSourceID="GroupSQL" DataTextField="SubjectGroup" DataValueField="SubjectGroupID" OnDataBound="GroupDropDownList_DataBound" OnSelectedIndexChanged="GroupDropDownList_SelectedIndexChanged">
@@ -148,13 +148,13 @@
                             <asp:ControlParameter ControlID="GroupDropDownList" Name="SubjectGroupID" PropertyName="SelectedValue" />
                         </SelectParameters>
                     </asp:SqlDataSource>
-                    <asp:RequiredFieldValidator ID="RequiredFieldValidator7" runat="server" ControlToValidate="SubjectDropDownList" CssClass="EroorStar" ErrorMessage="Select subject" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
+                    <asp:RequiredFieldValidator ID="RequiredFieldValidator7" runat="server" ControlToValidate="SubjectDropDownList" CssClass="EroorStar" ErrorMessage="বিষয় নির্বাচন করুন" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
                 </div>
                 <div class="form-group">
-                    <button type="button" class="btn btn-primary" onclick="window.print()"><span class="glyphicon glyphicon-print" aria-hidden="true"></span> Print</button>
+                    <button type="button" class="btn btn-primary" onclick="window.print()"><span class="glyphicon glyphicon-print" aria-hidden="true"></span> প্রিন্ট</button>
                 </div>
                 <div class="form-group">
-                    <input type="button" id="ExportWord" class="btn btn-primary" value="Export To Word" />
+                    <input type="button" id="ExportWord" class="btn btn-primary" value="ওয়ার্ড এ এক্সপোর্ট করুন" />
                 </div>
             </div>
 
@@ -173,11 +173,11 @@
                 <div class="table-responsive">
                     <asp:GridView ID="StudentsGridView" AllowSorting="True" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="ShowStudentClassSQL" DataKeyNames="StudentID,StudentClassID" OnRowDataBound="StudentsGridView_RowDataBound">
                         <Columns>
-                            <asp:BoundField DataField="ID" HeaderText="ID" SortExpression="ID" />
-                            <asp:BoundField DataField="StudentsName" HeaderText="Name" SortExpression="StudentsName" >
+                            <asp:BoundField DataField="ID" HeaderText="আইডি" SortExpression="ID" />
+                            <asp:BoundField DataField="StudentsName" HeaderText="নাম" SortExpression="StudentsName" >
                             <ItemStyle HorizontalAlign="Left" />
                             </asp:BoundField>
-                            <asp:BoundField DataField="RollNo" HeaderText="Roll No." SortExpression="RollNo" />
+                            <asp:BoundField DataField="RollNo" HeaderText="রোল নং" SortExpression="RollNo" />
                         </Columns>
                         <PagerStyle CssClass="pgr" />
                     </asp:GridView>
@@ -211,7 +211,7 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
                     <%if (StudentsGridView.Rows.Count > 0)
                         {%>
                     <div class="mt-4">
-                        Teacher Signature
+                        শিক্ষকের স্বাক্ষর
                     </div>
                     <%} %>
                 </div>
@@ -223,9 +223,9 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
         <ProgressTemplate>
             <div id="progress_BG"></div>
             <div id="progress">
-                <img src="../../CSS/loading.gif" alt="Loading..." />
+                <img src="../../CSS/loading.gif" alt="লোড হচ্ছে..." />
                 <br />
-                <b>Loading...</b>
+                <b>লোড হচ্ছে...</b>
             </div>
         </ProgressTemplate>
     </asp:UpdateProgress>
@@ -236,19 +236,19 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
         Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (e, f) {
             var Class = "";
             if ($('[id*=ClassDropDownList] :selected').index() > 0) {
-                Class = "Class: " + $('[id*=ClassDropDownList] :selected').text();
+                Class = "শ্রেণি: " + $('[id*=ClassDropDownList] :selected').text();
             }
             var Group = "";
             if ($('[id*=GroupDropDownList] :selected').index() > 0) {
-                Group = ". Group: " + $('[id*=GroupDropDownList] :selected').text();
+                Group = ". গ্রুপ: " + $('[id*=GroupDropDownList] :selected').text();
             }
             var Section = "";
             if ($('[id*=SectionDropDownList] :selected').index() > 0) {
-                Section = ". Section: " + $('[id*=SectionDropDownList] :selected').text();
+                Section = ". শাখা: " + $('[id*=SectionDropDownList] :selected').text();
             }
             var Shift = "";
             if ($('[id*=ShiftDropDownList] :selected').index() > 0) {
-                Shift = ". Shift: " + $('[id*=ShiftDropDownList] :selected').text();
+                Shift = ". শিফট: " + $('[id*=ShiftDropDownList] :selected').text();
             }
             var Subject = "";
             if ($('[id*=SubjectDropDownList] :selected').index() > 0) {
@@ -257,14 +257,14 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
 
             $('#Exam_Name').text($('[id*=ExamDropDownList] :selected').text());
             $('#Class_Name').text(Class + Group + Section + Shift);
-            $('#Subject').text(`Subject: ${Subject}. `);
+            $('#Subject').text(`বিষয়: ${Subject}. `);
 
             $("#ExportWord").click(function () {
                 $(".Class_GSS").show();
                 $(".Ex_Cls").show();
                 $(".Ins_Name").text($("#InstitutionName").text()).show();
 
-                $("#Ex-word-data").wordExport("CLASS-" + $('[id*=ClassDropDownList] :selected').text());
+                $("#Ex-word-data").wordExport("শ্রেণি-" + $('[id*=ClassDropDownList] :selected').text());
                 $(".Class_GSS").hide();
                 $(".Ex_Cls").hide();
                 $(".Ins_Name").hide();
@@ -275,7 +275,7 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
             
 
             if (gridViewRowCount) {
-                document.getElementById("number-of-student").textContent = ` Total Student: ${gridViewRowCount.rows.length - 1}`;
+                document.getElementById("number-of-student").textContent = ` মোট শিক্ষার্থী: ${gridViewRowCount.rows.length - 1}`;
             }
         });
     </script>
