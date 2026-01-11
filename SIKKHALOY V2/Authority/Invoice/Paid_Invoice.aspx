@@ -67,7 +67,9 @@
         </UpdateParameters>
     </asp:SqlDataSource>
 
-    <asp:SqlDataSource ID="Invoice_ReceiptSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="INSERT INTO [AAP_Invoice_Receipt] ([SchoolID], [RegistrationID], [TotalAmount], [PaidDate], [PaymentBy], [Collected_By], [Payment_Method], [InvoiceReceipt_SN]) VALUES (@SchoolID, @RegistrationID, @TotalAmount, @PaidDate, @PaymentBy, @Collected_By, @Payment_Method, [dbo].[F_InvoiceReceipt_SN]())" SelectCommand="SELECT * FROM [AAP_Invoice_Receipt]">
+    <asp:SqlDataSource ID="Invoice_ReceiptSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="INSERT INTO [AAP_Invoice_Receipt] ([SchoolID], [RegistrationID], [TotalAmount], [PaidDate], [PaymentBy], [Collected_By], [Payment_Method], [InvoiceReceipt_SN], [PaidByUser]) 
+SELECT @SchoolID, @RegistrationID, @TotalAmount, @PaidDate, @PaymentBy, @Collected_By, @Payment_Method, [dbo].[F_InvoiceReceipt_SN](), Registration.UserName 
+FROM Registration WHERE RegistrationID = @RegistrationID" SelectCommand="SELECT * FROM [AAP_Invoice_Receipt]">
         <InsertParameters>
             <asp:ControlParameter ControlID="School_DropDownList" Name="SchoolID" PropertyName="SelectedValue" Type="Int32" />
             <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />

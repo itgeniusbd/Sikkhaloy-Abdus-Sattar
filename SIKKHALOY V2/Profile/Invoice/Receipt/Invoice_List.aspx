@@ -9,6 +9,7 @@
             <asp:BoundField DataField="InvoiceReceipt_SN" HeaderText="Receipt" SortExpression="InvoiceReceipt_SN" />
             <asp:BoundField DataField="TotalAmount" HeaderText="Total Amount" SortExpression="TotalAmount" />
             <asp:BoundField DataField="PaymentBy" HeaderText="Payment By" SortExpression="PaymentBy" />
+            <asp:BoundField DataField="PaidByUser" HeaderText="Paid By User" SortExpression="PaidByUser" />
             <asp:BoundField DataField="Collected_By" HeaderText="Collected By" SortExpression="Collected_By" />
             <asp:BoundField DataField="Payment_Method" HeaderText="Payment Method" SortExpression="Payment_Method" />
             <asp:BoundField DataField="PaidDate" DataFormatString="{0:d MMM yyyy}" HeaderText="Paid Date" SortExpression="PaidDate" />
@@ -22,7 +23,7 @@
            No Paid Record!
        </EmptyDataTemplate>
     </asp:GridView>
-    <asp:SqlDataSource ID="MoneyReceiptSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT InvoiceReceiptID, InvoiceReceipt_SN, TotalAmount, PaidDate, PaymentBy, Collected_By, Payment_Method, SchoolID FROM AAP_Invoice_Receipt WHERE (SchoolID = @SchoolID)">
+    <asp:SqlDataSource ID="MoneyReceiptSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT InvoiceReceiptID, InvoiceReceipt_SN, TotalAmount, PaidDate, PaymentBy, PaidByUser, Collected_By, Payment_Method, SchoolID FROM AAP_Invoice_Receipt WHERE (SchoolID = @SchoolID)">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
         </SelectParameters>

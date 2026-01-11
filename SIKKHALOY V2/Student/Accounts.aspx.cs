@@ -189,7 +189,7 @@ namespace EDUCATION.COM.Student
 
         }
 
-        private Dictionary<string,string> GetStudentInformation()
+        private Dictionary<string, string> GetStudentInformation()
         {
             var studentinfo = GetStudentInfo();
             string email = studentinfo["email"];
@@ -352,7 +352,7 @@ namespace EDUCATION.COM.Student
                 WebRequest wRequest = WebRequest.Create(requestUrl);
                 wRequest.Method = "POST";
                 wRequest.ContentType = "application/json";
-                
+
                 //wRequest.ContentType = "application/x-www-form-urlencoded";
                 //byte[] bArray = Encoding.UTF8.GetBytes(postData);
 
@@ -390,7 +390,8 @@ namespace EDUCATION.COM.Student
                 //Response.Redirect(url);
 
                 var result = JsonConvert.DeserializeObject<ResponseInfo>(responseFromServer);
-                if(result.payment_url == null){
+                if (result.payment_url == null)
+                {
                     string[] subStrings = responseFromServer.Split(':');
                     string errorMsg = subStrings[1].Replace('"', ' ').Replace('}', ' ').Trim();
                     string script = "<script type=\"text/javascript\">alert('" + errorMsg + "');</script>";
@@ -471,9 +472,9 @@ namespace EDUCATION.COM.Student
             }
             return registrationId;
         }
-        private Dictionary<string,string> GetStudentInfo()
+        private Dictionary<string, string> GetStudentInfo()
         {
-            var dic = new Dictionary<string,string>(); 
+            var dic = new Dictionary<string, string>();
             string studentID = Session["StudentID"] != null ? Session["StudentID"].ToString() : "";
             using (SqlConnection conn = new SqlConnection())
             {
@@ -572,7 +573,7 @@ namespace EDUCATION.COM.Student
 
     class ResponseInfo
     {
-        public string result { get;}   
-        public string payment_url { get; set;}
+        public string result { get; }
+        public string payment_url { get; set; }
     }
 }

@@ -5,6 +5,9 @@
         .Show, .IS { display: none; }
         .Info ul { margin: 10px 0; padding: 0; }
         .Info ul li { list-style: none; }
+        .badge { padding: 5px 10px; border-radius: 3px; font-size: 12px; font-weight: bold; }
+        .badge-success { background-color: #28a745; color: white; }
+        .badge-warning { background-color: #ffc107; color: #000; }
     </style>
 </asp:Content>
 
@@ -124,14 +127,25 @@
                             <asp:BoundField DataField="PerSMS_Price" HeaderText="Per SMS Price" SortExpression="PerSMS_Price" />
                             <asp:BoundField DataField="Total_Price" HeaderText="Total" ReadOnly="True" SortExpression="Total_Price" />
                             <asp:BoundField DataField="Date" HeaderText="Date" SortExpression="Date" DataFormatString="{0:d MMM yyyy}" />
+                            <asp:BoundField DataField="UserName" HeaderText="Recharged By" SortExpression="UserName" />
+                            <asp:TemplateField HeaderText="Payment Status" SortExpression="Is_Paid">
+                                <ItemTemplate>
+                                    <%# 
+                                        Eval("Is_Paid") != DBNull.Value && Convert.ToBoolean(Eval("Is_Paid")) 
+                                        ? "<span class='badge badge-success'>Paid</span>" 
+                                        : "<span class='badge badge-warning'>Unpaid</span>"
+                                    %>
+                                </ItemTemplate>
+                            </asp:TemplateField>
                         </Columns>
                         <PagerStyle CssClass="pgr" />
                     </asp:GridView>
-                    <asp:SqlDataSource ID="SMS_SQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SMS_Recharge_RecordID, SchoolID, RechargeSMS, PerSMS_Price, Total_Price, Date, Is_Paid FROM SMS_Recharge_Record WHERE (SchoolID = @SchoolID) ORDER BY Date DESC" InsertCommand="INSERT INTO SMS_Recharge_Record(SchoolID, RechargeSMS, PerSMS_Price, Date) VALUES (@SchoolID, @RechargeSMS, @PerSMS_Price, GETDATE())">
+                    <asp:SqlDataSource ID="SMS_SQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SMS_Recharge_Record.SMS_Recharge_RecordID, SMS_Recharge_Record.SchoolID, SMS_Recharge_Record.RechargeSMS, SMS_Recharge_Record.PerSMS_Price, SMS_Recharge_Record.Total_Price, SMS_Recharge_Record.Date, SMS_Recharge_Record.Is_Paid, Registration.UserName FROM SMS_Recharge_Record LEFT OUTER JOIN Registration ON SMS_Recharge_Record.RegistrationID = Registration.RegistrationID WHERE (SMS_Recharge_Record.SchoolID = @SchoolID) ORDER BY SMS_Recharge_Record.Date DESC" InsertCommand="INSERT INTO SMS_Recharge_Record(SchoolID, RechargeSMS, PerSMS_Price, Date, Is_Paid, RegistrationID) VALUES (@SchoolID, @RechargeSMS, @PerSMS_Price, GETDATE(), 0, @RegistrationID)">
                         <InsertParameters>
                             <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" Type="Int32" />
                             <asp:ControlParameter ControlID="RechargeSMSTextBox" Name="RechargeSMS" PropertyName="Text" Type="Int32" />
                             <asp:ControlParameter ControlID="PerSMS_PriceTextBox" Name="PerSMS_Price" PropertyName="Text" Type="Double" />
+                            <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                         </InsertParameters>
                         <SelectParameters>
                             <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
@@ -148,7 +162,7 @@
                     
                     <div class="alert alert-info">
                         <i class="fa fa-info-circle"></i> 
-                        <strong>তথ্য:</strong> ডিফল্টভাবে সব প্রতিষ্ঠানের বকেয়া নোটিশ বন্ধ থাকে। শুধুমাত্র যেসব প্রতিষ্ঠানের জন্য নোটিশ চালু করবেন শুধু তাদের Dashboard এ বকেয়া নোটিশ দেখাবে。
+                        <strong>তথ্য:</strong> ডিফল্টভাবে সব প্রতিষ্ঠানের বকেয়া নোটিশ বন্ধ থাকে। শুধু যেসবে প্রতিষ্ঠানগুলোর জন্য নোটিশ চালু করবেন, শুধু সেগুলোর Dashboard এ বকেয়া নোটিশ দেখাবে。
                     </div>
 
                     <asp:UpdatePanel ID="DueNoticeUpdatePanel" runat="server">
@@ -181,7 +195,7 @@
                                         placeholder="তারিখ নির্বাচন করুন (e.g., 31 Jan 2025)" 
                                         autocomplete="off"></asp:TextBox>
                                     <small class="form-text text-muted">
-                                        এই তারিখ পর্যন্ত নোটিশ লুকানো থাকবে। খালি রাখলে নোটিশ সবসময় দেখাবে。
+                                        এই তারিখ পর্যন্ত নোটিশ লুকানো থাকবে। খালি থাকলে নোটিশ সবসময় দেখাবে。
                                     </small>
                                 </div>
                                 

@@ -161,3 +161,763 @@ SUCCESS: Session tracked successfully from Design.Master!
 
 ========== 2026-01-05 13:58:13 SUCCESS ==========
 [Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 14:41:30 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401236============================================================
+
+========== 2026-01-05 14:41:30 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=35429============================================================
+
+========== 2026-01-05 14:41:30 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 14:41:30 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401236, Category: Student
+Session Key: aontcxskm1orcqndrqh1tlmi_639032208909580908
+SchoolID: 1024, RegID: 35429
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 14:41:31 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401236============================================================
+
+========== 2026-01-05 14:51:15 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 14:51:16 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 14:51:16 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 44wqqwray5zxtlgojd5brklg_639032214760264596
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 14:51:16 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 14:52:17 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401237============================================================
+
+========== 2026-01-05 14:52:17 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=33244============================================================
+
+========== 2026-01-05 14:52:17 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 14:52:17 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401237, Category: Student
+Session Key: jz3if2dhm0cjio2kj3awbze1_639032215375341131
+SchoolID: 1024, RegID: 33244
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 14:52:17 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401237============================================================
+
+========== 2026-01-05 14:52:48 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401545============================================================
+
+========== 2026-01-05 14:52:48 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=33246============================================================
+
+========== 2026-01-05 14:52:48 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 14:52:48 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401545, Category: Student
+Session Key: s2kkuz5gs54ebjbsjywnkeqc_639032215687284398
+SchoolID: 1024, RegID: 33246
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 14:52:48 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401545============================================================
+
+========== 2026-01-05 14:53:18 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401236============================================================
+
+========== 2026-01-05 14:53:18 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=35429============================================================
+
+========== 2026-01-05 14:53:18 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 14:53:18 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401236, Category: Student
+Session Key: lye1nr21lrswolzd22ahzr3o_639032215981325486
+SchoolID: 1024, RegID: 35429
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 14:53:18 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401236============================================================
+
+========== 2026-01-05 14:58:03 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 14:58:03 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 14:58:03 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: tsg4tetzwluzaif4gakpvbbd_639032218832468931
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 14:58:03 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 14:59:37 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 14:59:37 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 14:59:37 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 14:59:37 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: s4mhtfewvkwfuydnkg33zuc5_639032219775943019
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 14:59:37 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 15:04:45 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 15:04:45 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 15:04:45 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: zplahuoi44xceshxqlczm0c1_639032222854466618
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:04:45 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 15:05:25 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 15:05:25 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 15:05:25 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 15:05:25 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: ryjhbhkew2safb54rjkeglji_639032223257687922
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:05:25 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 15:10:15 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 15:10:15 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 15:10:15 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 15:10:15 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: z2vvjptxyi12j542brx0sai0_639032226154173190
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:10:15 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 15:46:23 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 15:46:23 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 15:46:23 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: xfxhfs0gfcfh2k23afpijlcu_639032247832585288
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:46:23 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 15:49:35 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 15:49:35 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 15:49:35 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 15:49:35 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: x5xgejul2zzoa4gzje1uw2yj_639032249753773955
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:49:35 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 15:55:36 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 15:55:36 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 15:55:36 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 1aavblvwmtmlxhwsrbmqwjcx_639032253365515771
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:55:36 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 15:56:19 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 15:56:19 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 15:56:19 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 15:56:19 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: tx3bpplvrsoadzh2d2e4cpa5_639032253794283113
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:56:19 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 15:59:01 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 10021405============================================================
+
+========== 2026-01-05 15:59:01 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=31839============================================================
+
+========== 2026-01-05 15:59:01 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 15:59:01 SUCCESS ==========
+[Design.Master] Starting tracking for user: 10021405, Category: Student
+Session Key: 34r0imvvwqemfakfvtab1a45_639032255418699433
+SchoolID: 1002, RegID: 31839
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 15:59:01 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 10021405============================================================
+
+========== 2026-01-05 16:00:54 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 10022369============================================================
+
+========== 2026-01-05 16:00:54 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=40145============================================================
+
+========== 2026-01-05 16:00:54 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 16:00:54 SUCCESS ==========
+[Design.Master] Starting tracking for user: 10022369, Category: Student
+Session Key: rx0x5cj22my30owvtb5qxhus_639032256543181935
+SchoolID: 1002, RegID: 40145
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 16:00:54 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 10022369============================================================
+
+========== 2026-01-05 16:07:41 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 16:07:41 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 16:07:41 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: dmogzznudeypn0ckinzkz2x0_639032260615029496
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 16:07:41 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 16:08:01 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 16:08:01 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 16:08:01 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 16:08:01 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: dqfjogbwj0tbzaphh35k1m4d_639032260818253242
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 16:08:01 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 16:11:27 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 16:11:27 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 16:11:27 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 16:11:27 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: rltailf5p0vv43pnkq4cnjge_639032262878531454
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 16:11:27 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 16:14:54 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 16:14:54 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 16:14:54 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 16:14:54 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: slkuf51ttjntqzjntwmh2vuv_639032264943633813
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 16:14:54 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 17:28:15 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 17:28:16 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 17:28:16 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 40saabhtmdk3ix3cw0v3vjiw_639032308960196124
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 17:28:16 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 17:28:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 17:28:44 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 17:28:44 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 17:28:44 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: bfpuqxw2lbmfyxxwkkqp13o2_639032309245118728
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 17:28:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 17:52:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 17:52:59 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 17:52:59 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 0kyzvl5p2estpqnctykkktcl_639032323791817643
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 17:52:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 17:53:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 17:53:12 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 17:53:12 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 17:53:12 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: w11mef1iyvppvyonvlv3ywix_639032323924924778
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 17:53:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 18:42:11 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 10021405============================================================
+
+========== 2026-01-05 18:42:11 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=31839============================================================
+
+========== 2026-01-05 18:42:11 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 18:42:11 SUCCESS ==========
+[Design.Master] Starting tracking for user: 10021405, Category: Student
+Session Key: nuq4wg31homg4vi5al05i15q_639032353314587189
+SchoolID: 1002, RegID: 31839
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 18:42:11 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 10021405============================================================
+
+========== 2026-01-05 18:52:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 10022369============================================================
+
+========== 2026-01-05 18:52:12 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=40145============================================================
+
+========== 2026-01-05 18:52:12 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 18:52:12 SUCCESS ==========
+[Design.Master] Starting tracking for user: 10022369, Category: Student
+Session Key: qsrfhq533txj4gvkuuooca1w_639032359320881655
+SchoolID: 1002, RegID: 40145
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 18:52:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 10022369============================================================
+
+========== 2026-01-05 18:52:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 18:52:33 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 18:52:33 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 18:52:33 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: bzgb0einbr4flpzchmom3v4d_639032359534606667
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 18:52:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-05 20:34:41 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 20:34:41 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-05 20:34:41 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 2j4dsupvd15e1l2mayaastxq_639032420818073884
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 20:34:41 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-05 20:35:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 102401809============================================================
+
+========== 2026-01-05 20:35:07 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1024, RegID=40107============================================================
+
+========== 2026-01-05 20:35:07 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-01-05 20:35:07 SUCCESS ==========
+[Design.Master] Starting tracking for user: 102401809, Category: Student
+Session Key: p300cobwuxdeox2awpvmpu2m_639032421077593277
+SchoolID: 1024, RegID: 40107
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1024
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-05 20:35:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 102401809============================================================
+
+========== 2026-01-06 10:38:55 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 10:38:55 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-06 10:38:55 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: ktvagi3swrvu0hbpeg5ggshv_639032927354513485
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-06 10:38:55 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 11:01:29 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 11:01:29 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-06 11:01:29 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: ca5ylzzafqniya5klkavqkik_639032940898318774
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-06 11:01:29 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 11:07:58 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 11:07:58 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-06 11:07:58 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: wmlz45tgmdppcystrza5hpe3_639032944785692822
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-06 11:07:58 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 12:16:49 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 12:16:49 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-06 12:16:49 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: u2srpkvlwdypx4eb0fqb0hz1_639032986096722582
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-06 12:16:49 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 12:34:31 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 12:34:31 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-06 12:34:31 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: o14u0ifjlco5edrvn3m334jp_639032996711580409
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-06 12:34:31 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 12:47:45 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-01-06 12:47:45 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-01-06 12:47:45 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: mf2fv2f34xgvexicfz3re3re_639033004652760133
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-01-06 12:47:45 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================

@@ -69,38 +69,15 @@ namespace EDUCATION.COM.Authority.Invoice
 
         protected void SMS_Paid_CheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            CheckBox chk = (CheckBox)sender;
-            GridViewRow gvr = (GridViewRow)chk.NamingContainer;
-
-            SMS_SQL.UpdateParameters["SMS_Recharge_RecordID"].DefaultValue = SMSGridView.DataKeys[gvr.DataItemIndex]["SMS_Recharge_RecordID"].ToString();
-            SMS_SQL.Update();
+            // This functionality is no longer needed as invoices are auto-generated
+            // Kept for backward compatibility
         }
 
         protected void SMS_Invoice_Button_Click(object sender, EventArgs e)
         {
-            foreach (GridViewRow row in SMSGridView.Rows)
-            {
-                var SMS_CheckBox = row.FindControl("SMS_CheckBox") as CheckBox;
-                var SMS_Unit_Label = row.FindControl("SMS_Unit_Label") as Label;
-                var PerSMS_Label = row.FindControl("PerSMS_Label") as Label;
-                var TotalAmount_Label = row.FindControl("TotalAmount_Label") as Label;
-                var RechargeDate_Label = row.FindControl("RechargeDate_Label") as Label;
-
-                DateTime Issue = Convert.ToDateTime(SMS_Issue_TextBox.Text);
-
-                if (SMS_CheckBox.Checked)
-                {
-                    SMS_SQL.InsertParameters["Invoice_For"].DefaultValue = "Recharged: " + RechargeDate_Label.Text;
-                    SMS_SQL.InsertParameters["Unit"].DefaultValue = SMS_Unit_Label.Text;
-                    SMS_SQL.InsertParameters["UnitPrice"].DefaultValue = PerSMS_Label.Text;
-                    SMS_SQL.InsertParameters["TotalAmount"].DefaultValue = TotalAmount_Label.Text;
-                    SMS_SQL.InsertParameters["EndDate"].DefaultValue = Issue.AddDays(15).ToString();
-                    SMS_SQL.InsertParameters["SchoolID"].DefaultValue = SMSGridView.DataKeys[row.DataItemIndex]["SchoolID"].ToString();
-                    SMS_SQL.Insert();
-                }
-            }
-
-            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Record Inserted Successfully')", true);
+            // This functionality is no longer needed as invoices are auto-generated
+            // Kept for backward compatibility
+            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('SMS invoices are now generated automatically when recharging from Institution Details page.')", true);
         }
 
         protected void OtherInvoice_Button_Click(object sender, EventArgs e)

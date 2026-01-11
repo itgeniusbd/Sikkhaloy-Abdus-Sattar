@@ -581,6 +581,10 @@
     <Content Include="Global.asax" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
+    <Content Include="Home\DahscApp.html" />
+    <Content Include="Home\DascApp.html" />
+    <Content Include="Home\logo\DahscLogo.jpg" />
+    <Content Include="Home\logo\Logo-Sikkhaloy.png" />
     <Content Include="Home\logo\mgc-logo.jpg" />
     <Content Include="Home\logo\noorani-logo.png" />
     <Content Include="Home\logo\sikkhaloy-logo.png" />

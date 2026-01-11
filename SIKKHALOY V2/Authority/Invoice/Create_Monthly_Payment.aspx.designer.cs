@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Authority.Invoice {
-    
-    
-    public partial class Create_Monthly_Payment {
-        
+namespace EDUCATION.COM.Authority.Invoice
+{
+
+
+    public partial class Create_Monthly_Payment
+    {
+
         /// <summary>
         /// UpdatePanel3 control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel3;
-        
+
         /// <summary>
         /// Month_DropDownList control.
         /// </summary>
@@ -29,7 +31,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList Month_DropDownList;
-        
+
         /// <summary>
         /// MonthSQL control.
         /// </summary>
@@ -38,7 +40,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource MonthSQL;
-        
+
         /// <summary>
         /// RequiredFieldValidator2 control.
         /// </summary>
@@ -47,7 +49,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator2;
-        
+
         /// <summary>
         /// Payment_GridView control.
         /// </summary>
@@ -56,7 +58,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView Payment_GridView;
-        
+
         /// <summary>
         /// SchoolListSQL control.
         /// </summary>
@@ -65,7 +67,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SchoolListSQL;
-        
+
         /// <summary>
         /// PayOrderSQL control.
         /// </summary>
@@ -74,7 +76,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource PayOrderSQL;
-        
+
         /// <summary>
         /// sIssueDate_TextBox control.
         /// </summary>
@@ -83,7 +85,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox sIssueDate_TextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator7 control.
         /// </summary>
@@ -92,7 +94,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator7;
-        
+
         /// <summary>
         /// Monthly_Button control.
         /// </summary>
@@ -101,7 +103,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button Monthly_Button;
-        
+
         /// <summary>
         /// UpdatePanel4 control.
         /// </summary>
@@ -110,7 +112,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel4;
-        
+
         /// <summary>
         /// Find_Institution_TextBox control.
         /// </summary>
@@ -119,7 +121,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox Find_Institution_TextBox;
-        
+
         /// <summary>
         /// Find_FromDate_TextBox control.
         /// </summary>
@@ -128,7 +130,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox Find_FromDate_TextBox;
-        
+
         /// <summary>
         /// Find_ToDate_TextBox control.
         /// </summary>
@@ -137,7 +139,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox Find_ToDate_TextBox;
-        
+
         /// <summary>
         /// Find_Button control.
         /// </summary>
@@ -146,7 +148,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button Find_Button;
-        
+
         /// <summary>
         /// SMSGridView control.
         /// </summary>
@@ -155,7 +157,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView SMSGridView;
-        
+
         /// <summary>
         /// SMS_SQL control.
         /// </summary>
@@ -164,52 +166,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SMS_SQL;
-        
-        /// <summary>
-        /// SMS_MonthName_TextBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox SMS_MonthName_TextBox;
-        
-        /// <summary>
-        /// RequiredFieldValidator11 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator11;
-        
-        /// <summary>
-        /// SMS_Issue_TextBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox SMS_Issue_TextBox;
-        
-        /// <summary>
-        /// RequiredFieldValidator8 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator8;
-        
-        /// <summary>
-        /// SMS_Invoice_Button control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button SMS_Invoice_Button;
-        
+
         /// <summary>
         /// UpdatePanel5 control.
         /// </summary>
@@ -218,7 +175,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel5;
-        
+
         /// <summary>
         /// RequiredFieldValidator9 control.
         /// </summary>
@@ -227,7 +184,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator9;
-        
+
         /// <summary>
         /// Category_DropDownList control.
         /// </summary>
@@ -236,7 +193,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList Category_DropDownList;
-        
+
         /// <summary>
         /// CategorySQL control.
         /// </summary>
@@ -245,7 +202,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource CategorySQL;
-        
+
         /// <summary>
         /// RequiredFieldValidator1 control.
         /// </summary>
@@ -254,7 +211,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator1;
-        
+
         /// <summary>
         /// School_DropDownList control.
         /// </summary>
@@ -263,7 +220,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList School_DropDownList;
-        
+
         /// <summary>
         /// InstitutionSQL control.
         /// </summary>
@@ -272,7 +229,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource InstitutionSQL;
-        
+
         /// <summary>
         /// RequiredFieldValidator10 control.
         /// </summary>
@@ -281,7 +238,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator10;
-        
+
         /// <summary>
         /// MonthName_TextBox control.
         /// </summary>
@@ -290,7 +247,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox MonthName_TextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator3 control.
         /// </summary>
@@ -299,7 +256,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator3;
-        
+
         /// <summary>
         /// IssuDateTextBox control.
         /// </summary>
@@ -308,7 +265,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox IssuDateTextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator4 control.
         /// </summary>
@@ -317,7 +274,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator4;
-        
+
         /// <summary>
         /// EndDateTextBox control.
         /// </summary>
@@ -326,7 +283,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox EndDateTextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator5 control.
         /// </summary>
@@ -335,7 +292,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator5;
-        
+
         /// <summary>
         /// Invoice_ForTextBox control.
         /// </summary>
@@ -344,7 +301,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox Invoice_ForTextBox;
-        
+
         /// <summary>
         /// UnitTextBox control.
         /// </summary>
@@ -353,7 +310,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox UnitTextBox;
-        
+
         /// <summary>
         /// UnitPrice_TextBox control.
         /// </summary>
@@ -362,7 +319,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox UnitPrice_TextBox;
-        
+
         /// <summary>
         /// RequiredFieldValidator6 control.
         /// </summary>
@@ -371,7 +328,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator6;
-        
+
         /// <summary>
         /// TotalAmountTextBox control.
         /// </summary>
@@ -380,7 +337,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox TotalAmountTextBox;
-        
+
         /// <summary>
         /// DiscountTextBox control.
         /// </summary>
@@ -389,7 +346,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox DiscountTextBox;
-        
+
         /// <summary>
         /// OtherInvoice_Button control.
         /// </summary>
@@ -398,7 +355,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button OtherInvoice_Button;
-        
+
         /// <summary>
         /// OthersInvoiceSQL control.
         /// </summary>
@@ -407,7 +364,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource OthersInvoiceSQL;
-        
+
         /// <summary>
         /// OthersInvoiceGridView control.
         /// </summary>
@@ -416,7 +373,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView OthersInvoiceGridView;
-        
+
         /// <summary>
         /// UpdatePanel1 control.
         /// </summary>
@@ -425,7 +382,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel1;
-        
+
         /// <summary>
         /// Category_TextBox control.
         /// </summary>
@@ -434,7 +391,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox Category_TextBox;
-        
+
         /// <summary>
         /// CategoryButton control.
         /// </summary>
@@ -443,7 +400,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button CategoryButton;
-        
+
         /// <summary>
         /// CategoryGridView control.
         /// </summary>
@@ -452,7 +409,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView CategoryGridView;
-        
+
         /// <summary>
         /// InvoiceCategorySQL control.
         /// </summary>
@@ -461,7 +418,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource InvoiceCategorySQL;
-        
+
         /// <summary>
         /// UpdatePanel6 control.
         /// </summary>
@@ -470,7 +427,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel6;
-        
+
         /// <summary>
         /// Institution_Label control.
         /// </summary>
@@ -479,7 +436,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label Institution_Label;
-        
+
         /// <summary>
         /// UpdatePanel2 control.
         /// </summary>
@@ -488,7 +445,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel2;
-        
+
         /// <summary>
         /// Details_Repeater control.
         /// </summary>
@@ -497,7 +454,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater Details_Repeater;
-        
+
         /// <summary>
         /// DetailsSQL control.
         /// </summary>
@@ -506,7 +463,7 @@ namespace EDUCATION.COM.Authority.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource DetailsSQL;
-        
+
         /// <summary>
         /// UpdateProgress control.
         /// </summary>

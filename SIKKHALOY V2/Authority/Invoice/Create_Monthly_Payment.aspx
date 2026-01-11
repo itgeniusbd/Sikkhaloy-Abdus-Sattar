@@ -130,6 +130,11 @@ END"
         <div class="tab-pane fade" role="tabpanel" id="tab2">
             <asp:UpdatePanel ID="UpdatePanel4" runat="server">
                 <ContentTemplate>
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i>
+                        <strong>Note:</strong> SMS Invoice now auto-generates when recharging from Institution Details page. This page is for viewing records only.
+                    </div>
+
                     <div class="form-inline">
                         <div class="form-group">
                             <asp:TextBox ID="Find_Institution_TextBox" CssClass="form-control" placeholder="Institution" runat="server"></asp:TextBox>
@@ -147,84 +152,34 @@ END"
 
                     <asp:GridView ID="SMSGridView" CssClass="mGrid" runat="server" AutoGenerateColumns="False" DataKeyNames="SMS_Recharge_RecordID,SchoolID" DataSourceID="SMS_SQL">
                         <Columns>
-                            <asp:TemplateField>
-                                <HeaderTemplate>
-                                    <asp:CheckBox ID="AllSMS_CheckBox" Text="All" runat="server" />
-                                </HeaderTemplate>
-                                <ItemTemplate>
-                                    <asp:CheckBox ID="SMS_CheckBox" Text=' ' runat="server" />
-                                </ItemTemplate>
-                            </asp:TemplateField>
                             <asp:BoundField DataField="SchoolID" HeaderText="School ID" SortExpression="SchoolID" />
                             <asp:BoundField DataField="SchoolName" HeaderText="Institution" SortExpression="SchoolName" />
-                            <asp:TemplateField HeaderText="SMS Unit" SortExpression="RechargeSMS">
+                            <asp:BoundField DataField="RechargeSMS" HeaderText="SMS Unit" SortExpression="RechargeSMS" />
+                            <asp:BoundField DataField="PerSMS_Price" HeaderText="Per SMS" SortExpression="PerSMS_Price" />
+                            <asp:BoundField DataField="Total_Price" HeaderText="Total" SortExpression="Total_Price" />
+                            <asp:BoundField DataField="Date" HeaderText="Date" SortExpression="Date" DataFormatString="{0:d MMM yyyy}" />
+                            <asp:BoundField DataField="UserName" HeaderText="Recharged By" SortExpression="UserName" />
+                            <asp:TemplateField HeaderText="Invoice Status">
                                 <ItemTemplate>
-                                    <asp:Label ID="SMS_Unit_Label" runat="server" Text='<%# Bind("RechargeSMS") %>'></asp:Label>
-                                </ItemTemplate>
-                            </asp:TemplateField>
-                            <asp:TemplateField HeaderText="Per SMS" SortExpression="PerSMS_Price">
-                                <ItemTemplate>
-                                    <asp:Label ID="PerSMS_Label" runat="server" Text='<%# Bind("PerSMS_Price") %>'></asp:Label>
-                                </ItemTemplate>
-                            </asp:TemplateField>
-                            <asp:TemplateField HeaderText="Total" SortExpression="Total_Price">
-                                <ItemTemplate>
-                                    <asp:Label ID="TotalAmount_Label" runat="server" Text='<%# Bind("Total_Price") %>'></asp:Label>
-                                </ItemTemplate>
-                            </asp:TemplateField>
-                            <asp:TemplateField HeaderText="Date" SortExpression="Date">
-                                <ItemTemplate>
-                                    <asp:Label ID="RechargeDate_Label" runat="server" Text='<%# Bind("Date", "{0:d MMM yyyy}") %>'></asp:Label>
-                                </ItemTemplate>
-                            </asp:TemplateField>
-                            <asp:TemplateField HeaderText="Paid">
-                                <ItemTemplate>
-                                    <asp:CheckBox OnCheckedChanged="SMS_Paid_CheckBox_CheckedChanged" AutoPostBack="true" ID="SMS_Paid_CheckBox" Text=' ' runat="server" />
+                                    <%# 
+                                        Eval("Is_Paid") != DBNull.Value && Convert.ToBoolean(Eval("Is_Paid")) 
+                                        ? "<span class='badge badge-success'>Invoice Generated</span>" 
+                                        : "<span class='badge badge-warning'>Pending</span>"
+                                    %>
                                 </ItemTemplate>
                             </asp:TemplateField>
                         </Columns>
                     </asp:GridView>
-                    <asp:SqlDataSource ID="SMS_SQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SMS_Recharge_Record.SMS_Recharge_RecordID, SMS_Recharge_Record.SchoolID, SchoolInfo.SchoolName, SMS_Recharge_Record.RechargeSMS, SMS_Recharge_Record.PerSMS_Price, SMS_Recharge_Record.Total_Price, SMS_Recharge_Record.Date FROM SMS_Recharge_Record INNER JOIN SchoolInfo ON SMS_Recharge_Record.SchoolID = SchoolInfo.SchoolID WHERE (SMS_Recharge_Record.Total_Price &gt; 0) AND (SMS_Recharge_Record.Is_Paid = 0) AND (SMS_Recharge_Record.Date BETWEEN ISNULL(@From_Date, N'1-1-1000') AND ISNULL(@To_Date, N'1-1-3000'))" UpdateCommand="UPDATE SMS_Recharge_Record SET Is_Paid = 1 WHERE (SMS_Recharge_RecordID = @SMS_Recharge_RecordID)" InsertCommand="INSERT INTO AAP_Invoice(RegistrationID, InvoiceCategoryID, SchoolID, IssuDate, EndDate, Invoice_For, TotalAmount, MonthName, Invoice_SN, Unit, UnitPrice) VALUES (@RegistrationID, (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE (InvoiceCategory = N'SMS')), @SchoolID, @IssuDate, @EndDate, @Invoice_For, @TotalAmount, @MonthName, dbo.Invoice_SerialNumber(@SchoolID), @Unit, @UnitPrice)"
+                    <asp:SqlDataSource ID="SMS_SQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SMS_Recharge_Record.SMS_Recharge_RecordID, SMS_Recharge_Record.SchoolID, SchoolInfo.SchoolName, SMS_Recharge_Record.RechargeSMS, SMS_Recharge_Record.PerSMS_Price, SMS_Recharge_Record.Total_Price, SMS_Recharge_Record.Date, SMS_Recharge_Record.Is_Paid, Registration.UserName FROM SMS_Recharge_Record INNER JOIN SchoolInfo ON SMS_Recharge_Record.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN Registration ON SMS_Recharge_Record.RegistrationID = Registration.RegistrationID WHERE (SMS_Recharge_Record.Total_Price &gt; 0) AND (SMS_Recharge_Record.Date BETWEEN ISNULL(@From_Date, N'1-1-1000') AND ISNULL(@To_Date, N'1-1-3000')) AND (SMS_Recharge_Record.Is_Paid IS NOT NULL) AND (SMS_Recharge_Record.Is_Paid = 0)"
                         FilterExpression="SchoolName LIKE '{0}%'" CancelSelectOnNullParameter="False">
                         <FilterParameters>
                             <asp:ControlParameter ControlID="Find_Institution_TextBox" Name="Ins" PropertyName="Text" />
                         </FilterParameters>
-                        <InsertParameters>
-                            <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
-                            <asp:ControlParameter ControlID="SMS_Issue_TextBox" Name="IssuDate" PropertyName="Text" />
-                            <asp:ControlParameter ControlID="SMS_MonthName_TextBox" Name="MonthName" PropertyName="Text" />
-                            <asp:Parameter Name="SchoolID" />
-                            <asp:Parameter Name="EndDate" />
-                            <asp:Parameter Name="Invoice_For" />
-                            <asp:Parameter Name="TotalAmount" />
-                            <asp:Parameter Name="Unit" />
-                            <asp:Parameter Name="UnitPrice" />
-                        </InsertParameters>
                         <SelectParameters>
                             <asp:ControlParameter ControlID="Find_FromDate_TextBox" Name="From_Date" PropertyName="Text" />
                             <asp:ControlParameter ControlID="Find_ToDate_TextBox" Name="To_Date" PropertyName="Text" />
                         </SelectParameters>
-                        <UpdateParameters>
-                            <asp:Parameter Name="SMS_Recharge_RecordID" />
-                        </UpdateParameters>
                     </asp:SqlDataSource>
-
-                    <%if (SMSGridView.Rows.Count > 0)
-                        {%>
-                    <div class="form-inline">
-                        <div class="form-group">
-                            <asp:TextBox ID="SMS_MonthName_TextBox" placeholder="Invoice Month Name" CssClass="form-control datepicker" runat="server"></asp:TextBox>
-                            <asp:RequiredFieldValidator ControlToValidate="SMS_MonthName_TextBox" ValidationGroup="sms" ID="RequiredFieldValidator11" runat="server" ErrorMessage="*" CssClass="EroorStar"></asp:RequiredFieldValidator>
-                        </div>
-                        <div class="form-group">
-                            <asp:TextBox ID="SMS_Issue_TextBox" placeholder="Issue Date" CssClass="form-control datepicker" runat="server"></asp:TextBox>
-                            <asp:RequiredFieldValidator ControlToValidate="SMS_Issue_TextBox" ValidationGroup="sms" ID="RequiredFieldValidator8" runat="server" ErrorMessage="*" CssClass="EroorStar"></asp:RequiredFieldValidator>
-                        </div>
-                        <div class="form-group">
-                            <asp:Button ID="SMS_Invoice_Button" OnClick="SMS_Invoice_Button_Click" ValidationGroup="sms" runat="server" Text="Submit" CssClass="btn btn-primary" />
-                        </div>
-                    </div>
-                    <%} %>
                 </ContentTemplate>
             </asp:UpdatePanel>
         </div>

@@ -230,8 +230,105 @@ namespace EDUCATION.COM.Authority.Institutions
 
         protected void SMSRechargeButton_Click(object sender, EventArgs e)
         {
-            SMS_SQL.Insert();
-            Response.Redirect(Request.Url.AbsoluteUri);
+            try
+            {
+                // Insert SMS recharge record
+                SMS_SQL.Insert();
+
+                // Get the last inserted SMS_Recharge_RecordID
+                string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                int smsRechargeRecordID = 0;
+                int schoolID = Convert.ToInt32(Request.QueryString["SchoolID"]);
+                int rechargeSMS = Convert.ToInt32(RechargeSMSTextBox.Text);
+                double perSMSPrice = Convert.ToDouble(PerSMS_PriceTextBox.Text);
+                double totalAmount = rechargeSMS * perSMSPrice;
+
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    // Get the last inserted record
+                    string query = @"SELECT TOP 1 SMS_Recharge_RecordID 
+                                   FROM SMS_Recharge_Record 
+                                   WHERE SchoolID = @SchoolID 
+                                   ORDER BY Date DESC";
+                    
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                        con.Open();
+                        object result = cmd.ExecuteScalar();
+                        if (result != null)
+                        {
+                            smsRechargeRecordID = Convert.ToInt32(result);
+                        }
+                        con.Close();
+                    }
+
+                    // Generate invoice automatically
+                    if (smsRechargeRecordID > 0 && totalAmount > 0)
+                    {
+                        DateTime issueDate = DateTime.Now;
+                        DateTime endDate = issueDate.AddDays(15);
+                        string invoiceFor = "Recharged: " + DateTime.Now.ToString("d MMM yyyy");
+                        string monthName = DateTime.Now.ToString("MMM yyyy");
+
+                        // Get SMS Invoice Category ID
+                        string getCategoryQuery = @"SELECT InvoiceCategoryID 
+                                                   FROM AAP_Invoice_Category 
+                                                   WHERE InvoiceCategory = N'SMS'";
+                        
+                        int invoiceCategoryID = 0;
+                        using (SqlCommand categoryCmd = new SqlCommand(getCategoryQuery, con))
+                        {
+                            con.Open();
+                            object categoryResult = categoryCmd.ExecuteScalar();
+                            if (categoryResult != null)
+                            {
+                                invoiceCategoryID = Convert.ToInt32(categoryResult);
+                            }
+                            con.Close();
+                        }
+
+                        if (invoiceCategoryID > 0)
+                        {
+                            // Insert invoice
+                            string insertInvoiceQuery = @"INSERT INTO AAP_Invoice
+                                (RegistrationID, InvoiceCategoryID, SchoolID, IssuDate, EndDate, 
+                                 Invoice_For, TotalAmount, MonthName, Invoice_SN, Unit, UnitPrice)
+                                VALUES 
+                                (@RegistrationID, @InvoiceCategoryID, @SchoolID, @IssuDate, @EndDate,
+                                 @Invoice_For, @TotalAmount, @MonthName, dbo.Invoice_SerialNumber(@SchoolID), 
+                                 @Unit, @UnitPrice)";
+
+                            using (SqlCommand invoiceCmd = new SqlCommand(insertInvoiceQuery, con))
+                            {
+                                invoiceCmd.Parameters.AddWithValue("@RegistrationID", 
+                                    Session["RegistrationID"] != null ? Session["RegistrationID"] : (object)DBNull.Value);
+                                invoiceCmd.Parameters.AddWithValue("@InvoiceCategoryID", invoiceCategoryID);
+                                invoiceCmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                                invoiceCmd.Parameters.AddWithValue("@IssuDate", issueDate);
+                                invoiceCmd.Parameters.AddWithValue("@EndDate", endDate);
+                                invoiceCmd.Parameters.AddWithValue("@Invoice_For", invoiceFor);
+                                invoiceCmd.Parameters.AddWithValue("@TotalAmount", totalAmount);
+                                invoiceCmd.Parameters.AddWithValue("@MonthName", monthName);
+                                invoiceCmd.Parameters.AddWithValue("@Unit", rechargeSMS);
+                                invoiceCmd.Parameters.AddWithValue("@UnitPrice", perSMSPrice);
+
+                                con.Open();
+                                invoiceCmd.ExecuteNonQuery();
+                                con.Close();
+                            }
+                        }
+                    }
+                }
+
+                Response.Redirect(Request.Url.AbsoluteUri);
+            }
+            catch (Exception ex)
+            {
+                // Handle error appropriately
+                System.Diagnostics.Debug.WriteLine("Error in SMSRechargeButton_Click: " + ex.Message);
+                Response.Redirect(Request.Url.AbsoluteUri);
+            }
         }
 
         protected void DeleteIDButton_Click(object sender, EventArgs e)
