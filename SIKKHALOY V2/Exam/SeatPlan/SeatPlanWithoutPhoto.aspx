@@ -13,29 +13,56 @@
         .exName { color: #000; text-align: center; font-weight: bold;}
         .iCard-title { border: 1px solid #333; margin: auto; border-radius: 3px; color: #000; font-size: 15px; padding: 3px 10px; text-align: center; width: 126px;font-weight:bold;border-radius: 10px; }
 
-        #user-info { margin-left: 5px; display: grid; grid-template-columns: 90px 1fr; }
-        .user-img { text-align: center; }
-        #user-info img { height: 85px; width: 80px; }
-        #user-info ul { margin: 5px 0 0 0; padding-left: 5px; }
-        #user-info ul li { list-style: none; font-size: 13px; color: #000; font-weight: 500; }
-        .user-img {
-  text-align: center;
-  border: 1px solid #cec5c5;
-  border-radius: 50px;
-  vertical-align: middle;
-  background: #f4ebeb;
-  height: 80px;
-  width: 80px;
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  padding-top: 5px;
-}
-        #user-info ul {
-  margin: 5px 0 0 0;
-  padding-left: 20px;
-  padding-top: 10px;
-}
+        #user-info { margin: 5px; display: grid; grid-template-columns: 90px 1fr 90px; align-items: center; }
+        .user-img { 
+            text-align: center;
+            border: 1px solid #cec5c5;
+            border-radius: 50px;
+            vertical-align: middle;
+            background: #f4ebeb;
+            height: 80px;
+            width: 80px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-top: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .seat-number {
+            text-align: center;
+            border: 2px solid #d32f2f;
+            border-radius: 50px;
+            background: #ffebee;
+            height: 80px;
+            width: 80px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-top: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #d32f2f;
+        }
+        #user-info .middle-content {
+            margin: 0;
+            padding: 0 10px;
+        }
+        #user-info ul { 
+            margin: 0;
+            padding-left: 5px;
+            list-style: none;
+        }
+        #user-info ul li { 
+            list-style: none; 
+            font-size: 13px; 
+            color: #000; 
+            font-weight: 500; 
+        }
 
         @page { margin: 15px; }
 
@@ -45,7 +72,7 @@
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <h3>সিট প্ল্যান</h3>
+    <h3>আসন বিন্যাস</h3>
 
     <div class="form-inline NoPrint">
         <div class="form-group">
@@ -142,23 +169,26 @@
                     </div>
 
                     <div class="iCard-title">
-                        সিট প্ল্যান
+                      আসন বিন্যাস
                     </div>
 
                     <div id="user-info">
                         <div class="user-img">
-                            ID
-                            <div><strong><%#Eval("ID") %></strong></div>
+                            <div style="font-size: 12px;">ID</div>
+                            <div><strong style="font-size: 16px;"><%#Eval("ID") %></strong></div>
                         </div>
-                        <div>
+                        <div class="middle-content">
                             <ul>
                                 <li><%# Eval("StudentsName")%></li>
-                                <li>শ্রেণি: <%# Eval("Class") %>
-                                  , রোল: <%# Eval("RollNo") %></li>
+                                <li>শ্রেণি: <%# Eval("Class") %>, রোল: <%# Eval("RollNo") %></li>
                                 <li><%# Eval("Section","সেকশন: {0}") %></li>
                                 <li><%# Eval("Shift"," শিফট: {0}") %></li>
                                 <li><%# Eval("SubjectGroup","গ্রুপ: {0}") %></li>
                             </ul>
+                        </div>
+                        <div class="seat-number">
+                            <div style="font-size: 12px;">আসন নং</div>
+                            <div><strong style="font-size: 16px;"><%# String.IsNullOrEmpty(Eval("SeatNo").ToString()) ? "-" : Eval("SeatNo") %></strong></div>
                         </div>
                     </div>
                 </div>
@@ -166,7 +196,7 @@
         </asp:Repeater>
     </div>
 
-    <asp:SqlDataSource ID="ICardInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.StudentsName, Student.ID, CreateSection.Section, CreateClass.Class, SchoolInfo.SchoolName, StudentsClass.RollNo, SchoolInfo.SchoolID, StudentsClass.StudentID, CreateShift.Shift, CreateSubjectGroup.SubjectGroup FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN SchoolInfo ON StudentsClass.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END">
+    <asp:SqlDataSource ID="ICardInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.StudentsName, Student.ID, CreateSection.Section, CreateClass.Class, SchoolInfo.SchoolName, StudentsClass.RollNo, StudentsClass.SeatNo, SchoolInfo.SchoolID, StudentsClass.StudentID, CreateShift.Shift, CreateSubjectGroup.SubjectGroup FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN SchoolInfo ON StudentsClass.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END">
         <SelectParameters>
             <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
             <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" PropertyName="SelectedValue" />
@@ -176,7 +206,7 @@
             <asp:Parameter DefaultValue="Active" Name="Status" />
         </SelectParameters>
     </asp:SqlDataSource>
-    <asp:SqlDataSource ID="IDsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, CreateSection.Section, CreateClass.Class, SchoolInfo.SchoolName, StudentsClass.RollNo, SchoolInfo.SchoolID, StudentsClass.StudentID, Student.StudentsName, CreateShift.Shift, CreateSubjectGroup.SubjectGroup FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN SchoolInfo ON StudentsClass.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (StudentsClass.EducationYearID = @EducationYearID) AND (Student.Status = @Status) AND (SchoolInfo.SchoolID = @SchoolID) AND (Student.ID IN (SELECT id FROM dbo.In_Function_Parameter(@IDs) AS In_Function_Parameter_1))">
+    <asp:SqlDataSource ID="IDsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, CreateSection.Section, CreateClass.Class, SchoolInfo.SchoolName, StudentsClass.RollNo, StudentsClass.SeatNo, SchoolInfo.SchoolID, StudentsClass.StudentID, Student.StudentsName, CreateShift.Shift, CreateSubjectGroup.SubjectGroup FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN SchoolInfo ON StudentsClass.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (StudentsClass.EducationYearID = @EducationYearID) AND (Student.Status = @Status) AND (SchoolInfo.SchoolID = @SchoolID) AND (Student.ID IN (SELECT id FROM dbo.In_Function_Parameter(@IDs) AS In_Function_Parameter_1))">
         <SelectParameters>
             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
             <asp:Parameter DefaultValue="Active" Name="Status" />

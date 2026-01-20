@@ -121,6 +121,7 @@
                                         <div class="media-body pt-2">
                                             <p class="badge mdb-color lighten-1">ID: <%#Eval("ID") %></p>
                                             <p class="badge mdb-color lighten-1 mb-2">Roll No: <%#Eval("RollNo") %></p>
+                                            <p class="badge mdb-color lighten-1 mb-2">Seat No: <%#Eval("SeatNo") %></p>
 
                                             <span class="d-block mb-2">
                                                 <i class="fa fa-user"></i>
@@ -159,6 +160,12 @@
                                         <ItemTemplate>
                                             <span class=" d-none d-print-block"><%# Eval("RollNo") %></span>
                                             <asp:TextBox ID="RollTextBox" CssClass="form-control d-print-none" runat="server" Text='<%# Bind("RollNo") %>'></asp:TextBox>
+                                        </ItemTemplate>
+                                    </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Seat No" SortExpression="SeatNo">
+                                        <ItemTemplate>
+                                            <span class=" d-none d-print-block"><%# Eval("SeatNo") %></span>
+                                            <asp:TextBox ID="SeatTextBox" CssClass="form-control d-print-none" runat="server" Text='<%# Bind("SeatNo") %>'></asp:TextBox>
                                         </ItemTemplate>
                                     </asp:TemplateField>
                                     <asp:TemplateField HeaderText="Photo">
@@ -263,7 +270,7 @@ WHERE        (Exam_Publish_Setting.SchoolID = @SchoolID) AND (Exam_Publish_Setti
     </div>
 
     <asp:SqlDataSource ID="ShowStudentClassSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-        SelectCommand="SELECT Student.StudentID, Student.SMSPhoneNo, Student.StudentsName, Student.Gender, Student.StudentsLocalAddress, Student.MothersName, Student.FathersName, Student.FatherPhoneNumber, Student.GuardianName, StudentsClass.RollNo, Student.ID, Student.SMSPhoneNo AS Expr1, Student.MotherPhoneNumber, Student.FatherOccupation, Student.GuardianPhoneNumber, StudentsClass.StudentClassID, Student.StudentImageID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END" UpdateCommand="UPDATE StudentsClass SET RollNo = @RollNo WHERE (SchoolID = @SchoolID) AND (StudentClassID = @StudentClassID) AND (EducationYearID = @EducationYearID)">
+        SelectCommand="SELECT Student.StudentID, Student.SMSPhoneNo, Student.StudentsName, Student.Gender, Student.StudentsLocalAddress, Student.MothersName, Student.FathersName, Student.FatherPhoneNumber, Student.GuardianName, StudentsClass.RollNo, StudentsClass.SeatNo, Student.ID, Student.SMSPhoneNo AS Expr1, Student.MotherPhoneNumber, Student.FatherOccupation, Student.GuardianPhoneNumber, StudentsClass.StudentClassID, Student.StudentImageID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END" UpdateCommand="UPDATE StudentsClass SET RollNo = @RollNo, SeatNo = @SeatNo WHERE (SchoolID = @SchoolID) AND (StudentClassID = @StudentClassID) AND (EducationYearID = @EducationYearID)">
         <SelectParameters>
             <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
             <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" PropertyName="SelectedValue" />
@@ -278,9 +285,11 @@ WHERE        (Exam_Publish_Setting.SchoolID = @SchoolID) AND (Exam_Publish_Setti
             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
             <asp:Parameter Name="StudentClassID" />
             <asp:Parameter Name="RollNo" />
+            <asp:Parameter Name="SeatNo" />
         </UpdateParameters>
     </asp:SqlDataSource>
-    <asp:SqlDataSource ID="ShowIDSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.StudentsName, Student.StudentsLocalAddress, Student.MothersName, Student.FathersName, StudentsClass.RollNo, Student.SMSPhoneNo, Student.Gender, Student.MotherPhoneNumber, Student.FatherPhoneNumber, Student.GuardianPhoneNumber, StudentsClass.StudentClassID, StudentsClass.StudentID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (Student.ID = @ID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID)">
+    <asp:SqlDataSource ID="ShowIDSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" 
+        SelectCommand="SELECT Student.ID, Student.StudentsName, Student.StudentsLocalAddress, Student.MothersName, Student.FathersName, StudentsClass.RollNo, StudentsClass.SeatNo, Student.SMSPhoneNo, Student.Gender, Student.MotherPhoneNumber, Student.FatherPhoneNumber, Student.GuardianPhoneNumber, StudentsClass.StudentClassID, StudentsClass.StudentID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (Student.ID = @ID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID)">
         <SelectParameters>
             <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" Type="String" />
             <asp:Parameter DefaultValue="Active" Name="Status" />

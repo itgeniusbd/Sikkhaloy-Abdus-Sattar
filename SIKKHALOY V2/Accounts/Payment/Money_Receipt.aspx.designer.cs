@@ -15,15 +15,6 @@ namespace EDUCATION.COM.Accounts.Payment
     {
 
         /// <summary>
-        /// StudentInfoFormView control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.FormView StudentInfoFormView;
-
-        /// <summary>
         /// StudentInfoSQL control.
         /// </summary>
         /// <remarks>
@@ -33,15 +24,6 @@ namespace EDUCATION.COM.Accounts.Payment
         protected global::System.Web.UI.WebControls.SqlDataSource StudentInfoSQL;
 
         /// <summary>
-        /// ReceiptFormView control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.FormView ReceiptFormView;
-
-        /// <summary>
         /// MoneyRSQL control.
         /// </summary>
         /// <remarks>
@@ -49,6 +31,24 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource MoneyRSQL;
+
+        /// <summary>
+        /// StudentInfoFormView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.FormView StudentInfoFormView;
+
+        /// <summary>
+        /// ReceiptFormView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.FormView ReceiptFormView;
 
         /// <summary>
         /// PaidDetailsGridView control.

@@ -273,10 +273,12 @@ namespace EDUCATION.COM.Admission.Edit_Student_Info
             foreach (GridViewRow rows in RollNoGridView.Rows)
             {
                 TextBox RollTextBox = (TextBox)rows.FindControl("RollTextBox");
-                if (RollTextBox.Text.Trim() != "")
+                TextBox SeatTextBox = (TextBox)rows.FindControl("SeatTextBox");
+                if (RollTextBox.Text.Trim() != "" || SeatTextBox.Text.Trim() != "")
                 {
                     ShowStudentClassSQL.UpdateParameters["StudentClassID"].DefaultValue = RollNoGridView.DataKeys[rows.DataItemIndex]["StudentClassID"].ToString();
                     ShowStudentClassSQL.UpdateParameters["RollNo"].DefaultValue = RollTextBox.Text;
+                    ShowStudentClassSQL.UpdateParameters["SeatNo"].DefaultValue = SeatTextBox.Text;
                     ShowStudentClassSQL.Update();
                 }
             }

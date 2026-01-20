@@ -1,7 +1,7 @@
-﻿<%@ Page Title="Money Receipt" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Money_Receipt.aspx.cs" Inherits="EDUCATION.COM.Accounts.Payment.Money_Receipt" %>
+<%@ Page Title="Money Receipt" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Money_Receipt.aspx.cs" Inherits="EDUCATION.COM.Accounts.Payment.Money_Receipt" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="CSS/Money_Receipt.css?v=0.1" rel="stylesheet" />
+    <link href="CSS/Money_Receipt.css?v=0.3" rel="stylesheet" />
 
     <!--add dynamic css for printing-->
     <style type="text/css" media="print" id="print-content"></style>
@@ -11,22 +11,91 @@
         .discount-column-hidden {
             display: none !important;
         }
+        
+        /* Payment Receipt Header */
+    .payment-receipt-header {
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin: 0px 0;
+    padding: 0px 0;
+    border-top: 1px solid #333;
+    border-bottom: 1px solid #333;
+    letter-spacing: 1px;
+}
+        
+        /* Two Column Layout for Receipt Info */
+        .receipt-info-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            padding: 1px;
+            border: 1px solid #ddd;
+        }
+        
+        .receipt-info-left {
+            flex: 1;
+            padding-right: 15px;
+            border-right: 1px solid #ddd;
+        }
+        
+        .receipt-info-right {
+            flex: 1;
+            padding-left: 15px;
+        }
+        
+        .receipt-info-left p, .receipt-info-right p {
+            margin: 5px 0;
+            font-size: 10px;
+           border-bottom: 1px solid #bbb3b3;
+        }
+        
+        /* Make all text in receipt info dark black */
+        .receipt-info-container,
+        .receipt-info-container p,
+        .receipt-info-container strong,
+        .receipt-info-container span,
+        .receipt-info-container label,
+        .student-id,
+        .student-name,
+        .student-class,
+        .student-section,
+        .student-roll {
+            color: #000 !important;
+        }
+        
+        .receipt-info-left strong, .receipt-info-right strong {
+            font-weight: bold;
+        }
+        
+        @media print {
+            .payment-receipt-header {
+                font-size: 15px;
+            }
+            .receipt-info-container {
+                border: 1px solid #000;
+            }
+            .receipt-info-left {
+                border-right: 1px solid #000;
+            }
+            .receipt-info-container,
+            .receipt-info-container p,
+            .receipt-info-container strong,
+            .receipt-info-container span,
+            .receipt-info-container label {
+                color: #000 !important;
+            }
+        }
     </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <a class="d-print-none" href="Payment_Collection.aspx"><< Back To payment Page</a>
 
-    <asp:FormView ID="StudentInfoFormView" runat="server" DataSourceID="StudentInfoSQL" DataKeyNames="SMSPhoneNo,StudentID,ID" Width="100%">
-        <ItemTemplate>
-            <div class="SInfo">
-                (ID:<%# Eval("ID") %>)
-                <asp:Label ID="StudentsNameLabel" runat="server" Text='<%# Eval("StudentsName") %>' />
-                <br />
-                Class: <%# Eval("Class") %> <%# Eval("Section",", Section: {0}") %> <%# Eval("RollNo",", Roll No: {0}") %>
-            </div>
-        </ItemTemplate>
-    </asp:FormView>
+    <!-- Payment Receipt Header -->
+    <div class="payment-receipt-header">PAYMENT RECEIPT</div>
+
     <asp:SqlDataSource ID="StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.SMSPhoneNo, Student.StudentsName, CreateClass.Class, Student.StudentID, CreateSection.Section, StudentsClass.RollNo, StudentsClass.Class_Status FROM StudentsClass INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (Student.SchoolID = @SchoolID) AND (Student.ID = @ID) AND (StudentsClass.Class_Status IS NULL)">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -34,47 +103,6 @@
         </SelectParameters>
     </asp:SqlDataSource>
 
-    <asp:FormView ID="ReceiptFormView" runat="server" DataSourceID="MoneyRSQL" Width="100%" DataKeyNames="TotalAmount,MoneyReceiptID">
-        <ItemTemplate>
-          <div class="SInfo">
-    Online Receipt No:
-            <asp:Label ID="MoneyReceiptIDLabel" runat="server" Text='<%# Eval("MoneyReceipt_SN") %>' />
-        <br />
-         Paid Date: 
-<asp:Label ID="PaidDateLabel" runat="server" Text='<%# Eval("PaidDate","{0:d-MMM-yy (hh:mm tt)}") %>' />
-    <br />
-           <%#Eval("AccountName", "Payment Method: {0}").ToString()%>
-      
-                <%-- Printed Receipt Number Inline Edit --%>
-<br />
-    <div class="d-flex align-items-center justify-content-center mt-2">
-       <strong class="mr-2">Printed Receipt No:</strong>
-         <asp:Label ID="PrintedReceiptNoLabel" runat="server" 
-      Text='<%# string.IsNullOrEmpty(Convert.ToString(Eval("PrintedReceiptNo"))) ? "Not Set" : Eval("PrintedReceiptNo").ToString() %>' 
-          CssClass="mr-2" />
-        
-               <asp:TextBox ID="PrintedReceiptNoTextBox" runat="server" 
-      Text='<%# Eval("PrintedReceiptNo") %>'
-        CssClass="form-control form-control-sm d-print-none mr-2" 
- placeholder="Enter No" 
-      MaxLength="50"
-    style="width: 150px; display: inline-block;"
-            autocomplete="off"></asp:TextBox>
- 
- <asp:Button ID="UpdatePrintedReceiptButton" runat="server" 
-        Text="Update" 
-        CssClass="btn btn-sm btn-success d-print-none" 
- OnClick="UpdatePrintedReceiptButton_Click" 
-    CommandArgument='<%# Eval("MoneyReceiptID") %>'
-     OnClientClick="return confirm('Update printed receipt number?');" />
-         
-          <asp:Label ID="UpdateMessageLabel" runat="server" 
-   CssClass="ml-2 text-success d-print-none" 
-   style="font-size: 0.9rem;"></asp:Label>
-     </div>
-       </div>
-        </ItemTemplate>
-  </asp:FormView>
     <asp:SqlDataSource ID="MoneyRSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
         SelectCommand="SELECT DISTINCT Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.MoneyReceiptID, Income_MoneyReceipt.PrintedReceiptNo, Account.AccountName FROM Account INNER JOIN
           Income_PaymentRecord ON Account.AccountID = Income_PaymentRecord.AccountID RIGHT OUTER JOIN
@@ -90,6 +118,87 @@ UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceipt
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
   </UpdateParameters>
     </asp:SqlDataSource>
+
+    <!-- Student and Receipt Information in Two Columns -->
+    <asp:FormView ID="StudentInfoFormView" runat="server" DataSourceID="StudentInfoSQL" DataKeyNames="SMSPhoneNo,StudentID,ID" Width="100%">
+        <ItemTemplate>
+            <div id="studentData" 
+                 data-id='<%# Eval("ID") %>' 
+                 data-name='<%# Eval("StudentsName") %>' 
+                 data-class='<%# Eval("Class") %>'
+                 data-roll='<%# Eval("RollNo") %>'
+                 style="display:none;">
+            </div>
+            <%-- Hidden label for C# code behind to access student name --%>
+            <asp:Label ID="StudentsNameLabel" runat="server" Text='<%# Eval("StudentsName") %>' style="display:none;"></asp:Label>
+        </ItemTemplate>
+    </asp:FormView>
+
+    <asp:FormView ID="ReceiptFormView" runat="server" DataSourceID="MoneyRSQL" Width="100%" DataKeyNames="TotalAmount,MoneyReceiptID">
+        <ItemTemplate>
+            <div class="receipt-info-container">
+                <div class="receipt-info-left">
+                    <p style="color: #000 !important;"><strong style="color: #000 !important;">(ID:<span class="student-id" style="color: #000 !important;"></span>)</strong> <span class="student-name" style="color: #000 !important;"></span></p>
+                    <p style="color: #000 !important;">
+                        <strong style="color: #000 !important;">Class:</strong> <span class="student-class" style="color: #000 !important;"></span><strong style="color: #000 !important;"></span><strong style="color: #000 !important;">, Roll:</strong> <span class="student-roll" style="color: #000 !important;"></span>
+                    </p>
+                    <p style="color: #000 !important;"><strong style="color: #000 !important;">Receipt No:</strong> <span style="color: #000 !important;"><%# Eval("MoneyReceipt_SN") %></span></p>
+                </div>
+                <div class="receipt-info-right">
+                    <p style="color: #000 !important;"><strong style="color: #000 !important;">Paid Date:</strong> <span style="color: #000 !important;"><%# Eval("PaidDate","{0:d-MMM-yy (hh:mm tt)}") %></span></p>
+                    <p style="color: #000 !important;"><strong style="color: #000 !important;">Payment Method:</strong> <span style="color: #000 !important;"><%# Eval("AccountName") %></span></p>
+                    <p style="color: #000 !important;">
+                        <strong style="color: #000 !important;">Printed Receipt No:</strong> 
+                        <asp:Label ID="PrintedReceiptNoLabel" runat="server" 
+                            Text='<%# string.IsNullOrEmpty(Convert.ToString(Eval("PrintedReceiptNo"))) ? "Not Set" : Eval("PrintedReceiptNo").ToString() %>' 
+                            style="color: #000 !important;" />
+                    </p>
+                </div>
+            </div>
+            
+            <%-- Printed Receipt Number Inline Edit --%>
+            <div class="d-flex align-items-center justify-content-center mt-2 d-print-none">
+                <strong class="mr-2">Update Printed Receipt No:</strong>
+                <asp:TextBox ID="PrintedReceiptNoTextBox" runat="server" 
+                    Text='<%# Eval("PrintedReceiptNo") %>'
+                    CssClass="form-control form-control-sm d-print-none mr-2" 
+                    placeholder="Enter No" 
+                    MaxLength="50"
+                    style="width: 150px; display: inline-block;"
+                    autocomplete="off"></asp:TextBox>
+                
+                <asp:Button ID="UpdatePrintedReceiptButton" runat="server" 
+                    Text="Update" 
+                    CssClass="btn btn-sm btn-success d-print-none" 
+                    OnClick="UpdatePrintedReceiptButton_Click" 
+                    CommandArgument='<%# Eval("MoneyReceiptID") %>'
+                    OnClientClick="return confirm('Update printed receipt number?');" />
+                
+                <asp:Label ID="UpdateMessageLabel" runat="server" 
+                    CssClass="ml-2 text-success d-print-none" 
+                    style="font-size: 0.9rem;"></asp:Label>
+            </div>
+
+            <script type="text/javascript">
+                (function() {
+                    var studentData = document.getElementById('studentData');
+                    if (studentData) {
+                        var idEl = document.querySelector('.student-id');
+                        var nameEl = document.querySelector('.student-name');
+                        var classEl = document.querySelector('.student-class');
+                        var sectionEl = document.querySelector('.student-section');
+                        var rollEl = document.querySelector('.student-roll');
+                        
+                        if (idEl) idEl.textContent = studentData.getAttribute('data-id') || '';
+                        if (nameEl) nameEl.textContent = studentData.getAttribute('data-name') || '';
+                        if (classEl) classEl.textContent = studentData.getAttribute('data-class') || '';
+                        if (sectionEl) sectionEl.textContent = studentData.getAttribute('data-section') || '';
+                        if (rollEl) rollEl.textContent = studentData.getAttribute('data-roll') || '';
+                    }
+                })();
+            </script>
+        </ItemTemplate>
+    </asp:FormView>
 
     <asp:GridView ID="PaidDetailsGridView" DataKeyNames="Role,PayFor" runat="server" AutoGenerateColumns="False" DataSourceID="PaidDetailsSQL" CssClass="mGrid" ShowFooter="True" Font-Bold="False" RowStyle-CssClass="Rows">
         <Columns>
@@ -219,7 +328,7 @@ ORDER BY Income_PayOrder.EndDate">
     <asp:FormView ID="RByFormView" runat="server" DataSourceID="ReceivedBySQL" Width="100%">
         <ItemTemplate>
             <div class="RecvBy">
-                (© Sikkhaloy.com) Received By:
+                (� Sikkhaloy.com) Received By:
                 <asp:Label ID="NameLabel" runat="server" Text='<%# Bind("Name") %>' />
             </div>
         </ItemTemplate>
@@ -365,7 +474,6 @@ ORDER BY Income_PayOrder.EndDate">
  }
  });
 
-
 //print options
         let printingOptions = {
      isInstitutionName: false,
@@ -457,6 +565,6 @@ if (min < size) {
 
    //disable after submit SMS
         function Disable_Submited() { document.getElementById("<%=SMSButton.ClientID %>").disabled = true; }
-     window.onbeforeunload = Disable_Submited;
+        window.onbeforeunload = Disable_Submited;
     </script>
     </asp:Content>

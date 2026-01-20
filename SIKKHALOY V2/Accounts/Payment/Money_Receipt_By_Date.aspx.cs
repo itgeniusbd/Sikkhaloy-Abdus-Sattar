@@ -91,7 +91,32 @@ namespace EDUCATION.COM.Accounts.Payment
                 var studentId = StudentInfoFormView.DataKey["ID"].ToString();
                 var paid = ReceiptFormView.DataKey["TotalAmount"].ToString();
                 var studentName = (StudentInfoFormView.Row.FindControl("StudentsNameLabel") as Label)?.Text;
-                var receiptNo = (ReceiptFormView.Row.FindControl("MoneyReceiptIDLabel") as Label)?.Text;
+                
+                // Get receipt number from ReceiptFormView DataItem
+                var receiptNo = "";
+                if (ReceiptFormView.DataItem != null)
+                {
+                    var dataRowView = ReceiptFormView.DataItem as System.Data.DataRowView;
+                    if (dataRowView != null && dataRowView.Row.Table.Columns.Contains("MoneyReceipt_SN"))
+                    {
+                        receiptNo = dataRowView["MoneyReceipt_SN"]?.ToString();
+                    }
+                }
+                
+                // If DataItem is null (after postback), get from database
+                if (string.IsNullOrEmpty(receiptNo))
+                {
+                    using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                    {
+                        con.Open();
+                        SqlCommand cmd = new SqlCommand("SELECT MoneyReceipt_SN FROM Income_MoneyReceipt WHERE MoneyReceiptID = @MoneyReceiptID AND SchoolID = @SchoolID", con);
+                        cmd.Parameters.AddWithValue("@MoneyReceiptID", CurrentMoneyReceiptID);
+                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                        var result = cmd.ExecuteScalar();
+                        receiptNo = result?.ToString();
+                        con.Close();
+                    }
+                }
 
                 // Build payment details for template
                 var paymentDetails = "";

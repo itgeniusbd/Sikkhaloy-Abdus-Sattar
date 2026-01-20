@@ -492,6 +492,7 @@
     <Content Include="CSS\Print.css" />
     <Content Include="CSS\Search_In_DropdownList.css" />
     <Content Include="CSS\SideNavbar.css" />
+    <Content Include="Database\AddSeatNoColumn.sql" />
     <Content Include="Database\AdvancedOptimization.sql" />
     <Content Include="Employee\Acadamic_Calender.aspx" />
     <Content Include="Employee\Add_Holidays.aspx" />
@@ -581,7 +582,6 @@
     <Content Include="Global.asax" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
-    <Content Include="Home\DahscApp.html" />
     <Content Include="Home\DascApp.html" />
     <Content Include="Home\logo\DahscLogo.jpg" />
     <Content Include="Home\logo\Logo-Sikkhaloy.png" />
@@ -735,6 +735,7 @@
     <Content Include="Exam\CumulativeResult\Cu_Exam.xsc">
       <DependentUpon>Cu_Exam.xsd</DependentUpon>
     </Content>
+    <Content Include="Documentation\SeatNo_Feature_Implementation_Guide.md" />
     <None Include="Exam\CumulativeResult\Cu_Exam.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>Cu_Exam.Designer.cs</LastGenOutput>
