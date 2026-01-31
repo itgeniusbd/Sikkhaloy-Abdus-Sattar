@@ -29,7 +29,7 @@ namespace EDUCATION.COM.Student
         private string SignatureKey = "";
         private string PaymentGatewayBase = "";
         private string RequestURL = "";
-        private string ConfirmationBase = "http://localhost:3326";
+        private string ConfirmationBase = "https://sikkhaloy.com/";
         private string RequestUrl = "/jsonpost.php";
 
         protected void Page_Load(object sender, EventArgs e)
@@ -320,12 +320,15 @@ namespace EDUCATION.COM.Student
             string messgae = "";
             try
             {
-                //Dictionary<string, string> parameters = new Dictionary<string, string>();
+                var baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority;
+                var sessionInfo = GetSessionInfo();
+                var encodedSessionInfo = HttpUtility.UrlEncode(sessionInfo);
+                var encodedPaymentRecordId = HttpUtility.UrlEncode(paymentRecordId);
 
                 var request = new PaymentRequest
                 {
                     store_id = StoreId, //"aamarpaytest";
-                    signature_key = SignatureKey,// "dbb74894e82415a2f7ff0ec3a97e4183";
+                    signature_key = SignatureKey, // "dbb74894e82415a2f7ff0ec3a97e4183";
                     tran_id = RandomString(10),
                     amount = totalPaid,
                     currency = "BDT",
@@ -335,10 +338,10 @@ namespace EDUCATION.COM.Student
                     cus_phone = dicStudentInfo["phone"],
                     type = "json",
                     //request.success_url = confirmationBase + "/Student/OnlinePayment/Success.aspx";
-                    success_url = "https://sikkhaloy.com/Default.aspx",
+                    success_url = baseUrl + "/Default.aspx?opt_a=" + encodedSessionInfo + "&opt_b=" + encodedPaymentRecordId,
                     fail_url = ConfirmationBase + "/Student/OnlinePayment/Failed.aspx",
                     cancel_url = ConfirmationBase + "/Student/OnlinePayment/Cancelled.aspx",
-                    opt_a = GetSessionInfo(),
+                    opt_a = sessionInfo,
                     opt_b = paymentRecordId
                 };
 
@@ -353,22 +356,6 @@ namespace EDUCATION.COM.Student
                 wRequest.Method = "POST";
                 wRequest.ContentType = "application/json";
 
-                //wRequest.ContentType = "application/x-www-form-urlencoded";
-                //byte[] bArray = Encoding.UTF8.GetBytes(postData);
-
-                //wRequest.ContentLength = bArray.Length;
-                //Stream webData = wRequest.GetRequestStream();
-                //webData.Write(bArray, 0, bArray.Length);
-                //webData.Close();
-
-                //WebResponse webResponse = wRequest.GetResponse();
-                //webData = webResponse.GetResponseStream();
-                //StreamReader reader = new StreamReader(webData);
-                //string responseFromServer = reader.ReadToEnd();
-                //reader.Close();
-                //webData.Close();
-                //webResponse.Close();
-
                 string responseFromServer = "";
                 using (var streamWriter = new StreamWriter(wRequest.GetRequestStream()))
                 {
@@ -381,13 +368,6 @@ namespace EDUCATION.COM.Student
                 {
                     responseFromServer = streamReader.ReadToEnd();
                 }
-
-
-                ////\/ paynow.php ? track = AAM1581391191203665
-
-                //var trans = responseFromServer.Remove(0, 2).Split('"')[0];
-                //string url = PaymentGatewayBase + trans;
-                //Response.Redirect(url);
 
                 var result = JsonConvert.DeserializeObject<ResponseInfo>(responseFromServer);
                 if (result.payment_url == null)

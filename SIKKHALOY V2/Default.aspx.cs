@@ -15,7 +15,6 @@ using System.Security.Cryptography;
 using System.Security.Policy;
 using System.Text;
 using System.Web;
-using System.Web.Security;
 using System.Web.Services;
 using System.Web.UI.WebControls;
 
@@ -27,17 +26,37 @@ namespace EDUCATION.COM
         {
             PaymentFactory<PaymentResponse> paymentFactory = new PaymentFactory<PaymentResponse>();
             var paymentInfo = paymentFactory.GetPaymentInfoFromQueryString(Request);
+
             if (!string.IsNullOrEmpty(paymentInfo.opt_a))
             {
-                SetSessionInfoAfterOnlinePayment(paymentInfo.opt_a);
-                Session["OnlinePaymentInfo"] = JsonConvert.SerializeObject(paymentInfo);
-                string paymentRecordId = paymentInfo.opt_b;
-                SavePaymentInfoAfterSuccess(paymentRecordId);
-                //string MRid = paymentInfo.opt_b;
-                //string Sid = paymentInfo.opt_c;
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("Processing payment...");
 
-                //Response.Redirect(string.Format("~/Accounts/Payment/Money_Receipt.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
+                    SetSessionInfoAfterOnlinePayment(paymentInfo.opt_a);
 
+                    Session["OnlinePaymentInfo"] = JsonConvert.SerializeObject(paymentInfo);
+
+                    string paymentRecordId = paymentInfo.opt_b;
+                    System.Diagnostics.Debug.WriteLine("Payment Record ID: " + paymentRecordId);
+
+                    SavePaymentInfoAfterSuccess(paymentRecordId);
+
+                    System.Diagnostics.Debug.WriteLine("Payment processing completed successfully!");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("ERROR in Page_Load:");
+                    System.Diagnostics.Debug.WriteLine("Message: " + ex.Message);
+                    System.Diagnostics.Debug.WriteLine("Stack Trace: " + ex.StackTrace);
+
+                    string errorDisplay = "<div style='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,0,0,0.9);color:white;padding:20px;z-index:9999;overflow:auto;'>";
+                    errorDisplay += "<h2>Payment Processing Error</h2>";
+                    errorDisplay += "<p><strong>Error:</strong> " + ex.Message + "</p>";
+                    errorDisplay += "<pre>" + ex.StackTrace + "</pre>";
+                    errorDisplay += "</div>";
+                    Response.Write(errorDisplay);
+                }
             }
         }
 
@@ -128,30 +147,83 @@ namespace EDUCATION.COM
         {
             //sessionInfo = "{SchoolID=1012,SchoolName=SIKKHALOY,RegistrationID=13548,EducationYearID=2464,StudentID=41148,ClassID=130,StudentClassID=189569,TeacherID=null}";
             sessionInfo = sessionInfo.TrimStart('{').TrimEnd('}');
-            Dictionary<string, string> dictionary = sessionInfo.Split(',').ToDictionary(item => item.Split('=')[0], item => item.Split('=')[1]);
+            
+            // Split by comma and create dictionary
+            var items = sessionInfo.Split(',');
+            Dictionary<string, string> dictionary = new Dictionary<string, string>();
+            
+            foreach (var item in items)
+            {
+                var parts = item.Split('=');
+                if (parts.Length == 2)
+                {
+                    dictionary[parts[0].Trim()] = parts[1].Trim();
+                }
+            }
+            
             if (dictionary != null)
             {
                 foreach (KeyValuePair<string, string> entry in dictionary)
                 {
-                    Session[entry.Key] = !string.IsNullOrEmpty(entry.Value) ? entry.Value : null;
+                    // Set session only if value is not null or "null" string
+                    if (!string.IsNullOrEmpty(entry.Value) && entry.Value.ToLower() != "null")
+                    {
+                        Session[entry.Key] = entry.Value;
+                    }
+                }
+                
+                // Special handling for Donor payment
+                if (dictionary.ContainsKey("CommitteeMemberId") && !string.IsNullOrEmpty(dictionary["CommitteeMemberId"]))
+                {
+                    Session["CommitteeMemberId"] = dictionary["CommitteeMemberId"];
+                }
+                
+                // Special handling for Category
+                if (dictionary.ContainsKey("Category") && dictionary["Category"] == "Donor")
+                {
+                    Session["Category"] = "Donor";
                 }
             }
         }
 
         private void SavePaymentInfoAfterSuccess(string paymentRecordID)
         {
-            var Payment_DataSet = new OrdersTableAdapter();
+            // Validate that required session variables are set
+            if (Session["SchoolID"] == null || Session["Edu_Year"] == null)
+            {
+                Response.Redirect("~/Default.aspx");
+                return;
+            }
 
+            int SchoolID = Convert.ToInt32(Session["SchoolID"].ToString());
+            int Crrent_EduYearID = Convert.ToInt32(Session["Edu_Year"].ToString());
+            
+            // Check if this is a donor payment (starts with "DON_")
+            if (paymentRecordID.StartsWith("DON_"))
+            {
+                ProcessDonorPayment(paymentRecordID, SchoolID, Crrent_EduYearID);
+                return;
+            }
+            
+            // Otherwise, process as student payment
+            var Payment_DataSet = new OrdersTableAdapter();
             double TotalPaid = 0;
             int MoneyReceiptID = 0;
-            int StudentClassID = Convert.ToInt32(Session["StudentClassID"].ToString());
-            int StudentID = Convert.ToInt32(Session["StudentID"].ToString());
+            int RegistrationID = GetAdminRegistrationId(SchoolID);
 
-            int Crrent_EduYearID = Convert.ToInt32(Session["Edu_Year"].ToString());
-            int SchoolID = Convert.ToInt32(Session["SchoolID"].ToString());
-            int RegistrationID = GetAdminRegistrationId(SchoolID);  //Convert.ToInt32(Session["RegistrationID"].ToString());
+            // Check if this is a student payment
+            bool isStudentPayment = Session["StudentClassID"] != null && Session["StudentID"] != null;
+            
+            int StudentClassID = 0;
+            int StudentID = 0;
 
-            MoneyReceiptID = Convert.ToInt32(Payment_DataSet.Insert_MoneyReceipt(StudentID, RegistrationID, StudentClassID, Crrent_EduYearID, "Institution", DateTime.Now, SchoolID));
+            if (isStudentPayment)
+            {
+                StudentClassID = Convert.ToInt32(Session["StudentClassID"].ToString());
+                StudentID = Convert.ToInt32(Session["StudentID"].ToString());
+                
+                MoneyReceiptID = Convert.ToInt32(Payment_DataSet.Insert_MoneyReceipt(StudentID, RegistrationID, StudentClassID, Crrent_EduYearID, "Institution", DateTime.Now, SchoolID));
+            }
 
             using (SqlConnection conn = new SqlConnection())
             {
@@ -175,27 +247,253 @@ namespace EDUCATION.COM
                             string PayFor = sdr["PayFor"].ToString();
                             var PaidDate = DateTime.Parse(sdr["PaidDate"].ToString());
                             int AccountID = Int32.Parse(sdr["AccountID"].ToString());
-                            Payment_DataSet.Insert_Payment_Record(StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, PayFor, PaidDate, MoneyReceiptID, StudentClassID, P_Order_EduYearID, SchoolID, AccountID);
-                            Payment_DataSet.Update_payOrder(PaidAmount, PayOrderID);
+                            
+                            if (isStudentPayment)
+                            {
+                                Payment_DataSet.Insert_Payment_Record(StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, PayFor, PaidDate, MoneyReceiptID, StudentClassID, P_Order_EduYearID, SchoolID, AccountID);
+                                Payment_DataSet.Update_payOrder(PaidAmount, PayOrderID);
+                            }
+                            
                             TotalPaid += PaidAmount;
                         }
                     }
                     conn.Close();
-
                 }
             }
 
-            Payment_DataSet.Update_MoneyReceipt(TotalPaid, MoneyReceiptID);
+            if (isStudentPayment)
+            {
+                Payment_DataSet.Update_MoneyReceipt(TotalPaid, MoneyReceiptID);
 
-            string MRid = HttpUtility.UrlEncode(Encrypt(Convert.ToString(MoneyReceiptID)));
-            string Sid = HttpUtility.UrlEncode(Encrypt(GetStudentId()));
-            Response.Redirect(string.Format("~/Accounts/Payment/Money_Receipt.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
+                string studentIdStr = GetStudentId();
+                if (!string.IsNullOrEmpty(studentIdStr))
+                {
+                    string MRid = HttpUtility.UrlEncode(Encrypt(Convert.ToString(MoneyReceiptID)));
+                    string Sid = HttpUtility.UrlEncode(Encrypt(studentIdStr));
+                    Response.Redirect(string.Format("~/Accounts/Payment/Money_Receipt.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
+                }
+                else
+                {
+                    Response.Redirect("~/Default.aspx");
+                }
+            }
+            else
+            {
+                Response.Redirect("~/Default.aspx");
+            }
+        }
 
+        private void ProcessDonorPayment(string paymentRecordID, int schoolID, int educationYearID)
+        {
+            try
+            {
+                double totalPaid = 0;
+                int committeeMoneyReceiptId = 0;
+                int committeeMemberId = 0;
+                int registrationID = 0;
+                int accountId = 0;
+
+                using (SqlConnection conn = new SqlConnection())
+                {
+                    conn.ConnectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                    conn.Open();
+
+                    using (SqlTransaction transaction = conn.BeginTransaction())
+                    {
+                        try
+                        {
+                            // ✅ Get donation records from temporary table - NOW WITH DELETE OUTPUT to prevent duplicates
+                            using (SqlCommand cmd = new SqlCommand())
+                            {
+                                cmd.Transaction = transaction;
+                                cmd.Connection = conn;
+                                
+                                // ✅ Check if table exists, if not create it
+                                cmd.CommandText = @"IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Temp_Online_DonationPaymentRecord')
+                                           BEGIN
+                                               CREATE TABLE Temp_Online_DonationPaymentRecord (
+                                                   PaymentRecordID NVARCHAR(100),
+                                                   CommitteeMemberId INT,
+                                                   CommitteeDonationId INT,
+                                                   PaidAmount DECIMAL(18,2),
+                                                   PaidDate DATETIME,
+                                                   AccountID INT
+                                               )
+                                           END";
+                                cmd.ExecuteNonQuery();
+                                
+                                // ✅ Delete and get records in single atomic operation
+                                cmd.CommandText = @"DELETE FROM Temp_Online_DonationPaymentRecord
+                                           OUTPUT DELETED.PaymentRecordID, DELETED.CommitteeMemberId, DELETED.CommitteeDonationId, DELETED.PaidAmount, DELETED.PaidDate, DELETED.AccountID 
+                                           WHERE PaymentRecordID = @PaymentRecordID";
+                                
+
+                                cmd.Parameters.Clear();
+                                cmd.Parameters.AddWithValue("@PaymentRecordID", paymentRecordID);
+
+                                var donationRecords = new List<DonationTempRecord>();
+
+                                using (SqlDataReader sdr = cmd.ExecuteReader())
+                                {
+                                    while (sdr.Read())
+                                    {
+                                        var record = new DonationTempRecord
+                                        {
+                                            CommitteeMemberId = Convert.ToInt32(sdr["CommitteeMemberId"]),
+                                            CommitteeDonationId = Convert.ToInt32(sdr["CommitteeDonationId"]),
+                                            PaidAmount = Convert.ToDouble(sdr["PaidAmount"]),
+                                            PaidDate = Convert.ToDateTime(sdr["PaidDate"]),
+                                            AccountID = Convert.ToInt32(sdr["AccountID"])
+                                        };
+
+                                        donationRecords.Add(record);
+
+                                        if (committeeMemberId == 0)
+                                        {
+                                            committeeMemberId = record.CommitteeMemberId;
+                                            accountId = record.AccountID;
+                                        }
+                                    }
+                                }
+
+                                if (donationRecords.Count == 0)
+                                {
+                                    // Log error - no records found
+                                    string script = "<script type='text/javascript'>alert('No payment records found. PaymentRecordID: " + paymentRecordID + "');</script>";
+                                    ClientScript.RegisterStartupScript(this.GetType(), "NoRecords", script);
+                                    Response.Redirect("~/Committee/Donor_Dues.aspx?error=no_records", false);
+                                    return;
+                                }
+
+                                // ✅ Get admin registration ID
+                                registrationID = GetAdminRegistrationId(schoolID);
+
+                                // ✅ Insert money receipt
+                                using (SqlCommand receiptCmd = new SqlCommand())
+                                {
+                                    receiptCmd.Transaction = transaction;
+                                    receiptCmd.CommandText = @"INSERT INTO CommitteeMoneyReceipt 
+                                                      (RegistrationId, SchoolId, CommitteeMemberId, EducationYearId, AccountId, CommitteeMoneyReceiptSn, PaidDate, TotalAmount) 
+                                                      VALUES (@RegistrationID, @SchoolID, @CommitteeMemberId, @EducationYearId, @AccountId, 
+                                                              dbo.F_CommitteeMoneyReceiptSn(@SchoolID), @PaidDate, 0);
+                                                      SELECT SCOPE_IDENTITY();";
+
+
+                                    receiptCmd.Parameters.AddWithValue("@RegistrationID", registrationID);
+                                    receiptCmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                                    receiptCmd.Parameters.AddWithValue("@CommitteeMemberId", committeeMemberId);
+                                    receiptCmd.Parameters.AddWithValue("@EducationYearId", educationYearID);
+                                    receiptCmd.Parameters.AddWithValue("@AccountId", accountId);
+                                    receiptCmd.Parameters.AddWithValue("@PaidDate", DateTime.Now);
+                                    receiptCmd.Connection = conn;
+
+                                    committeeMoneyReceiptId = Convert.ToInt32(receiptCmd.ExecuteScalar());
+                                }
+
+                                // ✅ Process UNIQUE donations ONLY to prevent double payments
+                                var uniqueDonations = donationRecords
+                                    .GroupBy(d => d.CommitteeDonationId)
+                                    .Select(g => g.First())
+                                    .ToList();
+
+                                // ✅ Insert payment records and update donations
+                                foreach (var record in uniqueDonations)
+                                {
+                                    // ✅ Insert payment record
+                                    using (SqlCommand paymentCmd = new SqlCommand())
+                                    {
+                                        paymentCmd.Transaction = transaction;
+                                        paymentCmd.CommandText = @"INSERT INTO CommitteePaymentRecord 
+                                                          (SchoolId, RegistrationId, CommitteeDonationId, CommitteeMoneyReceiptId, PaidAmount) 
+                                                          VALUES (@SchoolID, @RegistrationID, @CommitteeDonationId, @CommitteeMoneyReceiptId, @PaidAmount)";
+
+                                        paymentCmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                                        paymentCmd.Parameters.AddWithValue("@RegistrationID", registrationID);
+                                        paymentCmd.Parameters.AddWithValue("@CommitteeDonationId", record.CommitteeDonationId);
+                                        paymentCmd.Parameters.AddWithValue("@CommitteeMoneyReceiptId", committeeMoneyReceiptId);
+                                        paymentCmd.Parameters.AddWithValue("@PaidAmount", record.PaidAmount);
+                                        paymentCmd.Connection = conn;
+
+                                        paymentCmd.ExecuteNonQuery();
+                                    }
+
+                                    // ✅ SELF-HEALING UPDATE: Recalculate total paid from Payment Records
+                                    using (SqlCommand updateDonationCmd = new SqlCommand())
+                                    {
+                                        updateDonationCmd.Transaction = transaction;
+                                        updateDonationCmd.CommandText = @"
+                                            DECLARE @TotalPaid DECIMAL(18,2);
+                                            
+                                            SELECT @TotalPaid = ISNULL(SUM(PaidAmount), 0) 
+                                            FROM CommitteePaymentRecord 
+                                            WHERE CommitteeDonationId = @CommitteeDonationId AND SchoolID = @SchoolID;
+
+                                            UPDATE CommitteeDonation
+                                            SET PaidAmount = @TotalPaid
+                                            WHERE CommitteeDonationId = @CommitteeDonationId AND SchoolID = @SchoolID";
+                                        
+                                        updateDonationCmd.Parameters.AddWithValue("@CommitteeDonationId", record.CommitteeDonationId);
+                                        updateDonationCmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                                        updateDonationCmd.Connection = conn;
+
+                                        updateDonationCmd.ExecuteNonQuery();
+                                    }
+
+                                    totalPaid += record.PaidAmount;
+                                }
+
+                                // ✅ Update total amount in money receipt
+                                using (SqlCommand updateCmd = new SqlCommand())
+                                {
+                                    updateCmd.Transaction = transaction;
+                                    updateCmd.CommandText = "UPDATE CommitteeMoneyReceipt SET TotalAmount = @TotalAmount WHERE CommitteeMoneyReceiptId = @CommitteeMoneyReceiptId";
+                                    updateCmd.Parameters.AddWithValue("@TotalAmount", totalPaid);
+                                    updateCmd.Parameters.AddWithValue("@CommitteeMoneyReceiptId", committeeMoneyReceiptId);
+                                    updateCmd.Connection = conn;
+
+                                    updateCmd.ExecuteNonQuery();
+                                }
+                            }
+
+                            transaction.Commit();
+                        }
+                        catch (Exception)
+                        {
+                            transaction.Rollback();
+                            throw;
+                        }
+                    }
+                    
+                    conn.Close();
+                }
+
+                // ✅ Success - Redirect to donation receipt
+                // Use Response.Redirect(url, false) to prevent ThreadAbortException
+                string successUrl = "~/Committee/DonationThankYou.aspx";
+                Response.Redirect(successUrl, false);
+                Context.ApplicationInstance.CompleteRequest();
+            }
+            catch (Exception ex)
+            {
+                // Log detailed error
+                string errorScript = "<script type='text/javascript'>alert('Payment processing error: " + ex.Message.Replace("'", "\\'") + "');</script>";
+                ClientScript.RegisterStartupScript(this.GetType(), "PaymentError", errorScript);
+                
+                // Redirect to donor dashboard with error message
+                Response.Redirect("~/Committee/Donor_Dues.aspx?error=payment_failed&msg=" + HttpUtility.UrlEncode(ex.Message));
+            }
         }
 
         private string GetStudentId()
         {
             string id = "";
+            
+            // Check if session variables exist
+            if (Session["StudentID"] == null || Session["RegistrationID"] == null)
+            {
+                return id;
+            }
+            
             string StudentID = Session["StudentID"].ToString();
             string RegistrationID = Session["RegistrationID"].ToString();
 
@@ -274,58 +572,15 @@ namespace EDUCATION.COM
             }
             return registrationId;
         }
-
-        /* 
-        protected void PayButton_Click(object sender, EventArgs e)
-        {
-            //MakeOnlinePayment("", "");
-            // return;
-
-            var Payment_DataSet = new OrdersTableAdapter();
-
-            double TotalPaid = 0;
-            int MoneyReceiptID = 0;
-            int StudentClassID = Convert.ToInt32(Session["StudentClassID"].ToString());
-            int StudentID = Convert.ToInt32(Session["StudentID"].ToString());
-
-            int Crrent_EduYearID = Convert.ToInt32(Session["Edu_Year"].ToString());
-            int SchoolID = Convert.ToInt32(Session["SchoolID"].ToString());
-            int RegistrationID = GetAdminRegistrationId(SchoolID);  //Convert.ToInt32(Session["RegistrationID"].ToString());
-
-            MoneyReceiptID = Convert.ToInt32(Payment_DataSet.Insert_MoneyReceipt(StudentID, RegistrationID, StudentClassID, Crrent_EduYearID, "Institution", DateTime.Now, SchoolID));
-
-            //Current Session GV
-            foreach (GridViewRow row in DueGridView.Rows)
-            {
-                CheckBox DueCheckBox = (CheckBox)row.FindControl("DueCheckBox");
-                int PayOrderID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["PayOrderID"]);
-                int RoleID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["RoleID"]);
-                int P_Order_EduYearID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["EducationYearID"]);
-
-                double PaidAmount = Convert.ToDouble(Payment_DataSet.DueByPayOrderID(PayOrderID));
-
-                if (DueCheckBox.Checked)
-                {
-                    //Payment_DataSet.Insert_Payment_Record(StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, DueGridView.DataKeys[row.RowIndex]["PayFor"].ToString(), DateTime.Now, MoneyReceiptID, StudentClassID, P_Order_EduYearID, SchoolID, Convert.ToInt32(AccountDropDownList.SelectedValue));
-                    Payment_DataSet.Insert_Payment_Record(StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, DueGridView.DataKeys[row.RowIndex]["PayFor"].ToString(), DateTime.Now, MoneyReceiptID, StudentClassID, P_Order_EduYearID, SchoolID, 2);
-                    Payment_DataSet.Update_payOrder(PaidAmount, PayOrderID);
-
-                    TotalPaid += PaidAmount;
-                    DueCheckBox.Checked = false;
-                }
-            }
-
-            Payment_DataSet.Update_MoneyReceipt(TotalPaid, MoneyReceiptID);
-
-
-            string MRid = HttpUtility.UrlEncode(Encrypt(Convert.ToString(MoneyReceiptID)));
-            string Sid = HttpUtility.UrlEncode(Encrypt(GetStudentId()));
-            //Response.Redirect(string.Format("Money_Receipt.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
-
-            //Response.Redirect(string.Format("Money_Receipt.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
-            MakeOnlinePayment(MRid, Sid);
-        }
-
-*/
+    }
+    
+    // Helper class for donation temp records
+    internal class DonationTempRecord
+    {
+        public int CommitteeMemberId { get; set; }
+        public int CommitteeDonationId { get; set; }
+        public double PaidAmount { get; set; }
+        public DateTime PaidDate { get; set; }
+        public int AccountID { get; set; }
     }
 }

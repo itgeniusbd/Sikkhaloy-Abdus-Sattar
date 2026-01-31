@@ -16,22 +16,32 @@ namespace EDUCATION.COM
 
         protected void UserLogin_LoginError(object sender, EventArgs e)
         {
+            string errorMessage = "";
+            
             var usrInfo = Membership.GetUser(UserLogin2.UserName.Trim());
             if (usrInfo != null)
             {
                 if (usrInfo.IsLockedOut)
                 {
-                    UserLogin2.FailureText = "Your account has been locked out because of too many invalid login attempts. Please contact the administrator to have your account unlocked.";
+                    errorMessage = "<i class='fa fa-exclamation-triangle'></i> আপনার একাউন্ট লক হয়ে গেছে। অনেকবার ভুল পাসওয়ার্ড দেওয়ার কারণে আপনার একাউন্ট সাময়িকভাবে বন্ধ করা হয়েছে। অনুগ্রহ করে প্রশাসকের সাথে যোগাযোগ করুন।<br/><br/>Your account has been locked out because of too many invalid login attempts. Please contact the administrator to have your account unlocked.";
                 }
                 else if (!usrInfo.IsApproved)
                 {
-                    UserLogin2.FailureText = "Your account has not been approved. You cannot login until an administrator has approved your account.";
+                    errorMessage = "<i class='fa fa-exclamation-triangle'></i> আপনার একাউন্ট এখনও অনুমোদিত হয়নি। প্রশাসক অনুমোদন না করা পর্যন্ত আপনি লগইন করতে পারবেন না।<br/><br/>Your account has not been approved. You cannot login until an administrator has approved your account.";
+                }
+                else
+                {
+                    errorMessage = "<i class='fa fa-times-circle'></i> ভুল পাসওয়ার্ড! অনুগ্রহ করে সঠিক পাসওয়ার্ড দিয়ে আবার চেষ্টা করুন।<br/><br/>Wrong password! Please try again with the correct password.";
                 }
             }
             else
             {
-                UserLogin2.FailureText = "Your login attempt was not successful. Please try again.";
+                errorMessage = "<i class='fa fa-user-times'></i> এই ইউজারনেম পাওয়া যায়নি। অনুগ্রহ করে সঠিক ইউজারনেম দিয়ে আবার চেষ্টা করুন।<br/><br/>Username not found. Please try again with correct username.";
             }
+            
+            InvalidErrorLabel.Text = errorMessage;
+            InvalidErrorLabel.CssClass = "error-message";
+            InvalidErrorLabel.Visible = true;
         }
 
         protected void UserLogin_LoggedIn(object sender, EventArgs e)
@@ -176,6 +186,26 @@ namespace EDUCATION.COM
                 if (oTeacherId != null)
                 {
                     Session["TeacherID"] = oTeacherId;
+                }
+
+                object oCommitteeMemberId;
+                using (var con = new SqlConnection(constr))
+                {
+                    con.Open();
+                    using (var cmd = new SqlCommand(@"SELECT CM.CommitteeMemberId FROM CommitteeMember CM 
+                                                      INNER JOIN Registration R ON R.SchoolID = CM.SchoolID AND R.UserName = CM.SmsNumber 
+                                                      WHERE R.RegistrationID = @RegistrationID", con))
+                    {
+                        cmd.CommandType = CommandType.Text;
+                        cmd.Parameters.AddWithValue("@RegistrationID", RegistrationID);
+                        oCommitteeMemberId = cmd.ExecuteScalar();
+                    }
+                    con.Close();
+                }
+
+                if (oCommitteeMemberId != null)
+                {
+                    Session["CommitteeMemberID"] = oCommitteeMemberId;
                 }
             }
         }

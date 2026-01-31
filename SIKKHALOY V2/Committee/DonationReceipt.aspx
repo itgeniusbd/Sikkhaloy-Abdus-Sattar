@@ -7,15 +7,79 @@
         .grid-footer td { font-weight: bold; }
         .received-by-user-container { text-align: center; color: #333; font-size: 11px; margin-top: 5px; }
 
+        /* Payment Receipt Header */
+        .payment-receipt-header {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin: 0px 0 5px 0;
+            padding: 3px 0;
+            border-top: 1px solid #333;
+            border-bottom: 1px solid #333;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Two Column Layout for Receipt Info */
+        .receipt-info-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0 10px 0;
+            padding: 1px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .receipt-info-left {
+            flex: 1;
+            padding: 5px 15px;
+            border-right: 1px solid #ddd;
+        }
+
+        .receipt-info-right {
+            flex: 1;
+            padding: 5px 15px;
+        }
+
+        .receipt-info-left p, .receipt-info-right p {
+            margin: 5px 0;
+            font-size: 12px;
+            border-bottom: 1px solid #eee;
+            color: #000 !important;
+            padding-bottom: 2px;
+        }
+
+        .receipt-info-left p:last-child, .receipt-info-right p:last-child {
+            border-bottom: none;
+        }
+
+        .receipt-info-container strong {
+            font-weight: bold;
+            color: #000 !important;
+        }
+
         @page { margin: 0 13.3rem !important; }
 
         @media print {
             .logo-waper { display: none; }
-            #header { margin-bottom: 10px; border-bottom: none !important; }
+            #header { margin-bottom: 0px !important; padding-top: 0px !important; border-bottom: none !important; }
 
             /*for black and white page*/
             .bg-main { background-color: #fff; color: #000; box-shadow: none !important }
             #InstitutionName { font-weight: bold; color: #000 !important; }
+            
+            .payment-receipt-header {
+                font-size: 16px;
+                border-top: 1px solid #000;
+                border-bottom: 1px solid #000;
+            }
+            .receipt-info-container {
+                border: 1px solid #000;
+            }
+            .receipt-info-left {
+                border-right: 1px solid #000;
+            }
         }
     </style>
     <!--add dynamic css for printing-->
@@ -25,16 +89,20 @@
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <a class="d-print-none" href="DonationCollect.aspx"><< Back To</a>
 
+    <div class="payment-receipt-header">Donation Receipt</div>
+
     <asp:FormView ID="InfoFormView" runat="server" DataKeyNames="MemberName,TotalAmount,SmsNumber,CommitteeMoneyReceiptSn" DataSourceID="InfoSQL" RenderOuterTable="False">
         <ItemTemplate>
-            <div class="info dynamic-font-size">
-                <p class="mb-0"><%# Eval("MemberName") %></p>
-                <p class="mb-0"><%# Eval("SmsNumber") %>,  <%# Eval("Address") %></p>
-                <p class="mb-2">Payment Method:  <%# Eval("AccountName") %></p>
-
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Receipt: <%# Eval("CommitteeMoneyReceiptSn") %></span>
-                    <span>Date: <%# Eval("PaidDate","{0:d MMM yyyy}") %></span>
+            <div class="receipt-info-container dynamic-font-size">
+                <div class="receipt-info-left">
+                    <p><strong>Donor:</strong> <%# Eval("MemberName") %> (<%# Eval("CommitteeMemberType") %>)</p>
+                    <p><strong>Mobile:</strong> <%# Eval("SmsNumber") %></p>
+                    <p><strong>Receipt No:</strong> <%# Eval("CommitteeMoneyReceiptSn") %></p>
+                </div>
+                <div class="receipt-info-right">
+                    <p><strong>Date:</strong> <%# Eval("PaidDate","{0:d MMM yyyy}") %></p>
+                    <p><strong>Payment Method:</strong> <%# Eval("AccountName") %></p>
+                    <p><strong>Address:</strong> <%# Eval("Address") %></p>
                 </div>
             </div>
         </ItemTemplate>
@@ -44,12 +112,12 @@
         SelectCommand="SELECT CommitteeMoneyReceipt.CommitteeMoneyReceiptId, CommitteeMoneyReceipt.CommitteeMemberId, CommitteeMoneyReceipt.AccountId, CommitteeMoneyReceipt.CommitteeMoneyReceiptSn, 
                          CommitteeMoneyReceipt.TotalAmount, CommitteeMoneyReceipt.PaidDate, CommitteeMember.MemberName, CommitteeMember.SmsNumber, CommitteeMember.Address, CommitteeMemberType.CommitteeMemberType, 
                          Account.AccountName, Education_Year.EducationYear, Admin.FirstName, Admin.LastName
-        FROM CommitteeMoneyReceipt INNER JOIN
-                         CommitteeMember ON CommitteeMoneyReceipt.CommitteeMemberId = CommitteeMember.CommitteeMemberId INNER JOIN
-                         CommitteeMemberType ON CommitteeMember.CommitteeMemberTypeId = CommitteeMemberType.CommitteeMemberTypeId INNER JOIN
-                         Account ON CommitteeMoneyReceipt.AccountId = Account.AccountID INNER JOIN
-                         Education_Year ON CommitteeMoneyReceipt.EducationYearId = Education_Year.EducationYearID INNER JOIN
-                         Admin ON CommitteeMoneyReceipt.RegistrationId = Admin.RegistrationID
+        FROM CommitteeMoneyReceipt 
+        INNER JOIN CommitteeMember ON CommitteeMoneyReceipt.CommitteeMemberId = CommitteeMember.CommitteeMemberId 
+        LEFT JOIN CommitteeMemberType ON CommitteeMember.CommitteeMemberTypeId = CommitteeMemberType.CommitteeMemberTypeId 
+        LEFT JOIN Account ON CommitteeMoneyReceipt.AccountId = Account.AccountID 
+        LEFT JOIN Education_Year ON CommitteeMoneyReceipt.EducationYearId = Education_Year.EducationYearID 
+        LEFT JOIN Admin ON CommitteeMoneyReceipt.RegistrationId = Admin.RegistrationID
         WHERE (CommitteeMoneyReceipt.SchoolId = @SchoolId) AND (CommitteeMoneyReceipt.CommitteeMoneyReceiptId = @CommitteeMoneyReceiptId)">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolId" SessionField="SchoolID" Type="Int32" />
@@ -80,9 +148,43 @@
         </SelectParameters>
     </asp:SqlDataSource>
 
-    <p>আল্লাহ আপনার দান কবুল করুন, দুনিয়া ও আখেরাতে উত্তম বিনিময় দান করুন। </p>
+    <div class="text-right mt-2 dynamic-font-size">
+        <label class="m-0" style="white-space: nowrap">
+            <strong id="total-paid"></strong>
+            TK
+        </label>
+        <p class="m-0" id="amount-in-word" style="color: #666;"></p>
+    </div>
 
-    <asp:FormView runat="server" DataSourceID="InfoSQL" RenderOuterTable="False">
+    <div id="CurrentDueSection" style="margin-top: 20px;">
+        <h5 style="border-bottom: 1px solid #333; display: inline-block; font-size: 14px; font-weight: bold; margin-bottom: 5px;">Current Due</h5>
+        <asp:GridView ID="UnpaidGridView" runat="server" AutoGenerateColumns="False" DataSourceID="UnpaidSQL" CssClass="mGrid" Font-Bold="False" RowStyle-CssClass="Rows">
+            <Columns>
+                <asp:BoundField DataField="DonationCategory" HeaderText="Category" />
+                <asp:BoundField DataField="Description" HeaderText="Description" />
+                <asp:TemplateField HeaderText="Due Amount">
+                    <ItemTemplate>
+                        <label class="due-amount">
+                            <%# Eval("Due") %> TK
+                        </label>
+                    </ItemTemplate>
+                </asp:TemplateField>
+            </Columns>
+            <RowStyle CssClass="Rows" />
+        </asp:GridView>
+        <asp:SqlDataSource ID="UnpaidSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+            SelectCommand="SELECT CommitteeDonationCategory.DonationCategory, CommitteeDonation.Description, CommitteeDonation.Due FROM CommitteeDonation INNER JOIN CommitteeDonationCategory ON CommitteeDonation.CommitteeDonationCategoryId = CommitteeDonationCategory.CommitteeDonationCategoryId WHERE (CommitteeDonation.SchoolID = @SchoolID) AND (CommitteeDonation.Due > 0) AND (CommitteeDonation.PromiseDate < CAST(GETDATE() AS DATE)) AND (CommitteeDonation.CommitteeMemberId = (SELECT TOP 1 CommitteeMemberId FROM CommitteeMoneyReceipt WHERE CommitteeMoneyReceiptId = @CommitteeMoneyReceiptId))">
+            <SelectParameters>
+                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                <asp:QueryStringParameter Name="CommitteeMoneyReceiptId" QueryStringField="id" />
+            </SelectParameters>
+        </asp:SqlDataSource>
+    </div>
+
+
+    <p class="mt-3" style="font-style: italic;">আল্লাহ আপনার দান কবুল করুন, দুনিয়া ও আখেরাতে উত্তম বিনিময় দান করুন। </p>
+
+    <asp:FormView ID="FooterFormView" runat="server" DataSourceID="InfoSQL" RenderOuterTable="False">
         <ItemTemplate>
             <div class="received-by-user-container">
                 (© Sikkhaloy.com) Received By: <%# Eval("FirstName") %> <%# Eval("LastName") %>
@@ -90,14 +192,6 @@
         </ItemTemplate>
     </asp:FormView>
 
-
-    <div class="text-right mt-2 dynamic-font-size">
-        <label class="m-0" style="white-space: nowrap">
-            <strong id="total-paid"></strong>
-            TK
-        </label>
-        <p class="m-0" id="amount-in-word"></p>
-    </div>
 
     <div class="d-print-none my-4 card">
         <div class="card-header">
@@ -111,6 +205,10 @@
                 <div>
                     <input id="checkboxInstitution" type="checkbox" />
                     <label for="checkboxInstitution">Hide Institution Name</label>
+                </div>
+                <div class="ml-3">
+                    <input id="checkboxDueDetails" type="checkbox" />
+                    <label for="checkboxDueDetails">Hide Current Due</label>
                 </div>
             </div>
 
@@ -142,7 +240,7 @@
 
         <asp:SqlDataSource ID="SMS_OtherInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
             SelectCommand="SELECT * FROM [SMS] WHERE ([SchoolID] = @SchoolID)"
-            InsertCommand="INSERT INTO SMS_OtherInfo(SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID) VALUES (@SMS_Send_ID, @SchoolID, @StudentID, @TeacherID, @EducationYearID)">
+            InsertCommand="INSERT INTO SMS_OtherInfo(SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID, CommitteeMemberId) VALUES (@SMS_Send_ID, @SchoolID, @StudentID, @TeacherID, @EducationYearID, @CommitteeMemberId)">
             <SelectParameters>
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             </SelectParameters>
@@ -152,6 +250,7 @@
                 <asp:Parameter Name="StudentID" />
                 <asp:Parameter Name="TeacherID" />
                 <asp:Parameter Name="EducationYearID" />
+                <asp:Parameter Name="CommitteeMemberId" />
             </InsertParameters>
         </asp:SqlDataSource>
     </div>
@@ -173,6 +272,12 @@
             $("#total-paid").text(`Total: ${total}`);
             const inWord = number2text(total);
             document.getElementById("amount-in-word").textContent = inWord;
+
+            // Hide Current Due section if empty
+            if ($('#<%= UnpaidGridView.ClientID %> tr').length <= 1) {
+                $("#CurrentDueSection").hide();
+                $(".ml-3:has(#checkboxDueDetails)").hide();
+            }
         });
 
 
@@ -196,6 +301,8 @@
 
         const printContent = document.getElementById("print-content");
         const checkboxInstitution = document.getElementById("checkboxInstitution");
+        const checkboxDueDetails = document.getElementById("checkboxDueDetails");
+        const currentDueSection = document.getElementById("CurrentDueSection");
         const header = document.getElementById("header");
         const institutionInfo = document.querySelector(".bg-main");
 
@@ -208,6 +315,15 @@
 
             stores.set();
             bindPrintOption();
+        });
+
+        //due details show/hide checkbox
+        checkboxDueDetails.addEventListener("change", function () {
+            if (this.checked) {
+                currentDueSection.classList.add("d-print-none");
+            } else {
+                currentDueSection.classList.remove("d-print-none");
+            }
         });
 
         //input top space

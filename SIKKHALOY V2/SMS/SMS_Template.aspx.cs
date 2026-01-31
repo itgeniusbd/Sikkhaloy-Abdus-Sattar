@@ -54,6 +54,13 @@ namespace EDUCATION.COM.SMS
                     TemplateTypeDropDownList.Items.Add(new ListItem("Due Reminder (বকেয়া রিমাইন্ডার)", "DueReminder"));
                     break;
 
+                case "Donor":
+                    TemplateTypeDropDownList.Items.Add(new ListItem("💸 Donor Due - Donor Due Notification (ডোনার বকেয়া)", "DonorDue"));
+                    TemplateTypeDropDownList.Items.Add(new ListItem("✅ Donor Payment - Payment Confirmation (পেমেন্ট নিশ্চিতকরণ)", "DonorPayment"));
+                    TemplateTypeDropDownList.Items.Add(new ListItem("🙏 Donor Thank You - Thank You Message (ধন্যবাদ)", "DonorThankYou"));
+                    TemplateTypeDropDownList.Items.Add(new ListItem("📋 Donor Reminder - Payment Reminder (রিমাইন্ডার)", "DonorReminder"));
+                    break;
+
                 case "Admission":
                     TemplateTypeDropDownList.Items.Add(new ListItem("Admission Confirmation (ভর্তি নিশ্চিতকরণ)", "AdmissionConfirm"));
                     TemplateTypeDropDownList.Items.Add(new ListItem("Admission Welcome (স্বাগতম বার্তা)", "AdmissionWelcome"));
@@ -359,6 +366,7 @@ private void RefreshAllGrids()
     PaymentTemplatesGridView.DataBind();
     AttendanceTemplatesGridView.DataBind();
     DueTemplatesGridView.DataBind();
+    DonorTemplatesGridView.DataBind();
     AdmissionTemplatesGridView.DataBind();
 }
     }

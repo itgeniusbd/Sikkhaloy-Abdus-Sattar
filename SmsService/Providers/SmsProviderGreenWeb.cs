@@ -52,26 +52,26 @@ namespace SmsService
 
         public string SendSms(string massage, string number)
         {
-            const string actionUrl = "api.php?json"; // your powers ms site url; register the ip first
+            const string actionUrl = "api.php?json";
             var request = HttpWebRequest.Create(HostUrl + actionUrl);
             
             // Fix: Replace + with a safe alternative before encoding to preserve it in SMS
             var safeMassage = massage.Replace("A+", "A Plus")
                 .Replace("a+", "a Plus")
-              .Replace("+", " Plus ");
+                .Replace("+", " Plus ");
             
-            var smsText = Uri.EscapeDataString(safeMassage);
+            // GreenWeb API expects form-urlencoded data, but we need proper UTF-8 encoding
+            // Use direct URL encoding with proper UTF-8 handling
+            var smsText = Uri.EscapeDataString(safeMassage);  // This properly handles Unicode
+            
             var dataFormat = "token={0}&to={1}&message={2}";
-
-
             var urlEncodedData = string.Format(dataFormat, ApiKey, number, smsText);
-            var data = Encoding.ASCII.GetBytes(urlEncodedData);
+            var data = Encoding.UTF8.GetBytes(urlEncodedData);
 
-            request.Method = "post";
+            request.Method = "POST";
             request.Proxy = null;
-            request.ContentType = "application/x-www-form-urlencoded";
+            request.ContentType = "application/x-www-form-urlencoded; charset=utf-8";
             request.ContentLength = data.Length;
-
 
             using (var requestStream = request.GetRequestStream())
             {
@@ -108,29 +108,27 @@ namespace SmsService
 
         public void SendSmsMultiple(IEnumerable<SendSmsModel> smsList)
         {
-            const string actionUrl = "api.php?json"; // your powers ms site url; register the ip first
+            const string actionUrl = "api.php?json";
             var request = HttpWebRequest.Create(HostUrl + actionUrl);
 
+            // Create array of SMS data
             var smsData = smsList.Select(s =>
                 new
                 {
                     to = s.Number,
-                    // Fix: Replace + with "Plus" before encoding
-                    message = Uri.EscapeDataString(s.Text.Replace("A+", "A Plus").Replace("a+", "a Plus").Replace("+", " Plus "))
+                    message = s.Text.Replace("A+", "A Plus").Replace("a+", "a Plus").Replace("+", " Plus ")
                 }).ToList();
 
+            // Send as form data with smsdata parameter
             var jsonSmsData = JsonConvert.SerializeObject(smsData);
             var dataFormat = "token={0}&smsdata={1}";
+            var urlEncodedData = string.Format(dataFormat, ApiKey, Uri.EscapeDataString(jsonSmsData));
+            var data = Encoding.UTF8.GetBytes(urlEncodedData);
 
-
-            var urlEncodedData = string.Format(dataFormat, ApiKey, jsonSmsData);
-            var data = Encoding.ASCII.GetBytes(urlEncodedData);
-
-            request.Method = "post";
+            request.Method = "POST";
             request.Proxy = null;
-            request.ContentType = "application/x-www-form-urlencoded";
+            request.ContentType = "application/x-www-form-urlencoded; charset=utf-8";
             request.ContentLength = data.Length;
-
 
             using (var requestStream = request.GetRequestStream())
             {
@@ -142,12 +140,7 @@ namespace SmsService
                 using (var response = request.GetResponse())
                 {
                     dynamic responseObject = ParseResponse(response);
-
-                    //if (responseObject[0].status != "SENT")
-                    //{
-                    //    throw new Exception(string.Format("Sms Sending was failed. Because: {0}",
-                    //        responseObject[0].statusmsg));
-                    //}
+                    // Multiple SMS response handling
                 }
             }
             catch (WebException e)
@@ -160,6 +153,7 @@ namespace SmsService
                 }
             }
         }
+
         private static object ParseResponse(WebResponse r)
         {
             var response = (HttpWebResponse)r;

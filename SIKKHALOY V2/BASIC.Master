@@ -655,6 +655,7 @@
                 'My Accounts': 'আমার একাউন্ট',
                 'Account Details': 'বিস্তারিত হিসাব',
                 'Accounts Log': 'একাউন্ট কাজের হিস্টরী',
+                'Donor/Committee': 'দাতা ও কমিটি',
                 // Accounts sub-items (existing)
                 'Allowance': 'ভাতা',
                 'Deduction': 'কর্তন',

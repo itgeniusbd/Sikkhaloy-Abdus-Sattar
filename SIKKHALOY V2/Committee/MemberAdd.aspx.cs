@@ -25,10 +25,10 @@ namespace EDUCATION.COM.Committee
             MemberNameTextBox.Text = "";
             ReferenceByTextBox.Text = "";
             PhoneTextBox.Text = "";
+            EmailTextBox.Text = "";
             AddressTextBox.Text = "";
             TypeDropDownList.SelectedIndex = 0;
             
-            // Show success message (you can add a label for this)
             ScriptManager.RegisterStartupScript(this, GetType(), "showalert", "alert('Member added successfully!');", true);
         }
 
@@ -41,24 +41,59 @@ namespace EDUCATION.COM.Committee
             TextBox memberNameTB = (TextBox)row.FindControl("MemberNameTB");
             TextBox referenceByTB = (TextBox)row.FindControl("ReferenceByTB");
             TextBox smsNumberTB = (TextBox)row.FindControl("SmsNumberTB");
+            TextBox emailTB = (TextBox)row.FindControl("EmailTB");
             TextBox addressTB = (TextBox)row.FindControl("AddressTB");
             DropDownList editTypeDropDownList = (DropDownList)row.FindControl("EditTypeDropDownList");
+            DropDownList statusDropDownList = (DropDownList)row.FindControl("StatusDropDownList");
             FileUpload editPhotoFileUpload = (FileUpload)row.FindControl("EditPhotoFileUpload");
             
             // Get the member ID
             int memberId = Convert.ToInt32(MemberGridView.DataKeys[row.RowIndex].Value);
             
+            // Check for duplicate phone number (excluding current member)
+            string phone = smsNumberTB.Text.Trim();
+            if (IsDuplicatePhoneForUpdate(phone, memberId))
+            {
+                ScriptManager.RegisterStartupScript(this, GetType(), "showalert", 
+                    "alert('এই মোবাইল নাম্বার দিয়ে ইতিমধ্যেই অন্য একজন ডোনার/মেম্বার যুক্ত আছে।');", true);
+                return;
+            }
+            
             // Update the member with or without photo
             UpdateMemberData(memberId, memberNameTB.Text, referenceByTB.Text, smsNumberTB.Text, 
-                            addressTB.Text, Convert.ToInt32(editTypeDropDownList.SelectedValue), editPhotoFileUpload);
+                            emailTB.Text, addressTB.Text, Convert.ToInt32(editTypeDropDownList.SelectedValue), 
+                            statusDropDownList != null ? statusDropDownList.SelectedValue : "Active",
+                            editPhotoFileUpload);
             
             // Exit edit mode and rebind
             MemberGridView.EditIndex = -1;
             MemberGridView.DataBind();
         }
 
+        private bool IsDuplicatePhoneForUpdate(string phone, int currentMemberId)
+        {
+            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+            {
+                string query = @"SELECT COUNT(*) FROM CommitteeMember 
+                               WHERE SchoolID = @SchoolID 
+                               AND LTRIM(RTRIM(SmsNumber)) = @Phone
+                               AND CommitteeMemberId != @CommitteeMemberId";
+                
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                cmd.Parameters.AddWithValue("@Phone", phone);
+                cmd.Parameters.AddWithValue("@CommitteeMemberId", currentMemberId);
+                
+                con.Open();
+                int count = (int)cmd.ExecuteScalar();
+                con.Close();
+                
+                return count > 0;
+            }
+        }
+
         private void UpdateMemberData(int memberId, string memberName, string referenceBy, string smsNumber, 
-                                    string address, int memberTypeId, FileUpload photoUpload)
+                                    string email, string address, int memberTypeId, string status, FileUpload photoUpload)
         {
             using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
             {
@@ -74,7 +109,9 @@ namespace EDUCATION.COM.Committee
                                       MemberName = @MemberName, 
                                       ReferenceBy = @ReferenceBy, 
                                       SmsNumber = @SmsNumber, 
+                                      Email = @Email,
                                       Address = @Address, 
+                                      Status = @Status,
                                       Photo = @Photo 
                                   WHERE CommitteeMemberId = @CommitteeMemberId";
                     
@@ -89,7 +126,9 @@ namespace EDUCATION.COM.Committee
                                       MemberName = @MemberName, 
                                       ReferenceBy = @ReferenceBy, 
                                       SmsNumber = @SmsNumber, 
-                                      Address = @Address 
+                                      Email = @Email,
+                                      Address = @Address,
+                                      Status = @Status
                                   WHERE CommitteeMemberId = @CommitteeMemberId";
                     
                     cmd = new SqlCommand(updateQuery, con);
@@ -99,8 +138,10 @@ namespace EDUCATION.COM.Committee
                 cmd.Parameters.AddWithValue("@CommitteeMemberTypeId", memberTypeId);
                 cmd.Parameters.AddWithValue("@MemberName", memberName);
                 cmd.Parameters.AddWithValue("@ReferenceBy", referenceBy);
-                cmd.Parameters.AddWithValue("@SmsNumber", smsNumber);
+                cmd.Parameters.AddWithValue("@SmsNumber", smsNumber.Trim());
+                cmd.Parameters.AddWithValue("@Email", string.IsNullOrEmpty(email) ? (object)DBNull.Value : email.Trim());
                 cmd.Parameters.AddWithValue("@Address", address);
+                cmd.Parameters.AddWithValue("@Status", status);
                 cmd.Parameters.AddWithValue("@CommitteeMemberId", memberId);
                 
                 cmd.ExecuteNonQuery();

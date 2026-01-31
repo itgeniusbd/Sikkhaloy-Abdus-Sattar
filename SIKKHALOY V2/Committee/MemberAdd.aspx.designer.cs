@@ -24,15 +24,6 @@ namespace EDUCATION.COM.Committee
         protected global::System.Web.UI.WebControls.DropDownList CommitteeMemberDropDownList;
 
         /// <summary>
-        /// SqlDataSource1 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource SqlDataSource1;
-
-        /// <summary>
         /// NamePhoneTextBox control.
         /// </summary>
         /// <remarks>
@@ -67,6 +58,15 @@ namespace EDUCATION.COM.Committee
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource MemberSQL;
+
+        /// <summary>
+        /// MemberTypeSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource MemberTypeSQL;
 
         /// <summary>
         /// RequiredFieldValidator6 control.
@@ -132,6 +132,24 @@ namespace EDUCATION.COM.Committee
         protected global::System.Web.UI.WebControls.TextBox PhoneTextBox;
 
         /// <summary>
+        /// EmailValidator control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RegularExpressionValidator EmailValidator;
+
+        /// <summary>
+        /// EmailTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox EmailTextBox;
+
+        /// <summary>
         /// AddressTextBox control.
         /// </summary>
         /// <remarks>
@@ -148,15 +166,6 @@ namespace EDUCATION.COM.Committee
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FileUpload ImageFileUpload;
-
-        /// <summary>
-        /// MemberTypeSQL control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource MemberTypeSQL;
 
         /// <summary>
         /// AddMemberButton control.

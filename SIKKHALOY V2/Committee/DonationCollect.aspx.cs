@@ -8,6 +8,14 @@ namespace EDUCATION.COM.Committee
     public partial class DonationCollect : System.Web.UI.Page
     {
         SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
+        
+        private static readonly bool IsSandbox = true; // ✅ Test mode ON
+        private string StoreId = "";
+        private string SignatureKey = "";
+        private string PaymentGatewayBase = "";
+        private string ConfirmationBase = "https://sikkhaloy.com/";
+        private string RequestUrl = "/jsonpost.php";
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack && Session["SchoolID"] != null)
@@ -70,6 +78,7 @@ namespace EDUCATION.COM.Committee
                 {
                     ReceiptSQL.Insert();
 
+                    double totalPaid = 0;
                     foreach (GridViewRow row in DonationGridView.Rows)
                     {
                         var DueCheckBox = (CheckBox)row.FindControl("DueCheckBox");
@@ -78,12 +87,21 @@ namespace EDUCATION.COM.Committee
 
                         if (DueCheckBox.Checked && double.TryParse(PaidAmountTextBox.Text.Trim(), out double PaidAmount))
                         {
+                            totalPaid += PaidAmount;
                             PaymentRecordSQL.InsertParameters["CommitteeDonationId"].DefaultValue = CommitteeDonationId.ToString();
                             PaymentRecordSQL.InsertParameters["CommitteeMoneyReceiptId"].DefaultValue = ViewState["CommitteeMoneyReceiptId"].ToString();
                             PaymentRecordSQL.InsertParameters["PaidAmount"].DefaultValue = PaidAmountTextBox.Text;
                             PaymentRecordSQL.Insert();
                         }
                     }
+
+                    // Update TotalAmount in CommitteeMoneyReceipt
+                    var updateTotalCmd = new SqlCommand("UPDATE CommitteeMoneyReceipt SET TotalAmount = @TotalAmount WHERE CommitteeMoneyReceiptId = @CommitteeMoneyReceiptId", con);
+                    updateTotalCmd.Parameters.AddWithValue("@TotalAmount", totalPaid);
+                    updateTotalCmd.Parameters.AddWithValue("@CommitteeMoneyReceiptId", ViewState["CommitteeMoneyReceiptId"]);
+                    con.Open();
+                    updateTotalCmd.ExecuteNonQuery();
+                    con.Close();
 
                     //if paid amount return to receipt
                     Response.Redirect($"./DonationReceipt.aspx?id={ViewState["CommitteeMoneyReceiptId"]}");

@@ -53,6 +53,9 @@ namespace EDUCATION.COM
 
                         if (Roles.IsUserInRole(User.Identity.Name.Trim(), "Student"))
                             Response.Redirect("~/Student/Student_Profile.aspx");
+
+                        if (Roles.IsUserInRole(User.Identity.Name.Trim(), "Donor"))
+                            Response.Redirect("~/Committee/Donor_Dashboard.aspx");
                     }
                     else
                     {

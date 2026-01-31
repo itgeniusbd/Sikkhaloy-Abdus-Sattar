@@ -30,12 +30,15 @@ namespace EDUCATION.COM.Authority.Invoice
             {
                 var Invoice_CheckBox = row.FindControl("Invoice_CheckBox") as CheckBox;
                 var Total_Student_Label = row.FindControl("Total_Student_Label") as Label;
+                var Committee_Count_Label = row.FindControl("Committee_Count_Label") as Label;
                 var PerStudent_Label = row.FindControl("PerStudent_Label") as Label;
                 var Fixed_Label = row.FindControl("Fixed_Label") as Label;
                 var Discount_TextBox = row.FindControl("Discount_TextBox") as TextBox;
 
                 double Amount = 0;
                 double TotalStudent = Convert.ToDouble(Total_Student_Label.Text);
+                double CommitteeCount = Committee_Count_Label != null ? Convert.ToDouble(Committee_Count_Label.Text) : 0;
+                double TotalBillableCount = TotalStudent + CommitteeCount; // Student + Committee
                 double PerStudent = Convert.ToDouble(PerStudent_Label.Text);
                 double Fixed = Convert.ToDouble(Fixed_Label.Text);
                 double Discount = Convert.ToDouble(Discount_TextBox.Text);
@@ -45,7 +48,7 @@ namespace EDUCATION.COM.Authority.Invoice
                 {
                     if (Fixed == 0)
                     {
-                        Amount = TotalStudent * PerStudent;
+                        Amount = TotalBillableCount * PerStudent; // Changed: Use total billable count
                         PayOrderSQL.InsertParameters["UnitPrice"].DefaultValue = PerStudent.ToString();
                     }
                     else
@@ -58,7 +61,7 @@ namespace EDUCATION.COM.Authority.Invoice
                     PayOrderSQL.InsertParameters["SchoolID"].DefaultValue = Payment_GridView.DataKeys[row.DataItemIndex]["SchoolID"].ToString();
                     PayOrderSQL.InsertParameters["TotalAmount"].DefaultValue = Amount.ToString();
                     PayOrderSQL.InsertParameters["Discount"].DefaultValue = Discount_TextBox.Text;
-                    PayOrderSQL.InsertParameters["Unit"].DefaultValue = TotalStudent.ToString();
+                    PayOrderSQL.InsertParameters["Unit"].DefaultValue = TotalBillableCount.ToString(); // Changed: Use total billable count
                     PayOrderSQL.Insert();
                 }
             }

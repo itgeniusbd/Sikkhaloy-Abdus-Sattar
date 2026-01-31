@@ -71,19 +71,40 @@ namespace EDUCATION.COM.Committee
         public static string DonerAddApi(DonerAddModel model)
         {
             var committeeMemberModel = new CommitteeMemberViewModel();
+            
+            // Trim phone number
+            string phone = model.SmsNumber?.Trim();
+            
             using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
             {
                 using (SqlCommand cmd = new SqlCommand())
                 {
-                    cmd.CommandText = @"INSERT INTO CommitteeMember(CommitteeMemberTypeId, RegistrationID, SchoolID, MemberName, SmsNumber, Address) VALUES (@CommitteeMemberTypeId, @RegistrationID, @SchoolID, @MemberName, @SmsNumber, @Address) SELECT SCOPE_IDENTITY()";
+                    // Check for duplicate phone number
+                    cmd.CommandText = @"SELECT COUNT(*) FROM CommitteeMember 
+                                      WHERE SchoolID = @SchoolID 
+                                      AND LTRIM(RTRIM(SmsNumber)) = @Phone";
+                    cmd.Parameters.AddWithValue("@SchoolID", HttpContext.Current.Session["SchoolID"].ToString());
+                    cmd.Parameters.AddWithValue("@Phone", phone);
+                    cmd.Connection = con;
+                    
+                    con.Open();
+                    int count = (int)cmd.ExecuteScalar();
+                    con.Close();
+                    
+                    if (count > 0)
+                    {
+                        return "{\"error\": \"এই মোবাইল নাম্বার দিয়ে ইতিমধ্যে একজন ডোনার/মেম্বার যুক্ত আছে।\"}";
+                    }
+                    
+                    // Insert new member
+                    cmd.Parameters.Clear();
+                    cmd.CommandText = @"INSERT INTO CommitteeMember(CommitteeMemberTypeId, RegistrationID, SchoolID, MemberName, SmsNumber, Address) VALUES (@CommitteeMemberTypeId, @RegistrationID, @SchoolID, @MemberName, @SmsNumber, @Address); SELECT SCOPE_IDENTITY()";
                     cmd.Parameters.AddWithValue("@CommitteeMemberTypeId", model.CommitteeMemberTypeId);
                     cmd.Parameters.AddWithValue("@RegistrationID", HttpContext.Current.Session["RegistrationID"].ToString());
                     cmd.Parameters.AddWithValue("@SchoolID", HttpContext.Current.Session["SchoolID"].ToString());
                     cmd.Parameters.AddWithValue("@MemberName", model.MemberName);
-                    cmd.Parameters.AddWithValue("@SmsNumber", model.SmsNumber);
+                    cmd.Parameters.AddWithValue("@SmsNumber", phone);
                     cmd.Parameters.AddWithValue("@Address", model.Address);
-
-                    cmd.Connection = con;
 
                     con.Open();
                     var committeeMemberIdObj = cmd.ExecuteScalar();

@@ -456,15 +456,30 @@
     <Content Include="Authority\SignUp_Institution.aspx" />
     <Content Include="Authority\SmsSetting.aspx" />
     <Content Include="BASIC_Master_Fix.txt" />
+    <Content Include="Committee\Change_Password.aspx" />
+    <Content Include="Committee\Create_Donor_Username_password.aspx" />
     <Content Include="Committee\DonationAdd.aspx" />
+    <Content Include="Committee\DonationBulkEdit.aspx" />
     <Content Include="Committee\DonationCategory.aspx" />
     <Content Include="Committee\DonationCollect.aspx" />
+    <Content Include="Committee\DonationPayOrder.aspx" />
     <Content Include="Committee\DonationReceipt.aspx" />
     <Content Include="Committee\Donations.aspx" />
+    <Content Include="Committee\DonationTemplates.aspx" />
+    <Content Include="Committee\DonationThankYou.aspx" />
+    <Content Include="Committee\Donor_Dashboard.aspx" />
+    <Content Include="Committee\Donor_Details.aspx" />
+    <Content Include="Committee\Donor_Dues_Fixed.aspx" />
+    <Content Include="Committee\Donor_Dues_Test.html" />
+    <Content Include="Committee\Donor_Payment_History.aspx" />
+    <Content Include="Committee\Donor_Present_Due.aspx" />
+    <Content Include="Committee\Donor_SMS_Inbox.aspx" />
     <Content Include="Committee\MemberAdd.aspx" />
     <Content Include="Committee\MemberList.aspx" />
     <Content Include="Committee\PaymentRecord.aspx" />
     <Content Include="Committee\Print_MemberList.aspx" />
+    <Content Include="Committee\Scripts\Add_CommitteeMemberId_Column.sql" />
+    <Content Include="Committee\Scripts\Check_Duplicate_Phone_Numbers.sql" />
     <Content Include="Committee\SendSMS.aspx" />
     <Content Include="Committee\UnpaidReceipt.aspx" />
     <Content Include="CSS\bootstrap-multiselect.css" />
@@ -688,6 +703,7 @@
     <Content Include="Student\Exam_Routine_forStudent.aspx" />
     <Content Include="Student\Notice.aspx" />
     <Content Include="Student\OnlinePayment\Success.aspx" />
+    <Content Include="Student\Student_Edit_Profile.aspx" />
     <Content Include="Teacher\AddStudentReport.aspx" />
     <Content Include="Teacher\StudentAttendance.aspx" />
     <Content Include="Teacher\StudentNotice.aspx" />
@@ -724,6 +740,7 @@
     <Content Include="Attendances\Online_Display\mdb\font\roboto\Roboto-Thin.ttf" />
     <Content Include="Attendances\Online_Display\mdb\font\roboto\Roboto-Thin.woff" />
     <Content Include="Attendances\Online_Display\mdb\font\roboto\Roboto-Thin.woff2" />
+    <Content Include="Basic_Donor.Master" />
     <None Include="Cumulativie.xsd">
       <SubType>Designer</SubType>
       <Generator>MSDataSetGenerator</Generator>
@@ -1753,6 +1770,13 @@
     <Compile Include="Basic_Authority.Master.designer.cs">
       <DependentUpon>Basic_Authority.Master</DependentUpon>
     </Compile>
+    <Compile Include="Basic_Donor.Master.cs">
+      <DependentUpon>Basic_Donor.Master</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Basic_Donor.Master.designer.cs">
+      <DependentUpon>Basic_Donor.Master</DependentUpon>
+    </Compile>
     <Compile Include="Basic_Student.Master.cs">
       <DependentUpon>Basic_Student.Master</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -1767,12 +1791,33 @@
     <Compile Include="Basic_Teacher.Master.designer.cs">
       <DependentUpon>Basic_Teacher.Master</DependentUpon>
     </Compile>
+    <Compile Include="Committee\Change_Password.aspx.cs">
+      <DependentUpon>Change_Password.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\Change_Password.aspx.designer.cs">
+      <DependentUpon>Change_Password.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\Create_Donor_Username_password.aspx.cs">
+      <DependentUpon>Create_Donor_Username_password.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\Create_Donor_Username_password.aspx.designer.cs">
+      <DependentUpon>Create_Donor_Username_password.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Committee\DonationAdd.aspx.cs">
       <DependentUpon>DonationAdd.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Committee\DonationAdd.aspx.designer.cs">
       <DependentUpon>DonationAdd.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\DonationBulkEdit.aspx.cs">
+      <DependentUpon>DonationBulkEdit.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\DonationBulkEdit.aspx.designer.cs">
+      <DependentUpon>DonationBulkEdit.aspx</DependentUpon>
     </Compile>
     <Compile Include="Committee\DonationCategory.aspx.cs">
       <DependentUpon>DonationCategory.aspx</DependentUpon>
@@ -1788,6 +1833,13 @@
     <Compile Include="Committee\DonationCollect.aspx.designer.cs">
       <DependentUpon>DonationCollect.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Committee\DonationPayOrder.aspx.cs">
+      <DependentUpon>DonationPayOrder.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\DonationPayOrder.aspx.designer.cs">
+      <DependentUpon>DonationPayOrder.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Committee\DonationReceipt.aspx.cs">
       <DependentUpon>DonationReceipt.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -1801,6 +1853,51 @@
     </Compile>
     <Compile Include="Committee\Donations.aspx.designer.cs">
       <DependentUpon>Donations.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\DonationTemplates.aspx.cs">
+      <DependentUpon>DonationTemplates.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\DonationTemplates.aspx.designer.cs">
+      <DependentUpon>DonationTemplates.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\Donor_Dashboard.aspx.cs">
+      <DependentUpon>Donor_Dashboard.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\Donor_Dashboard.aspx.designer.cs">
+      <DependentUpon>Donor_Dashboard.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\Donor_Details.aspx.cs">
+      <DependentUpon>Donor_Details.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\Donor_Details.aspx.designer.cs">
+      <DependentUpon>Donor_Details.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\Donor_Dues.aspx.cs">
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\Donor_Dues.aspx.designer.cs">
+      <DependentUpon>Donor_Dues.aspx.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\Donor_Payment_History.aspx.cs">
+      <DependentUpon>Donor_Payment_History.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\Donor_Payment_History.aspx.designer.cs">
+      <DependentUpon>Donor_Payment_History.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\Donor_Present_Due.aspx.cs">
+      <DependentUpon>Donor_Present_Due.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Committee\Donor_Present_Due.aspx.designer.cs">
+      <DependentUpon>Donor_Present_Due.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Committee\Donor_SMS_Inbox.aspx.cs">
+      <DependentUpon>Donor_SMS_Inbox.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Committee\MemberAdd.aspx.cs">
       <DependentUpon>MemberAdd.aspx</DependentUpon>
@@ -2673,6 +2770,13 @@
     </Compile>
     <Compile Include="Student\Student_Details.aspx.designer.cs">
       <DependentUpon>Student_Details.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Student\Student_Edit_Profile.aspx.cs">
+      <DependentUpon>Student_Edit_Profile.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Student\Student_Edit_Profile.aspx.designer.cs">
+      <DependentUpon>Student_Edit_Profile.aspx</DependentUpon>
     </Compile>
     <Compile Include="Student\Student_Profile.aspx.cs">
       <DependentUpon>Student_Profile.aspx</DependentUpon>

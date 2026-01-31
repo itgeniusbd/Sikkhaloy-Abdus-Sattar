@@ -340,6 +340,57 @@
                         <asp:TextBox ID="Per_Student_TextBox" ToolTip="Per Student" onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" CssClass="form-control" runat="server" Text='<%# Bind("Per_Student_Rate") %>'></asp:TextBox>
                     </ItemTemplate>
                 </asp:TemplateField>
+                <asp:TemplateField HeaderText="Committee Member Bill">
+                    <ItemTemplate>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="margin-bottom: 10px; font-weight: bold; color: #495057;">
+                                <i class="fa fa-users" aria-hidden="true"></i> Committee Billing
+                            </div>
+                            <asp:Repeater ID="CommitteeCategoryRepeater" runat="server" 
+                                          DataSource='<%# GetCommitteeCategories(Eval("SchoolID")) %>' 
+                                          OnItemDataBound="CommitteeCategoryRepeater_ItemDataBound">
+                                <ItemTemplate>
+                                    <div style="display: flex; align-items: center; margin-bottom: 8px; padding: 8px; background: white; border-radius: 6px; border: 1px solid #dee2e6;">
+                                        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                            <asp:CheckBox ID="CategoryCheckBox" runat="server" 
+                                                          Checked='<%# Eval("IsIncluded") %>'
+                                                          ToolTip="Include in billing"
+                                                          CssClass="committee-category-checkbox"
+                                                          style="margin-right: 4px;" />
+                                            <span style="flex: 1; font-size: 13px; color: #495057;">
+                                                <%# Eval("CommitteeMemberType") %>
+                                            </span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span style="padding: 4px 10px; background: <%# Convert.ToInt32(Eval("ActiveMemberCount")) > 0 ? "#28a745" : "#6c757d" %>; color: white; border-radius: 12px; font-size: 11px; font-weight: bold;">
+                                                <%# Eval("ActiveMemberCount") %> active
+                                            </span>
+                                            <asp:CheckBox ID="CategoryActiveCheckBox" runat="server" 
+                                                          Checked='<%# Eval("IsActive") %>'
+                                                          ToolTip="Category Active/Inactive"
+                                                          CssClass="committee-active-checkbox"
+                                                          Text=" "
+                                                          style="margin: 0;" />
+                                            <span style="font-size: 11px; color: #6c757d; white-space: nowrap;">
+                                                <%# Convert.ToBoolean(Eval("IsActive")) ? "✓ Active" : "✗ Inactive" %>
+                                            </span>
+                                        </div>
+                                        <asp:HiddenField ID="CategoryIdHF" runat="server" Value='<%# Eval("CommitteeMemberTypeId") %>' />
+                                    </div>
+                                </ItemTemplate>
+                            </asp:Repeater>
+                            <div style="margin-top: 10px; padding: 8px; background: #e7f3ff; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-weight: bold; color: #007bff;">
+                                    <i class="fa fa-calculator" aria-hidden="true"></i> 
+                                    Total Active: <asp:Label ID="TotalCommitteeCountLabel" runat="server" Text="0"></asp:Label> members
+                                </div>
+                                <div style="font-size: 11px; color: #6c757d;">
+                                    (Only active & selected categories counted)
+                                </div>
+                            </div>
+                        </div>
+                    </ItemTemplate>
+                </asp:TemplateField>
                 <asp:TemplateField HeaderText="Free SMS" SortExpression="Free_SMS">
                     <ItemTemplate>
                         <asp:TextBox ID="Free_SMS_TextBox" ToolTip="Free SMS" onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" CssClass="form-control" runat="server" Text='<%# Bind("Free_SMS") %>'></asp:TextBox>

@@ -97,17 +97,18 @@ namespace SmsService
                .Replace("a+", "a Plus")
              .Replace("+", " Plus ");
 
-            var smsText = Uri.EscapeDataString(safeMassage);
+            // Fix for Bangla/Unicode characters: Use UTF-8 byte encoding and manually convert to percent-encoding
+            var smsText = UrlEncodeBangla(safeMassage);
             var receiversParam = number;
             var dataFormat = "userId={0}&password={1}&smsText={2}&commaSeperatedReceiverNumbers={3}";
 
 
             var urlEncodedData = string.Format(dataFormat, UserId, Password, smsText, receiversParam);
-            var data = Encoding.ASCII.GetBytes(urlEncodedData);
+            var data = Encoding.UTF8.GetBytes(urlEncodedData);
 
             request.Method = "post";
             request.Proxy = null;
-            request.ContentType = "application/x-www-form-urlencoded";
+            request.ContentType = "application/x-www-form-urlencoded; charset=utf-8";
             request.ContentLength = data.Length;
 
 
@@ -144,6 +145,39 @@ namespace SmsService
             }
 
             return string.Empty;
+        }
+
+        /// <summary>
+        /// URL encode text with UTF-8 encoding (including Bangla/Unicode characters)
+        /// </summary>
+        private static string UrlEncodeBangla(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            var bytes = Encoding.UTF8.GetBytes(text);
+            var sb = new StringBuilder();
+
+            foreach (var b in bytes)
+            {
+                // Only encode non-ASCII characters and special characters
+                if ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') ||
+                    b == '-' || b == '_' || b == '.' || b == '~')
+                {
+                    sb.Append((char)b);
+                }
+                else if (b == ' ')
+                {
+                    sb.Append('+');
+                }
+                else
+                {
+                    sb.Append('%');
+                    sb.Append(b.ToString("X2"));
+                }
+            }
+
+            return sb.ToString();
         }
 
         public void SendSmsMultiple(IEnumerable<SendSmsModel> smsList)

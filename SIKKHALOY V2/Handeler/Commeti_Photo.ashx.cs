@@ -14,7 +14,7 @@ namespace EDUCATION.COM.Handeler
             var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
 
             var cmd = new SqlCommand("SELECT Photo from CommitteeMember  where CommitteeMemberId = @CommitteeMemberId", con);
-            cmd.Parameters.AddWithValue("@Photo", context.Request.QueryString["CID"]);
+            cmd.Parameters.AddWithValue("@CommitteeMemberId", context.Request.QueryString["CID"]);
             con.Open();
             var reader = cmd.ExecuteReader(CommandBehavior.CloseConnection);
 

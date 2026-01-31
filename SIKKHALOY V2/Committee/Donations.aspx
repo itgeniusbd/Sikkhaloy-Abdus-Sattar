@@ -4,7 +4,20 @@
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <h3 class="d-flex justify-content-between align-items-center py-0">Donations
-        <a class="btn btn-dark d-print-none" href="DonationAdd.aspx">Add Donation</a>
+        <div>
+            <a class="btn btn-primary d-print-none mr-2" href="Create_Donor_Username_password.aspx">
+                <i class="fa fa-user-plus"></i> Create Donor Login
+            </a>
+            <a class="btn btn-warning d-print-none mr-2" href="Donor_Present_Due.aspx">
+                <i class="fa fa-list"></i> Donor Due List
+            </a>
+            <a class="btn btn-info d-print-none mr-2" href="DonationBulkEdit.aspx">
+                <i class="fa fa-edit"></i> Bulk Pay Order Edit
+            </a>
+            <a class="btn btn-success d-print-none mr-2" href="DonationPayOrder.aspx">Bulk Pay Order</a>
+            <asp:Button ID="ExportExcelButton" runat="server" Text="Export to Excel" CssClass="btn btn-secondary mr-2 d-print-none" OnClick="ExportExcelButton_Click" />
+            <a class="btn btn-dark d-print-none" href="DonationAdd.aspx">Add Donation</a>
+        </div>
     </h3>
 
     <div class="d-flex align-items-center">

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checkbox Test</title>
+    <style>
+        .row-selected {
+            background-color: #d4edda !important;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .payment-section {
+            display: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+        }
+        .btn {
+            background: #38ef7d;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>Donation Selection Test</h2>
+    
+    <div id="payment-section" class="payment-section">
+        <h3 id="total-display">Total: ?0.00</h3>
+        <button class="btn" onclick="alert('Payment button clicked!')">Pay Now</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>
+                    <input type="checkbox" id="selectAll" /> Select All
+                </th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Due</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="donation-row">
+                <td>
+                    <input type="checkbox" class="donation-checkbox" data-due="10.00" data-id="1" />
+                </td>
+                <td>Special Donation</td>
+                <td>?10.00</td>
+                <td>?10.00</td>
+            </tr>
+            <tr class="donation-row">
+                <td>
+                    <input type="checkbox" class="donation-checkbox" data-due="20.00" data-id="2" />
+                </td>
+                <td>General Fund</td>
+                <td>?20.00</td>
+                <td>?20.00</td>
+            </tr>
+            <tr class="donation-row">
+                <td>
+                    <input type="checkbox" class="donation-checkbox" data-due="30.00" data-id="3" />
+                </td>
+                <td>Building Fund</td>
+                <td>?30.00</td>
+                <td>?30.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        // Select All
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.donation-checkbox');
+            const isChecked = this.checked;
+            
+            checkboxes.forEach(cb => {
+                cb.checked = isChecked;
+                const row = cb.closest('tr');
+                if (isChecked) {
+                    row.classList.add('row-selected');
+                } else {
+                    row.classList.remove('row-selected');
+                }
+            });
+            
+            calculateTotal();
+        });
+
+        // Individual checkboxes
+        document.querySelectorAll('.donation-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const row = this.closest('tr');
+                if (this.checked) {
+                    row.classList.add('row-selected');
+                } else {
+                    row.classList.remove('row-selected');
+                }
+                
+                // Update Select All
+                const allCheckboxes = document.querySelectorAll('.donation-checkbox');
+                const checkedCheckboxes = document.querySelectorAll('.donation-checkbox:checked');
+                document.getElementById('selectAll').checked = 
+                    allCheckboxes.length === checkedCheckboxes.length && allCheckboxes.length > 0;
+                
+                calculateTotal();
+            });
+        });
+
+        // Row click
+        document.querySelectorAll('.donation-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.type === 'checkbox') return;
+                
+                const checkbox = this.querySelector('.donation-checkbox');
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+            });
+        });
+
+        function calculateTotal() {
+            let total = 0;
+            document.querySelectorAll('.donation-checkbox:checked').forEach(cb => {
+                total += parseFloat(cb.dataset.due);
+            });
+            
+            document.getElementById('total-display').textContent = `Total: ?${total.toFixed(2)}`;
+            
+            const paymentSection = document.getElementById('payment-section');
+            if (total > 0) {
+                paymentSection.style.display = 'block';
+            } else {
+                paymentSection.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

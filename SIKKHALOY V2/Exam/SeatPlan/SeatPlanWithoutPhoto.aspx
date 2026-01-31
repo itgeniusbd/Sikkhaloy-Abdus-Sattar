@@ -20,8 +20,8 @@
             border-radius: 50px;
             vertical-align: middle;
             background: #f4ebeb;
-            height: 80px;
-            width: 80px;
+            height: 90px;
+            width: 90px;
             font-size: 14px;
             font-weight: bold;
             margin-bottom: 10px;
@@ -31,23 +31,21 @@
             justify-content: center;
             align-items: center;
         }
-        .seat-number {
-            text-align: center;
-            border: 2px solid #d32f2f;
-            border-radius: 50px;
-            background: #ffebee;
-            height: 80px;
-            width: 80px;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            padding-top: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #d32f2f;
-        }
+.seat-number {
+    text-align: center;
+    border: 1px solid #cec5c5;
+    border-radius: 50px;
+    background: #f4ebeb;
+    height: 90px;
+    width: 90px;
+    font-weight: bold;
+    margin-bottom: 0px;
+    padding-top: 0px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
         #user-info .middle-content {
             margin: 0;
             padding: 0 10px;
@@ -187,8 +185,8 @@
                             </ul>
                         </div>
                         <div class="seat-number">
-                            <div style="font-size: 12px;">আসন নং</div>
-                            <div><strong style="font-size: 16px;"><%# String.IsNullOrEmpty(Eval("SeatNo").ToString()) ? "-" : Eval("SeatNo") %></strong></div>
+                            <div style="font-size: 11px;margin-bottom:-15px;">আসন নং</div>
+                            <div><strong style="font-size: 55px;"><%# String.IsNullOrEmpty(Eval("SeatNo").ToString()) ? " " : Eval("SeatNo") %></strong></div>
                         </div>
                     </div>
                 </div>

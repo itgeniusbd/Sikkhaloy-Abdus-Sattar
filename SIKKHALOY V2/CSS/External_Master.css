@@ -75,7 +75,7 @@
     font-size: 15px;
     transition: all 0.3s ease;
     background-color: #3d5568;
-    color: #fff;
+    color: #ffffff !important;
     outline: none;
 }
 
@@ -83,10 +83,12 @@
     border-color: #00c851;
     box-shadow: 0 0 0 3px rgba(0, 200, 81, 0.2);
     background-color: #4a5f7f;
+    color: #ffffff !important;
 }
 
 .modern-input::placeholder {
     color: #95a5a6;
+    opacity: 1;
 }
 
 .modern-login-btn {
@@ -385,6 +387,17 @@
         transform: scale(1.2);
         opacity: 1;
     }
+}
+
+/* Shake animation for error */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+.shake {
+    animation: shake 0.5s;
 }
 
 /* Remove old animations */

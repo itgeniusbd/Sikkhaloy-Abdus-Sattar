@@ -19,7 +19,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.5.15/css/mdb.min.css" rel="stylesheet" />
 
     <!-- Custom -->
-    <link href="/CSS/External_Master.css?v=16.2" rel="stylesheet" />
+    <link href="/CSS/External_Master.css?v=16.3" rel="stylesheet" />
 
     <!--[if lt IE 9]>
      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
@@ -158,8 +158,10 @@
                                                 <asp:Button ID="LoginButton" runat="server" CommandName="Login" class="modern-login-btn" Text="Log In" ValidationGroup="Login1" OnClientClick="return showLoginAnimation();" />
                                             </div>
                                         </div>
-                                        <div class="alert-danger" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none;">
-                                            <asp:Literal ID="FailureText" runat="server" EnableViewState="False"></asp:Literal>
+                                        <div class="modern-form-group">
+                                            <div class="alert alert-danger text-center" id="errorMessageDiv" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none;">
+                                                <asp:Literal ID="FailureText" runat="server" EnableViewState="False"></asp:Literal>
+                                            </div>
                                         </div>
                                     </LayoutTemplate>
                                 </asp:Login>
@@ -207,6 +209,10 @@
         function showLoginAnimation() {
             // Only show animation if form validation passes
             if (Page_ClientValidate('Login1')) {
+                // Hide any existing errors first
+                $('#errorMessageDiv').hide();
+                $('.Error').hide();
+                
                 $('#loginLoadingAnimation').fadeIn(300);
                 return true;
             }
@@ -275,19 +281,42 @@
                     hideLoginAnimation();
                     
                     // Check if there was an error
-                    var failureText = $('[id*=FailureText]').text().trim();
-                    var invalidError = $('[id*=InvalidErrorLabel]').text().trim();
+                    var failureTextControl = $('[id*=FailureText]');
+                    var invalidErrorControl = $('[id*=InvalidErrorLabel]');
+                    var errorDiv = $('#errorMessageDiv');
+                    
+                    var failureText = failureTextControl.text().trim();
+                    var invalidError = invalidErrorControl.text().trim();
+                    
+                    console.log('Failure Text:', failureText);
+                    console.log('Invalid Error:', invalidError);
                     
                     if (failureText || invalidError) {
-                        console.log('Login error detected:', failureText || invalidError);
+                        console.log('Login error detected, showing error message');
                         
                         // Show error in modal
                         if (failureText) {
-                            $('.alert-danger').show();
+                            errorDiv.show();
+                            
+                            // Shake modal for attention
+                            $('.modal-content').addClass('shake');
+                            setTimeout(function() {
+                                $('.modal-content').removeClass('shake');
+                            }, 500);
                         }
+                        
                         if (invalidError) {
-                            $('.Error').show();
+                            invalidErrorControl.show();
                         }
+                        
+                        // Clear password field for security
+                        $('[id*=Password]').val('').focus();
+                        
+                        // Auto hide error after 15 seconds
+                        setTimeout(function() {
+                            errorDiv.fadeOut();
+                            invalidErrorControl.fadeOut();
+                        }, 15000);
                     } else {
                         console.log('Login successful, page will redirect');
                         // Success case - modal will close and page will redirect
@@ -302,6 +331,12 @@
             
             // Fallback: Hide animation after 30 seconds if still showing
             $('#myModal').on('shown.bs.modal', function () {
+                // Clear any previous error messages when modal opens
+                $('#errorMessageDiv').hide();
+                $('.Error').hide();
+                $('[id*=FailureText]').html('');
+                $('[id*=InvalidErrorLabel]').html('');
+                
                 setTimeout(function() {
                     if ($('#loginLoadingAnimation').is(':visible')) {
                         console.warn('Login animation timeout - forcing hide');
@@ -315,13 +350,22 @@
             $('#myModal').on('hide.bs.modal', function () {
                 hideLoginAnimation();
                 // Also hide error messages
-                $('.alert-danger').hide();
+                $('#errorMessageDiv').hide();
                 $('.Error').hide();
+                // Clear text
+                $('[id*=FailureText]').html('');
+                $('[id*=InvalidErrorLabel]').html('');
             });
             
             // Clear errors when user starts typing
             $('[id*=UserName], [id*=Password]').on('input', function() {
-                $('.alert-danger').hide();
+                $('#errorMessageDiv').hide();
+                $('.Error').hide();
+            });
+            
+            // Also clear errors on focus
+            $('[id*=UserName], [id*=Password]').on('focus', function() {
+                $('#errorMessageDiv').hide();
                 $('.Error').hide();
             });
         });

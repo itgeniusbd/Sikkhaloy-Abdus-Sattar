@@ -51,6 +51,33 @@ namespace EDUCATION.COM.Committee
         protected global::System.Web.UI.WebControls.SqlDataSource PaymentSQL;
 
         /// <summary>
+        /// UnpaidGridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView UnpaidGridView;
+
+        /// <summary>
+        /// UnpaidSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource UnpaidSQL;
+
+        /// <summary>
+        /// FooterFormView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.FormView FooterFormView;
+
+        /// <summary>
         /// SMSFormView control.
         /// </summary>
         /// <remarks>

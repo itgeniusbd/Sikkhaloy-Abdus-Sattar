@@ -59,6 +59,21 @@
                                     <asp:Label ID="Total_Student_Label" runat="server" Text='<%# Bind("StudentCount") %>' />
                                 </ItemTemplate>
                             </asp:TemplateField>
+                            <asp:TemplateField HeaderText="Committee" SortExpression="CommitteeCount">
+                                <ItemTemplate>
+                                    <asp:Label ID="Committee_Count_Label" runat="server" 
+                                               Text='<%# Eval("CommitteeCount") %>' 
+                                               ToolTip="Active committee members included in billing" />
+                                </ItemTemplate>
+                            </asp:TemplateField>
+                            <asp:TemplateField HeaderText="Billable Total">
+                                <ItemTemplate>
+                                    <asp:Label ID="Billable_Total_Label" runat="server" 
+                                               Text='<%# Convert.ToInt32(Eval("StudentCount")) + Convert.ToInt32(Eval("CommitteeCount")) %>'
+                                               CssClass="font-weight-bold text-primary" 
+                                               ToolTip="Student + Committee" />
+                                </ItemTemplate>
+                            </asp:TemplateField>
                             <asp:TemplateField HeaderText="Per Student" SortExpression="Per_Student_Rate">
                                 <ItemTemplate>
                                     <asp:Label ID="PerStudent_Label" runat="server" Text='<%# Bind("Per_Student_Rate") %>' />
@@ -85,7 +100,23 @@
                         </Columns>
                     </asp:GridView>
 
-                    <asp:SqlDataSource ID="SchoolListSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SchoolInfo.SchoolName, SchoolInfo.Per_Student_Rate, SchoolInfo.IS_ServiceChargeActive, SchoolInfo.Discount, SchoolInfo.Fixed, AAP_Student_Count_Monthly.SchoolID, AAP_Student_Count_Monthly.StudentCount, AAP_Student_Count_Monthly.Active_Student, AAP_Student_Count_Monthly.Reject_Countable, AAP_Student_Count_Monthly.Reject_Uncountable, AAP_Student_Count_Monthly.Month FROM SchoolInfo INNER JOIN AAP_Student_Count_Monthly ON SchoolInfo.SchoolID = AAP_Student_Count_Monthly.SchoolID WHERE (FORMAT(AAP_Student_Count_Monthly.Month, 'MMM yyyy') = @Month)">
+                    <asp:SqlDataSource ID="SchoolListSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" 
+                        SelectCommand="SELECT 
+                            SchoolInfo.SchoolName, 
+                            SchoolInfo.Per_Student_Rate, 
+                            SchoolInfo.IS_ServiceChargeActive, 
+                            SchoolInfo.Discount, 
+                            SchoolInfo.Fixed, 
+                            AAP_Student_Count_Monthly.SchoolID, 
+                            AAP_Student_Count_Monthly.StudentCount, 
+                            AAP_Student_Count_Monthly.Active_Student, 
+                            AAP_Student_Count_Monthly.Reject_Countable, 
+                            AAP_Student_Count_Monthly.Reject_Uncountable, 
+                            AAP_Student_Count_Monthly.Month,
+                            dbo.fn_GetBillableCommitteeCount(SchoolInfo.SchoolID) as CommitteeCount
+                        FROM SchoolInfo 
+                        INNER JOIN AAP_Student_Count_Monthly ON SchoolInfo.SchoolID = AAP_Student_Count_Monthly.SchoolID 
+                        WHERE (FORMAT(AAP_Student_Count_Monthly.Month, 'MMM yyyy') = @Month)">
                         <SelectParameters>
                             <asp:ControlParameter ControlID="Month_DropDownList" Name="Month" PropertyName="SelectedItem.Text" />
                         </SelectParameters>

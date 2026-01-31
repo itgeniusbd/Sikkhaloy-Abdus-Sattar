@@ -99,13 +99,14 @@
             font-size: 16px;
             transition: all 0.3s ease;
             background: #3d5568;
-            color: #fff;
+            color: #ffffff !important;
         }
  
         .input-group-modern input:focus {
             outline: none;
             border-color: #00c851;
             background: #4a5f7f;
+            color: #ffffff !important;
             box-shadow: 0 5px 15px rgba(0, 200, 81, 0.2);
         }
         
@@ -116,6 +117,15 @@
         
         .input-group-modern input::placeholder {
             color: #95a5a6;
+            opacity: 1;
+        }
+
+        .input-group-modern input:-webkit-autofill,
+        .input-group-modern input:-webkit-autofill:hover,
+        .input-group-modern input:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0px 1000px #3d5568 inset;
+            transition: background-color 5000s ease-in-out 0s;
         }
         
         .btn-login {
@@ -148,27 +158,33 @@
             background: #2c1f1f;
             border-left: 4px solid #f44336;
             color: #ff6b6b !important;
-            padding: 12px 15px;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 8px;
             margin-top: 20px;
             font-size: 14px;
-            animation: shake 0.5s;
-            display:none;
+            line-height: 1.6;
+            display: none;
+        }
+        
+        .error-message i {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        
+        .error-message:empty {
+            display: none !important;
+        }
+
+        .shake-animation {
+            animation: shake 0.6s;
         }
         
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
         }
         
-        .validator-text {
-            color: #ff6b6b;
-            font-size: 12px;
-            margin-top: 5px;
-            display: block;
-        }
-
         /* Loading Animation Overlay for Login Page */
         .login-loading-overlay {
             position: fixed;
@@ -540,34 +556,102 @@
 
     <script>
         function showLoginPageAnimation() {
+            // Hide any existing errors before showing animation
+            var errorDiv = document.querySelector('.error-message');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
+            
+            // Show loading animation
             document.getElementById('loginPageLoadingOverlay').classList.add('show');
+            return true;
         }
 
         function hideLoginPageAnimation() {
             document.getElementById('loginPageLoadingOverlay').classList.remove('show');
         }
 
-        // Hide animation on page load if there's an error
+        // Hide animation and show error on page load if there's an error
         $(function() {
-            var errorLabel = $('[id*=InvalidErrorLabel]').text();
-            var failureText = $('[id*=FailureText]').text();
-            
-            if ((errorLabel && errorLabel.length > 0) || (failureText && failureText.length > 0)) {
-                hideLoginPageAnimation();
-            }
+            // Check for errors on initial load
+            checkAndShowErrors();
 
             // Handle UpdatePanel postback completion
             var prm = Sys.WebForms.PageRequestManager.getInstance();
             if (prm) {
                 prm.add_endRequest(function() {
-                    var errorLabel = $('[id*=InvalidErrorLabel]').text();
-                    var failureText = $('[id*=FailureText]').text();
+                    // Always hide animation after request
+                    hideLoginPageAnimation();
                     
-                    if ((errorLabel && errorLabel.length > 0) || (failureText && failureText.length > 0)) {
-                        hideLoginPageAnimation();
-                    }
+                    // Check for errors and show them
+                    setTimeout(function() {
+                        checkAndShowErrors();
+                    }, 100);
                 });
             }
+
+            // Clear error when user starts typing
+            $('[id*=UserName], [id*=Password]').on('input focus', function() {
+                var errorDiv = document.querySelector('.error-message');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                }
+            });
+
+            // Enter key to submit
+            $('[id*=Password]').keypress(function(e) {
+                if (e.which === 13) {
+                    $('[id*=LoginButton]').click();
+                    return false;
+                }
+            });
         });
+
+        function checkAndShowErrors() {
+            var errorLabel = $('[id*=InvalidErrorLabel]');
+            var failureText = $('[id*=FailureText]');
+            
+            var errorLabelText = errorLabel.text().trim();
+            var failureTextContent = failureText.text().trim();
+            
+            console.log('Error Label:', errorLabelText);
+            console.log('Failure Text:', failureTextContent);
+            
+            if (errorLabelText && errorLabelText.length > 0) {
+                errorLabel.css('display', 'block');
+                errorLabel.addClass('error-message');
+                
+                // Shake the login card
+                $('.login-card').addClass('shake-animation');
+                setTimeout(function() {
+                    $('.login-card').removeClass('shake-animation');
+                }, 600);
+                
+                // Clear password for security
+                $('[id*=Password]').val('').focus();
+                
+                // Auto-hide after 15 seconds
+                setTimeout(function() {
+                    errorLabel.fadeOut();
+                }, 15000);
+            } else if (failureTextContent && failureTextContent.length > 0) {
+                failureText.parent().css('display', 'block');
+                failureText.parent().addClass('error-message');
+                
+                // Shake the login card
+                $('.login-card').addClass('shake-animation');
+                setTimeout(function() {
+                    $('.login-card').removeClass('shake-animation');
+                }, 600);
+                
+                // Clear password for security
+                $('[id*=Password]').val('').focus();
+                
+                // Auto-hide after 15 seconds
+                setTimeout(function() {
+                    failureText.parent().fadeOut();
+                }, 15000);
+            }
+        }
     </script>
 </asp:Content>

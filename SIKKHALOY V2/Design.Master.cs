@@ -53,22 +53,39 @@ namespace EDUCATION.COM
 
         protected void UserLogin_LoginError(object sender, EventArgs e)
         {
+            string errorMessage = "";
+            
             MembershipUser usrInfo = Membership.GetUser(UserLogin.UserName.Trim());
             if (usrInfo != null)
             {
                 if (usrInfo.IsLockedOut)
                 {
-                    UserLogin.FailureText = "Your account has been locked out because of too many invalid login attempts. Please contact the administrator to have your account unlocked.";
+                    errorMessage = "আপনার একাউন্ট লক হয়ে গেছে। অনেকবার ভুল পাসওয়ার্ড দেওয়ার কারণে আপনার একাউন্ট সাময়িকভাবে বন্ধ করা হয়েছে। অনুগ্রহ করে প্রশাসকের সাথে যোগাযোগ করুন।<br/><br/>Your account has been locked out because of too many invalid login attempts. Please contact the administrator to have your account unlocked.";
                 }
                 else if (!usrInfo.IsApproved)
                 {
-                    UserLogin.FailureText = "Your account has not been approved. You cannot login until an administrator has approved your account.";
+                    errorMessage = "আপনার একাউন্ট এখনও অনুমোদিত হয়নি। প্রশাসক অনুমোদন না করা পর্যন্ত আপনি লগইন করতে পারবেন না।<br/><br/>Your account has not been approved. You cannot login until an administrator has approved your account.";
+                }
+                else
+                {
+                    errorMessage = "ভুল পাসওয়ার্ড! অনুগ্রহ করে সঠিক পাসওয়ার্ড দিয়ে আবার চেষ্টা করুন।<br/><br/>Wrong password! Please try again with the correct password.";
                 }
             }
             else
             {
-                UserLogin.FailureText = "Your login attempt was not successful. Please try again.";
+                errorMessage = "এই ইউজারনেম পাওয়া যায়নি। অনুগ্রহ করে সঠিক ইউজারনেম দিয়ে আবার চেষ্টা করুন।<br/><br/>Username not found. Please try again with correct username.";
             }
+            
+            UserLogin.FailureText = errorMessage;
+            
+            // Show error message using JavaScript
+            System.Web.UI.ScriptManager.RegisterStartupScript(
+                this.UpdatePanel2, 
+                this.UpdatePanel2.GetType(), 
+                "showLoginError", 
+                "setTimeout(function() { var errorDiv = document.getElementById('errorMessageDiv'); if (errorDiv) { errorDiv.style.display = 'block'; var modalContent = document.querySelector('.modal-content'); if (modalContent) { modalContent.classList.add('shake'); setTimeout(function() { modalContent.classList.remove('shake'); }, 500); } } }, 100);", 
+                true
+            );
         }
 
         protected void UserLogin_LoggedIn(object sender, EventArgs e)
@@ -159,7 +176,9 @@ namespace EDUCATION.COM
                             category = "Teacher";
                         else if (Roles.IsUserInRole(UserLogin.UserName.Trim(), "Student"))
                             category = "Student";
-                        
+                        else if (Roles.IsUserInRole(UserLogin.UserName.Trim(), "Donor"))
+                            category = "Donor";
+
                         WriteLog($"[Design.Master] Calling TrackUserLogin with category={category}", false);
                         
                         TrackUserLogin(constr, schoolIdInt, Convert.ToInt32(RegistrationID), UserLogin.UserName.Trim(), category);
@@ -189,7 +208,8 @@ namespace EDUCATION.COM
 
                 if (O_SutdentID != null)
                 {
-                    Session["StudentID"] = O_SutdentID;
+                    Session["StudentID"] = O_SutdentID;  // ✅ Set StudentID session
+                    
                     using (SqlConnection con = new SqlConnection(constr))
                     {
                         using (SqlCommand cmd = new SqlCommand("SELECT StudentsClass.StudentClassID,StudentsClass.ClassID FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE  (StudentsClass.EducationYearID = @EducationYearID) AND (Student.StudentRegistrationID = @StudentRegistrationID)", con))
@@ -231,6 +251,24 @@ namespace EDUCATION.COM
                 if (O_TeacherID != null)
                 {
                     Session["TeacherID"] = O_TeacherID;
+                }
+
+                object O_CommitteeMemberId;
+                using (SqlConnection con = new SqlConnection(constr))
+                {
+                    con.Open();
+                    using (SqlCommand cmd = new SqlCommand("SELECT CommitteeMemberId FROM CommitteeMember WHERE SmsNumber = @UserName AND SchoolID = @SchoolID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@UserName", UserLogin.UserName.Trim());
+                        cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                        O_CommitteeMemberId = cmd.ExecuteScalar();
+                    }
+                    con.Close();
+                }
+
+                if (O_CommitteeMemberId != null)
+                {
+                    Session["CommitteeMemberId"] = O_CommitteeMemberId;
                 }
             }
             

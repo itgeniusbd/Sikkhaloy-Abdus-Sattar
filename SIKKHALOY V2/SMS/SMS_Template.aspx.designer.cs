@@ -78,33 +78,6 @@ namespace EDUCATION.COM.SMS
         protected global::System.Web.UI.WebControls.SqlDataSource PaymentTemplatesSQL;
 
         /// <summary>
-        /// AddAttendanceTemplateButton control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button AddAttendanceTemplateButton;
-
-        /// <summary>
-        /// AttendanceTemplatesGridView control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView AttendanceTemplatesGridView;
-
-        /// <summary>
-        /// AttendanceTemplatesSQL control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource AttendanceTemplatesSQL;
-
-        /// <summary>
         /// AddDueTemplateButton control.
         /// </summary>
         /// <remarks>
@@ -130,6 +103,60 @@ namespace EDUCATION.COM.SMS
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource DueTemplatesSQL;
+
+        /// <summary>
+        /// AddDonorTemplateButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button AddDonorTemplateButton;
+
+        /// <summary>
+        /// DonorTemplatesGridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView DonorTemplatesGridView;
+
+        /// <summary>
+        /// DonorTemplatesSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource DonorTemplatesSQL;
+
+        /// <summary>
+        /// AddAttendanceTemplateButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button AddAttendanceTemplateButton;
+
+        /// <summary>
+        /// AttendanceTemplatesGridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView AttendanceTemplatesGridView;
+
+        /// <summary>
+        /// AttendanceTemplatesSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource AttendanceTemplatesSQL;
 
         /// <summary>
         /// AddAdmissionTemplateButton control.

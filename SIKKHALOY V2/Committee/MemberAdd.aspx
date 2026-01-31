@@ -81,7 +81,6 @@
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
 
-
     <a class="btn btn-success d-print-none" data-toggle="modal" data-target="#modalDonarForm">Add New Member</a>
 
 
@@ -179,6 +178,27 @@
                         <%#Eval("SmsNumber") %>
                     </ItemTemplate>
                 </asp:TemplateField>
+                <asp:TemplateField HeaderText="Email" SortExpression="Email">
+                    <EditItemTemplate>
+                        <asp:TextBox ID="EmailTB" runat="server" CssClass="form-control" Text='<%# Bind("Email") %>' TextMode="Email"></asp:TextBox>
+                    </EditItemTemplate>
+                    <ItemTemplate>
+                        <%#Eval("Email") %>
+                    </ItemTemplate>
+                </asp:TemplateField>
+                <asp:TemplateField HeaderText="Status" SortExpression="Status">
+                    <EditItemTemplate>
+                        <asp:DropDownList ID="StatusDropDownList" runat="server" CssClass="form-control" SelectedValue='<%# Bind("Status") %>'>
+                            <asp:ListItem Value="Active" Text="Active"></asp:ListItem>
+                            <asp:ListItem Value="Inactive" Text="Inactive"></asp:ListItem>
+                        </asp:DropDownList>
+                    </EditItemTemplate>
+                    <ItemTemplate>
+                        <span class="badge badge-<%# Eval("Status").ToString() == "Active" ? "success" : "secondary" %>">
+                            <%# Eval("Status") %>
+                        </span>
+                    </ItemTemplate>
+                </asp:TemplateField>
                 <asp:TemplateField HeaderText="Total Donation" SortExpression="TotalDonation">
                     <ItemTemplate>
                         <%#Eval("TotalDonation") %>
@@ -207,13 +227,10 @@
             <PagerStyle CssClass="pgr" />
         </asp:GridView>
         <asp:SqlDataSource ID="MemberSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            InsertCommand="INSERT INTO CommitteeMember(CommitteeMemberTypeId, RegistrationID, SchoolID, MemberName,ReferenceBy, SmsNumber, Address, Photo) VALUES (@CommitteeMemberTypeId, @RegistrationID, @SchoolID, @MemberName,@ReferenceBy, @SmsNumber, @Address, @Photo)"
-            SelectCommand="SELECT CommitteeMember.CommitteeMemberId, CommitteeMemberType.CommitteeMemberType,CommitteeMemberType.CommitteeMemberTypeId, CommitteeMember.MemberName,ReferenceBy, CommitteeMember.SmsNumber
-, CommitteeMember.Address, CommitteeMember.Photo, CommitteeMember.TotalDonation, CommitteeMember.PaidDonation
-, CommitteeMember.DueDonation, CommitteeMember.InsertDate FROM CommitteeMember INNER JOIN CommitteeMemberType ON CommitteeMember.CommitteeMemberTypeId = CommitteeMemberType.CommitteeMemberTypeId WHERE (CommitteeMember.SchoolID = @SchoolID) AND CommitteeMemberType.CommitteeMemberTypeId LIKE @CommitteeMemberTypeId
-    AND (CommitteeMember.SmsNumber LIKE ISNULL(@NamePhoneTextBox, '%') OR CommitteeMember.MemberName LIKE ISNULL(@NamePhoneTextBox, '%'))"
+            InsertCommand="INSERT INTO CommitteeMember(CommitteeMemberTypeId, RegistrationID, SchoolID, MemberName, ReferenceBy, SmsNumber, Email, Address, Photo, Status) VALUES (@CommitteeMemberTypeId, @RegistrationID, @SchoolID, @MemberName, @ReferenceBy, @SmsNumber, @Email, @Address, @Photo, 'Active')"
+            SelectCommand="SELECT CommitteeMember.CommitteeMemberId, CommitteeMemberType.CommitteeMemberType, CommitteeMemberType.CommitteeMemberTypeId, CommitteeMember.MemberName, CommitteeMember.ReferenceBy, CommitteeMember.SmsNumber, CommitteeMember.Email, CommitteeMember.Address, CommitteeMember.Photo, CommitteeMember.TotalDonation, CommitteeMember.PaidDonation, CommitteeMember.DueDonation, CommitteeMember.InsertDate, ISNULL(CommitteeMember.Status, 'Active') as Status FROM CommitteeMember INNER JOIN CommitteeMemberType ON CommitteeMember.CommitteeMemberTypeId = CommitteeMemberType.CommitteeMemberTypeId WHERE (CommitteeMember.SchoolID = @SchoolID) AND CommitteeMemberType.CommitteeMemberTypeId LIKE @CommitteeMemberTypeId AND (CommitteeMember.SmsNumber LIKE ISNULL(@NamePhoneTextBox, '%') OR CommitteeMember.MemberName LIKE ISNULL(@NamePhoneTextBox, '%'))"
             CancelSelectOnNullParameter="False"
-            UpdateCommand="UPDATE CommitteeMember SET CommitteeMemberTypeId = @CommitteeMemberTypeId, MemberName = @MemberName,ReferenceBy=@ReferenceBy, SmsNumber = @SmsNumber, Address = @Address, Photo = @Photo WHERE (CommitteeMemberId = @CommitteeMemberId)">
+            UpdateCommand="UPDATE CommitteeMember SET CommitteeMemberTypeId = @CommitteeMemberTypeId, MemberName = @MemberName, ReferenceBy = @ReferenceBy, SmsNumber = @SmsNumber, Email = @Email, Address = @Address, Photo = @Photo, Status = @Status WHERE (CommitteeMemberId = @CommitteeMemberId)">
             <InsertParameters>
                 <asp:ControlParameter ControlID="TypeDropDownList" Name="CommitteeMemberTypeId" PropertyName="SelectedValue" />
                 <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
@@ -221,6 +238,7 @@
                 <asp:ControlParameter ControlID="MemberNameTextBox" Name="MemberName" PropertyName="Text" />
                 <asp:ControlParameter ControlID="ReferenceByTextBox" Name="ReferenceBy" PropertyName="Text" />
                 <asp:ControlParameter ControlID="PhoneTextBox" Name="SmsNumber" PropertyName="Text" />
+                <asp:ControlParameter ControlID="EmailTextBox" Name="Email" PropertyName="Text" />
                 <asp:ControlParameter ControlID="AddressTextBox" Name="Address" PropertyName="Text" />
                 <asp:ControlParameter ControlID="ImageFileUpload" Name="Photo" PropertyName="FileBytes" />
             </InsertParameters>
@@ -236,8 +254,10 @@
                 <asp:Parameter Name="MemberName" Type="String" />
                 <asp:Parameter Name="ReferenceBy" Type="String" />
                 <asp:Parameter Name="SmsNumber" Type="String" />
+                <asp:Parameter Name="Email" Type="String" />
                 <asp:Parameter Name="Address" Type="String" />
                 <asp:Parameter Name="Photo" Type="Object" />
+                <asp:Parameter Name="Status" Type="String" />
                 <asp:Parameter Name="CommitteeMemberId" Type="Int32" />
             </UpdateParameters>
         </asp:SqlDataSource>
@@ -287,7 +307,14 @@
                     <div class="form-group">
                         <label>Phone</label>
                         <asp:RequiredFieldValidator runat="server" ControlToValidate="PhoneTextBox" ErrorMessage="Phone is required" ValidationGroup="1" CssClass="EroorSummer" ID="RequiredFieldValidator2"></asp:RequiredFieldValidator>
-                        <asp:TextBox ID="PhoneTextBox" runat="server" CssClass="form-control"></asp:TextBox>
+                        <asp:TextBox ID="PhoneTextBox" runat="server" CssClass="form-control" placeholder="01XXXXXXXXX"></asp:TextBox>
+                    </div>
+                    <div class="form-group">
+                        <label>Email (Optional)</label>
+                        <asp:RegularExpressionValidator ID="EmailValidator" runat="server" ControlToValidate="EmailTextBox" 
+                            ErrorMessage="Invalid email format" ValidationExpression="\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*" 
+                            CssClass="EroorSummer" Display="Dynamic" ValidationGroup="1"></asp:RegularExpressionValidator>
+                        <asp:TextBox ID="EmailTextBox" runat="server" CssClass="form-control" TextMode="Email" placeholder="example@email.com"></asp:TextBox>
                     </div>
                     <div class="form-group">
                         <label>Address</label>

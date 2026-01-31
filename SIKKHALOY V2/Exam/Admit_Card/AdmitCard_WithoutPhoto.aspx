@@ -43,7 +43,7 @@
   font-size: 15px;
   font-weight: bold;
   text-align: center;
-   color:#ff0000;
+   color:#106a25;
  
 }
 

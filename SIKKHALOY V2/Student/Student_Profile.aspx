@@ -42,6 +42,9 @@
 <div class="row" style="display:flex; margin:0">
     <h3 style="height: 55px; padding: 0; width: 100%; padding-left: 16px;">Dashboard
 <%--    <span id="spanBankingMsg" style="margin-left: 2%; font-weight: bold;"> আমরা সকল মোবাইল ব্যাংকিংসহ ন্যাশনাল এবং ইন্টারন্যাশনাল কার্ড পেমেন্ট গ্রহন করি</span>--%>
+    <a href="Student_Edit_Profile.aspx" class="btn btn-primary mr-2" style="height: 42px; font-size: 14px; border-radius: 5px; font-weight: bold; padding: 10px 25px;">
+        <i class="fa fa-edit mr-1"></i>Edit Profile
+    </a>
     <button id="btnPayOnline" type="button" class="btn btn-danger" style="height: 42px; font-size: 14px; border-radius: 5px; font-weight: bold; padding: 0 25px;"
         OnClick="ViewDueClick()">
         Pay Online</button>
