@@ -119,22 +119,27 @@
       <asp:TextBox ID="ExamDateTextBox" runat="server" CssClass="form-control-routine datepicker-input" name='<%# "ExamDate_" + Container.ItemIndex %>' Text='<%# Eval("ExamDate") %>' placeholder="dd/mm/yyyy"></asp:TextBox>
 </td>
  <td class="day-cell">
-     <asp:TextBox ID="DayNameTextBox" runat="server" CssClass="form-control-routine day-input" name='<%# "DayName_" + Container.ItemIndex %>' Text='<%# Eval("DayName") %>' placeholder="Day" ReadOnly="true"></asp:TextBox>
+     <asp:TextBox ID="DayNameTextBox" runat="server" CssClass="form-control-routine day-input" Text='<%# Eval("DayName") %>' placeholder="Day" ReadOnly="true"></asp:TextBox>
+     <input type="hidden" id='<%# "HiddenDayName_" + Container.ItemIndex %>' name='<%# "DayName_" + Container.ItemIndex %>' value='<%# Eval("DayName") %>' />
   </td>
  <td class="time-cell">
    <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
-<asp:TextBox ID="StartTimeTextBox" runat="server" 
-     CssClass="form-control-routine time-input start-time-input" 
-Text="10:00 AM"
-   placeholder="Start"
-    style="width: 70px; text-align: center;" />
- <span style="font-weight: bold;">-</span>
-   <asp:TextBox ID="EndTimeTextBox" runat="server" 
-   CssClass="form-control-routine time-input end-time-input"
-       Text="01:00 PM"
- placeholder="End"
-   style="width: 70px; text-align: center;" />
-    </div>
+    <input type="text" 
+        id='<%# "StartTimeTextBox_" + Container.ItemIndex %>'
+        name='<%# "StartTime_" + Container.ItemIndex %>'
+        class="form-control-routine time-input start-time-input"
+        value='<%# Eval("StartTime") %>'
+        placeholder="Start"
+        style="width: 70px; text-align: center;" />
+    <span style="font-weight: bold;">-</span>
+    <input type="text"
+        id='<%# "EndTimeTextBox_" + Container.ItemIndex %>'
+        name='<%# "EndTime_" + Container.ItemIndex %>'
+        class="form-control-routine time-input end-time-input"
+        value='<%# Eval("EndTime") %>'
+        placeholder="End"
+        style="width: 70px; text-align: center;" />
+   </div>
         <!-- Duration Display (Auto-calculated) -->
      <div class="duration-display" style="color: #d32f2f; font-weight: bold; font-size: 11px; text-align: center;">
     <span id='<%# "DurationLabel_" + Container.ItemIndex %>' data-row='<%# Container.ItemIndex %>'>3 hours</span>
@@ -228,75 +233,83 @@ $(document).on('change', 'input, select', function() {
   function FixAllDateFormats() {
     
     $("input.datepicker-input, input[id*='ExamDateTextBox']").each(function() {
-var $input = $(this);
- var currentValue = $input.val().trim();
-     
-     if (!currentValue) {
- return;
-  }
-  
-  // **CRITICAL: If already in dd/MM/yyyy format (2 digits/2 digits/4 digits), skip**
-var ddMMyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-        if (ddMMyyyyPattern.test(currentValue)) {
-     var parts = currentValue.split('/');
-    var day = parseInt(parts[0], 10);
-    var month = parseInt(parts[1], 10);
-       
-    // Validate it's a valid date in dd/MM/yyyy format
- if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
-   return;
-   }
-  }
-  
-   // Try to parse the date from various formats
-   var dateObj = null;
-    
-     // Pattern 1: mm/dd/yyyy or dd/mm/yyyy (ambiguous)
-      var slashPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-  var match = currentValue.match(slashPattern);
-            
-    if (match) {
- var part1 = parseInt(match[1], 10);
-var part2 = parseInt(match[2], 10);
- var year = parseInt(match[3], 10);
- 
-   if (part1 > 12) {
-dateObj = new Date(year, part2 - 1, part1);
-   } else if (part2 > 12) {
-       dateObj = new Date(year, part1 - 1, part2);
-   } else {
-  dateObj = new Date(year, part1 - 1, part2);
-     }
-   }
-       
-   // Pattern 2: yyyy-mm-dd (ISO format)
-    var isoPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
-   match = currentValue.match(isoPattern);
-   if (match) {
-   var year = parseInt(match[1], 10);
- var month = parseInt(match[2], 10);
-  var day = parseInt(match[3], 10);
-   dateObj = new Date(year, month - 1, day);
-      }
- 
-    // If we successfully parsed a date, format it as dd/MM/yyyy
-  if (dateObj && !isNaN(dateObj.getTime())) {
-     var day = dateObj.getDate();
-  var month = dateObj.getMonth() + 1;
-     var year = dateObj.getFullYear();
-     
-      var fixedDate = padZero(day) + '/' + padZero(month) + '/' + year;
-  $input.val(fixedDate);
- 
-  // Update the day name
-   var $row = $input.closest('tr');
-   var $dayTextbox = $row.find("input[id*='DayNameTextBox'], input.day-input");
- if ($dayTextbox.length > 0) {
-       var dayOfWeek = dateObj.getDay();
-     var englishDay = englishDays[dayOfWeek];
-   $dayTextbox.val(englishDay);
- }
-   }
+        var $input = $(this);
+        var currentValue = $input.val().trim();
+        
+        if (!currentValue) {
+            return;
+        }
+
+        var dateObj = null;
+
+        // Pattern 1: dd/MM/yyyy — already correct format
+        var ddMMyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+        var match = currentValue.match(ddMMyyyyPattern);
+        if (match) {
+            var day = parseInt(match[1], 10);
+            var month = parseInt(match[2], 10);
+            var year = parseInt(match[3], 10);
+            if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                // Already correct format — just make sure hidden input is in sync
+                dateObj = new Date(year, month - 1, day);
+            }
+        }
+
+        // Pattern 2: d/M/yyyy or dd/MM/yyyy with 1-2 digit parts
+        if (!dateObj) {
+            var slashPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+            match = currentValue.match(slashPattern);
+            if (match) {
+                var part1 = parseInt(match[1], 10);
+                var part2 = parseInt(match[2], 10);
+                var year = parseInt(match[3], 10);
+                if (part1 > 12) {
+                    dateObj = new Date(year, part2 - 1, part1);
+                } else if (part2 > 12) {
+                    dateObj = new Date(year, part1 - 1, part2);
+                } else {
+                    dateObj = new Date(year, part1 - 1, part2);
+                }
+            }
+        }
+
+        // Pattern 3: yyyy-mm-dd (ISO format)
+        if (!dateObj) {
+            var isoPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+            match = currentValue.match(isoPattern);
+            if (match) {
+                var year = parseInt(match[1], 10);
+                var month = parseInt(match[2], 10);
+                var day = parseInt(match[3], 10);
+                dateObj = new Date(year, month - 1, day);
+            }
+        }
+
+        // If we successfully parsed a date, update everything
+        if (dateObj && !isNaN(dateObj.getTime())) {
+            var d = dateObj.getDate();
+            var m = dateObj.getMonth() + 1;
+            var y = dateObj.getFullYear();
+
+            var fixedDate = padZero(d) + '/' + padZero(m) + '/' + y;
+            $input.val(fixedDate);
+
+            var dayOfWeek = dateObj.getDay();
+            var englishDay = englishDays[dayOfWeek];
+
+            // Update visible day textbox
+            var $row = $input.closest('tr');
+            var $dayTextbox = $row.find("input.day-input");
+            if ($dayTextbox.length > 0) {
+                $dayTextbox.val(englishDay);
+            }
+
+            // **FIX: Always update hidden input for DayName**
+            var rowIndex = $input.attr('name') ? $input.attr('name').replace('ExamDate_', '') : '';
+            if (rowIndex !== '') {
+                $('input[type="hidden"][name="DayName_' + rowIndex + '"]').val(englishDay);
+            }
+        }
     });
 }
 
@@ -358,6 +371,11 @@ currentText: 'Today',
  if ($dayTextbox.length > 0) {
       $dayTextbox.val(englishDay);
  }
+      // **FIX: Update hidden input for DayName using row index from name attribute**
+      var rowIndex = $(this).attr('name') ? $(this).attr('name').replace('ExamDate_', '') : '';
+      if (rowIndex !== '') {
+          $('input[type="hidden"][name="DayName_' + rowIndex + '"]').val(englishDay);
+      }
     },
       onClose: function(dateText) {
   if (dateText) {

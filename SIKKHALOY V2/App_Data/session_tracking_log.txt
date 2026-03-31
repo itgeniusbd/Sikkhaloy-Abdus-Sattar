@@ -6198,3 +6198,859 @@ Using SchoolID: 1002
 Rows inserted: 1
 SUCCESS: Session tracked successfully!
 ============================================================
+
+========== 2026-02-26 12:40:22 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 12:40:22 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 12:40:22 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 12:40:22 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: 20mbazue1jplem5155d035qw_639077064228663489
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 12:40:23 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 12:50:02 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 12:50:02 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 12:50:02 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 12:50:02 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: 42woz2ccllvolusiljtkeazr_639077070028418453
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 12:50:02 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 12:57:19 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 12:57:19 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 12:57:19 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 12:57:19 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: pizk5r0e1clk3kavtc2b30j0_639077074391668304
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 12:57:19 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 13:04:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 13:04:07 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 13:04:07 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 13:04:07 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: xfsgdgjogdj4jwcw2dimlku3_639077078477109021
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 13:04:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 13:09:58 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 13:09:58 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 13:09:58 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 13:09:58 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: oq4ogvnkw45tfpfhejoage11_639077081986895468
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 13:09:58 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 13:15:08 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 13:15:08 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 13:15:08 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 13:15:08 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: oyqztjdetausv1yrqv2ugmj2_639077085082247628
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 13:15:08 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 13:48:26 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 13:48:26 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 13:48:26 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 13:48:26 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: 1yzzayurwh4mvslwxot1juqm_639077105061903935
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 13:48:26 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 13:53:13 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 13:53:13 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 13:53:13 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 13:53:13 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: b3vqx44s2yxixatvragxq1le_639077107934590641
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 13:53:13 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 14:13:50 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 14:13:50 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 14:13:50 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 14:13:50 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: gddeuov0ec1d0ugrmeutslyy_639077120306448208
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 14:13:50 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 14:23:49 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-26 14:23:49 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-26 14:23:49 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-26 14:23:49 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: cobopqidxfqim3pfpo5jnh3x_639077126297238962
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 14:23:49 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-26 14:38:28 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 14:38:28 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-02-26 14:38:28 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 3km02qo13zukcdl4pjmmhr2s_639077135084892974
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 14:38:28 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:00:15 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:00:15 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-02-26 15:00:15 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: adem3de2ap0nfvm14vbxupol_639077148154559420
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 15:00:15 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:06:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:06:07 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-02-26 15:06:07 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: ph2y5xuqyro0sot1n12jg0br_639077151673481139
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 15:06:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:16:23 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:16:23 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-02-26 15:16:23 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: i44km1etbmpldjebx3y2zlpp_639077157839871729
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 15:16:23 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:28:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 15:28:33 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-02-26 15:28:33 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: pqyasp3bdbyfw4m0ocm3yuxt_639077165137697924
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 15:28:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 16:05:52 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-26 16:05:52 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-02-26 16:05:52 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 3mhkydvfvgvhxaysxhvpvreo_639077187521092429
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-26 16:05:52 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-02-27 14:07:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 14:07:59 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 14:07:59 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 14:07:59 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: n5jksubsn3xzmmcjaccmrt4w_639077980791798729
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 14:07:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 14:24:03 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 14:24:03 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 14:24:03 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 14:24:03 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: y4mep2dzpokczthrefdqldgf_639077990436297878
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 14:24:03 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 14:36:13 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 14:36:13 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 14:36:13 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 14:36:13 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: uvvxrinektz2wggvxyztgsrj_639077997732025883
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 14:36:13 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 14:41:11 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 14:41:11 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 14:41:11 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 14:41:11 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: ape00rrgl2qpfqekm0p0jm1z_639078000715524350
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 14:41:11 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 15:07:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 15:07:33 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 15:07:33 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 15:07:33 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: fptxiocugexf0zbwva54fo5i_639078016535610948
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 15:07:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 15:33:21 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 15:33:21 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 15:33:21 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 15:33:21 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: dbot5ytfgkkywfwium4vlsou_639078032015121896
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 15:33:21 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 15:38:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 15:38:12 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 15:38:12 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 15:38:12 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: axybsrnh05iopkmasna1v5ox_639078034926760158
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 15:38:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 15:41:40 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 15:41:40 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 15:41:40 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 15:41:40 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: zpnelebp0xgu2ie4kkqumzix_639078037006533136
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 15:41:40 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 15:45:32 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 15:45:32 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 15:45:32 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 15:45:32 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: 21q1z4zgyqih5yndndhgwgto_639078039327943543
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 15:45:32 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 15:52:11 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 15:52:11 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 15:52:11 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 15:52:11 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: thlioxfry4bap1pluztn0pa2_639078043319217097
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 15:52:11 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 15:55:37 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 15:55:37 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 15:55:37 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 15:55:37 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: h5rzamiqrn4wpr5jwuwooyjb_639078045377063808
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 15:55:37 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 16:02:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 16:02:59 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 16:02:59 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 16:02:59 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: zwzuamt4djxm0qdcbionyb4o_639078049791840164
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 16:02:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 16:15:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 16:15:44 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 16:15:44 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 16:15:44 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: bmb4avdv1jwxp1cejljf5yz2_639078057443997931
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 16:15:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 16:34:25 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 16:34:25 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 16:34:25 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 16:34:25 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: xp12s2pgnak4hpgjqkdoamvp_639078068655940131
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 16:34:25 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 16:35:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 16:35:59 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 16:35:59 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 16:35:59 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: pyfmlyt5jusvwg01a3fjwipz_639078069599301353
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 16:35:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 16:36:58 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 10120124============================================================
+
+========== 2026-02-27 16:36:58 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=7400============================================================
+
+========== 2026-02-27 16:36:58 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-02-27 16:36:58 SUCCESS ==========
+[Design.Master] Starting tracking for user: 10120124, Category: Student
+Session Key: gvlf0m5scou0nh11focslrmc_639078070188956385
+SchoolID: 1012, RegID: 7400
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 16:36:58 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 10120124============================================================
+
+========== 2026-02-27 16:41:00 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-02-27 16:41:00 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-02-27 16:41:00 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-02-27 16:41:00 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: kxwj3bxuvqd2ktbzsveqha1x_639078072604657516
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 16:41:00 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-02-27 16:41:39 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: 10120124============================================================
+
+========== 2026-02-27 16:41:39 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=7400============================================================
+
+========== 2026-02-27 16:41:39 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Student============================================================
+
+========== 2026-02-27 16:41:39 SUCCESS ==========
+[Design.Master] Starting tracking for user: 10120124, Category: Student
+Session Key: gvlf0m5scou0nh11focslrmc_639078072990675593
+SchoolID: 1012, RegID: 7400
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-02-27 16:41:39 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: 10120124============================================================
+
+========== 2026-03-31 17:53:26 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-03-31 17:53:27 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-03-31 17:53:27 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-03-31 17:53:27 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: nas3i4zf2p34ju52i41ievka_639105764070644268
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-03-31 17:53:27 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-03-31 18:03:50 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-03-31 18:03:51 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-03-31 18:03:51 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-03-31 18:03:51 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: j0qxbdfheausmdd212jxw2vd_639105770310245060
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-03-31 18:03:51 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-03-31 18:22:05 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-03-31 18:22:05 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-03-31 18:22:05 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-03-31 18:22:05 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: z0l3sro2qmgq1i4lfo3p1bps_639105781253011852
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-03-31 18:22:05 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-03-31 18:25:31 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-03-31 18:25:31 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-03-31 18:25:31 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-03-31 18:25:31 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: zikewkoqun2hz2wc1u3iyyib_639105783317398366
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-03-31 18:25:31 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================

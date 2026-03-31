@@ -402,6 +402,7 @@ ORDER BY RowIndex";
                     if (savedDates.ContainsKey(i) && savedDates[i].HasValue)
                     {
                         newRow["ExamDate"] = savedDates[i].Value.ToString("dd/MM/yyyy");
+                        // **FIX: Always use Bengali day name from date, not saved English name**
                         newRow["DayName"] = GetBengaliDayName(savedDates[i].Value.DayOfWeek);
                     }
                     else
@@ -413,7 +414,8 @@ ORDER BY RowIndex";
                     // Set time
                     if (rowData.ContainsKey(i))
                     {
-                        newRow["DayName"] = rowData[i].Item1; // Override with saved day name
+                        // **FIX: Do NOT override DayName with saved value (it may be English)**
+                        // DayName is already set correctly from date above
                         newRow["ExamTime"] = rowData[i].Item2;
 
                         // Parse ExamTime to get StartTime and EndTime
@@ -880,16 +882,15 @@ INSERT INTO Exam_Routine_ClassColumns (RoutineID, ColumnIndex, ClassID)
                         if (item.ItemType == ListItemType.Item || item.ItemType == ListItemType.AlternatingItem)
                         {
                             TextBox examDateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
-                            TextBox dayNameTextBox = (TextBox)item.FindControl("DayNameTextBox");
                             TextBox startTimeTextBox = (TextBox)item.FindControl("StartTimeTextBox");
                             TextBox endTimeTextBox = (TextBox)item.FindControl("EndTimeTextBox");
 
                             string examDateStr = examDateTextBox?.Text ?? "";
-                            string dayName = dayNameTextBox?.Text ?? "";
+                            // **FIX: Read DayName from hidden input via Request.Form**
+                            string dayName = Request.Form[$"DayName_{item.ItemIndex}"] ?? "";
                             string startTime = startTimeTextBox?.Text ?? "";
                             string endTime = endTimeTextBox?.Text ?? "";
 
-                            // Combine start and end time for ExamTime field (backward compatibility)
                             string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
                               ? ""
                                : $"{startTime} - {endTime}";
@@ -1093,90 +1094,56 @@ VALUES (@RoutineID, @ColumnIndex, @ClassID)";
                     cmdDeleteRows.Parameters.AddWithValue("@RoutineID", routineId);
                     int deletedRows = cmdDeleteRows.ExecuteNonQuery();
 
-                    System.Diagnostics.Debug.WriteLine($"Deleted {deletedRows} rows");
-
-                    // **DEBUG: Log all Request.Form keys**
-                    System.Diagnostics.Debug.WriteLine("=== REQUEST.FORM KEYS ===");
-                    foreach (string key in Request.Form.AllKeys)
-                    {
-                        if (key != null && (key.Contains("ExamDate") || key.Contains("DayName") ||
-                         key.Contains("StartTime") || key.Contains("EndTime") ||
-                           key.Contains("Subject") || key.Contains("Time")))
-                        {
-                            System.Diagnostics.Debug.WriteLine($"{key} = {Request.Form[key]}");
-                        }
-                    }
-
-                    // **CRITICAL FIX: Loop through rowCount and get data from Request.Form directly**
                     int insertedRowsCount = 0;
-                    for (int rowIdx = 0; rowIdx < currentRowCount; rowIdx++)
+                    foreach (RepeaterItem item in RoutineRepeater.Items)
                     {
-                        // **Try multiple control ID patterns**
-                        string[] possibleDateNames = new string[] {
- $"ctl00$body$RoutineRepeater$ctl0{rowIdx}$ExamDateTextBox",
-      $"ctl00$body$RoutineRepeater$ctl{rowIdx:00}$ExamDateTextBox",
-   $"ExamDateTextBox_{rowIdx}",
-     $"RoutineRepeater_ExamDateTextBox_{rowIdx}"
-        };
-
-                        string examDateStr = "";
-                        string dayName = "";
-                        string startTime = "";
-                        string endTime = "";
-
-                        // Try to find the correct control name
-                        foreach (string possibleName in possibleDateNames)
+                        if (item.ItemType == ListItemType.Item || item.ItemType == ListItemType.AlternatingItem)
                         {
-                            if (Request.Form[possibleName] != null)
+                            TextBox examDateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
+                            TextBox startTimeTextBox = (TextBox)item.FindControl("StartTimeTextBox");
+                            TextBox endTimeTextBox = (TextBox)item.FindControl("EndTimeTextBox");
+
+                            string examDateStr = examDateTextBox?.Text ?? "";
+                            // **FIX: Read DayName from hidden input via Request.Form**
+                            string dayName = Request.Form[$"DayName_{item.ItemIndex}"] ?? "";
+                            string startTime = startTimeTextBox?.Text ?? "";
+                            string endTime = endTimeTextBox?.Text ?? "";
+
+                            string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
+                                ? ""
+                                : $"{startTime} - {endTime}";
+
+                            System.Diagnostics.Debug.WriteLine($"Row {item.ItemIndex}: Date={examDateStr}, Day={dayName}, Start={startTime}, End={endTime}");
+
+                            DateTime? examDate = null;
+                            if (!string.IsNullOrEmpty(examDateStr))
                             {
-                                examDateStr = Request.Form[possibleName];
-
-                                // Extract base pattern
-                                string basePattern = possibleName.Replace("ExamDateTextBox", "");
-                                dayName = Request.Form[basePattern + "DayNameTextBox"] ?? "";
-                                startTime = Request.Form[basePattern + "StartTimeTextBox"] ?? "";
-                                endTime = Request.Form[basePattern + "EndTimeTextBox"] ?? "";
-
-                                System.Diagnostics.Debug.WriteLine($"Row {rowIdx}: Found data with pattern '{basePattern}'");
-                                break;
+                                if (DateTime.TryParseExact(examDateStr, "dd/MM/yyyy",
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    System.Globalization.DateTimeStyles.None, out DateTime tempDate))
+                                {
+                                    examDate = tempDate;
+                                }
+                                else if (DateTime.TryParse(examDateStr, out tempDate))
+                                {
+                                    examDate = tempDate;
+                                }
                             }
-                        }
 
-                        System.Diagnostics.Debug.WriteLine($"Row {rowIdx}: Date={examDateStr}, Day={dayName}, Start={startTime}, End={endTime}");
-
-                        string examTime = string.IsNullOrEmpty(startTime) && string.IsNullOrEmpty(endTime)
-                         ? ""
-                          : $"{startTime} - {endTime}";
-
-                        DateTime? examDate = null;
-                        if (!string.IsNullOrEmpty(examDateStr))
-                        {
-                            if (DateTime.TryParseExact(examDateStr, "dd/MM/yyyy",
-                                   System.Globalization.CultureInfo.InvariantCulture,
-                          System.Globalization.DateTimeStyles.None, out DateTime tempDate))
-                            {
-                                examDate = tempDate;
-                            }
-                            else if (DateTime.TryParse(examDateStr, out tempDate))
-                            {
-                                examDate = tempDate;
-                            }
-                        }
-
-                        string rowInsert = @"
+                            string rowInsert = @"
 INSERT INTO Exam_Routine_Rows (RoutineID, RowIndex, ExamDate, DayName, ExamTime)
 VALUES (@RoutineID, @RowIndex, @ExamDate, @DayName, @ExamTime)";
 
-                        SqlCommand cmdRow = new SqlCommand(rowInsert, con, transaction);
-                        cmdRow.Parameters.AddWithValue("@RoutineID", routineId);
-                        cmdRow.Parameters.AddWithValue("@RowIndex", rowIdx);
-                        cmdRow.Parameters.AddWithValue("@ExamDate", (object)examDate ?? DBNull.Value);
-                        cmdRow.Parameters.AddWithValue("@DayName", dayName);
-                        cmdRow.Parameters.AddWithValue("@ExamTime", examTime);
-                        cmdRow.ExecuteNonQuery();
-                        insertedRowsCount++;
+                            SqlCommand cmdRow = new SqlCommand(rowInsert, con, transaction);
+                            cmdRow.Parameters.AddWithValue("@RoutineID", routineId);
+                            cmdRow.Parameters.AddWithValue("@RowIndex", item.ItemIndex);
+                            cmdRow.Parameters.AddWithValue("@ExamDate", (object)examDate ?? DBNull.Value);
+                            cmdRow.Parameters.AddWithValue("@DayName", dayName);
+                            cmdRow.Parameters.AddWithValue("@ExamTime", examTime);
+                            cmdRow.ExecuteNonQuery();
+                            insertedRowsCount++;
+                        }
                     }
-
                     System.Diagnostics.Debug.WriteLine($"Total inserted rows: {insertedRowsCount}");
 
                     // 4. Delete and re-insert cell data
@@ -1410,12 +1377,12 @@ VALUES (@RoutineID, @RowIndex, @ColumnIndex, @SubjectID, @SubjectText, @TimeText
                     var rowData = new Dictionary<string, string>();
 
                     TextBox dateTextBox = (TextBox)item.FindControl("ExamDateTextBox");
-                    TextBox dayTextBox = (TextBox)item.FindControl("DayNameTextBox");
                     TextBox startTimeTextBox = (TextBox)item.FindControl("StartTimeTextBox");
                     TextBox endTimeTextBox = (TextBox)item.FindControl("EndTimeTextBox");
 
                     rowData["ExamDate"] = dateTextBox != null ? dateTextBox.Text : "";
-                    rowData["DayName"] = dayTextBox != null ? dayTextBox.Text : "";
+                    // **FIX: Read DayName from hidden input**
+                    rowData["DayName"] = Request.Form[$"DayName_{item.ItemIndex}"] ?? "";
                     rowData["StartTime"] = startTimeTextBox != null ? startTimeTextBox.Text : "";
                     rowData["EndTime"] = endTimeTextBox != null ? endTimeTextBox.Text : "";
                     currentData.Add(rowData);

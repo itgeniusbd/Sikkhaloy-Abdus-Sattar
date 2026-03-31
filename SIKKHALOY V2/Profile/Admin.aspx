@@ -317,11 +317,11 @@ WHERE (Student.DateofBirth IS NOT NULL) AND
             <div class="card mb-4">
            <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
              <i class="fa fa-calendar-alt" aria-hidden="true"></i>
- <strong>একাডেমিক ক্যালেন্ডার</strong> | Academic Calendar | التقويم الأكاديمي
-      <small class="pull-right" style="opacity: 0.9;">
-  <i class="fa fa-globe"></i> ইংরেজি | বাংলা | আরবি
-        </small>
-   </div>
+             <strong>একাডেমিক ক্যালেন্ডার</strong> | Academic Calendar
+             <small class="pull-right" style="opacity: 0.9;">
+                 <i class="fa fa-globe"></i> ইংরেজি | বাংলা
+             </small>
+           </div>
   <asp:UpdatePanel ID="ContainUpdatePanel" runat="server">
    <ContentTemplate>
  <div class="table-responsive" style="overflow-y: hidden !important;">

@@ -177,6 +177,9 @@
                             <asp:BoundField DataField="StudentsName" HeaderText="নাম" SortExpression="StudentsName" >
                             <ItemStyle HorizontalAlign="Left" />
                             </asp:BoundField>
+                            <asp:BoundField DataField="FathersName" HeaderText="পিতার নাম" SortExpression="FathersName" >
+                            <ItemStyle HorizontalAlign="Left" />
+                            </asp:BoundField>
                             <asp:BoundField DataField="RollNo" HeaderText="রোল নং" SortExpression="RollNo" />
                         </Columns>
                         <PagerStyle CssClass="pgr" />

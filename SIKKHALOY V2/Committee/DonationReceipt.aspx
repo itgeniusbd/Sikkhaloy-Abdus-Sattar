@@ -59,7 +59,7 @@
             color: #000 !important;
         }
 
-        @page { margin: 0 13.3rem !important; }
+        @page { margin: 0 13.3rem; }
 
         @media print {
             .logo-waper { display: none; }
@@ -363,7 +363,7 @@
             printContent.textContent = `
                  #InstitutionName { font-size: ${printingOptions.fontSize + 4}px}
                  .dynamic-font-size {font-size: ${printingOptions.fontSize + 1}px !important}
-                 #header { padding-top: ${printingOptions.topSpace}px}
+                 @page { margin: ${printingOptions.topSpace}px 13.3rem 0 13.3rem !important; }
                 .InsInfo p { font-size: ${printingOptions.fontSize + 1}px}
                 .mGrid th { font-size: ${printingOptions.fontSize}px}
                 .mGrid td { font-size: ${printingOptions.fontSize}px}`;

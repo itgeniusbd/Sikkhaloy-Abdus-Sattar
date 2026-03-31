@@ -167,6 +167,14 @@
                                         </a>
                                     </div>
                                     
+                                    <!-- Institution ID Badge -->
+                                    <div class="d-flex align-items-center mx-2 d-print-none">
+                                        <div style="background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.5); border-radius: 8px; padding: 6px 14px; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">
+                                            <span id="institutionIdLabel2" style="font-size:13px; font-weight:600; color:#fff; letter-spacing:0.5px;">Institution ID :</span>
+                                            <span style="font-size:17px; font-weight:700; color:#FFD700; margin-left:6px; text-shadow: 0 0 8px rgba(255,215,0,0.6);"><%# Eval("SchoolID") %></span>
+                                        </div>
+                                    </div>
+
                                     <!-- Color Picker & Language Toggle Button -->
                                     <div class="d-print-none d-flex align-items-center">
                                         <button type="button" id="colorPickerBtn" class="btn btn-outline-light btn-sm mr-2" title="Change Header Color">
@@ -204,6 +212,13 @@
                                             <i class="fa fa-phone mx-1 icon-fallback" data-fallback="📞"></i><%#Eval("Phone") %>
                                             <i class="fa fa-envelope-o mx-1 icon-fallback" data-fallback="✉️"></i><%#Eval("Email") %>
                                         </p>
+                                    </div>
+                                    <!-- Institution ID Badge (Right Side) -->
+                                    <div class="d-flex align-items-center mx-3 d-print-none" id="institutionIdBadge">
+                                        <div style="background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.5); border-radius: 8px; padding: 8px 18px; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">
+                                            <span id="institutionIdLabel" style="font-size:14px; font-weight:600; color:#fff; letter-spacing:0.5px;">Institution ID :</span>
+                                            <span style="font-size:18px; font-weight:700; color:#FFD700; margin-left:6px; text-shadow: 0 0 8px rgba(255,215,0,0.6);"><%# Eval("SchoolID") %></span>
+                                        </div>
                                     </div>
                                     <!-- Color Picker & Language Toggle Button -->
                                     <div class="d-flex align-items-center ml-auto d-print-none">
@@ -500,7 +515,7 @@
                 'Teacher & Staff': 'শিক্ষক ও কর্মচারী',
                 'Admission': 'ভর্তি',
                 'Student Management': 'শিক্ষার্থী ব্যবস্থাাপনা',
-                'Student\'s Info': 'শিক্ষার্থীর তথ্য',
+                'Student\'s Info': 'শিক্ষার্থী তথ্য',
                 'Attendances': 'উপস্থিতি',
 
                 'SMS': 'এস এম এস',
@@ -530,7 +545,7 @@
                 'ID Card Print': 'আইডি কার্ড প্রিন্ট',
                 'Student List': 'শিক্ষার্থীর তালিকা',
                 'Present Student': 'বর্তমান শিক্ষার্থী',
-                'Attendance Entry': 'উপস্থিতি এন্ট্রি',
+                'Attendance Entry': 'উপস্থিতি অ্যন্ট্রি',
                 'Attendance Report': 'উপস্থিতি রিপোর্ট',
                 'Monthly Report': 'মাসিক রিপোর্ট',
                 'Income': 'আয় সমূহ',
@@ -542,9 +557,9 @@
                 'Marks Entry': 'নাম্বার এন্ট্রি',
                 'Merit List': 'মেধা তালিকা',
                 'Tabulation Sheet': 'ট্যাবুলেশন শীট',
-                'Send SMS': 'এস এম এস পাঠান',
+                'Send SMS': 'এস এম SMS পাঠান',
                 'SMS Report': 'এস এম এস রিপোর্ট',
-                'SMS Settings': 'এস এম এস সেটিংস',
+                'SMS Settings': 'এস এম SMS সেটিংস',
                 'Class Routine': 'ক্লাশ রুটিন',
                 'Exam Routine': 'পরীক্ষার রুটিন',
                 'Teacher Routine': 'শিক্ষক রুটিন',
@@ -585,7 +600,7 @@
                 'Payment Record': 'পেমেন্ট রেকর্ড',
                 'Unpaid Receipt': 'রসিদ আনপেইড করুন',
 
-                'এসএমএস পাঠান': 'এস এম এস পাঠান',
+                'এসএমএস পাঠান': 'এস এম SMS পাঠান',
                 'শিক্ষালয় ইনভয়েস': 'শিক্ষালয় ইনভয়েস',
                 'Due Invoice': 'বকেয়া ইনভয়েস',
                 'Paid Invoice': 'প্রদত্ত ইনভয়েস',
@@ -697,7 +712,7 @@
                 'Exam Setting': 'পরীক্ষার সেটিংস',
                 'Exam Name': 'পরীক্ষার নাম তৈরী',
                 'Sub-Exam Name': 'সাব পরীক্ষার নাম তৈরী',
-                'Change Pass Marks': 'পাশ মার্ক পরিবর্তন করুন',
+                'Change Pass Marks': 'পাস মার্ক পরিবর্তন করুন',
                 'Marks Distribution': 'নাম্বার বন্টন',
                 'Input Exam Marks': 'নাম্বার যুক্ত করুন',
                 'Inputted Marks Check': 'নাম্বার চেক করুন',
@@ -707,12 +722,12 @@
                 'Exam Control': 'পরীক্ষা কন্ট্রোল করুন',
                 'Admit Card': 'প্রবেশপত্র',
                 // SMS related items
-                'Send Message': 'এস এম এস পাঠান',
+                'Send Message': 'এস এম SMS পাঠান',
                 'Send SMS From Contact List': 'কন্টাক্ট লিস্ট হতে এস এম এস পাঠান',
-                'Message History': 'এস এম এস রেকর্ড',
+                'Message History': 'এস এম SMS রেকর্ড',
                 'SMS Settings': 'এস এম এস সেটিংস',
-                'SMS Balance': 'এস এম এস ব্যালেন্স',
-                'SMS Sent Records': 'পাঠানো এস এম এস এর রেকর্ড',
+                'SMS Balance': 'এস এম SMS ব্যালেন্স',
+                'SMS Sent Records': 'পাঠানো এস এম এস রেকর্ড',
                 // Committee related items
                 'Committee Information': 'কমিটির তথ্য',
                 'Committee List': 'কমিটির তালিকা',
@@ -992,9 +1007,11 @@
                     if (savedLanguage === 'bengali') {
                         isMenuBengali = true;
                         translateMenuToBengali();
+                        updateInstitutionIdLabel(true);
                         $('#languageToggle, #languageToggle2').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
                     } else {
                         isMenuBengali = false;
+                        updateInstitutionIdLabel(false);
                         $('#languageToggle, #languageToggle2').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                     }
 
@@ -1005,7 +1022,6 @@
                     e.preventDefault();
                     e.stopPropagation();
 
-                    var $btn = $(this);
                     var $allBtns = $('#languageToggle, #languageToggle2');
                     $allBtns.html('<i class="fa fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
 
@@ -1015,11 +1031,13 @@
                                 translateMenuToEnglish();
                                 $allBtns.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                                 isMenuBengali = false;
+                                updateInstitutionIdLabel(false);
                                 localStorage.setItem('menuLanguage', 'english');
                             } else {
                                 isMenuBengali = true;
                                 localStorage.setItem('menuLanguage', 'bengali');
                                 $allBtns.html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> English');
+                                updateInstitutionIdLabel(true);
 
                                 if ($('#LinkTreeView').is(':visible')) {
                                     forceTranslateAll();
@@ -1043,8 +1061,14 @@
                     emergencyReset();
                     $('#languageToggle, #languageToggle2').html('<i class="fa fa-language icon-fallback" data-fallback="🌐"></i> বাংলা');
                     isMenuBengali = false;
+                    updateInstitutionIdLabel(false);
                     localStorage.setItem('menuLanguage', 'english');
                 });
+            }
+
+            // Update Institution ID label based on language
+            function updateInstitutionIdLabel(isBengali) {
+                $('#institutionIdLabel, #institutionIdLabel2').text(isBengali ? 'প্রতিষ্ঠান আইডি :' : 'Institution ID :');
             }
 
             // Function to translate menu to Bengali

@@ -146,35 +146,25 @@ namespace EDUCATION.COM.Profile
         // Acadamic calendar with Arabic, Bangla and English dates
         protected void HolidayCalendar_DayRender(object sender, DayRenderEventArgs e)
         {
-            // Clear default content
             e.Cell.Controls.Clear();
 
-            // If the month is CurrentMonth
             if (!e.Day.IsOtherMonth)
             {
-                // Create container for multi-language dates
                 Panel dateContainer = new Panel();
                 dateContainer.CssClass = "calendar-date-container";
 
-                // 1. English Date (First Line - Largest)
+                // English Date
                 Label englishDate = new Label();
                 englishDate.CssClass = "calendar-english-date";
                 englishDate.Text = e.Day.Date.Day.ToString();
                 dateContainer.Controls.Add(englishDate);
 
-                // 2. Bangla Date (Second Line)
+                // Bangla Date only (Arabic/Hijri removed - calculation was inaccurate)
                 Label banglaDate = new Label();
                 banglaDate.CssClass = "calendar-bangla-date";
                 banglaDate.Text = "🇧🇩 " + GetBanglaDate(e.Day.Date);
                 dateContainer.Controls.Add(banglaDate);
 
-                // 3. Arabic/Hijri Date (Third Line)
-                Label hijriDate = new Label();
-                hijriDate.CssClass = "calendar-hijri-date";
-                hijriDate.Text = GetHijriDate(e.Day.Date) + " 🕌";
-                dateContainer.Controls.Add(hijriDate);
-
-                // Check if today
                 if (e.Day.Date == DateTime.Today)
                 {
                     e.Cell.CssClass = "myCalendarToday";
@@ -186,13 +176,11 @@ namespace EDUCATION.COM.Profile
 
                 e.Cell.Controls.Add(dateContainer);
 
-                // Check for holidays/events
                 foreach (DataRow dr in ds.Tables[0].Rows)
                 {
                     if ((dr["HolidayDate"].ToString() != DBNull.Value.ToString()))
                     {
                         DateTime dtEvent = (DateTime)dr["HolidayDate"];
-                        
                         if (dtEvent.Equals(e.Day.Date))
                         {
                             e.Cell.CssClass += " Evnt_Date";
@@ -204,7 +192,6 @@ namespace EDUCATION.COM.Profile
                     }
                 }
             }
-            //If the month is not CurrentMonth then hide the Dates
             else
             {
                 e.Cell.Text = "";

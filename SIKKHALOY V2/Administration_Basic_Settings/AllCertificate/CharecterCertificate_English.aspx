@@ -44,9 +44,9 @@ box-shadow:
       inset 0 0 0 12px #d4af37,
    inset 0 0 0 22px white,
        inset 0 0 0 24px #d4af37;
- padding: 60px 50px;
+ padding: 60px 50px 120px 50px;
    position: relative;
-   min-height: 240mm; /* A4 height minus margins */
+   min-height: 200mm;
      }
 
   /* Corner decorations */
@@ -171,106 +171,127 @@ border-right: none;
   }
 
       /* PrintStyles */
- @media print {
-      @page {
-    size: A4 portrait;
-      margin: 0;
-     }
-
-            body {
-   background: white !important;
-      margin: 0 !important;
-            padding: 0 !important;
-    -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
- }
-
-        .certificate-wrapper {
-  margin: 0 !important;
-      padding: 4px !important;
-  max-width: 100% !important;
-    background: #d4af37 !important;
-    page-break-inside: avoid;
-            }
-      
-.certificate-inner {
-    box-shadow: 
-        inset 0 0 0 10px white,
-       inset 0 0 0 12px #d4af37,
-       inset 0 0 0 22px white,
-        inset 0 0 0 24px #d4af37 !important;
-          padding: 80px 60px !important;
-      min-height: 1000px !important;
-     page-break-inside: avoid;
-   }
-
-       .certificate-inner::before,
-   .certificate-inner::after,
-   .corner-decoration {
-      border-width: 3px !important;
-  width: 60px !important;
-      height: 60px !important;
-  }
-
-       .certificate-inner::before {
-   top: 30px !important;
-  left: 30px !important;
-       }
-
-    .certificate-inner::after {
-    bottom: 30px !important;
-    right: 30px !important;
-    }
-
-         .corner-top-right {
- top: 30px !important;
-    right: 30px !important;
- }
-
-      .corner-bottom-left {
-    bottom: 30px !important;
-      left: 30px !important;
-  }
-
-       .C-title {
-    font-size: 1.4rem !important;
-      margin-top: 3rem !important;
-       }
-
-            .C-title2 {
-   font-size: 1.2rem !important;
-       margin-bottom: 3rem !important;
-      }
-
-  .c-body {
-padding: 4rem !important;
-   font-size: 1.1rem !important;
-line-height: 2.2 !important;
-     }
-
-    .c-footer {
-        padding: 0 4rem !important;
-      font-size: 1.4rem !important;
-         margin-top: 2rem !important;
-     }
-
-            .c-sign {
-    padding: 0 4rem !important;
-  bottom: 4rem !important;
-   font-size: 1.05rem !important;
-     }
-
-     .c-sign2 {
-      padding: 0 4rem !important;
-  bottom: 4rem !important;
-         font-size: 1.05rem !important;
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0;
         }
 
-          /* Hide print button and other non-printable elements */
+        body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        #sidedrawer,
+        #footer,
+        .NoPrint,
+        .d-print-none {
+            display: none !important;
+        }
+
+        #content-wrapper {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #content-wrapper .container-fluid {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .certificate-wrapper {
+            margin: 5mm !important;
+            padding: 4px !important;
+            max-width: calc(100% - 10mm) !important;
+            background: #d4af37 !important;
+            page-break-inside: avoid;
+            page-break-before: avoid;
+        }
+
+        .certificate-inner {
+            box-shadow:
+                inset 0 0 0 10px white,
+                inset 0 0 0 12px #d4af37,
+                inset 0 0 0 22px white,
+                inset 0 0 0 24px #d4af37 !important;
+            padding: 30px 50px 100px 50px !important;
+            min-height: 255mm !important;
+            page-break-inside: avoid;
+            position: relative !important;
+        }
+
+        .certificate-inner::before,
+        .certificate-inner::after,
+        .corner-decoration {
+            border-width: 3px !important;
+            width: 50px !important;
+            height: 50px !important;
+        }
+
+        .certificate-inner::before {
+            top: 20px !important;
+            left: 20px !important;
+        }
+
+        .certificate-inner::after {
+            bottom: 20px !important;
+            right: 20px !important;
+        }
+
+        .corner-top-right {
+            top: 20px !important;
+            right: 20px !important;
+        }
+
+        .corner-bottom-left {
+            bottom: 20px !important;
+            left: 20px !important;
+        }
+
+        .C-title {
+            font-size: 1.3rem !important;
+            margin-top: 1.5rem !important;
+            margin-bottom: 0 !important;
+        }
+
+        .C-title2 {
+            font-size: 1.1rem !important;
+            margin-top: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        .c-body {
+            padding: 1rem 2.5rem !important;
+            font-size: 0.95rem !important;
+            line-height: 1.8 !important;
+        }
+
+        .c-footer {
+            padding: 0 2.5rem !important;
+            font-size: 1rem !important;
+            margin-top: 0.8rem !important;
+        }
+
+        .c-sign {
+            padding: 0 2.5rem !important;
+            bottom: 2.5rem !important;
+            font-size: 0.95rem !important;
+        }
+
+        .c-sign2 {
+            padding: 0 2.5rem !important;
+            bottom: 2.5rem !important;
+            font-size: 0.95rem !important;
+            right: 3rem !important;
+        }
+
         .d-print-none, .NoPrint {
-display: none !important;
-   }
-   }
+            display: none !important;
+        }
+    }
     </style>
 
 </asp:Content>
@@ -311,8 +332,8 @@ display: none !important;
 
    <p class="ptext"> <%#(string)Eval("Gender") == "Male" ? "son of" : "daughter of" %> <strong><%# Eval("FathersName") %></strong> & <strong><%# Eval("MothersName") %></strong>,</p> 
            
-     <p class="ptext"> residence of <strong><%# Eval("StudentPermanentAddress")%></strong> is known to me. He is a citizen of Bangladesh by birth. To the best of my knowledge,
-      he bears a good moral character and is not involved in such activities which are against the state freedom and peace.</p>
+     <p class="ptext"> residence of <strong><%# Eval("StudentPermanentAddress")%></strong> is known to me. <%#(string)Eval("Gender") == "Male" ? "He" : "She" %> is a citizen of Bangladesh by birth. To the best of my knowledge,
+      <%#(string)Eval("Gender") == "Male" ? "he" : "she" %> bears a good moral character and is not involved in such activities which are against the state freedom and peace.</p>
 </div>
 
    <div class="c-footer">
@@ -353,8 +374,8 @@ display: none !important;
        This is to certify that, Student: <strong><%# Eval("StudentsName") %></strong>, ID: <strong><%# Eval("ID") %></strong>, Class: <strong><%# Eval("Class") %></strong>, Roll No: <strong><%# Eval("RollNo") %></strong>, Date Of Birth, <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
    <%#(string)Eval("Gender") == "Male" ? "son of" : "daughter of" %> <strong><%# Eval("FathersName") %></strong> & <strong><%# Eval("MothersName") %></strong>, 
            
-            residence of <strong><%# Eval("StudentPermanentAddress")%></strong>, is known to me. He is a citizen of Bangladesh by birth. To the best of my knowledge,
-       he bears a good moral character and is not involved in such activities which are against the state freedom and peace.
+            residence of <strong><%# Eval("StudentPermanentAddress")%></strong>, is known to me. <%#(string)Eval("Gender") == "Male" ? "He" : "She" %> is a citizen of Bangladesh by birth. To the best of my knowledge,
+       <%#(string)Eval("Gender") == "Male" ? "he" : "she" %> bears a good moral character and is not involved in such activities which are against the state freedom and peace.
   </div>
 
      <div class="c-footer">

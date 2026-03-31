@@ -25,9 +25,9 @@ box-shadow:
    inset 0 0 0 12px #d4af37,
    inset 0 0 0 22px white,
   inset 0 0 0 24px #d4af37;
-    padding: 60px 50px;
+    padding: 60px 50px 100px 50px;
       position: relative;
-     min-height: 240mm;
+     min-height: 200mm;
    }
 
  /* Corner decorations */
@@ -137,97 +137,127 @@ padding: 0 4rem;
 
     .c-sign2 {
       position: absolute;
-     padding: 0 4rem;
-   right: 0;
-       bottom: 4rem;
-    font-size: 18px;
-  color: #000;
-    font-family: 'Crimson Text', serif;
-      }
+      padding: 0;
+      right: 4rem;
+      bottom: 3rem;
+      font-size: 18px;
+      color: #000;
+      font-family: 'Crimson Text', serif;
+      width: 200px;
+      text-align: center;
+    }
 
      @media print {
 @page {
     size: A4 portrait;
- margin: 0;
- }
+    margin: 0;
+}
 
 body {
-     background: white !important;
-margin: 0 !important;
-     padding: 0 !important;
-       -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
- }
-
-   .certificate-wrapper {
+    background: white !important;
     margin: 0 !important;
- padding: 4px !important;
-      max-width: 100% !important;
-background: #d4af37 !important;
-   page-break-inside: avoid;
-      }
-    
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+#sidedrawer,
+#footer,
+.NoPrint,
+.d-print-none {
+    display: none !important;
+}
+
+#content-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#content-wrapper .container-fluid {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.certificate-wrapper {
+    margin: 5mm !important;
+    padding: 4px !important;
+    max-width: calc(100% - 10mm) !important;
+    background: #d4af37 !important;
+    page-break-inside: avoid;
+    page-break-before: avoid;
+}
+
 .certificate-inner {
-  box-shadow: 
-    inset 0 0 0 10px white,
-  inset 0 0 0 12px #d4af37,
-    inset 0 0 0 22px white,
- inset 0 0 0 20px #d4af37 !important;
- padding: 80px 60px !important;
-    min-height: 1000px !important;
-     page-break-inside: avoid;
+    box-shadow:
+        inset 0 0 0 10px white,
+        inset 0 0 0 12px #d4af37,
+        inset 0 0 0 22px white,
+        inset 0 0 0 24px #d4af37 !important;
+    padding: 30px 50px 100px 50px !important;
+    min-height: 255mm !important;
+    page-break-inside: avoid;
+    position: relative !important;
 }
 
 .certificate-inner::before,
- .certificate-inner::after,
-    .corner-decoration {
-border-width: 3px !important;
- width: 60px !important;
- height: 40px !important;
-     }
+.certificate-inner::after,
+.corner-decoration {
+    border-width: 3px !important;
+    width: 50px !important;
+    height: 50px !important;
+}
 
-    .certificate-inner::before {
-   top: 30px !important;
-left: 30px !important;
+.certificate-inner::before {
+    top: 20px !important;
+    left: 20px !important;
 }
 
 .certificate-inner::after {
-     bottom: 30px !important;
-  right: 30px !important;
-       }
-
- .corner-top-right {
-  top: 30px !important;
-          right: 30px !important;
-    }
-
-  .corner-bottom-left {
-bottom: 30px !important;
-    left: 30px !important;
+    bottom: 20px !important;
+    right: 20px !important;
 }
 
-   .C-title {
-       font-size: 2rem !important;
-    margin-top: 3rem !important;
-    }
-
-        .C-title2 {
-        font-size: 2rem !important;
-   margin-bottom: 3rem !important;
-      }
-
-   .c-body {
-    padding-top: 80px !important;
-    padding-left: 60px !important;
-       padding-right: 60px !important;
-      font-size: 18px !important;
-   line-height: 40px !important;
+.corner-top-right {
+    top: 20px !important;
+    right: 20px !important;
 }
 
-  .c-footer {
-padding-left: 60px !important;
-        font-size: 18px !important;
-    margin-top: 40px !important;
+.corner-bottom-left {
+    bottom: 20px !important;
+    left: 20px !important;
+}
+
+.C-title {
+    font-size: 1.8rem !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0 !important;
+}
+
+.date-position {
+    float: right !important;
+    font-size: 15px !important;
+    margin-right: 10px !important;
+    margin-top: 15px !important;
+}
+
+.c-body {
+    padding-top: 20px !important;
+    padding-left: 30px !important;
+    padding-right: 30px !important;
+    font-size: 15px !important;
+    line-height: 30px !important;
+}
+
+.c-footer {
+    padding-left: 30px !important;
+    font-size: 15px !important;
+    margin-top: 15px !important;
+}
+
+.c-sign2 {
+    right: 3rem !important;
+    bottom: 2.5rem !important;
+    font-size: 15px !important;
 }
 
 .d-print-none, .NoPrint {
@@ -266,8 +296,8 @@ padding-left: 60px !important;
         <div class="corner-decoration corner-bottom-left"></div>
 
         <div class="C-title">TESTIMONIAL</div>
-          <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:30px">Date: ......../........../.........</label>
-        <div class="c-body">
+          <label class="date-position" style="display:block;text-align:right;font-size: 17px;margin-right:25px;margin-top:20px;clear:both;">Date: ......../........../.........</label>
+        <div class="c-body" style="clear:both;padding-top:30px;">
       It is hereby certified that the student: <strong><%# Eval("StudentsName") %>, </strong> ID: <strong><%# Eval("ID") %></strong>, Class: <strong><%# Eval("Class") %></strong>, Roll No: <strong><%# Eval("RollNo") %></strong>,
    Father: <strong><%# Eval("FathersName") %></strong>, Mother:  <strong><%# Eval("MothersName") %></strong>, 
     Date Of Birth: <strong><%# Eval("DateofBirth","{0:d MMM, yyyy}") %></strong>,
@@ -278,7 +308,7 @@ padding-left: 60px !important;
   I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
       </div>
     
-       <label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">Authority Signature</label> 
+       <label class="c-sign2" style="font-weight:bold;border-top:solid 1px #000;text-align:center;">Authority Signature</label>
    </div>
 </div>
    </ItemTemplate>
@@ -306,8 +336,8 @@ padding-left: 60px !important;
              I wish all success and prosperity in <%#(string)Eval("Gender") == "Male" ? "his" : "her" %> life.
       </div>
 
-<label class="date-position" style="float: right;font-size: 18px;margin-right:20px;margin-top:300px; font-weight:bold;border-top:solid 1px #000">Authority Signature</label> 
-    </asp:Panel>
+<label class="c-sign2" style="font-weight:bold;border-top:solid 1px #000;text-align:center;">Authority Signature</label>
+</asp:Panel>
      </ItemTemplate>
     </asp:FormView>
    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.Class_Status IS NULL)">

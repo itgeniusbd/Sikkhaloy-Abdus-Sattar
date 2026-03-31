@@ -65,11 +65,11 @@
                             <asp:ControlParameter ControlID="NoticeTitleTextBox" Name="NoticeTitle" PropertyName="Text" Type="String" />
                             <asp:ControlParameter ControlID="NoticeTextBox" Name="Notice" PropertyName="Text" Type="String" />
                             <asp:Parameter Name="Notice_file" Type="String" />
-                            <asp:ControlParameter ControlID="NoticeTypeRadioButton" Name="IsHomeWork" PropertyName="SelectedValue" />
-                            <asp:Parameter Name="StudentNoticeId" Direction="Output" Size="50" />
+                            <asp:ControlParameter ControlID="NoticeTypeRadioButton" Name="IsHomeWork" PropertyName="SelectedValue" Type="Int32" />
+                            <asp:Parameter Name="StudentNoticeId" Direction="Output" Type="Int32" Size="50" />
                         </InsertParameters>
                         <SelectParameters>
-                            <asp:SessionParameter Name="SchoolId" SessionField="SchoolId" />
+                            <asp:SessionParameter Name="SchoolId" SessionField="SchoolID" />
                             <asp:SessionParameter Name="EducationYearId" SessionField="Edu_Year" />
                         </SelectParameters>
                     </asp:SqlDataSource>
@@ -90,7 +90,8 @@
      InsertCommand="INSERT INTO [StudentNotice] ([RegistrationId], [SchoolId], [EducationYearId], [NoticeTitle], [Notice],[Notice_file], IsHomeWork ) 
      VALUES (@RegistrationId, @SchoolId, @EducationYearId, @NoticeTitle, @Notice,@Notice_file,@IsHomeWork);
      SELECT @StudentNoticeId = SCOPE_IDENTITY();"
-     SelectCommand="SELECT Registration.UserName, StudentNoticeId, NoticeTitle, Notice,Notice_file,Convert(varchar,InsertDate,106)InsertDate,IsHomeWork FROM StudentNotice Inner join Registration on StudentNotice.RegistrationId=Registration.RegistrationID WHERE (StudentNotice.SchoolId = @SchoolId) AND (EducationYearId = @EducationYearId) AND (IsHomeWork = 1) ORDER BY InsertDate DESC;">                        
+     SelectCommand="SELECT Registration.UserName, StudentNoticeId, NoticeTitle, Notice,Notice_file,Convert(varchar,InsertDate,106)InsertDate,IsHomeWork FROM StudentNotice Inner join Registration on StudentNotice.RegistrationId=Registration.RegistrationID WHERE (StudentNotice.SchoolId = @SchoolId) AND (EducationYearId = @EducationYearId) AND (IsHomeWork = 1) ORDER BY InsertDate DESC;"
+     OnInserted="StudentNoticeSQL_Inserted">                        
      <InsertParameters>
          <asp:SessionParameter Name="RegistrationId" SessionField="RegistrationID" Type="Int32" />
          <asp:SessionParameter Name="SchoolId" SessionField="SchoolID" Type="Int32" />
@@ -98,11 +99,11 @@
          <asp:ControlParameter ControlID="NoticeTitleTextBox" Name="NoticeTitle" PropertyName="Text" Type="String" />
          <asp:ControlParameter ControlID="NoticeTextBox" Name="Notice" PropertyName="Text" Type="String" />
          <asp:Parameter Name="Notice_file" Type="String" />
-         <asp:ControlParameter ControlID="NoticeTypeRadioButton" Name="IsHomeWork" PropertyName="SelectedValue" />
+         <asp:ControlParameter ControlID="NoticeTypeRadioButton" Name="IsHomeWork" PropertyName="SelectedValue" Type="Int32" />
          <asp:Parameter Name="StudentNoticeId" Direction="Output" Size="50" />
      </InsertParameters>
      <SelectParameters>
-         <asp:SessionParameter Name="SchoolId" SessionField="SchoolId" />
+         <asp:SessionParameter Name="SchoolId" SessionField="SchoolID" />
          <asp:SessionParameter Name="EducationYearId" SessionField="Edu_Year" />
      </SelectParameters>
  </asp:SqlDataSource>
@@ -197,12 +198,6 @@
 </asp:GridView>
         </div>
     </div>
-
-
-
-
-
-
 
             </div>
         </div>

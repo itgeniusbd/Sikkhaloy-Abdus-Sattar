@@ -43,10 +43,9 @@ namespace EDUCATION.COM.Employee
         
         protected void HolidayCalendar_DayRender(object sender, DayRenderEventArgs e)
         {  
-     // Clear default text
-   e.Cell.Text = "";
+            e.Cell.Text = "";
          
-// If the month is CurrentMonth
+            // If the month is CurrentMonth
             if (!e.Day.IsOtherMonth)
             {
    // Create container div for multi-language dates
@@ -65,13 +64,7 @@ dateContainer.Attributes["class"] = "calendar-date-container";
        banglaDate.CssClass = "calendar-bangla-date";
       dateContainer.Controls.Add(banglaDate);
           
-     // Arabic/Hijri Date (Purple box)
-      Label hijriDate = new Label();
-         hijriDate.Text = GetHijriDate(e.Day.Date);
-      hijriDate.CssClass = "calendar-hijri-date";
-      dateContainer.Controls.Add(hijriDate);
-             
-  // Add "TODAY" badge if it's today
+     // Add "TODAY" badge if it's today
      if (e.Day.Date == DateTime.Today)
                 {
        Label todayBadge = new Label();

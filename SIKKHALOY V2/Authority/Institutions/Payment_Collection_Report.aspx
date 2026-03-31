@@ -11,7 +11,12 @@
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <h3>Payment Collection Report</h3>
+    <h3>
+        Payment Collection Report
+        <a href="Paid_Institutions_Report.aspx" class="btn btn-sm btn-success pull-right">
+            <i class="fa fa-check-circle"></i> Paid Institutions Report
+        </a>
+    </h3>
 
     <div class="form-inline">
         <div class="form-group">

@@ -141,10 +141,10 @@ namespace EDUCATION.COM.Exam.ExamSetting
 
         protected void SubjectDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int a = StudentsGridView.Columns.Count - 3;
+            int a = StudentsGridView.Columns.Count - 4;
             for (int i = 0; i < a; i++)
             {
-                StudentsGridView.Columns.RemoveAt(3);
+                StudentsGridView.Columns.RemoveAt(4);
             }
 
 

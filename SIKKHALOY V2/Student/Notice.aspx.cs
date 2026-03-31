@@ -18,16 +18,30 @@ namespace EDUCATION.COM.Student
         protected void DownloadFile(object sender, EventArgs e)
         {
             string filePath = (sender as LinkButton).CommandArgument;
+            if (string.IsNullOrEmpty(filePath)) return;
 
-            string path = Server.MapPath(filePath);
-
-            if (File.Exists(path))
+            // Cloudinary URL — direct redirect
+            if (filePath.StartsWith("http://") || filePath.StartsWith("https://"))
             {
-                Response.ContentType = ContentType;
-                Response.AppendHeader("Content-Disposition", "attachment; filename=" + Path.GetFileName(filePath));
-                Response.WriteFile(filePath);
-                Response.End();
+                Response.Redirect(filePath, false);
+                return;
             }
+
+            // Legacy local file
+            string path = Server.MapPath(filePath);
+            if (!File.Exists(path)) return;
+
+            string ext = Path.GetExtension(path).ToLower();
+            string contentType = "application/octet-stream";
+            if (ext == ".pdf") contentType = "application/pdf";
+            else if (ext == ".doc" || ext == ".docx") contentType = "application/msword";
+            else if (ext == ".xls" || ext == ".xlsx") contentType = "application/vnd.ms-excel";
+
+            Response.Clear();
+            Response.ContentType = contentType;
+            Response.AppendHeader("Content-Disposition", "attachment; filename=\"" + Path.GetFileName(path) + "\"");
+            Response.TransmitFile(path);
+            Response.End();
         }
     }
 }

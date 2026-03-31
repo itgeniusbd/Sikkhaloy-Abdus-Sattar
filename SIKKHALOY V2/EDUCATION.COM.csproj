@@ -437,6 +437,7 @@
     <Content Include="Authority\Institutions\Institution_Details.aspx" />
     <Content Include="Authority\Institutions\Paid_Due\Due_Details.aspx" />
     <Content Include="Authority\Institutions\Paid_Due\PaidDetails.aspx" />
+    <Content Include="Authority\Institutions\Paid_Institutions_Report.aspx" />
     <Content Include="Authority\Institutions\Payment_Collection_Report.aspx" />
     <Content Include="Authority\Institutions\Progress_Report.aspx" />
     <Content Include="Authority\Institutions\Testimonial.aspx" />
@@ -1636,6 +1637,13 @@
     </Compile>
     <Compile Include="Authority\Institutions\Paid_Due\PaidDetails.aspx.designer.cs">
       <DependentUpon>PaidDetails.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Authority\Institutions\Paid_Institutions_Report.aspx.cs">
+      <DependentUpon>Paid_Institutions_Report.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Authority\Institutions\Paid_Institutions_Report.aspx.designer.cs">
+      <DependentUpon>Paid_Institutions_Report.aspx</DependentUpon>
     </Compile>
     <Compile Include="Authority\Institutions\Payment_Collection_Report.aspx.cs">
       <DependentUpon>Payment_Collection_Report.aspx</DependentUpon>

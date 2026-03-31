@@ -122,10 +122,10 @@ display: none !important;
         <div class="calendar-card-header">
      <strong>
        <i class="fa fa-calendar-alt"></i> 
-   একাডেমিক ক্যালেন্ডার | Academic Calendar | التقويم الأكاديمي
+   একাডেমিক ক্যালেন্ডার | Academic Calendar
        </strong>
        <small>
-      <i class="fa fa-globe"></i> Multi-Language Support (English, বাংলা, العربية)
+      <i class="fa fa-globe"></i> Multi-Language Support (English, বাংলা)
          </small>
         </div>
         <div class="card-body" style="padding: 0;">
