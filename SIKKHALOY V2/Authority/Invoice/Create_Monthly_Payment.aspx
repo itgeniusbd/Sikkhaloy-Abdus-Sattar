@@ -30,10 +30,15 @@
                     <div class="form-inline">
                         <div class="form-group">
                             <asp:DropDownList ID="Month_DropDownList" CssClass="form-control" runat="server" DataSourceID="MonthSQL" DataTextField="Month" DataValueField="Date_N" AppendDataBoundItems="True" AutoPostBack="True">
-                                <asp:ListItem Value="0">[ SELECT MONTH ]</asp:ListItem>
+                                <asp:ListItem Value="">[ SELECT MONTH ]</asp:ListItem>
                             </asp:DropDownList>
-                            <asp:SqlDataSource ID="MonthSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT DISTINCT EOMONTH(Month) AS Date_N, FORMAT(Month, 'MMM yyyy') AS Month FROM AAP_Student_Count_Monthly GROUP BY Month ORDER BY EOMONTH(Month) DESC"></asp:SqlDataSource>
-                            <asp:RequiredFieldValidator ControlToValidate="Month_DropDownList" InitialValue="0" ValidationGroup="SC" ID="RequiredFieldValidator2" runat="server" ErrorMessage="*" CssClass="EroorStar"></asp:RequiredFieldValidator>
+                            <asp:SqlDataSource ID="MonthSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT DISTINCT EOMONTH(Month) AS Date_N, FORMAT(EOMONTH(Month), 'MMM yyyy') AS Month FROM AAP_Student_Count_Monthly GROUP BY Month ORDER BY EOMONTH(Month) DESC"></asp:SqlDataSource>
+                            <asp:RequiredFieldValidator ControlToValidate="Month_DropDownList" InitialValue="" ValidationGroup="SC" ID="RequiredFieldValidator2" runat="server" ErrorMessage="*" CssClass="EroorStar"></asp:RequiredFieldValidator>
+                        </div>
+                        <div class="form-group ml-2">
+                            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#GenerateCountModal">
+                                <i class="fa fa-plus-circle"></i> Generate Student Count
+                            </button>
                         </div>
                     </div>
 
@@ -116,12 +121,12 @@
                             dbo.fn_GetBillableCommitteeCount(SchoolInfo.SchoolID) as CommitteeCount
                         FROM SchoolInfo 
                         INNER JOIN AAP_Student_Count_Monthly ON SchoolInfo.SchoolID = AAP_Student_Count_Monthly.SchoolID 
-                        WHERE (FORMAT(AAP_Student_Count_Monthly.Month, 'MMM yyyy') = @Month)">
+                        WHERE (@Month IS NOT NULL AND @Month != '' AND EOMONTH(AAP_Student_Count_Monthly.Month) = CAST(@Month AS DATE))">
                         <SelectParameters>
-                            <asp:ControlParameter ControlID="Month_DropDownList" Name="Month" PropertyName="SelectedItem.Text" />
+                            <asp:ControlParameter ControlID="Month_DropDownList" Name="Month" PropertyName="SelectedValue" />
                         </SelectParameters>
                     </asp:SqlDataSource>
-                    <asp:SqlDataSource ID="PayOrderSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS (SELECT InvoiceID FROM AAP_Invoice WHERE (SchoolID = @SchoolID) AND (InvoiceCategoryID = (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE (InvoiceCategory = N'Service Charge'))) AND (FORMAT(MonthName, 'MMM yyyy') = @Month))
+                    <asp:SqlDataSource ID="PayOrderSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS (SELECT InvoiceID FROM AAP_Invoice WHERE (SchoolID = @SchoolID) AND (InvoiceCategoryID = (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE (InvoiceCategory = N'Service Charge'))) AND (EOMONTH(MonthName) = @MonthName))
 BEGIN
 INSERT INTO AAP_Invoice(RegistrationID, InvoiceCategoryID, SchoolID, IssuDate, EndDate, Invoice_For, TotalAmount, Discount, MonthName, Invoice_SN, Unit, UnitPrice) VALUES (@RegistrationID, (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE (InvoiceCategory = N'Service Charge')), @SchoolID, @IssuDate, @EndDate, @Invoice_For, @TotalAmount, @Discount, @MonthName, dbo.Invoice_SerialNumber(@SchoolID), @Unit, @UnitPrice)
 END"
@@ -130,7 +135,6 @@ END"
                             <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                             <asp:ControlParameter ControlID="sIssueDate_TextBox" DbType="Date" Name="IssuDate" PropertyName="Text" />
                             <asp:ControlParameter ControlID="Month_DropDownList" DbType="Date" Name="MonthName" PropertyName="SelectedValue" />
-                            <asp:ControlParameter ControlID="Month_DropDownList" Name="Month" PropertyName="SelectedItem.Text" />
                             <asp:ControlParameter ControlID="Month_DropDownList" Name="Invoice_For" PropertyName="SelectedItem.Text" Type="String" />
                             <asp:Parameter DbType="Date" Name="EndDate" />
                             <asp:Parameter Name="SchoolID" Type="Int32" />
@@ -400,6 +404,46 @@ UPDATE AAP_Invoice_Category SET InvoiceCategory = @InvoiceCategory WHERE (Invoic
         </div>
     </div>
 
+    <div class="modal fade" id="GenerateCountModal" tabindex="-1" role="dialog" aria-labelledby="GenerateCountModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="GenerateCountModalLabel">
+                        <i class="fa fa-calculator"></i> Generate Student Count
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <asp:UpdatePanel ID="UpdatePanel7" runat="server">
+                        <ContentTemplate>
+                            <div class="alert alert-info">
+                                <i class="fa fa-info-circle"></i>
+                                <strong>Info:</strong> This will generate student count data for the selected month for all institutions.
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Select Month</label>
+                                <asp:TextBox ID="GenerateMonth_TextBox" placeholder="Select Month" CssClass="form-control monthpicker" runat="server"></asp:TextBox>
+                                <small class="form-text text-muted">Select the month for which you want to generate student count</small>
+                            </div>
+
+                            <div class="form-group">
+                                <asp:Label ID="GenerateStatusLabel" runat="server" CssClass="alert" Visible="false"></asp:Label>
+                            </div>
+
+                            <div class="text-right">
+                                <asp:Button ID="GenerateCountButton" runat="server" Text="Generate" CssClass="btn btn-success" OnClick="GenerateCountButton_Click" />
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </ContentTemplate>
+                    </asp:UpdatePanel>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -447,7 +491,7 @@ UPDATE AAP_Invoice_Category SET InvoiceCategory = @InvoiceCategory WHERE (Invoic
                          AAP_StudentClass_Count_Monthly.Reject_Uncountable
 FROM            AAP_StudentClass_Count_Monthly INNER JOIN
                          CreateClass ON AAP_StudentClass_Count_Monthly.ClassID = CreateClass.ClassID
-WHERE        (AAP_StudentClass_Count_Monthly.SchoolID = @SchoolID) AND (FORMAT(AAP_StudentClass_Count_Monthly.Month, 'MMM yyyy') = @Month) AND (AAP_StudentClass_Count_Monthly.EducationYearID = @EducationYearID)">
+WHERE        (AAP_StudentClass_Count_Monthly.SchoolID = @SchoolID) AND (@Month IS NOT NULL AND @Month != '' AND EOMONTH(AAP_StudentClass_Count_Monthly.Month) = CAST(@Month AS DATE)) AND (AAP_StudentClass_Count_Monthly.EducationYearID = @EducationYearID)">
                                         <SelectParameters>
                                             <asp:ControlParameter ControlID="SchoolIDHF" PropertyName="Value" Name="SchoolID" />
                                             <asp:ControlParameter ControlID="Month_DropDownList" Name="Month" PropertyName="SelectedValue" />
@@ -461,7 +505,7 @@ WHERE        (AAP_StudentClass_Count_Monthly.SchoolID = @SchoolID) AND (FORMAT(A
                          AS Total_Re_Uncountable
 FROM            AAP_StudentClass_Count_Monthly INNER JOIN
                          Education_Year ON AAP_StudentClass_Count_Monthly.EducationYearID = Education_Year.EducationYearID
-WHERE        (AAP_StudentClass_Count_Monthly.SchoolID = @SchoolID) AND (FORMAT(AAP_StudentClass_Count_Monthly.Month, 'MMM yyyy') = @Month)
+WHERE        (AAP_StudentClass_Count_Monthly.SchoolID = @SchoolID) AND (@Month IS NOT NULL AND @Month != '' AND EOMONTH(AAP_StudentClass_Count_Monthly.Month) = CAST(@Month AS DATE))
 GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly.Month, Education_Year.EducationYear, Education_Year.EducationYearID">
                                 <SelectParameters>
                                     <asp:Parameter Name="SchoolID" />
@@ -500,6 +544,14 @@ GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly
                 todayBtn: "linked",
                 todayHighlight: true,
                 autoclose: true
+            });
+
+            // Initialize monthpicker for Generate Student Count modal
+            $('.monthpicker').datepicker({
+                format: 'MM yyyy',
+                minViewMode: 'months',
+                autoclose: true,
+                todayHighlight: true
             });
 
             //SMS Checkbox
@@ -596,6 +648,13 @@ GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly
                 todayBtn: "linked",
                 todayHighlight: true,
                 autoclose: true
+            });
+
+            $('.monthpicker').datepicker({
+                format: 'MM yyyy',
+                minViewMode: 'months',
+                autoclose: true,
+                todayHighlight: true
             });
         });
 

@@ -420,6 +420,42 @@ namespace EDUCATION.COM.Authority.Invoice
         protected global::System.Web.UI.WebControls.SqlDataSource InvoiceCategorySQL;
 
         /// <summary>
+        /// UpdatePanel7 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.UpdatePanel UpdatePanel7;
+
+        /// <summary>
+        /// GenerateMonth_TextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox GenerateMonth_TextBox;
+
+        /// <summary>
+        /// GenerateStatusLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label GenerateStatusLabel;
+
+        /// <summary>
+        /// GenerateCountButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button GenerateCountButton;
+
+        /// <summary>
         /// UpdatePanel6 control.
         /// </summary>
         /// <remarks>

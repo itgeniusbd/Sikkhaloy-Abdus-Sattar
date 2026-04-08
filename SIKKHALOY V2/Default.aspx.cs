@@ -62,7 +62,33 @@ namespace EDUCATION.COM
 
         protected void SendButton_Click(object sender, EventArgs e)
         {
+            // Honeypot check: bots fill hidden fields, humans won't
+            var honeypot = FindControl("txtHoneypot") as System.Web.UI.WebControls.TextBox;
+            if (honeypot != null && !string.IsNullOrWhiteSpace(honeypot.Text)) return;
+
             if (NameTextBox.Text == "" || MobileTextBox.Text == "") return;
+
+            // Server-side reCAPTCHA verification (skip on localhost for development)
+            bool isLocalhost = Request.IsLocal;
+            if (!isLocalhost)
+            {
+                string recaptchaToken = txtCaptcha.Text;
+                if (string.IsNullOrWhiteSpace(recaptchaToken) || !IsRecaptchaValid(recaptchaToken))
+                {
+                    MsgLabel.Text = "Security check failed. Please try again.";
+                    MsgLabel.ForeColor = System.Drawing.Color.Red;
+                    return;
+                }
+            }
+
+            // Rate limiting: block same mobile number submitting more than once per session
+            string lastSubmitKey = "ContactSubmit_" + MobileTextBox.Text.Trim();
+            if (Session[lastSubmitKey] != null)
+            {
+                MsgLabel.Text = "Please wait before submitting again.";
+                return;
+            }
+            Session[lastSubmitKey] = DateTime.Now;
 
             ContactSQL.Insert();
 
@@ -72,6 +98,23 @@ namespace EDUCATION.COM
             SubjectTextBox.Text = "";
             MessageTextBox.Text = "";
             MsgLabel.Text = "Thank you for your query, we will respond as soon as possible";
+        }
+
+        private bool IsRecaptchaValid(string token)
+        {
+            try
+            {
+                var url = "https://www.google.com/recaptcha/api/siteverify?secret=" + ReCaptchaSecret + "&response=" + token;
+                var json = (new WebClient()).DownloadString(url);
+                dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
+                bool success = result.success == true;
+                double score = result.score != null ? (double)result.score : 0;
+                return success && score >= 0.5;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         //Change Session

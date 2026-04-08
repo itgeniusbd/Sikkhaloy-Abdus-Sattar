@@ -239,7 +239,8 @@
 
                                             <div class="text-center text-md-left my-4">
                                                 <asp:TextBox ID="txtCaptcha" runat="server" Style="display: none" />
-                                                <asp:RequiredFieldValidator ID="rfvCaptcha" ErrorMessage="Validation is required." ControlToValidate="txtCaptcha" runat="server" ForeColor="Red" Display="Dynamic" ValidationGroup="1"/>
+                                                <%-- Honeypot: hidden field bots will fill this humans won't --%>
+                                                <asp:TextBox ID="txtHoneypot" runat="server" Style="display:none !important;position:absolute;left:-9999px;" TabIndex="-1" autocomplete="off" />
                                                 <asp:Button ID="SendButton" ValidationGroup="1" runat="server" Text="Send" CssClass="btn btn-success waves-effect waves-light" OnClick="SendButton_Click" />
                                                 <asp:SqlDataSource ID="ContactSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="INSERT INTO Public_Contact_US(Name, Email, MobileNo, Subject, Message) VALUES (@Name, @Email, @MobileNo, @Subject, @Message)" SelectCommand="SELECT * FROM [Public_Contact_US]">
                                                     <InsertParameters>
@@ -296,35 +297,21 @@
 
     <script src='https://www.google.com/recaptcha/api.js?render=6LdXPY0UAAAAAHg7W3SLGr_MQt7wRvV0HLZ8JTBi'></script>
     <script>
-        //Google recapcha
-        grecaptcha.ready(function () {
-            grecaptcha.execute('6LdXPY0UAAAAAHg7W3SLGr_MQt7wRvV0HLZ8JTBi', { action: 'homepage' })
-            .then(function (token) {
-                $.ajax({
-                    type: "POST",
-                    url: "Default.aspx/VerifyCaptcha",
-                    data: "{response: '" + token + "'}",
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    success: function (r) {
-                        var captchaResponse = jQuery.parseJSON(r.d);
-                        var success = captchaResponse.success;
-                        var score = captchaResponse.score;
-
-                        if (success == true && score >= 0.5) {
-                            $("[id*=txtCaptcha]").val(success);
-                            $("[id*=rfvCaptcha]").hide();
-                        } else {
-                            $("[id*=txtCaptcha]").val("");
-                            $("[id*=rfvCaptcha]").show();
-                            var error = captchaResponse["error-codes"][0];
-                            $("[id*=rfvCaptcha]").html("RECaptcha error. " + error);
-                        }
-                    }
+        // Get fresh reCAPTCHA token on Send button click and store in hidden field
+        document.getElementById('<%= SendButton.ClientID %>').addEventListener('click', function (e) {
+            e.preventDefault();
+            var btn = this;
+            btn.disabled = true;
+            grecaptcha.ready(function () {
+                grecaptcha.execute('6LdXPY0UAAAAAHg7W3SLGr_MQt7wRvV0HLZ8JTBi', { action: 'contact_submit' })
+                .then(function (token) {
+                    $("[id*=txtCaptcha]").val(token);
+                    btn.disabled = false;
+                    // Now trigger the actual ASP.NET postback
+                    __doPostBack('<%= SendButton.UniqueID %>', '');
                 });
             });
         });
-
 
         $(function () {
             $('.link-b').on('click', function (e) {
@@ -334,7 +321,6 @@
                     scrollTop: $($(this).attr('href')).offset().top
                 }, 800);
             });
-
 
             $('#quote-carousel').find('.carousel-item').first().addClass('active');
 
