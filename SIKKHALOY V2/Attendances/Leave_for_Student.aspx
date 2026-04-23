@@ -446,6 +446,8 @@
                                         <asp:ListItem>ফ্যামেলি প্রয়োজনে</asp:ListItem>
                                         <asp:ListItem>মেডিক্যাল</asp:ListItem>
                                         <asp:ListItem>সাময়িক</asp:ListItem>
+                                        <asp:ListItem>সাপ্তাহিক</asp:ListItem>
+                                        <asp:ListItem>মাসিক</asp:ListItem>
                                         <asp:ListItem>অন্যান্ন</asp:ListItem>
                                     </asp:DropDownList>
                                 </div>

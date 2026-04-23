@@ -7,11 +7,13 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Profile.Invoice {
-    
-    
-    public partial class Due_Invoice {
-        
+namespace EDUCATION.COM.Profile.Invoice
+{
+
+
+    public partial class Due_Invoice
+    {
+
         /// <summary>
         /// PrintFormView control.
         /// </summary>
@@ -20,7 +22,7 @@ namespace EDUCATION.COM.Profile.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FormView PrintFormView;
-        
+
         /// <summary>
         /// InvoiceSQL control.
         /// </summary>
@@ -29,5 +31,50 @@ namespace EDUCATION.COM.Profile.Invoice {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource InvoiceSQL;
+
+        /// <summary>
+        /// hfPaymentMsg control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfPaymentMsg;
+
+        /// <summary>
+        /// hfDueAmount control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfDueAmount;
+
+        /// <summary>
+        /// hfIsBlocked control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfIsBlocked;
+
+        /// <summary>
+        /// hfDaysLeft control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfDaysLeft;
+
+        /// <summary>
+        /// btnShurjoPayModal control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnShurjoPayModal;
     }
 }

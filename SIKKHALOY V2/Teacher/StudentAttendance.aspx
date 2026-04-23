@@ -56,6 +56,13 @@
         </div>
 
         <div class="form-group">
+            <asp:TextBox ID="AttendanceDateTextBox" autocomplete="off" placeholder="Attendance Date" runat="server" CssClass="form-control Datetime" onkeypress="return false;"></asp:TextBox>
+            <asp:RequiredFieldValidator ID="RequiredFieldValidator7" runat="server" ControlToValidate="AttendanceDateTextBox" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="1"></asp:RequiredFieldValidator>
+        </div>
+        <div class="form-group">
+            <asp:Button ID="FindButton" runat="server" Text="Find" CssClass="btn btn-default" OnClick="FindButton_Click" />
+        </div>
+        <div class="form-group">
             <asp:RadioButtonList ClientIDMode="Static" ID="SMSLanguageRadioButtonList" CssClass="form-control" runat="server" RepeatLayout="Flow" RepeatDirection="Horizontal">
                 <asp:ListItem Selected="True" Value="eng">English SMS</asp:ListItem>
                 <asp:ListItem Value="bn">Bangla SMS</asp:ListItem>
@@ -162,6 +169,15 @@ END"
 
 
     <script>
+        $(function () {
+            $(".Datetime").datepicker({
+                format: 'dd M yyyy',
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true
+            });
+        });
+
         (function () {
             function getCheckedRadio(selector) {
                 const radioButtons = selector.querySelectorAll("input[type=radio]");
@@ -195,9 +211,12 @@ END"
             //sms generator
             function createTextSMS(status, name, language = "eng") {
                 const isEnglish = language === "eng" ? true : false;
-                const dateInstance = new Date();
-                const option = { year: "numeric", month: "short", day: 'numeric' };
-                const date = dateInstance.toLocaleDateString(isEnglish ? 'en-us' : 'bn-BD', option);
+                const dateInput = document.getElementById("<%=AttendanceDateTextBox.ClientID%>");
+                const date = (dateInput && dateInput.value) ? dateInput.value : (function () {
+                    const dateInstance = new Date();
+                    const option = { year: "numeric", month: "short", day: 'numeric' };
+                    return dateInstance.toLocaleDateString(isEnglish ? 'en-us' : 'bn-BD', option);
+                })();
 
                 const abs = isEnglish ?
                     `Respected guardian, ${name}, today ${date} absent from class. please send to class regularly` :

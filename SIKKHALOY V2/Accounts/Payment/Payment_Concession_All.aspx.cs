@@ -32,7 +32,6 @@ namespace EDUCATION.COM.Accounts.Payment
                 {
                     // For Late Fee
                     Label PrevLateFeeLabel = (Label)DueGridView.Rows[row.RowIndex].FindControl("PrevLateFeeLabel");
-                    TextBox LFeeAmountTextBox = (TextBox)DueGridView.Rows[row.RowIndex].FindControl("LateFeeTextBox");
 
                     // For Late Fee Discount
                     Label LateFeeDiscountLable = (Label)DueGridView.Rows[row.RowIndex].FindControl("LateFeeDiscountLable");
@@ -61,7 +60,7 @@ namespace EDUCATION.COM.Accounts.Payment
                             double Latefee = 0;
                             double LatefeeDiscount = 0;
 
-                            Double.TryParse(LFeeAmountTextBox.Text, out Latefee);
+                            Double.TryParse(PrevLateFeeLabel.Text, out Latefee);
                             Double.TryParse(LateFeeDiscountTextBox.Text, out LatefeeDiscount);
 
                             if (Latefee >= LatefeeDiscount)
@@ -114,7 +113,6 @@ namespace EDUCATION.COM.Accounts.Payment
                     {
                         // For Late Fee
                         Label PrevLateFeeLabel = (Label)DueGridView.Rows[row.RowIndex].FindControl("PrevLateFeeLabel");
-                        TextBox LFeeAmountTextBox = (TextBox)DueGridView.Rows[row.RowIndex].FindControl("LateFeeTextBox");
 
                         // For Late Fee Discount
                         Label LateFeeDiscountLable = (Label)DueGridView.Rows[row.RowIndex].FindControl("LateFeeDiscountLable");
@@ -139,22 +137,6 @@ namespace EDUCATION.COM.Accounts.Payment
                             Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
                             Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[row.RowIndex]["PayOrderID"].ToString();
                             Fee_DiscountSQL.Update();
-                        }
-
-                        // For Late Fee
-                        if (PrevLateFeeLabel.Text != LFeeAmountTextBox.Text)
-                        {
-                            LateFeeChangeSQL.InsertParameters["StudentID"].DefaultValue = DueGridView.DataKeys[row.RowIndex]["StudentID"].ToString();
-                            LateFeeChangeSQL.InsertParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[row.RowIndex]["PayOrderID"].ToString();
-                            LateFeeChangeSQL.InsertParameters["StudentClassID"].DefaultValue = DueGridView.DataKeys[row.RowIndex]["StudentClassID"].ToString();
-                            LateFeeChangeSQL.InsertParameters["PostAmount"].DefaultValue = LFeeAmountTextBox.Text;
-                            LateFeeChangeSQL.InsertParameters["PreviousAmount"].DefaultValue = PrevLateFeeLabel.Text;
-                            LateFeeChangeSQL.InsertParameters["EducationYearID"].DefaultValue = Session["Edu_Year"].ToString();
-                            LateFeeChangeSQL.Insert();
-
-                            LateFeeChangeSQL.UpdateParameters["LateFee"].DefaultValue = LFeeAmountTextBox.Text;
-                            LateFeeChangeSQL.UpdateParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[row.RowIndex]["PayOrderID"].ToString();
-                            LateFeeChangeSQL.Update();
                         }
 
                         // For Late Fee discount 
@@ -189,7 +171,6 @@ namespace EDUCATION.COM.Accounts.Payment
                 {
                     // For Late Fee
                     Label PrevLateFeeLabel = (Label)OtherSessionGridView.Rows[row.RowIndex].FindControl("PrevLateFeeLabel");
-                    TextBox LFeeAmountTextBox = (TextBox)OtherSessionGridView.Rows[row.RowIndex].FindControl("LateFeeTextBox");
 
                     // For Late Fee Discount
                     Label LateFeeDiscountLable = (Label)OtherSessionGridView.Rows[row.RowIndex].FindControl("LateFeeDiscountLable");
@@ -218,7 +199,7 @@ namespace EDUCATION.COM.Accounts.Payment
                             double Latefee = 0;
                             double LatefeeDiscount = 0;
 
-                            Double.TryParse(LFeeAmountTextBox.Text, out Latefee);
+                            Double.TryParse(PrevLateFeeLabel.Text, out Latefee);
                             Double.TryParse(LateFeeDiscountTextBox.Text, out LatefeeDiscount);
 
                             if (Latefee >= LatefeeDiscount)
@@ -271,7 +252,6 @@ namespace EDUCATION.COM.Accounts.Payment
                     {
                         // For Late Fee
                         Label PrevLateFeeLabel = (Label)OtherSessionGridView.Rows[row.RowIndex].FindControl("PrevLateFeeLabel");
-                        TextBox LFeeAmountTextBox = (TextBox)OtherSessionGridView.Rows[row.RowIndex].FindControl("LateFeeTextBox");
 
                         // For Late Fee Discount
                         Label LateFeeDiscountLable = (Label)OtherSessionGridView.Rows[row.RowIndex].FindControl("LateFeeDiscountLable");
@@ -295,22 +275,6 @@ namespace EDUCATION.COM.Accounts.Payment
                             Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
                             Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = OtherSessionGridView.DataKeys[row.RowIndex]["PayOrderID"].ToString();
                             Fee_DiscountSQL.Update();
-                        }
-
-                        // For Late Fee
-                        if (PrevLateFeeLabel.Text != LFeeAmountTextBox.Text)
-                        {
-                            LateFeeChangeSQL.InsertParameters["StudentID"].DefaultValue = OtherSessionGridView.DataKeys[row.RowIndex]["StudentID"].ToString();
-                            LateFeeChangeSQL.InsertParameters["PayOrderID"].DefaultValue = OtherSessionGridView.DataKeys[row.RowIndex]["PayOrderID"].ToString();
-                            LateFeeChangeSQL.InsertParameters["StudentClassID"].DefaultValue = OtherSessionGridView.DataKeys[row.RowIndex]["StudentClassID"].ToString();
-                            LateFeeChangeSQL.InsertParameters["PostAmount"].DefaultValue = LFeeAmountTextBox.Text;
-                            LateFeeChangeSQL.InsertParameters["PreviousAmount"].DefaultValue = PrevLateFeeLabel.Text;
-                            LateFeeChangeSQL.InsertParameters["EducationYearID"].DefaultValue = OtherSessionGridView.DataKeys[row.RowIndex]["EducationYearID"].ToString();
-                            LateFeeChangeSQL.Insert();
-
-                            LateFeeChangeSQL.UpdateParameters["LateFee"].DefaultValue = LFeeAmountTextBox.Text;
-                            LateFeeChangeSQL.UpdateParameters["PayOrderID"].DefaultValue = OtherSessionGridView.DataKeys[row.RowIndex]["PayOrderID"].ToString();
-                            LateFeeChangeSQL.Update();
                         }
 
                         // For Late Fee discount 

@@ -56,7 +56,18 @@
             </asp:TemplateField>
         </Columns>
     </asp:GridView>
-    <asp:SqlDataSource ID="InvoiceSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT AAP_Invoice.Invoice_SN, AAP_Invoice.IssuDate, AAP_Invoice.EndDate, AAP_Invoice.Invoice_For, AAP_Invoice.Unit, AAP_Invoice.UnitPrice, AAP_Invoice.TotalAmount, AAP_Invoice.Discount, AAP_Invoice.CreateDate, AAP_Invoice.PaidAmount, AAP_Invoice.Due, AAP_Invoice.MonthName, AAP_Invoice_Category.InvoiceCategory, AAP_Invoice.InvoiceID FROM AAP_Invoice INNER JOIN AAP_Invoice_Category ON AAP_Invoice.InvoiceCategoryID = AAP_Invoice_Category.InvoiceCategoryID WHERE (AAP_Invoice.SchoolID = @SchoolID) AND (AAP_Invoice.IsPaid = 0)" UpdateCommand="UPDATE AAP_Invoice SET NumberOfPayment = ISNULL(NumberOfPayment, 0) + 1, LastPaidDate = GETDATE(), PaidAmount = PaidAmount + @PaidAmount, Discount = @Discount WHERE (InvoiceID = @InvoiceID)">
+    <asp:SqlDataSource ID="InvoiceSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+        SelectCommand="SELECT AAP_Invoice.Invoice_SN, AAP_Invoice.IssuDate, AAP_Invoice.EndDate, AAP_Invoice.Invoice_For, AAP_Invoice.Unit, AAP_Invoice.UnitPrice, AAP_Invoice.TotalAmount, AAP_Invoice.Discount, AAP_Invoice.CreateDate, AAP_Invoice.PaidAmount, AAP_Invoice.Due, AAP_Invoice.MonthName, AAP_Invoice_Category.InvoiceCategory, AAP_Invoice.InvoiceID FROM AAP_Invoice INNER JOIN AAP_Invoice_Category ON AAP_Invoice.InvoiceCategoryID = AAP_Invoice_Category.InvoiceCategoryID WHERE (AAP_Invoice.SchoolID = @SchoolID) AND (AAP_Invoice.IsPaid = 0)"
+        UpdateCommand="UPDATE AAP_Invoice SET
+            NumberOfPayment = ISNULL(NumberOfPayment, 0) + 1,
+            LastPaidDate    = GETDATE(),
+            Discount        = CASE WHEN @Discount > TotalAmount THEN TotalAmount ELSE @Discount END,
+            PaidAmount      = CASE
+                                WHEN PaidAmount + @PaidAmount > TotalAmount - CASE WHEN @Discount > TotalAmount THEN TotalAmount ELSE @Discount END
+                                THEN TotalAmount - CASE WHEN @Discount > TotalAmount THEN TotalAmount ELSE @Discount END
+                                ELSE PaidAmount + @PaidAmount
+                              END
+            WHERE InvoiceID = @InvoiceID">
         <SelectParameters>
             <asp:ControlParameter ControlID="School_DropDownList" Name="SchoolID" PropertyName="SelectedValue" Type="Int32" />
         </SelectParameters>

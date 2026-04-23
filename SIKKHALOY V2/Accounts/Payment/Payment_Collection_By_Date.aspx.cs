@@ -607,12 +607,13 @@ private string GetSMSTemplate(string category, string templateType)
                 {
                     int PayOrderID = Convert.ToInt32(DueGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
 
-                    // Get ORIGINAL AMOUNT and PAID AMOUNT from database
+                    // Get ORIGINAL AMOUNT, PAID AMOUNT and LATEFEE from database
                     double OriginalAmount = 0;
                     double PaidAmount = 0;
+                    double LateFee = 0;
                     try
                     {
-                        SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
+                        SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount, ISNULL(LateFee, 0) AS LateFee FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
                         cmd.Parameters.AddWithValue("@PayOrderID", PayOrderID);
                         con.Open();
                         SqlDataReader reader = cmd.ExecuteReader();
@@ -620,6 +621,7 @@ private string GetSMSTemplate(string category, string templateType)
                         {
                             OriginalAmount = Convert.ToDouble(reader["OriginalAmount"]);
                             PaidAmount = Convert.ToDouble(reader["PaidAmount"]);
+                            LateFee = Convert.ToDouble(reader["LateFee"]);
                         }
                         reader.Close();
                         con.Close();
@@ -633,17 +635,27 @@ private string GetSMSTemplate(string category, string templateType)
                         return;
                     }
 
-                    // Check if NEW concession exceeds (Original Amount - Paid Amount)
-                    // Logic: Total Concession cannot exceed what's left to pay
+                    // Also consider LateFee from UI textbox (may not be saved yet)
+                    double UILateFee = 0;
+                    TextBox LateFeeTextBoxVal = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
+                    if (LateFeeTextBoxVal != null && double.TryParse(LateFeeTextBoxVal.Text.Trim(), out double parsedUILateFee))
+                        UILateFee = parsedUILateFee;
+                    double EffectiveLateFee = Math.Max(LateFee, UILateFee);
+
+                    // Skip validation if already fully paid or overpaid (including LateFee)
+                    if (PaidAmount >= OriginalAmount + EffectiveLateFee)
+                        continue;
+
+                    // Check if NEW concession exceeds (Original Amount + EffectiveLateFee - Paid Amount)
                     if (DiscountTextBox != null && double.TryParse(DiscountTextBox.Text.Trim(), out double NewConcession))
                     {
-                        // Maximum concession allowed = Original Amount - Paid Amount
-                        double MaxConcessionAllowed = OriginalAmount - PaidAmount;
+                        // Maximum concession allowed = Original Amount + EffectiveLateFee - Paid Amount
+                        double MaxConcessionAllowed = OriginalAmount + EffectiveLateFee - PaidAmount;
 
                         if (NewConcession > MaxConcessionAllowed)
                         {
                             ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "ConcessionError",
-          "alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\\nConcession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
+          "alert('Concession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nLate Fee: " + EffectiveLateFee + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
                             return;
                         }
                     }
@@ -660,12 +672,13 @@ private string GetSMSTemplate(string category, string templateType)
                 {
                     int PayOrderID = Convert.ToInt32(OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
 
-                    // Get ORIGINAL AMOUNT and PAID AMOUNT from database
+                    // Get ORIGINAL AMOUNT, PAID AMOUNT and LATEFEE from database
                     double OriginalAmount = 0;
                     double PaidAmount = 0;
+                    double LateFee = 0;
                     try
                     {
-                        SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
+                        SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount, ISNULL(LateFee, 0) AS LateFee FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
                         cmd.Parameters.AddWithValue("@PayOrderID", PayOrderID);
                         con.Open();
                         SqlDataReader reader = cmd.ExecuteReader();
@@ -673,6 +686,7 @@ private string GetSMSTemplate(string category, string templateType)
                         {
                             OriginalAmount = Convert.ToDouble(reader["OriginalAmount"]);
                             PaidAmount = Convert.ToDouble(reader["PaidAmount"]);
+                            LateFee = Convert.ToDouble(reader["LateFee"]);
                         }
                         reader.Close();
                         con.Close();
@@ -686,17 +700,27 @@ private string GetSMSTemplate(string category, string templateType)
                         return;
                     }
 
-                    // Check if NEW concession exceeds (Original Amount - Paid Amount)
-                    // Logic: Total Concession cannot exceed what's left to pay
+                    // Also consider LateFee from UI textbox (may not be saved yet)
+                    double UILateFee = 0;
+                    TextBox LateFeeTextBoxVal = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
+                    if (LateFeeTextBoxVal != null && double.TryParse(LateFeeTextBoxVal.Text.Trim(), out double parsedUILateFee))
+                        UILateFee = parsedUILateFee;
+                    double EffectiveLateFee = Math.Max(LateFee, UILateFee);
+
+                    // Skip validation if already fully paid or overpaid (including LateFee)
+                    if (PaidAmount >= OriginalAmount + EffectiveLateFee)
+                        continue;
+
+                    // Check if NEW concession exceeds (Original Amount + EffectiveLateFee - Paid Amount)
                     if (DiscountTextBox != null && double.TryParse(DiscountTextBox.Text.Trim(), out double NewConcession))
                     {
-                        // Maximum concession allowed = Original Amount - Paid Amount
-                        double MaxConcessionAllowed = OriginalAmount - PaidAmount;
+                        // Maximum concession allowed = Original Amount + EffectiveLateFee - Paid Amount
+                        double MaxConcessionAllowed = OriginalAmount + EffectiveLateFee - PaidAmount;
 
                         if (NewConcession > MaxConcessionAllowed)
                         {
                             ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "ConcessionError",
-           "alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\\nConcession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
+           "alert('Concession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nLate Fee: " + EffectiveLateFee + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
                             return;
                         }
                     }
@@ -708,12 +732,28 @@ private string GetSMSTemplate(string category, string templateType)
             {
                 SingleCheckBox = Row.FindControl("DueCheckBox") as CheckBox;
                 TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
+                TextBox LateFeeTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
+                HiddenField PrevLateFeeHidden = (HiddenField)DueGridView.Rows[Row.RowIndex].FindControl("PrevLateFeeHidden");
                 if (SingleCheckBox.Checked)
                 {
                     string paid = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
                     Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
                     Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
                     Fee_DiscountSQL.Update();
+
+                    if (LateFeeTextBox != null && PrevLateFeeHidden != null && LateFeeTextBox.Text != PrevLateFeeHidden.Value)
+                    {
+                        try
+                        {
+                            SqlCommand lfCmd = new SqlCommand("UPDATE Income_PayOrder SET LateFee = @LateFee WHERE PayOrderID = @PayOrderID", con);
+                            lfCmd.Parameters.AddWithValue("@LateFee", string.IsNullOrEmpty(LateFeeTextBox.Text) ? (object)DBNull.Value : (object)Convert.ToDouble(LateFeeTextBox.Text));
+                            lfCmd.Parameters.AddWithValue("@PayOrderID", DueGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
+                            con.Open();
+                            lfCmd.ExecuteNonQuery();
+                            con.Close();
+                        }
+                        catch { if (con.State == System.Data.ConnectionState.Open) con.Close(); }
+                    }
                 }
             }
 
@@ -721,12 +761,28 @@ private string GetSMSTemplate(string category, string templateType)
             {
                 SingleCheckBox = Row.FindControl("Other_Session_CheckBox") as CheckBox;
                 TextBox DiscountTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
+                TextBox LateFeeTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
+                HiddenField PrevLateFeeHidden = (HiddenField)OtherSessionGridView.Rows[Row.RowIndex].FindControl("PrevLateFeeHidden");
                 if (SingleCheckBox.Checked)
                 {
                     string paid = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
                     Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
                     Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
                     Fee_DiscountSQL.Update();
+
+                    if (LateFeeTextBox != null && PrevLateFeeHidden != null && LateFeeTextBox.Text != PrevLateFeeHidden.Value)
+                    {
+                        try
+                        {
+                            SqlCommand lfCmd = new SqlCommand("UPDATE Income_PayOrder SET LateFee = @LateFee WHERE PayOrderID = @PayOrderID", con);
+                            lfCmd.Parameters.AddWithValue("@LateFee", string.IsNullOrEmpty(LateFeeTextBox.Text) ? (object)DBNull.Value : (object)Convert.ToDouble(LateFeeTextBox.Text));
+                            lfCmd.Parameters.AddWithValue("@PayOrderID", OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
+                            con.Open();
+                            lfCmd.ExecuteNonQuery();
+                            con.Close();
+                        }
+                        catch { if (con.State == System.Data.ConnectionState.Open) con.Close(); }
+                    }
                 }
             }
 

@@ -8,6 +8,14 @@
         <Columns>
             <asp:BoundField DataField="InvoiceReceipt_SN" HeaderText="Receipt" SortExpression="InvoiceReceipt_SN" />
             <asp:BoundField DataField="TotalAmount" HeaderText="Total Amount" SortExpression="TotalAmount" />
+            <asp:TemplateField HeaderText="Gateway Charge">
+                <ItemTemplate>
+                    <%# Convert.ToDecimal(Eval("GatewayCharge")) > 0
+                        ? string.Format("<span style='color:#e67e22;font-size:.88em;'>{0:F2} + {1:F2} = <b>{2:F2} Tk</b></span>",
+                            Eval("TotalAmount"), Eval("GatewayCharge"), Eval("CustomerPaid"))
+                        : "—" %>
+                </ItemTemplate>
+            </asp:TemplateField>
             <asp:BoundField DataField="PaymentBy" HeaderText="Payment By" SortExpression="PaymentBy" />
             <asp:BoundField DataField="PaidByUser" HeaderText="Paid By User" SortExpression="PaidByUser" />
             <asp:BoundField DataField="Collected_By" HeaderText="Collected By" SortExpression="Collected_By" />
@@ -23,7 +31,8 @@
            No Paid Record!
        </EmptyDataTemplate>
     </asp:GridView>
-    <asp:SqlDataSource ID="MoneyReceiptSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT InvoiceReceiptID, InvoiceReceipt_SN, TotalAmount, PaidDate, PaymentBy, PaidByUser, Collected_By, Payment_Method, SchoolID FROM AAP_Invoice_Receipt WHERE (SchoolID = @SchoolID)">
+    <asp:SqlDataSource ID="MoneyReceiptSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+        SelectCommand="SELECT 1">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
         </SelectParameters>

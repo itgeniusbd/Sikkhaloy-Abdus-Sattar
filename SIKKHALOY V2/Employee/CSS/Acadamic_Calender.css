@@ -4,7 +4,7 @@
 .Evnt_Date {padding: 2px 0; text-align: center; color: #05b401;border: 1px solid #ddd;}
 
 .myCalendar {width:100% !important; background-color: #fff; border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;}
-.myCalendar a { text-decoration: none; }
+.myCalendar a { text-decoration: none; color: #2c3e50; }
 .myCalendar .myCalendarTitle {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-bottom: none;
@@ -153,8 +153,16 @@ text-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
 
 .myCalendar .myCalendarDay:hover {
     background-color: #f8f9fa;
-transform: scale(1.01);
+    transform: scale(1.01);
 }
+
+/* Don't override attendance colors on hover */
+.myCalendar td.Pre:hover,
+.myCalendar td.Abs:hover,
+.myCalendar td.Late:hover,
+.myCalendar td.Late_Abs:hover,
+.myCalendar td.Att_Holidays:hover,
+.myCalendar td.Student_Leave:hover { transform: scale(1.01); }
 
 .myCalendar .myCalendarDay a:hover,
 .myCalendar .myCalendarSelector a:hover { 
@@ -256,6 +264,31 @@ transform: scale(1.01);
 background-color: #d4edda !important;
     border: 2px solid #28a745 !important;
 }
+
+/* ── Attendance Day Colors ── */
+.myCalendar td.myCalendarDay.Pre,
+.myCalendar td.Pre  { background-color: #d4edda !important; border-left: 4px solid #28a745 !important; }
+.myCalendar td.Pre a, .myCalendar td.myCalendarDay.Pre a { color: #155724 !important; }
+
+.myCalendar td.myCalendarDay.Abs,
+.myCalendar td.Abs  { background-color: #f8d7da !important; border-left: 4px solid #dc3545 !important; }
+.myCalendar td.Abs a, .myCalendar td.myCalendarDay.Abs a { color: #721c24 !important; }
+
+.myCalendar td.myCalendarDay.Late,
+.myCalendar td.Late { background-color: #fff3cd !important; border-left: 4px solid #ffc107 !important; }
+.myCalendar td.Late a, .myCalendar td.myCalendarDay.Late a { color: #856404 !important; }
+
+.myCalendar td.myCalendarDay.Late_Abs,
+.myCalendar td.Late_Abs { background-color: #f5c6cb !important; border-left: 4px solid #e83e4c !important; }
+.myCalendar td.Late_Abs a, .myCalendar td.myCalendarDay.Late_Abs a { color: #721c24 !important; }
+
+.myCalendar td.myCalendarDay.Att_Holidays,
+.myCalendar td.Att_Holidays { background-color: #cce5ff !important; border-left: 4px solid #004085 !important; }
+.myCalendar td.Att_Holidays a, .myCalendar td.myCalendarDay.Att_Holidays a { color: #004085 !important; }
+
+.myCalendar td.myCalendarDay.Student_Leave,
+.myCalendar td.Student_Leave { background-color: #e2d9f3 !important; border-left: 4px solid #6f42c1 !important; }
+.myCalendar td.Student_Leave a, .myCalendar td.myCalendarDay.Student_Leave a { color: #3d1a78 !important; }
 
 /* Other month dates */
 .myCalendar .myCalendarDay[style*="color:Silver"] {

@@ -111,7 +111,7 @@ namespace AttendanceDevice.Config_Class
 
         public async Task GetTodayAttendanceRecords(List<Attendance_Record> records)
         {
-            var today = DateTime.Now.ToShortDateString();
+            var today = DateTime.Now.ToString("dd-MMM-yy");
             using (var db = new ModelContext())
             {
                 var TodayPcAttendanceDeviceIDs = await db.attendance_Records.Where(a => a.AttendanceDate == today).Select(a => a.DeviceID).ToListAsync();
@@ -120,7 +120,7 @@ namespace AttendanceDevice.Config_Class
 
                 var attendanceData = additionalServerAttendance.Select(a =>
                 {
-                    a.AttendanceDate = Convert.ToDateTime(a.AttendanceDate).ToShortDateString();
+                    a.AttendanceDate = Convert.ToDateTime(a.AttendanceDate).ToString("dd-MMM-yy");
                     return a;
                 }).ToList();
 

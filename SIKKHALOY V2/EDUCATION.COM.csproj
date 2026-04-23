@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -392,6 +392,8 @@
     <Content Include="Attendances\Display_User\Student_Entry_Log_Display.aspx" />
     <Content Include="Attendances\Display_User\Student_Exit_Log_Display.aspx" />
     <Content Include="Attendances\Leave_for_Student.aspx" />
+    <Content Include="Attendances\Leave_Print.aspx" />
+    <Content Include="Attendances\Leave_Report.aspx" />
     <Content Include="Attendances\Online_Display\Attendance_Slider.aspx" />
     <Content Include="Attendances\Online_Display\CSS\0068.jpg" />
     <Content Include="Attendances\Online_Display\CSS\device-display.css" />
@@ -445,6 +447,8 @@
     <Content Include="Authority\Institutions\User_Login_Info.aspx" />
     <Content Include="Authority\Invoice\Create_Monthly_Payment.aspx" />
     <Content Include="Authority\Invoice\css\Invoice_Print.css" />
+    <Content Include="Authority\Invoice\Online_Payment_Report.aspx" />
+    <Content Include="Authority\Invoice\Online_Payment_Report_Menu.sql" />
     <Content Include="Authority\Invoice\Paid_Invoice.aspx" />
     <Content Include="Authority\Invoice\Print\Paid_Receipt.aspx" />
     <Content Include="Authority\Invoice\Print\Pay_Invoice.aspx" />
@@ -595,6 +599,7 @@
     <Content Include="Exam\WeeklyExam\Edit_Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Marks.aspx" />
     <Content Include="Exam\WeeklyExam\Weekly_Merit_Status_Results.aspx" />
+    <Content Include="fix_csproj.py" />
     <Content Include="Global.asax" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
@@ -621,6 +626,7 @@
     <Content Include="JS\notify.min.js" />
     <Content Include="JS\ShowHideImage.js" />
     <Content Include="JS\sikkhaloy-main.js" />
+    <Content Include="JS\sms-recharge.js" />
     <Content Include="JS\translation-engine.js" />
     <Content Include="JS\Zip_File\FileServer.js" />
     <Content Include="googleeb74826106350c63.html" />
@@ -672,6 +678,7 @@
     <Content Include="Profile\Invoice\Due_Invoice.aspx" />
     <Content Include="Profile\Invoice\Receipt\Invoice_List.aspx" />
     <Content Include="Profile\Invoice\Receipt\Paid_Receipt.aspx" />
+    <Content Include="Profile\Invoice\ShurjoPayCallback.aspx" />
     <Content Include="Profile\js\dashboard-charts.js" />
     <Content Include="Profile\Manage_WordOfDay.aspx" />
     <Content Include="Profile\Sub-Admin.aspx" />
@@ -699,7 +706,12 @@
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_Bangla_Table.sql" />
     <Content Include="Routines\SQL_Scripts\Create_Exam_Routine_SavedData_Tables.sql" />
     <Content Include="Profile\WordOfTheDay_Simplified.sql" />
+    <Content Include="SMS\SMS_Recharge.aspx" />
     <Content Include="SMS\SMS_Template.aspx" />
+    <Content Include="SQL\Add_AccessGraceUntil_To_SchoolInfo.sql" />
+    <Content Include="SQL\Add_Expense_SubCategory.sql" />
+    <Content Include="SQL\Add_SMS_Recharge_Navigation.sql" />
+    <Content Include="SQL\Create_AAP_Invoice_OnlinePayment.sql" />
     <Content Include="SQL\Create_SMS_Template_Table.sql" />
     <Content Include="Student\Exam_Routine_forStudent.aspx" />
     <Content Include="Student\Notice.aspx" />
@@ -1434,7 +1446,6 @@
       <DependentUpon>Device_Attendance.asmx</DependentUpon>
       <SubType>Component</SubType>
     </Compile>
-    <Content Include="App_Code\BanglaCalendar.cs" />
     <Compile Include="Attendances\Absence_Fee_Manage.aspx.cs">
       <DependentUpon>Absence_Fee_Manage.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -1504,6 +1515,20 @@
     </Compile>
     <Compile Include="Attendances\Leave_for_Student.aspx.designer.cs">
       <DependentUpon>Leave_for_Student.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Attendances\Leave_Print.aspx.cs">
+      <DependentUpon>Leave_Print.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Attendances\Leave_Print.aspx.designer.cs">
+      <DependentUpon>Leave_Print.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Attendances\Leave_Report.aspx.cs">
+      <DependentUpon>Leave_Report.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Attendances\Leave_Report.aspx.designer.cs">
+      <DependentUpon>Leave_Report.aspx</DependentUpon>
     </Compile>
     <Compile Include="Attendances\Online_Display\Attendance_Slider.aspx.cs">
       <DependentUpon>Attendance_Slider.aspx</DependentUpon>
@@ -1686,6 +1711,13 @@
     </Compile>
     <Compile Include="Authority\Invoice\Create_Monthly_Payment.aspx.designer.cs">
       <DependentUpon>Create_Monthly_Payment.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Authority\Invoice\Online_Payment_Report.aspx.cs">
+      <DependentUpon>Online_Payment_Report.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Authority\Invoice\Online_Payment_Report.aspx.designer.cs">
+      <DependentUpon>Online_Payment_Report.aspx</DependentUpon>
     </Compile>
     <Compile Include="Authority\Invoice\Paid_Invoice.aspx.cs">
       <DependentUpon>Paid_Invoice.aspx</DependentUpon>
@@ -2577,6 +2609,14 @@
     <Compile Include="Profile\Invoice\Receipt\Paid_Receipt.aspx.designer.cs">
       <DependentUpon>Paid_Receipt.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Profile\Invoice\ShurjoPayCallback.aspx.cs">
+      <DependentUpon>ShurjoPayCallback.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Profile\Invoice\ShurjoPayCallback.aspx.designer.cs">
+      <DependentUpon>ShurjoPayCallback.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Profile\Invoice\ShurjoPayService.cs" />
     <Compile Include="Profile\Manage_WordOfDay.aspx.cs">
       <DependentUpon>Manage_WordOfDay.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -2685,6 +2725,13 @@
     </Compile>
     <Compile Include="SMS\Sent_SMS_Records.aspx.designer.cs">
       <DependentUpon>Sent_SMS_Records.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SMS\SMS_Recharge.aspx.cs">
+      <DependentUpon>SMS_Recharge.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="SMS\SMS_Recharge.aspx.designer.cs">
+      <DependentUpon>SMS_Recharge.aspx</DependentUpon>
     </Compile>
     <Compile Include="SMS\SMS_Template.aspx.cs">
       <DependentUpon>SMS_Template.aspx</DependentUpon>
@@ -2923,6 +2970,7 @@
   <ItemGroup>
     <Folder Include="AllNotice\" />
     <Folder Include="App\" />
+    <Folder Include="App_Code\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Accounts\AccountsAnalysis\Report\Daily_Expense.rdlc" />

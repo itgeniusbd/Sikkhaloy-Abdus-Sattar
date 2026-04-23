@@ -47,7 +47,36 @@ namespace EDUCATION.COM.Authority.Invoice
                 }
             }
 
+            // Grace Period auto-cancel: offline payment holei AccessGraceUntil = NULL
+            ClearGracePeriodAfterPayment();
+
             School_DropDownList.DataBind();
+        }
+
+        private void ClearGracePeriodAfterPayment()
+        {
+            try
+            {
+                int schoolId = 0;
+                if (School_DropDownList != null && int.TryParse(School_DropDownList.SelectedValue, out schoolId) && schoolId > 0)
+                {
+                    string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                    using (SqlConnection conn = new SqlConnection(connStr))
+                    {
+                        conn.Open();
+                        using (SqlCommand cmd = new SqlCommand(
+                            "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID AND AccessGraceUntil IS NOT NULL", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@SID", schoolId);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("ClearGracePeriod error: " + ex.Message);
+            }
         }
 
         private void UpdateSMSRechargeStatus(string invoiceID, string connectionString)

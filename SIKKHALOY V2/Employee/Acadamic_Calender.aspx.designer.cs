@@ -40,5 +40,15 @@ namespace EDUCATION.COM.Employee
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdateProgress UpdateProgress;
+
+        protected global::System.Web.UI.UpdatePanel HolidayListUpdatePanel;
+        protected global::System.Web.UI.WebControls.HiddenField hfEditHolidayID;
+        protected global::System.Web.UI.WebControls.HiddenField hfEditHolidayName;
+        protected global::System.Web.UI.WebControls.HiddenField hfEditHolidayDate;
+        protected global::System.Web.UI.WebControls.Button EditSaveButton;
+        protected global::System.Web.UI.WebControls.GridView WeeklyHolidayGridView;
+        protected global::System.Web.UI.WebControls.SqlDataSource WeeklyHolidaySQL;
+        protected global::System.Web.UI.WebControls.GridView OtherHolidayGridView;
+        protected global::System.Web.UI.WebControls.SqlDataSource OtherHolidaySQL;
     }
 }

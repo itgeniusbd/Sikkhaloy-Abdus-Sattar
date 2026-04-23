@@ -3,6 +3,146 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
  <link href="CSS/Accounts_By_User.css?v=12" rel="stylesheet" />
+ <style>
+ #accountTabs {
+ border-bottom: none;
+ margin-bottom: 0;
+ display: flex;
+ gap: 6px;
+ }
+ #accountTabs > li > a {
+ font-size: 15px;
+ font-weight: 600;
+ padding: 9px 28px;
+ border-radius: 6px 6px 0 0;
+ color: #fff;
+ border: none;
+ margin-right: 0;
+ transition: opacity 0.2s;
+ display: inline-block;
+ }
+ #accountTabs > li:first-child > a {
+ background: #27ae60;
+ }
+ #accountTabs > li:last-child > a {
+ background: #e74c3c;
+ }
+ #accountTabs > li > a:hover {
+ opacity: 0.85;
+ color: #fff;
+ }
+ #accountTabs > li.active > a,
+ #accountTabs > li.active > a:focus,
+ #accountTabs > li.active > a:hover {
+ color: #fff;
+ border: none;
+ box-shadow: 0 -3px 0 rgba(0,0,0,0.18) inset;
+ opacity: 1;
+ }
+ #accountTabs > li:first-child.active > a {
+ background: #27ae60;
+ }
+ #accountTabs > li:last-child.active > a {
+ background: #e74c3c;
+ }
+ #accountTabs > li:not(.active) > a {
+ opacity: 0.55;
+ }
+ .tab-content {
+ border: 1px solid #e0e0e0;
+ border-top: 3px solid #e0e0e0;
+ padding: 20px 16px 16px 16px;
+ border-radius: 0 0 6px 6px;
+ background: #fff;
+ box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+ }
+
+ @media print {
+ /* Hide non-print elements */
+ #accountTabs,
+ .NoPrint {
+ display: none !important;
+ }
+
+ /* Show only active tab content */
+ .tab-pane {
+ display: none !important;
+ }
+ .tab-pane.active {
+ display: block !important;
+ opacity: 1 !important;
+ visibility: visible !important;
+ }
+
+ /* Tab content wrapper */
+ .tab-content {
+ border: none !important;
+ box-shadow: none !important;
+ padding: 0 !important;
+ }
+
+ /* Summary cards: all in one row */
+ .row {
+ display: flex !important;
+ flex-wrap: nowrap !important;
+ align-items: stretch !important;
+ gap: 4px !important;
+ margin: 0 0 12px 0 !important;
+ }
+ .row .col-md-2 {
+ flex: 1 !important;
+ width: auto !important;
+ float: none !important;
+ padding: 0 !important;
+ }
+ .user-grid {
+ background: #f7f7f7 !important;
+ color: #000 !important;
+ border: 1px solid #bbb !important;
+ box-shadow: none !important;
+ border-radius: 4px !important;
+ padding: 6px 4px !important;
+ text-align: center !important;
+ display: flex !important;
+ flex-direction: column !important;
+ align-items: center !important;
+ justify-content: center !important;
+ height: 100% !important;
+ }
+ .user-grid.user-bg,
+ .user-grid.income-bg,
+ .user-grid.expense-bg,
+ .user-grid.balance-bg,
+ .user-grid.submitted-bg,
+ .user-grid.remaining-bg {
+ background: #f7f7f7 !important;
+ color: #000 !important;
+ }
+ .user-grid i {
+ display: inline-block !important;
+ font-size: 14px !important;
+ color: #333 !important;
+ margin-bottom: 2px !important;
+ }
+ .user-grid .user-imge {
+ display: none !important;
+ }
+ .user-grid .headline {
+ font-size: 8px !important;
+ color: #444 !important;
+ text-transform: uppercase !important;
+ letter-spacing: 0.4px !important;
+ font-weight: 600 !important;
+ margin: 1px 0 !important;
+ }
+ .user-grid .value {
+ font-size: 11px !important;
+ font-weight: bold !important;
+ color: #000 !important;
+ margin: 0 !important;
+ }
+ }
+ </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -163,9 +303,36 @@ FROM (
  </asp:SqlDataSource>
  
  <div class="clearfix"></div>
- 
- <div class="row">
- <div id="Income_gv" class="col-md-6">
+
+ <!-- Tab Navigation -->
+ <ul class="nav nav-tabs mt-3 NoPrint" id="accountTabs">
+ <li class="active"><a href="#tab-income" data-toggle="tab"><i class="fa fa-arrow-circle-down" style="color:#27ae60"></i> Income</a></li>
+ <li><a href="#tab-expense" data-toggle="tab"><i class="fa fa-arrow-circle-up" style="color:#e74c3c"></i> Expense</a></li>
+ </ul>
+
+ <div class="tab-content mt-3">
+ <!-- INCOME TAB -->
+ <div class="tab-pane active" id="tab-income">
+ <div class="form-inline mb-3 NoPrint">
+ <div class="form-group">
+ <label class="mr-2">Filter by Category:</label>
+ <asp:DropDownList ID="IncomeCategoryDropDown" runat="server" CssClass="form-control" AppendDataBoundItems="true" AutoPostBack="true" DataSourceID="IncomeCategoryListSQL" DataTextField="Category" DataValueField="Category">
+ <asp:ListItem Value="">-- All Categories --</asp:ListItem>
+ </asp:DropDownList>
+ <asp:SqlDataSource ID="IncomeCategoryListSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+ CancelSelectOnNullParameter="False"
+ SelectCommand="SELECT Category FROM (SELECT Income_Roles.Role AS Category FROM Income_PaymentRecord INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID WHERE Income_PaymentRecord.SchoolID = @SchoolID AND Income_PaymentRecord.RegistrationID = @RegistrationID AND (CAST(Income_PaymentRecord.PaidDate AS Date) >= CASE WHEN NULLIF(@From_Date,'') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE,@From_Date,103) END) AND (CAST(Income_PaymentRecord.PaidDate AS Date) <= CASE WHEN NULLIF(@To_Date,'') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE,@To_Date,103) END) GROUP BY Income_Roles.Role UNION SELECT CommitteeDonationCategory.DonationCategory AS Category FROM CommitteeMoneyReceipt INNER JOIN CommitteePaymentRecord ON CommitteeMoneyReceipt.CommitteeMoneyReceiptId=CommitteePaymentRecord.CommitteeMoneyReceiptId INNER JOIN CommitteeDonation INNER JOIN CommitteeDonationCategory ON CommitteeDonation.CommitteeDonationCategoryId=CommitteeDonationCategory.CommitteeDonationCategoryId ON CommitteePaymentRecord.CommitteeDonationId=CommitteeDonation.CommitteeDonationId WHERE CommitteeMoneyReceipt.SchoolID=@SchoolID AND CommitteeMoneyReceipt.RegistrationID=@RegistrationID AND (CAST(CommitteeMoneyReceipt.PaidDate AS Date) >= CASE WHEN NULLIF(@From_Date,'') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE,@From_Date,103) END) AND (CAST(CommitteeMoneyReceipt.PaidDate AS Date) <= CASE WHEN NULLIF(@To_Date,'') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE,@To_Date,103) END) GROUP BY CommitteeDonationCategory.DonationCategory UNION SELECT Extra_IncomeCategory.Extra_Income_CategoryName AS Category FROM Extra_Income INNER JOIN Extra_IncomeCategory ON Extra_Income.Extra_IncomeCategoryID=Extra_IncomeCategory.Extra_IncomeCategoryID WHERE Extra_Income.SchoolID=@SchoolID AND Extra_Income.RegistrationID=@RegistrationID AND (Extra_Income.Extra_IncomeDate >= CASE WHEN NULLIF(@From_Date,'') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE,@From_Date,103) END) AND (Extra_Income.Extra_IncomeDate <= CASE WHEN NULLIF(@To_Date,'') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE,@To_Date,103) END) GROUP BY Extra_IncomeCategory.Extra_Income_CategoryName) AS T ORDER BY Category">
+ <SelectParameters>
+ <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+ <asp:QueryStringParameter Name="RegistrationID" QueryStringField="RegID" />
+ <asp:ControlParameter ControlID="From_Date_TextBox" Name="From_Date" PropertyName="Text" />
+ <asp:ControlParameter ControlID="To_Date_TextBox" Name="To_Date" PropertyName="Text" />
+ </SelectParameters>
+ </asp:SqlDataSource>
+ </div>
+ </div>
+
+ <div id="Income_gv">
  <div class="box Income-box"><i class="fa fa-arrow-circle-down"></i>&nbsp Income Category</div>
  <asp:Repeater ID="IncomeRepeater" runat="server" DataSourceID="IncomeDetailsSQL">
  <ItemTemplate>
@@ -175,16 +342,14 @@ FROM (
  <div class="pull-right">
  <%# Eval("Income","{0:N0}") %> TK
  </div>
-
  <div class="table-responsive mb-3">
- <asp:GridView ID="IncomeGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="DetailsSQL" AllowSorting="True" AllowPaging="True" PageSize="20" EnableViewState="false">
+ <asp:GridView ID="IncomeGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="DetailsSQL" AllowSorting="True" EnableViewState="false">
  <Columns>
  <asp:BoundField DataField="AccountName" HeaderText="Account" ReadOnly="True" SortExpression="AccountName" />
  <asp:BoundField DataField="Details" HeaderText="Details" ReadOnly="True" SortExpression="Details" />
  <asp:BoundField DataField="Amount" HeaderText="Amount" ReadOnly="True" SortExpression="Amount" DataFormatString="{0:N0}" />
  <asp:BoundField DataField="Date" HeaderText="Date" ReadOnly="True" SortExpression="Date" DataFormatString="{0:d MMM yyyy}" />
  </Columns>
- <PagerStyle CssClass="pgr" />
  </asp:GridView>
  <asp:SqlDataSource ID="DetailsSQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT 
 ISNULL(Account.AccountName, 'N/A') AS AccountName,
@@ -216,7 +381,6 @@ WHERE(Extra_Income.SchoolID = @SchoolID) AND Extra_Income.RegistrationID = @Regi
  AND (Extra_Income.Extra_IncomeDate >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END)
  AND (Extra_Income.Extra_IncomeDate <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END)
  AND Extra_IncomeCategory.Extra_Income_CategoryName = @Category 
-
 Union 
 SELECT 
 ISNULL(Account.AccountName, 'N/A') AS AccountName, 
@@ -246,42 +410,42 @@ order by [Date]">
  </div>
  </ItemTemplate>
  </asp:Repeater>
- <asp:SqlDataSource ID="IncomeDetailsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Category, SUM(Income) AS Income from
-(SELECT Income_Roles.Role AS Category, SUM(Income_PaymentRecord.PaidAmount) AS Income FROM Income_PaymentRecord INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID
-WHERE (Income_PaymentRecord.SchoolID = @SchoolID) AND Income_PaymentRecord.RegistrationID = @RegistrationID 
- AND (CAST(Income_PaymentRecord.PaidDate AS Date) >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END)
- AND (CAST(Income_PaymentRecord.PaidDate AS Date) <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END)
-GROUP BY Income_Roles.Role
-Union
-SELECT CommitteeDonationCategory.DonationCategory AS Category, SUM(CommitteePaymentRecord.PaidAmount) AS Income FROM CommitteeMoneyReceipt 
-INNER JOIN CommitteePaymentRecord ON CommitteeMoneyReceipt.CommitteeMoneyReceiptId = CommitteePaymentRecord.CommitteeMoneyReceiptId 
-INNER JOIN CommitteeDonation 
-INNER JOIN CommitteeDonationCategory ON CommitteeDonation.CommitteeDonationCategoryId = CommitteeDonationCategory.CommitteeDonationCategoryId 
-ON CommitteePaymentRecord.CommitteeDonationId = CommitteeDonation.CommitteeDonationId 
-WHERE (CommitteeMoneyReceipt.SchoolId = @SchoolID) AND CommitteeMoneyReceipt.RegistrationID = @RegistrationID 
- AND (CAST(CommitteeMoneyReceipt.PaidDate AS Date) >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END)
- AND (CAST(CommitteeMoneyReceipt.PaidDate AS Date) <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END)
-GROUP BY CommitteeDonationCategory.DonationCategory
-
-Union 
-SELECT Extra_IncomeCategory.Extra_Income_CategoryName AS Category , SUM(Extra_Income.Extra_IncomeAmount) AS Income
-FROM Extra_Income INNER JOIN Extra_IncomeCategory ON Extra_Income.Extra_IncomeCategoryID = Extra_IncomeCategory.Extra_IncomeCategoryID
-WHERE (Extra_Income.SchoolID = @SchoolID) AND Extra_Income.RegistrationID = @RegistrationID 
- AND (Extra_Income.Extra_IncomeDate >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END)
- AND (Extra_Income.Extra_IncomeDate <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END)
-GROUP BY Extra_IncomeCategory.Extra_Income_CategoryName)as t GROUP BY Category
-"
- CancelSelectOnNullParameter="False">
+ <asp:SqlDataSource ID="IncomeDetailsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+ CancelSelectOnNullParameter="False"
+ SelectCommand="SELECT Category, SUM(Income) AS Income FROM (SELECT Income_Roles.Role AS Category, SUM(Income_PaymentRecord.PaidAmount) AS Income FROM Income_PaymentRecord INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID WHERE (Income_PaymentRecord.SchoolID = @SchoolID) AND Income_PaymentRecord.RegistrationID = @RegistrationID AND (CAST(Income_PaymentRecord.PaidDate AS Date) >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END) AND (CAST(Income_PaymentRecord.PaidDate AS Date) <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END) AND (Income_Roles.Role = @IncomeCategory OR NULLIF(@IncomeCategory,'') IS NULL) GROUP BY Income_Roles.Role Union SELECT CommitteeDonationCategory.DonationCategory AS Category, SUM(CommitteePaymentRecord.PaidAmount) AS Income FROM CommitteeMoneyReceipt INNER JOIN CommitteePaymentRecord ON CommitteeMoneyReceipt.CommitteeMoneyReceiptId = CommitteePaymentRecord.CommitteeMoneyReceiptId INNER JOIN CommitteeDonation INNER JOIN CommitteeDonationCategory ON CommitteeDonation.CommitteeDonationCategoryId = CommitteeDonationCategory.CommitteeDonationCategoryId ON CommitteePaymentRecord.CommitteeDonationId = CommitteeDonation.CommitteeDonationId WHERE (CommitteeMoneyReceipt.SchoolId = @SchoolID) AND CommitteeMoneyReceipt.RegistrationID = @RegistrationID AND (CAST(CommitteeMoneyReceipt.PaidDate AS Date) >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END) AND (CAST(CommitteeMoneyReceipt.PaidDate AS Date) <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END) AND (CommitteeDonationCategory.DonationCategory = @IncomeCategory OR NULLIF(@IncomeCategory,'') IS NULL) GROUP BY CommitteeDonationCategory.DonationCategory Union SELECT Extra_IncomeCategory.Extra_Income_CategoryName AS Category, SUM(Extra_Income.Extra_IncomeAmount) AS Income FROM Extra_Income INNER JOIN Extra_IncomeCategory ON Extra_Income.Extra_IncomeCategoryID = Extra_IncomeCategory.Extra_IncomeCategoryID WHERE (Extra_Income.SchoolID = @SchoolID) AND Extra_Income.RegistrationID = @RegistrationID AND (Extra_Income.Extra_IncomeDate >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END) AND (Extra_Income.Extra_IncomeDate <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END) AND (Extra_IncomeCategory.Extra_Income_CategoryName = @IncomeCategory OR NULLIF(@IncomeCategory,'') IS NULL) GROUP BY Extra_IncomeCategory.Extra_Income_CategoryName) AS t GROUP BY Category">
  <SelectParameters>
  <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
  <asp:ControlParameter ControlID="From_Date_TextBox" Name="From_Date" PropertyName="Text" />
  <asp:ControlParameter ControlID="To_Date_TextBox" Name="To_Date" PropertyName="Text" />
  <asp:QueryStringParameter Name="RegistrationID" QueryStringField="RegID" />
+ <asp:ControlParameter ControlID="IncomeCategoryDropDown" Name="IncomeCategory" PropertyName="SelectedValue" Type="String" />
  </SelectParameters>
  </asp:SqlDataSource>
  </div>
+ </div>
 
- <div id="Expense_gv" class="col-md-6">
+ <!-- EXPENSE TAB -->
+ <div class="tab-pane" id="tab-expense">
+ <div class="form-inline mb-3 NoPrint">
+ <div class="form-group">
+ <label class="mr-2">Filter by Category:</label>
+ <asp:DropDownList ID="ExpenseCategoryDropDown" runat="server" CssClass="form-control" AppendDataBoundItems="true" AutoPostBack="true" DataSourceID="ExpenseCategoryListSQL" DataTextField="Category" DataValueField="Category">
+ <asp:ListItem Value="">-- All Categories --</asp:ListItem>
+ </asp:DropDownList>
+ <asp:SqlDataSource ID="ExpenseCategoryListSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+ CancelSelectOnNullParameter="False"
+ SelectCommand="SELECT Category FROM (SELECT Employee_Payorder_Name.Payorder_Name AS Category FROM Employee_Payorder_Records INNER JOIN Employee_Payorder ON Employee_Payorder_Records.Employee_PayorderID=Employee_Payorder.Employee_PayorderID INNER JOIN Employee_Payorder_Name ON Employee_Payorder.Employee_Payorder_NameID=Employee_Payorder_Name.Employee_Payorder_NameID WHERE Employee_Payorder_Records.SchoolID=@SchoolID AND Employee_Payorder_Records.RegistrationID=@RegistrationID AND (Employee_Payorder_Records.Paid_date >= CASE WHEN NULLIF(@From_Date,'') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE,@From_Date,103) END) AND (Employee_Payorder_Records.Paid_date <= CASE WHEN NULLIF(@To_Date,'') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE,@To_Date,103) END) GROUP BY Employee_Payorder_Name.Payorder_Name UNION SELECT Expense_CategoryName.CategoryName AS Category FROM Expenditure INNER JOIN Expense_CategoryName ON Expenditure.ExpenseCategoryID=Expense_CategoryName.ExpenseCategoryID WHERE Expenditure.SchoolID=@SchoolID AND Expenditure.RegistrationID=@RegistrationID AND (Expenditure.ExpenseDate >= CASE WHEN NULLIF(@From_Date,'') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE,@From_Date,103) END) AND (Expenditure.ExpenseDate <= CASE WHEN NULLIF(@To_Date,'') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE,@To_Date,103) END) GROUP BY Expense_CategoryName.CategoryName) AS T ORDER BY Category">
+ <SelectParameters>
+ <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+ <asp:QueryStringParameter Name="RegistrationID" QueryStringField="RegID" />
+ <asp:ControlParameter ControlID="From_Date_TextBox" Name="From_Date" PropertyName="Text" />
+ <asp:ControlParameter ControlID="To_Date_TextBox" Name="To_Date" PropertyName="Text" />
+ </SelectParameters>
+ </asp:SqlDataSource>
+ </div>
+ </div>
+
+ <div id="Expense_gv">
  <div class="box Expense-box"><i class="fa fa-arrow-circle-up"></i>&nbsp Expense Category</div>
  <asp:Repeater ID="ExpenseRepeater" runat="server" DataSourceID="ExpenseCategorySQL">
  <ItemTemplate>
@@ -291,16 +455,14 @@ GROUP BY Extra_IncomeCategory.Extra_Income_CategoryName)as t GROUP BY Category
  <div class="pull-right">
  <%# Eval("Total","{0:N0}") %> TK
  </div>
-
  <div class="table-responsive mb-3">
- <asp:GridView ID="ExpenseGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="DetailsSQL" AllowSorting="True" AllowPaging="True" PageSize="20" EnableViewState="false">
+ <asp:GridView ID="ExpenseGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="DetailsSQL" AllowSorting="True" EnableViewState="false">
  <Columns>
  <asp:BoundField DataField="AccountName" HeaderText="Account" ReadOnly="True" SortExpression="AccountName" />
  <asp:BoundField DataField="Details" HeaderText="Details" ReadOnly="True" SortExpression="Details" />
  <asp:BoundField DataField="Amount" HeaderText="Amount" ReadOnly="True" SortExpression="Amount" DataFormatString="{0:N0}" />
  <asp:BoundField DataField="Date" HeaderText="Date" ReadOnly="True" SortExpression="Date" DataFormatString="{0:d MMM yyyy}" />
  </Columns>
- <PagerStyle CssClass="pgr" />
  </asp:GridView>
  <asp:SqlDataSource ID="DetailsSQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ISNULL(Account.AccountName, 'N/A') AS AccountName,Expense_CategoryName.CategoryName as Category, 
  Expenditure.ExpenseFor AS Details, Expenditure.Amount, Expenditure.ExpenseDate as [Date]
@@ -332,29 +494,18 @@ order by [Date]">
  </div>
  </ItemTemplate>
  </asp:Repeater>
- <asp:SqlDataSource ID="ExpenseCategorySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Category, SUM(Amount) AS Total from(SELECT Employee_Payorder_Name.Payorder_Name AS Category, SUM(Employee_Payorder_Records.Amount) AS Amount
-FROM Employee_Payorder_Records INNER JOIN
- Employee_Payorder ON Employee_Payorder_Records.Employee_PayorderID = Employee_Payorder.Employee_PayorderID INNER JOIN
- Employee_Payorder_Name ON Employee_Payorder.Employee_Payorder_NameID = Employee_Payorder_Name.Employee_Payorder_NameID
-WHERE (Employee_Payorder_Records.SchoolID = @SchoolID) AND Employee_Payorder_Records.RegistrationID = @RegistrationID 
- AND (Employee_Payorder_Records.Paid_date >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END)
- AND (Employee_Payorder_Records.Paid_date <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END)
-GROUP BY Employee_Payorder_Name.Payorder_Name
-Union 
-SELECT Expense_CategoryName.CategoryName AS Category , SUM(Expenditure.Amount) AS Amount
-FROM Expenditure INNER JOIN
- Expense_CategoryName ON Expenditure.ExpenseCategoryID = Expense_CategoryName.ExpenseCategoryID
-WHERE (Expenditure.SchoolID = @SchoolID) AND Expenditure.RegistrationID = @RegistrationID 
- AND (Expenditure.ExpenseDate >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END)
- AND (Expenditure.ExpenseDate <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END)
-GROUP BY Expense_CategoryName.CategoryName)as t GROUP BY Category" CancelSelectOnNullParameter="False">
+ <asp:SqlDataSource ID="ExpenseCategorySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+ CancelSelectOnNullParameter="False"
+ SelectCommand="SELECT Category, SUM(Amount) AS Total FROM (SELECT Employee_Payorder_Name.Payorder_Name AS Category, SUM(Employee_Payorder_Records.Amount) AS Amount FROM Employee_Payorder_Records INNER JOIN Employee_Payorder ON Employee_Payorder_Records.Employee_PayorderID = Employee_Payorder.Employee_PayorderID INNER JOIN Employee_Payorder_Name ON Employee_Payorder.Employee_Payorder_NameID = Employee_Payorder_Name.Employee_Payorder_NameID WHERE (Employee_Payorder_Records.SchoolID = @SchoolID) AND Employee_Payorder_Records.RegistrationID = @RegistrationID AND (Employee_Payorder_Records.Paid_date >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END) AND (Employee_Payorder_Records.Paid_date <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END) AND (Employee_Payorder_Name.Payorder_Name = @ExpenseCategory OR NULLIF(@ExpenseCategory,'') IS NULL) GROUP BY Employee_Payorder_Name.Payorder_Name Union SELECT Expense_CategoryName.CategoryName AS Category, SUM(Expenditure.Amount) AS Amount FROM Expenditure INNER JOIN Expense_CategoryName ON Expenditure.ExpenseCategoryID = Expense_CategoryName.ExpenseCategoryID WHERE (Expenditure.SchoolID = @SchoolID) AND Expenditure.RegistrationID = @RegistrationID AND (Expenditure.ExpenseDate >= CASE WHEN NULLIF(@From_Date, '') IS NULL THEN '1-1-1000' ELSE CONVERT(DATE, @From_Date,103) END) AND (Expenditure.ExpenseDate <= CASE WHEN NULLIF(@To_Date, '') IS NULL THEN '1-1-3000' ELSE CONVERT(DATE, @To_Date,103) END) AND (Expense_CategoryName.CategoryName = @ExpenseCategory OR NULLIF(@ExpenseCategory,'') IS NULL) GROUP BY Expense_CategoryName.CategoryName) AS t GROUP BY Category">
  <SelectParameters>
  <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
  <asp:ControlParameter ControlID="From_Date_TextBox" Name="From_Date" PropertyName="Text" />
  <asp:ControlParameter ControlID="To_Date_TextBox" Name="To_Date" PropertyName="Text" />
  <asp:QueryStringParameter Name="RegistrationID" QueryStringField="RegID" />
+ <asp:ControlParameter ControlID="ExpenseCategoryDropDown" Name="ExpenseCategory" PropertyName="SelectedValue" Type="String" />
  </SelectParameters>
  </asp:SqlDataSource>
+ </div>
  </div>
  </div>
 
@@ -428,14 +579,25 @@ $(function () {
  
  // Hide empty sections
  if (!$('[id*=IncomeGridView] tr').length) {
- $('#Income_gv').hide().removeClass('col-md-6');
- $('#Expense_gv').removeClass('col-md-6').addClass('col-md-12');
+ $('#tab-income').removeClass('active');
+ $('#tab-expense').addClass('active');
+ $('a[href="#tab-expense"]').parent().addClass('active');
  }
 
  if (!$('[id*=ExpenseGridView] tr').length) {
- $('#Expense_gv').hide().removeClass('col-md-6');
- $('#Income_gv').removeClass('col-md-6').addClass('col-md-12');
+ // income tab stays active by default
  }
+
+ // Restore active tab from sessionStorage
+ var activeTab = sessionStorage.getItem('userAccountActiveTab');
+ if (activeTab) {
+ $('#accountTabs a[href="' + activeTab + '"]').tab('show');
+ }
+
+ // Save active tab on click
+ $('#accountTabs a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+ sessionStorage.setItem('userAccountActiveTab', $(e.target).attr('href'));
+ });
 
  // Individual date picker
  $('.datepicker').datepicker({

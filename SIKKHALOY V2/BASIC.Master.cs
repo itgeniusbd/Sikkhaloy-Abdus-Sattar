@@ -27,6 +27,24 @@ namespace EDUCATION.COM
                 Response.Redirect("~/Default.aspx");
             }
 
+            // ─── Invoice Expiry Block Check ───────────────────────────────────────────
+            var currentUser = HttpContext.Current.User.Identity.Name;
+            bool isAuthority = Roles.IsUserInRole(currentUser, "Authority") || Roles.IsUserInRole(currentUser, "Sub-Authority");
+
+            if (!isAuthority && Session["SchoolID"] != null)
+            {
+                string currentPath = Request.AppRelativeCurrentExecutionFilePath.ToLower();
+                bool isDueInvoicePage = currentPath.Contains("due_invoice") || currentPath.Contains("shurjopaycallback") || currentPath.Contains("support_ticket");
+
+                if (!isDueInvoicePage && IsInvoiceExpiredAndBlocked())
+                {
+                    Response.Redirect("~/Profile/Invoice/Due_Invoice.aspx", false);
+                    Context.ApplicationInstance.CompleteRequest();
+                    return;
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────────────
+
             if (Page.IsPostBack) return;
 
             var user = HttpContext.Current.User.Identity.Name;
@@ -52,7 +70,9 @@ namespace EDUCATION.COM
             // Force check school name logo on every page load
             if (Session["SchoolID"] != null && LogoFormView.CurrentMode == FormViewMode.ReadOnly)
             {
-                int schoolId = Convert.ToInt32(Session["SchoolID"]);
+                int schoolId = 0;
+                if (!int.TryParse(Session["SchoolID"].ToString(), out schoolId) || schoolId <= 0)
+                    return;
                 bool hasSchoolNameLogo = CheckSchoolNameLogoExists(schoolId);
                 
                 var schoolNameLogoPanel = LogoFormView.FindControl("SchoolNameLogoPanel") as Panel;
@@ -98,7 +118,9 @@ namespace EDUCATION.COM
             
             if (Session["SchoolID"] == null) return;
             
-            int schoolId = Convert.ToInt32(Session["SchoolID"]);
+            int schoolId = 0;
+            if (!int.TryParse(Session["SchoolID"].ToString(), out schoolId) || schoolId <= 0)
+                return;
             
             // Check if School Name Logo exists
             bool hasSchoolNameLogo = CheckSchoolNameLogoExists(schoolId);
@@ -309,6 +331,71 @@ namespace EDUCATION.COM
 
                 if (treeNode.Parent != null)
                     treeNode.Parent.Expand();
+            }
+        }
+
+        private bool IsInvoiceExpiredAndBlocked()
+        {
+            try
+            {
+                int schoolId = 0;
+                if (!int.TryParse(Session["SchoolID"].ToString(), out schoolId) || schoolId <= 0)
+                    return false;
+
+                var connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+
+                // ── Step 1: Grace period column আছে কিনা এবং grace চলছে কিনা ──
+                using (var con1 = new SqlConnection(connStr))
+                {
+                    con1.Open();
+                    using (var colCmd = new SqlCommand(
+                        @"SELECT CASE 
+                            WHEN EXISTS (
+                                SELECT * FROM sys.columns 
+                                WHERE object_id = OBJECT_ID(N'dbo.SchoolInfo') 
+                                AND name = 'AccessGraceUntil'
+                            ) THEN 1 ELSE 0 END", con1))
+                    {
+                        int colExists = (int)colCmd.ExecuteScalar();
+                        if (colExists == 1)
+                        {
+                            using (var graceCmd = new SqlCommand(
+                                "SELECT AccessGraceUntil FROM SchoolInfo WHERE SchoolID = @SID", con1))
+                            {
+                                graceCmd.Parameters.AddWithValue("@SID", schoolId);
+                                var graceResult = graceCmd.ExecuteScalar();
+                                if (graceResult != null && graceResult != DBNull.Value)
+                                {
+                                    DateTime graceUntil = Convert.ToDateTime(graceResult);
+                                    if (graceUntil.Date >= DateTime.Today)
+                                        return false; // Grace period চলছে, block করো না
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── Step 2: Unpaid + EndDate পার হয়েছে এমন invoice আছে কিনা ──
+                using (var con2 = new SqlConnection(connStr))
+                {
+                    con2.Open();
+                    using (var expCmd = new SqlCommand(
+                        @"SELECT COUNT(*) FROM AAP_Invoice 
+                          WHERE SchoolID = @SID 
+                            AND IsPaid = 0 
+                            AND EndDate IS NOT NULL 
+                            AND EndDate < GETDATE()", con2))
+                    {
+                        expCmd.Parameters.AddWithValue("@SID", schoolId);
+                        int expiredCount = (int)expCmd.ExecuteScalar();
+                        return expiredCount > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("IsInvoiceExpiredAndBlocked error: " + ex.Message);
+                return false;
             }
         }
 

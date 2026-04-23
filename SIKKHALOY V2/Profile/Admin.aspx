@@ -33,6 +33,23 @@
             50% { color: #dc3545; }
             100% { color: #fff; }
         }
+        .due-warning-box {
+            background: linear-gradient(135deg, #fff3cd, #ffe08a);
+            border: 2px solid #f7b731;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+        }
+        .due-warning-box .warning-days {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #c0392b;
+        }
+        .due-warning-box .warning-sub {
+            font-size: .88rem;
+            color: #555;
+            margin-top: 4px;
+        }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -49,6 +66,13 @@
                     </button>
                 </div>
                 <div class="modal-body text-center py-4">
+                    <%-- Warning: EndDate countdown / Grace Period countdown --%>
+                    <div id="dueWarningSection" style="display:none;" class="due-warning-box">
+                        <div><i id="dueWarningIcon" class="fa fa-clock fa-2x text-warning mb-2"></i></div>
+                        <div class="warning-days" id="dueWarningText"></div>
+                        <div class="warning-sub" id="dueWarningSubText"></div>
+                    </div>
+
                     <i class="fa fa-file-invoice-dollar fa-3x text-danger mb-3"></i>
                     <h5 class="due-records mb-3">
                         আপনার প্রতিষ্ঠানের 
@@ -63,11 +87,15 @@
                     </div>
                     <p class="text-muted">বিস্তারিত দেখতে Due Invoice পেজে যান।</p>
                 </div>
-                <div class="modal-footer">
-                    <a href="Invoice/Due_Invoice.aspx" class="btn btn-danger">
-                        <i class="fa fa-eye"></i> Due Invoice দেখুন
+                <div class="modal-footer justify-content-center" style="flex-wrap:nowrap; gap:6px; padding:10px;">
+                    <a href="Invoice/Due_Invoice.aspx" class="btn btn-danger" style="white-space:nowrap; font-size:12px; padding:6px 10px;">
+                        <i class="fa fa-file-invoice"></i> Due Invoice দেখুন
                     </a>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">পরে দেখব</button>
+                    <button type="button" id="btnModalShurjoPay" class="btn"
+                        style="background:linear-gradient(135deg,#f7971e,#ffd200);color:#222;font-weight:700;border:none;white-space:nowrap;font-size:12px;padding:6px 10px;">
+                        <i class="fa fa-credit-card"></i> অনলাইনে পেমেন্ট করুন
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" style="white-space:nowrap; font-size:12px; padding:6px 10px;">পরে দেখব</button>
                 </div>
             </div>
         </div>
@@ -128,6 +156,9 @@ WHERE IsActive = 1
      </a>
     <a href="../Accounts/Payment/Payment_Collection.aspx" class="btn-action btn-payment">
           <i class="fa fa-credit-card"></i> COLLECT PAYMENT
+            </a>
+    <a href="../SMS/SMS_Recharge.aspx" class="btn-action" style="background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff;">
+          <i class="fa fa-mobile"></i> SMS RECHARGE
             </a>
                     <%if (EmployeeRepeater.Items.Count > 0 || StudentRepeater.Items.Count > 0) { %>
                 <a target="_blank" href="../Attendances/Online_Display/Attendance_Slider.aspx" class="gradient-link attendance-display">
@@ -500,4 +531,10 @@ ORDER BY Attendance DESC">
     <script src="/JS/jquery.tableTotal.js"></script>
     <!-- Dashboard Charts JavaScript -->
     <script src="js/dashboard-charts.js?v=1.0"></script>
+    <script>
+        $('#btnModalShurjoPay').on('click', function () {
+            $('#dueInvoiceModal').modal('hide');
+            window.location.href = 'Invoice/Due_Invoice.aspx?pay=1';
+        });
+    </script>
 </asp:Content>

@@ -23,6 +23,13 @@ namespace EDUCATION.COM.Employee
             }
         }
 
+        protected void ScheduleDropDownList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var scheduleParam = EmployeeAttendanceSQL.SelectParameters["ScheduleID"];
+            if (scheduleParam != null)
+                scheduleParam.DefaultValue = ScheduleDropDownList.SelectedValue ?? "0";
+        }
+
         protected void EmployeeDropDownList_DataBound(object sender, EventArgs e)
         {
             EmployeeDropDownList.Items.Insert(0, new ListItem("[ All Employee ]", "0"));

@@ -84,11 +84,12 @@ namespace EDUCATION.COM.Administration_Basic_Settings
                     UpdateLinkSQL.InsertParameters["RegistrationID"].DefaultValue = RegistrationID;
                     UpdateLinkSQL.Insert();
 
-                    if (Roles.RoleExists(LinkGridView.DataKeys[row.DataItemIndex]["RoleName"].ToString()))
+                    string roleName = LinkGridView.DataKeys[row.DataItemIndex]["RoleName"] as string;
+                    if (!string.IsNullOrWhiteSpace(roleName) && Roles.RoleExists(roleName))
                     {
-                        if (!Roles.IsUserInRole(UserListDropDownList.SelectedValue, LinkGridView.DataKeys[row.DataItemIndex]["RoleName"].ToString()))
+                        if (!Roles.IsUserInRole(UserListDropDownList.SelectedValue, roleName))
                         {
-                            Roles.AddUserToRole(UserListDropDownList.SelectedValue, LinkGridView.DataKeys[row.DataItemIndex]["RoleName"].ToString());
+                            Roles.AddUserToRole(UserListDropDownList.SelectedValue, roleName);
                         }
                     }
                 }
@@ -97,11 +98,12 @@ namespace EDUCATION.COM.Administration_Basic_Settings
                     UpdateLinkSQL.DeleteParameters["LinkID"].DefaultValue = LinkGridView.DataKeys[row.DataItemIndex]["LinkID"].ToString();
                     UpdateLinkSQL.Delete();
 
-                    if (Roles.RoleExists(LinkGridView.DataKeys[row.DataItemIndex]["RoleName"].ToString()))
+                    string roleName = LinkGridView.DataKeys[row.DataItemIndex]["RoleName"] as string;
+                    if (!string.IsNullOrWhiteSpace(roleName) && Roles.RoleExists(roleName))
                     {
-                        if (Roles.IsUserInRole(UserListDropDownList.SelectedValue, LinkGridView.DataKeys[row.DataItemIndex]["RoleName"].ToString()))
+                        if (Roles.IsUserInRole(UserListDropDownList.SelectedValue, roleName))
                         {
-                            Roles.RemoveUserFromRole(UserListDropDownList.SelectedValue, LinkGridView.DataKeys[row.DataItemIndex]["RoleName"].ToString());
+                            Roles.RemoveUserFromRole(UserListDropDownList.SelectedValue, roleName);
                         }
                     }
                 }

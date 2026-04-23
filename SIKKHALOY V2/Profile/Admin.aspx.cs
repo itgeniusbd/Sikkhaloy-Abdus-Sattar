@@ -38,53 +38,194 @@ namespace EDUCATION.COM.Profile
         {
             try
             {
-                // প্রথমে চেক করি notification enable করা আছে কিনা
-                if (!IsDueNoticeEnabled())
-                {
-                    return; // Enable না থাকলে notification দেখাবে না
-                }
+                int schoolId = 0;
+                if (!int.TryParse(Session["SchoolID"].ToString(), out schoolId) || schoolId <= 0)
+                    return;
 
-                string query = @"SELECT COUNT(*) AS DueRecordCount, 
-                                       ISNULL(SUM(AAP_Invoice.TotalAmount - AAP_Invoice.PaidAmount), 0) AS TotalDue
-                                FROM AAP_Invoice 
-                                WHERE (AAP_Invoice.SchoolID = @SchoolID) AND (AAP_Invoice.IsPaid = 0)";
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
 
-                using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString()))
+                // ── Due amount ও count সবসময় fetch করো ────────────────────────────
+                int dueRecordCount = 0;
+                decimal totalDue = 0;
+                try
                 {
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
+                    using (SqlConnection conDue = new SqlConnection(connStr))
                     {
-                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
-                        
-                        connection.Open();
-                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        string dueQuery = @"SELECT COUNT(*) AS DueRecordCount, 
+                                                   ISNULL(SUM(TotalAmount - PaidAmount - Discount), 0) AS TotalDue
+                                            FROM AAP_Invoice 
+                                            WHERE SchoolID = @SchoolID AND IsPaid = 0";
+                        using (SqlCommand dueCmd = new SqlCommand(dueQuery, conDue))
                         {
-                            if (reader.Read())
+                            dueCmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                            conDue.Open();
+                            using (SqlDataReader dr = dueCmd.ExecuteReader())
                             {
-                                int dueRecordCount = Convert.ToInt32(reader["DueRecordCount"]);
-                                decimal totalDue = Convert.ToDecimal(reader["TotalDue"]);
-
-                                if (dueRecordCount > 0 && totalDue > 0)
+                                if (dr.Read())
                                 {
-                                    // Modal পপআপ দেখানোর জন্য JavaScript কোড
-                                    string script = $@"
-                                        $(document).ready(function() {{
-                                            $('#dueRecordCount').text('{dueRecordCount}');
-                                            $('#totalDueAmount').text('{totalDue:N2}');
-                                            $('#dueInvoiceModal').modal('show');
-                                        }});
-                                    ";
-                                    
-                                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", 
-                                        script, true);
+                                    dueRecordCount = Convert.ToInt32(dr["DueRecordCount"]);
+                                    totalDue = Convert.ToDecimal(dr["TotalDue"]);
                                 }
                             }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Due amount fetch error: " + ex.Message);
+                }
+
+                string dueCountStr = dueRecordCount.ToString();
+                string dueTotalStr = totalDue.ToString("N2");
+
+                // ── ১. Invoice EndDate countdown (১-১০ দিন বাকি, এখনো পার হয়নি) ──
+                int endDateDaysLeft = -1;
+                try
+                {
+                    using (SqlConnection con3 = new SqlConnection(connStr))
+                    {
+                        string edSql = @"SELECT TOP 1 DATEDIFF(day, GETDATE(), EndDate) AS DaysLeft
+                                         FROM AAP_Invoice
+                                         WHERE SchoolID = @SID AND IsPaid = 0
+                                           AND EndDate IS NOT NULL AND EndDate >= GETDATE()
+                                         ORDER BY EndDate ASC";
+                        using (SqlCommand edCmd = new SqlCommand(edSql, con3))
+                        {
+                            edCmd.Parameters.AddWithValue("@SID", schoolId);
+                            con3.Open();
+                            object edVal = edCmd.ExecuteScalar();
+                            if (edVal != null && edVal != DBNull.Value)
+                                endDateDaysLeft = Convert.ToInt32(edVal);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("EndDate check error: " + ex.Message);
+                }
+
+                if (endDateDaysLeft >= 0 && endDateDaysLeft <= 10)
+                {
+                    string endMsg = endDateDaysLeft == 0
+                        ? "আজই আপনার বকেয়া পরিশোধের শেষ দিন!"
+                        : string.Format("আপনার বকেয়া পরিশোধের সময় বাকি মাত্র <strong>{0} দিন</strong>।", endDateDaysLeft);
+
+                    string endScript = string.Format(@"
+                        $(document).ready(function() {{
+                            $('#dueWarningSection').show();
+                            $('#dueWarningText').html('{0}');
+                            $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
+                            $('#dueWarningIcon').removeClass('fa-hourglass-half').addClass('fa-clock');
+                            $('#dueRecordCount').text('{1}');
+                            $('#totalDueAmount').text('{2}');
+                            $('#dueInvoiceModal').modal('show');
+                        }});
+                    ", endMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
+
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", endScript, true);
+                    return;
+                }
+
+                // ── ২. Grace Period চলছে কিনা চেক করো (শুধু EndDate পার হলে) ──────
+                // এই check শুধু তখনই relevant যখন invoice expire হয়ে গেছে কিন্তু
+                // grace period দিয়ে access দেওয়া হয়েছে
+                int graceDaysLeft = -1;
+                try
+                {
+                    using (SqlConnection con2 = new SqlConnection(connStr))
+                    {
+                        con2.Open();
+                        using (SqlCommand chk = new SqlCommand(
+                            @"SELECT CASE WHEN EXISTS(SELECT * FROM sys.columns
+                               WHERE object_id=OBJECT_ID(N'dbo.SchoolInfo') AND name='AccessGraceUntil')
+                              THEN 1 ELSE 0 END", con2))
+                        {
+                            if ((int)chk.ExecuteScalar() == 1)
+                            {
+                                using (SqlCommand gc = new SqlCommand(
+                                    "SELECT AccessGraceUntil FROM SchoolInfo WHERE SchoolID=@SID", con2))
+                                {
+                                    gc.Parameters.AddWithValue("@SID", schoolId);
+                                    object graceVal = gc.ExecuteScalar();
+                                    if (graceVal != null && graceVal != DBNull.Value)
+                                    {
+                                        DateTime graceUntil = Convert.ToDateTime(graceVal);
+                                        graceDaysLeft = (int)(graceUntil.Date - DateTime.Today).TotalDays;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Grace check error: " + ex.Message);
+                }
+
+                // Due = 0 হলে AccessGraceUntil auto-clear করো (payment হয়ে গেছে)
+                if (graceDaysLeft >= 0 && totalDue <= 0 && dueRecordCount <= 0)
+                {
+                    try
+                    {
+                        using (SqlConnection conClr = new SqlConnection(connStr))
+                        {
+                            conClr.Open();
+                            using (SqlCommand clrCmd = new SqlCommand(
+                                "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID", conClr))
+                            {
+                                clrCmd.Parameters.AddWithValue("@SID", schoolId);
+                                clrCmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Grace clear error: " + ex.Message);
+                    }
+                    // Grace cleared, notice দেখাবো না
+                }
+                // Grace period সক্রিয় এবং শেষ হতে ১০ দিন বা কম বাকি (only if due > 0)
+                else if (graceDaysLeft >= 0 && graceDaysLeft <= 10 && (totalDue > 0 || dueRecordCount > 0))
+                {
+                    string graceMsg = graceDaysLeft == 0
+                        ? "আজই আপনার গ্রেস পিরিয়ড শেষ হচ্ছে!"
+                        : string.Format("আপনাকে দেওয়া গ্রেস পিরিয়ড শেষ হতে বাকি মাত্র <strong>{0} দিন</strong>।", graceDaysLeft);
+
+                    string graceScript = string.Format(@"
+                        $(document).ready(function() {{
+                            $('#dueWarningSection').show();
+                            $('#dueWarningText').html('{0}');
+                            $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
+                            $('#dueWarningIcon').removeClass('fa-clock').addClass('fa-hourglass-half');
+                            $('#dueRecordCount').text('{1}');
+                            $('#totalDueAmount').text('{2}');
+                            $('#dueInvoiceModal').modal('show');
+                        }});
+                    ", graceMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
+
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", graceScript, true);
+                    return;
+                }
+
+                // ── ৩. সাধারণ due invoice notification ──────────────────────────────
+                if (!IsDueNoticeEnabled())
+                    return;
+
+                if (dueRecordCount > 0 && totalDue > 0)
+                {
+                    string script = string.Format(@"
+                        $(document).ready(function() {{
+                            $('#dueRecordCount').text('{0}');
+                            $('#totalDueAmount').text('{1}');
+                            $('#dueInvoiceModal').modal('show');
+                        }});
+                    ", dueCountStr, dueTotalStr);
+
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", script, true);
+                }
             }
             catch (Exception ex)
             {
-                // Error handling - লগ করা যেতে পারে কিন্তু ইউজারকে দেখানো হবে না
                 System.Diagnostics.Debug.WriteLine("Due Invoice notification error: " + ex.Message);
             }
         }

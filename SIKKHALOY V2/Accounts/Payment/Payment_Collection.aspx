@@ -312,7 +312,13 @@ ORDER BY Income_MoneyReceipt.PaidDate DESC">
                     <ItemStyle Width="150px" />
                 </asp:TemplateField>
 
-                <asp:BoundField DataField="LateFee" HeaderText="Late Fee" SortExpression="LateFee" />
+                <asp:TemplateField HeaderText="Late Fee" SortExpression="LateFee">
+                    <ItemTemplate>
+                        <asp:TextBox ID="LateFeeTextBox" runat="server" type="number" Enabled="false" CssClass="form-control latefee-input" Text='<%# Eval("LateFee") %>' autocomplete="off"></asp:TextBox>
+                        <asp:HiddenField ID="PrevLateFeeHidden" runat="server" Value='<%# Eval("LateFee") %>' />
+                    </ItemTemplate>
+                    <ItemStyle Width="120px" />
+                </asp:TemplateField>
                 <asp:BoundField DataField="PaidAmount" HeaderText="Paid" SortExpression="PaidAmount" />
                 <asp:TemplateField HeaderText="Due" SortExpression="Due">
                     <ItemTemplate>
@@ -330,16 +336,16 @@ ORDER BY Income_MoneyReceipt.PaidDate DESC">
         <asp:SqlDataSource ID="DueSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
             SelectCommand="SELECT Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class, 
                          Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee, 
-                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) 
-                         - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
-                         - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
-FROM            Income_PayOrder INNER JOIN
-                         Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
-                         Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
-                         Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
-                         CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
-WHERE        (Income_PayOrder.Status = 'Due') AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID)
-ORDER BY Income_PayOrder.EndDate"
+                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) 
+                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
+                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
+                         FROM            Income_PayOrder INNER JOIN
+                                                  Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
+                                                  Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
+                                                  Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
+                                                  CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
+                         WHERE        (CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) &gt; 0 AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID)
+                         ORDER BY Income_PayOrder.EndDate"
             UpdateCommand="UPDATE Income_PayOrder SET Discount = @Discount WHERE (PayOrderID = @PayOrderID)">
             <SelectParameters>
                 <asp:ControlParameter ControlID="SearchIDTextBox" DefaultValue="" Name="ID" PropertyName="Text" />
@@ -356,6 +362,13 @@ ORDER BY Income_PayOrder.EndDate"
 
             <UpdateParameters>
                 <asp:Parameter Name="Discount" />
+                <asp:Parameter Name="PayOrderID" />
+            </UpdateParameters>
+        </asp:SqlDataSource>
+        <asp:SqlDataSource ID="LateFeeUpdateSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+            SelectCommand="SELECT * FROM [Income_LateFee_Change_Record]" UpdateCommand="UPDATE Income_PayOrder SET LateFee = @LateFee WHERE (PayOrderID = @PayOrderID)">
+            <UpdateParameters>
+                <asp:Parameter Name="LateFee" />
                 <asp:Parameter Name="PayOrderID" />
             </UpdateParameters>
         </asp:SqlDataSource>
@@ -383,7 +396,13 @@ ORDER BY Income_PayOrder.EndDate"
                     <ItemStyle Width="150px" />
                 </asp:TemplateField>
 
-                <asp:BoundField DataField="LateFee" HeaderText="Late Fee" SortExpression="LateFee" />
+                <asp:TemplateField HeaderText="Late Fee" SortExpression="LateFee">
+                    <ItemTemplate>
+                        <asp:TextBox ID="LateFeeTextBox" runat="server" type="number" Enabled="false" CssClass="form-control latefee-input" Text='<%# Eval("LateFee") %>' autocomplete="off"></asp:TextBox>
+                        <asp:HiddenField ID="PrevLateFeeHidden" runat="server" Value='<%# Eval("LateFee") %>' />
+                    </ItemTemplate>
+                    <ItemStyle Width="120px" />
+                </asp:TemplateField>
                 <asp:BoundField DataField="PaidAmount" HeaderText="Paid" SortExpression="PaidAmount" />
                 <asp:TemplateField HeaderText="Due" SortExpression="Due">
                     <ItemTemplate>
@@ -401,16 +420,16 @@ ORDER BY Income_PayOrder.EndDate"
         <asp:SqlDataSource ID="OtherSessionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
             SelectCommand="SELECT        Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class, 
                          Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee, 
-                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) 
-                         - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
-                         - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
-FROM            Income_PayOrder INNER JOIN
-                         Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
-                         Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
-                         Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
-                         CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
-WHERE        (Income_PayOrder.Status = 'Due') AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID &lt;&gt; @EducationYearID)
-ORDER BY Income_PayOrder.EndDate"
+                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) 
+                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
+                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
+                         FROM            Income_PayOrder INNER JOIN
+                                                  Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
+                                                  Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
+                                                  Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
+                                                  CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
+                         WHERE        (CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) < ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) > 0 AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID &lt;&gt; @EducationYearID)
+                         ORDER BY Income_PayOrder.EndDate"
             UpdateCommand="UPDATE Income_PayOrder SET Discount = @Discount WHERE (PayOrderID = @PayOrderID)">
             <SelectParameters>
                 <asp:ControlParameter ControlID="SearchIDTextBox" DefaultValue="" Name="ID" PropertyName="Text" />
@@ -520,7 +539,7 @@ ORDER BY Income_PayOrder.EndDate"
 
                 <asp:RequiredFieldValidator ID="RequiredFieldValidator6" runat="server" ControlToValidate="AccountDropDownList" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="PaY"></asp:RequiredFieldValidator>
                 <asp:Button ID="PayButton" runat="server" Text="Pay" OnClick="PayButton_Click" OnClientClick="return validateForm()" ValidationGroup="PaY" CssClass="btn btn-primary" />
-                <asp:Button ID="UpdateConcessionButton" runat="server" Text="Update Concession" OnClick="UpdateConcessionButton_Click" OnClientClick="return validateConcession()" CssClass="btn btn-primary" />
+                <asp:Button ID="UpdateConcessionButton" runat="server" Text="Concession / Late Fee Update" OnClick="UpdateConcessionButton_Click" OnClientClick="return validateConcession()" CssClass="btn btn-primary" />
             </div>
 
 
@@ -773,8 +792,10 @@ printContainer: true,
 
           const input = element.closest("tr").querySelector('.due-input');
       const consinput = element.closest("tr").querySelector('.concession-input');
+      const latefeeInput = element.closest("tr").querySelector('.latefee-input');
    input.disabled = !element.checked;
               consinput.disabled = !element.checked;
+              if (latefeeInput) latefeeInput.disabled = !element.checked;
                 }
 
   // Real-time validation for concession input
@@ -853,20 +874,25 @@ printContainer: true,
    for (let concessionInput of concessionInputs) {
 const row = concessionInput.closest("tr");
             
-            // Get Fee column (column index 6) and Paid column (column index 9)
+            // Get Fee column (index 6), LateFee input (index 8), Paid column (index 9)
     const feeCell = row.cells[6]; // Fee column
+    const lateFeeinput = row.querySelector('.latefee-input'); // LateFee input
     const paidCell = row.cells[9]; // Paid column
     
   const fee = parseFloat(feeCell.innerText) || 0;
+            const lateFee = lateFeeinput ? (parseFloat(lateFeeinput.value) || 0) : 0;
             const paid = parseFloat(paidCell.innerText) || 0;
       const concession = parseFloat(concessionInput.value) || 0;
        
-        // Check if concession exceeds (Fee - Paid)
+        // Skip validation if already overpaid (Fee + LateFee <= Paid)
+        if (paid >= fee + lateFee) continue;
+
+        // Check if concession exceeds (Fee + LateFee - Paid)
  // Logic: You can't give concession more than what's left to pay
-      const maxConcessionAllowed = fee - paid;
+      const maxConcessionAllowed = fee + lateFee - paid;
          
 if (concession > maxConcessionAllowed) {
-     alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot exceed remaining amount!\n\nFee: ' + fee + ' TK\nPaid: ' + paid + ' TK\nMax Concession Allowed: ' + maxConcessionAllowed + ' TK\nYou entered: ' + concession + ' TK');
+     alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot exceed remaining amount!\n\nFee: ' + fee + ' TK\nLate Fee: ' + lateFee + ' TK\nPaid: ' + paid + ' TK\nMax Concession Allowed: ' + maxConcessionAllowed + ' TK\nYou entered: ' + concession + ' TK');
       concessionInput.focus();
    return false;
          }

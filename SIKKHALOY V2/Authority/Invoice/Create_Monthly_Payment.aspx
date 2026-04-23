@@ -21,6 +21,7 @@
         <li class="nav-item"><a class="nav-link active" data-toggle="tab" role="tab" href="#tab1">Service Charge</a></li>
         <li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#tab2">SMS Invoice</a></li>
         <li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#tab3">Others Invoice</a></li>
+        <li class="nav-item"><a class="nav-link text-warning font-weight-bold" data-toggle="tab" role="tab" href="#tab4"><i class="fa fa-key"></i> Access Control</a></li>
     </ul>
 
     <div class="tab-content card">
@@ -350,6 +351,100 @@ END"
                 </ContentTemplate>
             </asp:UpdatePanel>
         </div>
+
+        <!-- Access Control Tab -->
+        <div class="tab-pane fade" role="tabpanel" id="tab4">
+            <asp:UpdatePanel ID="UpdatePanel8" runat="server">
+                <ContentTemplate>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <i class="fa fa-clock"></i> <strong>Grace Period (সাময়িক এক্সেস)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">যে প্রতিষ্ঠানের ইনভয়েসের মেয়াদ শেষ হয়েছে তাকে নির্দিষ্ট তারিখ পর্যন্ত সাময়িক access দিন।</p>
+                                    <div class="form-group">
+                                        <label>প্রতিষ্ঠান নির্বাচন করুন</label>
+                                        <asp:DropDownList ID="GraceSchool_DDL" CssClass="form-control select2-dropdown" runat="server"
+                                            DataSourceID="GraceSchoolSQL"
+                                            DataTextField="DisplayText"
+                                            DataValueField="SchoolID"
+                                            AppendDataBoundItems="True">
+                                            <asp:ListItem Value="0">[ প্রতিষ্ঠান নির্বাচন করুন ]</asp:ListItem>
+                                        </asp:DropDownList>
+                                        <asp:SqlDataSource ID="GraceSchoolSQL" runat="server"
+                                            ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                                            SelectCommand="SELECT SchoolID, CAST(SchoolID AS NVARCHAR) + ' - ' + SchoolName AS DisplayText FROM SchoolInfo WHERE Validation = 'Valid' ORDER BY SchoolID">
+                                        </asp:SqlDataSource>
+                                        <asp:RequiredFieldValidator ControlToValidate="GraceSchool_DDL" InitialValue="0"
+                                            ValidationGroup="Grace" ID="GraceSchoolValidator" runat="server"
+                                            ErrorMessage="প্রতিষ্ঠান নির্বাচন করুন" CssClass="text-danger d-block"></asp:RequiredFieldValidator>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Grace Period পর্যন্ত তারিখ</label>
+                                        <asp:TextBox ID="GraceUntil_TextBox" placeholder="তারিখ নির্বাচন করুন"
+                                            CssClass="form-control datepicker" runat="server"></asp:TextBox>
+                                        <asp:RequiredFieldValidator ControlToValidate="GraceUntil_TextBox"
+                                            ValidationGroup="Grace" ID="GraceDateValidator" runat="server"
+                                            ErrorMessage="তারিখ দিন" CssClass="text-danger d-block"></asp:RequiredFieldValidator>
+                                        <small class="form-text text-muted">এই তারিখ পর্যন্ত প্রতিষ্ঠানটি software ব্যবহার করতে পারবে।</small>
+                                    </div>
+                                    <asp:Button ID="GraceSubmit_Button" ValidationGroup="Grace" runat="server"
+                                        Text="Grace Period সেট করুন"
+                                        CssClass="btn btn-warning"
+                                        OnClick="GraceSubmit_Button_Click" />
+                                    <asp:Label ID="GraceMsg_Label" runat="server" CssClass="ml-2"></asp:Label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <i class="fa fa-list"></i> <strong>বর্তমান Grace Period তালিকা</strong>
+                                </div>
+                                <div class="card-body p-0">
+                                    <asp:GridView ID="GraceList_GridView" CssClass="mGrid m-0" runat="server"
+                                        AutoGenerateColumns="False"
+                                        DataSourceID="GraceListSQL"
+                                        EmptyDataText="কোনো active grace period নেই।">
+                                        <Columns>
+                                            <asp:BoundField DataField="SchoolID" HeaderText="ID" />
+                                            <asp:BoundField DataField="SchoolName" HeaderText="প্রতিষ্ঠান" />
+                                            <asp:BoundField DataField="AccessGraceUntil" HeaderText="Grace পর্যন্ত"
+                                                DataFormatString="{0:d MMM yyyy}" />
+                                            <asp:TemplateField HeaderText="স্ট্যাটাস">
+                                                <ItemTemplate>
+                                                    <%# Convert.ToDateTime(Eval("AccessGraceUntil")) >= DateTime.Today
+                                                        ? "<span class='badge badge-success'>সক্রিয়</span>"
+                                                        : "<span class='badge badge-danger'>মেয়াদ শেষ</span>" %>
+                                                </ItemTemplate>
+                                            </asp:TemplateField>
+                                            <asp:TemplateField HeaderText="বাতিল">
+                                                <ItemTemplate>
+                                                    <asp:LinkButton ID="CancelGrace_LinkButton" runat="server"
+                                                        CommandArgument='<%# Eval("SchoolID") %>'
+                                                        CssClass="btn btn-xs btn-danger"
+                                                        OnCommand="CancelGrace_Command"
+                                                        OnClientClick="return confirm('Grace period বাতিল করবেন?');">
+                                                        <i class="fa fa-times"></i>
+                                                    </asp:LinkButton>
+                                                </ItemTemplate>
+                                            </asp:TemplateField>
+                                        </Columns>
+                                    </asp:GridView>
+                                    <asp:SqlDataSource ID="GraceListSQL" runat="server"
+                                        ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                                        SelectCommand="SELECT SchoolID, SchoolName, AccessGraceUntil FROM SchoolInfo WHERE AccessGraceUntil IS NOT NULL ORDER BY AccessGraceUntil DESC">
+                                    </asp:SqlDataSource>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ContentTemplate>
+            </asp:UpdatePanel>
+        </div>
+
     </div>
 
 

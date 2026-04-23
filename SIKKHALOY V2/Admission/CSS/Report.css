@@ -14,13 +14,13 @@
 .Accounts-p-title label {margin-bottom: 0;}
 
 /*Attendance Calender*/
- .Pre { background-color: #8CC63E; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
- .Abs { background-color: #C90035; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
- .Late { background-color: #FBB917; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
- .Late_Abs { background-color: #FF5627; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
- .Att_Holidays { background-color: #06d79c; border: 1px solid #fff;color: #fff; text-align: center; padding: 5px 0; }
+.Pre { background-color: #d4edda; border-left: 4px solid #28a745; color: #155724; }
+.Abs { background-color: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
+.Late { background-color: #fff3cd; border-left: 4px solid #ffc107; color: #856404; }
+.Late_Abs { background-color: #f5c6cb; border-left: 4px solid #e83e4c; color: #721c24; }
+.Att_Holidays { background-color: #cce5ff; border-left: 4px solid #004085; color: #004085; }
 
-  #Attendance .Appointment { color: #fff; font-family: tahoma; font-size: 15px; }
+  #Attendance .Appointment {font-family: tahoma; font-size: 15px; }
  .Re_Desin { float: left; font-weight: bold; padding: 5px 10px; }
   #Attendance .myCalendar tr td.myCalendarDay {height: 60px; }
 

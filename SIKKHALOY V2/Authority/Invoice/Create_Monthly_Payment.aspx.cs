@@ -195,5 +195,93 @@ namespace EDUCATION.COM.Authority.Invoice
             GenerateStatusLabel.Visible = true;
         }
 
+        protected void GraceSubmit_Button_Click(object sender, EventArgs e)
+        {
+            var graceSchoolDdl = FindDeepControl(Page, "GraceSchool_DDL") as DropDownList;
+            var graceUntilTb = FindDeepControl(Page, "GraceUntil_TextBox") as TextBox;
+            var graceMsgLbl = FindDeepControl(Page, "GraceMsg_Label") as Label;
+            var graceListGv = FindDeepControl(Page, "GraceList_GridView") as GridView;
+
+            if (graceSchoolDdl == null || graceUntilTb == null) return;
+
+            int schoolId;
+            if (!int.TryParse(graceSchoolDdl.SelectedValue, out schoolId) || schoolId == 0) return;
+
+            DateTime graceUntil;
+            string[] formats = { "dd MMM yyyy", "d MMM yyyy", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd" };
+            if (!DateTime.TryParseExact(graceUntilTb.Text.Trim(), formats,
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out graceUntil))
+            {
+                if (!DateTime.TryParse(graceUntilTb.Text.Trim(), out graceUntil))
+                {
+                    if (graceMsgLbl != null) graceMsgLbl.Text = "<span class='text-danger'>তারিখ সঠিক নয়।</span>";
+                    return;
+                }
+            }
+
+            try
+            {
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                using (var con = new SqlConnection(connStr))
+                {
+                    con.Open();
+                    using (var cmd = new SqlCommand(
+                        "UPDATE SchoolInfo SET AccessGraceUntil = @Grace WHERE SchoolID = @SID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@Grace", graceUntil.Date);
+                        cmd.Parameters.AddWithValue("@SID", schoolId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                if (graceMsgLbl != null) graceMsgLbl.Text = "<span class='text-success'><i class='fa fa-check'></i> Grace period সফলভাবে সেট হয়েছে।</span>";
+                graceUntilTb.Text = "";
+                graceSchoolDdl.SelectedValue = "0";
+                if (graceListGv != null) graceListGv.DataBind();
+            }
+            catch (Exception ex)
+            {
+                if (graceMsgLbl != null) graceMsgLbl.Text = "<span class='text-danger'>Error: " + ex.Message + "</span>";
+            }
+        }
+
+        protected void CancelGrace_Command(object sender, CommandEventArgs e)
+        {
+            int schoolId;
+            if (!int.TryParse(e.CommandArgument.ToString(), out schoolId)) return;
+
+            try
+            {
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                using (var con = new SqlConnection(connStr))
+                {
+                    con.Open();
+                    using (var cmd = new SqlCommand(
+                        "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@SID", schoolId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                var graceListGv = FindDeepControl(Page, "GraceList_GridView") as GridView;
+                if (graceListGv != null) graceListGv.DataBind();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("CancelGrace error: " + ex.Message);
+            }
+        }
+
+        private static Control FindDeepControl(Control parent, string id)
+        {
+            foreach (Control c in parent.Controls)
+            {
+                if (c.ID == id) return c;
+                var found = FindDeepControl(c, id);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
     }
 }

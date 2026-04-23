@@ -33,6 +33,15 @@ namespace EDUCATION.COM.Accounts.Edit_Expense
         protected global::System.Web.UI.WebControls.DropDownList FindCategoryDropDownList;
 
         /// <summary>
+        /// FindSubCategoryDropDownList control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList FindSubCategoryDropDownList;
+
+        /// <summary>
         /// FormDateTextBox control.
         /// </summary>
         /// <remarks>
@@ -159,6 +168,87 @@ namespace EDUCATION.COM.Accounts.Edit_Expense
         protected global::System.Web.UI.WebControls.GridView ExCategoryGridView;
 
         /// <summary>
+        /// SelectedCategoryIDHidden control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField SelectedCategoryIDHidden;
+
+        /// <summary>
+        /// SubPanelOpenFlag control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField SubPanelOpenFlag;
+
+        /// <summary>
+        /// SubCategorySQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource SubCategorySQL;
+
+        /// <summary>
+        /// SubCatTitleLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label SubCatTitleLabel;
+
+        /// <summary>
+        /// CloseSubPanelBtn control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.LinkButton CloseSubPanelBtn;
+
+        /// <summary>
+        /// SubCategoryNameTextBox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox SubCategoryNameTextBox;
+
+        /// <summary>
+        /// AddSubCategoryButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button AddSubCategoryButton;
+
+        /// <summary>
+        /// RequiredFieldValidator7 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator7;
+
+        /// <summary>
+        /// SubCategoryGridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView SubCategoryGridView;
+
+        /// <summary>
         /// UpdatePanel2 control.
         /// </summary>
         /// <remarks>
@@ -184,6 +274,15 @@ namespace EDUCATION.COM.Accounts.Edit_Expense
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ExCategoryDropDownList;
+
+        /// <summary>
+        /// ExSubCategoryDropDownList control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ExSubCategoryDropDownList;
 
         /// <summary>
         /// RequiredFieldValidator2 control.

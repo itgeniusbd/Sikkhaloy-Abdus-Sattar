@@ -2,6 +2,17 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="Expense.css?v=1" rel="stylesheet" />
+    <style>
+        /* Category modal grid compact */
+        #myModal .mGrid td, #myModal .mGrid th { padding: 4px 8px; font-size: 13px; vertical-align: middle; }
+        #myModal .mGrid td a, #myModal .mGrid td span { font-size: 13px; }
+        #myModal .modal-body { max-height: 75vh; overflow-y: auto; padding: 10px 15px; }
+        #myModal .modal-header { padding: 8px 15px; }
+        #myModal .form-inline { margin-bottom: 8px; }
+        /* Sub-cat modal compact */
+        #subCatModal .mGrid td, #subCatModal .mGrid th { padding: 4px 8px; font-size: 13px; vertical-align: middle; }
+        #subCatModal .modal-body { max-height: 65vh; overflow-y: auto; }
+    </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <div class="Contain">
@@ -11,8 +22,13 @@
             <ContentTemplate>
                 <div class="form-inline NoPrint">
                     <div class="form-group">
-                        <asp:DropDownList ID="FindCategoryDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="CategorySQL" DataTextField="CategoryName" DataValueField="ExpenseCategoryID">
+                        <asp:DropDownList ID="FindCategoryDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="CategorySQL" DataTextField="CategoryName" DataValueField="ExpenseCategoryID" AutoPostBack="True" OnSelectedIndexChanged="FindCategoryDropDownList_SelectedIndexChanged">
                             <asp:ListItem Value="%">[ All Category ]</asp:ListItem>
+                        </asp:DropDownList>
+                    </div>
+                    <div class="form-group">
+                        <asp:DropDownList ID="FindSubCategoryDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control">
+                            <asp:ListItem Value="%">[ All Sub-Category ]</asp:ListItem>
                         </asp:DropDownList>
                     </div>
 
@@ -46,11 +62,12 @@
                         </ItemTemplate>
                     </asp:FormView>
 
-                    <asp:SqlDataSource ID="ViewExpanseSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ISNULL(SUM(Amount), 0) AS TotalExp FROM Expenditure WHERE (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ExpenseCategoryID LIKE @ExpenseCategoryID) AND (ExpenseDate BETWEEN ISNULL(@Fdate, '1-1-1760') AND ISNULL(@TDate, '1-1-3760')) AND (ExpenseID LIKE @ExpenseID)" CancelSelectOnNullParameter="False">
+                    <asp:SqlDataSource ID="ViewExpanseSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ISNULL(SUM(Amount), 0) AS TotalExp FROM Expenditure WHERE (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ExpenseCategoryID LIKE @ExpenseCategoryID) AND (ISNULL(CAST(ExpenseSubCategoryID AS VARCHAR),'%') LIKE @ExpenseSubCategoryID) AND (ExpenseDate BETWEEN ISNULL(@Fdate, '1-1-1760') AND ISNULL(@TDate, '1-1-3760')) AND (ExpenseID LIKE @ExpenseID)" CancelSelectOnNullParameter="False">
                         <SelectParameters>
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                             <asp:ControlParameter ControlID="FindCategoryDropDownList" Name="ExpenseCategoryID" PropertyName="SelectedValue" />
+                            <asp:ControlParameter ControlID="FindSubCategoryDropDownList" DefaultValue="%" Name="ExpenseSubCategoryID" PropertyName="SelectedValue" />
                             <asp:ControlParameter ControlID="FormDateTextBox" DefaultValue="" Name="Fdate" PropertyName="Text" DbType="Date" />
                             <asp:ControlParameter ControlID="ToDateTextBox" DefaultValue="" Name="TDate" PropertyName="Text" DbType="Date" />
                             <asp:ControlParameter ControlID="ReceiptTextBox" DefaultValue="%" Name="ExpenseID" PropertyName="Text" />
@@ -72,6 +89,7 @@
                                 </ItemTemplate>
                             </asp:TemplateField>
                             <asp:BoundField DataField="CategoryName" HeaderText="Category" SortExpression="CategoryName" />
+                            <asp:BoundField DataField="SubCategoryName" HeaderText="Sub-Category" SortExpression="SubCategoryName" />
                             <asp:BoundField DataField="Amount" HeaderText="Amount" SortExpression="Amount" />
                             <asp:BoundField DataField="ExpenseFor" HeaderText="Expense Reason" SortExpression="ExpenseFor" />
                             <asp:BoundField DataField="ExpenseDate" HeaderText="Expense Date" SortExpression="ExpenseDate" ReadOnly="True" DataFormatString="{0:d MMM yyyy}" />
@@ -86,10 +104,11 @@
                         <FooterStyle CssClass="GridFooter" />
                     </asp:GridView>
                     <asp:SqlDataSource ID="ExpenseSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                        InsertCommand="INSERT INTO Expenditure(RegistrationID, ExpenseCategoryID, Amount, ExpenseFor, ExpenseDate, SchoolID, EducationYearID, AccountID) VALUES (@RegistrationID, @ExpenseCategoryID, @Amount, @ExpenseFor, Getdate(), @SchoolID, @EducationYearID, @AccountID)"
-                        SelectCommand="SELECT Expense_CategoryName.CategoryName, Expenditure.ExpenseID, Expenditure.SchoolID, Expenditure.EducationYearID, Expenditure.RegistrationID, Expenditure.ExpenseCategoryID, Expenditure.Amount, Expenditure.ExpenseFor, Expenditure.ExpenseDate FROM Expenditure INNER JOIN Expense_CategoryName ON Expenditure.ExpenseCategoryID = Expense_CategoryName.ExpenseCategoryID WHERE (Expenditure.SchoolID = @SchoolID) AND (Expenditure.EducationYearID = @EducationYearID) AND (Expenditure.ExpenseCategoryID LIKE @ExpenseCategoryID) AND (Expenditure.ExpenseDate BETWEEN ISNULL(@Fdate, '1-1-1760') AND ISNULL(@TDate, '1-1-3760')) AND (Expenditure.ExpenseID LIKE @ExpenseID) ORDER BY Expenditure.ExpenseID DESC" CancelSelectOnNullParameter="False">
+                        InsertCommand="INSERT INTO Expenditure(RegistrationID, ExpenseCategoryID, ExpenseSubCategoryID, Amount, ExpenseFor, ExpenseDate, SchoolID, EducationYearID, AccountID) VALUES (@RegistrationID, @ExpenseCategoryID, NULLIF(@ExpenseSubCategoryID,''), @Amount, @ExpenseFor, Getdate(), @SchoolID, @EducationYearID, @AccountID)"
+                        SelectCommand="SELECT Expense_CategoryName.CategoryName, ISNULL(sc.SubCategoryName,'') AS SubCategoryName, Expenditure.ExpenseID, Expenditure.SchoolID, Expenditure.EducationYearID, Expenditure.RegistrationID, Expenditure.ExpenseCategoryID, Expenditure.ExpenseSubCategoryID, Expenditure.Amount, Expenditure.ExpenseFor, Expenditure.ExpenseDate FROM Expenditure INNER JOIN Expense_CategoryName ON Expenditure.ExpenseCategoryID = Expense_CategoryName.ExpenseCategoryID LEFT JOIN Expense_SubCategory sc ON Expenditure.ExpenseSubCategoryID = sc.ExpenseSubCategoryID WHERE (Expenditure.SchoolID = @SchoolID) AND (Expenditure.EducationYearID = @EducationYearID) AND (Expenditure.ExpenseCategoryID LIKE @ExpenseCategoryID) AND (ISNULL(CAST(Expenditure.ExpenseSubCategoryID AS VARCHAR),'%') LIKE @ExpenseSubCategoryID) AND (Expenditure.ExpenseDate BETWEEN ISNULL(@Fdate, '1-1-1760') AND ISNULL(@TDate, '1-1-3760')) AND (Expenditure.ExpenseID LIKE @ExpenseID) ORDER BY Expenditure.ExpenseID DESC" CancelSelectOnNullParameter="False">
                         <InsertParameters>
                             <asp:ControlParameter ControlID="ExCategoryDropDownList" Name="ExpenseCategoryID" PropertyName="SelectedValue" Type="Int32" />
+                            <asp:ControlParameter ControlID="ExSubCategoryDropDownList" Name="ExpenseSubCategoryID" PropertyName="SelectedValue" Type="String" />
                             <asp:ControlParameter ControlID="AmountTextBox" Name="Amount" PropertyName="Text" Type="Double" />
                             <asp:ControlParameter ControlID="ExpenseReasonTextBox" Name="ExpenseFor" PropertyName="Text" Type="String" />
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -100,7 +119,8 @@
                         <SelectParameters>
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-                            <asp:ControlParameter ControlID="FindCategoryDropDownList" DefaultValue="0" Name="ExpenseCategoryID" PropertyName="SelectedValue" />
+                            <asp:ControlParameter ControlID="FindCategoryDropDownList" DefaultValue="%" Name="ExpenseCategoryID" PropertyName="SelectedValue" />
+                            <asp:ControlParameter ControlID="FindSubCategoryDropDownList" DefaultValue="%" Name="ExpenseSubCategoryID" PropertyName="SelectedValue" />
                             <asp:ControlParameter ControlID="FormDateTextBox" DefaultValue="" Name="Fdate" PropertyName="Text" />
                             <asp:ControlParameter ControlID="ToDateTextBox" DefaultValue="" Name="TDate" PropertyName="Text" />
                             <asp:ControlParameter ControlID="ReceiptTextBox" DefaultValue="%" Name="ExpenseID" PropertyName="Text" />
@@ -113,11 +133,11 @@
 
     <!--Category Modal -->
     <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="title">Add Expense Category</div>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="$('[id$=SubPanelOpenFlag]').val('0'); $('#subCatModal').modal('hide');"><span aria-hidden="true">&times;</span></button>
                 </div>
                 <div class="modal-body">
                     <asp:UpdatePanel ID="upnlUsers" runat="server">
@@ -154,7 +174,7 @@ UPDATE [Expense_CategoryName] SET [CategoryName] = LTRIM(RTRIM(@CategoryName)) W
                                 </UpdateParameters>
                             </asp:SqlDataSource>
                             <asp:GridView ID="ExCategoryGridView" runat="server" AutoGenerateColumns="False" DataKeyNames="ExpenseCategoryID" DataSourceID="CategorySQL"
-                                OnRowDeleted="ExCategoryGridView_RowDeleted" CssClass="mGrid" AllowPaging="True">
+                                OnRowDeleted="ExCategoryGridView_RowDeleted" OnRowCommand="ExCategoryGridView_RowCommand" CssClass="mGrid" AllowPaging="True">
                                 <PagerStyle CssClass="pgr" />
                                 <Columns>
                                     <asp:TemplateField HeaderText="Category" SortExpression="CategoryName">
@@ -174,8 +194,92 @@ UPDATE [Expense_CategoryName] SET [CategoryName] = LTRIM(RTRIM(@CategoryName)) W
                                         </ItemTemplate>
                                         <ItemStyle Width="50px" />
                                     </asp:TemplateField>
+                                    <asp:TemplateField HeaderText="Sub">
+                                        <ItemTemplate>
+                                            <asp:LinkButton ID="ManageSubCatBtn" runat="server"
+                                                Text='<i class="fa fa-list"></i> Sub'
+                                                CommandName="ManageSub"
+                                                CommandArgument='<%# Eval("ExpenseCategoryID") + "|" + Eval("CategoryName") %>'
+                                                CssClass="btn btn-xs btn-info"
+                                                style="white-space:nowrap;"></asp:LinkButton>
+                                        </ItemTemplate>
+                                        <ItemStyle Width="55px" />
+                                        <HeaderStyle Width="55px" />
+                                    </asp:TemplateField>
                                 </Columns>
                             </asp:GridView>
+
+                            <!-- Sub-Category hidden data (server-side state) -->
+                            <asp:HiddenField ID="SelectedCategoryIDHidden" runat="server" />
+                            <asp:HiddenField ID="SubPanelOpenFlag" runat="server" Value="0" />
+                            <asp:Label ID="SelectedCategoryLabel" runat="server" style="display:none;"></asp:Label>
+
+                            <!-- Sub-Category SqlDataSource -->
+                            <asp:SqlDataSource ID="SubCategorySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                                DeleteCommand="DELETE FROM Expense_SubCategory WHERE ExpenseSubCategoryID = @ExpenseSubCategoryID"
+                                UpdateCommand="UPDATE Expense_SubCategory SET SubCategoryName = LTRIM(RTRIM(@SubCategoryName)) WHERE ExpenseSubCategoryID = @ExpenseSubCategoryID"
+                                SelectCommand="SELECT ExpenseSubCategoryID, SubCategoryName FROM Expense_SubCategory WHERE ExpenseCategoryID = @ExpenseCategoryID AND SchoolID = @SchoolID ORDER BY ExpenseSubCategoryID">
+                                <DeleteParameters>
+                                    <asp:Parameter Name="ExpenseSubCategoryID" Type="Int32" />
+                                </DeleteParameters>
+                                <UpdateParameters>
+                                    <asp:Parameter Name="SubCategoryName" Type="String" />
+                                    <asp:Parameter Name="ExpenseSubCategoryID" Type="Int32" />
+                                </UpdateParameters>
+                                <SelectParameters>
+                                    <asp:ControlParameter ControlID="SelectedCategoryIDHidden" Name="ExpenseCategoryID" PropertyName="Value" Type="Int32" />
+                                    <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                                </SelectParameters>
+                            </asp:SqlDataSource>
+
+                            <!-- Sub-Category Modal (nested, centered) -->
+                            <asp:Panel ID="SubCategoryPanel" runat="server" Visible="True">
+                            <div class="modal fade" id="subCatModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index:1060;">
+                                <div class="modal-dialog modal-dialog-centered" role="document" style="max-width:500px;">
+                                    <div class="modal-content">
+                                        <div class="modal-header" style="background:#17a2b8; color:#fff; padding:10px 15px;">
+                                            <h6 class="modal-title mb-0">
+                                                <i class="fa fa-list mr-1"></i>
+                                                Sub-Categories of: <strong><asp:Label ID="SubCatTitleLabel" runat="server"></asp:Label></strong>
+                                            </h6>
+                                            <asp:LinkButton ID="CloseSubPanelBtn" runat="server" Text="&times;" CssClass="close" style="color:#fff; font-size:20px; line-height:1;" OnClick="CloseSubPanelBtn_Click"></asp:LinkButton>
+                                        </div>
+                                        <div class="modal-body" style="padding:15px;">
+                                            <div class="input-group mb-3">
+                                                <asp:TextBox placeholder="Sub-Category Name" ID="SubCategoryNameTextBox" runat="server" CssClass="form-control"></asp:TextBox>
+                                                <div class="input-group-append">
+                                                    <asp:Button ID="AddSubCategoryButton" runat="server" CssClass="btn btn-primary" OnClick="AddSubCategoryButton_Click" Text="Add" ValidationGroup="ADDSUB" />
+                                                </div>
+                                            </div>
+                                            <asp:RequiredFieldValidator ID="RequiredFieldValidator7" runat="server" ControlToValidate="SubCategoryNameTextBox" CssClass="text-danger" ErrorMessage="Sub-Category Name is required." ValidationGroup="ADDSUB" Display="Dynamic"></asp:RequiredFieldValidator>
+                                            <asp:GridView ID="SubCategoryGridView" runat="server" AutoGenerateColumns="False" DataKeyNames="ExpenseSubCategoryID" DataSourceID="SubCategorySQL"
+                                                OnRowDeleted="SubCategoryGridView_RowDeleted" CssClass="mGrid" AllowPaging="True" Width="100%">
+                                                <PagerStyle CssClass="pgr" />
+                                                <Columns>
+                                                    <asp:TemplateField HeaderText="Sub-Category">
+                                                        <EditItemTemplate>
+                                                            <asp:TextBox ID="SubCatEditTextBox" runat="server" Text='<%# Bind("SubCategoryName") %>' CssClass="form-control form-control-sm"></asp:TextBox>
+                                                        </EditItemTemplate>
+                                                        <ItemTemplate>
+                                                            <asp:Label ID="SubCatLabel" runat="server" Text='<%# Bind("SubCategoryName") %>'></asp:Label>
+                                                        </ItemTemplate>
+                                                    </asp:TemplateField>
+                                                    <asp:CommandField ShowEditButton="True" UpdateText="Save" HeaderText="Edit">
+                                                        <ItemStyle Width="50px" />
+                                                    </asp:CommandField>
+                                                    <asp:TemplateField ShowHeader="False" HeaderText="Del">
+                                                        <ItemTemplate>
+                                                            <asp:LinkButton ID="DelSubCatBtn" runat="server" CausesValidation="False" CommandName="Delete" Text="Delete" OnClientClick="return confirm('Are you sure?')" CssClass="text-danger"></asp:LinkButton>
+                                                        </ItemTemplate>
+                                                        <ItemStyle Width="50px" />
+                                                    </asp:TemplateField>
+                                                </Columns>
+                                            </asp:GridView>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </asp:Panel>
                         </ContentTemplate>
                     </asp:UpdatePanel>
                 </div>
@@ -198,10 +302,22 @@ UPDATE [Expense_CategoryName] SET [CategoryName] = LTRIM(RTRIM(@CategoryName)) W
                                 <label>
                                     Category
                                     <asp:RequiredFieldValidator ID="RequiredFieldValidator4" runat="server" ControlToValidate="ExCategoryDropDownList" CssClass="EroorSummer" ErrorMessage="Select Category" InitialValue="0" ValidationGroup="A">*</asp:RequiredFieldValidator></label>
-                                <asp:DropDownList ID="ExCategoryDropDownList" runat="server" CssClass="form-control" DataSourceID="CategorySQL" DataTextField="CategoryName" DataValueField="ExpenseCategoryID" AppendDataBoundItems="True">
+                                <asp:DropDownList ID="ExCategoryDropDownList" runat="server" CssClass="form-control" DataSourceID="CategorySQL" DataTextField="CategoryName" DataValueField="ExpenseCategoryID" AppendDataBoundItems="True" AutoPostBack="True" OnSelectedIndexChanged="ExCategoryDropDownList_SelectedIndexChanged">
                                     <asp:ListItem Value="0">[ SELECT CATEGORY ]</asp:ListItem>
                                 </asp:DropDownList>
-                                </td>
+                            </div>
+                            <div class="form-group">
+                                <label>Sub-Category <small class="text-muted">(optional)</small></label>
+                                <asp:DropDownList ID="ExSubCategoryDropDownList" runat="server" CssClass="form-control" AppendDataBoundItems="True">
+                                    <asp:ListItem Value="">[ No Sub-Category ]</asp:ListItem>
+                                </asp:DropDownList>
+                                <asp:SqlDataSource ID="SubCategoryEntrySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                                    SelectCommand="SELECT ExpenseSubCategoryID, SubCategoryName FROM Expense_SubCategory WHERE ExpenseCategoryID = @ExpenseCategoryID AND SchoolID = @SchoolID ORDER BY ExpenseSubCategoryID">
+                                    <SelectParameters>
+                                        <asp:ControlParameter ControlID="ExCategoryDropDownList" Name="ExpenseCategoryID" PropertyName="SelectedValue" Type="Int32" />
+                                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                                    </SelectParameters>
+                                </asp:SqlDataSource>
                             </div>
                             <div class="form-group">
                                 <label>Amount<asp:RequiredFieldValidator ID="RequiredFieldValidator2" runat="server" ControlToValidate="AmountTextBox" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="A"></asp:RequiredFieldValidator></label>
@@ -310,6 +426,19 @@ UPDATE [Expense_CategoryName] SET [CategoryName] = LTRIM(RTRIM(@CategoryName)) W
                 endDate: '+0d'
             });
 
+            // Re-open modals after postback based on flag
+            var flag = $('[id$=SubPanelOpenFlag]').val();
+            if (flag === '1') {
+                $('#myModal').modal('show');
+                setTimeout(function () { $('#subCatModal').modal('show'); }, 300);
+            } else if (flag === '2') {
+                $('#subCatModal').modal('hide');
+                $('#myModal').modal('show');
+            } else {
+                // flag=0: all modals closed — clean up any stale backdrop
+                cleanupModals();
+            }
+
             //get date in label
             var from = $("[id*=FormDateTextBox]").val();
             var To = $("[id*=ToDateTextBox]").val();
@@ -376,5 +505,24 @@ UPDATE [Expense_CategoryName] SET [CategoryName] = LTRIM(RTRIM(@CategoryName)) W
         })
 
         function isNumberKey(a) { a = a.which ? a.which : event.keyCode; return 46 != a && 31 < a && (48 > a || 57 < a) ? !1 : !0 };
+
+        // Clean up Bootstrap modal backdrop and body class
+        function cleanupModals() {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+            $('body').css('padding-right', '');
+        }
+
+        // When both modals are fully hidden, clean up backdrop
+        $('#myModal').on('hidden.bs.modal', function () {
+            if (!$('#subCatModal').hasClass('in') && !$('#subCatModal').hasClass('show')) {
+                cleanupModals();
+            }
+        });
+        $('#subCatModal').on('hidden.bs.modal', function () {
+            if (!$('#myModal').hasClass('in') && !$('#myModal').hasClass('show')) {
+                cleanupModals();
+            }
+        });
     </script>
 </asp:Content>

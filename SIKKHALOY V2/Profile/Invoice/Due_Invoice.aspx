@@ -3,6 +3,93 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="../css/Invoice.css?v=1.0.5" rel="stylesheet" />
     <style>
+        .shurjopay-btn {
+            background: linear-gradient(135deg, #f7971e, #ffd200);
+            color: #222;
+            border: none;
+            font-weight: 700;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(247,151,30,.4);
+            transition: transform .15s;
+        }
+        .shurjopay-btn:hover { transform: translateY(-2px); color: #222; }
+        .shurjopay-btn img { height: 22px; margin-right: 6px; vertical-align: middle; }
+        .online-pay-section {
+            background: #fff8e1;
+            border: 2px dashed #ffc107;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin: 18px 0;
+            text-align: center;
+        }
+        /* Subscription Expired Modal */
+        .sub-modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 99999;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.65);
+            justify-content: center;
+            align-items: center;
+        }
+        .sub-modal-overlay.active { display: flex; }
+        .sub-modal-box {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.28);
+            max-width: 480px;
+            width: 95%;
+            padding: 0;
+            overflow: hidden;
+            animation: subModalIn .25s ease;
+        }
+        @keyframes subModalIn {
+            from { transform: translateY(-40px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        .sub-modal-header {
+            background: #c0392b;
+            color: #fff;
+            padding: 18px 22px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sub-modal-header h4 { margin: 0; font-size: 1.15rem; }
+        .sub-modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.4rem;
+            line-height: 1;
+            cursor: pointer;
+            opacity: .85;
+            padding: 0 0 0 12px;
+        }
+        .sub-modal-close:hover { opacity: 1; }
+        .sub-modal-body { padding: 20px 22px 10px; }
+        .sub-modal-body p { font-size: 1rem; margin-bottom: 10px; color: #333; }
+        .sub-due-amount {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin: 12px 0 16px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #856404;
+        }
+        .sub-modal-footer {
+            padding: 12px 22px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
         @media print {
             body * {
                 visibility: hidden;
@@ -20,9 +107,53 @@
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <div class="d-print-none">
-        <a onclick="window.print();" class="btn btn-sm btn-green">Print</a>
+
+<%-- Subscription Expired Modal --%>
+<div class="sub-modal-overlay d-print-none" id="subExpiredModal">
+    <div class="sub-modal-box">
+        <div class="sub-modal-header" id="subModalHeader">
+            <h4 id="subModalTitle">
+                <i class="fa fa-exclamation-triangle"></i>
+                &nbsp;<span id="subModalTitleText">সফটওয়্যার অ্যাক্সেস সাময়িকভাবে বন্ধ আছে</span>
+            </h4>
+            <button type="button" class="sub-modal-close" onclick="document.getElementById('subExpiredModal').classList.remove('active');" title="বন্ধ করুন">&times;</button>
+        </div>
+        <div class="sub-modal-body">
+            <p id="subModalMessage">
+                আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হওয়াতে সফটওয়্যার ব্যবহারের
+                অ্যাক্সেস বন্ধ আছে। দয়া করে অনলাইনে পেমেন্ট করে সাবস্ক্রিপশন রিনিউ করুন।
+            </p>
+            <div class="sub-due-amount" id="subDueAmountBox" style="display:none;">
+                <i class="fa fa-money"></i>
+                &nbsp;মোট বকেয়া: <span id="subDueAmountText"></span> টাকা
+            </div>
+        </div>
+        <div class="sub-modal-footer">
+            <asp:Button ID="btnShurjoPayModal" runat="server"
+                CssClass="shurjopay-btn"
+                Text="ShurjoPay দিয়ে এখনই পেমেন্ট করুন"
+                OnClick="btnShurjoPay_Click"
+                UseSubmitBehavior="true"
+                style="width:100%; font-size:1.05rem; padding:12px;" />
+            <a href="/Profile/Support/Support_Ticket.aspx"
+               class="btn btn-warning btn-block"
+               style="width:100%; text-align:center; padding:10px; font-weight:600; border-radius:8px;">
+                <i class="fa fa-ticket"></i> &nbsp;সাপোর্ট টিকেট করুন
+            </a>
+            <small class="text-muted text-center d-block" style="font-size:.82rem;">
+                <img src="/CSS/Image/shurjopay_logo.png" onerror="this.style.display='none'" alt="ShurjoPay" style="height:15px;" />
+                Powered by ShurjoPay &bull; Secure Payment
+            </small>
+        </div>
     </div>
+</div>
+<asp:HiddenField ID="hfDueAmount" runat="server" />
+<asp:HiddenField ID="hfIsBlocked" runat="server" />
+<asp:HiddenField ID="hfDaysLeft" runat="server" />
+
+<div class="d-print-none">
+    <a onclick="window.print();" class="btn btn-sm btn-green">Print</a>
+</div>
 
     <asp:FormView ID="PrintFormView" runat="server" DataSourceID="InvoiceSQL" RenderOuterTable="false" OnDataBound="PrintFormView_DataBound">
         <ItemTemplate>
@@ -165,6 +296,24 @@
                     </div>
                 </div>
 
+                <!-- ShurjoPay Online Payment Section -->
+                <div class="online-pay-section d-print-none">
+                    <h5 class="mb-1" style="color:#856404;">
+                        <i class="fa fa-credit-card"></i> অনলাইনে পেমেন্ট করুন
+                    </h5>
+                    <p class="mb-3 text-muted" style="font-size:.92rem;">ShurjoPay-এর মাধ্যমে কার্ড, মোবাইল ব্যাংকিং বা ইন্টারনেট ব্যাংকিং দিয়ে পেমেন্ট করুন।</p>
+                    <asp:Button ID="btnShurjoPay" runat="server" 
+                        CssClass="shurjopay-btn"
+                        Text="&#xf09d;  ShurjoPay দিয়ে পেমেন্ট করুন"
+                        OnClick="btnShurjoPay_Click"
+                        UseSubmitBehavior="true" />
+                    <br />
+                    <small class="text-muted mt-2 d-block">
+                        <img src="/CSS/Image/shurjopay_logo.png" onerror="this.style.display='none'" alt="ShurjoPay" style="height:18px;" />
+                        Powered by ShurjoPay &bull; Secure Payment
+                    </small>
+                </div>
+
                 <div class="signature-section">
                     <div class="signature-box">
                         <div class="signature-line">Recipient's Name</div>
@@ -206,11 +355,44 @@
         </SelectParameters>
     </asp:SqlDataSource>
 
+    <asp:HiddenField ID="hfPaymentMsg" runat="server" />
     <script>
         $(function () {
             var Discount = $("#Discount").text();
             if (Discount > 0) {
                 $("#Is_Discount").show();
+            }
+
+            // Payment result message
+            var msg = $("#<%= hfPaymentMsg.ClientID %>").val();
+            if (msg && msg.length > 0) {
+                alert(msg);
+            }
+
+            // Subscription expired modal — auto open on page load
+            var due = $("#<%= hfDueAmount.ClientID %>").val();
+            var isBlocked = $("#<%= hfIsBlocked.ClientID %>").val();
+            var daysLeft = parseInt($("#<%= hfDaysLeft.ClientID %>").val()) || 0;
+
+            if (due && parseInt(due) > 0) {
+                $("#subDueAmountText").text(parseInt(due).toLocaleString('en-IN'));
+                $("#subDueAmountBox").show();
+
+                if (isBlocked === '1') {
+                    // Access blocked — বর্তমান মেসেজ ঠিকই আছে
+                    $("#subModalHeader").css('background', '#c0392b');
+                    $("#subModalTitleText").text('সফটওয়্যার অ্যাক্সেস সাময়িকভাবে বন্ধ আছে');
+                    $("#subModalMessage").text('আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হওয়াতে সফটওয়্যার ব্যবহারের অ্যাক্সেস বন্ধ আছে। দয়া করে অনলাইনে পেমেন্ট করে সাবস্ক্রিপশন রিনিউ করুন।');
+                } else {
+                    // Grace period বা EndDate এখনো পার হয়নি — কত দিন বাকি দেখাও
+                    $("#subModalHeader").css('background', '#e67e22');
+                    var daysText = daysLeft === 0 ? 'আজই শেষ হচ্ছে' :
+                                   daysLeft === 1 ? 'আর মাত্র ১ দিন বাকি' :
+                                   'আর মাত্র ' + daysLeft + ' দিন বাকি';
+                    $("#subModalTitleText").text('⚠️ পেমেন্টের সময়সীমা');
+                    $("#subModalMessage").html('<strong style="font-size:1.3rem; color:#c0392b;">' + daysText + '</strong><br/><br/>আপনার বকেয়া ইনভয়েসের পেমেন্টের সময়সীমা শেষ হতে চলেছে। সময়মতো পেমেন্ট না করলে সফটওয়্যার অ্যাক্সেস বন্ধ হয়ে যাবে।');
+                }
+                $("#subExpiredModal").addClass("active");
             }
         });
     </script>

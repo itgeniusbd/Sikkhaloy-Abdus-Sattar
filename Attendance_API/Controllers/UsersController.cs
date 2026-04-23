@@ -37,7 +37,7 @@ namespace Attendance_API.Controllers
         [HttpGet]
         public async Task<IEnumerable<LeaveVM>> AttendanceLeave(int id)
         {
-            var today = DateTime.Today.ToShortDateString();
+            var today = DateTime.Today.ToString("dd-MMM-yy");
             using (var db = new EduContext())
             {
                 return await db.Attendance_User_Leaves.Where(a => a.SchoolID == id && a.StartDate <= DateTime.Today && a.EndDate >= DateTime.Today)

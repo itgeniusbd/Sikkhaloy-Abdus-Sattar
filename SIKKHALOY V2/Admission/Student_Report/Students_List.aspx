@@ -1,6 +1,31 @@
 ﻿<%@ Page Title="Student List" Language="C#" MasterPageFile="~/BASIC.Master" EnableEventValidation="false" AutoEventWireup="true" CodeBehind="Students_List.aspx.cs" Inherits="EDUCATION.COM.Admission.Student_Rerport.Students_List" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+    <style>
+        .col-toggle-panel { background:#f8f9fa; border:1px solid #dee2e6; border-radius:4px; padding:6px 10px; font-size:12px; }
+        .col-toggle-panel label { margin-right:6px; cursor:pointer; font-weight:normal; font-size:12px; white-space:nowrap; }
+        .col-toggle-panel input[type=checkbox] {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 13px !important;
+            height: 13px !important;
+            margin-right: 2px;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+        /* Compact GridView header */
+        #Ex-word-data .mGrid th {
+            white-space: nowrap;
+            font-size: 12px;
+            padding: 6px 8px;
+        }
+        #Ex-word-data .mGrid td {
+            font-size: 12px;
+            padding: 4px 8px;
+            vertical-align: middle;
+        }
+    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -68,8 +93,30 @@
                 <div class="form-group">
                     <asp:Button ID="IDFindButton" runat="server" CssClass="btn btn-primary" OnClick="IDFindButton_Click" Text="Submit" ValidationGroup="F" />
                 </div>
+                <div class="form-group is_data d-print-none" style="display:none;">
+                    <input id="Print" type="button" onclick="window.print()" value="🖨 Print" class="btn btn-primary" />
+                    <input type="button" id="ExportWord" class="btn btn-success" value="📄 Export To Word" />
+                </div>
             </div>
 
+            <div class="is_data d-print-none mb-1 col-toggle-panel" style="display:none;">
+                <strong style="margin-right:6px; font-size:12px;">কলাম:</strong>
+                <label><input type="checkbox" class="col-toggle" data-col="0" checked /> ID</label>
+                <label><input type="checkbox" class="col-toggle" data-col="1" checked /> Name</label>
+                <label><input type="checkbox" class="col-toggle" data-col="2" checked /> Roll</label>
+                <label><input type="checkbox" class="col-toggle" data-col="3" checked /> D.O.B</label>
+                <label><input type="checkbox" class="col-toggle" data-col="4" checked /> Legal ID</label>
+                <label><input type="checkbox" class="col-toggle" data-col="5" checked /> Blood</label>
+                <label><input type="checkbox" class="col-toggle" data-col="6" checked /> SMS Phone</label>
+                <label><input type="checkbox" class="col-toggle" data-col="7" checked /> Father</label>
+                <label><input type="checkbox" class="col-toggle" data-col="8" checked /> Mother</label>
+                <label><input type="checkbox" class="col-toggle" data-col="9" checked /> F.Mobile</label>
+                <label><input type="checkbox" class="col-toggle" data-col="10" checked /> M.Mobile</label>
+                <label><input type="checkbox" class="col-toggle" data-col="11" checked /> G.Mobile</label>
+                <label><input type="checkbox" class="col-toggle" data-col="12" checked /> Perm. Address</label>
+                <label><input type="checkbox" class="col-toggle" data-col="13" checked /> Present Address</label>
+                <label><input type="checkbox" class="col-toggle" data-col="14" checked /> Image</label>
+            </div>
             <label id="CountStudent"></label>
             <div class="table-responsive mb-2" id="Ex-word-data">
                 <h1 id="I_Name"></h1>
@@ -84,8 +131,8 @@
                         </asp:HyperLinkField>
                         <asp:BoundField DataField="RollNo" HeaderText="Roll" SortExpression="RollNo" />
                         <asp:BoundField DataField="DateofBirth" HeaderText="D.O.B" SortExpression="DateofBirth" DataFormatString="{0:d MMM yyyy}" />
-                        <asp:BoundField DataField="Legal_Identity" HeaderText="Legal Identity No." SortExpression="Legal_Identity" />
-                        <asp:BoundField DataField="BloodGroup" HeaderText="Blood Group" SortExpression="BloodGroup" />
+                        <asp:BoundField DataField="Legal_Identity" HeaderText="Legal ID" SortExpression="Legal_Identity" />
+                        <asp:BoundField DataField="BloodGroup" HeaderText="Blood" SortExpression="BloodGroup" />
                         <asp:BoundField DataField="SMSPhoneNo" HeaderText="SMS Phone" SortExpression="SMSPhoneNo" />
                         <asp:BoundField DataField="FathersName" HeaderText="Father's Name" SortExpression="FathersName">
                             <ItemStyle HorizontalAlign="Left" />
@@ -93,16 +140,26 @@
                         <asp:BoundField DataField="MothersName" HeaderText="Mother's Name" SortExpression="MothersName">
                             <ItemStyle HorizontalAlign="Left" />
                         </asp:BoundField>
-                        <%--<asp:BoundField DataField="StudentsLocalAddress" HeaderText="Present Address" SortExpression="StudentsLocalAddress" />
-                          <asp:BoundField DataField="StudentPermanentAddress" HeaderText="Permanent Address" SortExpression="StudentPermanentAddress" />--%>
                         <asp:BoundField DataField="FatherPhoneNumber" HeaderText="F.Mobile" SortExpression="FatherPhoneNumber" />
                         <asp:BoundField DataField="MotherPhoneNumber" HeaderText="M.Mobile" SortExpression="MotherPhoneNumber" />
                         <asp:BoundField DataField="GuardianPhoneNumber" HeaderText="G.Mobile" SortExpression="GuardianPhoneNumber" />
+                        <asp:BoundField DataField="StudentPermanentAddress" HeaderText="Perm. Address" SortExpression="StudentPermanentAddress">
+                            <ItemStyle HorizontalAlign="Left" />
+                        </asp:BoundField>
+                        <asp:BoundField DataField="StudentsLocalAddress" HeaderText="Present Addr." SortExpression="StudentsLocalAddress">
+                            <ItemStyle HorizontalAlign="Left" />
+                        </asp:BoundField>
+                        <asp:TemplateField HeaderText="Image">
+                            <ItemTemplate>
+                                <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>" style="width:35px;" />
+                            </ItemTemplate>
+                            <ItemStyle Width="35px" HorizontalAlign="Center" />
+                        </asp:TemplateField>
                     </Columns>
                     <PagerStyle CssClass="pgr" />
                 </asp:GridView>
                 <asp:SqlDataSource ID="ShowStudentClassSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                    SelectCommand="SELECT Student.StudentID, Student.SMSPhoneNo, Student.StudentsName, Student.Gender, Student.StudentsLocalAddress, Student.MothersName, Student.FathersName, Student.FatherPhoneNumber, Student.GuardianName, StudentsClass.RollNo, Student.ID, Student.MotherPhoneNumber, Student.FatherOccupation, Student.GuardianPhoneNumber, StudentsClass.StudentClassID, Student.DateofBirth,Student.Legal_Identity,Student.BloodGroup, Student.StudentPermanentAddress FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END">
+                    SelectCommand="SELECT Student.StudentID, Student.StudentImageID, Student.SMSPhoneNo, Student.StudentsName, Student.Gender, Student.StudentsLocalAddress, Student.MothersName, Student.FathersName, Student.FatherPhoneNumber, Student.GuardianName, StudentsClass.RollNo, Student.ID, Student.MotherPhoneNumber, Student.FatherOccupation, Student.GuardianPhoneNumber, StudentsClass.StudentClassID, Student.DateofBirth,Student.Legal_Identity,Student.BloodGroup, Student.StudentPermanentAddress FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END">
                     <SelectParameters>
                         <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
                         <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" PropertyName="SelectedValue" />
@@ -123,10 +180,6 @@
                 </asp:SqlDataSource>
             </div>
 
-            <div class="is_data d-print-none" style="display: none;">
-                <input id="Print" type="button" onclick="window.print()" value="Print" class="btn btn-primary" />
-                <input type="button" id="ExportWord" class="btn btn-primary" value="Export To Word" />
-            </div>
         </ContentTemplate>
     </asp:UpdatePanel>
 
@@ -146,6 +199,25 @@
     <script src="/JS/ExportWord/jquery.wordexport.js"></script>
 
     <script type="text/javascript">
+        function showIsData() {
+            $('.is_data').each(function () {
+                $(this).css('display', $(this).hasClass('form-group') ? 'inline-flex' : 'block');
+            });
+        }
+
+        function applyColToggle() {
+            $(".col-toggle").off("change").on("change", function () {
+                var table = $("[id*=StudentsGridView]");
+                $(".col-toggle").each(function () {
+                    var c = parseInt($(this).data("col"));
+                    var visible = $(this).is(":checked");
+                    table.find("tr").each(function () {
+                        $(this).find("th, td").eq(c).toggle(visible);
+                    });
+                });
+            });
+        }
+
         $(document).ready(function () {
             $('[id*=IDTextBox]').typeahead({
                 minLength: 1,
@@ -166,7 +238,8 @@
             });
 
             if ($("[id*=StudentsGridView] tr").length) {
-                $('.is_data').show();
+                showIsData();
+                applyColToggle();
             }
         });
 
@@ -190,22 +263,52 @@
             });
 
             if ($("[id*=StudentsGridView] tr").length) {
-                $('.is_data').show();
+                showIsData();
+                applyColToggle();
             }
 
             $("#CountStudent").text("TOTAL: " + $("[id*=StudentsGridView] td").closest("tr").length + " STUDENT");
 
-            $("#ExportWord").click(function () {
-                $('.mGrid a').each(function () {
-                    $(this).removeAttr('href');
+            $("#ExportWord").off("click").on("click", function () {
+                // Find which column indexes are hidden
+                var hiddenCols = [];
+                $(".col-toggle").each(function () {
+                    if (!$(this).is(":checked")) {
+                        hiddenCols.push(parseInt($(this).data("col")));
+                    }
                 });
 
-                $("#Export-info").text($("[id*=CGSSLabel]").text());
-                $("#I_Name").text($("#InstitutionName").text());
+                // Clone the table for export
+                var $originalTable = $("[id*=StudentsGridView]");
+                var $clone = $originalTable.clone();
 
-                $("#Ex-word-data").wordExport("CLASS-" + $('[id*=ClassDropDownList] :selected').text());
-                $("#Export-info").text('');
-                $("#I_Name").text('');
+                // Remove hidden columns from clone (reverse order to keep indexes stable)
+                hiddenCols.slice().reverse().forEach(function (c) {
+                    $clone.find("tr").each(function () {
+                        $(this).find("th, td").eq(c).remove();
+                    });
+                });
+
+                // Remove links from clone
+                $clone.find("a").each(function () {
+                    $(this).removeAttr("href");
+                });
+
+                // Fix image size for Word export
+                $clone.find("img").each(function () {
+                    $(this).attr("width", "40").attr("height", "50").css({ "width": "40px", "height": "50px" });
+                });
+
+                // Build export wrapper
+                var $wrapper = $("<div></div>");
+                $wrapper.append("<h1>" + $("#InstitutionName").text() + "</h1>");
+                $wrapper.append("<h4>" + $("[id*=CGSSLabel]").text() + "</h4>");
+                $wrapper.append($clone);
+
+                // Append temporarily, export, then remove
+                $wrapper.hide().appendTo("body");
+                $wrapper.wordExport("CLASS-" + $('[id*=ClassDropDownList] :selected').text());
+                $wrapper.remove();
             });
         });
     </script>

@@ -18,6 +18,16 @@
                     </asp:RadioButtonList>
                 </div>
                 <div class="form-group">
+                    <asp:DropDownList ID="ScheduleDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID" AutoPostBack="True" OnSelectedIndexChanged="ScheduleDropDownList_SelectedIndexChanged">
+                        <asp:ListItem Value="0">[ ALL SCHEDULE ]</asp:ListItem>
+                    </asp:DropDownList>
+                    <asp:SqlDataSource ID="ScheduleSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ScheduleID, ScheduleName FROM Attendance_Schedule WHERE (SchoolID = @SchoolID)">
+                        <SelectParameters>
+                            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                        </SelectParameters>
+                    </asp:SqlDataSource>
+                </div>
+                <div class="form-group">
                     <asp:TextBox ID="FromDateTextBox" runat="server" CssClass="form-control Datetime" placeholder="From Date"></asp:TextBox>
                 </div>
                 <div class="form-group">
@@ -103,7 +113,7 @@ ORDER BY Ascending" CancelSelectOnNullParameter="False">
                             <PagerStyle CssClass="pgr" />
                         </asp:GridView>
                         <asp:SqlDataSource ID="EmployeeAttendanceSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                            SelectCommand="SELECT Employee_Attendance_Record.Employee_Attendance_RecordID, Employee_Attendance_Record.SchoolID, Employee_Attendance_Record.AttendanceStatus, Employee_Attendance_Record.AttendanceDate, CONVERT (varchar(15), Employee_Attendance_Record.EntryTime, 100) AS EntryTime, CONVERT (varchar(15), Employee_Attendance_Record.ExitTime, 100) AS ExitTime, Employee_Attendance_Record.CreatedDate, Employee_Attendance_Record.ExitStatus, VW_Emp_Info.ID, VW_Emp_Info.EmployeeType, VW_Emp_Info.FirstName + ' ' + VW_Emp_Info.LastName AS Name, VW_Emp_Info.Designation, CONVERT (varchar(15), Employee_Attendance_Record.ExitTime, 100) AS ExitTime, CONVERT (varchar(15), Employee_Attendance_Record.EntryTime, 100) AS EntryTime FROM Employee_Attendance_Record INNER JOIN VW_Emp_Info ON Employee_Attendance_Record.EmployeeID = VW_Emp_Info.EmployeeID WHERE (Employee_Attendance_Record.SchoolID = @SchoolID) AND (VW_Emp_Info.EmployeeType LIKE @EmployeeType) AND (Employee_Attendance_Record.AttendanceStatus LIKE @AttendanceStatus) AND (Employee_Attendance_Record.AttendanceDate BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000')) AND ((Employee_Attendance_Record.EmployeeID = @EmployeeID) OR (@EmployeeID = 0)) ORDER BY Name, Employee_Attendance_Record.AttendanceDate"
+                            SelectCommand="SELECT Employee_Attendance_Record.Employee_Attendance_RecordID, Employee_Attendance_Record.SchoolID, Employee_Attendance_Record.AttendanceStatus, Employee_Attendance_Record.AttendanceDate, CONVERT (varchar(15), Employee_Attendance_Record.EntryTime, 100) AS EntryTime, CONVERT (varchar(15), Employee_Attendance_Record.ExitTime, 100) AS ExitTime, Employee_Attendance_Record.CreatedDate, Employee_Attendance_Record.ExitStatus, VW_Emp_Info.ID, VW_Emp_Info.EmployeeType, VW_Emp_Info.FirstName + ' ' + VW_Emp_Info.LastName AS Name, VW_Emp_Info.Designation, CONVERT (varchar(15), Employee_Attendance_Record.ExitTime, 100) AS ExitTime, CONVERT (varchar(15), Employee_Attendance_Record.EntryTime, 100) AS EntryTime FROM Employee_Attendance_Record INNER JOIN VW_Emp_Info ON Employee_Attendance_Record.EmployeeID = VW_Emp_Info.EmployeeID LEFT JOIN Employee_Attendance_Schedule_Assign ON VW_Emp_Info.EmployeeID = Employee_Attendance_Schedule_Assign.EmployeeID AND Employee_Attendance_Schedule_Assign.SchoolID = @SchoolID WHERE (Employee_Attendance_Record.SchoolID = @SchoolID) AND (VW_Emp_Info.EmployeeType LIKE @EmployeeType) AND (Employee_Attendance_Record.AttendanceStatus LIKE @AttendanceStatus) AND (Employee_Attendance_Record.AttendanceDate BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000')) AND ((Employee_Attendance_Record.EmployeeID = @EmployeeID) OR (@EmployeeID = 0)) AND (Employee_Attendance_Schedule_Assign.ScheduleID = @ScheduleID OR @ScheduleID = 0) ORDER BY Name, Employee_Attendance_Record.AttendanceDate"
                             CancelSelectOnNullParameter="False" OnSelected="EmployeeAttendanceSQL_Selected">
                             <SelectParameters>
                                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
@@ -112,6 +122,7 @@ ORDER BY Ascending" CancelSelectOnNullParameter="False">
                                 <asp:ControlParameter ControlID="AttenDropDownList" Name="AttendanceStatus" PropertyName="SelectedValue" />
                                 <asp:ControlParameter ControlID="FromDateTextBox" Name="From_Date" PropertyName="Text" />
                                 <asp:ControlParameter ControlID="ToDateTextBox" Name="To_Date" PropertyName="Text" />
+                                <asp:Parameter Name="ScheduleID" DefaultValue="0" />
                             </SelectParameters>
                         </asp:SqlDataSource>
                     </div>
@@ -235,9 +246,13 @@ WHERE (Employee_Attendance_Record.AttendanceDate BETWEEN ISNULL(@From_Date, '1-1
                 Employee = $('[id*=EmployeeDropDownList] :selected').text() + ".";
             }
 
+            var Schedule = "";
+            if ($('[id*=ScheduleDropDownList] :selected').val() != "0") {
+                Schedule = " Schedule: " + $('[id*=ScheduleDropDownList] :selected').text();
+            }
 
             $(".Date").text(Brases1 + B + A + from + tt + TODate + Brases2);
-            $(".Emp_Att").text(Employee);
+            $(".Emp_Att").text(Employee + Schedule);
         });
 
         Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (a, b) {
@@ -298,8 +313,13 @@ WHERE (Employee_Attendance_Record.AttendanceDate BETWEEN ISNULL(@From_Date, '1-1
                 Employee = $('[id*=EmployeeDropDownList] :selected').text() + ".";
             }
 
+            var Schedule = "";
+            if ($('[id*=ScheduleDropDownList] :selected').val() != "0") {
+                Schedule = " Schedule: " + $('[id*=ScheduleDropDownList] :selected').text();
+            }
+
             $(".Date").text(Brases1 + B + A + from + tt + TODate + Brases2);
-            $(".Emp_Att").text(Employee);
+            $(".Emp_Att").text(Employee + Schedule);
         })
     </script>
 </asp:Content>

@@ -35,7 +35,7 @@ namespace Attendance_API.Controllers
 
                     var attendanceRecords = db.VW_Attendance_Stus.Where(a => a.SchoolID == id).ToList();
 
-                    var newRecords = (from s in attendanceRecords
+                    var allRecords = (from s in attendanceRecords
                                       join a in logRecord
                                       on s.DeviceID equals a.DeviceID
                                       where s.SchoolID == id
@@ -54,8 +54,16 @@ namespace Attendance_API.Controllers
                                           Is_OUT = a.Is_OUT
                                       }).ToList();
 
-                    db.Attendance_Records.AddRange(newRecords);
-                    db.SaveChanges();
+                    var newRecords = allRecords.Where(na => !db.Attendance_Records.Any(sa =>
+                        sa.SchoolID == na.SchoolID &&
+                        sa.StudentID == na.StudentID &&
+                        sa.AttendanceDate == na.AttendanceDate)).ToList();
+
+                    if (newRecords.Count > 0)
+                    {
+                        db.Attendance_Records.AddRange(newRecords);
+                        db.SaveChanges();
+                    }
 
 
                     ////var newAttendanceRecords = newRecord.Where(na => !db.Attendance_Records.Any(sa => na.SchoolID == sa.SchoolID & na.StudentID == sa.StudentID & na.AttendanceDate == sa.AttendanceDate)).ToList();
@@ -399,7 +407,7 @@ namespace Attendance_API.Controllers
 
                     var empList = db.VW_Emp_Infos.Where(a => a.SchoolID == id).ToList();
 
-                    var newRecords = (from e in empList
+                    var allEmpRecords = (from e in empList
                                       join a in logRecord
                                       on e.DeviceID equals a.DeviceID
                                       where e.SchoolID == id
@@ -416,9 +424,16 @@ namespace Attendance_API.Controllers
                                           Is_OUT = a.Is_OUT
                                       }).ToList();
 
+                    var newRecords = allEmpRecords.Where(na => !db.Employee_Attendance_Records.Any(sa =>
+                        sa.SchoolID == na.SchoolID &&
+                        sa.EmployeeID == na.EmployeeID &&
+                        sa.AttendanceDate == na.AttendanceDate)).ToList();
 
-                    db.Employee_Attendance_Records.AddRange(newRecords);
-                    db.SaveChanges();
+                    if (newRecords.Count > 0)
+                    {
+                        db.Employee_Attendance_Records.AddRange(newRecords);
+                        db.SaveChanges();
+                    }
 
                     //var newAttendanceRecord = newRecord.Where(na => !db.Employee_Attendance_Records.Any(sa => na.SchoolID == sa.SchoolID & na.EmployeeID == sa.EmployeeID & na.AttendanceDate == sa.AttendanceDate)).ToList();
 

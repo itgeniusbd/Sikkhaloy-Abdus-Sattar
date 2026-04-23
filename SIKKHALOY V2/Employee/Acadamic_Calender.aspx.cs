@@ -193,5 +193,56 @@ todayBadge.Text = "TODAY";
      return "تاريخ";
             }
   }
+
+        protected void WeeklyHolidayGridView_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+            // handled by SqlDataSource
+        }
+
+        protected void OtherHolidayGridView_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+            // handled by SqlDataSource
+        }
+
+        protected void EditSaveButton_Click(object sender, EventArgs e)
+        {
+            int holidayID;
+            if (!int.TryParse(hfEditHolidayID.Value, out holidayID)) return;
+
+            string name = hfEditHolidayName.Value.Trim();
+            string dateStr = hfEditHolidayDate.Value.Trim();
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(dateStr)) return;
+
+            DateTime holidayDate;
+            string[] formats = { "d MMM yyyy", "dd MMM yyyy", "d-MMM-yyyy", "dd-MMM-yyyy", "d/M/yyyy", "yyyy-MM-dd" };
+            if (!DateTime.TryParseExact(dateStr, formats, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out holidayDate))
+            {
+                if (!DateTime.TryParse(dateStr, out holidayDate)) return;
+            }
+
+            string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connStr))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(
+                    "UPDATE Employee_Holiday SET HolidayName = @HolidayName, HolidayDate = @HolidayDate WHERE HolidayID = @HolidayID", conn))
+                {
+                    cmd.Parameters.AddWithValue("@HolidayName", name);
+                    cmd.Parameters.AddWithValue("@HolidayDate", holidayDate.Date);
+                    cmd.Parameters.AddWithValue("@HolidayID", holidayID);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            // Refresh holiday data for calendar
+            Holiday_DA = new SqlDataAdapter("Select * FROM Employee_Holiday Where SchoolID = @SchoolID", con);
+            Holiday_DA.SelectCommand.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+            ds = new DataSet();
+            Holiday_DA.Fill(ds, "Table");
+
+            WeeklyHolidayGridView.DataBind();
+            OtherHolidayGridView.DataBind();
+        }
     }
 }

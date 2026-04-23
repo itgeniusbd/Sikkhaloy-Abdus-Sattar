@@ -33,30 +33,28 @@
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <h3>Institution Info</h3>
 
-    <!-- DEBUG LABEL -->
-    <div class="alert alert-info" id="debugInfo" runat="server" visible="true">
-        <strong>Debug Info:</strong>
-        <asp:Label ID="DebugLabel" runat="server" Text=""></asp:Label>
-    </div>
-
     <div class="form-group d-print-none">
-        <h4>Payment Button SMS Active & Deactive</h4>
-        <asp:RadioButtonList ID="rbSendSMS" RepeatColumns="2" RepeatDirection="Horizontal " runat="server" Visible="true" Width="180" AutoPostBack="true" OnSelectedIndexChanged="rbSendSMS_SelectedIndexChanged">
+        <h4>Teacher Back-Date Attendance</h4>
+        <small class="text-muted">টিচার কি পিছনের তারিখে হাজিরা নিতে পারবে?</small><br />
+        <asp:RadioButtonList ID="rbBackDateAttendance" RepeatColumns="2" RepeatDirection="Horizontal" runat="server" Width="180" AutoPostBack="true" OnSelectedIndexChanged="rbBackDateAttendance_SelectedIndexChanged">
             <asp:ListItem Enabled="True" Text="Active" Value="1" />
             <asp:ListItem Enabled="True" Text="Deactive" Value="0" />
         </asp:RadioButtonList>
     </div>
 
-    <asp:SqlDataSource ID="SmsSettingSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EduConnectionString %>" SelectCommand="SELECT TOP 1 PAY_Buttton_SMS_Enable_Disable FROM Account Where SchoolID=@SchoolID " UpdateCommand="UPDATE Account SET PAY_Buttton_SMS_Enable_Disable = @PAY_Buttton_SMS_Enable_Disable Where SchoolID=@SchoolID">
-    <SelectParameters>
-        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-    </SelectParameters>
-    <UpdateParameters>       
-        <asp:ControlParameter ControlID="rbSendSMS" Name="PAY_Buttton_SMS_Enable_Disable" PropertyName="SelectedValue" />
-        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-    </UpdateParameters>
-</asp:SqlDataSource>
-               
+    <asp:SqlDataSource ID="BackDateAttendanceSQL" runat="server"
+        ConnectionString="<%$ ConnectionStrings:EduConnectionString %>"
+        SelectCommand="SELECT TOP 1 Teacher_BackDate_Attendance FROM Account WHERE SchoolID = @SchoolID"
+        UpdateCommand="UPDATE Account SET Teacher_BackDate_Attendance = @Teacher_BackDate_Attendance WHERE SchoolID = @SchoolID">
+        <SelectParameters>
+            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
+        </SelectParameters>
+        <UpdateParameters>
+            <asp:ControlParameter ControlID="rbBackDateAttendance" Name="Teacher_BackDate_Attendance" PropertyName="SelectedValue" />
+            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
+        </UpdateParameters>
+    </asp:SqlDataSource>
+
     <div class="row">
         <div class="col-md-6">
             <h5>Current Logo</h5>

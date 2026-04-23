@@ -7122,7 +7122,7 @@ namespace EDUCATION.COM.PaymentDataSetTableAdapters {
                          - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) 
                          ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due
 FROM            Income_PayOrder
-WHERE        (Status = 'Due') AND (PayOrderID = @PayOrderID)";
+WHERE        (PayOrderID = @PayOrderID)";
             this._commandCollection[2].CommandType = global::System.Data.CommandType.Text;
             this._commandCollection[2].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@PayOrderID", global::System.Data.SqlDbType.Int, 4, global::System.Data.ParameterDirection.Input, 0, 0, "PayOrderID", global::System.Data.DataRowVersion.Current, false, null, "", "", ""));
             this._commandCollection[3] = new global::System.Data.SqlClient.SqlCommand();
@@ -7179,8 +7179,7 @@ WHERE        (Status = 'Due') AND (PayOrderID = @PayOrderID)";
             this._commandCollection[8].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@MoneyReceiptID", global::System.Data.SqlDbType.Int, 4, global::System.Data.ParameterDirection.Input, 0, 0, "MoneyReceiptID", global::System.Data.DataRowVersion.Original, false, null, "", "", ""));
             this._commandCollection[9] = new global::System.Data.SqlClient.SqlCommand();
             this._commandCollection[9].Connection = this.Connection;
-            this._commandCollection[9].CommandText = "UPDATE Income_PayOrder SET PaidAmount =PaidAmount + @PaidAmount,LastPaidDate =GET" +
-                "DATE(),NumberOfPayment=NumberOfPayment+1 WHERE (PayOrderID = @PayOrderID)";
+            this._commandCollection[9].CommandText = "UPDATE Income_PayOrder SET PaidAmount = PaidAmount + @PaidAmount, LastPaidDate = GETDATE(), NumberOfPayment = NumberOfPayment + 1 WHERE (PayOrderID = @PayOrderID)";
             this._commandCollection[9].CommandType = global::System.Data.CommandType.Text;
             this._commandCollection[9].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@PaidAmount", global::System.Data.SqlDbType.Float, 8, global::System.Data.ParameterDirection.Input, 0, 0, "PaidAmount", global::System.Data.DataRowVersion.Current, false, null, "", "", ""));
             this._commandCollection[9].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@PayOrderID", global::System.Data.SqlDbType.Int, 4, global::System.Data.ParameterDirection.Input, 0, 0, "PayOrderID", global::System.Data.DataRowVersion.Original, false, null, "", "", ""));
@@ -7990,14 +7989,15 @@ ORDER BY [WEEK NUMBER] DESC";
             this._commandCollection[0] = new global::System.Data.SqlClient.SqlCommand();
             this._commandCollection[0].Connection = this.Connection;
             this._commandCollection[0].CommandText = @"SELECT        Student.ID, Student.StudentsName, Education_Year.EducationYear, CreateClass.Class, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.PaidAmount, 
-                         Income_PayOrder.Receivable_Amount AS Due, Income_PayOrder.EndDate
+                         CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.EndDate
 FROM            Income_PayOrder INNER JOIN
                          Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
                          Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
                          CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID INNER JOIN
                          Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID
 WHERE        (Income_PayOrder.Status = 'Due') AND (Income_PayOrder.EndDate < GETDATE()) AND (Student.ID = @ID) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Student.Status = N'Active') AND 
-                         (CAST (Income_PayOrder.RoleID AS NVARCHAR(50)) LIKE @RoleID)
+                         (CAST (Income_PayOrder.RoleID AS NVARCHAR(50)) LIKE @RoleID) AND
+                         (CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) > 0
 ORDER BY Income_PayOrder.EndDate";
             this._commandCollection[0].CommandType = global::System.Data.CommandType.Text;
             this._commandCollection[0].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@ID", global::System.Data.SqlDbType.NVarChar, 50, global::System.Data.ParameterDirection.Input, 0, 0, "ID", global::System.Data.DataRowVersion.Current, false, null, "", "", ""));
@@ -8213,7 +8213,7 @@ ORDER BY Income_PayOrder.EndDate";
             this._commandCollection = new global::System.Data.SqlClient.SqlCommand[1];
             this._commandCollection[0] = new global::System.Data.SqlClient.SqlCommand();
             this._commandCollection[0].Connection = this.Connection;
-            this._commandCollection[0].CommandText = @"SELECT Student.SchoolID, Education_Year.EducationYearID, Income_PayOrder.StudentID, Student.ID, Student.StudentsName, Education_Year.EducationYear, CreateClass.Class, StudentsClass.RollNo, SUM(Income_PayOrder.Receivable_Amount) AS Due, Student.SMSPhoneNo FROM CreateClass INNER JOIN StudentsClass ON CreateClass.ClassID = StudentsClass.ClassID INNER JOIN Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID ON StudentsClass.StudentID = Student.StudentID INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID WHERE (StudentsClass.Class_Status IS NULL) AND (Income_PayOrder.Status = 'Due') AND (Income_PayOrder.EndDate <= GETDATE()) AND (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (Income_PayOrder.Is_Active = 1) GROUP BY Student.StudentsName, Income_PayOrder.StudentID, Student.SMSPhoneNo, CreateClass.Class, Student.ID, StudentsClass.RollNo, Student.SchoolID, Education_Year.EducationYear, Education_Year.EducationYearID";
+            this._commandCollection[0].CommandText = @"SELECT Student.SchoolID, Education_Year.EducationYearID, Income_PayOrder.StudentID, Student.ID, Student.StudentsName, Education_Year.EducationYear, CreateClass.Class, StudentsClass.RollNo, SUM(CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) AS Due, Student.SMSPhoneNo FROM CreateClass INNER JOIN StudentsClass ON CreateClass.ClassID = StudentsClass.ClassID INNER JOIN Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID ON StudentsClass.StudentID = Student.StudentID INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID WHERE (StudentsClass.Class_Status IS NULL) AND (Income_PayOrder.Status = 'Due') AND (Income_PayOrder.EndDate <= GETDATE()) AND (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (Income_PayOrder.Is_Active = 1) GROUP BY Student.StudentsName, Income_PayOrder.StudentID, Student.SMSPhoneNo, CreateClass.Class, Student.ID, StudentsClass.RollNo, Student.SchoolID, Education_Year.EducationYear, Education_Year.EducationYearID";
             this._commandCollection[0].CommandType = global::System.Data.CommandType.Text;
             this._commandCollection[0].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@ID", global::System.Data.SqlDbType.NVarChar, 50, global::System.Data.ParameterDirection.Input, 0, 0, "ID", global::System.Data.DataRowVersion.Current, false, null, "", "", ""));
             this._commandCollection[0].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@SchoolID", global::System.Data.SqlDbType.Int, 4, global::System.Data.ParameterDirection.Input, 0, 0, "SchoolID", global::System.Data.DataRowVersion.Current, false, null, "", "", ""));

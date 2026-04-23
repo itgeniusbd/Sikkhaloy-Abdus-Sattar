@@ -256,9 +256,9 @@ UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceipt
     ISNULL(Income_PayOrder.Discount, 0) + ISNULL(Income_PayOrder.LateFee_Discount, 0) AS Total_Discount,
     CASE 
         WHEN Income_PayOrder.EndDate < GETDATE() - 1 THEN 
-            ISNULL(Income_PayOrder.Receivable_Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0)
+            ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0)
         ELSE 
-            ISNULL(Income_PayOrder.Receivable_Amount, 0)
+            ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0)
     END AS Due,
     Income_PaymentRecord.PaidDate, 
     Income_PayOrder.Amount

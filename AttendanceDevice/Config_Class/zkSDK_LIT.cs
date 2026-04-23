@@ -50,7 +50,7 @@ namespace AttendanceDevice.Config_Class
                         var dt = log.EntryDateTime;
                         var time = log.EntryTime;
 
-                        if (log.EntryDate != DateTime.Today.ToShortDateString()) continue;
+                        if (log.EntryDate != DateTime.Today.ToString("dd-MMM-yy")) continue;
 
                         var user = await db.Users.FirstOrDefaultAsync(u => u.DeviceID == log.DeviceId);
                         if (user == null) continue;

@@ -9,61 +9,55 @@ namespace EDUCATION.COM.ATTENDANCES
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            Session["Group"] = GroupDropDownList.SelectedValue;
-            Session["Shift"] = ShiftDropDownList.SelectedValue;
-            Session["Section"] = SectionDropDownList.SelectedValue;
-
             if (!this.IsPostBack)
             {
                 if (Session["SchoolID"] != null)
                 {
                     FromDateTextBox.Text = DateTime.Now.ToString("d MMM yyyy");
                     ToDateTextBox.Text = DateTime.Now.ToString("d MMM yyyy");
-                    AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
                 }
 
+                // Initial load-এ GridView data load করবে না - class select করার পর load হবে
+                AttendanceGridView.DataSourceID = "";
                 GroupDropDownList.Visible = false;
                 SectionDropDownList.Visible = false;
                 ShiftDropDownList.Visible = false;
             }
-
-
+            else
+            {
+                Session["Group"] = GroupDropDownList.SelectedValue;
+                Session["Shift"] = ShiftDropDownList.SelectedValue;
+                Session["Section"] = SectionDropDownList.SelectedValue;
+                Session["Schedule"] = ScheduleDropDownList.SelectedValue ?? "0";
+            }
         }
 
         protected void view()
         {
-            DataView GroupDV = new DataView();
-            GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
-            if (GroupDV.Count < 1)
+            try
             {
-                GroupDropDownList.Visible = false;
+                DataView GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
+                GroupDropDownList.Visible = GroupDV != null && GroupDV.Count > 0;
             }
-            else
-            {
-                GroupDropDownList.Visible = true;
-            }
+            catch { GroupDropDownList.Visible = false; }
 
-            DataView SectionDV = new DataView();
-            SectionDV = (DataView)SectionSQL.Select(DataSourceSelectArguments.Empty);
-            if (SectionDV.Count < 1)
+            try
             {
-                SectionDropDownList.Visible = false;
+                DataView SectionDV = (DataView)SectionSQL.Select(DataSourceSelectArguments.Empty);
+                SectionDropDownList.Visible = SectionDV != null && SectionDV.Count > 0;
             }
-            else
-            {
-                SectionDropDownList.Visible = true;
-            }
+            catch { SectionDropDownList.Visible = false; }
 
-            DataView ShiftDV = new DataView();
-            ShiftDV = (DataView)ShiftSQL.Select(DataSourceSelectArguments.Empty);
-            if (ShiftDV.Count < 1)
+            try
             {
-                ShiftDropDownList.Visible = false;
+                DataView ShiftDV = (DataView)ShiftSQL.Select(DataSourceSelectArguments.Empty);
+                ShiftDropDownList.Visible = ShiftDV != null && ShiftDV.Count > 0;
             }
-            else
-            {
-                ShiftDropDownList.Visible = true;
-            }
+            catch { ShiftDropDownList.Visible = false; }
+
+            // GridView reconnect করো যাতে data load হয়
+            AttendanceGridView.DataSourceID = "AttendanceSQL";
+            AttendanceGridView.DataBind();
             AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
         }
 
@@ -73,6 +67,7 @@ namespace EDUCATION.COM.ATTENDANCES
             Session["Group"] = "%";
             Session["Shift"] = "%";
             Session["Section"] = "%";
+            Session["Schedule"] = "0";
 
             GroupDropDownList.DataBind();
             ShiftDropDownList.DataBind();
@@ -114,28 +109,39 @@ namespace EDUCATION.COM.ATTENDANCES
                 ShiftDropDownList.Items.FindByValue(Session["Shift"].ToString()).Selected = true;
         }
 
+        //Schedule DDL
+        protected void ScheduleDropDownList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            Session["Schedule"] = ScheduleDropDownList.SelectedValue;
+            view();
+        }
+
 
 
         protected void SubmitButton_Click(object sender, EventArgs e)
         {
+            AttendanceGridView.DataSourceID = "AttendanceSQL";
+            AttendanceGridView.DataBind();
             AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
             Summery_GridView.DataBind();
         }
 
         protected int GetTotalRows()
         {
-            AttendanceSQL.FilterParameters["To"].DefaultValue = Convert.ToDateTime(ToDateTextBox.Text).AddDays(1).ToString();
-
-            DataView dv = (DataView)AttendanceSQL.Select(DataSourceSelectArguments.Empty);
-            if (dv != null)
-                return dv.Count;
-            else
+            try
+            {
+                DataView dv = AttendanceSQL.Select(DataSourceSelectArguments.Empty) as DataView;
+                return dv != null ? dv.Count : 0;
+            }
+            catch
+            {
                 return 0;
-
+            }
         }
 
         protected void AttenDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
+            AttendanceGridView.DataSourceID = "AttendanceSQL";
             AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
         }
 

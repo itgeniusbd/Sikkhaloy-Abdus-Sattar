@@ -2,8 +2,8 @@
 
 <%@ Register assembly="Microsoft.ReportViewer.WebForms, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" namespace="Microsoft.Reporting.WebForms" tagprefix="rsweb" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="../../Employee/CSS/Acadamic_Calender.css" rel="stylesheet" />
-    <link href="../CSS/Report.css?v=12" rel="stylesheet" />
+    <link href="../../Employee/CSS/Acadamic_Calender.css?v=6" rel="stylesheet" />
+    <link href="../CSS/Report.css?v=13" rel="stylesheet" />
 
     <style>
         /*Allover report*/
@@ -445,6 +445,7 @@ Education_Year ON T_AP.EducationYearID = Education_Year.EducationYearID ORDER BY
                             <div class="Late Re_Desin">Late</div>
                             <div class="Late_Abs Re_Desin">Late Abs</div>
                             <div class="Att_Holidays Re_Desin">Holidays</div>
+                            <div class="Student_Leave Re_Desin">Leave</div>
 
                             <div class="calendarWrapper">
                                 <asp:Calendar ID="AttendanceCalendar" SelectionMode="None" OnDayRender="AttendanceCalendar_DayRender" runat="server" Font-Names="Tahoma" Font-Size="20px" NextMonthText="." PrevMonthText="." SelectMonthText="»" SelectWeekText="›" CellPadding="0" CssClass="myCalendar" Width="100%" FirstDayOfWeek="Saturday">

@@ -187,8 +187,8 @@
                 </asp:TemplateField>
                 <asp:TemplateField HeaderText="Late Fee">
                     <ItemTemplate>
-                        <asp:TextBox ID="LateFeeTextBox" runat="server" Text='<%# Bind("LateFee") %>' onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" CssClass="form-control" placeholder="Charge"></asp:TextBox>
-                        <asp:Label ID="PrevLateFeeLabel" runat="server" Text='<%# Eval("LateFee") %>' Visible="False"></asp:Label>
+                        <asp:TextBox ID="LateFeeTextBox" runat="server" Text='<%# Bind("LateFee") %>' CssClass="form-control" Visible="False"></asp:TextBox>
+                        <asp:Label ID="PrevLateFeeLabel" runat="server" Text='<%# Eval("LateFee") %>'></asp:Label>
                     </ItemTemplate>
                 </asp:TemplateField>
                 <asp:TemplateField HeaderText="L.Fee Conc.">
@@ -236,8 +236,8 @@
                 </asp:TemplateField>
                 <asp:TemplateField HeaderText="Late Fee">
                     <ItemTemplate>
-                        <asp:TextBox ID="LateFeeTextBox" runat="server" Text='<%# Bind("LateFee") %>' onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" CssClass="form-control" placeholder="Charge"></asp:TextBox>
-                        <asp:Label ID="PrevLateFeeLabel" runat="server" Text='<%# Eval("LateFee") %>' Visible="False"></asp:Label>
+                        <asp:TextBox ID="LateFeeTextBox" runat="server" Text='<%# Bind("LateFee") %>' CssClass="form-control" Visible="False"></asp:TextBox>
+                        <asp:Label ID="PrevLateFeeLabel" runat="server" Text='<%# Eval("LateFee") %>'></asp:Label>
                     </ItemTemplate>
                 </asp:TemplateField>
                 <asp:TemplateField HeaderText="L.Fee Conc.">

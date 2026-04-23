@@ -13,7 +13,41 @@ namespace EDUCATION.COM.Administration_Basic_Settings
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            // Page load logic if needed
+            if (!IsPostBack)
+            {
+                EnsureBackDateAttendanceColumn();
+                LoadBackDateAttendanceSetting();
+            }
+        }
+
+        private void EnsureBackDateAttendanceColumn()
+        {
+            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EduConnectionString"].ConnectionString))
+            {
+                con.Open();
+                SqlCommand cmd = new SqlCommand(
+                    @"IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[Account]') AND name = 'Teacher_BackDate_Attendance')
+                      BEGIN
+                          ALTER TABLE Account ADD Teacher_BackDate_Attendance BIT NOT NULL DEFAULT 0
+                      END", con);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void LoadBackDateAttendanceSetting()
+        {
+            using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EduConnectionString"].ConnectionString))
+            {
+                con.Open();
+                SqlCommand cmd = new SqlCommand(
+                    "SELECT TOP 1 Teacher_BackDate_Attendance FROM Account WHERE SchoolID = @SchoolID", con);
+                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                object val = cmd.ExecuteScalar();
+                if (val != null)
+                    rbBackDateAttendance.SelectedValue = Convert.ToBoolean(val) ? "1" : "0";
+                else
+                    rbBackDateAttendance.SelectedValue = "0";
+            }
         }
         
         protected void InstitutionInfoDetailsView_ItemUpdated(object sender, DetailsViewUpdatedEventArgs e)
@@ -172,9 +206,9 @@ namespace EDUCATION.COM.Administration_Basic_Settings
             Response.Redirect(Request.Url.AbsoluteUri);
         }
         
-        protected void rbSendSMS_SelectedIndexChanged(object sender, EventArgs e)   //OnSelectedIndexChanged="rbSendSMS_SelectedIndexChanged"
+        protected void rbBackDateAttendance_SelectedIndexChanged(object sender, EventArgs e)
         {
-            SmsSettingSQL.Update();
+            BackDateAttendanceSQL.Update();
         }
 
         // Delete School Name Logo Button Click Event

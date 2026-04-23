@@ -21,6 +21,34 @@ namespace EDUCATION.COM.Teacher
                 GroupDropDownList.Visible = false;
                 SectionDropDownList.Visible = false;
                 ShiftDropDownList.Visible = false;
+
+                bool allowBackDate = GetBackDateAttendanceSetting();
+                AttendanceDateTextBox.Enabled = allowBackDate;
+                FindButton.Visible = allowBackDate;
+                RequiredFieldValidator7.Enabled = false;
+
+                if (!allowBackDate)
+                    AttendanceDateTextBox.Text = DateTime.Now.ToString("dd MMM yyyy");
+            }
+        }
+
+        private bool GetBackDateAttendanceSetting()
+        {
+            try
+            {
+                using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EduConnectionString"].ToString()))
+                {
+                    con.Open();
+                    SqlCommand cmd = new SqlCommand(
+                        "SELECT TOP 1 Teacher_BackDate_Attendance FROM Account WHERE SchoolID = @SchoolID", con);
+                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    object val = cmd.ExecuteScalar();
+                    return val != null && Convert.ToBoolean(val);
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -107,6 +135,11 @@ namespace EDUCATION.COM.Teacher
                 ShiftDropDownList.Items.FindByValue(Session["Shift"].ToString()).Selected = true;
         }
 
+        protected void FindButton_Click(object sender, EventArgs e)
+        {
+            AttendenceCheck();
+        }
+
         //submit attendance
         protected void AttendanceButton_Click(object sender, EventArgs e)
         {
@@ -155,7 +188,9 @@ namespace EDUCATION.COM.Teacher
                             Attendance_RecordSQL.InsertParameters["StudentID"].DefaultValue = StudentsAttendanceGridView.DataKeys[row.DataItemIndex]["StudentID"].ToString();
                             Attendance_RecordSQL.InsertParameters["StudentClassID"].DefaultValue = StudentsAttendanceGridView.DataKeys[row.DataItemIndex]["StudentClassID"].ToString();
                             Attendance_RecordSQL.InsertParameters["Attendance"].DefaultValue = Attendance.SelectedValue;
-                            Attendance_RecordSQL.InsertParameters["AttendanceDate"].DefaultValue = DateTime.Now.ToString("dd MMM yyy");
+                            Attendance_RecordSQL.InsertParameters["AttendanceDate"].DefaultValue = string.IsNullOrWhiteSpace(AttendanceDateTextBox.Text)
+                                ? DateTime.Now.ToString("dd MMM yyyy")
+                                : AttendanceDateTextBox.Text.Trim();
                             Attendance_RecordSQL.InsertParameters["Reason"].DefaultValue = ReasonTextBox.Text;
                             Attendance_RecordSQL.Insert();
 
@@ -221,7 +256,9 @@ namespace EDUCATION.COM.Teacher
                 string SchoolID = Session["SchoolID"].ToString();
                 string EducationYearID = Session["Edu_Year"].ToString();
 
-                var AttendanceDate = Convert.ToDateTime(DateTime.Now.ToShortDateString());
+                var AttendanceDate = string.IsNullOrWhiteSpace(AttendanceDateTextBox.Text)
+                    ? Convert.ToDateTime(DateTime.Now.ToShortDateString())
+                    : Convert.ToDateTime(AttendanceDateTextBox.Text.Trim());
                 var AttendanceRadioButton = (RadioButtonList)row.FindControl("AttendenceRadioButtonList");
                 var ReasonTextBox = (TextBox)row.FindControl("ReasonTextBox");
                 var AtDateLabel = (Label)row.FindControl("AtDateLabel");

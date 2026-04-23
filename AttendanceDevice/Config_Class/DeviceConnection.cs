@@ -63,7 +63,7 @@ namespace AttendanceDevice.Config_Class
                 }
 
                 userView.Enroll_Time = dt;
-                var sDate = dt.ToShortDateString();
+                var sDate = dt.ToString("dd-MMM-yy");
 
                 EnrollUserCard.DataContext = userView;
 
@@ -99,7 +99,7 @@ namespace AttendanceDevice.Config_Class
                     await LogBackupInsert(deviceId, dt, reason);
                 }
                 // Today Check
-                else if (sDate != DateTime.Today.ToShortDateString())
+                else if (sDate != DateTime.Today.ToString("dd-MMM-yy"))
                 {
                     reason = "Not Current Data";
                     await LogBackupInsert(deviceId, dt, reason);
@@ -275,7 +275,7 @@ namespace AttendanceDevice.Config_Class
                 var logBackup = new AttendanceLog_Backup()
                 {
                     DeviceID = deviceId,
-                    Entry_Date = dt.ToShortDateString(),
+                    Entry_Date = dt.ToString("dd-MMM-yy"),
                     Entry_Time = dt.ToShortTimeString(),
                     Entry_Day = dt.ToString("dddd"),
                     Backup_Reason = reason
@@ -635,7 +635,7 @@ namespace AttendanceDevice.Config_Class
                         var deviceId = Convert.ToInt32(sdwEnrollNumber);
                         var dt = new DateTime(idwYear, idwMonth, idwDay, idwHour, idwMinute, idwSecond);
                         var time = new TimeSpan(idwHour, idwMinute, idwSecond);
-                        var sDate = dt.ToShortDateString();
+                        var sDate = dt.ToString("dd-MMM-yy");
 
                         var log = new LogView
                         {
@@ -668,7 +668,7 @@ namespace AttendanceDevice.Config_Class
 
                                 var deviceId = Convert.ToInt32(sdwEnrollNumber);
                                 var time = new TimeSpan(idwHour, idwMinute, idwSecond);
-                                var sDate = dt.ToShortDateString();
+                                var sDate = dt.ToString("dd-MMM-yy");
 
                                 var log = new LogView
                                 {
@@ -735,7 +735,7 @@ namespace AttendanceDevice.Config_Class
 
                         var deviceId = Convert.ToInt32(sdwEnrollNumber);
                         var time = new TimeSpan(idwHour, idwMinute, idwSecond);
-                        var sDate = dt.ToShortDateString();
+                        var sDate = dt.ToString("dd-MMM-yy");
 
                         var log = new LogView()
                         {
@@ -768,7 +768,7 @@ namespace AttendanceDevice.Config_Class
 
                                 var deviceId = Convert.ToInt32(sdwEnrollNumber);
                                 var time = new TimeSpan(idwHour, idwMinute, idwSecond);
-                                var sDate = dt.ToShortDateString();
+                                var sDate = dt.ToString("dd-MMM-yy");
 
                                 var log = new LogView()
                                 {
@@ -970,7 +970,7 @@ namespace AttendanceDevice.Config_Class
                         var deviceId = Convert.ToInt32(sdwEnrollNumber);
                         var dt = new DateTime(idwYear, idwMonth, idwDay, idwHour, idwMinute, idwSecond);
                         var time = new TimeSpan(idwHour, idwMinute, idwSecond);
-                        var sDate = dt.ToShortDateString();
+                        var sDate = dt.ToString("dd-MMM-yy");
 
                         var log = new LogView()
                         {

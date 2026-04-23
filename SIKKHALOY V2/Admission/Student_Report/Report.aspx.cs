@@ -16,6 +16,7 @@ namespace EDUCATION.COM.Admission.Student_Rerport
 
         SqlDataAdapter Attendance_Calendar_DA;
         SqlDataAdapter Holiday_DA;
+        SqlDataAdapter Leave_DA;
 
         DataSet Atten_DS = new DataSet();
         string StudentID;
@@ -41,6 +42,15 @@ namespace EDUCATION.COM.Admission.Student_Rerport
                 Holiday_DA = new SqlDataAdapter("Select * FROM Employee_Holiday Where SchoolID = @SchoolID", con);
                 Holiday_DA.SelectCommand.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
                 Holiday_DA.Fill(Atten_DS, "HolidaysTable");
+
+                // Student Leave
+                Leave_DA = new SqlDataAdapter(
+                    "SELECT StartDate, EndDate, ISNULL(LeaveType,'') AS LeaveType, ISNULL(Description,'') AS Description " +
+                    "FROM Attendance_Leave " +
+                    "WHERE SchoolID = @SchoolID AND StudentID = (SELECT StudentID FROM StudentsClass WHERE StudentClassID = @StudentClassID)", con);
+                Leave_DA.SelectCommand.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
+                Leave_DA.SelectCommand.Parameters.AddWithValue("@StudentClassID", Request.QueryString["Student_Class"]);
+                Leave_DA.Fill(Atten_DS, "LeaveTable");
             }
         }
         //find by ID
@@ -77,24 +87,30 @@ namespace EDUCATION.COM.Admission.Student_Rerport
 
                             lbl.CssClass = "Appointment";
 
+                            string baseClass = e.Cell.CssClass.Contains("myCalendarToday") ? "myCalendarDay myCalendarToday" : "myCalendarDay";
+
                             if (dr["Attendance"].ToString() == "Pre")
                             {
-                                e.Cell.CssClass = "Pre";
+                                e.Cell.CssClass = baseClass + " Pre";
+                                e.Cell.BackColor = System.Drawing.Color.Empty;
                             }
 
                             if (dr["Attendance"].ToString() == "Abs")
                             {
-                                e.Cell.CssClass = "Abs";
+                                e.Cell.CssClass = baseClass + " Abs";
+                                e.Cell.BackColor = System.Drawing.Color.Empty;
                             }
 
                             if (dr["Attendance"].ToString() == "Late")
                             {
-                                e.Cell.CssClass = "Late";
+                                e.Cell.CssClass = baseClass + " Late";
+                                e.Cell.BackColor = System.Drawing.Color.Empty;
                             }
 
                             if (dr["Attendance"].ToString() == "Late Abs")
                             {
-                                e.Cell.CssClass = "Late_Abs";
+                                e.Cell.CssClass = baseClass + " Late_Abs";
+                                e.Cell.BackColor = System.Drawing.Color.Empty;
                             }
 
                             e.Cell.Controls.Add(lbl);
@@ -113,11 +129,49 @@ namespace EDUCATION.COM.Admission.Student_Rerport
 
                         if (dtEvent.Equals(e.Day.Date))
                         {
-                            e.Cell.CssClass = "Att_Holidays";
+                            string baseClass = e.Cell.CssClass.Contains("myCalendarToday") ? "myCalendarDay myCalendarToday" : "myCalendarDay";
+                            e.Cell.CssClass = baseClass + " Att_Holidays";
+                            e.Cell.BackColor = System.Drawing.Color.Empty;
 
                             lbl.Text = "<br />";
                             lbl.Text += dr["HolidayName"].ToString();
                             e.Cell.Controls.Add(lbl);
+                        }
+                    }
+                }
+
+                // Student Leave
+                if (Atten_DS.Tables.Contains("LeaveTable"))
+                {
+                    foreach (DataRow dr in Atten_DS.Tables["LeaveTable"].Rows)
+                    {
+                        if (dr["StartDate"] != DBNull.Value && dr["EndDate"] != DBNull.Value)
+                        {
+                            DateTime startDate = Convert.ToDateTime(dr["StartDate"]);
+                            DateTime endDate   = Convert.ToDateTime(dr["EndDate"]);
+
+                            if (e.Day.Date >= startDate && e.Day.Date <= endDate)
+                            {
+                            // Only apply leave color if not already colored by attendance
+                                if (string.IsNullOrEmpty(e.Cell.CssClass) || e.Cell.CssClass == "myCalendarDay" || e.Cell.CssClass == "myCalendarDay myCalendarToday")
+                                {
+                                    string baseClass = e.Cell.CssClass.Contains("myCalendarToday") ? "myCalendarDay myCalendarToday" : "myCalendarDay";
+                                    e.Cell.CssClass = baseClass + " Student_Leave";
+                                    e.Cell.BackColor = System.Drawing.Color.Empty;
+                                }
+
+                                Label lbl = new Label();
+                                lbl.CssClass = "Appointment";
+                                string leaveType = dr["LeaveType"].ToString();
+                                string desc      = dr["Description"].ToString();
+                                lbl.Text = "ছুটি";
+                                if (!string.IsNullOrWhiteSpace(leaveType))
+                                    lbl.Text += ": " + leaveType;
+                                if (!string.IsNullOrWhiteSpace(desc))
+                                    lbl.Text += "<br/>" + desc;
+                                e.Cell.Controls.Add(lbl);
+                                break;
+                            }
                         }
                     }
                 }

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
@@ -14,7 +16,271 @@ namespace EDUCATION.COM.Profile.Invoice
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (!IsPostBack)
+            {
+                // Modal এ due amount এবং subscription status দেখানোর জন্য
+                if (Session["SchoolID"] != null)
+                {
+                    int schoolId = 0;
+                    if (int.TryParse(Session["SchoolID"].ToString(), out schoolId) && schoolId > 0)
+                    {
+                        decimal due = GetTotalDueAmount(schoolId);
+                        hfDueAmount.Value = due.ToString("F0");
 
+                        var status = GetSubscriptionStatus(schoolId);
+                        hfIsBlocked.Value = status.IsBlocked ? "1" : "0";
+                        hfDaysLeft.Value = status.DaysUntilExpiry.ToString();
+                    }
+                }
+
+                if (Request.QueryString["pay"] == "1")
+                {
+                    btnShurjoPay_Click(this, EventArgs.Empty);
+                }
+            }
+        }
+
+        // ─── ShurjoPay Payment ───
+        protected void btnShurjoPay_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                int schoolId = 0;
+                if (Session["SchoolID"] != null)
+                    int.TryParse(Session["SchoolID"].ToString(), out schoolId);
+
+                if (schoolId == 0)
+                {
+                    hfPaymentMsg.Value = "Session expired. Please login again.";
+                    return;
+                }
+
+                // Due amount ক্যালকুলেট
+                decimal dueAmount = GetTotalDueAmount(schoolId);
+                if (dueAmount <= 0)
+                {
+                    hfPaymentMsg.Value = "কোনো বকেয়া নেই।";
+                    return;
+                }
+
+                // School info নেওয়া
+                SchoolContactInfo info = GetSchoolInfo(schoolId);
+
+                string baseUrl    = Request.Url.GetLeftPart(UriPartial.Authority);
+                string returnUrl  = baseUrl + "/Profile/Invoice/ShurjoPayCallback.aspx";
+                string cancelUrl  = baseUrl + "/Profile/Invoice/Due_Invoice.aspx";
+
+                string customerName = !string.IsNullOrWhiteSpace(info.SchoolName) ? info.SchoolName : "School";
+                if (customerName.Length > 50) customerName = customerName.Substring(0, 50);
+
+                // একাধিক ফোন নাম্বার থাকলে শুধু প্রথমটি নেওয়া হবে
+                string customerPhone = "01700000000";
+                if (!string.IsNullOrWhiteSpace(info.Phone))
+                {
+                    string rawPhone = info.Phone.Split(new char[] { ',', '/', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                    customerPhone = rawPhone.Length > 0 ? rawPhone : "01700000000";
+                }
+
+                var request = new ShurjoPayOrderRequest
+                {
+                    SchoolID         = schoolId,
+                    Amount           = dueAmount,
+                    CustomerName     = customerName,
+                    CustomerPhone    = customerPhone,
+                    CustomerEmail    = !string.IsNullOrWhiteSpace(info.Email)      ? info.Email      : "info@school.com",
+                    CustomerAddress  = !string.IsNullOrWhiteSpace(info.Address)    ? info.Address    : "Dhaka",
+                    CustomerCity     = "Dhaka",
+                    CustomerState    = "Dhaka",
+                    CustomerPostcode = "1200",
+                    CustomerCountry  = "Bangladesh",
+                    ReturnUrl        = returnUrl,
+                    CancelUrl        = cancelUrl,
+                    InvoiceNote      = "Sikkhaloy Invoice - SchoolID:" + schoolId,
+                    // Callback-এ gateway charge calculate করার জন্য invoice due amount store
+                    Value3           = dueAmount.ToString("F2")
+                };
+
+                var service  = new ShurjoPayService();
+                var response = service.CreateOrder(request);
+
+                if (response != null)
+                {
+                    string redirectUrl = response.checkout_url ?? response.payment_url;
+                    if (!string.IsNullOrEmpty(redirectUrl))
+                    {
+                        Response.Redirect(redirectUrl, false);
+                        Context.ApplicationInstance.CompleteRequest();
+                        return;
+                    }
+
+                    // API responded but no checkout URL — show ShurjoPay's actual error message
+                    string apiMsg = !string.IsNullOrWhiteSpace(response.message)
+                        ? response.message
+                        : "checkout_url পাওয়া যায়নি। (sp_code: " + (response.sp_code ?? "?") + ")";
+
+                    string rawResp = service.LastRawCreateOrderResponse ?? "";
+                    System.Diagnostics.Debug.WriteLine("ShurjoPay no redirect URL. API message: " + apiMsg + " | Raw: " + rawResp);
+                    hfPaymentMsg.Value = "পেমেন্ট গেটওয়ে এরর: " + apiMsg
+                        + (rawResp.Length > 0 ? " | Raw: " + rawResp : "");
+                    return;
+                }
+
+                hfPaymentMsg.Value = "পেমেন্ট গেটওয়েতে সংযোগ করতে সমস্যা হয়েছে। (response null)";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("ShurjoPay button click error: " + ex.Message);
+                hfPaymentMsg.Value = "পেমেন্ট গেটওয়ে ত্রুটি: " + ex.Message;
+            }
+        }
+
+        private class SubscriptionStatus
+        {
+            public bool IsBlocked { get; set; }
+            public int DaysUntilExpiry { get; set; }
+        }
+
+        private SubscriptionStatus GetSubscriptionStatus(int schoolId)
+        {
+            var result = new SubscriptionStatus { IsBlocked = false, DaysUntilExpiry = int.MaxValue };
+            try
+            {
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+
+                // Grace period চেক
+                using (SqlConnection conn = new SqlConnection(connStr))
+                {
+                    conn.Open();
+                    using (SqlCommand colCmd = new SqlCommand(
+                        @"SELECT CASE WHEN EXISTS (
+                            SELECT * FROM sys.columns 
+                            WHERE object_id = OBJECT_ID(N'dbo.SchoolInfo') AND name = 'AccessGraceUntil'
+                          ) THEN 1 ELSE 0 END", conn))
+                    {
+                        int colExists = (int)colCmd.ExecuteScalar();
+                        if (colExists == 1)
+                        {
+                            using (SqlCommand graceCmd = new SqlCommand(
+                                "SELECT AccessGraceUntil FROM SchoolInfo WHERE SchoolID = @SID", conn))
+                            {
+                                graceCmd.Parameters.AddWithValue("@SID", schoolId);
+                                object graceResult = graceCmd.ExecuteScalar();
+                                if (graceResult != null && graceResult != DBNull.Value)
+                                {
+                                    DateTime graceUntil = Convert.ToDateTime(graceResult);
+                                    if (graceUntil.Date >= DateTime.Today)
+                                    {
+                                        // Grace period চলছে — blocked না, কিন্তু কত দিন বাকি দেখাও
+                                        result.IsBlocked = false;
+                                        result.DaysUntilExpiry = (int)(graceUntil.Date - DateTime.Today).TotalDays;
+                                        return result;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Unpaid + EndDate পার হয়নি এমন invoice-এর সবচেয়ে কাছের EndDate বের করা
+                using (SqlConnection conn2 = new SqlConnection(connStr))
+                {
+                    conn2.Open();
+
+                    // সবচেয়ে কাছের (minimum) EndDate যেটা আজ বা পরে
+                    using (SqlCommand futureCmd = new SqlCommand(
+                        @"SELECT MIN(CAST(EndDate AS DATE)) FROM AAP_Invoice 
+                          WHERE SchoolID = @SID AND IsPaid = 0 
+                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) >= CAST(GETDATE() AS DATE)", conn2))
+                    {
+                        futureCmd.Parameters.AddWithValue("@SID", schoolId);
+                        object futureEnd = futureCmd.ExecuteScalar();
+                        if (futureEnd != null && futureEnd != DBNull.Value)
+                        {
+                            DateTime nearestEnd = Convert.ToDateTime(futureEnd);
+                            int daysLeft = (int)(nearestEnd.Date - DateTime.Today).TotalDays;
+                            result.IsBlocked = false;
+                            result.DaysUntilExpiry = daysLeft;
+                            return result;
+                        }
+                    }
+
+                    // EndDate পার হয়ে গেছে এমন unpaid invoice আছে কিনা
+                    using (SqlCommand expCmd = new SqlCommand(
+                        @"SELECT COUNT(*) FROM AAP_Invoice 
+                          WHERE SchoolID = @SID AND IsPaid = 0 
+                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) < CAST(GETDATE() AS DATE)", conn2))
+                    {
+                        expCmd.Parameters.AddWithValue("@SID", schoolId);
+                        int expiredCount = (int)expCmd.ExecuteScalar();
+                        result.IsBlocked = expiredCount > 0;
+                        result.DaysUntilExpiry = 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("GetSubscriptionStatus error: " + ex.Message);
+            }
+            return result;
+        }
+
+        private decimal GetTotalDueAmount(int schoolId)
+        {
+            string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+            using (SqlConnection conn = new SqlConnection(connStr))
+            {
+                string sql = @"SELECT ISNULL(SUM(TotalAmount - PaidAmount - Discount), 0) 
+                               FROM AAP_Invoice 
+                               WHERE SchoolID = @SchoolID AND IsPaid = 0";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                    conn.Open();
+                    object result = cmd.ExecuteScalar();
+                    return result == DBNull.Value ? 0 : Convert.ToDecimal(result);
+                }
+            }
+        }
+
+        private SchoolContactInfo GetSchoolInfo(int schoolId)
+        {
+            var info = new SchoolContactInfo();
+            try
+            {
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connStr))
+                {
+                    string sql = "SELECT SchoolName, Phone, Email, Address FROM SchoolInfo WHERE SchoolID = @SchoolID";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                        conn.Open();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                info.SchoolName = reader["SchoolName"]?.ToString();
+                                info.Phone      = reader["Phone"]?.ToString();
+                                info.Email      = reader["Email"]?.ToString();
+                                info.Address    = reader["Address"]?.ToString();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("GetSchoolInfo error: " + ex.Message);
+            }
+            return info;
+        }
+
+        private class SchoolContactInfo
+        {
+            public string SchoolName { get; set; }
+            public string Phone      { get; set; }
+            public string Email      { get; set; }
+            public string Address    { get; set; }
         }
 
         protected void PrintFormView_DataBound(object sender, EventArgs e)

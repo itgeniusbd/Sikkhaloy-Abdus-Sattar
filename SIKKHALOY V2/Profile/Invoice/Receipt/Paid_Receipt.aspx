@@ -3,24 +3,36 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="../../css/Invoice.css?v=1.0.8" rel="stylesheet" />
     <style>
-        .invoice-to { padding: 0.7rem 0; margin: 20px 0; }
-        .img-sign { 
-            margin: 2rem 0 1rem 0;
-            color: #000;
+        .invoice-to { padding: 0.5rem 0; margin: 10px 0; }
+        .mr-5, .mx-5 { margin-right: 1rem !important; }
+        .ml-5, .mx-5 { margin-left: 1rem !important; }
+
+        /* ── Summary Box ── */
+        .receipt-summary {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            font-size: .92rem;
+            min-width: 180px;
         }
-        .img-sign table {
-            text-align: center;
+        .receipt-summary table { width: 100%; border-collapse: collapse; margin: 0; }
+        .receipt-summary td { padding: 6px 10px; }
+        .receipt-summary .row-label { color: #000000; font-weight: 600; }
+        .receipt-summary .row-value { text-align: right; font-weight: 600; }
+        .receipt-summary .row-subtotal td { background: #f8f9fa; border-top: 1px solid #ddd; }
+        .receipt-summary .row-charge td  { background: #fff8e1; }
+        .receipt-summary .row-charge .row-label { color: #000000; font-weight: 600; }
+        .receipt-summary .row-charge .row-value { color: #e67e22; }
+        .receipt-summary .row-total td   {
+            background: #27ae60;
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.05rem;
         }
-        .mr-5, .mx-5 {
-            margin-right: 1rem !important;
-        }
-        .ml-5, .mx-5 {
-            margin-left: 1rem !important;
-        }
+        .receipt-summary .row-due td { background: #fdecea; color: #c0392b; }
+
         @media print {
-            .img-sign {
-                float: right !important;
-            }
+            .img-sign { float: right !important; }
         }
     </style>
 </asp:Content>
@@ -129,68 +141,98 @@
                 <div class="row no-gutters">
 <div class="col">
                         <div class="conclusion">
-                            <h4>Thank you, IT Genius.</h4>
-                            <h5>Payment Method:</h5>
-
-                            <table>
+                            <h4 style="color:#27ae60; font-size:1rem; margin-bottom:6px;">
+                                <i class="fa fa-check-circle"></i> Thank you, IT Genius.
+                            </h4>
+                            <p style="font-size:.82rem; color:#555; margin-bottom:6px; font-weight:600;">Payment Method:</p>
+                            <table style="font-size:.82rem; border-collapse:collapse; width:auto;">
+                                <!-- ── Bank Section ── -->
                                 <tr>
-                                    <td style="background-color: #ddd; padding: 0 3px">BANK NAME</td>
-                                    
-                                    <td>Eastern Bank PLC</td>
+                                    <td colspan="2" style="padding:4px 8px 2px; font-weight:700; color:#1a6b2f; font-size:.78rem; letter-spacing:.5px;">
+                                        🏦 BANK TRANSFER
+                                    </td>
                                 </tr>
                                 <tr>
-                                    <td>Account Name</td>
-                                  <td>IT Genius</td>
+                                    <td style="padding:2px 8px; color:#555;">Bank</td>
+                                    <td style="padding:2px 10px; font-weight:600;">Eastern Bank PLC</td>
                                 </tr>
                                 <tr>
-                                    <td>Account Number</td>
-                                    <td>10510.7000.1333</td>
+                                    <td style="padding:2px 8px; color:#555;">Account Name</td>
+                                    <td style="padding:2px 10px;">IT Genius</td>
                                 </tr>
                                 <tr>
-                                    <td>Branch</td>
-                                    <td>Sonargaon Branch</td>
-                                </tr>
-                                    <tr>
-                                    <td>Routing Number</td>
-                                    <td>095276586</td>
-                                   </tr>
-                                 <tr>
-                                    <td style=" padding: 5px;"><img src="../../../CSS/Image/rocket.jpg" /></td>
-                                    <td>01739144141-6</td>
-                                     
+                                    <td style="padding:2px 8px; color:#555;">Account No.</td>
+                                    <td style="padding:2px 10px; font-weight:600;">10510.7000.1333</td>
                                 </tr>
                                 <tr>
-                                    <td style=" padding: 5px;">bKash (Personal)</td>
-                                    <td>+880 1712-674118</td>
-                                     
+                                    <td style="padding:2px 8px; color:#555;">Branch</td>
+                                    <td style="padding:2px 10px;">Sonargaon Branch</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:2px 8px 6px; color:#555;">Routing No.</td>
+                                    <td style="padding:2px 10px 6px; font-weight:600;">095276586</td>
+                                </tr>
+                                <!-- ── Divider ── -->
+                                <tr><td colspan="2" style="padding:0;"><div style="border-top:1px dashed #bbb; margin:2px 0;"></div></td></tr>
+                                <!-- ── Rocket Section ── -->
+                                <tr>
+                                    <td colspan="2" style="padding:4px 8px 2px; font-weight:700; color:#6a0dad; font-size:.78rem; letter-spacing:.5px;">
+                                        <img src="../../../CSS/Image/rocket.jpg" style="height:14px; vertical-align:middle;" /> ROCKET
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:2px 8px; color:#555;">Number</td>
+                                    <td style="padding:2px 10px 6px; font-weight:600; color:#6a0dad;">01739144141-6</td>
+                                </tr>
+                                <!-- ── Divider ── -->
+                                <tr><td colspan="2" style="padding:0;"><div style="border-top:1px dashed #bbb; margin:2px 0;"></div></td></tr>
+                                <!-- ── bKash Section ── -->
+                                <tr>
+                                    <td colspan="2" style="padding:4px 8px 2px; font-weight:700; color:#e91e8c; font-size:.78rem; letter-spacing:.5px;">
+                                        💗 bKASH (Personal)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:2px 8px; color:#555;">Number</td>
+                                    <td style="padding:2px 10px 4px; font-weight:600; color:#e91e8c;">+880 1712-674118</td>
                                 </tr>
                             </table>
                         </div>
 </div>
 
-                    <div class="col-3">
-                        <div class="gt-table">
+                    <div class="col-auto" style="padding-left:16px;">
+                        <div class="receipt-summary">
                             <table>
-                                <tr>
-                                    <td>Total:</td>
-                                    <td><%#Eval("Total_Amount") %> Tk</td>
+                                <tr class="row-subtotal">
+                                    <td class="row-label">Total:</td>
+                                    <td class="row-value"><%#Eval("Total_Amount") %> Tk</td>
                                 </tr>
-                                <tr style="display: none;" id="Is_Discount">
-                                    <td>Discount:</td>
-                                    <td><span id="Discount"><%#Eval("Total_Discount") %></span> Tk</td>
+                                <tr id="Is_Discount" style="display:none;" class="row-subtotal">
+                                    <td class="row-label">Discount:</td>
+                                    <td class="row-value" style="color:#27ae60;">− <span id="Discount"><%#Eval("Total_Discount") %></span> Tk</td>
                                 </tr>
-                            </table>
-                        </div>
-
-                        <div class="grand-total">
-                            <table>
-                                <tr>
-                                    <td>Paid:</td>
-                                    <td><%#Eval("Total_Paid") %> Tk</td>
+                                <tr class="row-subtotal">
+                                    <td class="row-label">Paid:</td>
+                                    <td class="row-value"><%#Eval("Total_Paid") %> Tk</td>
                                 </tr>
-                                <tr style="display: none;" id="Is_Due">
-                                    <td>Due:</td>
-                                    <td><span id="TotalDue"><%#Eval("Total_Due") %></span> Tk</td>
+                                <% if (HasGatewayCharge) { %>
+                                <tr class="row-charge">
+                                    <td class="row-label">Gateway Charge:</td>
+                                    <td class="row-value">+ <%= GatewayCharge.ToString("F2") %> Tk</td>
+                                </tr>
+                                <tr class="row-total">
+                                    <td>Total Paid:</td>
+                                    <td class="row-value"><%= CustomerPaidAmt.ToString("F2") %> Tk</td>
+                                </tr>
+                                <% } else { %>
+                                <tr class="row-total">
+                                    <td>Total Paid:</td>
+                                    <td class="row-value"><%#Eval("Total_Paid") %> Tk</td>
+                                </tr>
+                                <% } %>
+                                <tr id="Is_Due" style="display:none;" class="row-due">
+                                    <td class="row-label">Due:</td>
+                                    <td class="row-value"><span id="TotalDue"><%#Eval("Total_Due") %></span> Tk</td>
                                 </tr>
                             </table>
                         </div>

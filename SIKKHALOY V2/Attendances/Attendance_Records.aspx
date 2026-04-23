@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Attendance Record" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Attendance_Records.aspx.cs" Inherits="EDUCATION.COM.ATTENDANCES.Attendance_Records" %>
+<%@ Page Title="Attendance Record" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Attendance_Records.aspx.cs" Inherits="EDUCATION.COM.ATTENDANCES.Attendance_Records" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="CSS/Attendance_Records.css?v=1" rel="stylesheet" />
@@ -67,6 +67,16 @@
                         </asp:SqlDataSource>
                     </div>
                     <div class="form-group">
+                        <asp:DropDownList ID="ScheduleDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID" AutoPostBack="True" OnSelectedIndexChanged="ScheduleDropDownList_SelectedIndexChanged">
+                            <asp:ListItem Value="0">[ ALL SCHEDULE ]</asp:ListItem>
+                        </asp:DropDownList>
+                        <asp:SqlDataSource ID="ScheduleSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ScheduleID, ScheduleName FROM Attendance_Schedule WHERE (SchoolID = @SchoolID)">
+                            <SelectParameters>
+                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                            </SelectParameters>
+                        </asp:SqlDataSource>
+                    </div>
+                    <div class="form-group">
                         <asp:TextBox ID="FromDateTextBox" runat="server" CssClass="form-control Datetime" placeholder="From Date"></asp:TextBox>
                     </div>
                     <div class="form-group">
@@ -91,7 +101,7 @@
                 <div class="table-responsive">
                     <asp:UpdatePanel ID="UpdatePanel2" runat="server">
                         <ContentTemplate>
-                            <asp:GridView ID="AttendanceGridView" ShowHeaderWhenEmpty="True" EmptyDataText="No Records Found!" runat="server" AutoGenerateColumns="False" DataSourceID="AttendanceSQL" CssClass="mGrid" AllowPaging="True" AllowSorting="True" PageSize="60" OnRowDataBound="AttendanceGridView_RowDataBound">
+                            <asp:GridView ID="AttendanceGridView" ShowHeaderWhenEmpty="True" EmptyDataText="No Records Found!" runat="server" AutoGenerateColumns="False" DataSourceID="AttendanceSQL" CssClass="mGrid" AllowPaging="True" AllowSorting="True" PageSize="200" OnRowDataBound="AttendanceGridView_RowDataBound">
                                 <Columns>
                                     <asp:HyperLinkField SortExpression="ID" Target="_blank" DataNavigateUrlFields="StudentID,StudentClassID" DataTextField="ID" HeaderText="ID"
                                         DataNavigateUrlFormatString="/Admission/Student_Report/Report.aspx?Student={0}&Student_Class={1}" />
@@ -113,12 +123,7 @@
                                 <PagerStyle CssClass="pgr" />
                             </asp:GridView>
                             <asp:SqlDataSource ID="AttendanceSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                                SelectCommand="SELECT Attendance_Record.AttendanceDate, Attendance_Record.Reason, CreateClass.Class, StudentsClass.RollNo, Student.StudentsName, Student.SMSPhoneNo, Student.ID, CONVERT (varchar(15), Attendance_Record.EntryTime, 100) AS EntryTime, CONVERT (varchar(15), Attendance_Record.ExitTime, 100) AS ExitTime, Attendance_Record.Attendance, Attendance_Record.StudentClassID, Attendance_Record.StudentID, Attendance_Record.ExitStatus FROM Attendance_Record INNER JOIN CreateClass ON Attendance_Record.ClassID = CreateClass.ClassID INNER JOIN StudentsClass ON Attendance_Record.StudentClassID = StudentsClass.StudentClassID INNER JOIN Student ON Attendance_Record.StudentID = Student.StudentID WHERE (Student.Status = 'Active') AND (Attendance_Record.Attendance LIKE @Attendance) AND (Attendance_Record.SchoolID = @SchoolID) AND (Attendance_Record.EducationYearID = @EducationYearID) AND (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) OR (Student.Status = 'Active') AND (Attendance_Record.Attendance LIKE @Attendance) AND (Attendance_Record.SchoolID = @SchoolID) AND (Attendance_Record.EducationYearID = @EducationYearID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (@ClassID = 0) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS INT) ELSE 0 END"
-                                FilterExpression="AttendanceDate >= '{0}' AND AttendanceDate <= '{1}'">
-                                <FilterParameters>
-                                    <asp:ControlParameter ControlID="FromDateTextBox" Name="From" PropertyName="Text" />
-                                    <asp:ControlParameter ControlID="ToDateTextBox" Name="To" PropertyName="Text" />
-                                </FilterParameters>
+                SelectCommand="SELECT Attendance_Record.AttendanceDate, Attendance_Record.Reason, CreateClass.Class, StudentsClass.RollNo, Student.StudentsName, Student.SMSPhoneNo, Student.ID, CONVERT (varchar(15), Attendance_Record.EntryTime, 100) AS EntryTime, CONVERT (varchar(15), Attendance_Record.ExitTime, 100) AS ExitTime, Attendance_Record.Attendance, Attendance_Record.StudentClassID, Attendance_Record.StudentID, Attendance_Record.ExitStatus FROM Attendance_Record INNER JOIN CreateClass ON Attendance_Record.ClassID = CreateClass.ClassID INNER JOIN StudentsClass ON Attendance_Record.StudentClassID = StudentsClass.StudentClassID INNER JOIN Student ON Attendance_Record.StudentID = Student.StudentID LEFT JOIN Attendance_Schedule_AssignStudent ON Student.StudentID = Attendance_Schedule_AssignStudent.StudentID AND Attendance_Schedule_AssignStudent.SchoolID = @SchoolID WHERE (Student.Status = 'Active') AND (Attendance_Record.Attendance LIKE @Attendance) AND (Attendance_Record.SchoolID = @SchoolID) AND (Attendance_Record.EducationYearID = @EducationYearID) AND (CAST(Attendance_Record.AttendanceDate AS DATE) >= CAST(@FromDate AS DATE)) AND (CAST(Attendance_Record.AttendanceDate AS DATE) <= CAST(@ToDate AS DATE)) AND ((StudentsClass.ClassID = @ClassID AND @ClassID != 0) OR @ClassID = 0) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (Attendance_Schedule_AssignStudent.ScheduleID = @ScheduleID OR @ScheduleID = 0) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS INT) ELSE 0 END">
                                 <SelectParameters>
                                     <asp:ControlParameter ControlID="AttenDropDownList" Name="Attendance" PropertyName="SelectedValue" />
                                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -127,6 +132,9 @@
                                     <asp:ControlParameter ControlID="SectionDropDownList" DefaultValue="%" Name="SectionID" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="ShiftDropDownList" DefaultValue="%" Name="ShiftID" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="GroupDropDownList" DefaultValue="%" Name="SubjectGroupID" PropertyName="SelectedValue" />
+                                    <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" DefaultValue="0" />
+                                    <asp:ControlParameter ControlID="FromDateTextBox" Name="FromDate" PropertyName="Text" />
+                                    <asp:ControlParameter ControlID="ToDateTextBox" Name="ToDate" PropertyName="Text" />
                                 </SelectParameters>
                             </asp:SqlDataSource>
                         </ContentTemplate>
@@ -271,11 +279,15 @@
                 Shift = ". Shift: " + $('[id*=ShiftDropDownList] :selected').text();
             }
 
+            var Schedule = "";
+            if ($('[id*=ScheduleDropDownList] :selected').val() != "0") {
+                Schedule = ". Schedule: " + $('[id*=ScheduleDropDownList] :selected').text();
+            }
 
-            $(".Class_Info").text(AttCount + " " + Attendance + " At " + Class + group + Section + Shift);
+            $(".Class_Info").text(AttCount + " " + Attendance + " At " + Class + group + Section + Shift + Schedule);
 
             if ($('[id*=ClassDropDownList] :selected').index() > 0) {
-                $('.Att_Summary').text("Summary For Class " + Class + group + Section + Shift);
+                $('.Att_Summary').text("Summary For Class " + Class + group + Section + Shift + Schedule);
             }
             $(".Date").text(Brases1 + B + A + from + tt + TODate + Brases2);
         });
@@ -366,11 +378,15 @@
                 Shift = ". Shift: " + $('[id*=ShiftDropDownList] :selected').text();
             }
 
+            var Schedule = "";
+            if ($('[id*=ScheduleDropDownList] :selected').val() != "0") {
+                Schedule = ". Schedule: " + $('[id*=ScheduleDropDownList] :selected').text();
+            }
 
-            $(".Class_Info").text(AttCount + " " + Attendance + " At " + Class + group + Section + Shift);
+            $(".Class_Info").text(AttCount + " " + Attendance + " At " + Class + group + Section + Shift + Schedule);
 
             if ($('[id*=ClassDropDownList] :selected').index() > 0) {
-                $('.Att_Summary').text("Summary For Class " + Class + group + Section + Shift);
+                $('.Att_Summary').text("Summary For Class " + Class + group + Section + Shift + Schedule);
             }
             $(".Date").text(Brases1 + B + A + from + tt + TODate + Brases2);
         });
