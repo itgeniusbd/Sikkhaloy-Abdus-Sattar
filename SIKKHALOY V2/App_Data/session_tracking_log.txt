@@ -12673,3 +12673,371 @@ SUCCESS: Session tracked successfully from Design.Master!
 
 ========== 2026-04-23 11:23:29 SUCCESS ==========
 [Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 16:36:04 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 16:36:04 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 16:36:04 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 16:36:04 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: 3gln2ckslphilq4jtvzc11z0_639130773646021195
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 16:36:04 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 16:45:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 16:45:59 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 16:45:59 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 16:45:59 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: kheovgoi3xxe25dqzvdyuopz_639130779597859491
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 16:45:59 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 16:48:02 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 16:48:02 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 16:48:02 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 16:48:02 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: a0btxo44cxd0bbmvjziucvwl_639130780822497292
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 16:48:02 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 20:27:14 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 20:27:15 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 20:27:15 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 20:27:15 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: a0btxo44cxd0bbmvjziucvwl_639130912353790532
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 20:27:16 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 20:28:34 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 20:28:34 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 20:28:34 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 20:28:34 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: goycge5owymwwvf2bdpsb325_639130913148394655
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 0 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 20:28:34 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 20:53:38 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 20:53:38 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 20:53:38 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 20:53:38 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: qqqx3qqy4heulgpaspa5yj4n_639130928188307159
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 20:53:38 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 21:16:20 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 21:16:20 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 21:16:20 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 21:16:20 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: tsbtcvnvzwoj5jsdhc2snzxv_639130941807500179
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 21:16:20 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 21:20:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 21:20:33 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 21:20:33 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 21:20:33 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: 1iwc2h4e2ahslecp0pyeu3qf_639130944333962376
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 21:20:33 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 21:23:35 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 21:23:35 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 21:23:35 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 21:23:35 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: zwskslksqsw20nx2jn1yiwzb_639130946152331392
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 21:23:35 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 21:50:16 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 21:50:16 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 21:50:16 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 21:50:16 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: y40k3oyhjynildy5i31emubl_639130962162888904
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 21:50:16 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 22:19:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 22:19:44 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 22:19:44 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 22:19:44 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: 444lxrdicgxmpaut1umvnvyi_639130979848034431
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 22:19:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 22:20:55 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 22:20:55 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 22:20:55 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 22:20:55 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: h5egbvn042pgmr4eeuyouupl_639130980550583390
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 22:20:55 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 22:23:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 22:23:12 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 22:23:12 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 22:23:12 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: bp52tud5cwus10q3uwuqkd02_639130981922975983
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 22:23:12 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 22:23:31 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 22:23:31 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 22:23:31 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 22:23:31 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: ogfhmuzy4sboldhdxlf2sk5h_639130982117910552
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 22:23:31 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 22:24:35 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 22:24:35 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 22:24:35 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 22:24:35 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: svbegobfwg5l1qb0ybyhjn2z_639130982756147534
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 22:24:35 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================
+
+========== 2026-04-29 22:26:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: iisac_admin============================================================
+
+========== 2026-04-29 22:26:07 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1002, RegID=1003============================================================
+
+========== 2026-04-29 22:26:07 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-04-29 22:26:07 SUCCESS ==========
+[Design.Master] Starting tracking for user: iisac_admin, Category: Admin
+Session Key: 3ekwolqrtki3m2c2apjpiq3w_639130983676850386
+SchoolID: 1002, RegID: 1003
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1002
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-04-29 22:26:07 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: iisac_admin============================================================

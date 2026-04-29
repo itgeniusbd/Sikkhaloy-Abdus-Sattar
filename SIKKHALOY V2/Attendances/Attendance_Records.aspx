@@ -101,7 +101,7 @@
                 <div class="table-responsive">
                     <asp:UpdatePanel ID="UpdatePanel2" runat="server">
                         <ContentTemplate>
-                            <asp:GridView ID="AttendanceGridView" ShowHeaderWhenEmpty="True" EmptyDataText="No Records Found!" runat="server" AutoGenerateColumns="False" DataSourceID="AttendanceSQL" CssClass="mGrid" AllowPaging="True" AllowSorting="True" PageSize="200" OnRowDataBound="AttendanceGridView_RowDataBound">
+                            <asp:GridView ID="AttendanceGridView" ShowHeaderWhenEmpty="True" EmptyDataText="No Records Found!" runat="server" AutoGenerateColumns="False" DataSourceID="AttendanceSQL" CssClass="mGrid" AllowPaging="True" AllowSorting="True" PageSize="500" OnRowDataBound="AttendanceGridView_RowDataBound">
                                 <Columns>
                                     <asp:HyperLinkField SortExpression="ID" Target="_blank" DataNavigateUrlFields="StudentID,StudentClassID" DataTextField="ID" HeaderText="ID"
                                         DataNavigateUrlFormatString="/Admission/Student_Report/Report.aspx?Student={0}&Student_Class={1}" />
@@ -146,7 +146,7 @@
                 <div class="table-responsive">
                     <asp:UpdatePanel ID="UpdatePanel1" runat="server">
                         <ContentTemplate>
-                            <asp:GridView ID="Summery_GridView" AllowPaging="True" AllowSorting="True" PageSize="100" runat="server" AutoGenerateColumns="False" CssClass="mGrid TSummery" DataSourceID="SummerySQL">
+                            <asp:GridView ID="Summery_GridView" AllowPaging="True" AllowSorting="True" PageSize="500" runat="server" AutoGenerateColumns="False" CssClass="mGrid TSummery" DataSourceID="SummerySQL">
                                 <Columns>
                                     <asp:HyperLinkField SortExpression="ID" Target="_blank" DataNavigateUrlFields="StudentID,StudentClassID" DataTextField="ID" HeaderText="ID"
                                         DataNavigateUrlFormatString="/Admission/Student_Report/Report.aspx?Student={0}&Student_Class={1}" />

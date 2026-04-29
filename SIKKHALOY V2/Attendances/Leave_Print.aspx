@@ -7,10 +7,52 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>গেইট পাস / ছুটির অনুমোদন পত্র</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        /* ── Print options UI ── */
+        .top-actions {
+            width: 190mm; margin: 8px auto 0; display: flex; justify-content: center; gap: 8px;
+        }
+        .btn-top {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 20px; border-radius: 7px; font-size: 13px; font-weight: 600;
+            border: none; cursor: pointer; transition: opacity .2s;
+        }
+        .btn-top-primary { background: linear-gradient(135deg,#1a6fc4,#0e4f96); color: #fff; }
+        .btn-top-secondary { background: #6c757d; color: #fff; }
+        .btn-top:hover { opacity: .88; }
+
+        .print-panel {
+            width: 190mm; margin: 6px auto 8px;
+            background: #fff; border: 1px solid #c5d8f0; border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(26,111,196,.1); overflow: hidden;
+        }
+        .print-panel-header {
+            background: #f0f6ff; border-bottom: 1px solid #c5d8f0;
+            padding: 8px 14px; font-size: 13px; font-weight: 700; color: #1a6fc4;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .print-panel-body {
+            padding: 10px 14px; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px;
+        }
+        .pp-check { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #444; margin-bottom: 2px; }
+        .pp-check input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: #1a6fc4; }
+        .pp-group { display: flex; flex-direction: column; gap: 3px; }
+        .pp-group label { font-size: 11.5px; font-weight: 600; color: #1a6fc4; }
+        .pp-group input, .pp-group select {
+            border: 1px solid #c5d8f0; border-radius: 6px; padding: 5px 9px;
+            font-size: 12.5px; color: #222; outline: none; background: #fff;
+        }
+        .pp-group input:focus, .pp-group select:focus { border-color: #1a6fc4; box-shadow: 0 0 0 2px rgba(26,111,196,.12); }
+        .print-panel-footer {
+            background: #f7faff; border-top: 1px solid #e0eaf6; padding: 7px 14px;
+        }
+        .btn-print-sm {
+            background: linear-gradient(135deg,#1a6fc4,#0e4f96); color: #fff;
+            border: none; border-radius: 6px; padding: 6px 18px;
+            font-size: 12.5px; font-weight: 700; cursor: pointer; transition: opacity .2s;
+        }
+        .btn-print-sm:hover { opacity: .88; }
+    </style>
 
     <!--dynamic css for printing-->
     <style type="text/css" media="print" id="print-content"></style>
@@ -18,7 +60,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Noto Sans Bengali', 'SolaimanLipi', Arial, sans-serif;
+            font-family: 'SolaimanLipi', 'Kalpurush', 'Vrinda', Arial, sans-serif;
             font-size: 12px;
             background: #e8ecf0;
             color: #222;
@@ -237,13 +279,10 @@
             min-height: 28px;
         }
 
-        /* ── Print options panel ── */
-        .print-options-panel { width: 190mm; margin: 0 auto 10px auto; }
-
         @media print {
             body { background: #fff; }
             .no-print { display: none !important; }
-            .print-options-panel { display: none !important; }
+            .top-actions, .print-panel { display: none !important; }
             .page-wrapper { margin: 0; border-radius: 0; }
             @page { margin: 8mm; size: A4; }
 
@@ -270,50 +309,41 @@
 
         <asp:HiddenField ID="_regIdHidden" runat="server" />
 
-        <div class="no-print text-center pt-2 pb-1">
-            <button type="button" class="btn btn-primary btn-sm mr-2" onclick="window.print()">&#128438; প্রিন্ট করুন</button>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="history.back()">&#8592; ফিরে যান</button>
+        <div class="no-print top-actions">
+            <button type="button" class="btn-top btn-top-primary" onclick="window.print()">&#128438; প্রিন্ট করুন</button>
+            <button type="button" class="btn-top btn-top-secondary" onclick="history.back()">&#8592; ফিরে যান</button>
         </div>
 
         <!-- Print Options Panel -->
-        <div class="print-options-panel d-print-none">
-            <div class="card my-2 shadow-sm">
-                <div class="card-header py-2 d-flex align-items-center">
-                    <span style="font-size:15px;margin-right:6px;">&#9881;&#65039;</span>
-                    <strong>প্রিন্ট সেটিং</strong>
+        <div class="print-panel no-print d-print-none">
+            <div class="print-panel-header">
+                <span>&#9881;&#65039;</span> প্রিন্ট সেটিং
+            </div>
+            <div class="print-panel-body">
+                <div class="pp-check">
+                    <input type="checkbox" id="checkboxInstitution" />
+                    <label for="checkboxInstitution">প্রতিষ্ঠানের নাম লুকান</label>
                 </div>
-                <div class="card-body py-2">
-                    <div class="d-flex align-items-center flex-wrap">
-                        <div class="mr-4 mb-2">
-                            <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="checkboxInstitution" />
-                                <label class="custom-control-label" for="checkboxInstitution">প্রতিষ্ঠানের নাম লুকান</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-end flex-wrap">
-                        <div class="mr-3 mb-2">
-                            <label for="inputTopSpace" class="mb-1 small">উপর থেকে স্পেস (px)</label>
-                            <input id="inputTopSpace" min="0" type="number" class="form-control form-control-sm" style="width:130px;" />
-                        </div>
-                        <div class="mr-3 mb-2">
-                            <label for="inputFontSize" class="mb-1 small">ফন্ট সাইজ (px)</label>
-                            <input id="inputFontSize" min="8" max="20" type="number" class="form-control form-control-sm" style="width:130px;" />
-                        </div>
-                        <div class="mr-3 mb-2">
-                            <label for="inputPageSize" class="mb-1 small">পেইজ সাইজ</label>
-                            <select id="inputPageSize" class="form-control form-control-sm" style="width:160px;">
-                                <option value="A4">A4</option>
-                                <option value="A5">A5</option>
-                                <option value="A6">A6 (A4 এর চার ভাগের এক)</option>
-                                <option value="letter">Letter</option>
-                            </select>
-                        </div>
-                    </div>
+                <div class="pp-group">
+                    <label for="inputTopSpace">উপর থেকে স্পেস (px)</label>
+                    <input id="inputTopSpace" min="0" type="number" style="width:130px;" />
                 </div>
-                <div class="card-footer py-2">
-                    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">&#128438; প্রিন্ট করুন</button>
+                <div class="pp-group">
+                    <label for="inputFontSize">ফন্ট সাইজ (px)</label>
+                    <input id="inputFontSize" min="8" max="20" type="number" style="width:130px;" />
                 </div>
+                <div class="pp-group">
+                    <label for="inputPageSize">পেইজ সাইজ</label>
+                    <select id="inputPageSize" style="width:180px;">
+                        <option value="A4">A4</option>
+                        <option value="A5">A5</option>
+                        <option value="A6">A6 (A4 এর চার ভাগের এক)</option>
+                        <option value="letter">Letter</option>
+                    </select>
+                </div>
+            </div>
+            <div class="print-panel-footer">
+                <button type="button" class="btn-print-sm" onclick="window.print()">&#128438; প্রিন্ট করুন</button>
             </div>
         </div>
 

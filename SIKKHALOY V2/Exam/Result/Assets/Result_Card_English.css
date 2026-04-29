@@ -29,9 +29,15 @@ body {
 .header {
     text-align: center;
     border-bottom: 2px solid #0072bc;
-    padding-bottom: 15px;
+    padding-bottom: 10px;
+    padding-top: 10px;
     margin-bottom: 5px;
     position: relative;
+    min-height: 95px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     font-family: Arial, sans-serif !important;
     /* Prevent break */
     page-break-inside: avoid !important;
@@ -56,25 +62,27 @@ body {
     }
 
     .header img {
-        width: 70px;
-        height: 70px;
+        width: 80px;
+        height: 85px;
         border-radius: 5px !important;
         object-fit: cover;
         position: absolute;
         left: 0;
-        top: 0;
+        top: 50%;
+        transform: translateY(-50%);
         border: 2px solid #0072bc !important;
         background: white !important;
     }
 
 .student-photo {
     width: 70px !important;
-    height: 70px !important;
+    height: 85px !important;
     border-radius: 5px !important;
     object-fit: cover !important;
     position: absolute !important;
     right: 0 !important;
-    top: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
     left: auto !important;
     border: 3px solid #0072bc !important;
     background: white !important;
@@ -455,14 +463,22 @@ body {
     }
 
     .header {
-        padding-bottom: 10px !important;
+        padding-bottom: 8px !important;
+        padding-top: 8px !important;
         margin-bottom: 3px !important;
+        min-height: 85px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
 
-    .header img, .student-photo {
-        width: 60px !important;
-        height: 60px !important;
-    }
+        .header img, .student-photo {
+            width: 60px !important;
+            height: 75px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+        }
 
     .title, .Exam_name {
         font-size: 13px !important;
@@ -473,6 +489,7 @@ body {
     .info-table td {
         font-size: 11px !important;
         padding: 3px 5px !important;
+        font-weight: bold !important;
     }
 
     .grade-chart th, .grade-chart td {
@@ -987,4 +1004,52 @@ body {
 .summary-values td {
     background-color: #ffffff !important;
     color: #000000 !important;
+}
+
+/* ── Custom Header (School Name Logo) ── */
+.show-panel {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: relative !important;
+}
+.hide-panel {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+.school-name-logo-header {
+    width: 100%;
+    text-align: center;
+    padding: 0px 0 12px 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 2px solid #0072bc;
+    margin-bottom: 5px;
+    min-height: 0;
+    overflow: hidden;
+}
+.school-name-logo-img {
+    max-width: calc(100% - 100px);
+    max-height: 85px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
+}
+.student-photo-logo {
+    position: absolute;
+    right: 5px;
+    top: 0px;
+    width: 72px;
+    height: 86px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    object-fit: cover;
 }

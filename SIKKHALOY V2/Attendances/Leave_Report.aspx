@@ -94,7 +94,8 @@
         /* Action buttons */
         .btn-act { border: none; background: none; cursor: pointer; font-size: 16px; padding: 2px 5px; border-radius: 5px; transition: background .15s; }
         .btn-edit:hover { background: #e8f0fb; }
-        .btn-del:hover  { background: #fee2e2; }
+        .btn-del:hover    { background: #fee2e2; }
+        .btn-reprint:hover { background: #e6f5ee; }
 
         /* Modal */
         .modal-overlay { position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center; }
@@ -192,6 +193,11 @@
                 <asp:BoundField DataField="Description" HeaderText="কারণ" />
                     <asp:TemplateField HeaderText="Action" ItemStyle-Width="90px" ItemStyle-HorizontalAlign="Center">
                         <ItemTemplate>
+                            <button type="button" class="btn-act btn-reprint NoPrint"
+                                title="রি-প্রিন্ট"
+                                onclick="window.open('Leave_Print.aspx?lid=<%# Eval("LeaveID") %>','_blank')">
+                                🖨️
+                            </button>
                             <button type="button" class="btn-act btn-edit NoPrint"
                                 onclick="openEdit('<%# Eval("LeaveID") %>','<%# Eval("StartDate","{0:d MMM yyyy}") %>','<%# Eval("EndDate","{0:d MMM yyyy}") %>','<%# Eval("LeaveType") %>','<%# Eval("GuardianName") %>','<%# Server.HtmlEncode(Eval("Description").ToString()) %>')">
                                 ✏️

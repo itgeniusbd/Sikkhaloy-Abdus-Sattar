@@ -652,6 +652,7 @@ namespace EDUCATION.COM.Exam.Result
         {
             if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
             {
+                // Bind grading system
                 Repeater gradingSystemRepeater = (Repeater)e.Item.FindControl("GradingSystemRepeater");
                 if (gradingSystemRepeater != null)
                 {
@@ -659,7 +660,72 @@ namespace EDUCATION.COM.Exam.Result
                     gradingSystemRepeater.DataSource = gradingData;
                     gradingSystemRepeater.DataBind();
                 }
+
+                // Handle dynamic header: custom logo vs traditional
+                if (Session["SchoolID"] != null)
+                {
+                    int schoolId = Convert.ToInt32(Session["SchoolID"]);
+                    bool hasSchoolNameLogo = CheckSchoolNameLogoExists(schoolId);
+
+                    var logoPanel        = e.Item.FindControl("SchoolNameLogoHeaderPanel") as System.Web.UI.WebControls.Panel;
+                    var traditionalPanel = e.Item.FindControl("TraditionalHeaderPanel")    as System.Web.UI.WebControls.Panel;
+
+                    if (logoPanel != null && traditionalPanel != null)
+                    {
+                        if (hasSchoolNameLogo)
+                        {
+                            logoPanel.CssClass = "show-panel";
+                            logoPanel.Style.Add("display", "block");
+
+                            var logoImg = e.Item.FindControl("SchoolNameLogoImage") as System.Web.UI.HtmlControls.HtmlImage;
+                            if (logoImg != null)
+                                logoImg.Src = string.Format("/Handeler/SchoolNameLogo.ashx?SchoolID={0}&t={1}", schoolId, DateTime.Now.Ticks);
+
+                            traditionalPanel.CssClass = "hide-panel";
+                            traditionalPanel.Style.Add("display", "none");
+                        }
+                        else
+                        {
+                            logoPanel.CssClass = "hide-panel";
+                            logoPanel.Style.Add("display", "none");
+
+                            traditionalPanel.CssClass = "show-panel";
+                            traditionalPanel.Style.Add("display", "block");
+                        }
+                    }
+                }
             }
+        }
+
+        private bool CheckSchoolNameLogoExists(int schoolId)
+        {
+            try
+            {
+                var conStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                using (var con = new SqlConnection(conStr))
+                {
+                    con.Open();
+                    // Check column exists
+                    using (var chk = new SqlCommand(
+                        @"IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SchoolInfo]') AND name = 'SchoolNameLogo') SELECT 1 ELSE SELECT 0", con))
+                    {
+                        if ((int)chk.ExecuteScalar() == 0) return false;
+                    }
+                    // Check data
+                    using (var cmd = new SqlCommand("SELECT SchoolNameLogo FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                        var result = cmd.ExecuteScalar();
+                        if (result != null && result != DBNull.Value)
+                        {
+                            byte[] data = result as byte[];
+                            return data != null && data.Length > 0;
+                        }
+                    }
+                }
+            }
+            catch { }
+            return false;
         }
 
         // Update GetGradingSystemData to use the exact same TableAdapter as the official BanglaResult.aspx
@@ -970,7 +1036,7 @@ namespace EDUCATION.COM.Exam.Result
 
                 // If nothing to show, add just class row
                 if (pairs.Count == 0)
-                    return "<tr><td>Class:</td><td colspan=\"3\"><b>-</b></td></tr>";
+                    return "<tr><td>Class:</td><td colspan=\"3\">-</td></tr>";
 
                 var sb = new StringBuilder();
                 int i = 0;
@@ -981,7 +1047,7 @@ namespace EDUCATION.COM.Exam.Result
                     // Add first pair
                     string label1 = pairs[i].Item1;
                     string value1 = HttpUtility.HtmlEncode(pairs[i].Item2);
-                    sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label1, value1);
+                    sb.AppendFormat("<td>{0}</td><td>{1}</td>", label1, value1);
                     i++;
 
                     // Add second pair if it exists
@@ -989,7 +1055,7 @@ namespace EDUCATION.COM.Exam.Result
                     {
                         string label2 = pairs[i].Item1;
                         string value2 = HttpUtility.HtmlEncode(pairs[i].Item2);
-                        sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label2, value2);
+                        sb.AppendFormat("<td>{0}</td><td>{1}</td>", label2, value2);
                         i++;
                     }
                     else
@@ -1006,7 +1072,7 @@ namespace EDUCATION.COM.Exam.Result
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetDynamicInfoRow: {ex.Message}");
-                return "<tr><td>Class:</td><td colspan=\"3\"><b>-</b></td></tr>";
+                return "<tr><td>Class:</td><td colspan=\"3\">-</td></tr>";
             }
         }
 
@@ -1734,9 +1800,18 @@ namespace EDUCATION.COM.Exam.Result
                 using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
                 {
                     con.Open();
-                    string query = @"SELECT WorkingDays, PresentDays, AbsentDays, LeaveDays, LateAbsDays, LateDays 
-                                   FROM Exam_Result_of_Student 
-                                   WHERE StudentResultID = @StudentResultID";
+                    string query = @"SELECT 
+                                        ISNULL(ast.WorkingDays, 0)  AS WorkingDays,
+                                        ISNULL(ast.TotalPresent, 0) AS TotalPresent,
+                                        ISNULL(ast.TotalAbsent, 0)  AS TotalAbsent,
+                                        ISNULL(ast.TotalLeave, 0)   AS TotalLeave,
+                                        ISNULL(ast.TotalLateAbs, 0) AS TotalLateAbs,
+                                        ISNULL(ast.TotalLate, 0)    AS TotalLate
+                                    FROM Exam_Result_of_Student ers
+                                    LEFT JOIN Attendance_Student ast
+                                        ON ers.StudentClassID = ast.StudentClassID
+                                        AND ers.ExamID = ast.ExamID
+                                    WHERE ers.StudentResultID = @StudentResultID";
 
                     using (SqlCommand cmd = new SqlCommand(query, con))
                     {
@@ -1747,11 +1822,11 @@ namespace EDUCATION.COM.Exam.Result
                             if (reader.Read())
                             {
                                 data.WorkingDays = reader["WorkingDays"]?.ToString() ?? "";
-                                data.PresentDays = reader["PresentDays"]?.ToString() ?? "";
-                                data.AbsentDays = reader["AbsentDays"]?.ToString() ?? "";
-                                data.LeaveDays = reader["LeaveDays"]?.ToString() ?? "";
-                                data.LateAbsDays = reader["LateAbsDays"]?.ToString() ?? "";
-                                data.LateDays = reader["LateDays"]?.ToString() ?? "";
+                                data.PresentDays = reader["TotalPresent"]?.ToString() ?? "";
+                                data.AbsentDays  = reader["TotalAbsent"]?.ToString() ?? "";
+                                data.LeaveDays   = reader["TotalLeave"]?.ToString() ?? "";
+                                data.LateAbsDays = reader["TotalLateAbs"]?.ToString() ?? "";
+                                data.LateDays    = reader["TotalLate"]?.ToString() ?? "";
                             }
                         }
                     }

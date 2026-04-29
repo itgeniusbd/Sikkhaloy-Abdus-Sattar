@@ -233,13 +233,30 @@
             <ItemTemplate>
                 <div class="result-card">
                     <!-- Header Section -->
-                    <div class="header">
-                        <img src="/Handeler/SchoolLogo.ashx?SLogo=<%# Eval("SchoolID") %>" alt="School Logo" onerror="this.style.display='none';" />
-                        <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>" alt="Student Photo" class="student-photo" onerror="this.style.display='none';" />
-                        <h2><%# Eval("SchoolName") %></h2>
-                        <p><i class="fa fa-map-marker icon-fallback" data-fallback="📍"></i> <%# Eval("Address") %></p>
-                        <p><i class="fa fa-phone icon-fallback" data-fallback="📞"></i> <%# Eval("Phone") %></p>
-                    </div>
+                    <!-- School Name Logo (Custom Header) -->
+                    <asp:Panel ID="SchoolNameLogoHeaderPanel" runat="server" CssClass="hide-panel" style="display:none;">
+                        <div class="school-name-logo-header">
+                            <img id="SchoolNameLogoImage" runat="server"
+                                 alt="School Name"
+                                 class="school-name-logo-img"
+                                 onerror="this.style.display='none';" />
+                            <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>"
+                                 alt="Student Photo"
+                                 class="student-photo-logo"
+                                 onerror="this.style.display='none';" />
+                        </div>
+                    </asp:Panel>
+
+                    <!-- Traditional Header (When No Custom Header Image) -->
+                    <asp:Panel ID="TraditionalHeaderPanel" runat="server" CssClass="show-panel">
+                        <div class="header">
+                            <img src="/Handeler/SchoolLogo.ashx?SLogo=<%# Eval("SchoolID") %>" alt="School Logo" onerror="this.style.display='none';" />
+                            <img src="/Handeler/Student_Photo.ashx?SID=<%# Eval("StudentImageID") %>" alt="Student Photo" class="student-photo" onerror="this.style.display='none';" />
+                            <h2><%# Eval("SchoolName") %></h2>
+                            <p><i class="fa fa-map-marker icon-fallback" data-fallback="📍"></i> <%# Eval("Address") %></p>
+                            <p><i class="fa fa-phone icon-fallback" data-fallback="📞"></i> <%# Eval("Phone") %></p>
+                        </div>
+                    </asp:Panel>
 
                     <!-- Title Section -->
                     <div >
@@ -254,7 +271,7 @@
                             <table class="info-table">
                                 <tr>
                                     <td>Name:</td>
-                                    <td colspan="3"><b><%# Eval("StudentsName") %></b></td>
+                                    <td colspan="3"><%# Eval("StudentsName") %></td>
                                 </tr>
                                 <%-- Use helper method for dynamic row generation --%>
                                 <%# GetDynamicInfoRow(Container.DataItem) %>

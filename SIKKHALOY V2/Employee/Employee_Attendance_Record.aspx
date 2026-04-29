@@ -95,7 +95,7 @@ ORDER BY Ascending" CancelSelectOnNullParameter="False">
                     </asp:SqlDataSource>
 
                     <div class="table-responsive">
-                        <asp:GridView ID="EmployeeAttRecordGridView" runat="server" CssClass="mGrid" AutoGenerateColumns="False" DataKeyNames="Employee_Attendance_RecordID" DataSourceID="EmployeeAttendanceSQL" AllowPaging="True" PageSize="50" AllowSorting="True" OnRowDataBound="EmployeeAttRecordGridView_RowDataBound">
+                        <asp:GridView ID="EmployeeAttRecordGridView" runat="server" CssClass="mGrid" AutoGenerateColumns="False" DataKeyNames="Employee_Attendance_RecordID" DataSourceID="EmployeeAttendanceSQL" AllowPaging="True" PageSize="500" AllowSorting="True" OnRowDataBound="EmployeeAttRecordGridView_RowDataBound">
                             <Columns>
                                 <asp:BoundField DataField="ID" HeaderText="ID" SortExpression="ID" />
                                 <asp:BoundField DataField="Name" HeaderText="Name" SortExpression="Name" />
