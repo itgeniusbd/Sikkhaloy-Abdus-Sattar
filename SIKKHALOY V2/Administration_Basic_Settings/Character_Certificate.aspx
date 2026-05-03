@@ -2,6 +2,41 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <style>
+        .cert-page-wrapper { padding: 30px 20px; }
+        .cert-page-title {
+            font-size: 1.3rem; font-weight: 700; color: #333;
+            margin-bottom: 25px; padding-bottom: 10px;
+            border-bottom: 3px solid #512bd4; display: inline-block;
+        }
+        .cert-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+        .cert-card {
+            width: 200px; border-radius: 16px; padding: 30px 20px;
+            text-align: center; text-decoration: none; color: #fff;
+            font-weight: 600; position: relative; overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.18);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 12px; cursor: pointer;
+        }
+        .cert-card:hover { transform: translateY(-6px); box-shadow: 0 16px 35px rgba(0,0,0,0.28); color: #fff; text-decoration: none; }
+        .cert-card::before {
+            content: ''; position: absolute; top: -40px; right: -40px;
+            width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.12);
+        }
+        .cert-card::after {
+            content: ''; position: absolute; bottom: -30px; left: -30px;
+            width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.08);
+        }
+        .cert-icon { font-size: 2.4rem; line-height: 1; z-index: 1; }
+        .cert-label { font-size: 13px; font-weight: 700; line-height: 1.4; z-index: 1; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cert-sublabel { font-size: 11px; font-weight: 400; opacity: 0.85; z-index: 1; }
+        .card-en-char { background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%); }
+        .card-bn-char { background: linear-gradient(135deg, #e91e63 0%, #880e4f 100%); }
+        .card-en-test { background: linear-gradient(135deg, #00897b 0%, #004d40 100%); }
+        .card-bn-test { background: linear-gradient(135deg, #f57c00 0%, #bf360c 100%); }
+        .card-bn-prot { background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%); }
+
+        /* OLD - kept for reference */
         .C-title {
             font-size: 1.5rem;
             font-weight: 700;
@@ -49,59 +84,47 @@
   }
 }
       
-.link-design {
-padding: 3rem;
-    padding-top: 3rem;
-  border-radius: .25rem;
-  margin-top: 3px;
-  text-transform: uppercase;
-  color: #3e4551;
-  font-size: 16px;
-  font-weight: 400;
-  background-color: #f0f0f0;
-  box-shadow: 0 2px 5px 0 rgba(0,0,0,.16),0 2px 10px 0 rgba(0,0,0,.12);
-  margin-bottom: 1.5rem !important;
-  margin-left: 20px;
-  width: 360px;
-  text-align: center;
-  height: 150px;
-  vertical-align: middle;
-  padding-top: 58px;
-  
-        }
 
-.link-design a{color:#fff;}
     </style>
 
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
 
-    <div class="form-inline">
+    <div class="cert-page-wrapper">
+        <div class="cert-page-title">&#127891; সকল সার্টিফিকেট</div>
+        <div class="cert-grid">
 
-        <div class="link-design bg">
+            <a href="../Administration_Basic_Settings/AllCertificate/CharecterCertificate_English.aspx" class="cert-card card-en-char">
+                <div class="cert-icon">&#128196;</div>
+                <div class="cert-label">Character Certificate</div>
+                <div class="cert-sublabel">(English)</div>
+            </a>
 
-            <a href="../Administration_Basic_Settings/AllCertificate/CharecterCertificate_English.aspx"><b>Charecter Cerificate (English)</b></a>
+            <a href="../Administration_Basic_Settings/AllCertificate/CharecterCertificate_Bangla.aspx" class="cert-card card-bn-char">
+                <div class="cert-icon">&#128196;</div>
+                <div class="cert-label">চারিত্রিক সনদ</div>
+                <div class="cert-sublabel">(বাংলা)</div>
+            </a>
+
+            <a href="../Administration_Basic_Settings/AllCertificate/Testimonial_English.aspx" class="cert-card card-en-test">
+                <div class="cert-icon">&#127942;</div>
+                <div class="cert-label">Testimonial</div>
+                <div class="cert-sublabel">(English)</div>
+            </a>
+
+            <a href="../Administration_Basic_Settings/AllCertificate/Testimonial_Bangla.aspx" class="cert-card card-bn-test">
+                <div class="cert-icon">&#127942;</div>
+                <div class="cert-label">প্রশংসা পত্র</div>
+                <div class="cert-sublabel">(বাংলা)</div>
+            </a>
+
+            <a href="../Administration_Basic_Settings/AllCertificate/Prottoyon_Bangla.aspx" class="cert-card card-bn-prot">
+                <div class="cert-icon">&#128221;</div>
+                <div class="cert-label">প্রত্যয়ন পত্র</div>
+                <div class="cert-sublabel">(বাংলা)</div>
+            </a>
+
         </div>
-        <div class="link-design bg">
-
-            <a href="../Administration_Basic_Settings/AllCertificate/CharecterCertificate_Bangla.aspx"><b>চারিত্রিক সনদ (বাংলা)</b></a>
-        </div>
-        <div class="link-design bg">
-
-            <a href="../Administration_Basic_Settings/AllCertificate/Testimonial_English.aspx"><b>Testimonial (English)</b></a>
-        </div>
-        <div class="link-design bg">
-
-            <a href="../Administration_Basic_Settings/AllCertificate/Testimonial_Bangla.aspx"><b>প্রশংসা পত্র (বাংলা)</b></a>
-        </div>
-                <div class="link-design bg">
-
-            <a href="../Administration_Basic_Settings/AllCertificate/Prottoyon_Bangla.aspx"><b>প্রত্যয়ন পত্র (বাংলা)</b></a>
-        </div>
-
     </div>
-
- 
-
 
 </asp:Content>

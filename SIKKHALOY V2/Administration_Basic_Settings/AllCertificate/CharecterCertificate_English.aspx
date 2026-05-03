@@ -174,7 +174,7 @@ border-right: none;
     @media print {
         @page {
             size: A4 portrait;
-            margin: 0;
+            margin: 8mm 8mm 8mm 8mm;
         }
 
         body {
@@ -203,9 +203,9 @@ border-right: none;
         }
 
         .certificate-wrapper {
-            margin: 5mm !important;
-            padding: 4px !important;
-            max-width: calc(100% - 10mm) !important;
+            margin: 0 !important;
+            padding: 2px !important;
+            max-width: 100% !important;
             background: #d4af37 !important;
             page-break-inside: avoid;
             page-break-before: avoid;
@@ -216,9 +216,9 @@ border-right: none;
                 inset 0 0 0 10px white,
                 inset 0 0 0 12px #d4af37,
                 inset 0 0 0 22px white,
-                inset 0 0 0 24px #d4af37 !important;
-            padding: 30px 50px 100px 50px !important;
-            min-height: 255mm !important;
+                inset 0 0 0 20px #d4af37 !important;
+            padding: 40px 40px 100px 40px !important;
+            min-height: 950px !important;
             page-break-inside: avoid;
             position: relative !important;
         }
@@ -350,11 +350,10 @@ border-right: none;
 </div>
         </ItemTemplate>
     </asp:FormView>
-    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.Class_Status IS NULL)">
+    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.Class_Status IS NULL) ORDER BY StudentsClass.EducationYearID DESC">
         <SelectParameters>
             <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-            <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
         </SelectParameters>
     </asp:SqlDataSource>
 

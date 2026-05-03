@@ -336,7 +336,8 @@ ORDER BY Income_MoneyReceipt.PaidDate DESC">
         <asp:SqlDataSource ID="DueSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
             SelectCommand="SELECT Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class, 
                          Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee, 
-                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) 
+                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount,
+                         CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0)
                                                   - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
                                                   - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
                          FROM            Income_PayOrder INNER JOIN
@@ -344,7 +345,7 @@ ORDER BY Income_MoneyReceipt.PaidDate DESC">
                                                   Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
                                                   Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
                                                   CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
-                         WHERE        (CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) &gt; 0 AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID)
+                         WHERE        (CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) &gt; 0 AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID)
                          ORDER BY Income_PayOrder.EndDate"
             UpdateCommand="UPDATE Income_PayOrder SET Discount = @Discount WHERE (PayOrderID = @PayOrderID)">
             <SelectParameters>

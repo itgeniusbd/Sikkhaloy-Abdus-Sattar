@@ -140,7 +140,7 @@ position: absolute;
         @media print {
      @page {
    size: A4 portrait;
- margin: 0;
+ margin: 8mm 8mm 8mm 8mm;
  }
 
 body {
@@ -153,7 +153,7 @@ body {
 
  .certificate-wrapper {
      margin: 0 !important;
- padding: 4px !important;
+ padding: 2px !important;
   max-width: 100% !important;
 background: #d4af37 !important;
    page-break-inside: avoid;
@@ -165,8 +165,8 @@ background: #d4af37 !important;
     inset 0 0 0 12px #d4af37,
     inset 0 0 0 22px white,
  inset 0 0 0 20px #d4af37 !important;
- padding: 80px 60px !important;
-    min-height: 1000px !important;
+ padding: 40px 40px !important;
+    min-height: 950px !important;
      page-break-inside: avoid;
 }
 
@@ -174,52 +174,52 @@ background: #d4af37 !important;
  .certificate-inner::after,
       .corner-decoration {
 border-width: 3px !important;
- width: 60px !important;
- height: 60px !important;
+ width: 50px !important;
+ height: 50px !important;
        }
 
     .certificate-inner::before {
-   top: 30px !important;
-      left: 30px !important;
+   top: 20px !important;
+      left: 20px !important;
       }
 
 .certificate-inner::after {
-    bottom: 30px !important;
-           right: 30px !important;
+    bottom: 20px !important;
+           right: 20px !important;
       }
 
  .corner-top-right {
-  top: 30px !important;
-          right: 30px !important;
+  top: 20px !important;
+          right: 20px !important;
     }
 
         .corner-bottom-left {
-   bottom: 30px !important;
-  left: 30px !important;
+   bottom: 20px !important;
+  left: 20px !important;
       }
 
      .C-title {
-       font-size: 2rem !important;
-    margin-top: 3rem !important;
+       font-size: 1.8rem !important;
+    margin-top: 1.5rem !important;
  }
 
        .C-title2 {
-        font-size: 2rem !important;
-          margin-bottom: 3rem !important;
+        font-size: 1.8rem !important;
+          margin-bottom: 1.5rem !important;
             }
 
    .c-body {
-    padding-top: 80px !important;
-    padding-left: 60px !important;
-       padding-right: 60px !important;
-font-size: 18px !important;
-   line-height: 40px !important;
+    padding-top: 30px !important;
+    padding-left: 30px !important;
+       padding-right: 30px !important;
+font-size: 17px !important;
+   line-height: 36px !important;
     }
 
       .c-footer {
-    padding-left: 60px !important;
-      font-size: 18px !important;
-      margin-top: 40px !important;
+    padding-left: 30px !important;
+      font-size: 17px !important;
+      margin-top: 20px !important;
 }
 
         .d-print-none, .NoPrint {
@@ -276,12 +276,11 @@ font-size: 18px !important;
 </div>
         </ItemTemplate>
     </asp:FormView>
-    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName,Student.MothersName, Student.StudentPermanentAddress, Education_Year.EducationYear, SchoolInfo.SchoolName, SchoolInfo.Address, Student.DateofBirth, StudentsClass.StudentClassID, Student.StudentID, StudentsClass.RollNo FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID INNER JOIN SchoolInfo ON Student.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.Class_Status IS NULL)">
+    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName,Student.MothersName, Student.StudentPermanentAddress, Education_Year.EducationYear, SchoolInfo.SchoolName, SchoolInfo.Address, Student.DateofBirth, StudentsClass.StudentClassID, Student.StudentID, StudentsClass.RollNo FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID INNER JOIN SchoolInfo ON Student.SchoolID = SchoolInfo.SchoolID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.Class_Status IS NULL) ORDER BY StudentsClass.EducationYearID DESC">
         <SelectParameters>
-       <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
-      <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-   <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-     </SelectParameters>
+            <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
+            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+        </SelectParameters>
     </asp:SqlDataSource>
 
 
@@ -327,7 +326,7 @@ font-size: 18px !important;
                 minLength: 1,
                 source: function (request, result) {
                     $.ajax({
-                        url: "CharecterCertificate_English.aspx/GetAllID",
+                        url: "Prottoyon_Bangla.aspx/GetAllID",
                         data: JSON.stringify({ 'ids': request }),
                         dataType: "json",
                         type: "POST",

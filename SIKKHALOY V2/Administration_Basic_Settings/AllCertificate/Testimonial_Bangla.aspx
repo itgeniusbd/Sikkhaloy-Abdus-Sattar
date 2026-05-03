@@ -141,7 +141,7 @@ position: absolute;
   @media print {
 @page {
     size: A4 portrait;
- margin: 0;
+ margin: 8mm 8mm 8mm 8mm;
  }
 
 body {
@@ -152,22 +152,33 @@ margin: 0 !important;
       print-color-adjust: exact;
  }
 
+#sidedrawer,
+#footer,
+.d-print-none, .NoPrint {
+    display: none !important;
+}
+
+#content-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 .certificate-wrapper {
 margin: 0 !important;
- padding: 4px !important;
+ padding: 2px !important;
             max-width: 100% !important;
 background: #d4af37 !important;
    page-break-inside: avoid;
       }
-  
+
 .certificate-inner {
   box-shadow: 
     inset 0 0 0 10px white,
     inset 0 0 0 12px #d4af37,
     inset 0 0 0 22px white,
  inset 0 0 0 20px #d4af37 !important;
- padding: 80px 60px !important;
-    min-height: 1000px !important;
+ padding: 40px 40px !important;
+    min-height: 950px !important;
    page-break-inside: avoid;
 }
 
@@ -277,11 +288,10 @@ bottom: 30px !important;
 </div>
   </ItemTemplate>
     </asp:FormView>
-    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.Class_Status IS NULL)">
+    <asp:SqlDataSource ID="Reject_StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT CreateClass.Class, Student.ID, Student.StudentsName, Student.Gender, Student.FathersName, Student.MothersName, Student.StudentPermanentAddress, StudentsClass.StudentClassID, Student.StudentID, Student.DateofBirth, StudentsClass.RollNo FROM Student INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.Class_Status IS NULL) ORDER BY StudentsClass.EducationYearID DESC">
    <SelectParameters>
             <asp:ControlParameter ControlID="IDTextBox" Name="ID" PropertyName="Text" />
     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-   <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
   </SelectParameters>
   </asp:SqlDataSource>
 
