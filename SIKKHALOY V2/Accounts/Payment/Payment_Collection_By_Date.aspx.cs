@@ -395,29 +395,33 @@ namespace EDUCATION.COM.Accounts.Payment
 
             // Calculate current due
             decimal currentDue = 0.0m;
-using (SqlConnection tempCon = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString()))
- {
-   try
-     {
-     string studentId = StudentInfoFormView.DataKey["ID"].ToString();
-       SqlCommand dueCmd = new SqlCommand("SELECT ISNULL(SUM(Due), 0) AS TotalDue FROM vw_TotalDue_ByID WHERE ID = @ID AND SchoolID = @SchoolID", tempCon);
-  dueCmd.Parameters.AddWithValue("@ID", studentId);
-          dueCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-      tempCon.Open();
-       object result = dueCmd.ExecuteScalar();
-     if (result != null && result != DBNull.Value)
-{
-      currentDue = Convert.ToDecimal(result);
-     }
-       tempCon.Close();
-    }
-     catch
-        {
-   // If error, currentDue remains 0
- if (tempCon.State == System.Data.ConnectionState.Open)
-         tempCon.Close();
-  }
-    }
+            using (SqlConnection tempCon = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString()))
+            {
+                try
+                {
+                    string studentId = StudentInfoFormView.DataKey["ID"].ToString();
+                    SqlCommand dueCmd = new SqlCommand(@"SELECT ISNULL(SUM(CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 
+                THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) 
+                ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END), 0) AS TotalDue 
+            FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID 
+            WHERE Income_PayOrder.Status = 'Due' AND Income_PayOrder.EndDate <= GETDATE() AND Student.ID = @ID AND Income_PayOrder.SchoolID = @SchoolID AND Income_PayOrder.Is_Active = 1", tempCon);
+                    dueCmd.Parameters.AddWithValue("@ID", studentId);
+                    dueCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                    tempCon.Open();
+                    object result = dueCmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        currentDue = Convert.ToDecimal(result);
+                    }
+                    tempCon.Close();
+                }
+                catch
+                {
+                    // If error, currentDue remains 0
+                    if (tempCon.State == System.Data.ConnectionState.Open)
+                        tempCon.Close();
+                }
+            }
 
     if (StudentInfoFormView.CurrentMode == FormViewMode.ReadOnly)
     {
