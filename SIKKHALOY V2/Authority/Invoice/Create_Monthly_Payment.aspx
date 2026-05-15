@@ -356,17 +356,50 @@ END"
         <div class="tab-pane fade" role="tabpanel" id="tab4">
             <asp:UpdatePanel ID="UpdatePanel8" runat="server">
                 <ContentTemplate>
+
+                    <%-- SQL Agent Job Status Card --%>
+                    <div class="card mb-3 border-0 shadow-sm">
+                        <div class="card-header bg-dark text-white d-flex align-items-center justify-content-between py-2">
+                            <span><i class="fa fa-cogs"></i> <strong>SQL Agent Job Status</strong> &nbsp;<small class="text-muted">— Auto Generate Monthly Invoice</small></span>
+                            <asp:Button ID="RefreshJobStatusBtn" runat="server" Text="↻ Refresh" CssClass="btn btn-sm btn-outline-light" OnClick="RefreshJobStatusBtn_Click" />
+                        </div>
+                        <div class="card-body py-2">
+                            <asp:Panel ID="JobStatusPanel" runat="server">
+                                <table class="table table-sm table-bordered mb-0" style="font-size:13px;">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Job Name</th>
+                                            <th>Enabled</th>
+                                            <th>Last Run</th>
+                                            <th>Last Run Status</th>
+                                            <th>Next Run</th>
+                                            <th>Current State</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong><asp:Label ID="JobNameLabel" runat="server" /></strong></td>
+                                            <td><asp:Label ID="JobEnabledLabel" runat="server" /></td>
+                                            <td><asp:Label ID="JobLastRunLabel" runat="server" /></td>
+                                            <td><asp:Label ID="JobLastStatusLabel" runat="server" /></td>
+                                            <td><asp:Label ID="JobNextRunLabel" runat="server" /></td>
+                                            <td><asp:Label ID="JobCurrentStateLabel" runat="server" /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <asp:Label ID="JobErrorLabel" runat="server" CssClass="text-danger" Visible="false" />
+                            </asp:Panel>
+                        </div>
+                    </div>
                     <div class="row mt-3">
-                        <div class="col-md-6">
+                        <div class="col-md-5">
                             <div class="card border-warning">
-                                <div class="card-header bg-warning text-dark">
+                                <div class="card-header bg-warning text-dark py-2">
                                     <i class="fa fa-clock"></i> <strong>Grace Period (সাময়িক এক্সেস)</strong>
                                 </div>
-                                <div class="card-body">
-                                    <p class="text-muted">যে প্রতিষ্ঠানের ইনভয়েসের মেয়াদ শেষ হয়েছে তাকে নির্দিষ্ট তারিখ পর্যন্ত সাময়িক access দিন।</p>
-                                    <div class="form-group">
-                                        <label>প্রতিষ্ঠান নির্বাচন করুন</label>
-                                        <asp:DropDownList ID="GraceSchool_DDL" CssClass="form-control select2-dropdown" runat="server"
+                                <div class="card-body py-2">
+                                    <div class="form-group mb-2">
+                                        <asp:DropDownList ID="GraceSchool_DDL" CssClass="form-control form-control-sm select2-dropdown" runat="server"
                                             DataSourceID="GraceSchoolSQL"
                                             DataTextField="DisplayText"
                                             DataValueField="SchoolID"
@@ -379,28 +412,26 @@ END"
                                         </asp:SqlDataSource>
                                         <asp:RequiredFieldValidator ControlToValidate="GraceSchool_DDL" InitialValue="0"
                                             ValidationGroup="Grace" ID="GraceSchoolValidator" runat="server"
-                                            ErrorMessage="প্রতিষ্ঠান নির্বাচন করুন" CssClass="text-danger d-block"></asp:RequiredFieldValidator>
+                                            ErrorMessage="প্রতিষ্ঠান নির্বাচন করুন" CssClass="text-danger d-block" Display="Dynamic"></asp:RequiredFieldValidator>
                                     </div>
-                                    <div class="form-group">
-                                        <label>Grace Period পর্যন্ত তারিখ</label>
-                                        <asp:TextBox ID="GraceUntil_TextBox" placeholder="তারিখ নির্বাচন করুন"
-                                            CssClass="form-control datepicker" runat="server"></asp:TextBox>
+                                    <div class="form-group mb-2">
+                                        <asp:TextBox ID="GraceUntil_TextBox" placeholder="Grace পর্যন্ত তারিখ"
+                                            CssClass="form-control form-control-sm datepicker" runat="server"></asp:TextBox>
                                         <asp:RequiredFieldValidator ControlToValidate="GraceUntil_TextBox"
                                             ValidationGroup="Grace" ID="GraceDateValidator" runat="server"
-                                            ErrorMessage="তারিখ দিন" CssClass="text-danger d-block"></asp:RequiredFieldValidator>
-                                        <small class="form-text text-muted">এই তারিখ পর্যন্ত প্রতিষ্ঠানটি software ব্যবহার করতে পারবে।</small>
+                                            ErrorMessage="তারিখ দিন" CssClass="text-danger d-block" Display="Dynamic"></asp:RequiredFieldValidator>
                                     </div>
                                     <asp:Button ID="GraceSubmit_Button" ValidationGroup="Grace" runat="server"
                                         Text="Grace Period সেট করুন"
-                                        CssClass="btn btn-warning"
+                                        CssClass="btn btn-warning btn-sm"
                                         OnClick="GraceSubmit_Button_Click" />
-                                    <asp:Label ID="GraceMsg_Label" runat="server" CssClass="ml-2"></asp:Label>
+                                    <asp:Label ID="GraceMsg_Label" runat="server" CssClass="ml-2 small"></asp:Label>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-7">
                             <div class="card">
-                                <div class="card-header bg-light">
+                                <div class="card-header bg-light py-2">
                                     <i class="fa fa-list"></i> <strong>বর্তমান Grace Period তালিকা</strong>
                                 </div>
                                 <div class="card-body p-0">

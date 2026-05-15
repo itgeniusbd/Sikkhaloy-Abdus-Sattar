@@ -3,40 +3,84 @@
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="CSS/ExamPosition.css?v=1.0.5" rel="stylesheet" />
     <link href="https://fonts.maateen.me/kalpurush/font.css" rel="stylesheet">
+    <style>
+        /* Subject columns: equal width, header wraps */
+        #<%= StudentsGridView.ClientID %> th.subject-col,
+        #<%= StudentsGridView.ClientID %> td.subject-col {
+            width: 70px !important;
+            min-width: 70px !important;
+            max-width: 70px !important;
+            word-wrap: break-word;
+            white-space: normal;
+            text-align: center;
+        }
+        /* Name column fixed width */
+        #<%= StudentsGridView.ClientID %> th:nth-child(3),
+        #<%= StudentsGridView.ClientID %> td:nth-child(3) {
+            width: 150px !important;
+            min-width: 150px !important;
+            max-width: 150px !important;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        #<%= StudentsGridView.ClientID %> th {
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        .mGrid th {
+    padding: 0.3rem 0.1rem ;
+    border: 1px solid #717783;
+    font-size: 11px;
+    font-weight: 400;
+    background-color: #4B515D;
+    color: #fff;
+}
+        .mGrid td {
+    padding: 0.3rem 0.1rem !important;
+    border: 1px solid #dee2e6;
+    color: #000;
+    font-size: 11px;
+    font-weight: 300;
+        font-weight: bold;
+}
+    </style>
     <style media="print">
         .FthSub {
             color: #304ffe;
             font-size: 12px;
         }
         body {
-    font-family: 'Kalpurush', serif;
-    font-weight:bolder;
-    font-size:large;
-}
-
-         /* GridView header repeated on each printed page */
-    #<%= StudentsGridView.ClientID %> thead { 
-        display: table-header-group; 
-    }
-
-    /* GridView footer repeated on each printed page, যদি থাকে */
-    #<%= StudentsGridView.ClientID %> tfoot { 
-        display: table-footer-group; 
-    }
-
-    /* Optional: Hide any element with class 'NoPrint' */
-    .NoPrint { 
-        display: none !important; 
-    }
-
-    @media print {
-    #<%= StudentsGridView.ClientID %> thead {
-        display: table-header-group;
-    }
-    #<%= StudentsGridView.ClientID %> tfoot {
-        display: table-footer-group;
-    }
-}
+            font-family: 'Kalpurush', serif;
+        }
+        .mGrid td {
+            font-weight: bold !important;
+            font-size: 11px !important;
+            color: #000 !important;
+        }
+        .mGrid th {
+            font-weight: bold !important;
+            font-size: 11px !important;
+        }
+        .First, .Second, .Third {
+            font-weight: bold !important;
+        }
+        /* GridView header repeated on each printed page */
+        #<%= StudentsGridView.ClientID %> thead { 
+            display: table-header-group; 
+        }
+        #<%= StudentsGridView.ClientID %> tfoot { 
+            display: table-footer-group; 
+        }
+        .NoPrint { 
+            display: none !important; 
+        }
+        .signature-section {
+            margin-top: 60px;
+            page-break-inside: avoid;
+            font-size:16px;
+            font-weight: bold !important;
+            
+        }
     </style>
     
     <style>
@@ -202,15 +246,23 @@
 
     <%if (StudentsGridView.Rows.Count > 0)
         {%>
-    <div class="d-print-none text-right">
-        <button type="button" class="btn btn-link" data-toggle="modal" data-target="#printOptionModal">
-            <i class="fa fa-cog" aria-hidden="true"></i>
-            Print Option
-        </button>
+    <div class="d-print-none text-right mb-1">
 
-        <button type="button" class="btn btn-primary" onclick="window.print()">
-            <i class="fa fa-print" aria-hidden="true"></i>
-            Print
+    </div>
+
+    <div class="d-print-none mb-2" style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:8px 14px;">
+
+        <strong style="margin-right:8px; font-size:13px;">যে কোন কলাম হাইড করে প্রিন্ট দিতে টিক উঠান:</strong>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="আইডি" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> আইডি</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="রোল" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> রোল</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="মোট" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> মোট</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="গড়" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> গড়</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="গ্রেড" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> গ্রেড</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="পয়েন্ট" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> পয়েন্ট</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="ক্লাশ মেধা" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> ক্লাশ মেধা</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="শাখা মেধা" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> শাখা মেধা</label>
+            <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="fa fa-print" aria-hidden="true"></i> Print
         </button>
     </div>
     <%}%>
@@ -245,35 +297,30 @@
 
     </div>
 
+    <%if (StudentsGridView.Rows.Count > 0)
+        {%>
+    <div class="signature-section" style="margin-top: 30px; page-break-inside: avoid;">
+        <table style="width: 100%; border-collapse: collapse; font-family: 'Kalpurush', serif;">
+            <tr>
+              <td style="width: 33%; text-align: center; padding-top: 45px;">
+                    <div style="width: 130px; border-top: 1px solid #000; margin: 0 auto 6px auto;"></div>
+                    <strong style="font-size: 15px; font-weight: bold;">পরীক্ষা নিয়ন্ত্রক</strong>
+                </td>
+                <td style="width: 33%; text-align: center; padding-top: 45px;">
+                    <div style="width: 130px; border-top: 1px solid #000; margin: 0 auto 6px auto;"></div>
+                    <strong style="font-size: 15px; font-weight: bold;">শ্রেণি শিক্ষক</strong>
+                </td>
 
-
-    <!-- modal print option--->
-    <div class="modal fade d-print-none" id="printOptionModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Print Option</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <input onchange="printHiddenTableColumnByHeader('ক্লাশ মেধা', this);" type="checkbox" id="isHiddenPrintClassCol" />
-                        <label for="isHiddenPrintClassCol">Hide ক্লাশ মেধা Column</label>
-                    </div>
-                    <div class="form-group">
-                        <input onchange="printHiddenTableColumnByHeader('শাখা মেধা', this);" type="checkbox" id="isHiddenPrintSectionCol" />
-                        <label for="isHiddenPrintSectionCol">Hide শাখা মেধা Column</label>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
-                </div>
-            </div>
-        </div>
+                <td style="width: 33%; text-align: center; padding-top: 45px;">
+                    <div style="width: 130px; border-top: 1px solid #fff; margin: 0 auto 6px auto;"></div>
+                    <strong style="font-size: 15px; font-weight: bold;"></strong>
+                </td>
+            </tr>
+        </table>
     </div>
+    <%}%>
+
+
 
 
 
@@ -290,127 +337,31 @@
     </asp:UpdateProgress>
 
     <script type="text/javascript">
-        // Print Option - Add class for print media only (don't hide on screen)
-        function printHiddenTableColumn(columnNumber, checkbox) {
-            const gridViewId = '<%=StudentsGridView.ClientID %>';
-            const table = document.getElementById(gridViewId);
-            
-            if (!table) {
-                console.error('GridView not found!');
-                return;
-            }
-
-            const isChecked = checkbox.checked;
-            console.log('Column:', columnNumber, 'Checked:', isChecked);
-
-            // Get header cell
-            const headerRow = table.querySelector('thead tr');
-            const headerCell = headerRow ? headerRow.querySelector(`th:nth-child(${columnNumber})`) : null;
-
-            // Get all body cells in this column
-            const bodyRows = table.querySelectorAll('tbody tr');
-
-            if (isChecked) {
-                // Add class to hide only in print (NOT on screen)
-                if (headerCell) {
-                    headerCell.classList.add('d-print-none');
-                    console.log('Added d-print-none to header column', columnNumber);
-                }
-
-                bodyRows.forEach(row => {
-                    const cell = row.querySelector(`td:nth-child(${columnNumber})`);
-                    if (cell) {
-                        cell.classList.add('d-print-none');
-                    }
+        function applyColToggleChange() {
+            var table = $("[id*=StudentsGridView]");
+            $(".col-toggle").each(function () {
+                var headerText = $(this).data("header");
+                var visible = $(this).is(":checked");
+                var colNum = -1;
+                table.find("thead th").each(function (i) {
+                    if ($(this).text().trim() === headerText) { colNum = i + 1; return false; }
                 });
-                console.log('Added d-print-none to', bodyRows.length, 'body rows');
-            } else {
-                // Remove class to show in print
-                if (headerCell) {
-                    headerCell.classList.remove('d-print-none');
-                    console.log('Removed d-print-none from header column', columnNumber);
-                }
-
-                bodyRows.forEach(row => {
-                    const cell = row.querySelector(`td:nth-child(${columnNumber})`);
-                    if (cell) {
-                        cell.classList.remove('d-print-none');
-                    }
+                if (colNum === -1) return;
+                table.find("tr").each(function () {
+                    $(this).find("th:nth-child(" + colNum + "), td:nth-child(" + colNum + ")").toggle(visible);
                 });
-                console.log('Removed d-print-none from', bodyRows.length, 'body rows');
-            }
-        };
-
-        // Print Option - Find column by header text and hide it in print
-        function printHiddenTableColumnByHeader(headerText, checkbox) {
-            const gridViewId = '<%=StudentsGridView.ClientID %>';
-            const table = document.getElementById(gridViewId);
-            
-            if (!table) {
-                console.error('GridView not found!');
-                return;
-            }
-
-            const isChecked = checkbox.checked;
-            console.log('Looking for header:', headerText, 'Checked:', isChecked);
-
-            // Get header row
-            const headerRow = table.querySelector('thead tr');
-            if (!headerRow) {
-                console.error('Header row not found!');
-                return;
-            }
-
-            // Find the column index by header text
-            const headerCells = headerRow.querySelectorAll('th');
-            let columnIndex = -1;
-            
-            headerCells.forEach((cell, index) => {
-                if (cell.textContent.trim() === headerText) {
-                    columnIndex = index + 1; // nth-child is 1-based
-                    console.log('Found column at index:', columnIndex);
-                }
             });
+        }
 
-            if (columnIndex === -1) {
-                console.error('Column with header "' + headerText + '" not found!');
-                return;
-            }
+        $(document).ready(function () {
+            $(document).on("change", ".col-toggle", function () {
+                applyColToggleChange();
+            });
+        });
 
-            // Get header cell and body cells
-            const headerCell = headerRow.querySelector(`th:nth-child(${columnIndex})`);
-            const bodyRows = table.querySelectorAll('tbody tr');
-
-            if (isChecked) {
-                // Add class to hide only in print (NOT on screen)
-                if (headerCell) {
-                    headerCell.classList.add('d-print-none');
-                    console.log('Added d-print-none to header:', headerText);
-                }
-
-                bodyRows.forEach(row => {
-                    const cell = row.querySelector(`td:nth-child(${columnIndex})`);
-                    if (cell) {
-                        cell.classList.add('d-print-none');
-                    }
-                });
-                console.log('Added d-print-none to', bodyRows.length, 'body rows');
-            } else {
-                // Remove class to show in print
-                if (headerCell) {
-                    headerCell.classList.remove('d-print-none');
-                    console.log('Removed d-print-none from header:', headerText);
-                }
-
-                bodyRows.forEach(row => {
-                    const cell = row.querySelector(`td:nth-child(${columnIndex})`);
-                    if (cell) {
-                        cell.classList.remove('d-print-none');
-                    }
-                });
-                console.log('Removed d-print-none from', bodyRows.length, 'body rows');
-            }
-        };
+        Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+            applyColToggleChange();
+        });
     </script>
 
 

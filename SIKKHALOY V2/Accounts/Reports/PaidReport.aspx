@@ -86,7 +86,7 @@ WHERE
  (Income_MoneyReceipt.EducationYearID LIKE @EducationYearID) AND 
  (StudentsClass.SectionID LIKE @SectionID) AND 
  (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND 
- (CAST(Income_MoneyReceipt.PaidDate AS DATE) BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000'))">
+ (CAST(Income_MoneyReceipt.PaidDate AS DATE) BETWEEN ISNULL(TRY_CONVERT(DATE, @From_Date, 106), '1-1-1000') AND ISNULL(TRY_CONVERT(DATE, @To_Date, 106), '1-1-3000'))">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             <asp:ControlParameter ControlID="FormDateTextBox" Name="From_Date" PropertyName="Text" />
@@ -134,8 +134,8 @@ WHERE
 CAST(Income_MoneyReceipt.PaidDate AS DATE) AS PaidDate,
  Income_MoneyReceipt.MoneyReceiptID, Income_MoneyReceipt.TotalAmount, StudentsClass.ClassID
  FROM Income_MoneyReceipt INNER JOIN 
- Student ON Income_MoneyReceipt.StudentID = Student.StudentID INNER JOIN 
- StudentsClass ON Income_MoneyReceipt.StudentClassID = StudentsClass.StudentClassID LEFT OUTER JOIN 
+ StudentsClass ON Income_MoneyReceipt.StudentClassID = StudentsClass.StudentClassID INNER JOIN
+ Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN 
  CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN 
  CreateClass ON StudentsClass.ClassID = CreateClass.ClassID 
  WHERE (StudentsClass.SchoolID = @SchoolID) AND 
@@ -143,7 +143,7 @@ CAST(Income_MoneyReceipt.PaidDate AS DATE) AS PaidDate,
  (Income_MoneyReceipt.EducationYearID LIKE @EducationYearID) AND 
  (StudentsClass.SectionID LIKE @SectionID) AND 
  (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND 
- (CAST(Income_MoneyReceipt.PaidDate AS DATE) BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000'))
+ (CAST(Income_MoneyReceipt.PaidDate AS DATE) BETWEEN ISNULL(TRY_CONVERT(DATE, @From_Date, 106), '1-1-1000') AND ISNULL(TRY_CONVERT(DATE, @To_Date, 106), '1-1-3000'))
 ORDER BY StudentsClass.ClassID,CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.RollNo AS int) ELSE 0 END"
             CancelSelectOnNullParameter="False">
             <SelectParameters>

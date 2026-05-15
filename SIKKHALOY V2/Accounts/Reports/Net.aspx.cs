@@ -68,5 +68,33 @@ namespace EDUCATION.COM.Accounts.Reports
                 GridView_Header_Printer(DetailsGridView);
             }
         }
+
+        protected void IncomeRepeater_ItemDataBound(object sender, RepeaterItemEventArgs e)
+        {
+            if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
+            {
+                GridView gv = (GridView)e.Item.FindControl("DetailsGridView");
+                SqlDataSource ds = (SqlDataSource)e.Item.FindControl("DetailsSQL");
+                if (gv != null && ds != null)
+                {
+                    gv.DataSource = ds;
+                    gv.DataBind();
+                }
+            }
+        }
+
+        protected void ExpenseRepeater_ItemDataBound(object sender, RepeaterItemEventArgs e)
+        {
+            if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
+            {
+                GridView gv = (GridView)e.Item.FindControl("DetailsGridView");
+                SqlDataSource ds = (SqlDataSource)e.Item.FindControl("DetailsSQL");
+                if (gv != null && ds != null)
+                {
+                    gv.DataSource = ds;
+                    gv.DataBind();
+                }
+            }
+        }
     }
 }

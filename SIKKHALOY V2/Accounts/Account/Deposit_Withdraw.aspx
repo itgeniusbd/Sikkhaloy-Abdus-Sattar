@@ -183,7 +183,7 @@
                                         <asp:TemplateField HeaderText="Account">
                                             <ItemTemplate>
                                                 <asp:Label ID="Label2" runat="server" Text='<%# Eval("AccountName") %>' />
-                                                (<asp:Label ID="Label1" runat="server" Text='<%# Bind("AccountBalance") %>' />)
+                                                (<asp:Label ID="Label1" runat="server" Text='<%# Eval("AccountBalance") %>' />)
                                             </ItemTemplate>
                                             <EditItemTemplate>
                                                 <asp:TextBox ID="AnTextBox" CssClass="textbox" runat="server" Text='<%# Bind("AccountName") %>'></asp:TextBox>
@@ -214,7 +214,7 @@ DELETE FROM [Account] WHERE [AccountID] = @AccountID"
 INSERT INTO Account(AccountName, RegistrationID, SchoolID) VALUES (@AccountName, @RegistrationID, @SchoolID)
 ELSE
 SET @ERROR = @AccountName + '  Already Exists'"
-                                    SelectCommand="SELECT * FROM Account WHERE (SchoolID = @SchoolID)" UpdateCommand="UPDATE Account SET AccountName = @AccountName WHERE (AccountID = @AccountID)" OnInserted="AccountNameSQL_Inserted" ProviderName="<%$ ConnectionStrings:EducationConnectionString.ProviderName %>">
+                                    SelectCommand="SELECT AccountID, SchoolID, RegistrationID, AccountName, ROUND(AccountBalance, 0) AS AccountBalance, Total_IN, Total_OUT, Total_Income, Total_Expense, Deleted_Income, Deleted_Expense, Default_Status, AccountCreateDate, PAY_Buttton_SMS_Enable_Disable, Teacher_BackDate_Attendance FROM Account WHERE (SchoolID = @SchoolID)" UpdateCommand="UPDATE Account SET AccountName = @AccountName WHERE (AccountID = @AccountID)" OnInserted="AccountNameSQL_Inserted" ProviderName="<%$ ConnectionStrings:EducationConnectionString.ProviderName %>">
                                     <DeleteParameters>
                                         <asp:Parameter Name="AccountID" Type="Int32" />
                                     </DeleteParameters>

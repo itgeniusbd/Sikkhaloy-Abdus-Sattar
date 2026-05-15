@@ -86,6 +86,9 @@
                         </div>
                     </div>
                     <p class="text-muted">বিস্তারিত দেখতে Due Invoice পেজে যান।</p>
+                    <a href="https://youtu.be/vbW3St6L1wA" target="_blank" class="btn btn-sm btn-outline-danger mt-1" style="font-size:13px;">
+                        <i class="fab fa-youtube"></i> কিভাবে অনলাইনে পেমেন্ট করবেন দেখুন
+                    </a>
                 </div>
                 <div class="modal-footer justify-content-center" style="flex-wrap:nowrap; gap:6px; padding:10px;">
                     <a href="Invoice/Due_Invoice.aspx" class="btn btn-danger" style="white-space:nowrap; font-size:12px; padding:6px 10px;">

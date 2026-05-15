@@ -179,6 +179,19 @@
                             </div>
 
                             <div class="form-group">
+                                <label>সাব-ক্যাটাগরি</label>
+                                <asp:DropDownList ID="SubCategoryDropDownList" runat="server" CssClass="form-control"
+                                    DataSourceID="SubCatSQL" DataTextField="SubCategoryName" DataValueField="SubCategoryID"
+                                    SelectedValue='<%# Bind("SubCategoryID") %>' AppendDataBoundItems="True">
+                                    <asp:ListItem Value="">-- কোনো সাব-ক্যাটাগরি নেই --</asp:ListItem>
+                                </asp:DropDownList>
+                                <asp:SqlDataSource ID="SubCatSQL" runat="server"
+                                    ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                                    SelectCommand="SELECT SubCategoryID, SubCategoryName FROM Employee_SubCategory WHERE SchoolID=@SchoolID AND EmployeeType='Teacher' ORDER BY SubCategoryName">
+                                    <SelectParameters><asp:SessionParameter Name="SchoolID" SessionField="SchoolID" /></SelectParameters>
+                                </asp:SqlDataSource>
+                            </div>
+                            <div class="form-group">
                                 <asp:Button ID="UpdateButton" CssClass="btn btn-primary" runat="server" CommandName="Update" Text="Update Job Info" />
                             </div>
                         </div>
@@ -187,7 +200,7 @@
             </div>
         </EditItemTemplate>
     </asp:FormView>
-    <asp:SqlDataSource ID="JobInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT * FROM Employee_Info WHERE (EmployeeID = @EmployeeID) AND (SchoolID = @SchoolID)" UpdateCommand="UPDATE Employee_Info SET Permanent_Temporary = @Permanent_Temporary, Work_Time_Basis = @Work_Time_Basis, Time_Basis_Type = @Time_Basis_Type,Employee_Payorder_NameID=@Employee_Payorder_NameID, Salary = @Salary, IS_Abs_Deducted = @IS_Abs_Deducted, Abs_Deduction = @Abs_Deduction, IS_Late_Count_As_Abs = @IS_Late_Count_As_Abs, Late_Days = @Late_Days WHERE (EmployeeID = @EmployeeID)">
+    <asp:SqlDataSource ID="JobInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT * FROM Employee_Info WHERE (EmployeeID = @EmployeeID) AND (SchoolID = @SchoolID)" UpdateCommand="UPDATE Employee_Info SET Permanent_Temporary = @Permanent_Temporary, Work_Time_Basis = @Work_Time_Basis, Time_Basis_Type = @Time_Basis_Type,Employee_Payorder_NameID=@Employee_Payorder_NameID, Salary = @Salary, IS_Abs_Deducted = @IS_Abs_Deducted, Abs_Deduction = @Abs_Deduction, IS_Late_Count_As_Abs = @IS_Late_Count_As_Abs, Late_Days = @Late_Days, SubCategoryID = CASE WHEN @SubCategoryID='' THEN NULL ELSE CAST(@SubCategoryID AS INT) END WHERE (EmployeeID = @EmployeeID)">
         <SelectParameters>
             <asp:QueryStringParameter Name="EmployeeID" QueryStringField="Emp" />
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -202,8 +215,9 @@
             <asp:Parameter Name="IS_Late_Count_As_Abs" />
             <asp:Parameter Name="EmployeeID" />
             <asp:Parameter Name="Late_Days" />
-             <asp:Parameter Name="Employee_Payorder_NameID" />
-             </UpdateParameters>
+            <asp:Parameter Name="Employee_Payorder_NameID" />
+            <asp:Parameter Name="SubCategoryID" />
+        </UpdateParameters>
     </asp:SqlDataSource>
 
 

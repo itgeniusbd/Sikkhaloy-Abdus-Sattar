@@ -23,7 +23,7 @@
         </ItemTemplate>
     </asp:FormView>
     <asp:SqlDataSource ID="IntotalPDueSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-        SelectCommand="SELECT ISNULL(SUM(CASE WHEN EndDate &lt; GETDATE() - 1 THEN ISNULL(Amount , 0) + ISNULL(LateFee , 0) - ISNULL(Discount , 0) - ISNULL(PaidAmount , 0) - ISNULL(LateFee_Discount , 0) ELSE ISNULL(Amount , 0) - ISNULL(Discount , 0) - ISNULL(PaidAmount , 0) END), 0) AS PresentDue FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID WHERE (Income_PayOrder.Status = 'Due') AND (Income_PayOrder.EndDate &lt; GETDATE()) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID) AND (Student.Status = N'Active')">
+        SelectCommand="SELECT ISNULL(SUM(CASE WHEN Income_PayOrder.EndDate &lt; GETDATE()-1 AND ISNULL(OnTimePaid.PaidOnTime,0) &lt; (ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)) THEN ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0) ELSE ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0) END),0) AS PresentDue FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID LEFT JOIN (SELECT pr.PayOrderID, SUM(pr.PaidAmount) AS PaidOnTime FROM Income_PaymentRecord pr INNER JOIN Income_PayOrder po2 ON pr.PayOrderID = po2.PayOrderID WHERE pr.PaidDate &lt;= po2.EndDate GROUP BY pr.PayOrderID) AS OnTimePaid ON OnTimePaid.PayOrderID = Income_PayOrder.PayOrderID WHERE (Income_PayOrder.EndDate &lt; GETDATE()) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID) AND (Student.Status = N'Active')">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
@@ -116,7 +116,7 @@ ORDER BY Income_Roles.Role">
                             <HeaderStyle Font-Size="9pt" />
                             <FooterStyle CssClass="GridFooter" />
                         </asp:GridView>
-                        <asp:SqlDataSource ID="TotalDueSQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Income_PayOrder.StudentID, Student.SchoolID, Student.ID, Student.StudentsName, StudentsClass.RollNo, SUM(CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) AS Due, Student.SMSPhoneNo FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID WHERE (Income_PayOrder.Status = 'Due') AND (Income_PayOrder.EndDate &lt; GETDATE()) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (Student.Status = N'Active') AND (StudentsClass.ClassID = @ClassID) AND StudentsClass.SectionID LIKE @SectionID AND (Income_PayOrder.RoleID LIKE @RoleID) AND (Income_PayOrder.Is_Active = 1) GROUP BY Student.StudentsName, Student.ID, Income_PayOrder.StudentID, Student.SMSPhoneNo, StudentsClass.RollNo, Student.SchoolID HAVING SUM(CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) &gt; 0 ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END">
+                        <asp:SqlDataSource ID="TotalDueSQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Income_PayOrder.StudentID, Student.SchoolID, Student.ID, Student.StudentsName, StudentsClass.RollNo, SUM(CASE WHEN Income_PayOrder.EndDate &lt; GETDATE()-1 AND ISNULL(OnTimePaid.PaidOnTime,0) &lt; (ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)) THEN ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0) ELSE ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0) END) AS Due, Student.SMSPhoneNo FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN StudentsClass ON Student.StudentID = StudentsClass.StudentID LEFT JOIN (SELECT pr.PayOrderID, SUM(pr.PaidAmount) AS PaidOnTime FROM Income_PaymentRecord pr INNER JOIN Income_PayOrder po2 ON pr.PayOrderID = po2.PayOrderID WHERE pr.PaidDate &lt;= po2.EndDate GROUP BY pr.PayOrderID) AS OnTimePaid ON OnTimePaid.PayOrderID = Income_PayOrder.PayOrderID WHERE (Income_PayOrder.EndDate &lt; GETDATE()) AND (Student.SchoolID = @SchoolID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (Student.Status = N'Active') AND (StudentsClass.ClassID = @ClassID) AND StudentsClass.SectionID LIKE @SectionID AND (Income_PayOrder.RoleID LIKE @RoleID) AND (Income_PayOrder.Is_Active = 1) GROUP BY Student.StudentsName, Student.ID, Income_PayOrder.StudentID, Student.SMSPhoneNo, StudentsClass.RollNo, Student.SchoolID HAVING SUM(CASE WHEN Income_PayOrder.EndDate &lt; GETDATE()-1 AND ISNULL(OnTimePaid.PaidOnTime,0) &lt; (ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)) THEN ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0) ELSE ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0) END) &gt; 0 ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END">
                             <SelectParameters>
                                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                                 <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
@@ -204,11 +204,13 @@ ORDER BY Income_Roles.Role">
             <div class="table-responsive mb-2">
                 <asp:GridView ID="ID_DueDetailsGridView" runat="server" AutoGenerateColumns="False" DataSourceID="ID_DueDetailsODS" CssClass="mGrid">
                     <Columns>
-                        <asp:BoundField DataField="Role" HeaderText="Role" SortExpression="Role" />
-                        <asp:BoundField DataField="PayFor" HeaderText="Pay For" SortExpression="PayFor" />
-                        <asp:BoundField DataField="PaidAmount" HeaderText="Paid" SortExpression="PaidAmount" />
-                        <asp:BoundField DataField="Due" HeaderText="Due" SortExpression="Due" />
-                        <asp:BoundField DataField="EndDate" HeaderText="End Date" SortExpression="EndDate" DataFormatString="{0:d MMM yyyy}" />
+                        <asp:BoundField DataField="Role" HeaderText="Role" SortExpression="Role" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                        <asp:BoundField DataField="PayFor" HeaderText="Pay For" SortExpression="PayFor" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                        <asp:BoundField DataField="Amount" HeaderText="ফি" SortExpression="Amount" DataFormatString="{0:N0}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                        <asp:BoundField DataField="LateFee" HeaderText="লেট ফি" SortExpression="LateFee" DataFormatString="{0:N0}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                        <asp:BoundField DataField="PaidAmount" HeaderText="Paid" SortExpression="PaidAmount" DataFormatString="{0:N0}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                        <asp:BoundField DataField="Due" HeaderText="Due" SortExpression="Due" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                        <asp:BoundField DataField="EndDate" HeaderText="End Date" SortExpression="EndDate" DataFormatString="{0:d MMM yyyy}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
                     </Columns>
                     <HeaderStyle Font-Size="9pt" />
                     <FooterStyle CssClass="GridFooter" />
@@ -281,20 +283,24 @@ ORDER BY Income_Roles.Role">
                                         <asp:Label ID="NameLabel" CssClass="PD_Name_Class" runat="server" Font-Names="Tahoma" />
                                         <asp:GridView ID="AllDueGridView" runat="server" Width="100%" AutoGenerateColumns="False" ShowFooter="True" OnRowDataBound="AllDueGridView_RowDataBound" Font-Names="Tahoma" ForeColor="#333333">
                                             <Columns>
-                                                <asp:BoundField DataField="Role" HeaderText="Role" />
-                                                <asp:BoundField DataField="PayFor" HeaderText="Pay For" />
-                                                <asp:TemplateField HeaderText="Due">
+                                                <asp:BoundField DataField="Role" HeaderText="Role" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                                                <asp:BoundField DataField="PayFor" HeaderText="Pay For" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                                                <asp:BoundField DataField="Amount" HeaderText="Fee" DataFormatString="{0:N0}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                                                <asp:BoundField DataField="LateFee" HeaderText="Late Fee" DataFormatString="{0:N0}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                                                <asp:BoundField DataField="Discount" HeaderText="Concession" DataFormatString="{0:N0}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                                                <asp:BoundField DataField="PaidAmount" HeaderText="Paid" DataFormatString="{0:N0}" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center" />
+                                                <asp:TemplateField HeaderText="Due" ItemStyle-HorizontalAlign="Center" HeaderStyle-HorizontalAlign="Center">
                                                     <FooterTemplate>
                                                         <asp:Label ID="InSumLabel" runat="server"></asp:Label>
                                                     </FooterTemplate>
                                                     <ItemTemplate>
-                                                        <asp:Label ID="SumAllDueLabel" runat="server" Text='<%# Bind("Due") %>' />
+                                                        <asp:Label ID="SumAllDueLabel" runat="server" Text='<%# Bind("Due") %>' ForeColor="Red" Font-Bold="true" />
                                                     </ItemTemplate>
                                                 </asp:TemplateField>
                                             </Columns>
-                                            <FooterStyle BackColor="#F4F4F4" Font-Size="11pt" />
-                                            <HeaderStyle BackColor="#F4F4F4" Font-Size="11pt" />
-                                            <RowStyle Font-Size="11pt" />
+                                            <FooterStyle BackColor="#F4F4F4" Font-Size="11pt" HorizontalAlign="Center" />
+                                            <HeaderStyle BackColor="#F4F4F4" Font-Size="11pt" HorizontalAlign="Center" />
+                                            <RowStyle Font-Size="11pt" HorizontalAlign="Center" />
                                         </asp:GridView>
                                         <br />
                                         <br />

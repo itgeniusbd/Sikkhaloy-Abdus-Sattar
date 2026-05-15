@@ -243,7 +243,7 @@ font-size: 15px;
                             <ul style="font-size:13px">
                                 <li>  </li>
                                 <li> পিতা : <%# Eval("FathersName")%>  </li>
-                                <li> শ্রেণি : <%# Eval("Class") %></li>
+                               <%-- <li> শ্রেণি : <%# Eval("Class") %></li>--%>
                                  <li> ঠিকানা : <%# Eval("StudentPermanentAddress") %></li>
                                 <li> মোবাইল : <%# Eval("SMSPhoneNo") %></li>
                                 <li> জন্ম তারিখ : <%# Eval("DateofBirth","{0:d MMM yyyy}") %></li>

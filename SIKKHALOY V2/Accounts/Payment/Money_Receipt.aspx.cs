@@ -24,7 +24,12 @@ namespace EDUCATION.COM.Accounts.Payment
         {
             if (string.IsNullOrEmpty(Request.QueryString["s_icD"]) || string.IsNullOrEmpty(Request.QueryString["mN_R"]))
             {
-                Response.Redirect("Payment_Collection.aspx");
+                // Redirect back to whichever collection page referred us
+                string referrer = Request.UrlReferrer?.AbsolutePath ?? "";
+                if (referrer.IndexOf("PAYMENT_COLLECTION_NEW", StringComparison.OrdinalIgnoreCase) >= 0)
+                    Response.Redirect("PAYMENT_COLLECTION_NEW.aspx");
+                else
+                    Response.Redirect("Payment_Collection.aspx");
             }
 
             if (IsPostBack) return;

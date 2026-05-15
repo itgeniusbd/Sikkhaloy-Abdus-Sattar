@@ -7,11 +7,11 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Accounts.Payment
+namespace EDUCATION.COM.ACCOUNTS.Payment
 {
 
 
-    public partial class Payment_Collection_By_Date
+    public partial class Payment_CollectionOLD
     {
 
         /// <summary>
@@ -168,6 +168,15 @@ namespace EDUCATION.COM.Accounts.Payment
         protected global::System.Web.UI.WebControls.SqlDataSource Fee_DiscountSQL;
 
         /// <summary>
+        /// LateFeeUpdateSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource LateFeeUpdateSQL;
+
+        /// <summary>
         /// OtherSessionGridView control.
         /// </summary>
         /// <remarks>
@@ -294,24 +303,6 @@ namespace EDUCATION.COM.Accounts.Payment
         protected global::System.Web.UI.WebControls.SqlDataSource AccountSQL;
 
         /// <summary>
-        /// Paid_Date_TextBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox Paid_Date_TextBox;
-
-        /// <summary>
-        /// dRfv control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.RequiredFieldValidator dRfv;
-
-        /// <summary>
         /// rbActive control.
         /// </summary>
         /// <remarks>
@@ -328,15 +319,6 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RadioButton rbInactive;
-
-        /// <summary>
-        /// RoleCheckBox control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox RoleCheckBox;
 
         /// <summary>
         /// RequiredFieldValidator6 control.

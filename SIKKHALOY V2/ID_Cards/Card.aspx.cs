@@ -116,6 +116,8 @@ namespace EDUCATION.COM.ID_Cards
 
         protected void FindButton_Click(object sender, EventArgs e)
         {
+            Find_ID_TextBox.Text = string.Join(",", Find_ID_TextBox.Text.Split(',').Select(id => id.Trim()));
+
             ClassDropDownList.SelectedIndex = 0;
             GroupDropDownList.Visible = false;
             SectionDropDownList.Visible = false;

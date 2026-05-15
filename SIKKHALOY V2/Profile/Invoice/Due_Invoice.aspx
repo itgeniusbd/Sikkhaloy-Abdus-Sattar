@@ -379,10 +379,10 @@
                 $("#subDueAmountBox").show();
 
                 if (isBlocked === '1') {
-                    // Access blocked — বর্তমান মেসেজ ঠিকই আছে
+                    // Access blocked — পুরনো ডিউ আছে
                     $("#subModalHeader").css('background', '#c0392b');
-                    $("#subModalTitleText").text('সফটওয়্যার অ্যাক্সেস সাময়িকভাবে বন্ধ আছে');
-                    $("#subModalMessage").text('আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হওয়াতে সফটওয়্যার ব্যবহারের অ্যাক্সেস বন্ধ আছে। দয়া করে অনলাইনে পেমেন্ট করে সাবস্ক্রিপশন রিনিউ করুন।');
+                    $("#subModalTitleText").text('সফটওয়্যার অ্যাক্সেস বন্ধ আছে');
+                    $("#subModalMessage").html('আপনার প্রতিষ্ঠানের বকেয়া পেমেন্ট থাকার কারণে সফটওয়্যার অ্যাক্সেস বন্ধ আছে।<br/>অনুগ্রহ করে পেমেন্ট পরিশোধ করে সেবা সচল রাখুন।');
                 } else {
                     // Grace period বা EndDate এখনো পার হয়নি — কত দিন বাকি দেখাও
                     $("#subModalHeader").css('background', '#e67e22');

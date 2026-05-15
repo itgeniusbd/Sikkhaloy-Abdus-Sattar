@@ -283,8 +283,10 @@
     <Content Include="Accounts\Payment\Money_Receipt_By_Date.aspx" />
     <Content Include="Accounts\Payment\Others_Payment.aspx" />
     <Content Include="Accounts\Payment\Others_Payment_Receipt.aspx" />
-    <Content Include="Accounts\Payment\Payment_Collection.aspx" />
+    <Content Include="Accounts\Payment\Payment_CollectionOLD.aspx" />
+    <Content Include="Accounts\Payment\Payment_Collection_By_DateODL.aspx" />
     <Content Include="Accounts\Payment\Payment_Collection_By_Date.aspx" />
+    <Content Include="Accounts\Payment\Payment_Collection.aspx" />
     <Content Include="Accounts\Payment\Payment_Concession_All.aspx" />
     <Content Include="Accounts\Payment\Pay_Order.aspx" />
     <Content Include="Accounts\Payment\Remove_Pay_order.aspx" />
@@ -514,6 +516,7 @@
     <Content Include="CSS\SideNavbar.css" />
     <Content Include="Database\AddSeatNoColumn.sql" />
     <Content Include="Database\AdvancedOptimization.sql" />
+    <Content Include="Database\Migration_Employee_SubCategory.sql" />
     <Content Include="Employee\Acadamic_Calender.aspx" />
     <Content Include="Employee\Add_Holidays.aspx" />
     <Content Include="Employee\Attendance_Schedule.aspx" />
@@ -534,6 +537,7 @@
     <Content Include="Employee\Employee_Leave.aspx" />
     <Content Include="Employee\Employee_List.aspx" />
     <Content Include="Employee\ID_Cards.aspx" />
+    <Content Include="Employee\Manage_SubCategory.aspx" />
     <Content Include="Employee\Payment\CSS\Paid_Receipt.css" />
     <Content Include="Employee\Payment\Paid_Receipt.aspx" />
     <Content Include="Employee\Payment\Salary_Payment.aspx" />
@@ -957,19 +961,30 @@
     <Compile Include="Accounts\Payment\Others_Payment_Receipt.aspx.designer.cs">
       <DependentUpon>Others_Payment_Receipt.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Accounts\Payment\Payment_CollectionOLD.aspx.cs">
+      <DependentUpon>Payment_CollectionOLD.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Accounts\Payment\Payment_CollectionOLD.aspx.designer.cs">
+      <DependentUpon>Payment_CollectionOLD.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Accounts\Payment\Payment_Collection_By_DateODL.aspx.cs">
+      <DependentUpon>Payment_Collection_By_DateODL.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Accounts\Payment\Payment_Collection_By_DateODL.aspx.designer.cs">
+      <DependentUpon>Payment_Collection_By_DateODL.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Accounts\Payment\Payment_Collection_By_Date.aspx.cs">
+      <DependentUpon>Payment_Collection_By_Date.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
     <Compile Include="Accounts\Payment\Payment_Collection.aspx.cs">
       <DependentUpon>Payment_Collection.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="Accounts\Payment\Payment_Collection.aspx.designer.cs">
       <DependentUpon>Payment_Collection.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="Accounts\Payment\Payment_Collection_By_Date.aspx.cs">
-      <DependentUpon>Payment_Collection_By_Date.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="Accounts\Payment\Payment_Collection_By_Date.aspx.designer.cs">
-      <DependentUpon>Payment_Collection_By_Date.aspx</DependentUpon>
     </Compile>
     <Compile Include="Accounts\Payment\Payment_Concession_All.aspx.cs">
       <DependentUpon>Payment_Concession_All.aspx</DependentUpon>
@@ -2097,6 +2112,13 @@
     </Compile>
     <Compile Include="Employee\ID_Cards.aspx.designer.cs">
       <DependentUpon>ID_Cards.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Employee\Manage_SubCategory.aspx.cs">
+      <DependentUpon>Manage_SubCategory.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Employee\Manage_SubCategory.aspx.designer.cs">
+      <DependentUpon>Manage_SubCategory.aspx</DependentUpon>
     </Compile>
     <Compile Include="Employee\Payment\Paid_Receipt.aspx.cs">
       <DependentUpon>Paid_Receipt.aspx</DependentUpon>

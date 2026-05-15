@@ -267,7 +267,14 @@ return; // Error message already set in ValidateOTP method
 
        int schoolID = Convert.ToInt32(Session["SchoolID"]);
                 int registrationID = Convert.ToInt32(Session["RegistrationID"]);
-                decimal submissionAmount = Convert.ToDecimal(SubmissionAmountTextBox.Text);
+
+                decimal submissionAmount;
+                if (!decimal.TryParse(SubmissionAmountTextBox.Text, out submissionAmount) || submissionAmount <= 0)
+                {
+                    ScriptManager.RegisterStartupScript(this, GetType(), "ErrorAlert",
+                        "alert('Please enter a valid submission amount.');", true);
+                    return;
+                }
 
        // Parse date with proper format
     DateTime submissionDate;
@@ -287,14 +294,22 @@ return; // Error message already set in ValidateOTP method
     string remarks = RemarksTextBox.Text.Trim();
     string receiverPhone = ReceiverPhoneTextBox.Text.Trim();
 
-           // Check if amount is valid
-      decimal currentBalance = Convert.ToDecimal(CurrentBalanceLabel.Text.Replace(",", ""));
-      if (submissionAmount > currentBalance)
-   {
-               ScriptManager.RegisterStartupScript(this, GetType(), "ErrorAlert",
-   "alert('Submission amount cannot exceed current balance!');", true);
-        return;
-           }
+                // Re-query current balance from DB to prevent bypassing label validation
+                decimal currentBalance = GetCurrentBalance(schoolID, registrationID);
+
+                if (currentBalance <= 0)
+                {
+                    ScriptManager.RegisterStartupScript(this, GetType(), "ErrorAlert",
+                        "alert('????? ???? ???????? ???? ????????? ???!');", true);
+                    return;
+                }
+
+                if (submissionAmount > currentBalance)
+                {
+                    ScriptManager.RegisterStartupScript(this, GetType(), "ErrorAlert",
+                        $"alert('???? ?????? ??????? ????????? ({currentBalance.ToString("N0")} TK) ?? ???? ??? ????? ??!');", true);
+                    return;
+                }
 
   string insertQuery = @"
    INSERT INTO User_Balance_Submission 
@@ -349,6 +364,61 @@ return; // Error message already set in ValidateOTP method
       ScriptManager.RegisterStartupScript(this, GetType(), "ErrorAlert",
 $"alert('Error: {ex.Message}');", true);
           }
+        }
+
+        private decimal GetCurrentBalance(int schoolID, int registrationID)
+        {
+            string balanceQuery = @"
+SELECT 
+  ISNULL(Income, 0) - ISNULL(Expense, 0) - ISNULL(Submitted, 0) AS RemainingBalance
+FROM 
+(
+    SELECT 
+    (ISNULL(EX_In_T.Other_Income, 0) + ISNULL(Stu_P_T.Student_Income, 0) + ISNULL(Com_In_T.CommitteeDonation, 0)) AS Income,
+    (ISNULL(Ex_T.Expenditure, 0) + ISNULL(Emp_P_T.Employee_Paid, 0)) AS Expense,
+    ISNULL(Sub_T.TotalSubmitted, 0) AS Submitted
+FROM 
+Registration 
+    LEFT OUTER JOIN 
+     (SELECT RegistrationID, ISNULL(SUM(Extra_IncomeAmount), 0) AS Other_Income 
+   FROM Extra_Income WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS EX_In_T 
+    ON Registration.RegistrationID = EX_In_T.RegistrationID
+  LEFT OUTER JOIN 
+        (SELECT RegistrationId, ISNULL(SUM(TotalAmount), 0) AS CommitteeDonation 
+   FROM CommitteeMoneyReceipt WHERE SchoolId = @SchoolID GROUP BY RegistrationId) AS Com_In_T 
+ON Registration.RegistrationID = Com_In_T.RegistrationId
+    LEFT OUTER JOIN 
+        (SELECT RegistrationID, ISNULL(SUM(PaidAmount), 0) AS Student_Income 
+    FROM Income_PaymentRecord WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Stu_P_T 
+    ON Registration.RegistrationID = Stu_P_T.RegistrationID
+  LEFT OUTER JOIN 
+     (SELECT RegistrationID, ISNULL(SUM(Amount), 0) AS Expenditure 
+    FROM Expenditure WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Ex_T 
+  ON Registration.RegistrationID = Ex_T.RegistrationID
+    LEFT OUTER JOIN 
+   (SELECT RegistrationID, ISNULL(SUM(Amount), 0) AS Employee_Paid 
+  FROM Employee_Payorder_Records WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Emp_P_T 
+    ON Registration.RegistrationID = Emp_P_T.RegistrationID
+ LEFT OUTER JOIN 
+   (SELECT RegistrationID, ISNULL(SUM(SubmissionAmount), 0) AS TotalSubmitted 
+  FROM User_Balance_Submission WHERE SchoolID = @SchoolID GROUP BY RegistrationID) AS Sub_T 
+    ON Registration.RegistrationID = Sub_T.RegistrationID
+    WHERE 
+   Registration.SchoolID = @SchoolID 
+   AND Registration.RegistrationID = @RegistrationID
+) AS T";
+
+            using (SqlConnection conn = new SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(balanceQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                    cmd.Parameters.AddWithValue("@RegistrationID", registrationID);
+                    object result = cmd.ExecuteScalar();
+                    return result != null && result != DBNull.Value ? Convert.ToDecimal(result) : 0;
+                }
+            }
         }
 
         private void LoadSummary()

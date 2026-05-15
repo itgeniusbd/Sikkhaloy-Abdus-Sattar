@@ -13,7 +13,37 @@ namespace EDUCATION.COM.Employee
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (!Page.IsPostBack)
+            {
+                BindSubCategoryDropDown(EmpTypeDropDownList.SelectedValue);
+            }
+        }
 
+        private void BindSubCategoryDropDown(string empType)
+        {
+            SubCategoryDropDownList.Items.Clear();
+            SubCategoryDropDownList.Items.Add(new ListItem("-- সকল --", "0"));
+
+            if (empType == "%" || string.IsNullOrEmpty(empType)) return;
+
+            string cs = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(cs))
+            using (SqlCommand cmd = new SqlCommand("SELECT SubCategoryID, SubCategoryName FROM Employee_SubCategory WHERE SchoolID=@SchoolID AND EmployeeType=@EmpType ORDER BY SubCategoryName", con))
+            {
+                cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
+                cmd.Parameters.AddWithValue("@EmpType", empType);
+                con.Open();
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                    while (dr.Read())
+                        SubCategoryDropDownList.Items.Add(new ListItem(dr["SubCategoryName"].ToString(), dr["SubCategoryID"].ToString()));
+            }
+        }
+
+        protected void EmpTypeDropDownList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            SubCategoryDropDownList.SelectedIndex = 0;
+            BindSubCategoryDropDown(EmpTypeDropDownList.SelectedValue);
+            EmployeeListGridView.DataBind();
         }
         protected void PayorderNameUpdateButton_Click(object sender, EventArgs e)
         {

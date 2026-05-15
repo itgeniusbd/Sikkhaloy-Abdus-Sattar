@@ -147,73 +147,42 @@ namespace EDUCATION.COM.Profile.Invoice
             {
                 string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
 
-                // Grace period চেক
                 using (SqlConnection conn = new SqlConnection(connStr))
                 {
                     conn.Open();
-                    using (SqlCommand colCmd = new SqlCommand(
-                        @"SELECT CASE WHEN EXISTS (
-                            SELECT * FROM sys.columns 
-                            WHERE object_id = OBJECT_ID(N'dbo.SchoolInfo') AND name = 'AccessGraceUntil'
-                          ) THEN 1 ELSE 0 END", conn))
+
+                    // ১. প্রথমে দেখো কোনো পুরনো (EndDate পার হয়ে গেছে) unpaid invoice আছে কিনা
+                    //    থাকলে সরাসরি blocked — grace period বা অন্য কিছু বিবেচনা নয়
+                    using (SqlCommand expCmd = new SqlCommand(
+                        @"SELECT COUNT(*) FROM AAP_Invoice 
+                          WHERE SchoolID = @SID AND IsPaid = 0 
+                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) < CAST(GETDATE() AS DATE)", conn))
                     {
-                        int colExists = (int)colCmd.ExecuteScalar();
-                        if (colExists == 1)
+                        expCmd.Parameters.AddWithValue("@SID", schoolId);
+                        int expiredCount = (int)expCmd.ExecuteScalar();
+                        if (expiredCount > 0)
                         {
-                            using (SqlCommand graceCmd = new SqlCommand(
-                                "SELECT AccessGraceUntil FROM SchoolInfo WHERE SchoolID = @SID", conn))
-                            {
-                                graceCmd.Parameters.AddWithValue("@SID", schoolId);
-                                object graceResult = graceCmd.ExecuteScalar();
-                                if (graceResult != null && graceResult != DBNull.Value)
-                                {
-                                    DateTime graceUntil = Convert.ToDateTime(graceResult);
-                                    if (graceUntil.Date >= DateTime.Today)
-                                    {
-                                        // Grace period চলছে — blocked না, কিন্তু কত দিন বাকি দেখাও
-                                        result.IsBlocked = false;
-                                        result.DaysUntilExpiry = (int)(graceUntil.Date - DateTime.Today).TotalDays;
-                                        return result;
-                                    }
-                                }
-                            }
+                            result.IsBlocked = true;
+                            result.DaysUntilExpiry = 0;
+                            return result;
                         }
                     }
-                }
 
-                // Unpaid + EndDate পার হয়নি এমন invoice-এর সবচেয়ে কাছের EndDate বের করা
-                using (SqlConnection conn2 = new SqlConnection(connStr))
-                {
-                    conn2.Open();
-
-                    // সবচেয়ে কাছের (minimum) EndDate যেটা আজ বা পরে
+                    // ২. Expired invoice নেই — unpaid invoice-এর সবচেয়ে কাছের EndDate কত দিন বাকি
                     using (SqlCommand futureCmd = new SqlCommand(
                         @"SELECT MIN(CAST(EndDate AS DATE)) FROM AAP_Invoice 
                           WHERE SchoolID = @SID AND IsPaid = 0 
-                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) >= CAST(GETDATE() AS DATE)", conn2))
+                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) >= CAST(GETDATE() AS DATE)", conn))
                     {
                         futureCmd.Parameters.AddWithValue("@SID", schoolId);
                         object futureEnd = futureCmd.ExecuteScalar();
                         if (futureEnd != null && futureEnd != DBNull.Value)
                         {
                             DateTime nearestEnd = Convert.ToDateTime(futureEnd);
-                            int daysLeft = (int)(nearestEnd.Date - DateTime.Today).TotalDays;
                             result.IsBlocked = false;
-                            result.DaysUntilExpiry = daysLeft;
+                            result.DaysUntilExpiry = (int)(nearestEnd.Date - DateTime.Today).TotalDays;
                             return result;
                         }
-                    }
-
-                    // EndDate পার হয়ে গেছে এমন unpaid invoice আছে কিনা
-                    using (SqlCommand expCmd = new SqlCommand(
-                        @"SELECT COUNT(*) FROM AAP_Invoice 
-                          WHERE SchoolID = @SID AND IsPaid = 0 
-                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) < CAST(GETDATE() AS DATE)", conn2))
-                    {
-                        expCmd.Parameters.AddWithValue("@SID", schoolId);
-                        int expiredCount = (int)expCmd.ExecuteScalar();
-                        result.IsBlocked = expiredCount > 0;
-                        result.DaysUntilExpiry = 0;
                     }
                 }
             }

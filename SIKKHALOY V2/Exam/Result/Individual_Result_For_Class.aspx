@@ -232,9 +232,8 @@
         <asp:Repeater ID="ResultRepeater" runat="server" OnItemDataBound="ResultRepeater_ItemDataBound">
             <ItemTemplate>
                 <div class="result-card">
-                    <!-- Header Section -->
-                    <!-- School Name Logo (Custom Header) -->
-                    <asp:Panel ID="SchoolNameLogoHeaderPanel" runat="server" CssClass="hide-panel" style="display:none;">
+                    <!-- Custom Header (School Name Logo) -->
+                    <asp:Panel ID="SchoolNameLogoHeaderPanel" runat="server" CssClass="hide-panel" style="display: none;">
                         <div class="school-name-logo-header">
                             <img id="SchoolNameLogoImage" runat="server"
                                  alt="School Name"
@@ -247,7 +246,7 @@
                         </div>
                     </asp:Panel>
 
-                    <!-- Traditional Header (When No Custom Header Image) -->
+                    <!-- Traditional Header Display (When No School Name Logo) -->
                     <asp:Panel ID="TraditionalHeaderPanel" runat="server" CssClass="show-panel">
                         <div class="header">
                             <img src="/Handeler/SchoolLogo.ashx?SLogo=<%# Eval("SchoolID") %>" alt="School Logo" onerror="this.style.display='none';" />
@@ -271,7 +270,7 @@
                             <table class="info-table">
                                 <tr>
                                     <td>Name:</td>
-                                    <td colspan="3"><%# Eval("StudentsName") %></td>
+                                    <td colspan="3"><b><%# Eval("StudentsName") %></b></td>
                                 </tr>
                                 <%-- Use helper method for dynamic row generation --%>
                                 <%# GetDynamicInfoRow(Container.DataItem) %>

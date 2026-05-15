@@ -1,806 +1,711 @@
-﻿using EDUCATION.COM.PaymentDataSetTableAdapters;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.Data.SqlClient;
-using System.Drawing;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
-using System.Web.UI;
-using System.Web.UI.WebControls;
 using System.Web.Security;
+using System.Web.Services;
+using System.Web.UI;
 using Education;
 
-namespace EDUCATION.COM.Accounts.Payment
+namespace EDUCATION.COM.ACCOUNTS.Payment
 {
-    public partial class Payment_Collection_By_Date : System.Web.UI.Page
+    public partial class Payment_Collection_By_Date : Page
     {
-        SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
-        protected void Page_Load(object sender, EventArgs e)
+        protected void Page_Load(object sender, EventArgs e) { }
+
+        private static string ConnStr => ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+        private static string SchoolID => HttpContext.Current.Session["SchoolID"]?.ToString();
+        private static string EduYear => HttpContext.Current.Session["Edu_Year"]?.ToString();
+        private static string RegistrationID => HttpContext.Current.Session["RegistrationID"]?.ToString();
+
+        // ?? Student Data ??????????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static object GetStudentData(string studentID)
         {
-            if (!this.IsPostBack)
+            const string sql = @"SELECT Student.StudentID, StudentsClass.StudentClassID, StudentsClass.ClassID,
+                Student.StudentImageID, Student.ID, Student.StudentsName, Student.SMSPhoneNo,
+                CreateClass.Class, CreateSection.Section, CreateSubjectGroup.SubjectGroup,
+                CreateShift.Shift, StudentsClass.RollNo, Student.FathersName,
+                Education_Year.EducationYearID, Education_Year.EducationYear, Student.Status
+                FROM StudentsClass
+                INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID
+                INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID
+                LEFT JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID
+                LEFT JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID
+                LEFT JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID
+                LEFT JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID
+                WHERE Student.ID = @ID AND StudentsClass.SchoolID = @SchoolID AND StudentsClass.Class_Status IS NULL";
+
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
             {
-                SelectedAccount();
-                LoadRadioButtonSelection();
-                if (GetLinkPageExist() != true)
+                cmd.Parameters.AddWithValue("@ID", studentID);
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open();
+                using (var dr = cmd.ExecuteReader())
                 {
-                    UpdateConcessionButton.Visible = false;
+                    if (!dr.Read()) return null;
+                    return new
+                    {
+                        StudentID = dr["StudentID"], StudentClassID = dr["StudentClassID"],
+                        ClassID = dr["ClassID"], StudentImageID = dr["StudentImageID"],
+                        ID = dr["ID"], StudentsName = dr["StudentsName"],
+                        SMSPhoneNo = dr["SMSPhoneNo"], Class = dr["Class"],
+                        Section = dr["Section"] == DBNull.Value ? "" : dr["Section"],
+                        Shift = dr["Shift"] == DBNull.Value ? "" : dr["Shift"],
+                        RollNo = dr["RollNo"], FathersName = dr["FathersName"],
+                        EducationYearID = dr["EducationYearID"], EducationYear = dr["EducationYear"],
+                        Status = dr["Status"]
+                    };
                 }
             }
         }
 
-        private void LoadRadioButtonSelection()
+        // ?? Due Data ??????????????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static object GetDues(string studentID)
         {
-            string schoolId = Session["SchoolID"].ToString();
-            string query = "SELECT top 1 PAY_Buttton_SMS_Enable_Disable FROM Account WHERE SchoolID ='" + schoolId + "'";
-            try
+            // LateFee শুধু তখনই যোগ হবে যখন EndDate < GETDATE() (সময় পার হয়েছে)
+            const string sql = @"
+                SELECT
+                    po.PayOrderID, po.StudentID, po.EducationYearID, po.StudentClassID, po.ClassID,
+                    cc.Class, ey.EducationYear, ir.Role,
+                    po.PayFor, po.EndDate, po.StartDate,
+                    po.Amount, po.Discount,
+                    CASE WHEN po.EndDate < GETDATE() THEN ISNULL(po.LateFee, 0) ELSE 0 END AS LateFee,
+                    po.LateFee_Discount, po.PaidAmount, po.RoleID,
+                    (ISNULL(po.Amount,0)
+                     + CASE WHEN po.EndDate < GETDATE() THEN ISNULL(po.LateFee,0) ELSE 0 END
+                     - ISNULL(po.Discount,0)
+                     - ISNULL(po.PaidAmount,0)
+                     - ISNULL(po.LateFee_Discount,0)) AS Due
+                FROM Income_PayOrder po
+                INNER JOIN Student st ON po.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
+                INNER JOIN Income_Roles ir ON po.RoleID = ir.RoleID
+                INNER JOIN Education_Year ey ON po.EducationYearID = ey.EducationYearID
+                INNER JOIN CreateClass cc ON po.ClassID = cc.ClassID
+                WHERE po.SchoolID = @SchoolID AND po.Status = 'Due'
+                ORDER BY po.EndDate";
+
+            var currentDues = new List<object>();
+            var otherDues   = new List<object>();
+
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
             {
-                SqlCommand SMSCmd = new SqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@ID", studentID);
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                cmd.Parameters.AddWithValue("@EduYear", EduYear);
                 con.Open();
-                object smsActive_InActive_Value = SMSCmd.ExecuteScalar();
-                con.Close();
-                bool val = Convert.ToBoolean(smsActive_InActive_Value);
-                if (val == true)
+                using (var dr = cmd.ExecuteReader())
                 {
-                    rbActive.Checked = true;
-                }
-                else
-                {
-                    rbInactive.Checked = true;
+                    while (dr.Read())
+                    {
+                        var row = new
+                        {
+                            PayOrderID      = Convert.ToInt32(dr["PayOrderID"]),
+                            StudentID       = Convert.ToInt32(dr["StudentID"]),
+                            EducationYearID = Convert.ToInt32(dr["EducationYearID"]),
+                            StudentClassID  = Convert.ToInt32(dr["StudentClassID"]),
+                            Class           = dr["Class"].ToString(),
+                            EducationYear   = dr["EducationYear"].ToString(),
+                            Role            = dr["Role"].ToString(),
+                            PayFor          = dr["PayFor"].ToString(),
+                            EndDate         = dr["EndDate"],
+                            StartDate       = dr["StartDate"],
+                            Amount          = Convert.ToDouble(dr["Amount"]),
+                            Discount        = dr["Discount"] == DBNull.Value ? 0 : Convert.ToDouble(dr["Discount"]),
+                            LateFee         = dr["LateFee"] == DBNull.Value ? 0 : Convert.ToDouble(dr["LateFee"]),
+                            LateFeeDiscount = dr["LateFee_Discount"] == DBNull.Value ? 0 : Convert.ToDouble(dr["LateFee_Discount"]),
+                            PaidAmount      = dr["PaidAmount"] == DBNull.Value ? 0 : Convert.ToDouble(dr["PaidAmount"]),
+                            RoleID          = Convert.ToInt32(dr["RoleID"]),
+                            Due             = Convert.ToDouble(dr["Due"])
+                        };
+                        if (Convert.ToInt32(dr["EducationYearID"]) == Convert.ToInt32(EduYear))
+                            currentDues.Add(row);
+                        else
+                            otherDues.Add(row);
+                    }
                 }
             }
-            catch
+            return new { CurrentDues = currentDues, OtherDues = otherDues };
+        }
+
+        // ?? Recent Payments ???????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static List<object> GetRecentPayments(string studentID)
+        {
+            const string sql = @"SELECT TOP 10 mr.MoneyReceipt_SN, mr.TotalAmount,
+                FORMAT(mr.PaidDate, 'dd MMM yyyy (hh:mm tt)') AS PaidDate,
+                mr.MoneyReceiptID
+                FROM Income_MoneyReceipt mr
+                INNER JOIN Student st ON mr.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
+                WHERE mr.EducationYearID = @EduYear AND mr.SchoolID = @SchoolID
+                ORDER BY mr.PaidDate DESC";
+            var list = new List<object>();
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
             {
+                cmd.Parameters.AddWithValue("@EduYear", EduYear);
+                cmd.Parameters.AddWithValue("@ID", studentID);
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open();
+                using (var dr = cmd.ExecuteReader())
+                    while (dr.Read())
+                        list.Add(new { MoneyReceiptID = dr["MoneyReceiptID"], MoneyReceipt_SN = dr["MoneyReceipt_SN"], TotalAmount = dr["TotalAmount"], PaidDate = dr["PaidDate"] });
+            }
+            return list;
+        }
+
+        // ?? All Paid Records ??????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static List<object> GetAllPaidRecords(string studentID)
+        {
+            const string sql = @"SELECT TOP 50 mr.MoneyReceipt_SN, mr.PrintedReceiptNo,
+                mr.TotalAmount,
+                FORMAT(mr.PaidDate, 'dd MMM yyyy (hh:mm tt)') AS PaidDate,
+                mr.MoneyReceiptID,
+                ad.FirstName+' '+ad.LastName AS ReceivedBy
+                FROM Income_MoneyReceipt mr
+                INNER JOIN Student st ON mr.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
+                INNER JOIN Admin ad ON mr.RegistrationID = ad.RegistrationID
+                WHERE mr.EducationYearID = @EduYear AND mr.SchoolID = @SchoolID
+                ORDER BY mr.PaidDate DESC";
+
+            var list = new List<object>();
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@EduYear", EduYear);
+                cmd.Parameters.AddWithValue("@ID", studentID);
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open();
+                using (var dr = cmd.ExecuteReader())
+                    while (dr.Read())
+                        list.Add(new { MoneyReceiptID = dr["MoneyReceiptID"], MoneyReceipt_SN = dr["MoneyReceipt_SN"], PrintedReceiptNo = dr["PrintedReceiptNo"], TotalAmount = dr["TotalAmount"], PaidDate = dr["PaidDate"], ReceivedBy = dr["ReceivedBy"] });
+            }
+            return list;
+        }
+
+        // ── Previous Year Paid Records ────────────────────────────────────────
+        [WebMethod(EnableSession = true)]
+        public static List<object> GetPreviousYearPaidRecords(string studentID)
+        {
+            const string sql = @"SELECT mr.MoneyReceipt_SN,
+                mr.TotalAmount,
+                FORMAT(mr.PaidDate, 'dd MMM yyyy (hh:mm tt)') AS PaidDate,
+                mr.MoneyReceiptID,
+                ey.EducationYear
+                FROM Income_MoneyReceipt mr
+                INNER JOIN Student st ON mr.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
+                INNER JOIN Education_Year ey ON mr.EducationYearID = ey.EducationYearID
+                WHERE mr.SchoolID = @SchoolID AND mr.EducationYearID <> @EduYear
+                  AND mr.EducationYearID = (
+                    SELECT MAX(EducationYearID) FROM Income_MoneyReceipt
+                    WHERE StudentID = st.StudentID AND SchoolID = @SchoolID AND EducationYearID <> @EduYear
+                )
+                ORDER BY mr.PaidDate DESC";
+
+            var list = new List<object>();
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@ID", studentID);
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                cmd.Parameters.AddWithValue("@EduYear", EduYear);
+                con.Open();
+                using (var dr = cmd.ExecuteReader())
+                    while (dr.Read())
+                        list.Add(new
+                        {
+                            MoneyReceiptID = dr["MoneyReceiptID"],
+                            MoneyReceipt_SN = dr["MoneyReceipt_SN"],
+                            TotalAmount = dr["TotalAmount"],
+                            PaidDate = dr["PaidDate"],
+                            EducationYear = dr["EducationYear"]
+                        });
+            }
+            return list;
+        }
+
+        // ?? Receipt Detail ????????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static List<object> GetReceiptDetail(int moneyReceiptID)
+        {
+            const string sql = @"SELECT Income_PaymentRecord.PaidAmount,
+                Income_PaymentRecord.PayFor+' ('+Education_Year.EducationYear+')' AS PayFor,
+                Income_Roles.Role
+                FROM Income_PaymentRecord
+                INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID=Income_Roles.RoleID
+                INNER JOIN Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID=Income_MoneyReceipt.MoneyReceiptID
+                INNER JOIN Education_Year ON Income_PaymentRecord.EducationYearID=Education_Year.EducationYearID
+                WHERE Income_PaymentRecord.SchoolID=@SchoolID AND Income_PaymentRecord.MoneyReceiptID=@MID";
+
+            var list = new List<object>();
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
+                con.Open();
+                using (var dr = cmd.ExecuteReader())
+                    while (dr.Read())
+                        list.Add(new { PaidAmount = Convert.ToDouble(dr["PaidAmount"]), PayFor = dr["PayFor"], Role = dr["Role"] });
+            }
+            return list;
+        }
+
+        // ?? Accounts ??????????????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static List<object> GetAccounts()
+        {
+            var list = new List<object>();
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand("SELECT AccountID, AccountName, ISNULL(Default_Status, 0) AS IsDefault FROM Account WHERE SchoolID=@SchoolID ORDER BY ISNULL(Default_Status,0) DESC", con))
+            {
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open();
+                using (var dr = cmd.ExecuteReader())
+                    while (dr.Read())
+                        list.Add(new { AccountID = dr["AccountID"], AccountName = dr["AccountName"], IsDefault = Convert.ToBoolean(dr["IsDefault"]) });
+            }
+            return list;
+        }
+
+        // ?? Roles
+        [WebMethod(EnableSession = true)]
+        public static List<object> GetRoles()
+        {
+            var list = new List<object>();
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand("SELECT RoleID, Role FROM Income_Roles WHERE SchoolID=@SchoolID", con))
+            {
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open();
+                using (var dr = cmd.ExecuteReader())
+                    while (dr.Read())
+                        list.Add(new { RoleID = dr["RoleID"], Role = dr["Role"] });
+            }
+            return list;
+        }
+
+        // ?? SMS Setting ???????????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static int GetSMSSetting()
+        {
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand("SELECT TOP 1 PAY_Buttton_SMS_Enable_Disable FROM Account WHERE SchoolID=@SchoolID", con))
+            {
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open();
+                var val = cmd.ExecuteScalar();
+                return val != null && val != DBNull.Value ? Convert.ToInt32(val) : 0;
             }
         }
 
-        // Handle radio button change event to save to database
-        protected void rbSMS_CheckedChanged(object sender, EventArgs e)
+        [WebMethod(EnableSession = true)]
+        public static void SaveSMSSetting(int value)
         {
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand("UPDATE Account SET PAY_Buttton_SMS_Enable_Disable=@V WHERE SchoolID=@SchoolID", con))
+            {
+                cmd.Parameters.AddWithValue("@V", value);
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open(); cmd.ExecuteNonQuery();
+            }
+        }
+
+        // ?? Concession Permission ?????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static bool GetConcessionPermission()
+        {
+            var user = HttpContext.Current.User.Identity.Name;
+            if (Roles.IsUserInRole(user, "Admin")) return true;
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand("SELECT * FROM Link_Users WHERE SchoolID=@SchoolID AND RegistrationID=@RegID AND LinkID=3074", con))
+            {
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                cmd.Parameters.AddWithValue("@RegID", RegistrationID);
+                con.Open();
+                using (var dr = cmd.ExecuteReader()) return dr.HasRows;
+            }
+        }
+
+        // ?? Current Due Banner ????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static double GetCurrentDue(string studentID)
+        {
+            const string sql = @"SELECT ISNULL(SUM(
+                ISNULL(po.Amount,0)+ISNULL(po.LateFee,0)-ISNULL(po.Discount,0)-ISNULL(po.PaidAmount,0)-ISNULL(po.LateFee_Discount,0)
+                ),0) AS Due
+                FROM Income_PayOrder po
+                INNER JOIN Student st ON po.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
+                WHERE po.SchoolID = @SchoolID AND po.Status = 'Due' AND po.EndDate <= GETDATE()";
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@ID", studentID);
+                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
+                con.Open();
+                var val = cmd.ExecuteScalar();
+                return val != null && val != DBNull.Value ? Convert.ToDouble(val) : 0;
+            }
+        }
+
+        // ?? Encrypt Receipt ID ????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static object EncryptReceiptID(int moneyReceiptID, string studentID)
+        {
+            return new
+            {
+                MRid = HttpUtility.UrlEncode(Encrypt(moneyReceiptID.ToString())),
+                Sid  = HttpUtility.UrlEncode(Encrypt(studentID))
+            };
+        }
+
+        // ?? Process Payment (with custom Paid Date) ???????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static object ProcessPayment(int studentDbID, int studentClassID, int educationYearID,
+            string smsPhoneNo, string studentID, string studentName,
+            int accountID, bool smsActive, string paidDate, List<PayItem> items)
+        {
+            if (items == null || items.Count == 0)
+                return new { Success = false, Message = "No items selected." };
+
+            // Parse the paid date from the date picker (format: yyyy-MM-dd)
+            DateTime paidDateTime;
+            if (!DateTime.TryParse(paidDate, out paidDateTime))
+                return new { Success = false, Message = "Invalid Paid Date format." };
+
+            // Keep time as current time but use the selected date
+            paidDateTime = paidDateTime.Date.Add(DateTime.Now.TimeOfDay);
+
+            int schoolID       = Convert.ToInt32(SchoolID);
+            int registrationID = Convert.ToInt32(HttpContext.Current.Session["RegistrationID"]);
+
             try
             {
-                string schoolId = Session["SchoolID"].ToString();
-                int smsValue = rbActive.Checked ? 1 : 0;
-
-                string updateQuery = "UPDATE Account SET PAY_Buttton_SMS_Enable_Disable = @Value WHERE SchoolID = @SchoolID";
-                SqlCommand updateCmd = new SqlCommand(updateQuery, con);
-                updateCmd.Parameters.AddWithValue("@Value", smsValue);
-                updateCmd.Parameters.AddWithValue("@SchoolID", schoolId);
-
-                con.Open();
-                updateCmd.ExecuteNonQuery();
-                con.Close();
-
-                // Keep the selected state after postback
-                if (smsValue == 1)
+                using (var con = new SqlConnection(ConnStr))
                 {
-                    rbActive.Checked = true;
-                    rbInactive.Checked = false;
-                }
-                else
-                {
-                    rbActive.Checked = false;
-                    rbInactive.Checked = true;
+                    con.Open();
+
+                    // Validate: no item exceeds due
+                    foreach (var item in items)
+                    {
+                        double due = GetDueByPayOrderID(con, item.PayOrderID);
+                        if (item.PaidAmount > due)
+                            return new { Success = false, Message = "Paid amount exceeds due for PayOrder " + item.PayOrderID };
+                    }
+
+                    // Insert Money Receipt via Stored Procedure
+                    int moneyReceiptID = 0;
+                    using (var cmd = new SqlCommand("dbo.MoneyReceipt", con))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@StudentID", studentDbID);
+                        cmd.Parameters.AddWithValue("@RegistrationID", registrationID);
+                        cmd.Parameters.AddWithValue("@StudentClassID", studentClassID);
+                        cmd.Parameters.AddWithValue("@EducationYearID", educationYearID);
+                        cmd.Parameters.AddWithValue("@PaymentBy", "Institution");
+                        cmd.Parameters.AddWithValue("@PaidDate", paidDateTime);  // ? custom paid date
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                        var result = cmd.ExecuteScalar();
+                        moneyReceiptID = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+                    }
+
+                    if (moneyReceiptID <= 0)
+                        return new { Success = false, Message = "Money Receipt ???? ??????" };
+
+                    double totalPaid = 0;
+                    string message = "";
+
+                    foreach (var item in items)
+                    {
+                        double due = GetDueByPayOrderID(con, item.PayOrderID);
+                        if (item.PaidAmount > due) continue;
+
+                        int roleID = 0, payOrderEduYearID = educationYearID, scid = studentClassID;
+                        string payFor = "";
+                        using (var cmd = new SqlCommand("SELECT RoleID, PayFor, EducationYearID, StudentClassID FROM Income_PayOrder WHERE PayOrderID=@P", con))
+                        {
+                            cmd.Parameters.AddWithValue("@P", item.PayOrderID);
+                            using (var dr = cmd.ExecuteReader())
+                                if (dr.Read()) { roleID = Convert.ToInt32(dr["RoleID"]); payFor = dr["PayFor"].ToString(); payOrderEduYearID = Convert.ToInt32(dr["EducationYearID"]); scid = Convert.ToInt32(dr["StudentClassID"]); }
+                        }
+
+                        using (var cmd = new SqlCommand(@"INSERT INTO Income_PaymentRecord(StudentID,RegistrationID,RoleID,PayOrderID,PaidAmount,PayFor,PaidDate,MoneyReceiptID,StudentClassID,EducationYearID,SchoolID,AccountID)
+                        VALUES(@SID,@RID,@RoleID,@PID,@PA,@PF,@Date,@MID,@SCID,@EID,@SchID,@AccID)", con))
+                        {
+                            cmd.Parameters.AddWithValue("@SID", studentDbID);
+                            cmd.Parameters.AddWithValue("@RID", registrationID);
+                            cmd.Parameters.AddWithValue("@RoleID", roleID);
+                            cmd.Parameters.AddWithValue("@PID", item.PayOrderID);
+                            cmd.Parameters.AddWithValue("@PA", item.PaidAmount);
+                            cmd.Parameters.AddWithValue("@PF", payFor);
+                            cmd.Parameters.AddWithValue("@Date", paidDateTime);  // ? custom paid date
+                            cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
+                            cmd.Parameters.AddWithValue("@SCID", scid);
+                            cmd.Parameters.AddWithValue("@EID", payOrderEduYearID);
+                            cmd.Parameters.AddWithValue("@SchID", schoolID);
+                            cmd.Parameters.AddWithValue("@AccID", accountID);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        // Update PayOrder PaidAmount and Is_LateFeeAdded
+                        // Is_LateFeeAdded=1 ensures the computed Status column uses LateFee in calculation
+                        using (var cmd = new SqlCommand(@"UPDATE Income_PayOrder
+                            SET PaidAmount = PaidAmount + @PA,
+                                LastPaidDate = @Date,
+                                NumberOfPayment = NumberOfPayment + 1,
+                                Is_LateFeeAdded = CASE 
+                                    WHEN EndDate < GETDATE() AND ISNULL(LateFee,0) > 0 THEN 1 
+                                    ELSE Is_LateFeeAdded 
+                                END
+                            WHERE PayOrderID = @P", con))
+                        {
+                            cmd.Parameters.AddWithValue("@PA", item.PaidAmount);
+                            cmd.Parameters.AddWithValue("@Date", paidDateTime);
+                            cmd.Parameters.AddWithValue("@P", item.PayOrderID);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        totalPaid += item.PaidAmount;
+                        message += $", {payFor}";
+                    }
+
+                    using (var cmd = new SqlCommand("UPDATE Income_MoneyReceipt SET TotalAmount=@T WHERE MoneyReceiptID=@MID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@T", totalPaid);
+                        cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    if (totalPaid == 0) return new { Success = false, Message = "No payment processed." };
+
+                    string receiptSN = "";
+                    using (var cmd = new SqlCommand("SELECT MoneyReceipt_SN FROM Income_MoneyReceipt WHERE MoneyReceiptID=@MID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
+                        receiptSN = cmd.ExecuteScalar()?.ToString();
+                    }
+
+                    if (smsActive) TrySendSMS(smsPhoneNo, studentID, studentName, totalPaid, receiptSN, message, schoolID, studentDbID);
+
+                    return new
+                    {
+                        Success = true,
+                        MRid = HttpUtility.UrlEncode(Encrypt(moneyReceiptID.ToString())),
+                        Sid  = HttpUtility.UrlEncode(Encrypt(studentID))
+                    };
                 }
             }
             catch (Exception ex)
             {
-                ErrorLabel.Text = "Error updating SMS setting: " + ex.Message;
+                return new { Success = false, Message = "Exception: " + ex.Message + (ex.InnerException != null ? " | Inner: " + ex.InnerException.Message : "") };
             }
         }
 
-        private bool GetLinkPageExist()  // Concession button show/hide
+        private static double GetDueByPayOrderID(SqlConnection con, int payOrderID)
         {
-            bool flag = false;
+            // LateFee শুধু EndDate পার হলে Due তে যোগ হবে
+            const string sql = @"SELECT ISNULL(Amount,0)
+                + CASE WHEN EndDate < GETDATE() THEN ISNULL(LateFee,0) ELSE 0 END
+                - ISNULL(Discount,0) - ISNULL(LateFee_Discount,0) - ISNULL(PaidAmount,0) AS Due
+                FROM Income_PayOrder WHERE PayOrderID=@P";
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@P", payOrderID);
+                var val = cmd.ExecuteScalar();
+                return val != null && val != DBNull.Value ? Convert.ToDouble(val) : 0;
+            }
+        }
+
+        // ?? Update Concession / LateFee ???????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static object UpdateConcession(List<ConcessionItem> items)
+        {
+            if (items == null || items.Count == 0) return new { Success = false, Message = "No items." };
+            using (var con = new SqlConnection(ConnStr))
+            {
+                con.Open();
+                foreach (var item in items)
+                {
+                    using (var cmd = new SqlCommand("UPDATE Income_PayOrder SET Discount=@D WHERE PayOrderID=@P", con))
+                    {
+                        cmd.Parameters.AddWithValue("@D", item.Discount);
+                        cmd.Parameters.AddWithValue("@P", item.PayOrderID);
+                        cmd.ExecuteNonQuery();
+                    }
+                    if (item.LateFee != item.PrevLateFee)
+                    {
+                        using (var cmd = new SqlCommand("UPDATE Income_PayOrder SET LateFee=@L WHERE PayOrderID=@P", con))
+                        {
+                            cmd.Parameters.AddWithValue("@L", item.LateFee);
+                            cmd.Parameters.AddWithValue("@P", item.PayOrderID);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+            return new { Success = true };
+        }
+
+        // ?? Add More Payment ??????????????????????????????????????????????????
+        [WebMethod(EnableSession = true)]
+        public static object AddMorePayment(int studentDbID, int studentClassID, int classID,
+            int educationYearID, int roleID, string payFor, double amount, double discount)
+        {
+            int registrationID = Convert.ToInt32(HttpContext.Current.Session["RegistrationID"]);
+            const string sql = @"INSERT INTO Income_PayOrder(SchoolID,RegistrationID,StudentID,ClassID,StudentClassID,Amount,Discount,LateFee,RoleID,PayFor,StartDate,EndDate,CreatedDate,EducationYearID)
+                VALUES(@SchID,@RID,@SID,@CID,@SCID,@Amt,@Dis,0,@RoleID,@PF,GETDATE(),GETDATE(),GETDATE(),@EID)";
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@SchID", SchoolID);
+                cmd.Parameters.AddWithValue("@RID", registrationID);
+                cmd.Parameters.AddWithValue("@SID", studentDbID);
+                cmd.Parameters.AddWithValue("@CID", classID);
+                cmd.Parameters.AddWithValue("@SCID", studentClassID);
+                cmd.Parameters.AddWithValue("@Amt", amount);
+                cmd.Parameters.AddWithValue("@Dis", discount);
+                cmd.Parameters.AddWithValue("@RoleID", roleID);
+                cmd.Parameters.AddWithValue("@PF", payFor);
+                cmd.Parameters.AddWithValue("@EID", educationYearID);
+                con.Open(); cmd.ExecuteNonQuery();
+            }
+            return new { Success = true };
+        }
+
+        // ?? SMS ???????????????????????????????????????????????????????????????
+        private static void TrySendSMS(string phoneNo, string studentID, string studentName,
+            double totalAmount, string receiptNo, string details, int schoolID, int studentDbID)
+        {
             try
             {
-                // Check if Main Admin using Roles - they should always have access
-                string currentUserName = HttpContext.Current.User.Identity.Name;
+                var sms = new SMS_Class(schoolID.ToString());
+                string template = GetSMSTemplate(schoolID);
+                decimal currentDue = GetCurrentDueDecimal(studentID, schoolID);
 
-                if (Roles.IsUserInRole(currentUserName, "Admin"))
+                string msg = !string.IsNullOrEmpty(template)
+                    ? template
+                        .Replace("{StudentName}", studentName).Replace("{ID}", studentID)
+                        .Replace("{Amount}", totalAmount.ToString("0.00")).Replace("{ReceiptNo}", receiptNo)
+                        .Replace("{CurrentDue}", currentDue.ToString("0.00"))
+                        .Replace("{PaymentDetails}", details.TrimStart(',', ' '))
+                        .Replace("{SchoolName}", HttpContext.Current.Session["School_Name"]?.ToString())
+                    : $"অভিনন্দন! {studentName} (ID:{studentID}). আপনি: {totalAmount} টাকা পরিশোধ করেছেন. রিসিট নম্বর: {receiptNo}, ধন্যবাদ, {HttpContext.Current.Session["School_Name"]}";
+
+                int totalSMS = sms.SMS_Conut(msg);
+                if (sms.SMSBalance >= totalSMS && sms.SMS_GetBalance() >= totalSMS)
                 {
-                    return true; // Always show for Main-Admin (Admin role)
+                    var valid = sms.SMS_Validation(phoneNo, msg);
+                    if (valid.Validation)
+                    {
+                        Guid smsSendId = sms.SMS_Send(phoneNo, msg, "Payment Collection");
+                        if (smsSendId != Guid.Empty)
+                        {
+                            InsertSmsOtherInfo(smsSendId, schoolID, studentDbID);
+                        }
+                    }
                 }
-
-                // For Sub-Admin, check Link_Users table
-                SqlCommand AccountCmd = new SqlCommand("Select * from Link_Users where SchoolID = @SchoolID AND RegistrationID=@RegistrationID and LinkID=3074", con);
-                AccountCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
-                AccountCmd.Parameters.AddWithValue("@RegistrationID", Session["RegistrationID"].ToString());
-                con.Open();
-                var dr1 = AccountCmd.ExecuteReader();
-                if (dr1.HasRows)
-                {
-                    flag = true;
-                }
-                con.Close();
             }
-            catch
-            {
-
-            }
-            return flag;
-
+            catch { }
         }
-        private string Encrypt(string clearText)
+
+        private static void InsertSmsOtherInfo(Guid smsSendId, int schoolID, int studentDbID)
         {
-            string EncryptionKey = "MAKV2SPBNI99212";
+            try
+            {
+                int eduYearID = Convert.ToInt32(HttpContext.Current.Session["Edu_Year"]);
+                using (var con = new SqlConnection(ConnStr))
+                using (var cmd = new SqlCommand("INSERT INTO SMS_OtherInfo(SMS_Send_ID, SchoolID, StudentID, EducationYearID) VALUES (@SMS_Send_ID, @SchoolID, @StudentID, @EducationYearID)", con))
+                {
+                    cmd.Parameters.AddWithValue("@SMS_Send_ID", smsSendId);
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                    cmd.Parameters.AddWithValue("@StudentID", studentDbID);
+                    cmd.Parameters.AddWithValue("@EducationYearID", eduYearID);
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch { }
+        }
+
+        private static string GetSMSTemplate(int schoolID)
+        {
+            try
+            {
+                using (var con = new SqlConnection(ConnStr))
+                using (var cmd = new SqlCommand(@"SELECT TOP 1 MessageTemplate FROM SMS_Template
+                    WHERE SchoolID=@SchoolID AND TemplateType='Payment' AND IsActive=1 ORDER BY CreatedDate DESC", con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                    con.Open();
+                    var r = cmd.ExecuteScalar();
+                    return r?.ToString() ?? "";
+                }
+            }
+            catch { return ""; }
+        }
+
+        private static decimal GetCurrentDueDecimal(string studentID, int schoolID)
+        {
+            try
+            {
+                using (var con = new SqlConnection(ConnStr))
+                using (var cmd = new SqlCommand(@"SELECT ISNULL(SUM(CASE WHEN Income_PayOrder.EndDate<GETDATE()-1
+                    THEN ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0)
+                    ELSE ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0) END),0)
+                    FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID=Student.StudentID
+                    WHERE Income_PayOrder.Status='Due' AND Student.ID=@ID AND Income_PayOrder.SchoolID=@SchID", con))
+                {
+                    cmd.Parameters.AddWithValue("@ID", studentID);
+                    cmd.Parameters.AddWithValue("@SchID", schoolID);
+                    con.Open();
+                    var r = cmd.ExecuteScalar();
+                    return r != null && r != DBNull.Value ? Convert.ToDecimal(r) : 0;
+                }
+            }
+            catch { return 0; }
+        }
+
+        // ?? Encrypt ???????????????????????????????????????????????????????????
+        private static string Encrypt(string clearText)
+        {
+            const string key = "MAKV2SPBNI99212";
             byte[] clearBytes = Encoding.Unicode.GetBytes(clearText);
-            using (Aes encryptor = Aes.Create())
+            using (var aes = Aes.Create())
             {
-                Rfc2898DeriveBytes pdb = new Rfc2898DeriveBytes(EncryptionKey, new byte[] { 0x49, 0x76, 0x61, 0x6e, 0x20, 0x4d, 0x65, 0x64, 0x76, 0x65, 0x64, 0x65, 0x76 });
-                encryptor.Key = pdb.GetBytes(32);
-                encryptor.IV = pdb.GetBytes(16);
-                using (MemoryStream ms = new MemoryStream())
+                var pdb = new Rfc2898DeriveBytes(key, new byte[] { 0x49,0x76,0x61,0x6e,0x20,0x4d,0x65,0x64,0x76,0x65,0x64,0x65,0x76 });
+                aes.Key = pdb.GetBytes(32); aes.IV = pdb.GetBytes(16);
+                using (var ms = new MemoryStream())
                 {
-                    using (CryptoStream cs = new CryptoStream(ms, encryptor.CreateEncryptor(), CryptoStreamMode.Write))
-                    {
-                        cs.Write(clearBytes, 0, clearBytes.Length);
-                        cs.Close();
-                    }
-                    clearText = Convert.ToBase64String(ms.ToArray());
-                }
-            }
-            return clearText;
-        }
-        protected void MSNLinkButton_Command(object sender, CommandEventArgs e)
-        {
-            PaidRecordsSQL.SelectParameters["MoneyReceiptID"].DefaultValue = e.CommandArgument.ToString();
-            ReceivedBySQL.SelectParameters["MoneyReceiptID"].DefaultValue = e.CommandArgument.ToString();
-            ScriptManager.RegisterStartupScript(this, this.GetType(), "Pop", "openModal();", true);
-        }
-
-        //Instant Payorder
-        protected void OthersPaymentButton_Click(object sender, EventArgs e)
-        {
-            OthersPaymentSQL.InsertParameters["StudentID"].DefaultValue = StudentInfoFormView.DataKey["StudentID"].ToString();
-            OthersPaymentSQL.InsertParameters["ClassID"].DefaultValue = StudentInfoFormView.DataKey["ClassID"].ToString();
-            OthersPaymentSQL.InsertParameters["StudentClassID"].DefaultValue = StudentInfoFormView.DataKey["StudentClassID"].ToString();
-            OthersPaymentSQL.InsertParameters["EducationYearID"].DefaultValue = StudentInfoFormView.DataKey["EducationYearID"].ToString();
-            OthersPaymentSQL.Insert();
-
-            PayRoleDropDownList.SelectedIndex = 0;
-            OPayforTextBox.Text = "";
-            OAmountTextBox.Text = "";
-            OConcessiontBox.Text = "";
-            DueGridView.DataBind();
-            ScriptManager.RegisterStartupScript(this, GetType(), "Msg", "Success();", true);
-        }
-        protected void DueGridView_RowDataBound(object sender, GridViewRowEventArgs e)
-        {
-            if (e.Row.RowType == DataControlRowType.DataRow)
-            {
-                DateTime Startdate = Convert.ToDateTime(DueGridView.DataKeys[e.Row.DataItemIndex]["StartDate"]);
-                DateTime Endtdate = Convert.ToDateTime(e.Row.Cells[5].Text);
-
-                if (Endtdate < DateTime.Today)
-                {
-                    e.Row.CssClass = "curremt-due";
-                }
-                else
-                {
-                    if (Startdate == Endtdate && Startdate == DateTime.Today)
-                        e.Row.CssClass = "others-payment";
+                    using (var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
+                    { cs.Write(clearBytes, 0, clearBytes.Length); cs.Close(); }
+                    return Convert.ToBase64String(ms.ToArray());
                 }
             }
         }
 
-        protected void OtherSessionGridView_RowDataBound(object sender, GridViewRowEventArgs e)
+        // ?? DTOs ??????????????????????????????????????????????????????????????
+        public class PayItem
         {
-            if (e.Row.RowType == DataControlRowType.DataRow)
-            {
-                DateTime Startdate = Convert.ToDateTime(OtherSessionGridView.DataKeys[e.Row.DataItemIndex]["StartDate"]);
-                DateTime Endtdate = Convert.ToDateTime(e.Row.Cells[5].Text);
-
-                if (Endtdate < DateTime.Today)
-                {
-                    e.Row.CssClass = "PresentDue";
-                }
-            }
+            public int PayOrderID { get; set; }
+            public double PaidAmount { get; set; }
+            public bool IsOtherSession { get; set; }
         }
 
-        protected void SelectedAccount()
+        public class ConcessionItem
         {
-            try
-            {
-                SqlCommand AccountCmd = new SqlCommand("Select AccountID from Account where SchoolID = @SchoolID AND Default_Status = 'True'", con);
-                AccountCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"].ToString());
-                con.Open();
-                object AccountID = AccountCmd.ExecuteScalar();
-                con.Close();
-
-                if (AccountID != null)
-                    AccountDropDownList.SelectedValue = AccountID.ToString();
-            }
-            catch { Response.Redirect("~/Login.aspx"); }
-
-        }
-
-        //Payment button
-        protected void PayButton_Click(object sender, EventArgs e)
-        {
-            OrdersTableAdapter Payment_DataSet = new OrdersTableAdapter();
-
-            double TotalPaid = 0;
-            int MoneyReceiptID = 0;
-            int StudentClassID = 0;
-
-            StudentClassID = Convert.ToInt32(StudentInfoFormView.DataKey["StudentClassID"]);
-            int StudentID = Convert.ToInt32(StudentInfoFormView.DataKey["StudentID"]);
-
-            int Crrent_EduYearID = Convert.ToInt32(Session["Edu_Year"].ToString());
-            int SchoolID = Convert.ToInt32(Session["SchoolID"].ToString());
-            int RegistrationID = Convert.ToInt32(Session["RegistrationID"].ToString());
-
-            DateTime Paid_Date = Convert.ToDateTime(Paid_Date_TextBox.Text);
-
-            bool Is_Paid = false;
-            bool MoneyReceipt_InsertChack = true;
-
-            //Current Session GV
-            foreach (GridViewRow row in DueGridView.Rows)
-            {
-                CheckBox DueCheckBox = (CheckBox)row.FindControl("DueCheckBox");
-                TextBox DueAmountTextBox = (TextBox)row.FindControl("DueAmountTextBox");
-
-                int PayOrderID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["PayOrderID"]);
-
-                double PaidAmount;
-                double DueByPayOrder = Convert.ToDouble(Payment_DataSet.DueByPayOrderID(PayOrderID));
-
-                if (DueCheckBox.Checked && double.TryParse(DueAmountTextBox.Text.Trim(), out PaidAmount))
-                {
-                    if (PaidAmount > DueByPayOrder)
-                    {
-                        MoneyReceipt_InsertChack = false;
-                    }
-                }
-            }
-
-            //Others Current Session GV
-            foreach (GridViewRow row in OtherSessionGridView.Rows)
-            {
-                CheckBox DueCheckBox = (CheckBox)row.FindControl("Other_Session_CheckBox");
-                TextBox DueAmountTextBox = (TextBox)row.FindControl("Other_Session_AmountTextBox");
-
-                int PayOrderID = Convert.ToInt32(OtherSessionGridView.DataKeys[row.RowIndex]["PayOrderID"]);
-
-                double PaidAmount;
-                double DueByPayOrder = Convert.ToDouble(Payment_DataSet.DueByPayOrderID(PayOrderID));
-
-
-                if (DueCheckBox.Checked && double.TryParse(DueAmountTextBox.Text.Trim(), out PaidAmount))
-                {
-                    if (PaidAmount > DueByPayOrder)
-                    {
-                        MoneyReceipt_InsertChack = false;
-                    }
-                }
-            }
-
-            double totalPaidAmount = 0;
-            var message = "";
-
-            if (MoneyReceipt_InsertChack)
-            {
-                MoneyReceiptID = Convert.ToInt32(Payment_DataSet.Insert_MoneyReceipt(StudentID, RegistrationID, StudentClassID, Crrent_EduYearID, "Institution", Paid_Date, SchoolID));
-
-                foreach (GridViewRow row in DueGridView.Rows)
-                {
-                    CheckBox DueCheckBox = (CheckBox)row.FindControl("DueCheckBox");
-                    if (DueCheckBox.Checked)
-                    {
-                        TextBox TotalTextBox = (TextBox)DueGridView.Rows[row.RowIndex].FindControl("DueAmountTextBox");
-                        totalPaidAmount += Convert.ToDouble(TotalTextBox.Text);
-                    }
-                }
-
-                // Payment details will be included based on SMS Template settings
-                // Template can use {PaymentDetails} placeholder if needed
-                // Building payment details for template
-                foreach (GridViewRow row in DueGridView.Rows)
-                {
-                    CheckBox DueCheckBox = (CheckBox)row.FindControl("DueCheckBox");
-                    if (DueCheckBox.Checked)
-                    {
-                        var role = DueGridView.DataKeys[row.DataItemIndex]?["Role"];
-                        var payFor = DueGridView.DataKeys[row.DataItemIndex]?["PayFor"];
-
-                        message += $", {role}: {payFor}";
-                    }
-                }
-
-                //Current Session GV
-                foreach (GridViewRow row in DueGridView.Rows)
-                {
-                    CheckBox DueCheckBox = (CheckBox)row.FindControl("DueCheckBox");
-                    TextBox DueAmountTextBox = (TextBox)row.FindControl("DueAmountTextBox");
-
-                    StudentClassID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["StudentClassID"]);
-                    int PayOrderID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["PayOrderID"]);
-                    int RoleID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["RoleID"]);
-                    int P_Order_EduYearID = Convert.ToInt32(DueGridView.DataKeys[row.RowIndex]["EducationYearID"]);
-
-                    double PaidAmount;
-                    double DueByPayOrder = Convert.ToDouble(Payment_DataSet.DueByPayOrderID(PayOrderID));
-
-                    if (DueCheckBox.Checked && double.TryParse(DueAmountTextBox.Text.Trim(), out PaidAmount))
-                    {
-                        if (PaidAmount <= DueByPayOrder)
-                        {
-                            Payment_DataSet.Insert_Payment_Record(StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, DueGridView.DataKeys[row.RowIndex]["PayFor"].ToString(), Paid_Date, MoneyReceiptID, StudentClassID, P_Order_EduYearID, SchoolID, Convert.ToInt32(AccountDropDownList.SelectedValue));
-                            Payment_DataSet.Update_payOrder(PaidAmount, PayOrderID);
-
-                            TotalPaid += PaidAmount;
-                            Is_Paid = true;
-                            DueCheckBox.Checked = false;
-                        }
-                    }
-                }
-
-
-                //Others Current Session GV
-                foreach (GridViewRow row in OtherSessionGridView.Rows)
-                {
-                    CheckBox DueCheckBox = (CheckBox)row.FindControl("Other_Session_CheckBox");
-                    TextBox DueAmountTextBox = (TextBox)row.FindControl("Other_Session_AmountTextBox");
-
-                    StudentClassID = Convert.ToInt32(OtherSessionGridView.DataKeys[row.RowIndex]["StudentClassID"]);
-                    int PayOrderID = Convert.ToInt32(OtherSessionGridView.DataKeys[row.RowIndex]["PayOrderID"]);
-                    int RoleID = Convert.ToInt32(OtherSessionGridView.DataKeys[row.RowIndex]["RoleID"]);
-                    int P_Order_EduYearID = Convert.ToInt32(OtherSessionGridView.DataKeys[row.RowIndex]["EducationYearID"]);
-
-                    double PaidAmount;
-                    double DueByPayOrder = Convert.ToDouble(Payment_DataSet.DueByPayOrderID(PayOrderID));
-
-                    if (DueCheckBox.Checked && double.TryParse(DueAmountTextBox.Text.Trim(), out PaidAmount))
-                    {
-                        if (PaidAmount <= DueByPayOrder)
-                        {
-                            Payment_DataSet.Insert_Payment_Record(StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, OtherSessionGridView.DataKeys[row.RowIndex]["PayFor"].ToString(), Paid_Date, MoneyReceiptID, StudentClassID, P_Order_EduYearID, SchoolID, Convert.ToInt32(AccountDropDownList.SelectedValue));
-                            Payment_DataSet.Update_payOrder(PaidAmount, PayOrderID);
-
-                            TotalPaid += PaidAmount;
-                            Is_Paid = true;
-                            DueCheckBox.Checked = false;
-                        }
-                    }
-                }
-            }
-
-            Payment_DataSet.Update_MoneyReceipt(TotalPaid, MoneyReceiptID);
-
-            if (Is_Paid)
-            {
-                SqlCommand AccountCmd = new SqlCommand("Select MoneyReceipt_SN from Income_MoneyReceipt where SchoolID = " + SchoolID + " AND MoneyReceiptID='" + MoneyReceiptID + "'", con);
-                con.Open();
-                object moneyReceiptNo = AccountCmd.ExecuteScalar();
-                con.Close();
-                string moneyReceipt = Convert.ToString(moneyReceiptNo);
-                if (rbActive.Checked == true)
-                {
-                    SendSMS(moneyReceipt, totalPaidAmount, message);
-                }
-
-                string MRid = HttpUtility.UrlEncode(Encrypt(Convert.ToString(MoneyReceiptID)));
-                string Sid = HttpUtility.UrlEncode(Encrypt(SearchIDTextBox.Text.Trim()));
-                Response.Redirect(string.Format("Money_Receipt_By_Date.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
-            }
-        }
-
-        private void SendSMS(string moneyReceiptNo, double totalAmount, string mess)
-        {
-            var msg = "";
-            var isSentSMS = false;
-
-            // Calculate current due
-            decimal currentDue = 0.0m;
-            using (SqlConnection tempCon = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString()))
-            {
-                try
-                {
-                    string studentId = StudentInfoFormView.DataKey["ID"].ToString();
-                    SqlCommand dueCmd = new SqlCommand(@"SELECT ISNULL(SUM(CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 
-                THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) 
-                ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END), 0) AS TotalDue 
-            FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID 
-            WHERE Income_PayOrder.Status = 'Due' AND Income_PayOrder.EndDate <= GETDATE() AND Student.ID = @ID AND Income_PayOrder.SchoolID = @SchoolID AND Income_PayOrder.Is_Active = 1", tempCon);
-                    dueCmd.Parameters.AddWithValue("@ID", studentId);
-                    dueCmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                    tempCon.Open();
-                    object result = dueCmd.ExecuteScalar();
-                    if (result != null && result != DBNull.Value)
-                    {
-                        currentDue = Convert.ToDecimal(result);
-                    }
-                    tempCon.Close();
-                }
-                catch
-                {
-                    // If error, currentDue remains 0
-                    if (tempCon.State == System.Data.ConnectionState.Open)
-                        tempCon.Close();
-                }
-            }
-
-    if (StudentInfoFormView.CurrentMode == FormViewMode.ReadOnly)
-    {
-     var phoneNo = StudentInfoFormView.DataKey["SMSPhoneNo"].ToString();
- var studentId = StudentInfoFormView.DataKey["ID"].ToString();
-  var studentName = StudentInfoFormView.DataKey["StudentsName"].ToString();
-
-    // Try to get Payment SMS Template from database
-    string paymentTemplate = GetSMSTemplate("Payment", "Payment");
-
-        if (!string.IsNullOrEmpty(paymentTemplate))
-   {
-      // Use template and replace placeholders (NOW WITH CURRENT DUE)
-   msg = BuildPaymentMessageFromTemplate(paymentTemplate, studentName, studentId, totalAmount, moneyReceiptNo, mess, currentDue);
- }
-        else
-    {
-     // Default message if no template found
-       msg = "অভিনন্দন ! ";
-      msg += $"{studentName} (ID: {studentId}). আপনি: {totalAmount} টাকা পরিশোধ করেছেন. রিসিট নম্বর: {moneyReceiptNo}";
-msg += mess.ToString();
-        msg += ". ধন্যবাদ, " + Session["School_Name"];
-    }
-
- var sms = new SMS_Class(Session["SchoolID"].ToString());
-        var smsBalance = sms.SMSBalance;
-        var totalSMS = sms.SMS_Conut(msg);
-
-        if (smsBalance >= totalSMS)
-  {
-          if (sms.SMS_GetBalance() >= totalSMS)
-        {
-    var isValid = sms.SMS_Validation(phoneNo, msg);
-
-      if (isValid.Validation)
-  {
-           var smsSendId = sms.SMS_Send(phoneNo, msg, "Payment Collection");
-         if (smsSendId != Guid.Empty)
-            {
-        SMS_OtherInfoSQL.InsertParameters["SMS_Send_ID"].DefaultValue = smsSendId.ToString();
-  SMS_OtherInfoSQL.InsertParameters["SchoolID"].DefaultValue =
-        Session["SchoolID"].ToString();
-  SMS_OtherInfoSQL.InsertParameters["EducationYearID"].DefaultValue =
-         Session["Edu_Year"].ToString();
-       SMS_OtherInfoSQL.InsertParameters["StudentID"].DefaultValue =
-       StudentInfoFormView.DataKey["StudentID"].ToString();
-     SMS_OtherInfoSQL.InsertParameters["TeacherID"].DefaultValue = "";
-              SMS_OtherInfoSQL.Insert();
- }
-   isSentSMS = true;
-        }
-  else
-    {
-         ErrorLabel.Text = isValid.Message;
- }
-        }
-         else
- {
-  ErrorLabel.Text = "SMS Service Updating. Try again later or contact to authority";
-            }
-        }
- else
-        {
-       ErrorLabel.Text = "You don't have sufficient SMS balance, Your Current Balance is " + smsBalance;
-        }
-}
-}
-
-/// <summary>
-/// Get SMS Template from database by category and type
-/// </summary>
-private string GetSMSTemplate(string category, string templateType)
-{
-    try
-    {
-        using (SqlConnection tempCon = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString()))
-        {
-            tempCon.Open();
-
-            // First check if SMS_Template table exists
-            SqlCommand checkTableCmd = new SqlCommand(@"
-                IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
-   WHERE TABLE_NAME = 'SMS_Template')
-             SELECT 1
-          ELSE
-    SELECT 0", tempCon);
-
-                    int tableExists = (int)checkTableCmd.ExecuteScalar();
-
-                    if (tableExists == 0)
-                    {
-                        return string.Empty;
-                    }
-
-                    // Check if TemplateCategory column exists
-                    SqlCommand checkColumnCmd = new SqlCommand(@"
-           IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-    WHERE TABLE_NAME = 'SMS_Template' AND COLUMN_NAME = 'TemplateCategory')
-             SELECT 1
-         ELSE
-          SELECT 0", tempCon);
-
-                    int columnExists = (int)checkColumnCmd.ExecuteScalar();
-
-                    string selectQuery;
-                    if (columnExists == 1)
-                    {
-                        selectQuery = @"SELECT TOP 1 MessageTemplate 
-                   FROM SMS_Template 
-     WHERE SchoolID = @SchoolID 
-     AND TemplateCategory = @TemplateCategory
-        AND TemplateType = @TemplateType 
-           AND IsActive = 1 
-            ORDER BY CreatedDate DESC";
-                    }
-                    else
-                    {
-                        selectQuery = @"SELECT TOP 1 MessageTemplate 
-    FROM SMS_Template 
-             WHERE SchoolID = @SchoolID 
-             AND TemplateType = @TemplateType 
-         AND IsActive = 1 
-       ORDER BY CreatedDate DESC";
-                    }
-
-                    SqlCommand cmd = new SqlCommand(selectQuery, tempCon);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                    if (columnExists == 1)
-                    {
-                        cmd.Parameters.AddWithValue("@TemplateCategory", category);
-                    }
-                    cmd.Parameters.AddWithValue("@TemplateType", templateType);
-
-                    object result = cmd.ExecuteScalar();
-                    return result != null ? result.ToString() : string.Empty;
-                }
-            }
-            catch (Exception ex)
-            {
-                return string.Empty;
-            }
-        }
-
-        /// <summary>
-        /// Build Payment SMS message from template by replacing placeholders
-        /// </summary>
-        private string BuildPaymentMessageFromTemplate(string template, string studentName, string studentId, double amount, string receiptNo, string paymentDetails, decimal currentDue)
-        {
-            string message = template;
-
- // Replace all payment-related placeholders
-    message = message.Replace("{StudentName}", studentName);
-    message = message.Replace("{ID}", studentId);
-    message = message.Replace("{Amount}", amount.ToString("0.00"));
-    message = message.Replace("{ReceiptNo}", receiptNo);
-    message = message.Replace("{CurrentDue}", currentDue.ToString("0.00"));
-
-    // Clean up payment details
-    if (!string.IsNullOrEmpty(paymentDetails))
-    {
-        paymentDetails = paymentDetails.TrimStart(',', ' ');
- message = message.Replace("{PaymentDetails}", paymentDetails);
-    }
-    else
-    {
-        message = message.Replace(", {PaymentDetails}", "")
-     .Replace("{PaymentDetails}", "");
-    }
-
-    message = message.Replace("{SchoolName}", Session["School_Name"].ToString());
-
-    return message;
-}
-
-        // Update Concession
-        protected void UpdateConcessionButton_Click(object sender, EventArgs e)
-        {
-            CheckBox SingleCheckBox = new CheckBox();
-
-            // Validate concession for Current Session
-            foreach (GridViewRow Row in DueGridView.Rows)
-            {
-                SingleCheckBox = Row.FindControl("DueCheckBox") as CheckBox;
-                TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
-
-                if (SingleCheckBox.Checked)
-                {
-                    int PayOrderID = Convert.ToInt32(DueGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
-
-                    // Get ORIGINAL AMOUNT, PAID AMOUNT and LATEFEE from database
-                    double OriginalAmount = 0;
-                    double PaidAmount = 0;
-                    double LateFee = 0;
-                    try
-                    {
-                        SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount, ISNULL(LateFee, 0) AS LateFee FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
-                        cmd.Parameters.AddWithValue("@PayOrderID", PayOrderID);
-                        con.Open();
-                        SqlDataReader reader = cmd.ExecuteReader();
-                        if (reader.Read())
-                        {
-                            OriginalAmount = Convert.ToDouble(reader["OriginalAmount"]);
-                            PaidAmount = Convert.ToDouble(reader["PaidAmount"]);
-                            LateFee = Convert.ToDouble(reader["LateFee"]);
-                        }
-                        reader.Close();
-                        con.Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        if (con.State == System.Data.ConnectionState.Open)
-                            con.Close();
-                        ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "DbError",
-              $"alert('Database error: {ex.Message}');", true);
-                        return;
-                    }
-
-                    // Also consider LateFee from UI textbox (may not be saved yet)
-                    double UILateFee = 0;
-                    TextBox LateFeeTextBoxVal = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
-                    if (LateFeeTextBoxVal != null && double.TryParse(LateFeeTextBoxVal.Text.Trim(), out double parsedUILateFee))
-                        UILateFee = parsedUILateFee;
-                    double EffectiveLateFee = Math.Max(LateFee, UILateFee);
-
-                    // Skip validation if already fully paid or overpaid (including LateFee)
-                    if (PaidAmount >= OriginalAmount + EffectiveLateFee)
-                        continue;
-
-                    // Check if NEW concession exceeds (Original Amount + EffectiveLateFee - Paid Amount)
-                    if (DiscountTextBox != null && double.TryParse(DiscountTextBox.Text.Trim(), out double NewConcession))
-                    {
-                        // Maximum concession allowed = Original Amount + EffectiveLateFee - Paid Amount
-                        double MaxConcessionAllowed = OriginalAmount + EffectiveLateFee - PaidAmount;
-
-                        if (NewConcession > MaxConcessionAllowed)
-                        {
-                            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "ConcessionError",
-          "alert('Concession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nLate Fee: " + EffectiveLateFee + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
-                            return;
-                        }
-                    }
-                }
-            }
-
-            // Validate concession for Other Session
-            foreach (GridViewRow Row in OtherSessionGridView.Rows)
-            {
-                SingleCheckBox = Row.FindControl("Other_Session_CheckBox") as CheckBox;
-                TextBox DiscountTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
-
-                if (SingleCheckBox.Checked)
-                {
-                    int PayOrderID = Convert.ToInt32(OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
-
-                    // Get ORIGINAL AMOUNT, PAID AMOUNT and LATEFEE from database
-                    double OriginalAmount = 0;
-                    double PaidAmount = 0;
-                    double LateFee = 0;
-                    try
-                    {
-                        SqlCommand cmd = new SqlCommand("SELECT ISNULL(Amount, 0) AS OriginalAmount, ISNULL(PaidAmount, 0) AS PaidAmount, ISNULL(LateFee, 0) AS LateFee FROM Income_PayOrder WHERE PayOrderID = @PayOrderID", con);
-                        cmd.Parameters.AddWithValue("@PayOrderID", PayOrderID);
-                        con.Open();
-                        SqlDataReader reader = cmd.ExecuteReader();
-                        if (reader.Read())
-                        {
-                            OriginalAmount = Convert.ToDouble(reader["OriginalAmount"]);
-                            PaidAmount = Convert.ToDouble(reader["PaidAmount"]);
-                            LateFee = Convert.ToDouble(reader["LateFee"]);
-                        }
-                        reader.Close();
-                        con.Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        if (con.State == System.Data.ConnectionState.Open)
-                            con.Close();
-                        ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "DbError",
-                        $"alert('Database error: {ex.Message}');", true);
-                        return;
-                    }
-
-                    // Also consider LateFee from UI textbox (may not be saved yet)
-                    double UILateFee = 0;
-                    TextBox LateFeeTextBoxVal = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
-                    if (LateFeeTextBoxVal != null && double.TryParse(LateFeeTextBoxVal.Text.Trim(), out double parsedUILateFee))
-                        UILateFee = parsedUILateFee;
-                    double EffectiveLateFee = Math.Max(LateFee, UILateFee);
-
-                    // Skip validation if already fully paid or overpaid (including LateFee)
-                    if (PaidAmount >= OriginalAmount + EffectiveLateFee)
-                        continue;
-
-                    // Check if NEW concession exceeds (Original Amount + EffectiveLateFee - Paid Amount)
-                    if (DiscountTextBox != null && double.TryParse(DiscountTextBox.Text.Trim(), out double NewConcession))
-                    {
-                        // Maximum concession allowed = Original Amount + EffectiveLateFee - Paid Amount
-                        double MaxConcessionAllowed = OriginalAmount + EffectiveLateFee - PaidAmount;
-
-                        if (NewConcession > MaxConcessionAllowed)
-                        {
-                            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "ConcessionError",
-           "alert('Concession amount cannot exceed remaining amount!\\n\\nOriginal Amount: " + OriginalAmount + " TK\\nLate Fee: " + EffectiveLateFee + " TK\\nPaid Amount: " + PaidAmount + " TK\\nMax Concession Allowed: " + MaxConcessionAllowed + " TK\\nYou entered: " + NewConcession + " TK');", true);
-                            return;
-                        }
-                    }
-                }
-            }
-
-            // If validation passes, update concession
-            foreach (GridViewRow Row in DueGridView.Rows)
-            {
-                SingleCheckBox = Row.FindControl("DueCheckBox") as CheckBox;
-                TextBox DiscountTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
-                TextBox LateFeeTextBox = (TextBox)DueGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
-                HiddenField PrevLateFeeHidden = (HiddenField)DueGridView.Rows[Row.RowIndex].FindControl("PrevLateFeeHidden");
-                if (SingleCheckBox.Checked)
-                {
-                    string paid = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-                    Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-                    Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
-                    Fee_DiscountSQL.Update();
-
-                    if (LateFeeTextBox != null && PrevLateFeeHidden != null && LateFeeTextBox.Text != PrevLateFeeHidden.Value)
-                    {
-                        try
-                        {
-                            SqlCommand lfCmd = new SqlCommand("UPDATE Income_PayOrder SET LateFee = @LateFee WHERE PayOrderID = @PayOrderID", con);
-                            lfCmd.Parameters.AddWithValue("@LateFee", string.IsNullOrEmpty(LateFeeTextBox.Text) ? (object)DBNull.Value : (object)Convert.ToDouble(LateFeeTextBox.Text));
-                            lfCmd.Parameters.AddWithValue("@PayOrderID", DueGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
-                            con.Open();
-                            lfCmd.ExecuteNonQuery();
-                            con.Close();
-                        }
-                        catch { if (con.State == System.Data.ConnectionState.Open) con.Close(); }
-                    }
-                }
-            }
-
-            foreach (GridViewRow Row in OtherSessionGridView.Rows)
-            {
-                SingleCheckBox = Row.FindControl("Other_Session_CheckBox") as CheckBox;
-                TextBox DiscountTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("ConcessionTextBox");
-                TextBox LateFeeTextBox = (TextBox)OtherSessionGridView.Rows[Row.RowIndex].FindControl("LateFeeTextBox");
-                HiddenField PrevLateFeeHidden = (HiddenField)OtherSessionGridView.Rows[Row.RowIndex].FindControl("PrevLateFeeHidden");
-                if (SingleCheckBox.Checked)
-                {
-                    string paid = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-                    Fee_DiscountSQL.UpdateParameters["PayOrderID"].DefaultValue = OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-                    Fee_DiscountSQL.UpdateParameters["Discount"].DefaultValue = DiscountTextBox.Text;
-                    Fee_DiscountSQL.Update();
-
-                    if (LateFeeTextBox != null && PrevLateFeeHidden != null && LateFeeTextBox.Text != PrevLateFeeHidden.Value)
-                    {
-                        try
-                        {
-                            SqlCommand lfCmd = new SqlCommand("UPDATE Income_PayOrder SET LateFee = @LateFee WHERE PayOrderID = @PayOrderID", con);
-                            lfCmd.Parameters.AddWithValue("@LateFee", string.IsNullOrEmpty(LateFeeTextBox.Text) ? (object)DBNull.Value : (object)Convert.ToDouble(LateFeeTextBox.Text));
-                            lfCmd.Parameters.AddWithValue("@PayOrderID", OtherSessionGridView.DataKeys[Row.RowIndex]["PayOrderID"]);
-                            con.Open();
-                            lfCmd.ExecuteNonQuery();
-                            con.Close();
-                        }
-                        catch { if (con.State == System.Data.ConnectionState.Open) con.Close(); }
-                    }
-                }
-            }
-
-            con.Close();
-            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Update Successfully!!')", true);
-            DueGridView.DataBind();
-            OtherSessionGridView.DataBind();
-        }
-
-        protected void Print_LinkButton_Command(object sender, CommandEventArgs e)
-        {
-            string MRid = HttpUtility.UrlEncode(Encrypt(Convert.ToString(e.CommandArgument)));
-            string Sid = HttpUtility.UrlEncode(Encrypt(StudentInfoFormView.DataKey["ID"].ToString()));
-            Response.Redirect(string.Format("Money_Receipt_By_Date.aspx?mN_R={0}&s_icD={1}", MRid, Sid));
+            public int PayOrderID { get; set; }
+            public double Discount { get; set; }
+            public double LateFee { get; set; }
+            public double PrevLateFee { get; set; }
         }
     }
 }

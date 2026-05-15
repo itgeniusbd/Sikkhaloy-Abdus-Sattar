@@ -91,7 +91,7 @@
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <a class="d-print-none" href="Payment_Collection.aspx"><< Back To payment Page</a>
+    <a class="d-print-none" href="#" onclick="sessionStorage.removeItem('pc_lastStudentID'); window.location.href='Payment_Collection.aspx'; return false;"><< Back To payment Page</a>
 
     <!-- Payment Receipt Header -->
     <div class="payment-receipt-header">PAYMENT RECEIPT</div>

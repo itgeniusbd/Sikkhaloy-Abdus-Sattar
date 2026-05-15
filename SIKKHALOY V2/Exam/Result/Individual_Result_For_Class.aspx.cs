@@ -396,8 +396,9 @@ namespace EDUCATION.COM.Exam.Result
             try
             {
                 // Get values from the row with proper null checking using correct field names
-                obtainedMarks = row["TotalExamObtainedMark_ofStudent"] == DBNull.Value ? "0" :
-                    Convert.ToDecimal(row["TotalExamObtainedMark_ofStudent"]).ToString("F1");
+                var obtainedDecimal = row["TotalExamObtainedMark_ofStudent"] == DBNull.Value ? 0m :
+                    Convert.ToDecimal(row["TotalExamObtainedMark_ofStudent"]);
+                obtainedMarks = obtainedDecimal % 1 == 0 ? obtainedDecimal.ToString("F0") : obtainedDecimal.ToString("F1");
 
                 totalMarks = row["TotalMark_ofStudent"] == DBNull.Value ? "0" :
                     Convert.ToDecimal(row["TotalMark_ofStudent"]).ToString("F0");
@@ -410,8 +411,8 @@ namespace EDUCATION.COM.Exam.Result
 
                 grade = row["Student_Grade"] == DBNull.Value ? "F" : row["Student_Grade"].ToString();
 
-                gpa = row["Student_Point"] == DBNull.Value ? "0.0" :
-                    Convert.ToDecimal(row["Student_Point"]).ToString("F1");
+                gpa = row["Student_Point"] == DBNull.Value ? "0.00" :
+                    Convert.ToDecimal(row["Student_Point"]).ToString("F2");
 
                 // Position calculations
                 int posClassInt = row["Position_InExam_Class"] == DBNull.Value ? 0 :
@@ -652,7 +653,6 @@ namespace EDUCATION.COM.Exam.Result
         {
             if (e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem)
             {
-                // Bind grading system
                 Repeater gradingSystemRepeater = (Repeater)e.Item.FindControl("GradingSystemRepeater");
                 if (gradingSystemRepeater != null)
                 {
@@ -661,36 +661,55 @@ namespace EDUCATION.COM.Exam.Result
                     gradingSystemRepeater.DataBind();
                 }
 
-                // Handle dynamic header: custom logo vs traditional
+                // Handle dynamic header display based on School Name Logo
                 if (Session["SchoolID"] != null)
                 {
                     int schoolId = Convert.ToInt32(Session["SchoolID"]);
                     bool hasSchoolNameLogo = CheckSchoolNameLogoExists(schoolId);
 
-                    var logoPanel        = e.Item.FindControl("SchoolNameLogoHeaderPanel") as System.Web.UI.WebControls.Panel;
-                    var traditionalPanel = e.Item.FindControl("TraditionalHeaderPanel")    as System.Web.UI.WebControls.Panel;
+                    var schoolNameLogoPanel = e.Item.FindControl("SchoolNameLogoHeaderPanel") as Panel;
+                    var traditionalHeaderPanel = e.Item.FindControl("TraditionalHeaderPanel") as Panel;
 
-                    if (logoPanel != null && traditionalPanel != null)
+                    if (schoolNameLogoPanel != null && traditionalHeaderPanel != null)
                     {
                         if (hasSchoolNameLogo)
                         {
-                            logoPanel.CssClass = "show-panel";
-                            logoPanel.Style.Add("display", "block");
+                            // Show school name logo panel
+                            schoolNameLogoPanel.CssClass = "show-panel";
+                            schoolNameLogoPanel.Style.Clear();
+                            schoolNameLogoPanel.Style.Add("display", "block");
+                            schoolNameLogoPanel.Style.Add("visibility", "visible");
+                            schoolNameLogoPanel.Style.Add("width", "100%");
 
-                            var logoImg = e.Item.FindControl("SchoolNameLogoImage") as System.Web.UI.HtmlControls.HtmlImage;
-                            if (logoImg != null)
-                                logoImg.Src = string.Format("/Handeler/SchoolNameLogo.ashx?SchoolID={0}&t={1}", schoolId, DateTime.Now.Ticks);
+                            var schoolNameLogoImage = e.Item.FindControl("SchoolNameLogoImage") as System.Web.UI.HtmlControls.HtmlImage;
+                            if (schoolNameLogoImage != null)
+                            {
+                                schoolNameLogoImage.Src = string.Format("/Handeler/SchoolNameLogo.ashx?SchoolID={0}&t={1}", schoolId, DateTime.Now.Ticks);
+                            }
 
-                            traditionalPanel.CssClass = "hide-panel";
-                            traditionalPanel.Style.Add("display", "none");
+                            // Completely hide traditional header
+                            traditionalHeaderPanel.CssClass = "hide-panel";
+                            traditionalHeaderPanel.Style.Clear();
+                            traditionalHeaderPanel.Style.Add("display", "none");
+                            traditionalHeaderPanel.Style.Add("visibility", "hidden");
+                            traditionalHeaderPanel.Style.Add("position", "absolute");
+                            traditionalHeaderPanel.Style.Add("left", "-9999px");
                         }
                         else
                         {
-                            logoPanel.CssClass = "hide-panel";
-                            logoPanel.Style.Add("display", "none");
+                            // Completely hide school name logo panel
+                            schoolNameLogoPanel.CssClass = "hide-panel";
+                            schoolNameLogoPanel.Style.Clear();
+                            schoolNameLogoPanel.Style.Add("display", "none");
+                            schoolNameLogoPanel.Style.Add("visibility", "hidden");
+                            schoolNameLogoPanel.Style.Add("position", "absolute");
+                            schoolNameLogoPanel.Style.Add("left", "-9999px");
 
-                            traditionalPanel.CssClass = "show-panel";
-                            traditionalPanel.Style.Add("display", "block");
+                            // Show traditional header
+                            traditionalHeaderPanel.CssClass = "show-panel";
+                            traditionalHeaderPanel.Style.Clear();
+                            traditionalHeaderPanel.Style.Add("display", "block");
+                            traditionalHeaderPanel.Style.Add("visibility", "visible");
                         }
                     }
                 }
@@ -699,33 +718,46 @@ namespace EDUCATION.COM.Exam.Result
 
         private bool CheckSchoolNameLogoExists(int schoolId)
         {
+            SqlConnection con = null;
             try
             {
-                var conStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
-                using (var con = new SqlConnection(conStr))
+                var constr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                con = new SqlConnection(constr);
+                con.Open();
+
+                using (var checkCmd = new SqlCommand(
+                    @"IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SchoolInfo]') AND name = 'SchoolNameLogo')
+                      SELECT 1 ELSE SELECT 0", con))
                 {
-                    con.Open();
-                    // Check column exists
-                    using (var chk = new SqlCommand(
-                        @"IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SchoolInfo]') AND name = 'SchoolNameLogo') SELECT 1 ELSE SELECT 0", con))
+                    int columnExists = (int)checkCmd.ExecuteScalar();
+                    if (columnExists == 0) return false;
+                }
+
+                using (var cmd = new SqlCommand("SELECT SchoolNameLogo FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
                     {
-                        if ((int)chk.ExecuteScalar() == 0) return false;
+                        byte[] logoData = result as byte[];
+                        return logoData != null && logoData.Length > 0;
                     }
-                    // Check data
-                    using (var cmd = new SqlCommand("SELECT SchoolNameLogo FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
-                    {
-                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
-                        var result = cmd.ExecuteScalar();
-                        if (result != null && result != DBNull.Value)
-                        {
-                            byte[] data = result as byte[];
-                            return data != null && data.Length > 0;
-                        }
-                    }
+                    return false;
                 }
             }
-            catch { }
-            return false;
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("EnglishResult - Error checking school name logo: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                if (con != null && con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                    con.Dispose();
+                }
+            }
         }
 
         // Update GetGradingSystemData to use the exact same TableAdapter as the official BanglaResult.aspx
@@ -1036,7 +1068,7 @@ namespace EDUCATION.COM.Exam.Result
 
                 // If nothing to show, add just class row
                 if (pairs.Count == 0)
-                    return "<tr><td>Class:</td><td colspan=\"3\">-</td></tr>";
+                    return "<tr><td>Class:</td><td colspan=\"3\"><b>-</b></td></tr>";
 
                 var sb = new StringBuilder();
                 int i = 0;
@@ -1047,7 +1079,7 @@ namespace EDUCATION.COM.Exam.Result
                     // Add first pair
                     string label1 = pairs[i].Item1;
                     string value1 = HttpUtility.HtmlEncode(pairs[i].Item2);
-                    sb.AppendFormat("<td>{0}</td><td>{1}</td>", label1, value1);
+                    sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label1, value1);
                     i++;
 
                     // Add second pair if it exists
@@ -1055,7 +1087,7 @@ namespace EDUCATION.COM.Exam.Result
                     {
                         string label2 = pairs[i].Item1;
                         string value2 = HttpUtility.HtmlEncode(pairs[i].Item2);
-                        sb.AppendFormat("<td>{0}</td><td>{1}</td>", label2, value2);
+                        sb.AppendFormat("<td>{0}</td><td><b>{1}</b></td>", label2, value2);
                         i++;
                     }
                     else
@@ -1072,7 +1104,7 @@ namespace EDUCATION.COM.Exam.Result
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetDynamicInfoRow: {ex.Message}");
-                return "<tr><td>Class:</td><td colspan=\"3\">-</td></tr>";
+                return "<tr><td>Class:</td><td colspan=\"3\"><b>-</b></td></tr>";
             }
         }
 
@@ -1251,7 +1283,13 @@ namespace EDUCATION.COM.Exam.Result
 
             // Get sub-exam names dynamically from database
             List<string> subExamNames = GetSubExamNames(examID);
+            List<int> subExamIDs = GetSubExamIDs(examID);
             int subExamCount = subExamNames.Count;
+
+            // Calculate per-sub-exam colspan based on visibility
+            int colsPerSubExam = 1; // OM always shown
+            if (!IS_Hide_FullMark) colsPerSubExam++;
+            if (!IS_Hide_PassMark) colsPerSubExam++;
 
             // Build header - Only add PC header if not hidden
             html += @"<tr style=""background-color: #c8e6c9;"">
@@ -1260,7 +1298,7 @@ namespace EDUCATION.COM.Exam.Result
             // Add dynamic sub-exam headers
             foreach (string subExamName in subExamNames)
             {
-                html += $@"<th colspan=""3"" style=""{cellStyle}background-color: #c8e6c9;"">{subExamName}</th>";
+                html += $@"<th colspan=""{colsPerSubExam}"" style=""{cellStyle}background-color: #c8e6c9;"">{subExamName}</th>";
             }
 
             html += @"<th rowspan=""2"" style=""" + cellStyle + @"background-color: #c8e6c9; min-width: 70px;"">MARKS</th>
@@ -1290,13 +1328,15 @@ namespace EDUCATION.COM.Exam.Result
 
             html += @"</tr>";
 
-            // Second header row - FM, PM, OM for each sub-exam
+            // Second header row - FM, PM, OM for each sub-exam (conditional)
             html += @"<tr style=""background-color: #c8e6c9;"">";
             for (int i = 0; i < subExamCount; i++)
             {
-                html += $@"<th style=""{cellStyle}background-color: #c8e6c9;"">FM</th>
-                           <th style=""{cellStyle}background-color: #c8e6c9;"">PM</th>
-                           <th style=""{cellStyle}background-color: #c8e6c9;"">OM</th>";
+                if (!IS_Hide_FullMark)
+                    html += $@"<th style=""{cellStyle}background-color: #c8e6c9;"">FM</th>";
+                if (!IS_Hide_PassMark)
+                    html += $@"<th style=""{cellStyle}background-color: #c8e6c9;"">PM</th>";
+                html += $@"<th style=""{cellStyle}background-color: #c8e6c9;"">OM</th>";
             }
             html += @"</tr>";
 
@@ -1337,8 +1377,8 @@ namespace EDUCATION.COM.Exam.Result
 
                 if (hasSubExamData)
                 {
-                    // Show actual sub-exam marks
-                    var subExamMarks = GetSubExamMarksForSubject(studentResultID, subjectID, examID, subExamCount);
+                    // Show actual sub-exam marks aligned to correct column by SubExamID
+                    var subExamMarks = GetSubExamMarksForSubject(studentResultID, subjectID, examID, subExamIDs, IS_Hide_FullMark, IS_Hide_PassMark);
                     html += subExamMarks;
                 }
                 else
@@ -1346,9 +1386,11 @@ namespace EDUCATION.COM.Exam.Result
                     // Show dashes for all sub-exam columns for subjects without sub-exam data
                     for (int i = 0; i < subExamCount; i++)
                     {
-                        html += $@"<td style=""{cellStyle}color: #666;"" class=""no-sub-exam-data"">-</td>
-                                   <td style=""{cellStyle}color: #666;"" class=""no-sub-exam-data"">-</td>
-                                   <td style=""{cellStyle}color: #666;"" class=""no-sub-exam-data"">-</td>";
+                        if (!IS_Hide_FullMark)
+                            html += $@"<td style=""{cellStyle}color: #666;"" class=""no-sub-exam-data"">-</td>";
+                        if (!IS_Hide_PassMark)
+                            html += $@"<td style=""{cellStyle}color: #666;"" class=""no-sub-exam-data"">-</td>";
+                        html += $@"<td style=""{cellStyle}color: #666;"" class=""no-sub-exam-data"">-</td>";
                     }
                 }
 
@@ -1382,6 +1424,134 @@ namespace EDUCATION.COM.Exam.Result
             }
 
             return html;
+        }
+
+        // Get ordered list of SubExamIDs for an exam (used to align sub-exam columns correctly)
+        private List<int> GetSubExamIDs(int examID)
+        {
+            var list = new List<int>();
+            try
+            {
+                using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                {
+                    con.Open();
+                    string query = @"
+                        SELECT DISTINCT esn.SubExamID, esn.Sub_ExamSN
+                        FROM Exam_SubExam_Name esn
+                        INNER JOIN Exam_Obtain_Marks eom ON esn.SubExamID = eom.SubExamID
+                        INNER JOIN Exam_Result_of_Student ers ON eom.StudentResultID = ers.StudentResultID
+                        INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+                        WHERE esn.SchoolID = @SchoolID
+                        AND esn.EducationYearID = @EducationYearID
+                        AND ers.ExamID = @ExamID
+                        AND sc.ClassID = @ClassID
+                        AND eom.SchoolID = @SchoolID
+                        AND eom.EducationYearID = @EducationYearID
+                        ORDER BY esn.Sub_ExamSN";
+                    using (var cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                        cmd.Parameters.AddWithValue("@EducationYearID", Session["Edu_Year"] ?? 1);
+                        cmd.Parameters.AddWithValue("@ExamID", examID);
+                        cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                        using (var reader = cmd.ExecuteReader())
+                            while (reader.Read())
+                                list.Add(Convert.ToInt32(reader["SubExamID"]));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetSubExamIDs error: {ex.Message}");
+            }
+            return list;
+        }
+
+        // Overload: align marks to correct column using global SubExamID list, respecting FM/PM visibility
+        private string GetSubExamMarksForSubject(string studentResultID, int subjectID, int examID, List<int> globalSubExamIDs, bool hideFullMark = false, bool hidePassMark = false)
+        {
+            string cellStyle = "border: 1px solid #000; padding: 3px; text-align: center; font-size: 11px; min-width: 35px; max-width: 45px;";
+            try
+            {
+                // Load all sub-exam marks for this subject into a dictionary keyed by SubExamID
+                var marksDict = new Dictionary<int, Tuple<string, string, string>>();
+                using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                {
+                    con.Open();
+                    string q = @"SELECT eom.SubExamID, eom.FullMark, eom.PassMark, eom.MarksObtained
+                                 FROM Exam_Obtain_Marks eom
+                                 WHERE eom.StudentResultID = @StudentResultID AND eom.SubjectID = @SubjectID
+                                 AND eom.ExamID = @ExamID AND eom.SchoolID = @SchoolID";
+                    using (var cmd = new SqlCommand(q, con))
+                    {
+                        cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                        cmd.Parameters.AddWithValue("@SubjectID", subjectID);
+                        cmd.Parameters.AddWithValue("@ExamID", examID);
+                        cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"] ?? 1);
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int sid = Convert.ToInt32(reader["SubExamID"]);
+                                string fm = reader["FullMark"]?.ToString() ?? "-";
+                                string pm = reader["PassMark"]?.ToString() ?? "-";
+                                string om = reader["MarksObtained"]?.ToString() ?? "";
+
+                                if (decimal.TryParse(fm, out decimal fmVal))
+                                    fm = fmVal % 1 == 0 ? fmVal.ToString("F0") : fmVal.ToString("F1");
+                                if (decimal.TryParse(pm, out decimal pmVal))
+                                    pm = pmVal % 1 == 0 ? pmVal.ToString("F0") : pmVal.ToString("F1");
+
+                                if (string.IsNullOrWhiteSpace(om) ||
+                                    string.Equals(om, "A", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(om, "ABS", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(om, "ABSENT", StringComparison.OrdinalIgnoreCase))
+                                    om = "Abs";
+                                else if (decimal.TryParse(om, out decimal omVal))
+                                    om = omVal % 1 != 0 ? omVal.ToString("F1") : omVal.ToString("F0");
+
+                                marksDict[sid] = Tuple.Create(fm, pm, om);
+                            }
+                        }
+                    }
+                }
+
+                // Render columns in global order — dash for missing sub-exams
+                string result = "";
+                foreach (int id in globalSubExamIDs)
+                {
+                    if (marksDict.ContainsKey(id))
+                    {
+                        var m = marksDict[id];
+                        if (!hideFullMark)
+                            result += $"<td style=\"{cellStyle}\">{m.Item1}</td>";
+                        if (!hidePassMark)
+                            result += $"<td style=\"{cellStyle}\">{m.Item2}</td>";
+                        result += $"<td style=\"{cellStyle}\">{m.Item3}</td>";
+                    }
+                    else
+                    {
+                        if (!hideFullMark)
+                            result += $"<td style=\"{cellStyle}color:#666;\" class=\"no-sub-exam-data\">-</td>";
+                        if (!hidePassMark)
+                            result += $"<td style=\"{cellStyle}color:#666;\" class=\"no-sub-exam-data\">-</td>";
+                        result += $"<td style=\"{cellStyle}color:#666;\" class=\"no-sub-exam-data\">-</td>";
+                    }
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetSubExamMarksForSubject(List) error: {ex.Message}");
+                string result = "";
+                foreach (int id in globalSubExamIDs)
+                {
+                    if (!hideFullMark) result += $"<td style=\"{cellStyle}color:#666;\">-</td>";
+                    if (!hidePassMark) result += $"<td style=\"{cellStyle}color:#666;\">-</td>";
+                    result += $"<td style=\"{cellStyle}color:#666;\">-</td>";
+                }
+                return result;
+            }
         }
 
         // New method to get sub-exam names from database
@@ -1800,41 +1970,79 @@ namespace EDUCATION.COM.Exam.Result
                 using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
                 {
                     con.Open();
-                    string query = @"SELECT 
-                                        ISNULL(ast.WorkingDays, 0)  AS WorkingDays,
-                                        ISNULL(ast.TotalPresent, 0) AS TotalPresent,
-                                        ISNULL(ast.TotalAbsent, 0)  AS TotalAbsent,
-                                        ISNULL(ast.TotalLeave, 0)   AS TotalLeave,
-                                        ISNULL(ast.TotalLateAbs, 0) AS TotalLateAbs,
-                                        ISNULL(ast.TotalLate, 0)    AS TotalLate
-                                    FROM Exam_Result_of_Student ers
-                                    LEFT JOIN Attendance_Student ast
-                                        ON ers.StudentClassID = ast.StudentClassID
-                                        AND ers.ExamID = ast.ExamID
-                                    WHERE ers.StudentResultID = @StudentResultID";
 
-                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    // Step 1: Get StudentClassID from result
+                    int studentClassID = 0;
+                    string schoolID = Session["SchoolID"]?.ToString() ?? "1";
+                    string eduYearID = Session["Edu_Year"]?.ToString() ?? "1";
+
+                    using (var cmd = new SqlCommand("SELECT StudentClassID FROM Exam_Result_of_Student WHERE StudentResultID = @SRid", con))
                     {
-                        cmd.Parameters.AddWithValue("@StudentResultID", studentResultID);
+                        cmd.Parameters.AddWithValue("@SRid", studentResultID);
+                        var val = cmd.ExecuteScalar();
+                        if (val == null || val == DBNull.Value) return data;
+                        studentClassID = Convert.ToInt32(val);
+                    }
 
-                        using (SqlDataReader reader = cmd.ExecuteReader())
+                    // Step 2: Get from/to dates from Exam_Publish_Setting
+                    string fromDate = null, toDate = null;
+                    using (var cmd = new SqlCommand(@"SELECT Attendance_FromDate, Attendance_ToDate
+                        FROM Exam_Publish_Setting
+                        WHERE SchoolID=@SchoolID AND EducationYearID=@EduYear AND ExamID=@ExamID AND ClassID=@ClassID", con))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                        cmd.Parameters.AddWithValue("@EduYear", eduYearID);
+                        cmd.Parameters.AddWithValue("@ExamID", examID);
+                        cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                        using (var reader = cmd.ExecuteReader())
                         {
                             if (reader.Read())
                             {
-                                data.WorkingDays = reader["WorkingDays"]?.ToString() ?? "";
-                                data.PresentDays = reader["TotalPresent"]?.ToString() ?? "";
-                                data.AbsentDays  = reader["TotalAbsent"]?.ToString() ?? "";
-                                data.LeaveDays   = reader["TotalLeave"]?.ToString() ?? "";
-                                data.LateAbsDays = reader["TotalLateAbs"]?.ToString() ?? "";
-                                data.LateDays    = reader["TotalLate"]?.ToString() ?? "";
+                                fromDate = reader["Attendance_FromDate"] == DBNull.Value ? null : reader["Attendance_FromDate"].ToString();
+                                toDate   = reader["Attendance_ToDate"]   == DBNull.Value ? null : reader["Attendance_ToDate"].ToString();
+                            }
+                        }
+                    }
+
+                    // No dates set — nothing to show
+                    if (string.IsNullOrWhiteSpace(fromDate) || string.IsNullOrWhiteSpace(toDate))
+                        return data;
+
+                    // Step 3: Calculate attendance using DB functions
+                    using (var cmd = new SqlCommand(@"
+                        SELECT
+                            dbo.F_Stu_WorkingDay(@SchoolID, @EduYear, @ClassID, @From, @To) AS WorkingDays,
+                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Pre',      @From, @To) AS PresentDays,
+                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Abs',      @From, @To) AS AbsentDays,
+                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Leave',    @From, @To) AS LeaveDays,
+                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Late Abs', @From, @To) AS LateAbsDays,
+                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Late',     @From, @To) AS LateDays", con))
+                    {
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                        cmd.Parameters.AddWithValue("@EduYear", eduYearID);
+                        cmd.Parameters.AddWithValue("@ClassID", ClassDropDownList.SelectedValue);
+                        cmd.Parameters.AddWithValue("@SCID", studentClassID);
+                        cmd.Parameters.AddWithValue("@From", fromDate);
+                        cmd.Parameters.AddWithValue("@To", toDate);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                data.WorkingDays = reader["WorkingDays"]  == DBNull.Value ? "" : reader["WorkingDays"].ToString();
+                                data.PresentDays = reader["PresentDays"]  == DBNull.Value ? "" : reader["PresentDays"].ToString();
+                                data.AbsentDays  = reader["AbsentDays"]   == DBNull.Value ? "" : reader["AbsentDays"].ToString();
+                                data.LeaveDays   = reader["LeaveDays"]    == DBNull.Value ? "" : reader["LeaveDays"].ToString();
+                                data.LateAbsDays = reader["LateAbsDays"]  == DBNull.Value ? "" : reader["LateAbsDays"].ToString();
+                                data.LateDays    = reader["LateDays"]     == DBNull.Value ? "" : reader["LateDays"].ToString();
                             }
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Return default values on error
+                System.Diagnostics.Debug.WriteLine($"GetAttendanceData error: {ex.Message}");
             }
 
             return data;

@@ -7,13 +7,11 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Accounts.Payment
-{
-
-
-    public partial class Payment_Concession_All
-    {
-
+namespace EDUCATION.COM.Accounts.Payment {
+    
+    
+    public partial class Payment_Concession_All {
+        
         /// <summary>
         /// SearchIDTextBox control.
         /// </summary>
@@ -22,7 +20,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox SearchIDTextBox;
-
+        
         /// <summary>
         /// SearchButton control.
         /// </summary>
@@ -31,7 +29,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button SearchButton;
-
+        
         /// <summary>
         /// RequiredFieldValidator1 control.
         /// </summary>
@@ -40,7 +38,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator1;
-
+        
         /// <summary>
         /// StudentInfoFormView control.
         /// </summary>
@@ -49,7 +47,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FormView StudentInfoFormView;
-
+        
         /// <summary>
         /// StudentInfoSQL control.
         /// </summary>
@@ -58,7 +56,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource StudentInfoSQL;
-
+        
         /// <summary>
         /// UpdatePanel2 control.
         /// </summary>
@@ -67,7 +65,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.UpdatePanel UpdatePanel2;
-
+        
         /// <summary>
         /// PaidRecordGridView control.
         /// </summary>
@@ -76,7 +74,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView PaidRecordGridView;
-
+        
         /// <summary>
         /// PRecordSQL control.
         /// </summary>
@@ -85,7 +83,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource PRecordSQL;
-
+        
         /// <summary>
         /// PaidDetailsGridView control.
         /// </summary>
@@ -94,7 +92,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView PaidDetailsGridView;
-
+        
         /// <summary>
         /// PaidRecordsSQL control.
         /// </summary>
@@ -103,7 +101,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource PaidRecordsSQL;
-
+        
         /// <summary>
         /// RByFormView control.
         /// </summary>
@@ -112,7 +110,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FormView RByFormView;
-
+        
         /// <summary>
         /// ReceivedBySQL control.
         /// </summary>
@@ -121,7 +119,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource ReceivedBySQL;
-
+        
         /// <summary>
         /// PDue control.
         /// </summary>
@@ -130,7 +128,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.FormView PDue;
-
+        
         /// <summary>
         /// TotalDue_ByID_ODS control.
         /// </summary>
@@ -139,7 +137,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.ObjectDataSource TotalDue_ByID_ODS;
-
+        
         /// <summary>
         /// DueGridView control.
         /// </summary>
@@ -148,7 +146,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView DueGridView;
-
+        
         /// <summary>
         /// DueSQL control.
         /// </summary>
@@ -157,7 +155,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource DueSQL;
-
+        
         /// <summary>
         /// OtherSessionGridView control.
         /// </summary>
@@ -166,7 +164,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView OtherSessionGridView;
-
+        
         /// <summary>
         /// OtherSessionSQL control.
         /// </summary>
@@ -175,7 +173,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource OtherSessionSQL;
-
+        
         /// <summary>
         /// Fee_DiscountSQL control.
         /// </summary>
@@ -184,7 +182,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Fee_DiscountSQL;
-
+        
         /// <summary>
         /// LateFee_DiscountSQL control.
         /// </summary>
@@ -193,7 +191,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource LateFee_DiscountSQL;
-
+        
         /// <summary>
         /// LateFeeChangeSQL control.
         /// </summary>
@@ -202,7 +200,7 @@ namespace EDUCATION.COM.Accounts.Payment
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource LateFeeChangeSQL;
-
+        
         /// <summary>
         /// SubmitButton control.
         /// </summary>

@@ -207,7 +207,7 @@ FROM            StudentsClass INNER JOIN
                          Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN
                          Exam_Result_of_Student ON StudentsClass.StudentClassID = Exam_Result_of_Student.StudentClassID
 WHERE        (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND
-                         (Student.Status = @Status) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) AND (Exam_Result_of_Student.ExamID = @ExamID) AND
+                         (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.SchoolID = @SchoolID) AND (Exam_Result_of_Student.ExamID = @ExamID) AND
                          (Exam_Result_of_Student.StudentPublishStatus = N'Pub') AND
                          (Exam_Result_of_Student.PassStatus_InSubject LIKE @PassStatus)
 ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo , '$' , '') , ',' , '') AS FLOAT) ELSE 0 END">
@@ -216,7 +216,6 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
                 <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" PropertyName="SelectedValue" />
                 <asp:ControlParameter ControlID="GroupDropDownList" Name="SubjectGroupID" PropertyName="SelectedValue" />
                 <asp:ControlParameter ControlID="ShiftDropDownList" Name="ShiftID" PropertyName="SelectedValue" />
-                <asp:Parameter DefaultValue="Active" Name="Status" />
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                 <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                 <asp:ControlParameter ControlID="ExamDropDownList" Name="ExamID" PropertyName="SelectedValue" />

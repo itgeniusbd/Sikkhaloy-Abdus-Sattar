@@ -7,11 +7,22 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EDUCATION.COM.Employee {
-    
-    
-    public partial class Employee_List {
-        
+namespace EDUCATION.COM.Employee
+{
+
+
+    public partial class Employee_List
+    {
+
+        /// <summary>
+        /// SubCategoryDropDownList control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList SubCategoryDropDownList;
+
         /// <summary>
         /// EmpTypeRadioButtonList control.
         /// </summary>
@@ -20,7 +31,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RadioButtonList EmpTypeRadioButtonList;
-        
+
         /// <summary>
         /// FindTextBox control.
         /// </summary>
@@ -29,7 +40,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox FindTextBox;
-        
+
         /// <summary>
         /// FindButton control.
         /// </summary>
@@ -38,7 +49,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button FindButton;
-        
+
         /// <summary>
         /// CountLabel control.
         /// </summary>
@@ -47,7 +58,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label CountLabel;
-        
+
         /// <summary>
         /// EmployeeGridView control.
         /// </summary>
@@ -56,7 +67,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView EmployeeGridView;
-        
+
         /// <summary>
         /// EmployeeSQL control.
         /// </summary>
@@ -65,7 +76,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource EmployeeSQL;
-        
+
         /// <summary>
         /// SalaryUpdateSQL control.
         /// </summary>
@@ -74,7 +85,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource SalaryUpdateSQL;
-        
+
         /// <summary>
         /// Bank_AccNoUpdateSQL control.
         /// </summary>
@@ -83,7 +94,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Bank_AccNoUpdateSQL;
-        
+
         /// <summary>
         /// Device_DataUpdateSQL control.
         /// </summary>
@@ -92,7 +103,7 @@ namespace EDUCATION.COM.Employee {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Device_DataUpdateSQL;
-        
+
         /// <summary>
         /// UploadButton control.
         /// </summary>

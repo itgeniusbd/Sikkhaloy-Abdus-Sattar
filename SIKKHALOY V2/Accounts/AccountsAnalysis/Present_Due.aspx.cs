@@ -214,7 +214,11 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
                     Label NameLabel = (Label)Iteam.FindControl("NameLabel");
                     GridView AllDueGV = (GridView)Iteam.FindControl("AllDueGridView");
 
-                    SumFooter = Convert.ToDouble(TotalDueGridView.DataKeys[row.RowIndex]["Due"]);
+                    SumFooter = 0;
+                    foreach (DataRow dueRow in dt.Rows)
+                    {
+                        SumFooter += Convert.ToDouble(dueRow["Due"]);
+                    }
                     NameLabel.Text = SName + ", Class: " + Class + ", Roll: " + RollNo + ", ID: " + ID + ", Mob: " + SMSPhoneNo;
 
                     AllDueGV.DataSource = dt;

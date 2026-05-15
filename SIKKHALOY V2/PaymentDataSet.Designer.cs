@@ -1563,16 +1563,18 @@ namespace EDUCATION.COM {
             
             private global::System.Data.DataColumn columnPayFor;
             
+            private global::System.Data.DataColumn columnDiscount;
+
             private global::System.Data.DataColumn columnPaidAmount;
-            
+
             private global::System.Data.DataColumn columnDue;
-            
+
             private global::System.Data.DataColumn columnEndDate;
-            
+
             private global::System.Data.DataColumn columnClass;
-            
+
             private global::System.Data.DataColumn columnEducationYear;
-            
+
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "17.0.0.0")]
             public DueDetailsDataTable() {
@@ -1637,7 +1639,15 @@ namespace EDUCATION.COM {
                     return this.columnPayFor;
                 }
             }
-            
+
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "17.0.0.0")]
+            public global::System.Data.DataColumn DiscountColumn {
+                get {
+                    return this.columnDiscount;
+                }
+            }
+
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "17.0.0.0")]
             public global::System.Data.DataColumn PaidAmountColumn {
@@ -1645,7 +1655,7 @@ namespace EDUCATION.COM {
                     return this.columnPaidAmount;
                 }
             }
-            
+
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "17.0.0.0")]
             public global::System.Data.DataColumn DueColumn {
@@ -1715,13 +1725,14 @@ namespace EDUCATION.COM {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "17.0.0.0")]
-            public DueDetailsRow AddDueDetailsRow(string ID, string StudentsName, string Role, string PayFor, double PaidAmount, double Due, System.DateTime EndDate, string Class, string EducationYear) {
+            public DueDetailsRow AddDueDetailsRow(string ID, string StudentsName, string Role, string PayFor, double Discount, double PaidAmount, double Due, System.DateTime EndDate, string Class, string EducationYear) {
                 DueDetailsRow rowDueDetailsRow = ((DueDetailsRow)(this.NewRow()));
                 object[] columnValuesArray = new object[] {
                         ID,
                         StudentsName,
                         Role,
                         PayFor,
+                        Discount,
                         PaidAmount,
                         Due,
                         EndDate,
@@ -1753,6 +1764,7 @@ namespace EDUCATION.COM {
                 this.columnStudentsName = base.Columns["StudentsName"];
                 this.columnRole = base.Columns["Role"];
                 this.columnPayFor = base.Columns["PayFor"];
+                this.columnDiscount = base.Columns["Discount"];
                 this.columnPaidAmount = base.Columns["PaidAmount"];
                 this.columnDue = base.Columns["Due"];
                 this.columnEndDate = base.Columns["EndDate"];
@@ -1771,6 +1783,8 @@ namespace EDUCATION.COM {
                 base.Columns.Add(this.columnRole);
                 this.columnPayFor = new global::System.Data.DataColumn("PayFor", typeof(string), null, global::System.Data.MappingType.Element);
                 base.Columns.Add(this.columnPayFor);
+                this.columnDiscount = new global::System.Data.DataColumn("Discount", typeof(double), null, global::System.Data.MappingType.Element);
+                base.Columns.Add(this.columnDiscount);
                 this.columnPaidAmount = new global::System.Data.DataColumn("PaidAmount", typeof(double), null, global::System.Data.MappingType.Element);
                 base.Columns.Add(this.columnPaidAmount);
                 this.columnDue = new global::System.Data.DataColumn("Due", typeof(double), null, global::System.Data.MappingType.Element);
@@ -5276,7 +5290,23 @@ namespace EDUCATION.COM {
                     this[this.tableDueDetails.PayForColumn] = value;
                 }
             }
-            
+
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "17.0.0.0")]
+            public double Discount {
+                get {
+                    try {
+                        return ((double)(this[this.tableDueDetails.DiscountColumn]));
+                    }
+                    catch (global::System.InvalidCastException e) {
+                        throw new global::System.Data.StrongTypingException("The value for column \'Discount\' in table \'DueDetails\' is DBNull.", e);
+                    }
+                }
+                set {
+                    this[this.tableDueDetails.DiscountColumn] = value;
+                }
+            }
+
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "17.0.0.0")]
             public double PaidAmount {
@@ -7179,7 +7209,7 @@ WHERE        (PayOrderID = @PayOrderID)";
             this._commandCollection[8].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@MoneyReceiptID", global::System.Data.SqlDbType.Int, 4, global::System.Data.ParameterDirection.Input, 0, 0, "MoneyReceiptID", global::System.Data.DataRowVersion.Original, false, null, "", "", ""));
             this._commandCollection[9] = new global::System.Data.SqlClient.SqlCommand();
             this._commandCollection[9].Connection = this.Connection;
-            this._commandCollection[9].CommandText = "UPDATE Income_PayOrder SET PaidAmount = PaidAmount + @PaidAmount, LastPaidDate = GETDATE(), NumberOfPayment = NumberOfPayment + 1 WHERE (PayOrderID = @PayOrderID)";
+            this._commandCollection[9].CommandText = "UPDATE Income_PayOrder SET PaidAmount = PaidAmount + @PaidAmount, LastPaidDate = GETDATE(), NumberOfPayment = NumberOfPayment + 1, Is_LateFeeAdded = CASE WHEN EndDate < GETDATE() AND ISNULL(LateFee,0) > 0 THEN 1 ELSE Is_LateFeeAdded END WHERE (PayOrderID = @PayOrderID)";
             this._commandCollection[9].CommandType = global::System.Data.CommandType.Text;
             this._commandCollection[9].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@PaidAmount", global::System.Data.SqlDbType.Float, 8, global::System.Data.ParameterDirection.Input, 0, 0, "PaidAmount", global::System.Data.DataRowVersion.Current, false, null, "", "", ""));
             this._commandCollection[9].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@PayOrderID", global::System.Data.SqlDbType.Int, 4, global::System.Data.ParameterDirection.Input, 0, 0, "PayOrderID", global::System.Data.DataRowVersion.Original, false, null, "", "", ""));
@@ -7988,16 +8018,34 @@ ORDER BY [WEEK NUMBER] DESC";
             this._commandCollection = new global::System.Data.SqlClient.SqlCommand[1];
             this._commandCollection[0] = new global::System.Data.SqlClient.SqlCommand();
             this._commandCollection[0].Connection = this.Connection;
-            this._commandCollection[0].CommandText = @"SELECT        Student.ID, Student.StudentsName, Education_Year.EducationYear, CreateClass.Class, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.PaidAmount, 
-                         CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.EndDate
-FROM            Income_PayOrder INNER JOIN
-                         Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
-                         Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
-                         CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID INNER JOIN
-                         Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID
-WHERE        (Income_PayOrder.Status = 'Due') AND (Income_PayOrder.EndDate < GETDATE()) AND (Student.ID = @ID) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Student.Status = N'Active') AND 
-                         (CAST (Income_PayOrder.RoleID AS NVARCHAR(50)) LIKE @RoleID) AND
-                         (CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) > 0
+            this._commandCollection[0].CommandText = @"SELECT Student.ID, Student.StudentsName, Education_Year.EducationYear, CreateClass.Class, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.Amount, Income_PayOrder.LateFee, ISNULL(Income_PayOrder.Discount,0) AS Discount, Income_PayOrder.PaidAmount,
+    CASE
+        WHEN Income_PayOrder.EndDate < GETDATE()-1
+             AND (ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0)) > 0
+             AND ISNULL(OnTimePaid.PaidOnTime,0) < (ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0))
+        THEN ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0)
+        ELSE ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)
+    END AS Due, Income_PayOrder.EndDate
+FROM Income_PayOrder
+INNER JOIN Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID
+INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID
+INNER JOIN CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID
+INNER JOIN Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID
+LEFT JOIN (SELECT pr.PayOrderID, SUM(pr.PaidAmount) AS PaidOnTime
+    FROM Income_PaymentRecord pr
+    INNER JOIN Income_PayOrder po2 ON pr.PayOrderID = po2.PayOrderID
+    INNER JOIN Student s2 ON po2.StudentID = s2.StudentID
+    WHERE pr.PaidDate <= po2.EndDate AND s2.ID = @ID AND po2.SchoolID = @SchoolID
+    GROUP BY pr.PayOrderID) AS OnTimePaid ON OnTimePaid.PayOrderID = Income_PayOrder.PayOrderID
+WHERE (Income_PayOrder.Status = 'Due') AND (Income_PayOrder.EndDate < GETDATE()) AND (Student.ID = @ID) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Student.Status = N'Active') AND
+    (CAST(Income_PayOrder.RoleID AS NVARCHAR(50)) LIKE @RoleID) AND
+    (CASE
+        WHEN Income_PayOrder.EndDate < GETDATE()-1
+             AND (ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0)) > 0
+             AND ISNULL(OnTimePaid.PaidOnTime,0) < (ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0))
+        THEN ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0)
+        ELSE ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)
+    END) > 0
 ORDER BY Income_PayOrder.EndDate";
             this._commandCollection[0].CommandType = global::System.Data.CommandType.Text;
             this._commandCollection[0].Parameters.Add(new global::System.Data.SqlClient.SqlParameter("@ID", global::System.Data.SqlDbType.NVarChar, 50, global::System.Data.ParameterDirection.Input, 0, 0, "ID", global::System.Data.DataRowVersion.Current, false, null, "", "", ""));

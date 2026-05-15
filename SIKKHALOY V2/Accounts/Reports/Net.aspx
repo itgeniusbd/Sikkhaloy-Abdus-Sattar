@@ -254,7 +254,7 @@ GROUP BY Expense_CategoryName.CategoryName)as t  GROUP  BY Category"
         <div id="tab2" class="tab-pane fade" role="tabpanel" aria-expanded="false">
             <div class="box Income-box"><i class="fa fa-arrow-circle-down" aria-hidden="true"></i>&nbsp Income</div>
 
-            <asp:Repeater ID="IncomeRepeater" runat="server" DataSourceID="IncomeDetailsSQL">
+            <asp:Repeater ID="IncomeRepeater" runat="server" DataSourceID="IncomeDetailsSQL" OnItemDataBound="IncomeRepeater_ItemDataBound">
                 <ItemTemplate>
                     <div class="table-responsive mb-3">
                         <div class="pull-left">
@@ -264,7 +264,7 @@ GROUP BY Expense_CategoryName.CategoryName)as t  GROUP  BY Category"
                             ৳<%# Eval("Income","{0:N0}") %>
                         </div>
 
-                        <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="DetailsSQL" AllowSorting="True" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
+                        <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" AllowSorting="True" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
                             <Columns>
                                 <asp:BoundField DataField="UserName" HeaderText="User Name" ReadOnly="True" SortExpression="UserName" />
                                 <asp:BoundField DataField="AccountName" HeaderText="Account" ReadOnly="True" SortExpression="AccountName" />
@@ -279,7 +279,7 @@ GROUP BY Expense_CategoryName.CategoryName)as t  GROUP  BY Category"
                             <PagerStyle CssClass="pgr" />
                         </asp:GridView>
                         <asp:SqlDataSource ID="DetailsSQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ISNULL(Admin.FirstName, '') + ' ' + ISNULL(Admin.LastName, '') + '(' + Registration.UserName + ')' AS UserName, ISNULL(Account.AccountName, 'N/A') AS AccountName,Income_Roles.Role as Category, 
-                       '['+Student.ID+'] ' + Student.StudentsName + ', Class: ' + CreateClass.Class + ', For: ' + Income_PaymentRecord.PayFor AS Details, Income_PaymentRecord.PaidAmount AS Amount, cast(Income_PaymentRecord.PaidDate as Date) as [Date] FROM Admin INNER JOIN Income_PaymentRecord INNER JOIN
+                       '['+Student.ID+'] ' + Student.StudentsName + ', Class: ' + CreateClass.Class + ', For: ' + Income_PaymentRecord.PayFor AS Details, Income_PaymentRecord.PaidAmount AS Amount, cast(Income_PaymentRecord.PaidDate as Date) as [Date] FROM Admin RIGHT OUTER JOIN Income_PaymentRecord INNER JOIN
                          Registration ON Income_PaymentRecord.RegistrationID = Registration.RegistrationID INNER JOIN
                          Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID INNER JOIN
                          Student ON Income_PaymentRecord.StudentID = Student.StudentID INNER JOIN
@@ -346,7 +346,7 @@ GROUP BY CommitteeDonationCategory.DonationCategory)as t  GROUP  BY Category ord
 
         <div id="tab3" class="tab-pane fade" role="tabpanel" aria-expanded="false">
         <div class="box Expense-box"><i class="fa fa-arrow-circle-up" aria-hidden="true">&nbsp Expense</i></div>
-     <asp:Repeater ID="ExpenseRepeater" runat="server" DataSourceID="ExpenseCategorySQL">
+     <asp:Repeater ID="ExpenseRepeater" runat="server" DataSourceID="ExpenseCategorySQL" OnItemDataBound="ExpenseRepeater_ItemDataBound">
 <ItemTemplate>
        <div class="table-responsive mb-3">
                 <div class="pull-left">
@@ -356,7 +356,7 @@ GROUP BY CommitteeDonationCategory.DonationCategory)as t  GROUP  BY Category ord
              ৳<%# Eval("Total","{0:N0}") %>
          </div>
 
-       <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="DetailsSQL" AllowSorting="True" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
+       <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" AllowSorting="True" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
        <Columns>
   <asp:BoundField DataField="UserName" HeaderText="User Name" ReadOnly="True" SortExpression="UserName" />
    <asp:BoundField DataField="AccountName" HeaderText="Account" ReadOnly="True" SortExpression="AccountName" />

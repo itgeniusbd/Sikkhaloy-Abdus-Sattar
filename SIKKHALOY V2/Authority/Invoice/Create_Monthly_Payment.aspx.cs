@@ -12,7 +12,141 @@ namespace EDUCATION.COM.Authority.Invoice
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (!IsPostBack)
+            {
+                // Auto-select the latest month so user can see data immediately
+                Month_DropDownList.DataBind();
+                if (Month_DropDownList.Items.Count > 1)
+                {
+                    // Items are ordered DESC, so index 1 is the latest month (index 0 is placeholder)
+                    Month_DropDownList.SelectedIndex = 1;
+                }
+                LoadJobStatus();
+            }
+        }
 
+        private void LoadJobStatus()
+        {
+            const string jobName = "Auto_Generate_Monthly_Invoice";
+            string cs = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+
+            // Query msdb to get job details + last run outcome + next run
+            string sql = @"
+                SELECT
+                    j.name                          AS JobName,
+                    j.enabled                       AS Enabled,
+                    -- Last run date/time
+                    CASE WHEN h.run_date IS NULL THEN NULL
+                         ELSE CONVERT(datetime,
+                              STUFF(STUFF(CAST(h.run_date AS VARCHAR(8)),7,0,'-'),5,0,'-')
+                              + ' ' +
+                              STUFF(STUFF(RIGHT('000000'+CAST(h.run_time AS VARCHAR(6)),6),5,0,':'),3,0,':'))
+                    END                             AS LastRunDateTime,
+                    -- Last run status: 0=Failed,1=Succeeded,2=Retry,3=Cancelled,5=Unknown
+                    h.run_status                    AS LastRunStatus,
+                    h.message                       AS LastRunMessage,
+                    -- Next scheduled run
+                    CASE WHEN s.next_run_date = 0 THEN NULL
+                         ELSE CONVERT(datetime,
+                              STUFF(STUFF(CAST(s.next_run_date AS VARCHAR(8)),7,0,'-'),5,0,'-')
+                              + ' ' +
+                              STUFF(STUFF(RIGHT('000000'+CAST(s.next_run_time AS VARCHAR(6)),6),5,0,':'),3,0,':'))
+                    END                             AS NextRunDateTime,
+                    -- Currently running?
+                    (SELECT COUNT(*) FROM msdb.dbo.sysjobactivity a2
+                     WHERE a2.job_id = j.job_id AND a2.start_execution_date IS NOT NULL
+                       AND a2.stop_execution_date IS NULL)  AS IsRunning
+                FROM msdb.dbo.sysjobs j
+                LEFT JOIN (
+                    SELECT job_id, run_date, run_time, run_status, message
+                    FROM msdb.dbo.sysjobhistory
+                    WHERE step_id = 0
+                      AND instance_id = (
+                          SELECT MAX(instance_id) FROM msdb.dbo.sysjobhistory h2
+                          WHERE h2.job_id = (SELECT job_id FROM msdb.dbo.sysjobs WHERE name = @JobName)
+                            AND h2.step_id = 0)
+                ) h ON j.job_id = h.job_id
+                LEFT JOIN (
+                    SELECT job_id, next_run_date, next_run_time
+                    FROM msdb.dbo.sysjobschedules
+                    WHERE schedule_id = (
+                        SELECT TOP 1 schedule_id FROM msdb.dbo.sysjobschedules js2
+                        WHERE js2.job_id = (SELECT job_id FROM msdb.dbo.sysjobs WHERE name = @JobName))
+                ) s ON j.job_id = s.job_id
+                WHERE j.name = @JobName";
+
+            try
+            {
+                using (SqlConnection con = new SqlConnection(cs))
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@JobName", jobName);
+                    con.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            JobNameLabel.Text = dr["JobName"].ToString();
+
+                            bool enabled = Convert.ToBoolean(dr["Enabled"]);
+                            JobEnabledLabel.Text = enabled
+                                ? "<span class='badge badge-success'>Yes</span>"
+                                : "<span class='badge badge-danger'>No</span>";
+
+                            // Last run
+                            JobLastRunLabel.Text = dr["LastRunDateTime"] == DBNull.Value
+                                ? "<span class='text-muted'>কখনো চলেনি</span>"
+                                : Convert.ToDateTime(dr["LastRunDateTime"]).ToString("d MMM yyyy hh:mm tt");
+
+                            // Last run status
+                            if (dr["LastRunStatus"] != DBNull.Value)
+                            {
+                                int status = Convert.ToInt32(dr["LastRunStatus"]);
+                                switch (status)
+                                {
+                                    case 1: JobLastStatusLabel.Text = "<span class='badge badge-success'>Succeeded</span>"; break;
+                                    case 0: JobLastStatusLabel.Text = "<span class='badge badge-danger'>Failed</span>"; break;
+                                    case 3: JobLastStatusLabel.Text = "<span class='badge badge-warning'>Cancelled</span>"; break;
+                                    case 2: JobLastStatusLabel.Text = "<span class='badge badge-info'>Retry</span>"; break;
+                                    default: JobLastStatusLabel.Text = "<span class='badge badge-secondary'>Unknown</span>"; break;
+                                }
+                            }
+                            else
+                            {
+                                JobLastStatusLabel.Text = "<span class='text-muted'>—</span>";
+                            }
+
+                            // Next run
+                            JobNextRunLabel.Text = dr["NextRunDateTime"] == DBNull.Value
+                                ? "<span class='text-muted'>Schedule নেই</span>"
+                                : Convert.ToDateTime(dr["NextRunDateTime"]).ToString("d MMM yyyy hh:mm tt");
+
+                            // Currently running?
+                            int isRunning = Convert.ToInt32(dr["IsRunning"]);
+                            JobCurrentStateLabel.Text = isRunning > 0
+                                ? "<span class='badge badge-primary'><i class='fa fa-spinner fa-spin'></i> Running</span>"
+                                : "<span class='badge badge-secondary'>Idle</span>";
+                        }
+                        else
+                        {
+                            JobNameLabel.Text = jobName;
+                            JobEnabledLabel.Text = "<span class='badge badge-danger'>Not Found</span>";
+                            JobLastRunLabel.Text = JobLastStatusLabel.Text = JobNextRunLabel.Text = "—";
+                            JobCurrentStateLabel.Text = "<span class='badge badge-danger'>Job পাওয়া যায়নি</span>";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                JobErrorLabel.Text = "⚠ Job status লোড করতে সমস্যা: " + ex.Message;
+                JobErrorLabel.Visible = true;
+            }
+        }
+
+        protected void RefreshJobStatusBtn_Click(object sender, EventArgs e)
+        {
+            LoadJobStatus();
         }
 
         protected void Ins_LinkButton_Command(object sender, CommandEventArgs e)

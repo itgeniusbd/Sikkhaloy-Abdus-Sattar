@@ -13,8 +13,8 @@ namespace EDUCATION.COM.Accounts.Reports
         {
             if (!IsPostBack)
             {
-                FormDateTextBox.Text = DateTime.Now.ToString("d MMM yyyy");
-                ToDateTextBox.Text = DateTime.Now.ToString("d MMM yyyy");
+                FormDateTextBox.Text = DateTime.Now.ToString("dd MMM yyyy");
+                ToDateTextBox.Text = DateTime.Now.ToString("dd MMM yyyy");
             }
         }
 

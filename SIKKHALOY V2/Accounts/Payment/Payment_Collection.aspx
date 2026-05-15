@@ -1,942 +1,648 @@
-﻿<%@ Page Title="Collect Payment" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Payment_Collection.aspx.cs" Inherits="EDUCATION.COM.ACCOUNTS.Payment.Payment_Collection" %>
+﻿
+<%@ Page Title="Collect Payment" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Payment_Collection.aspx.cs" Inherits="EDUCATION.COM.ACCOUNTS.Payment.Payment_Collection" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="CSS/Payment_Collection.css?version=1.0.0" rel="stylesheet" />
-
-    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <link href="CSS/Payment_Collection.css?v=1" rel="stylesheet" />
     <style>
-        .PD_Name_Class {
-            color: #282828;
-            font-size: 18px;
-        }
-
-        .modal-body {
-            max-height: 500px;
-            overflow: auto;
-        }
-
-        .Print_ins_Name {
-            text-align: center;
-            margin-bottom: 10px;
-            color: #000;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #000;
-            display: none;
-        }
-
-        #Print_InsName {
-            font-size: 30px;
-        }
-
-        #P_ClassName {
-            font-size: 15px;
-        }
-
-        .info {
-            width: 100%;
-        }
-
-            .info ul {
-                margin: 0;
-                padding: 0;
-            }
-
-                .info ul li {
-                    border-bottom: 1px solid #d6e0eb;
-                    color: #5d6772;
-                    font-size: 15px;
-                    line-height: 23px;
-                    list-style: outside none none;
-                    margin: 6px 0 0;
-                    padding-bottom: 5px;
-                    padding-left: 2px;
-                }
-
-                    .info ul li:last-child {
-                        border-bottom: none;
-                    }
-
-        .modalPopup {
-            background-color: #FFFFFF;
-            width: 100%;
-            border: 3px solid #0DA9D0;
-            border-radius: 12px;
-            padding: 0;
-        }
-
-            .modalPopup .header {
-                background-color: #2FBDF1;
-                height: 30px;
-                color: White;
-                line-height: 30px;
-                text-align: center;
-                font-weight: bold;
-            }
-
-            .modalPopup .body {
-                min-height: 50px;
-                line-height: 30px;
-                text-align: center;
-                padding: 5px;
-            }
-
-            .modalPopup .footer {
-                padding: 3px;
-            }
-
-            .modalPopup .button {
-                height: 23px;
-                color: White;
-                line-height: 23px;
-                text-align: center;
-                font-weight: bold;
-                cursor: pointer;
-                background-color: #9F9F9F;
-                border: 1px solid #5C5C5C;
-            }
-
-        @media print {
-            .noprint {
-                display: none
-            }
-        }
+        .pc-table { width:100%; border-collapse:collapse; font-size:14px; border:2px solid #bbb; }
+        .pc-table th { background:#222; color:#fff; padding:10px 8px; white-space:nowrap; text-align:center; vertical-align:middle; border:1px solid #444; }
+        .pc-table td { padding:7px 8px; border:1px solid #ddd; vertical-align:middle; text-align:center; }
+        .pc-table td:nth-child(3), .pc-table td:nth-child(4), .pc-table td:nth-child(5) { text-align:left; }
+        .due-checkbox { width:16px; height:16px; cursor:pointer; display:inline-block !important; visibility:visible !important; }
+        input[name="smsStatus"] { opacity:1 !important; position:relative !important; left:auto !important; width:16px; height:16px; cursor:pointer; -webkit-appearance:radio !important; appearance:radio !important; display:inline-block !important; }
+        .pc-table tr:nth-child(even) td { background:#f4f8ff; }
+        .pc-table tr:nth-child(odd) td { background:#fff; }
+        .pc-table tr.overdue td { color:#dc0000; }
+        .pc-table tr.row-selected td { background:#1CAA56 !important; color:#fff !important; font-weight:bold; }
+        .pc-table tr.others-payment td { background:#5fc42a !important; color:#fff !important; }
+        .pc-input { width:100px; padding:5px 6px; border:1px solid #bbb; border-radius:4px; font-size:13px; text-align:center; display:block; margin:0 auto; }
+        .pc-section-title { font-weight:bold; margin:18px 0 8px; font-size:1rem; border-left:4px solid #2196f3; padding-left:8px; }
+        .pc-receipt-table { width:100%; font-size:13px; }
+        .pc-receipt-table td { padding:4px 6px; border-bottom:1px solid #eee; }
+        #payment-submit { display:none; }
+        #total-pay-amount { font-weight:bold; font-size:1.1rem; margin-bottom:4px; }
+        #grand-total-fixed { display:none; opacity:.95; position:fixed; width:87%; background:#fff; bottom:0; box-shadow:0 0 16px -1px rgba(40,40,40,.75); margin-left:-15px; text-align:center; font-size:1.5rem; font-weight:bold; padding:1.5rem 0; z-index:999; }
+        @media(max-width:767px){ #grand-total-fixed { width:100%; } }
+        .spinner-wrap { text-align:center; padding:30px; }
+        .spin-icon { width:2rem; height:2rem; border:.25em solid #ccc; border-top-color:#2196f3; border-radius:50%; animation:spin .75s linear infinite; display:inline-block; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        /* Full-page blur overlay */
+        #pc-overlay { display:none; position:fixed; inset:0; z-index:99999; background:rgba(255,255,255,0.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+        #pc-overlay .pc-loader-box { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:14px; box-shadow:0 8px 40px rgba(0,0,0,0.18); padding:36px 48px; text-align:center; min-width:220px; }
+        #pc-overlay .pc-loader-spinner { width:52px; height:52px; border:5px solid #e3f0ff; border-top-color:#2196f3; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+        #pc-overlay .pc-loader-bar-wrap { width:180px; height:6px; background:#e3f0ff; border-radius:99px; overflow:hidden; margin:12px auto 0; }
+        #pc-overlay .pc-loader-bar { height:100%; width:0; background:linear-gradient(90deg,#4cd964,#2196f3,#9c27b0); border-radius:99px; animation:pc-bar-move 1.4s ease-in-out infinite; }
+        @keyframes pc-bar-move { 0%{width:0;margin-left:0} 50%{width:70%;margin-left:15%} 100%{width:0;margin-left:100%} }
+        #pc-overlay .pc-loader-text { font-size:14px; color:#555; margin-top:8px; font-weight:500; }
     </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-    <h3>Collect Payment</h3>
+    <h3>Collect Payment <small class="text-muted" style="font-size:14px;">(Fast Mode)</small></h3>
 
-    <!--find student student id-->
-    <div class="form-inline">
-        <div class="form-group">
-            <asp:TextBox ID="SearchIDTextBox" autocomplete="off" runat="server" CssClass="form-control" placeholder="Enter ID"></asp:TextBox>
-        </div>
-        <div class="form-group">
-            <asp:Button ID="SearchButton" runat="server" CssClass="btn btn-primary" Text="Find" ValidationGroup="A" />
-            <asp:RequiredFieldValidator ID="RequiredFieldValidator1" runat="server" ControlToValidate="SearchIDTextBox" CssClass="EroorStar" ErrorMessage="Enter Student ID" ValidationGroup="A"></asp:RequiredFieldValidator>
+    <!-- Full-page blur overlay -->
+    <div id="pc-overlay">
+        <div class="pc-loader-box">
+            <div class="pc-loader-spinner"></div>
+            <div class="pc-loader-text">লোড হচ্ছে...</div>
+            <div class="pc-loader-bar-wrap"><div class="pc-loader-bar"></div></div>
         </div>
     </div>
 
-    <!--student info and payment record-->
-    <div class="row">
-        <div class="col-lg-8">
-            <asp:FormView ID="StudentInfoFormView" runat="server" DataKeyNames="SMSPhoneNo,StudentID,StudentsName,StudentClassID,ClassID,EducationYearID,ID" DataSourceID="StudentInfoSQL" RenderOuterTable="false">
-                <ItemTemplate>
-                    <div class="z-depth-1 p-3 mb-4">
-                        <div class="d-flex flex-sm-row flex-column text-center text-sm-left">
-                            <div class="student-photo">
-                                <img alt="No Image" src="/Handeler/Student_Photo.ashx?SID=<%#Eval("StudentImageID") %>" class="img-thumbnail rounded-circle img-fluid z-depth-1" />
-                                <div class="student-activation <%# Eval("Status").ToString() == "Active" ?"active-status":"in-active-status" %>">
-                                    <%# Eval("Status") %>
-                                </div>
-                            </div>
-                            <div class="info">
-                                <ul>
-                                    <li>
-                                        <strong>(<span id="IDLabel"><%# Eval("ID") %></span>) <%# Eval("StudentsName") %></strong>
-                                    </li>
-                                    <li><b>Fathers Name: </b><%# Eval("FathersName") %>
-                                    </li>
-                                    <li>
-                                        <b>Class:</b>
-                                        <%# Eval("Class") %>
-                                    </li>
-                                    <li>Roll No:<%# Eval("RollNo") %><%#Eval("Section",", Section: {0}") %><%# Eval("Shift",", Shift: {0}") %></li>
-                                    <li><b>Phone: </b><%# Eval("SMSPhoneNo") %></li>
-                                    <li><b>Session: </b><%# Eval("EducationYear") %>  <i class="fa fa-hand-o-right"></i><a target="_blank" href="/Admission/Student_Report/Report.aspx?Student=<%# Eval("StudentID") %>&Student_Class=<%# Eval("StudentClassID") %>">Full Details</a> -------- <i class="fa fa-hand-o-right"></i><a target="_blank" href="../../Admission/New_Student_Admission/Admission_Form.aspx?Student=<%# Eval("StudentID") %>&StudentClass=<%# Eval("StudentClassID") %>">Print Admission Form</a></li>
+    <!-- Search -->
+    <div class="form-inline mb-3" style="gap:8px;">    
+        <input type="text" id="txtStudentID" class="form-control" placeholder="Enter Student ID" autocomplete="off" style="width:180px;" />
+        <button id="btnFind" type="button" class="btn btn-primary"><i class="fa fa-search"></i> Find</button>
+        <span id="searchError" class="text-danger" style="display:none;">Student ID প্রয়োজন</span>
+    </div>
 
-                                </ul>
+    <!-- Main Area -->
+    <div id="studentInfoArea" style="display:none;">
 
-
-                                <button type="button" data-toggle="modal" data-target="#Others_Modal" class="btn btn-outline-success btn-md m-0">Add More Payment</button>
-                            </div>
-                        </div>
-                    </div>
-                </ItemTemplate>
-            </asp:FormView>
-            <asp:SqlDataSource ID="StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                SelectCommand="SELECT Student.StudentID, StudentsClass.StudentClassID, StudentsClass.ClassID, Student.StudentImageID, Student.ID, Student.StudentsName, Student.SMSPhoneNo, CreateClass.Class, CreateSection.Section, CreateSubjectGroup.SubjectGroup, CreateShift.Shift, StudentsClass.RollNo, Student.FathersName, Education_Year.EducationYearID, Education_Year.EducationYear, Student.Status FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID INNER JOIN Education_Year ON StudentsClass.EducationYearID = Education_Year.EducationYearID LEFT OUTER JOIN CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID LEFT OUTER JOIN CreateSubjectGroup ON StudentsClass.SubjectGroupID = CreateSubjectGroup.SubjectGroupID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID LEFT OUTER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Student.ID = @ID) AND (StudentsClass.SchoolID = @SchoolID) AND (StudentsClass.Class_Status IS NULL)">
-                <SelectParameters>
-                    <asp:ControlParameter ControlID="SearchIDTextBox" Name="ID" PropertyName="Text" />
-                    <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                </SelectParameters>
-            </asp:SqlDataSource>
-        </div>
-
-        <div class="col-lg-4">
-            <asp:UpdatePanel ID="UpdatePanel2" runat="server">
-                <ContentTemplate>
-                    <div class="mb-4">
-                        <asp:GridView ID="PaidRecordGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataSourceID="PRecordSQL" AllowPaging="True" PageSize="4">
-                            <Columns>
-                                <asp:TemplateField HeaderText="Receipt">
-                                    <ItemTemplate>
-                                        <asp:LinkButton ID="MSNLinkButton" runat="server" CommandArgument='<%# Eval("MoneyReceiptID") %>' Text='<%# Eval("MoneyReceipt_SN") %>' ToolTip="Click To Details" OnCommand="MSNLinkButton_Command" />
-                                        <small class="d-block"><%# Eval("PaidDate", "{0:d-MMM-yy (hh:mm tt)}") %></small>
-                                    </ItemTemplate>
-                                    <HeaderStyle HorizontalAlign="Left" />
-                                    <ItemStyle HorizontalAlign="Left" />
-                                </asp:TemplateField>
-                                <asp:TemplateField HeaderText="Paid">
-                                    <FooterTemplate>
-                                        <button id="Viwallbutton0" class="btn btn-outline-success btn-md m-0" data-target="#myModal" data-toggle="modal" type="button">
-                                            View All
-                                        </button>
-                                    </FooterTemplate>
-                                    <ItemTemplate>
-                                        <%# Eval("TotalAmount") %> Tk
-                                     <small class="d-block">
-                                         <asp:LinkButton ID="Print_LinkButton" runat="server" CommandArgument='<%# Eval("MoneyReceiptID") %>' ToolTip="Click To Print" OnCommand="Print_LinkButton_Command"><i class="fa fa-print"></i> Print</asp:LinkButton></small>
-                                    </ItemTemplate>
-                                    <HeaderStyle HorizontalAlign="Right" />
-                                    <ItemStyle HorizontalAlign="Right" />
-                                </asp:TemplateField>
-                            </Columns>
-                            <PagerStyle CssClass="pgr" />
-                        </asp:GridView>
-                        <asp:SqlDataSource ID="PRecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                            SelectCommand="SELECT Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceiptID FROM Income_MoneyReceipt INNER JOIN Student ON Income_MoneyReceipt.StudentID = Student.StudentID WHERE (Income_MoneyReceipt.EducationYearID = @EducationYearID) AND (Student.ID = @ID) AND (Income_MoneyReceipt.SchoolID = @SchoolID)
-ORDER BY Income_MoneyReceipt.PaidDate DESC">
-                            <SelectParameters>
-                                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-                                <asp:ControlParameter ControlID="SearchIDTextBox" Name="ID" PropertyName="Text" />
-                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                            </SelectParameters>
-                        </asp:SqlDataSource>
-
-                    </div>
-
-                    <!--Paid Record Modal -->
-                    <div class="modal fade" id="paid-record-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-lg" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <div class="title">Paid Record Details</div>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                </div>
-                                <div class="modal-body">
-                                    <asp:GridView ID="PaidDetailsGridView" runat="server" AutoGenerateColumns="False" DataSourceID="PaidRecordsSQL" CssClass="mGrid" ShowFooter="True" RowStyle-CssClass="Rows">
-                                        <Columns>
-                                            <asp:BoundField DataField="PayFor" HeaderText="Pay For" />
-                                            <asp:TemplateField HeaderText="Role">
-                                                <ItemTemplate>
-                                                    <asp:Label ID="RoleLabel" runat="server" Text='<%# Eval("Role") %>'></asp:Label>
-                                                </ItemTemplate>
-                                            </asp:TemplateField>
-                                            <asp:TemplateField HeaderText="Paid" SortExpression="PaidAmount">
-                                                <ItemTemplate>
-                                                    <label class="paid-record-paid-amount"><%# Eval("PaidAmount") %></label>
-                                                </ItemTemplate>
-                                                <FooterTemplate>
-                                                    <label id="paid-record-grand-total"></label>
-                                                </FooterTemplate>
-                                            </asp:TemplateField>
-                                        </Columns>
-
-                                        <RowStyle CssClass="Rows" />
-                                    </asp:GridView>
-                                    <asp:SqlDataSource ID="PaidRecordsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Income_PaymentRecord.PaidAmount, Income_PaymentRecord.PayFor + ' (' + Education_Year.EducationYear + ')' AS PayFor, Income_PaymentRecord.PaidDate, Income_Roles.Role FROM Income_PaymentRecord INNER JOIN Income_Roles ON Income_PaymentRecord.RoleID = Income_Roles.RoleID INNER JOIN Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID = Income_MoneyReceipt.MoneyReceiptID INNER JOIN Education_Year ON Income_PaymentRecord.EducationYearID = Education_Year.EducationYearID WHERE (Income_PaymentRecord.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)">
-                                        <SelectParameters>
-                                            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                                            <asp:Parameter Name="MoneyReceiptID" />
-                                        </SelectParameters>
-                                    </asp:SqlDataSource>
-
-                                    <asp:FormView ID="RByFormView" runat="server" CssClass="Hide" DataSourceID="ReceivedBySQL" Width="100%">
-                                        <ItemTemplate>
-                                            <div class="RecvBy">
-                                                Received By: <%# Eval("Name") %> (© Sikkhaloy.com)
-                                            </div>
-                                        </ItemTemplate>
-                                    </asp:FormView>
-                                    <asp:SqlDataSource ID="ReceivedBySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Admin.FirstName + ' ' + Admin.LastName AS Name FROM Admin INNER JOIN Income_MoneyReceipt ON Admin.RegistrationID = Income_MoneyReceipt.RegistrationID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)">
-                                        <SelectParameters>
-                                            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                                            <asp:Parameter Name="MoneyReceiptID" />
-                                        </SelectParameters>
-                                    </asp:SqlDataSource>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </ContentTemplate>
-            </asp:UpdatePanel>
-
-
-            <%if (PaidRecordGridView.Rows.Count > 0)
-                { %>
-            <div class="form-group">
-
-                <button id="Viwallbutton" type="button" data-toggle="modal" data-target="#myModal" class="btn btn-outline-success btn-md m-0">View All</button>
-
+        <!-- Student Card + Recent Payments -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="z-depth-1 p-3 mb-3" id="studentCard"></div>
             </div>
+            <div class="col-lg-4">
+                <div id="recentPaymentsArea"></div>
+            </div>
+        </div>
 
-            <%} %>
+        <!-- Current Due Banner -->
+        <div id="currentDueBanner" class="current-due-total"></div>
+
+        <!-- Current Session Due Table -->
+        <div class="table-responsive" id="payment-container">
+            <table class="pc-table">
+                <thead>
+                    <tr>
+                        <th></th><th>Session</th><th>Class</th><th>Role</th><th>Pay For</th>
+                        <th>End Date</th><th>Fee</th><th>Concession</th><th>Late Fee</th><th>LF Discount</th>
+                        <th>Paid</th><th>Due</th><th>Pay</th>
+                    </tr>
+                </thead>
+                <tbody id="dueTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Other Session Due -->
+        <div id="otherSessionArea" style="display:none;">
+            <div class="pc-section-title">OTHERS SESSION DUE</div>
+            <div class="table-responsive">
+                <table class="pc-table">
+                    <thead>
+                        <tr>
+                            <th></th><th>Session</th><th>Class</th><th>Role</th><th>Pay For</th>
+                            <th>End Date</th><th>Fee</th><th>Concession</th><th>Late Fee</th><th>LF Discount</th>
+                            <th>Paid</th><th>Due</th><th>Pay</th>
+                        </tr>
+                    </thead>
+                    <tbody id="otherDueTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Submit Area -->
+        <div id="payment-submit" class="mt-3">
+            <div id="total-pay-amount" class="mb-2"></div>
+
+            <!-- Row 1: Account, Add More, SMS Radio, PAY, Concession, SMS Template -->
+            <div class="d-flex flex-wrap align-items-center mb-2" style="gap:10px;">
+                <select id="ddlAccount" class="form-control" style="width:180px; height:42px; font-size:15px;"></select>
+                <button type="button" class="btn btn-outline-success" style="font-size:15px; padding:8px 18px;" data-toggle="modal" data-target="#addMoreModal">
+                    <i class="fa fa-plus"></i> ADD MORE PAYMENT
+                </button>
+                <label class="mb-0" style="font-size:16px; cursor:pointer;">
+                    <input type="radio" name="smsStatus" id="rbActive" value="1" style="opacity:1 !important; position:relative !important; left:auto !important; width:17px; height:17px; margin-right:5px; cursor:pointer; -webkit-appearance:radio !important; appearance:radio !important; display:inline-block !important;" /> SMS Active
+                </label>
+                <label class="mb-0" style="font-size:16px; cursor:pointer;">
+                    <input type="radio" name="smsStatus" id="rbInactive" value="0" style="opacity:1 !important; position:relative !important; left:auto !important; width:17px; height:17px; margin-right:5px; cursor:pointer; -webkit-appearance:radio !important; appearance:radio !important; display:inline-block !important;" /> SMS Inactive
+                </label>
+                <button id="btnPay" type="button" class="btn btn-primary" style="font-size:16px; padding:8px 28px;"><i class="fa fa-money"></i> PAY</button>
+                <button id="btnUpdateConcession" type="button" class="btn btn-warning" style="display:none; font-size:15px; padding:8px 18px;"><i class="fa fa-refresh"></i> CONCESSION / LATE FEE UPDATE</button>
+                <span style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:8px 16px; display:inline-flex; align-items:center; gap:10px; font-size:15px;">
+                    <i class="fa fa-info-circle" style="color:#ff9800; font-size:17px;"></i>
+                    <span style="color:#856404; font-weight:500;">SMS Template Active</span>
+                    <a href="/SMS/SMS_Template.aspx" class="btn btn-warning" style="font-size:14px; padding:5px 14px;">
+                        <i class="fa fa-edit"></i> Edit Template
+                    </a>
+                </span>
+                <span id="payError" class="text-danger" style="font-size:14px;"></span>
+            </div>
         </div>
     </div>
 
-    <!--current due-->
-    <asp:FormView ID="CurrentDueFormView" runat="server" DataSourceID="TotalDue_ByID_ODS" RenderOuterTable="false">
-        <ItemTemplate>
-            <div class="current-due-total">
-                CURRENT DUE: <%# Eval("Due") %> TK
-            </div>
-        </ItemTemplate>
-    </asp:FormView>
-    <asp:ObjectDataSource ID="TotalDue_ByID_ODS" runat="server" OldValuesParameterFormatString="original_{0}" SelectMethod="GetData" TypeName="EDUCATION.COM.PaymentDataSetTableAdapters.TotalDue_ByIDTableAdapter">
-        <SelectParameters>
-            <asp:ControlParameter ControlID="SearchIDTextBox" DefaultValue="0" Name="ID" PropertyName="Text" Type="String" />
-            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-        </SelectParameters>
-    </asp:ObjectDataSource>
+    <!-- Grand Total Fixed Bottom -->
+    <div id="grand-total-fixed"></div>
 
-    <!--due gridview-->
-    <div id="payment-container" class="table-responsive">
-        <asp:GridView ID="DueGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataKeyNames="Role,PayOrderID,Amount,StudentID,StudentClassID,RoleID,PayFor,StartDate,EducationYearID" DataSourceID="DueSQL" OnRowDataBound="DueGridView_RowDataBound">
-            <Columns>
-                <asp:TemplateField>
-                    <ItemTemplate>
-                        <asp:CheckBox ID="DueCheckBox" CssClass="due-checkbox" runat="server" Text=" " />
-                    </ItemTemplate>
-                </asp:TemplateField>
-                <asp:BoundField DataField="EducationYear" HeaderText="Session" SortExpression="EducationYear" />
-                <asp:BoundField DataField="Class" HeaderText="Class" SortExpression="Class" />
-                <asp:BoundField DataField="Role" HeaderText="Role" SortExpression="Role" />
-                <asp:BoundField DataField="PayFor" HeaderText="Pay For" SortExpression="PayFor" />
-                <asp:BoundField DataField="EndDate" HeaderText="End Date" SortExpression="EndDate" DataFormatString="{0:d MMM yyyy}" />
-                <asp:BoundField DataField="Amount" HeaderText="Fee" SortExpression="Amount" />
-                <asp:TemplateField HeaderText="Concession" SortExpression="Concession" ValidateRequestMode="Disabled">
-                    <ItemTemplate>
-                        <asp:TextBox ID="ConcessionTextBox" runat="server" type="number" Enabled="false" CssClass="form-control concession-input" Text='<%# Eval("Discount") %>' autocomplete="off"></asp:TextBox>
-                    </ItemTemplate>
-                    <ItemStyle Width="150px" />
-                </asp:TemplateField>
-
-                <asp:TemplateField HeaderText="Late Fee" SortExpression="LateFee">
-                    <ItemTemplate>
-                        <asp:TextBox ID="LateFeeTextBox" runat="server" type="number" Enabled="false" CssClass="form-control latefee-input" Text='<%# Eval("LateFee") %>' autocomplete="off"></asp:TextBox>
-                        <asp:HiddenField ID="PrevLateFeeHidden" runat="server" Value='<%# Eval("LateFee") %>' />
-                    </ItemTemplate>
-                    <ItemStyle Width="120px" />
-                </asp:TemplateField>
-                <asp:BoundField DataField="PaidAmount" HeaderText="Paid" SortExpression="PaidAmount" />
-                <asp:TemplateField HeaderText="Due" SortExpression="Due">
-                    <ItemTemplate>
-                        <%# Eval("Due") %>
-                    </ItemTemplate>
-                </asp:TemplateField>
-                <asp:TemplateField HeaderText="Pay" SortExpression="Due">
-                    <ItemTemplate>
-                        <asp:TextBox ID="DueAmountTextBox" type="number" step="0.01" min="0" max='<%# Eval("Due") %>' required="" Enabled="false" CssClass="form-control due-input" runat="server" Text='<%# Eval("Due") %>' autocomplete="off" />
-                    </ItemTemplate>
-                    <ItemStyle Width="150px" />
-                </asp:TemplateField>
-            </Columns>
-        </asp:GridView>
-        <asp:SqlDataSource ID="DueSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            SelectCommand="SELECT Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class, 
-                         Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee, 
-                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount,
-                         CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0)
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
-                         FROM            Income_PayOrder INNER JOIN
-                                                  Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
-                                                  Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
-                                                  Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
-                                                  CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
-                         WHERE        (CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) &gt; 0 AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID)
-                         ORDER BY Income_PayOrder.EndDate"
-            UpdateCommand="UPDATE Income_PayOrder SET Discount = @Discount WHERE (PayOrderID = @PayOrderID)">
-            <SelectParameters>
-                <asp:ControlParameter ControlID="SearchIDTextBox" DefaultValue="" Name="ID" PropertyName="Text" />
-                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-            </SelectParameters>
-            <UpdateParameters>
-                <asp:Parameter Name="Discount" />
-                <asp:Parameter Name="PayOrderID" />
-            </UpdateParameters>
-        </asp:SqlDataSource>
-        <asp:SqlDataSource ID="Fee_DiscountSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            SelectCommand="SELECT * FROM [Income_Discount_Record]" UpdateCommand="UPDATE Income_PayOrder SET Discount = @Discount WHERE (PayOrderID = @PayOrderID)">
-
-            <UpdateParameters>
-                <asp:Parameter Name="Discount" />
-                <asp:Parameter Name="PayOrderID" />
-            </UpdateParameters>
-        </asp:SqlDataSource>
-        <asp:SqlDataSource ID="LateFeeUpdateSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            SelectCommand="SELECT * FROM [Income_LateFee_Change_Record]" UpdateCommand="UPDATE Income_PayOrder SET LateFee = @LateFee WHERE (PayOrderID = @PayOrderID)">
-            <UpdateParameters>
-                <asp:Parameter Name="LateFee" />
-                <asp:Parameter Name="PayOrderID" />
-            </UpdateParameters>
-        </asp:SqlDataSource>
-
-        <%if (OtherSessionGridView.Rows.Count > 0)
-            {%>
-        <h5 class="font-weight-bold mt-3">OTHERS SESSION DUE</h5>
-        <asp:GridView ID="OtherSessionGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" DataKeyNames="PayOrderID,Amount,StudentID,StudentClassID,RoleID,PayFor,StartDate,EducationYearID" DataSourceID="OtherSessionSQL" OnRowDataBound="OtherSessionGridView_RowDataBound">
-            <Columns>
-                <asp:TemplateField>
-                    <ItemTemplate>
-                        <asp:CheckBox ID="Other_Session_CheckBox" CssClass="due-checkbox" runat="server" Text=" " />
-                    </ItemTemplate>
-                </asp:TemplateField>
-                <asp:BoundField DataField="EducationYear" HeaderText="Session" SortExpression="EducationYear" />
-                <asp:BoundField DataField="Class" HeaderText="Class" SortExpression="Class" />
-                <asp:BoundField DataField="Role" HeaderText="Role" SortExpression="Role" />
-                <asp:BoundField DataField="PayFor" HeaderText="Pay For" SortExpression="PayFor" />
-                <asp:BoundField DataField="EndDate" HeaderText="End Date" SortExpression="EndDate" DataFormatString="{0:d MMM yyyy}" />
-                <asp:BoundField DataField="Amount" HeaderText="Fee" SortExpression="Amount" />
-                <asp:TemplateField HeaderText="Concession" SortExpression="Concession" ValidateRequestMode="Disabled">
-                    <ItemTemplate>
-                        <asp:TextBox ID="ConcessionTextBox" runat="server" type="number" Enabled="false" CssClass="form-control concession-input" Text='<%# Eval("Discount") %>' autocomplete="off"></asp:TextBox>
-                    </ItemTemplate>
-                    <ItemStyle Width="150px" />
-                </asp:TemplateField>
-
-                <asp:TemplateField HeaderText="Late Fee" SortExpression="LateFee">
-                    <ItemTemplate>
-                        <asp:TextBox ID="LateFeeTextBox" runat="server" type="number" Enabled="false" CssClass="form-control latefee-input" Text='<%# Eval("LateFee") %>' autocomplete="off"></asp:TextBox>
-                        <asp:HiddenField ID="PrevLateFeeHidden" runat="server" Value='<%# Eval("LateFee") %>' />
-                    </ItemTemplate>
-                    <ItemStyle Width="120px" />
-                </asp:TemplateField>
-                <asp:BoundField DataField="PaidAmount" HeaderText="Paid" SortExpression="PaidAmount" />
-                <asp:TemplateField HeaderText="Due" SortExpression="Due">
-                    <ItemTemplate>
-                        <%# Eval("Due") %>
-                    </ItemTemplate>
-                </asp:TemplateField>
-                <asp:TemplateField HeaderText="Pay" SortExpression="Due">
-                    <ItemTemplate>
-                        <asp:TextBox ID="Other_Session_AmountTextBox" type="number" step="0.01" min="0" max='<%# Eval("Due") %>' required="" Enabled="false" CssClass="form-control due-input" runat="server" Text='<%# Eval("Due") %>' autocomplete="off" />
-                    </ItemTemplate>
-                    <ItemStyle Width="150px" />
-                </asp:TemplateField>
-            </Columns>
-        </asp:GridView>
-        <asp:SqlDataSource ID="OtherSessionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            SelectCommand="SELECT        Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class, 
-                         Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee, 
-                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) 
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
-                         FROM            Income_PayOrder INNER JOIN
-                                                  Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
-                                                  Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
-                                                  Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
-                                                  CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
-                         WHERE        (CASE WHEN Income_PayOrder.EndDate < GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) < ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) > 0 AND (Student.ID = @ID)  AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID &lt;&gt; @EducationYearID)
-                         ORDER BY Income_PayOrder.EndDate"
-            UpdateCommand="UPDATE Income_PayOrder SET Discount = @Discount WHERE (PayOrderID = @PayOrderID)">
-            <SelectParameters>
-                <asp:ControlParameter ControlID="SearchIDTextBox" DefaultValue="" Name="ID" PropertyName="Text" />
-                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-            </SelectParameters>
-            <UpdateParameters>
-                <asp:Parameter Name="Discount" />
-                <asp:Parameter Name="PayOrderID" />
-            </UpdateParameters>
-        </asp:SqlDataSource>
-        <%}%>
-    </div>
-
-    <!--add more Payment Modal-->
-    <div class="modal fade" id="Others_Modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <!-- Add More Payment Modal -->
+    <div class="modal fade" id="addMoreModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="title">Add More Payment</div>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>
-                            Role
-                            <a href="Create_Payment_Roles.aspx">Add New Role</a>
-                            <asp:RequiredFieldValidator ID="RequiredFieldValidator2" runat="server" ControlToValidate="PayRoleDropDownList" CssClass="EroorSummer" ErrorMessage="Required" ValidationGroup="OP" InitialValue="0"></asp:RequiredFieldValidator>
-                        </label>
-                        <asp:DropDownList ID="PayRoleDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="PayRoleSQL" DataTextField="Role" DataValueField="RoleID">
-                            <asp:ListItem Value="0">[ SELECT ]</asp:ListItem>
-                        </asp:DropDownList>
-                        <asp:SqlDataSource ID="PayRoleSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT [RoleID], [Role] FROM [Income_Roles] WHERE ([SchoolID] = @SchoolID)">
-                            <SelectParameters>
-                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-                            </SelectParameters>
-                        </asp:SqlDataSource>
+                        <label>Role <a href="Create_Payment_Roles.aspx">Add New Role</a></label>
+                        <select id="ddlRole" class="form-control"></select>
                     </div>
                     <div class="form-group">
-                        <label>Pay For<asp:RequiredFieldValidator ID="RequiredFieldValidator3" runat="server" ControlToValidate="OPayforTextBox" CssClass="EroorSummer" ErrorMessage="Required" ValidationGroup="OP"></asp:RequiredFieldValidator></label>
-                        <asp:TextBox ID="OPayforTextBox" runat="server" CssClass="form-control" placeholder="Input Pay For"></asp:TextBox>
+                        <label>Pay For <span class="text-danger">*</span></label>
+                        <input type="text" id="txtPayFor" class="form-control" placeholder="Input Pay For" />
                     </div>
                     <div class="form-group">
-                        <label>Amount<asp:RequiredFieldValidator ID="RequiredFieldValidator4" runat="server" ControlToValidate="OAmountTextBox" CssClass="EroorSummer" ErrorMessage="Required" ValidationGroup="OP"></asp:RequiredFieldValidator></label>
-                        <asp:TextBox ID="OAmountTextBox" runat="server" CssClass="form-control" type="number" step="0.01" min="0" placeholder="Input amount"></asp:TextBox>
+                        <label>Amount <span class="text-danger">*</span></label>
+                        <input type="text" id="txtAmount" class="form-control" placeholder="Input amount" />
                     </div>
                     <div class="form-group">
                         <label>Concession</label>
-                        <asp:TextBox ID="OConcessiontBox" runat="server" CssClass="form-control" type="number" step="0.01" min="0" autocomplete="off" placeholder="Input Concession"></asp:TextBox>
+                        <input type="text" id="txtConcession" class="form-control" placeholder="Input Concession" autocomplete="off" />
                     </div>
                     <div class="form-group">
-                        <asp:Button ID="OthersPaymentButton" runat="server" CssClass="btn btn-primary" Text="Add Payment" ValidationGroup="OP" OnClick="OthersPaymentButton_Click" />
-                        <asp:SqlDataSource ID="OthersPaymentSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="INSERT INTO Income_PayOrder(SchoolID, RegistrationID, StudentID, ClassID, StudentClassID, Amount, Discount, LateFee, RoleID, PayFor, StartDate, EndDate, CreatedDate, EducationYearID) VALUES (@SchoolID, @RegistrationID, @StudentID, @ClassID, @StudentClassID, @Amount, @Discount, @LateFee, @RoleID, @PayFor, GETDATE(), GETDATE(), GETDATE(), @EducationYearID)" SelectCommand="SELECT * FROM [Income_PayOrder]">
-                            <InsertParameters>
-                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-                                <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
-                                <asp:Parameter Name="EducationYearID" Type="Int32" />
-                                <asp:Parameter Name="StudentID" Type="Int32" />
-                                <asp:Parameter Name="ClassID" Type="Int32" />
-                                <asp:Parameter Name="StudentClassID" Type="Int32" />
-                                <asp:Parameter Name="LateFee" />
-                                <asp:ControlParameter ControlID="OAmountTextBox" Name="Amount" PropertyName="Text" Type="Double" />
-                                <asp:ControlParameter ControlID="OConcessiontBox" Name="Discount" PropertyName="Text" Type="Double" />
-                                <asp:ControlParameter ControlID="PayRoleDropDownList" Name="RoleID" PropertyName="SelectedValue" Type="Int32" />
-                                <asp:ControlParameter ControlID="OPayforTextBox" Name="PayFor" PropertyName="Text" Type="String" />
-                            </InsertParameters>
-                        </asp:SqlDataSource>
+                        <button id="btnAddMoreSave" type="button" class="btn btn-primary">Add Payment</button>
+                        <span id="addMoreError" class="text-danger ml-2"></span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-
-    <!--submit button-->
-    <div id="payment-submit" class="mt-4">
-       <h4 id="total-pay-amount"></h4>
-
-        <div class="form-inline">
-            <div class="form-group">
-                <asp:DropDownList ID="AccountDropDownList" runat="server" CssClass="form-control" DataSourceID="AccountSQL" DataTextField="AccountName" DataValueField="AccountID">
-                </asp:DropDownList>
-                <asp:SqlDataSource ID="AccountSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT [AccountID], [AccountName] FROM [Account] WHERE ([SchoolID] = @SchoolID)">
-                    <SelectParameters>
-                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-                    </SelectParameters>
-                </asp:SqlDataSource>
-            </div>
-
-            <div class="form-group">
-                <button type="button" data-toggle="modal" data-target="#Others_Modal" class="btn btn-outline-success btn-md">Add More Payment</button>
-            </div>
-
-            <div class="form-group d-print-none">
-
-                <asp:RadioButton ID="rbActive" runat="server" Text="SMS Active" GroupName="Status" Value="1" AutoPostBack="true" OnCheckedChanged="rbSMS_CheckedChanged" />
-                <asp:RadioButton ID="rbInactive" runat="server" Text="SMS Inactive" GroupName="Status" Value="0" AutoPostBack="true" OnCheckedChanged="rbSMS_CheckedChanged" />
-
-                <!-- SMS Template Info & Edit Link -->
-                <div style="display: inline-block; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 6px 12px; margin: 0 10px;">
-                    <i class="fa fa-info-circle" style="color: #ff9800;"></i>
-                    <small style="color: #856404; margin-right: 8px;">SMS Template Active</small>
-                  <a href="/SMS/SMS_Template.aspx" class="btn btn-sm btn-warning" style="padding: 2px 8px; font-size: 12px;">
-                     <i class="fa fa-edit"></i> Edit Template
-                        </a>
-                 </div>
-
-                <asp:RequiredFieldValidator ID="RequiredFieldValidator6" runat="server" ControlToValidate="AccountDropDownList" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="PaY"></asp:RequiredFieldValidator>
-                <asp:Button ID="PayButton" runat="server" Text="Pay" OnClick="PayButton_Click" OnClientClick="return validateForm()" ValidationGroup="PaY" CssClass="btn btn-primary" />
-                <asp:Button ID="UpdateConcessionButton" runat="server" Text="Concession / Late Fee Update" OnClick="UpdateConcessionButton_Click" OnClientClick="return validateConcession()" CssClass="btn btn-primary" />
-            </div>
-
-
-
-
-            <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
-        </div>
-
-       
-        <asp:SqlDataSource ID="SMS_OtherInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            InsertCommand="INSERT INTO SMS_OtherInfo(SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID) VALUES (@SMS_Send_ID, @SchoolID, @StudentID, @TeacherID, @EducationYearID)" SelectCommand="SELECT * FROM [SMS_OtherInfo]">
-            <InsertParameters>
-                <asp:Parameter Name="SMS_Send_ID" DbType="Guid" />
-                <asp:Parameter Name="SchoolID" />
-                <asp:Parameter Name="StudentID" />
-                <asp:Parameter Name="TeacherID" />
-                <asp:Parameter Name="EducationYearID" />
-            </InsertParameters>
-        </asp:SqlDataSource>
-
-        <!--SMS Enable -->
-
-        <asp:SqlDataSource ID="SmsSettingSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EduConnectionString %>" SelectCommand="SELECT TOP 1 PAY_Buttton_SMS_Enable_Disable FROM Account Where SchoolID=@SchoolID " UpdateCommand="UPDATE Account SET PAY_Buttton_SMS_Enable_Disable = @PAY_Buttton_SMS_Enable_Disable Where SchoolID=@SchoolID">
-            <SelectParameters>
-                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-            </SelectParameters>
-            <UpdateParameters>
-                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-            </UpdateParameters>
-        </asp:SqlDataSource>
-    </div>
-    </div>
-
-
-
-
-    <!--bottom sticky total amount-->
-    <div id="grand-total-fixed"></div>
-
-
-    <!-- Modal -->
-    <div id="myModal" class="modal fade" role="dialog" tabindex="-1" style="width: 100%">
-        <div class="modal-dialog modal-lg">
+    <!-- All Paid Records Modal -->
+    <div class="modal fade" id="allPaidModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title">Student's Paid Records</h4>
+                    <h4 class="modal-title">Student Paid Records (Current Session)</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
-                <div class="modal-body" id="modalDiv">
-                    <asp:UpdatePanel ID="upnlUsers" runat="server">
-                        <ContentTemplate>
-                            <asp:Panel ID="ExportPanel" CssClass="AllDueP" runat="server">
-                                <div class="Print_ins_Name" style="text-align: center; font-size: 20px; font-weight: bold; padding-bottom: 5px">
-                                    <label id="Print_InsName"></label>
-
-                                </div>
-                                <div style="text-align: center">
-                                    <asp:GridView ID="GridView1" runat="server" AutoGenerateColumns="False" HorizontalAlign="Center" CssClass="modalPopup" DataSourceID="AllPaidRecordSQL">
-                                        <Columns>
-                                            <asp:TemplateField HeaderText="Receipt Number">
-                                                <ItemTemplate>
-                                                    <asp:LinkButton ID="MSNLinkButton" runat="server" CommandArgument='<%# Eval("MoneyReceiptID") %>' Text='<%# Eval("MoneyReceipt_SN") %>' ToolTip="Click To Details" OnCommand="MSNLinkButton_Command" />
-
-                                                </ItemTemplate>
-
-                                                <HeaderStyle HorizontalAlign="Center" />
-                                                <ItemStyle HorizontalAlign="Center" />
-                                            </asp:TemplateField>
-                                            <asp:TemplateField HeaderText="Printed Receipt No">
-                                               <ItemTemplate>
-                        <%# string.IsNullOrEmpty(Eval("PrintedReceiptNo").ToString()) ? "-" : Eval("PrintedReceiptNo") %>
-                                    </ItemTemplate>
-                                               <HeaderStyle HorizontalAlign="Center" />
-                                                <ItemStyle HorizontalAlign="Center" />
-                                            </asp:TemplateField>
-                                            <asp:TemplateField HeaderText="Paid Date & Time">
-                                                <ItemTemplate>
-
-                                                    <small class="d-block"><%# Eval("PaidDate", "{0:d-MMM-yy (hh:mm tt)}") %></small>
-                                                </ItemTemplate>
-
-                                                <HeaderStyle HorizontalAlign="Center" />
-                                                <ItemStyle HorizontalAlign="Center" />
-                                            </asp:TemplateField>
-
-
-                                            <asp:TemplateField HeaderText="Paid Amount">
-                                                <ItemTemplate>
-                                                    <%# Eval("TotalAmount") %> Tk
-                                              <small class="d-block">
-                                                </ItemTemplate>
-                                                <HeaderStyle HorizontalAlign="Center" />
-                                                <ItemStyle HorizontalAlign="Center" />
-                                            </asp:TemplateField>
-
-                                            <asp:TemplateField HeaderText=" Re-Print">
-                                                <ItemTemplate>
-
-                                                    <asp:LinkButton ID="Print_LinkButton" runat="server" CommandArgument='<%# Eval("MoneyReceiptID") %>' ToolTip="Click To Print" OnCommand="Print_LinkButton_Command" OnClientClick="return closeModalBeforePrint();"><i class="fa fa-print"></i> Print</asp:LinkButton></small>
-                                                </ItemTemplate>
-                                                <HeaderStyle HorizontalAlign="Center" />
-                                                <ItemStyle HorizontalAlign="Center" />
-                                            </asp:TemplateField>
-                                            <asp:TemplateField HeaderText="Received By">
-                                                <ItemTemplate>
-                                                    <%# Eval("Name") %>
-                                                </ItemTemplate>
-                                                <HeaderStyle HorizontalAlign="Center" />
-                                                <ItemStyle HorizontalAlign="Center" />
-                                            </asp:TemplateField>
-                                        </Columns>
-                                    </asp:GridView>
-                                </div>
-
-                                <asp:SqlDataSource ID="AllPaidRecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                                    SelectCommand="SELECT Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.PrintedReceiptNo, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceiptID, Admin.FirstName + ' ' + Admin.LastName AS Name 
-     FROM Income_MoneyReceipt 
-             INNER JOIN Student ON Income_MoneyReceipt.StudentID = Student.StudentID 
-         INNER JOIN Admin ON Income_MoneyReceipt.RegistrationID = Admin.RegistrationID 
-  WHERE (Income_MoneyReceipt.EducationYearID = @EducationYearID) AND (Student.ID = @ID) AND (Income_MoneyReceipt.SchoolID = @SchoolID)
-      ORDER BY Income_MoneyReceipt.PaidDate DESC">
-                                    <SelectParameters>
-                                        <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-                                        <asp:ControlParameter ControlID="SearchIDTextBox" Name="ID" PropertyName="Text" />
-                                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                                    </SelectParameters>
-                                </asp:SqlDataSource>
-                            </asp:Panel>
-                        </ContentTemplate>
-
-                    </asp:UpdatePanel>
-
+                <div class="modal-body" id="allPaidModalBody">
+                    <div class="text-center py-3"><div class="spin-icon"></div></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary print" onclick="PrintContent();">Print</button>
-                    <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                    <button class="btn btn-danger" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-  const inputFindId = document.getElementById("<%=SearchIDTextBox.ClientID%>");
-        const searchButton = document.getElementById("<%=SearchButton.ClientID%>");
+    <!-- Previous Year Paid Records Modal -->
+    <div class="modal fade" id="prevYearModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#6f42c1; color:#fff;">
+                    <h4 class="modal-title"><i class="fa fa-history"></i> Previous Year Paid Records</h4>
+                    <button type="button" class="close" style="color:#fff;" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body" id="prevYearModalBody">
+                    <div class="text-center py-3"><div class="spin-icon"></div></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        //find student ids
-      $(`#${inputFindId.id}`).typeahead({
-       source: function (request, result) {
-      $.ajax({
-         url: "/Handeler/Student_IDs.asmx/GetStudentID",
-        data: JSON.stringify({ 'ids': request }),
-    dataType: "json",
-    type: "POST",
- contentType: "application/json; charset=utf-8",
-          success: function (response) { result(JSON.parse(response.d)); },
-      error: function (err) { console.log(err) }
-          });
-            },
-        });
+    <!-- Receipt Detail Modal -->
+    <div class="modal fade" id="receiptDetailModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Paid Record Details</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body" id="receiptDetailBody">
+                    <div class="text-center py-3"><div class="spin-icon"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    function PrintContent() {
-            $(".Print_ins_Name").show();
-            $("#Print_InsName").text($("#InstitutionName").text());
+<script>
+(function () {
+    var state = {
+        studentID: '', studentDbID: 0, studentClassID: 0, classID: 0,
+        educationYearID: 0, registrationID: 0, smsPhoneNo: '', studentName: ''
+    };
 
-     var DocumentContainer = document.getElementById('modalDiv');
-          var WindowObject = window.open("", "PrintWindow",
-    "width=800,height=650,top=50, left=50,toolbars=no,scrollbars=yes,status=no,resizable=yes");
- WindowObject.document.write();
-       WindowObject.document.write('<link rel="stylesheet" type="text/css" href="path-to-my-stylesheet.css">')
-       WindowObject.document.writeln(DocumentContainer.innerHTML);
-     WindowObject.document.close();
-            WindowObject.focus();
-        WindowObject.print();
-     WindowObject.close();
-        }
-
-
-
-    function Modal_Info_Prnt() {
-            /*$(".Print_ins_Name").show();*/
-         /*$("#Print_InsName").text($("#InstitutionName").text());*/
-
-
-   $('#modalDiv').css({ 'height': 'auto', 'overflow': 'auto' }).removeClass('modal-body');
-            /*$('#myModal').modal('hide');*/
-
-  setTimeout(function () {
-           $('#modalDiv').addClass('modal-body');
-    }, 1000);
-
-            $("#modalDiv").printThis({
-  debug: false,
-                importCSS: true,
-importStyle: true,
-printContainer: true,
-   //loadCSS: "CSS/Present_Due.css",
- pageTitle: "Current Due",
-        removeInline: false,
-         printDelay: 200,
-       header: null,
-        formValues: true
-   });
-        }
-        //student id press enter to submit
-        inputFindId.addEventListener("keyup", function (event) {
-    if (event.keyCode === 13) {
-         searchButton.click();
-            return false;
-   }
-        });
-
-   //show payment submit area if dues
-      const currentSessionDue = document.getElementById("<%=DueGridView.ClientID%>");
-        const othersSessionDue = document.getElementById("<%=OtherSessionGridView.ClientID%>");
-        const paymentSubmit = document.getElementById("payment-submit");
-
-        if (currentSessionDue && currentSessionDue.rows.length || othersSessionDue && othersSessionDue.rows.length) {
-    paymentSubmit.style.display = "block";
-        }
-
-        //Uncheck due select checkbox if page reload
-        const checkboxes = document.querySelectorAll("input[type='checkbox']");
-      for (const checkbox of checkboxes) {
-       checkbox.checked = false;
-        }
-
-        //due checkbox and input due amount
-    (function () {
-            //calculate total dues
-         function calculateTotal() {
-              const inputedDues = document.querySelectorAll(".due-input:not([disabled])");
- let total = 0;
-        inputedDues.forEach((item => {
-    total += Number(item.value);
-  }));
-
-         return total;
-          }
-
-   //click checkbox and input dues
-            const totalPayAmount = document.getElementById("total-pay-amount");
-  const totalPayAmountFixed = document.getElementById("grand-total-fixed");
-       const paymentTable = document.getElementById("payment-container");
-
-    paymentTable.addEventListener("input", function (evt) {
-       const element = evt.target;
-
-                if (element.type === "checkbox") {
-         element.closest("tr").classList.toggle("row-selected");
-
-          const input = element.closest("tr").querySelector('.due-input');
-      const consinput = element.closest("tr").querySelector('.concession-input');
-      const latefeeInput = element.closest("tr").querySelector('.latefee-input');
-   input.disabled = !element.checked;
-              consinput.disabled = !element.checked;
-              if (latefeeInput) latefeeInput.disabled = !element.checked;
-                }
-
-  // Real-time validation for concession input
-    if (element.classList.contains('concession-input')) {
-   const row = element.closest("tr");
- const dueCell = row.cells[10]; // Due column
-       
-      const due = parseFloat(dueCell.innerText) || 0;
- const concession = parseFloat(element.value) || 0;
-         
-  // Validate concession against due
-              if (concession > due) {
-    element.style.borderColor = 'red';
-                element.style.backgroundColor = '#fff5f5';
-   element.title = 'কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!';
-        
-            // Show notification
-     $(element).notify("কনসেশন এমাউন্ট ডিয়ু এমাউন্টের চেয়ে বেশি হতে পারবে না!", { 
-    position: "top",
-    className: "error"
-       });
-      
-   // Reset to maximum allowed (due amount)
-              element.value = due;
-          } else {
-   element.style.borderColor = '';
-                element.style.backgroundColor = '';
-          element.title = '';
-     }
-      }
-
-         const total = `Total Amount: <span id="total-amount-pay">${calculateTotal()}</span> Tk`;
-
-    totalPayAmount.innerHTML = total;
-  totalPayAmountFixed.innerHTML = total;
+    // Typeahead
+    $('#txtStudentID').typeahead({
+        source: function (q, res) {
+            $.ajax({ url: '/Handeler/Student_IDs.asmx/GetStudentID', type: 'POST',
+                contentType: 'application/json; charset=utf-8',
+                data: JSON.stringify({ ids: q }), dataType: 'json',
+                success: function (r) { res(JSON.parse(r.d)); }
             });
-        })();
-
-        //paid-record-modal
-        function openModal() {
-            $('#paid-record-modal').modal('show');
-
-            //calculate total rows paid amount
-            const paids = document.querySelectorAll(".paid-record-paid-amount");
-    const paidGrandTotal = document.getElementById("paid-record-grand-total");
-
-  let total = 0;
-            paids.forEach((item => {
-        total += Number(item.textContent);
-     }));
-
-         if (paidGrandTotal)
-           paidGrandTotal.textContent = `Total: ${total} tk`;
         }
+    });
 
+    document.getElementById('txtStudentID').addEventListener('keyup', function (e) {
+        if (e.keyCode === 13) document.getElementById('btnFind').click();
+    });
 
-        //validate form before submit pay
-        function validateForm() {
-        const isChecked = [...checkboxes].some(item => item.checked);
+    document.getElementById('btnFind').addEventListener('click', function () {
+        var id = document.getElementById('txtStudentID').value.trim();
+        if (!id) { document.getElementById('searchError').style.display = ''; return; }
+        document.getElementById('searchError').style.display = 'none';
+        sessionStorage.setItem('pc_lastStudentID', JSON.stringify({ id: id, ts: Date.now() }));
+        loadStudent(id);
+    });
 
-          if (isChecked) {
-    // ✅ REMOVED CONCESSION VALIDATION - Only check if payment is selected
-    // Concession validation only needed in Update Concession Button (validateConcession function)
-      return true;
+    // ── Restore last searched student on back navigation (5 min expiry) ─────
+    (function restoreLastStudent() {
+        var raw = sessionStorage.getItem('pc_lastStudentID');
+        if (!raw) return;
+        try {
+            var data = JSON.parse(raw);
+            var FIVE_MIN = 5 * 60 * 1000;
+            if (data && data.id && (Date.now() - data.ts) < FIVE_MIN) {
+                document.getElementById('txtStudentID').value = data.id;
+                loadStudent(data.id);
+            } else {
+                sessionStorage.removeItem('pc_lastStudentID');
             }
+        } catch (e) {
+            sessionStorage.removeItem('pc_lastStudentID');
+        }
+    })();
 
-  $("#payment-submit").notify("Select payment to pay!", { position: "top left" });
- return false;
-   }
-
-        //validate concession before update
-        function validateConcession() {
-    const paymentTable = document.getElementById("payment-container");
-      const concessionInputs = paymentTable.querySelectorAll('.concession-input:not([disabled])');
-       
-   for (let concessionInput of concessionInputs) {
-const row = concessionInput.closest("tr");
-            
-            // Get Fee column (index 6), LateFee input (index 8), Paid column (index 9)
-    const feeCell = row.cells[6]; // Fee column
-    const lateFeeinput = row.querySelector('.latefee-input'); // LateFee input
-    const paidCell = row.cells[9]; // Paid column
-    
-  const fee = parseFloat(feeCell.innerText) || 0;
-            const lateFee = lateFeeinput ? (parseFloat(lateFeeinput.value) || 0) : 0;
-            const paid = parseFloat(paidCell.innerText) || 0;
-      const concession = parseFloat(concessionInput.value) || 0;
-       
-        // Skip validation if already overpaid (Fee + LateFee <= Paid)
-        if (paid >= fee + lateFee) continue;
-
-        // Check if concession exceeds (Fee + LateFee - Paid)
- // Logic: You can't give concession more than what's left to pay
-      const maxConcessionAllowed = fee + lateFee - paid;
-         
-if (concession > maxConcessionAllowed) {
-     alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\nConcession amount cannot exceed remaining amount!\n\nFee: ' + fee + ' TK\nLate Fee: ' + lateFee + ' TK\nPaid: ' + paid + ' TK\nMax Concession Allowed: ' + maxConcessionAllowed + ' TK\nYou entered: ' + concession + ' TK');
-      concessionInput.focus();
-   return false;
-         }
-     }
-  return true;
-   }
-
-        //show sticky bottom grand total
-      $(window).scroll(function () {
-        const totalAmountElement = document.getElementById("total-amount-pay");
- if (!totalAmountElement) return;
-      
- const totalPayAmount = parseFloat(totalAmountElement.textContent) || 0;
-            if (totalPayAmount === 0) {
-  $('#grand-total-fixed').fadeOut();
-     return;
-         }
-
-         if ($(window).scrollTop() + $(window).height() > $(document).height() - 300) {
-         $('#grand-total-fixed').fadeOut();
+    // ── Load Student ──────────────────────────────────────────────────────────
+    function loadStudent(id) {
+        showLoading(true);
+        document.getElementById('studentInfoArea').style.display = 'none';
+        ajax('GetStudentData', { studentID: id }, function (d) {
+            if (!d || !d.StudentID) { showLoading(false); alert('Student not found!'); return; }
+            state.studentID = id; state.studentDbID = d.StudentID;
+            state.studentClassID = d.StudentClassID; state.classID = d.ClassID;
+            state.educationYearID = d.EducationYearID; state.registrationID = d.RegistrationID;
+            state.smsPhoneNo = d.SMSPhoneNo; state.studentName = d.StudentsName;
+            renderCard(d);
+            loadAccounts(); loadRoles(); loadSMSSetting(); loadConcessionPerm();
+            loadDues(function () { showLoading(false); loadRecentPayments(); });
+        });
     }
-        else {
-       $('#grand-total-fixed').fadeIn();
-          }
-        });
 
-        $(document).ready(function () {
-            function openModal() {
-     $('#myModal').modal('show');
+    function renderCard(d) {
+        var sc = d.Status === 'Active' ? 'active-status' : 'in-active-status';
+        document.getElementById('studentCard').innerHTML =
+            '<div class="d-flex flex-sm-row flex-column text-center text-sm-left">' +
+            '<div class="student-photo"><img src="/Handeler/Student_Photo.ashx?SID=' + d.StudentImageID +
+            '" class="img-thumbnail rounded-circle img-fluid z-depth-1" style="height:160px;width:160px;" />' +
+            '<div class="student-activation ' + sc + '">' + d.Status + '</div></div>' +
+            '<div class="info"><ul>' +
+            '<li><strong>(' + d.ID + ') ' + d.StudentsName + '</strong></li>' +
+            '<li><b>Fathers Name: </b>' + (d.FathersName || '') + '</li>' +
+            '<li><b>Class:</b> ' + (d.Class || '') + '</li>' +
+            '<li>Roll No:' + (d.RollNo || '') + (d.Section ? ', Section: ' + d.Section : '') + (d.Shift ? ', Shift: ' + d.Shift : '') + '</li>' +
+            '<li><b>Phone: </b>' + (d.SMSPhoneNo || '') + '</li>' +
+            '<li><b>Session: </b>' + (d.EducationYear || '') +
+            ' <a target="_blank" href="/Admission/Student_Report/Report.aspx?Student=' + d.StudentID + '&Student_Class=' + d.StudentClassID + '">Full Details</a>' +
+            ' &mdash; <a target="_blank" href="../../Admission/New_Student_Admission/Admission_Form.aspx?Student=' + d.StudentID + '&StudentClass=' + d.StudentClassID + '">Print Admission Form</a></li>' +
+            '</ul><button type="button" data-toggle="modal" data-target="#addMoreModal" class="btn btn-outline-success btn-md m-0">Add More Payment</button></div></div>';
+        document.getElementById('studentInfoArea').style.display = '';
+    }
+
+    // ── Load Due Tables ───────────────────────────────────────────────────────
+    function loadDues(onComplete) {
+        // Load current due banner using same SQL as old page
+        ajax('GetCurrentDue', { studentID: state.studentID }, function (due) {
+            document.getElementById('currentDueBanner').textContent = 'CURRENT DUE: ' + fmtAmt(due) + ' TK';
+        });
+        ajax('GetDues', { studentID: state.studentID }, function (d) {
+            var cur = d.CurrentDues || [], oth = d.OtherDues || [];
+            renderTable('dueTableBody', cur, 'DueCB');
+            if (oth.length > 0) {
+                document.getElementById('otherSessionArea').style.display = '';
+                renderTable('otherDueTableBody', oth, 'OtherCB');
+            } else {
+                document.getElementById('otherSessionArea').style.display = 'none';
+            }
+            document.getElementById('payment-submit').style.display = (cur.length || oth.length) ? 'block' : 'none';
+            document.querySelectorAll('.due-checkbox').forEach(function (c) { c.checked = false; });
+            if (typeof onComplete === 'function') onComplete();
+        });
+    }
+
+    function renderTable(tbId, rows, cbName) {
+        var tb = document.getElementById(tbId);
+        if (!rows || !rows.length) {
+            tb.innerHTML = '<tr><td colspan="13" class="text-center text-muted py-3">No due found</td></tr>';
+            return;
+        }
+        var html = '';
+        rows.forEach(function (r) {
+            var today = new Date(); today.setHours(0, 0, 0, 0);
+            var end = parseDate(r.EndDate), start = parseDate(r.StartDate);
+            var rc = '';
+            if (end < today) rc = 'overdue';
+            if (+start === +end && +start === +today) rc = 'others-payment';
+            html += '<tr class="' + rc + '" data-payorderid="' + r.PayOrderID +
+                '" data-due="' + r.Due + '" data-fee="' + r.Amount +
+                '" data-latefee="' + (r.LateFee || 0) + '" data-paid="' + (r.PaidAmount || 0) + '">' +
+                '<td><input type="checkbox" class="due-checkbox" name="' + cbName + '" /></td>' +
+                '<td>' + (r.EducationYear || '') + '</td>' +
+                '<td>' + (r.Class || '') + '</td>' +
+                '<td>' + (r.Role || '') + '</td>' +
+                '<td>' + (r.PayFor || '') + '</td>' +
+                '<td>' + fmtDate(r.EndDate) + '</td>' +
+                '<td>' + (r.Amount || 0) + '</td>' +
+                '<td><input type="text" class="pc-input concession-input" value="' + (r.Discount || 0) + '" disabled autocomplete="off" /></td>' +
+                '<td><input type="text" class="pc-input latefee-input" value="' + (r.LateFee || 0) + '" disabled autocomplete="off" />' +
+                '<input type="hidden" class="prev-latefee" value="' + (r.LateFee || 0) + '" /></td>' +
+                '<td>' + (r.LateFeeDiscount || 0) + '</td>' +
+                '<td>' + (r.PaidAmount || 0) + '</td>' +
+                '<td class="due-cell">' + fmtAmt(r.Due) + '</td>' +
+                '<td><input type="text" class="pc-input due-input" value="' + fmtAmt(r.Due) + '" disabled autocomplete="off" /></td>'
+                '</tr>';
+        });
+        tb.innerHTML = html;
+    }
+
+    // ── Recent Payments ───────────────────────────────────────────────────────
+    function loadRecentPayments() {
+        ajax('GetRecentPayments', { studentID: state.studentID }, function (d) {
+            var html = '<div class="mb-2"><button type="button" class="btn btn-outline-purple btn-sm w-100" id="btnPrevYear" style="border-color:#6f42c1; color:#6f42c1;"><i class="fa fa-history"></i> Previous Year Receipts</button></div>';
+            if (d && d.length) {
+                html += '<table class="pc-receipt-table"><thead><tr><th>Receipt</th><th style="text-align:right">Paid</th></tr></thead><tbody>';
+                d.slice(0, 5).forEach(function (r) {
+                    html += '<tr><td><a href="#" class="rcpt-link" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN +
+                        '</a><small class="d-block text-muted">' + r.PaidDate + '</small></td>' +
+                        '<td style="text-align:right">' + r.TotalAmount + ' Tk<br>' +
+                        '<a href="#" class="print-link" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td></tr>';
+                });
+                html += '</tbody></table>';
+                if (d.length > 5) html += '<div class="mt-2"><button type="button" class="btn btn-outline-success btn-sm" id="btnViewAll">View All</button></div>';
+            } else {
+                html += '<div class="text-muted">No payment records</div>';
+            }
+            document.getElementById('recentPaymentsArea').innerHTML = html;
+            bindRecentEvents();
+        });
+    }
+
+    function bindRecentEvents() {
+        document.querySelectorAll('.rcpt-link').forEach(function (a) {
+            a.addEventListener('click', function (e) { e.preventDefault(); openReceiptDetail(this.dataset.id); });
+        });
+        document.querySelectorAll('.print-link').forEach(function (a) {
+            a.addEventListener('click', function (e) { e.preventDefault(); doPrint(this.dataset.id); });
+        });
+        var bva = document.getElementById('btnViewAll');
+        if (bva) bva.addEventListener('click', function () { $('#allPaidModal').modal('show'); loadAllPaid(); });
+        var bpy = document.getElementById('btnPrevYear');
+        if (bpy) bpy.addEventListener('click', function () { $('#prevYearModal').modal('show'); loadPrevYearPaid(); });
+    }
+
+    function openReceiptDetail(id) {
+        document.getElementById('receiptDetailBody').innerHTML = '<div class="text-center py-3"><div class="spin-icon"></div></div>';
+        $('#receiptDetailModal').modal('show');
+        ajax('GetReceiptDetail', { moneyReceiptID: parseInt(id) }, function (d) {
+            if (!d || !d.length) { document.getElementById('receiptDetailBody').innerHTML = 'No records.'; return; }
+            var tot = 0;
+            var html = '<table class="table table-sm"><thead><tr><th>Pay For</th><th>Role</th><th>Paid</th></tr></thead><tbody>';
+            d.forEach(function (r) { tot += r.PaidAmount; html += '<tr><td>' + r.PayFor + '</td><td>' + r.Role + '</td><td>' + r.PaidAmount + '</td></tr>'; });
+            html += '</tbody><tfoot><tr><th colspan="2">Total</th><th>' + fmtAmt(tot) + ' Tk</th></tr></tfoot></table>';
+            document.getElementById('receiptDetailBody').innerHTML = html;
+        });
+    }
+
+    function loadAllPaid() {
+        document.getElementById('allPaidModalBody').innerHTML = '<div class="text-center py-3"><div class="spin-icon"></div></div>';
+        ajax('GetAllPaidRecords', { studentID: state.studentID }, function (d) {
+            if (!d || !d.length) { document.getElementById('allPaidModalBody').innerHTML = '<p class="text-muted">No records.</p>'; return; }
+            var html = '<table class="table table-sm table-bordered"><thead><tr><th>Receipt No</th><th>Printed Receipt</th><th>Paid Date</th><th>Amount</th><th>Re-Print</th><th>Received By</th></tr></thead><tbody>';
+            d.forEach(function (r) {
+                html += '<tr><td><a href="#" class="rcpt-link2" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN + '</a></td>' +
+                    '<td>' + (r.PrintedReceiptNo || '-') + '</td><td>' + r.PaidDate + '</td><td>' + r.TotalAmount + ' Tk</td>' +
+                    '<td><a href="#" class="print-link2" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td>' +
+                    '<td>' + (r.ReceivedBy || '') + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('allPaidModalBody').innerHTML = html;
+            document.querySelectorAll('.rcpt-link2').forEach(function (a) {
+                a.addEventListener('click', function (e) { e.preventDefault(); $('#allPaidModal').modal('hide'); openReceiptDetail(this.dataset.id); });
+            });
+            document.querySelectorAll('.print-link2').forEach(function (a) {
+                a.addEventListener('click', function (e) { e.preventDefault(); doPrint(this.dataset.id); });
+            });
+        });
+    }
+
+    function doPrint(id) {
+        ajax('EncryptReceiptID', { moneyReceiptID: parseInt(id), studentID: state.studentID }, function (d) {
+            if (d && d.MRid) window.location.href = 'Money_Receipt.aspx?mN_R=' + d.MRid + '&s_icD=' + d.Sid;
+        });
+    }
+
+    function loadPrevYearPaid() {
+        document.getElementById('prevYearModalBody').innerHTML = '<div class="text-center py-3"><div class="spin-icon"></div></div>';
+        ajax('GetPreviousYearPaidRecords', { studentID: state.studentID }, function (d) {
+            if (!d || !d.length) { document.getElementById('prevYearModalBody').innerHTML = '<p class="text-muted text-center">No previous year records found.</p>'; return; }
+            var html = '<table class="table table-sm table-bordered"><thead><tr><th>Receipt No</th><th>Session</th><th>Paid Date</th><th>Amount</th><th>Re-Print</th></tr></thead><tbody>';
+            d.forEach(function (r) {
+                html += '<tr><td><a href="#" class="rcpt-link3" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN + '</a></td>' +
+                    '<td>' + (r.EducationYear || '') + '</td><td>' + r.PaidDate + '</td><td>' + r.TotalAmount + ' Tk</td>' +
+                    '<td><a href="#" class="print-link3" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td></tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('prevYearModalBody').innerHTML = html;
+            document.querySelectorAll('.rcpt-link3').forEach(function (a) {
+                a.addEventListener('click', function (e) { e.preventDefault(); $('#prevYearModal').modal('hide'); openReceiptDetail(this.dataset.id); });
+            });
+            document.querySelectorAll('.print-link3').forEach(function (a) {
+                a.addEventListener('click', function (e) { e.preventDefault(); doPrint(this.dataset.id); });
+            });
+        });
+    }
+
+    // ── Dropdowns ─────────────────────────────────────────────────────────────
+    function loadAccounts() {
+        ajax('GetAccounts', {}, function (d) {
+            var ddl = document.getElementById('ddlAccount'); ddl.innerHTML = '';
+            var defaultID = null;
+            (d || []).forEach(function (a) {
+                var o = document.createElement('option');
+                o.value = a.AccountID; o.text = a.AccountName;
+                if (a.IsDefault) defaultID = a.AccountID;
+                ddl.appendChild(o);
+            });
+            if (defaultID) ddl.value = defaultID;
+        });
+    }
+
+    function loadRoles() {
+        ajax('GetRoles', {}, function (d) {
+            var ddl = document.getElementById('ddlRole'); ddl.innerHTML = '<option value="0">[ SELECT ]</option>';
+            (d || []).forEach(function (r) { var o = document.createElement('option'); o.value = r.RoleID; o.text = r.Role; ddl.appendChild(o); });
+        });
+    }
+
+    function loadSMSSetting() {
+        ajax('GetSMSSetting', {}, function (v) { document.getElementById(v == 1 ? 'rbActive' : 'rbInactive').checked = true; });
+    }
+
+    document.querySelectorAll('input[name="smsStatus"]').forEach(function (r) {
+        r.addEventListener('change', function () { ajax('SaveSMSSetting', { value: parseInt(this.value) }, function () {}); });
+    });
+
+    function loadConcessionPerm() {
+        ajax('GetConcessionPermission', {}, function (ok) { document.getElementById('btnUpdateConcession').style.display = ok ? '' : 'none'; });
+    }
+
+    // ── Table Interactions ────────────────────────────────────────────────────
+    document.addEventListener('input', function (evt) {
+        var el = evt.target;
+        if (!el.classList) return;
+        if (el.type === 'checkbox' && el.classList.contains('due-checkbox')) {
+            var row = el.closest('tr');
+            row.classList.toggle('row-selected', el.checked);
+            row.querySelector('.due-input').disabled = !el.checked;
+            row.querySelector('.concession-input').disabled = !el.checked;
+            var lf = row.querySelector('.latefee-input'); if (lf) lf.disabled = !el.checked;
+        }
+        if (el.classList.contains('concession-input')) {
+            var row2 = el.closest('tr');
+            var dv = parseFloat(row2.querySelector('.due-cell').textContent) || 0;
+            var cv = parseFloat(el.value) || 0;
+            if (cv > dv) { el.style.borderColor = 'red'; el.value = dv; } else el.style.borderColor = '';
+        }
+        recalc();
+    });
+
+    function recalc() {
+        var t = 0;
+        document.querySelectorAll('.due-input:not([disabled])').forEach(function (i) { t += parseFloat(i.value) || 0; });
+        var txt = 'Total Amount: <span id="total-amount-pay">' + fmtAmt(t) + '</span> Tk';
+        document.getElementById('total-pay-amount').innerHTML = txt;
+        document.getElementById('grand-total-fixed').innerHTML = txt;
+    }
+
+    // ── PAY Button ────────────────────────────────────────────────────────────
+    document.getElementById('btnPay').addEventListener('click', function () {
+        var checked = document.querySelectorAll('.due-checkbox:checked');
+        if (!checked.length) { document.getElementById('payError').textContent = 'Select payment to pay!'; return; }
+        document.getElementById('payError').textContent = '';
+        var items = [];
+        document.querySelectorAll('#dueTableBody tr').forEach(function (row) {
+            var cb = row.querySelector('.due-checkbox'); if (!cb || !cb.checked) return;
+            items.push({ PayOrderID: parseInt(row.dataset.payorderid), PaidAmount: parseFloat(row.querySelector('.due-input').value) || 0, IsOtherSession: false });
+        });
+        document.querySelectorAll('#otherDueTableBody tr').forEach(function (row) {
+            var cb = row.querySelector('.due-checkbox'); if (!cb || !cb.checked) return;
+            items.push({ PayOrderID: parseInt(row.dataset.payorderid), PaidAmount: parseFloat(row.querySelector('.due-input').value) || 0, IsOtherSession: true });
+        });
+        var btn = document.getElementById('btnPay'); btn.disabled = true; btn.textContent = 'Processing...';
+        ajax('ProcessPayment', {
+            studentDbID: state.studentDbID, studentClassID: state.studentClassID,
+            educationYearID: state.educationYearID,
+            smsPhoneNo: state.smsPhoneNo, studentID: state.studentID, studentName: state.studentName,
+            accountID: parseInt(document.getElementById('ddlAccount').value),
+            smsActive: document.getElementById('rbActive').checked, items: items
+        }, function (r) {
+            if (r && r.Success) { window.location.href = 'Money_Receipt.aspx?mN_R=' + r.MRid + '&s_icD=' + r.Sid; }
+            else { alert('Payment Error: ' + (r && r.Message ? r.Message : 'Unknown error')); btn.disabled = false; btn.textContent = 'PAY'; }
+        }, function(errMsg) {
+            alert('Server Error:\n' + errMsg);
+            btn.disabled = false; btn.textContent = 'PAY';
+        });
+    });
+
+    // ── Update Concession Button ──────────────────────────────────────────────
+    document.getElementById('btnUpdateConcession').addEventListener('click', function () {
+        var items = [];
+        var allRows = Array.from(document.querySelectorAll('#dueTableBody tr, #otherDueTableBody tr'));
+        for (var i = 0; i < allRows.length; i++) {
+            var row = allRows[i]; var cb = row.querySelector('.due-checkbox');
+            if (!cb || !cb.checked) continue;
+            var fee = parseFloat(row.dataset.fee) || 0, paid = parseFloat(row.dataset.paid) || 0;
+            var lfInp = row.querySelector('.latefee-input');
+            var prevLf = parseFloat(row.querySelector('.prev-latefee').value) || 0;
+            var newLf = lfInp ? (parseFloat(lfInp.value) || 0) : prevLf;
+            var effLf = Math.max(newLf, prevLf);
+            var conInp = row.querySelector('.concession-input');
+            var conVal = conInp ? (parseFloat(conInp.value) || 0) : 0;
+            var maxA = fee + effLf - paid;
+            if (conVal > maxA) {
+                alert('কনসেশন এমাউন্ট অবশিষ্ট এমাউন্টের চেয়ে বেশি হতে পারবে না!\nMax: ' + maxA + ' TK  You entered: ' + conVal + ' TK');
+                if (conInp) conInp.focus(); return;
+            }
+            items.push({ PayOrderID: parseInt(row.dataset.payorderid), Discount: conVal, LateFee: newLf, PrevLateFee: prevLf });
+        }
+        if (!items.length) { alert('Row চেক করুন।'); return; }
+        ajax('UpdateConcession', { items: items }, function (r) {
+            if (r && r.Success) { alert('Update Successfully!!'); loadDues(); }
+            else alert(r && r.Message ? r.Message : 'Update failed!');
+        });
+    });
+
+    // ── Add More Payment ──────────────────────────────────────────────────────
+    document.getElementById('btnAddMoreSave').addEventListener('click', function () {
+        var roleID = parseInt(document.getElementById('ddlRole').value);
+        var payFor = document.getElementById('txtPayFor').value.trim();
+        var amount = document.getElementById('txtAmount').value.trim();
+        var concession = document.getElementById('txtConcession').value.trim();
+        var errSpan = document.getElementById('addMoreError');
+        if (roleID === 0 || !payFor || !amount) { errSpan.textContent = 'Role, Pay For ও Amount প্রয়োজন'; return; }
+        errSpan.textContent = '';
+        ajax('AddMorePayment', {
+            studentDbID: state.studentDbID, studentClassID: state.studentClassID, classID: state.classID,
+            educationYearID: state.educationYearID,
+            roleID: roleID, payFor: payFor, amount: parseFloat(amount) || 0, discount: parseFloat(concession) || 0
+        }, function (r) {
+            if (r && r.Success) {
+                $('#addMoreModal').modal('hide');
+                document.getElementById('txtPayFor').value = ''; document.getElementById('txtAmount').value = '';
+                document.getElementById('txtConcession').value = ''; document.getElementById('ddlRole').selectedIndex = 0;
+                loadDues();
+            } else errSpan.textContent = r && r.Message ? r.Message : 'Failed!';
+        });
+    });
+
+    // ── Scroll sticky total ───────────────────────────────────────────────────
+    $(window).on('scroll', function () {
+        var el = document.getElementById('total-amount-pay'); if (!el) return;
+        var t = parseFloat(el.textContent) || 0;
+        if (t === 0) { $('#grand-total-fixed').fadeOut(); return; }
+        if ($(window).scrollTop() + $(window).height() > $(document).height() - 300) $('#grand-total-fixed').fadeOut();
+        else $('#grand-total-fixed').fadeIn();
+    });
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function ajax(method, data, cb, errCb) {
+        $.ajax({
+            url: 'Payment_Collection.aspx/' + method, type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify(data), dataType: 'json',
+            success: function (r) { if (cb) cb(r.d !== undefined ? r.d : r); },
+            error: function (e) {
+                showLoading(false);
+                var msg = '';
+                try { msg = JSON.parse(e.responseText).Message || e.responseText; } catch(x) { msg = e.responseText || e.statusText; }
+                console.error(method, msg);
+                if (errCb) errCb(msg);
+                else if (method === 'GetStudentData') alert('Error: ' + msg);
             }
         });
+    }
 
-        // Close modal before printing
-     function closeModalBeforePrint() {
-       $('#myModal').modal('hide');
-            
-      // Small delay to ensure modal is fully hidden before print dialog opens
-     setTimeout(function() {
-    // Continue with server-side processing
-      return true;
-       }, 300);
-   
-      return true;
-   }
-    </script>
+    function showLoading(v) {
+        document.getElementById('pc-overlay').style.display = v ? 'block' : 'none';
+    }
+
+    function fmtAmt(n) { var v = parseFloat(parseFloat(n).toFixed(2)); return (v % 1 === 0) ? v.toFixed(0) : v.toFixed(2); }
+
+    function parseDate(val) {
+        if (!val) return new Date(0);
+        var m = val.match(/\d+/); return m ? new Date(parseInt(m[0])) : new Date(val);
+    }
+
+    function fmtDate(val) {
+        var d = parseDate(val); if (isNaN(d)) return val || '';
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+})();
+</script>
 </asp:Content>

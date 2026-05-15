@@ -2,6 +2,12 @@
 
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+    <style>
+        .img-fluid, .modal-dialog.cascading-modal.modal-avatar .modal-header, .video-fluid {
+    max-width: 100%;
+    height: 63px;
+}
+    </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <h3>Employee Monthly Payorder</h3>
@@ -9,6 +15,20 @@
     <asp:UpdatePanel ID="UpdatePanel1" runat="server">
         <ContentTemplate>
             <div class="row">
+                <div class="col-sm-3 form-group">
+                    <label>Employee Type</label>
+                    <asp:DropDownList ID="EmpTypeDropDownList" runat="server" CssClass="form-control" AutoPostBack="True" OnSelectedIndexChanged="EmpTypeDropDownList_SelectedIndexChanged">
+                        <asp:ListItem Value="%">-- সকল --</asp:ListItem>
+                        <asp:ListItem Value="Teacher">Teacher</asp:ListItem>
+                        <asp:ListItem Value="Staff">Staff</asp:ListItem>
+                    </asp:DropDownList>
+                </div>
+                <div class="col-sm-3 form-group">
+                    <label>Sub-Category</label>
+                    <asp:DropDownList ID="SubCategoryDropDownList" runat="server" CssClass="form-control" AutoPostBack="True">
+                        <asp:ListItem Value="0">-- সকল --</asp:ListItem>
+                    </asp:DropDownList>
+                </div>
                 <div class="col-sm-4 form-group">
                     <label>
                         Payorder Name <a href="#" data-toggle="modal" data-target="#myModal">Add New</a>
@@ -17,10 +37,7 @@
                     <asp:DropDownList ID="PayorderNameDropDownList" runat="server" CssClass="form-control" DataSourceID="PayorderNameSQL" DataTextField="Payorder_Name" DataValueField="Employee_Payorder_NameID" AppendDataBoundItems="True" AutoPostBack="True">
                         <asp:ListItem Value="0">[ SELECT ]</asp:ListItem>
                     </asp:DropDownList>
-                </div>                
-
-                
-
+                </div>
             </div>
 
             <asp:SqlDataSource ID="PayorderSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="Emp_Salary_Monthly" SelectCommand="SELECT * FROM [Employee_Payorder]" InsertCommandType="StoredProcedure">
@@ -67,10 +84,12 @@
                     </Columns>
                 </asp:GridView>
                 <asp:SqlDataSource ID="EmployeeListSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                    SelectCommand="SELECT EmployeeID, ID,Bank_AccNo, EmployeeType, Permanent_Temporary,P.Payorder_Name,  FirstName +' '+ LastName as Name, Designation, Phone, DeviceID FROM VW_Emp_Info E Left jOin Employee_Payorder_Name P ON E.Employee_Payorder_NameID=P.Employee_Payorder_NameID  WHERE (E.SchoolID = @SchoolID) AND (E.Job_Status = N'Active') order by ID"
+                    SelectCommand="SELECT EmployeeID, ID,Bank_AccNo, EmployeeType, Permanent_Temporary,P.Payorder_Name,  FirstName +' '+ LastName as Name, Designation, Phone, DeviceID FROM VW_Emp_Info E Left jOin Employee_Payorder_Name P ON E.Employee_Payorder_NameID=P.Employee_Payorder_NameID  WHERE (E.SchoolID = @SchoolID) AND (E.Job_Status = N'Active') AND (E.EmployeeType LIKE @EmployeeType) AND (@SubCategoryID = 0 OR E.SubCategoryID = @SubCategoryID) order by ID"
                     UpdateCommand="UPDATE Employee_Info SET Employee_Payorder_NameID = @Employee_Payorder_NameID WHERE (SchoolID = @SchoolID) AND (EmployeeID = @EmployeeID)">
                     <SelectParameters>
-                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />                       
+                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                        <asp:ControlParameter ControlID="EmpTypeDropDownList" Name="EmployeeType" PropertyName="SelectedValue" />
+                        <asp:ControlParameter ControlID="SubCategoryDropDownList" Name="SubCategoryID" PropertyName="SelectedValue" DefaultValue="0" Type="Int32" />
                         <asp:ControlParameter ControlID="PayorderNameDropDownList" Name="Employee_Payorder_NameID" PropertyName="SelectedValue" />
                     </SelectParameters>
                     <UpdateParameters>

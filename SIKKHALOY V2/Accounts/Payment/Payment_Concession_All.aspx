@@ -200,19 +200,7 @@
             </Columns>
         </asp:GridView>
         <asp:SqlDataSource ID="DueSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            SelectCommand="SELECT Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class,
-                         Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee,
-                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount,
-                         CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0)
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0)
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
-                         FROM Income_PayOrder INNER JOIN
-                                                  Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
-                                                  Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
-                                                  Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
-                                                  CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID
-                         WHERE (CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) &gt; 0 AND (Student.ID = @ID) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID)
-                         ORDER BY Income_PayOrder.EndDate">
+            SelectCommand="SELECT Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.ClassID, Income_PayOrder.StudentClassID, Income_PayOrder.RegistrationID, Income_PayOrder.RoleID, Student.ID, Student.StudentsName, CreateClass.Class, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.StartDate, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee, Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount , 0) + ISNULL(Income_PayOrder.LateFee , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PayOrder.PaidAmount , 0) - ISNULL(Income_PayOrder.LateFee_Discount , 0) ELSE ISNULL(Income_PayOrder.Amount , 0) - ISNULL(Income_PayOrder.Discount , 0) - ISNULL(Income_PayOrder.PaidAmount , 0) END AS Due, Income_PayOrder.Status, Income_PayOrder.CreatedDate, Income_PayOrder.EducationYearID, Income_PayOrder.LastPaidDate, Income_PayOrder.NumberOfPayment, Income_PayOrder.SchoolID FROM Income_PayOrder INNER JOIN Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID WHERE (Income_PayOrder.Status = 'Due' or  Income_PayOrder.PaidAmount = 0) AND (Student.ID = @ID) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID = @EducationYearID) ORDER BY Income_PayOrder.EndDate">
             <SelectParameters>
                 <asp:ControlParameter ControlID="SearchIDTextBox" DefaultValue="" Name="ID" PropertyName="Text" />
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -261,18 +249,18 @@
             </Columns>
         </asp:GridView>
         <asp:SqlDataSource ID="OtherSessionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            SelectCommand="SELECT        Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class,
-                         Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee,
-                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0)
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0)
-                                                  - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
-                         FROM            Income_PayOrder INNER JOIN
-                                                  Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
-                                                  Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
-                                                  Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
-                                                  CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID
-                         WHERE        (CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 AND ISNULL(Income_PayOrder.PaidAmount, 0) &lt; ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END) &gt; 0 AND (Student.ID = @ID) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID &lt;&gt; @EducationYearID)
-                         ORDER BY Income_PayOrder.EndDate">
+            SelectCommand="SELECT        Income_PayOrder.PayOrderID, Income_PayOrder.StudentID, Income_PayOrder.EducationYearID, Income_PayOrder.StudentClassID, Income_PayOrder.ClassID, CreateClass.Class, 
+                         Education_Year.EducationYear, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.EndDate, Income_PayOrder.Amount, Income_PayOrder.Discount, Income_PayOrder.LateFee, 
+                         Income_PayOrder.LateFee_Discount, Income_PayOrder.PaidAmount, CASE WHEN Income_PayOrder.EndDate &lt; GETDATE() - 1 THEN ISNULL(Income_PayOrder.Amount, 0) + ISNULL(Income_PayOrder.LateFee, 0) 
+                         - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) - ISNULL(Income_PayOrder.LateFee_Discount, 0) ELSE ISNULL(Income_PayOrder.Amount, 0) 
+                         - ISNULL(Income_PayOrder.Discount, 0) - ISNULL(Income_PayOrder.PaidAmount, 0) END AS Due, Income_PayOrder.RoleID, Income_PayOrder.StartDate
+FROM            Income_PayOrder INNER JOIN
+                         Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID INNER JOIN
+                         Student ON Income_PayOrder.StudentID = Student.StudentID INNER JOIN
+                         Education_Year ON Income_PayOrder.EducationYearID = Education_Year.EducationYearID INNER JOIN
+                         CreateClass ON Income_PayOrder.ClassID = CreateClass.ClassID 
+WHERE        (Income_PayOrder.Status = 'Due' or  Income_PayOrder.PaidAmount = 0) AND (Student.ID = @ID) AND (Income_PayOrder.SchoolID = @SchoolID) AND (Income_PayOrder.EducationYearID &lt;&gt; @EducationYearID)
+ORDER BY Income_PayOrder.EndDate">
             <SelectParameters>
                 <asp:ControlParameter ControlID="SearchIDTextBox" DefaultValue="" Name="ID" PropertyName="Text" />
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
