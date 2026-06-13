@@ -148,6 +148,8 @@
     </div>
 </div>
 <asp:HiddenField ID="hfDueAmount" runat="server" />
+<asp:HiddenField ID="hfGatewayCharge" runat="server" />
+<asp:HiddenField ID="hfTotalPayable" runat="server" />
 <asp:HiddenField ID="hfIsBlocked" runat="server" />
 <asp:HiddenField ID="hfDaysLeft" runat="server" />
 
@@ -375,7 +377,17 @@
             var daysLeft = parseInt($("#<%= hfDaysLeft.ClientID %>").val()) || 0;
 
             if (due && parseInt(due) > 0) {
-                $("#subDueAmountText").text(parseInt(due).toLocaleString('en-IN'));
+                var gwCharge = parseInt($("#<%= hfGatewayCharge.ClientID %>").val()) || 0;
+                var totalPayable = parseInt($("#<%= hfTotalPayable.ClientID %>").val()) || 0;
+
+                var dueDisplay = parseInt(due).toLocaleString('en-IN');
+                var gwDisplay  = gwCharge.toLocaleString('en-IN');
+                var totalDisplay = totalPayable > 0 ? totalPayable.toLocaleString('en-IN') : (parseInt(due) + gwCharge).toLocaleString('en-IN');
+
+                $("#subDueAmountText").html(
+                    dueDisplay + " টাকা" +
+                    (gwCharge > 0 ? " + গেটওয়ে চার্জ: <b>" + gwDisplay + " টাকা</b> = মোট প্রদেয়: <b>" + totalDisplay + " টাকা</b>" : "")
+                );
                 $("#subDueAmountBox").show();
 
                 if (isBlocked === '1') {

@@ -78,16 +78,104 @@ namespace EDUCATION.COM.Profile
                 string dueCountStr = dueRecordCount.ToString();
                 string dueTotalStr = totalDue.ToString("N2");
 
-                // ── ১. Invoice EndDate countdown (১-১০ দিন বাকি, এখনো পার হয়নি) ──
+                // ── ১. কোনো মাসের EndDate পার হয়ে গেছে কিনা (অগ্রাধিকার সর্বোচ্চ) ──
+                bool hasExpiredInvoice = false;
+                try
+                {
+                    using (SqlConnection conExp = new SqlConnection(connStr))
+                    {
+                        string expSql = @"SELECT COUNT(*) FROM AAP_Invoice
+                                          WHERE SchoolID = @SID AND IsPaid = 0
+                                            AND EndDate IS NOT NULL
+                                            AND CAST(EndDate AS DATE) < CAST(GETDATE() AS DATE)";
+                        using (SqlCommand expCmd = new SqlCommand(expSql, conExp))
+                        {
+                            expCmd.Parameters.AddWithValue("@SID", schoolId);
+                            conExp.Open();
+                            hasExpiredInvoice = (int)expCmd.ExecuteScalar() > 0;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Expired invoice check error: " + ex.Message);
+                }
+
+                int graceDaysLeft = GetGraceDaysLeft(schoolId, connStr);
+
+                // Due = 0 হলে AccessGraceUntil auto-clear করো (payment হয়ে গেছে)
+                if (graceDaysLeft >= 0 && totalDue <= 0 && dueRecordCount <= 0)
+                {
+                    try
+                    {
+                        using (SqlConnection conClr = new SqlConnection(connStr))
+                        {
+                            conClr.Open();
+                            using (SqlCommand clrCmd = new SqlCommand(
+                                "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID", conClr))
+                            {
+                                clrCmd.Parameters.AddWithValue("@SID", schoolId);
+                                clrCmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Grace clear error: " + ex.Message);
+                    }
+                    graceDaysLeft = -1;
+                }
+
+                if (hasExpiredInvoice && (totalDue > 0 || dueRecordCount > 0))
+                {
+                    if (graceDaysLeft >= 0)
+                    {
+                        string graceMsg = graceDaysLeft == 0
+                            ? "আজই আপনার গ্রেস পিরিয়ড শেষ হচ্ছে!"
+                            : string.Format("আপনাকে দেওয়া গ্রেস পিরিয়ড শেষ হতে বাকি মাত্র <strong>{0} দিন</strong>।", graceDaysLeft);
+
+                        string graceScript = string.Format(@"
+                            $(document).ready(function() {{
+                                $('#dueWarningSection').show();
+                                $('#dueWarningText').html('{0}');
+                                $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
+                                $('#dueWarningIcon').removeClass('fa-clock fa-ban').addClass('fa-hourglass-half');
+                                $('#dueRecordCount').text('{1}');
+                                $('#totalDueAmount').text('{2}');
+                                $('#dueInvoiceModal').modal('show');
+                            }});
+                        ", graceMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
+
+                        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", graceScript, true);
+                        return;
+                    }
+
+                    string blockedScript = string.Format(@"
+                        $(document).ready(function() {{
+                            $('#dueWarningSection').show();
+                            $('#dueWarningText').html('<strong>সফটওয়্যার অ্যাক্সেস বন্ধ আছে</strong>');
+                            $('#dueWarningSubText').text('আপনার প্রতিষ্ঠানের বকেয়া পেমেন্ট থাকার কারণে সফটওয়্যার অ্যাক্সেস বন্ধ আছে। অনুগ্রহ করে পেমেন্ট পরিশোধ করে সেবা সচল রাখুন।');
+                            $('#dueWarningIcon').removeClass('fa-clock fa-hourglass-half').addClass('fa-ban');
+                            $('#dueRecordCount').text('{0}');
+                            $('#totalDueAmount').text('{1}');
+                            $('#dueInvoiceModal').modal('show');
+                        }});
+                    ", dueCountStr, dueTotalStr);
+
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", blockedScript, true);
+                    return;
+                }
+
+                // ── ২. Expired invoice নেই — রানিং মাসের EndDate countdown (১-১০ দিন বাকি) ──
                 int endDateDaysLeft = -1;
                 try
                 {
                     using (SqlConnection con3 = new SqlConnection(connStr))
                     {
-                        string edSql = @"SELECT TOP 1 DATEDIFF(day, GETDATE(), EndDate) AS DaysLeft
+                        string edSql = @"SELECT TOP 1 DATEDIFF(day, CAST(GETDATE() AS DATE), CAST(EndDate AS DATE)) AS DaysLeft
                                          FROM AAP_Invoice
                                          WHERE SchoolID = @SID AND IsPaid = 0
-                                           AND EndDate IS NOT NULL AND EndDate >= GETDATE()
+                                           AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) >= CAST(GETDATE() AS DATE)
                                          ORDER BY EndDate ASC";
                         using (SqlCommand edCmd = new SqlCommand(edSql, con3))
                         {
@@ -115,7 +203,7 @@ namespace EDUCATION.COM.Profile
                             $('#dueWarningSection').show();
                             $('#dueWarningText').html('{0}');
                             $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
-                            $('#dueWarningIcon').removeClass('fa-hourglass-half').addClass('fa-clock');
+                            $('#dueWarningIcon').removeClass('fa-hourglass-half fa-ban').addClass('fa-clock');
                             $('#dueRecordCount').text('{1}');
                             $('#totalDueAmount').text('{2}');
                             $('#dueInvoiceModal').modal('show');
@@ -123,87 +211,6 @@ namespace EDUCATION.COM.Profile
                     ", endMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
 
                     ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", endScript, true);
-                    return;
-                }
-
-                // ── ২. Grace Period চলছে কিনা চেক করো (শুধু EndDate পার হলে) ──────
-                // এই check শুধু তখনই relevant যখন invoice expire হয়ে গেছে কিন্তু
-                // grace period দিয়ে access দেওয়া হয়েছে
-                int graceDaysLeft = -1;
-                try
-                {
-                    using (SqlConnection con2 = new SqlConnection(connStr))
-                    {
-                        con2.Open();
-                        using (SqlCommand chk = new SqlCommand(
-                            @"SELECT CASE WHEN EXISTS(SELECT * FROM sys.columns
-                               WHERE object_id=OBJECT_ID(N'dbo.SchoolInfo') AND name='AccessGraceUntil')
-                              THEN 1 ELSE 0 END", con2))
-                        {
-                            if ((int)chk.ExecuteScalar() == 1)
-                            {
-                                using (SqlCommand gc = new SqlCommand(
-                                    "SELECT AccessGraceUntil FROM SchoolInfo WHERE SchoolID=@SID", con2))
-                                {
-                                    gc.Parameters.AddWithValue("@SID", schoolId);
-                                    object graceVal = gc.ExecuteScalar();
-                                    if (graceVal != null && graceVal != DBNull.Value)
-                                    {
-                                        DateTime graceUntil = Convert.ToDateTime(graceVal);
-                                        graceDaysLeft = (int)(graceUntil.Date - DateTime.Today).TotalDays;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine("Grace check error: " + ex.Message);
-                }
-
-                // Due = 0 হলে AccessGraceUntil auto-clear করো (payment হয়ে গেছে)
-                if (graceDaysLeft >= 0 && totalDue <= 0 && dueRecordCount <= 0)
-                {
-                    try
-                    {
-                        using (SqlConnection conClr = new SqlConnection(connStr))
-                        {
-                            conClr.Open();
-                            using (SqlCommand clrCmd = new SqlCommand(
-                                "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID", conClr))
-                            {
-                                clrCmd.Parameters.AddWithValue("@SID", schoolId);
-                                clrCmd.ExecuteNonQuery();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Grace clear error: " + ex.Message);
-                    }
-                    // Grace cleared, notice দেখাবো না
-                }
-                // Grace period সক্রিয় এবং শেষ হতে ১০ দিন বা কম বাকি (only if due > 0)
-                else if (graceDaysLeft >= 0 && graceDaysLeft <= 10 && (totalDue > 0 || dueRecordCount > 0))
-                {
-                    string graceMsg = graceDaysLeft == 0
-                        ? "আজই আপনার গ্রেস পিরিয়ড শেষ হচ্ছে!"
-                        : string.Format("আপনাকে দেওয়া গ্রেস পিরিয়ড শেষ হতে বাকি মাত্র <strong>{0} দিন</strong>।", graceDaysLeft);
-
-                    string graceScript = string.Format(@"
-                        $(document).ready(function() {{
-                            $('#dueWarningSection').show();
-                            $('#dueWarningText').html('{0}');
-                            $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
-                            $('#dueWarningIcon').removeClass('fa-clock').addClass('fa-hourglass-half');
-                            $('#dueRecordCount').text('{1}');
-                            $('#totalDueAmount').text('{2}');
-                            $('#dueInvoiceModal').modal('show');
-                        }});
-                    ", graceMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
-
-                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", graceScript, true);
                     return;
                 }
 
@@ -228,6 +235,43 @@ namespace EDUCATION.COM.Profile
             {
                 System.Diagnostics.Debug.WriteLine("Due Invoice notification error: " + ex.Message);
             }
+        }
+
+        private int GetGraceDaysLeft(int schoolId, string connStr)
+        {
+            try
+            {
+                using (SqlConnection con2 = new SqlConnection(connStr))
+                {
+                    con2.Open();
+                    using (SqlCommand chk = new SqlCommand(
+                        @"SELECT CASE WHEN EXISTS(SELECT * FROM sys.columns
+                           WHERE object_id=OBJECT_ID(N'dbo.SchoolInfo') AND name='AccessGraceUntil')
+                          THEN 1 ELSE 0 END", con2))
+                    {
+                        if ((int)chk.ExecuteScalar() != 1)
+                            return -1;
+
+                        using (SqlCommand gc = new SqlCommand(
+                            "SELECT AccessGraceUntil FROM SchoolInfo WHERE SchoolID=@SID", con2))
+                        {
+                            gc.Parameters.AddWithValue("@SID", schoolId);
+                            object graceVal = gc.ExecuteScalar();
+                            if (graceVal != null && graceVal != DBNull.Value)
+                            {
+                                DateTime graceUntil = Convert.ToDateTime(graceVal);
+                                return (int)(graceUntil.Date - DateTime.Today).TotalDays;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Grace check error: " + ex.Message);
+            }
+
+            return -1;
         }
 
         // চেক করে যে Due Notice Enable করা আছে কিনা (নতুন লজিক - ডিফল্ট বন্ধ)

@@ -57,6 +57,10 @@
             font-size: 11px !important;
             color: #000 !important;
         }
+        .mGrid td.fail-mark {
+            background-color: #c62828 !important;
+            color: #fff !important;
+        }
         .mGrid th {
             font-weight: bold !important;
             font-size: 11px !important;
@@ -110,6 +114,13 @@
         .RowColor {
             background-color: #ffebee !important; /* Light red background */
         }
+
+        /* Failed subject mark */
+        .fail-mark {
+            background-color: #c62828 !important;
+            color: #fff !important;
+            font-weight: bold !important;
+        }
         
         /* Merit position text styling */
         .merit-text {
@@ -156,6 +167,21 @@
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
+
+            .fail-mark {
+                background-color: #c62828 !important;
+                color: #fff !important;
+                font-weight: bold !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .mGrid td.fail-mark {
+                background-color: #c62828 !important;
+                color: #fff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
             
             .merit-text {
                 font-size: 16px !important;
@@ -167,6 +193,8 @@
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <a href="ExamPosition_WithSub.aspx" class="NoPrint">Full Tabulation Sheet >>></a>
+    <span class="NoPrint"> | </span>
+    <a href="AllClassTopMeritBangla.aspx" class="NoPrint">সকল শ্রেণির সেরাদের তালিকা &gt;&gt;&gt;</a>
 
     <h3 style="text-align: center; font-size: 20px; font-weight: bold;">
         <asp:Label ID="CGSSLabel" runat="server"></asp:Label>

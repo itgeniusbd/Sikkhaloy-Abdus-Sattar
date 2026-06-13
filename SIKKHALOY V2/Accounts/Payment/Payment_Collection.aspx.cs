@@ -425,6 +425,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
                             double totalPaid = 0;
                             string message = "";
+                            string sessionInfo = "";
 
                             foreach (var item in items)
                             {
@@ -478,6 +479,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
                                 totalPaid += item.PaidAmount;
                                 message += $", {roleName}-{payFor}";
+                                sessionInfo = payOrderEduYearID.ToString();
                             }
 
                             if (totalPaid == 0)
@@ -504,9 +506,22 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                                 cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
                                 receiptSN = cmd.ExecuteScalar()?.ToString();
                             }
+                            if (string.IsNullOrEmpty(receiptSN))
+                                receiptSN = moneyReceiptID.ToString();
+
+                            // Get education year name for {Session} placeholder
+                            string sessionName = "";
+                            if (!string.IsNullOrEmpty(sessionInfo))
+                            {
+                                using (var cmd = new SqlCommand("SELECT EducationYear FROM Education_Year WHERE EducationYearID=@EID", con))
+                                {
+                                    cmd.Parameters.AddWithValue("@EID", sessionInfo);
+                                    sessionName = cmd.ExecuteScalar()?.ToString() ?? "";
+                                }
+                            }
 
                             // Send SMS (outside transaction - non-critical)
-                            if (smsActive) TrySendSMS(smsPhoneNo, studentID, studentName, totalPaid, receiptSN, message, schoolID, studentDbID);
+                            if (smsActive) TrySendSMS(smsPhoneNo, studentID, studentName, totalPaid, receiptSN, message, schoolID, studentDbID, sessionName);
 
                             return new
                             {
@@ -599,7 +614,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
         // ── SMS ───────────────────────────────────────────────────────────────
         private static void TrySendSMS(string phoneNo, string studentID, string studentName,
-            double totalAmount, string receiptNo, string details, int schoolID, int studentDbID)
+            double totalAmount, string receiptNo, string details, int schoolID, int studentDbID, string sessionName = "")
         {
             try
             {
@@ -613,6 +628,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                         .Replace("{Amount}", totalAmount.ToString("0.00")).Replace("{ReceiptNo}", receiptNo)
                         .Replace("{CurrentDue}", currentDue.ToString("0.00"))
                         .Replace("{PaymentDetails}", details.TrimStart(',', ' '))
+                        .Replace("{Session}", sessionName)
                         .Replace("{SchoolName}", HttpContext.Current.Session["School_Name"]?.ToString())
                     : $"অভিনন্দন! {studentName} (ID:{studentID}). আপনি: {totalAmount} টাকা পরিশোধ করেছেন. রিসিট নম্বর: {receiptNo}, ধন্যবাদ, {HttpContext.Current.Session["School_Name"]}";
 

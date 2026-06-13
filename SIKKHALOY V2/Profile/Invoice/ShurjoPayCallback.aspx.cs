@@ -264,7 +264,7 @@ namespace EDUCATION.COM.Profile.Invoice
             if (gatewayCharge < 0m) gatewayCharge = 0m;
 
             // ShurjoPay verify API-এ payable_amount সবসময় original amount return করে।
-            // তাই 2.038% হারে manually gateway charge calculate করা হচ্ছে।
+            // তাই প্রতি হাজারে ১৯ টাকা হারে manually gateway charge calculate করা হচ্ছে।
             bool isSimulated = false;
             if (gatewayCharge == 0m && invoiceDueAmt > 0m)
             {
@@ -273,15 +273,15 @@ namespace EDUCATION.COM.Profile.Invoice
                     HttpContext ctx = HttpContext.Current;
                     if (ctx != null && ctx.Request.IsLocal)
                     {
-                        // Localhost: simulated charge
-                        gatewayCharge   = Math.Round(invoiceDueAmt * 0.02038m, 2);
+                        // Localhost: simulated charge (প্রতি হাজারে ১৯ টাকা)
+                        gatewayCharge   = Math.Round(invoiceDueAmt / 1000m * 19m, 2);
                         customerPaidAmt = invoiceDueAmt + gatewayCharge;
                         isSimulated     = true;
                     }
                     else
                     {
-                        // Live: actual 2.038% ShurjoPay charge
-                        gatewayCharge   = Math.Round(invoiceDueAmt * 0.02038m, 2);
+                        // Live: প্রতি হাজারে ১৯ টাকা গেটওয়ে চার্জ
+                        gatewayCharge   = Math.Round(invoiceDueAmt / 1000m * 19m, 2);
                         customerPaidAmt = invoiceDueAmt + gatewayCharge;
                     }
                 }
@@ -489,11 +489,11 @@ namespace EDUCATION.COM.Profile.Invoice
                         {
                             if (isSimulated)
                                 smsSuccessMsg += string.Format(
-                                    "<br/><small class='text-info'>🧪 [Sandbox] বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ (2.038%): <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
+                                    "<br/><small class='text-info'>🧪 [Sandbox] বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ: <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
                                     invoiceDueAmt, gatewayCharge, customerPaidAmt);
                             else
                                 smsSuccessMsg += string.Format(
-                                    "<br/><small>বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ (2.038%): <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
+                                    "<br/><small>বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ: <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
                                     invoiceDueAmt, gatewayCharge, customerPaidAmt);
                         }
                         SetLabel("lblMessage", "alert alert-success d-block text-center", smsSuccessMsg);
@@ -629,15 +629,15 @@ namespace EDUCATION.COM.Profile.Invoice
                                 HttpContext ctx = HttpContext.Current;
                                 if (ctx != null && ctx.Request.IsLocal)
                                 {
-                                    // Localhost: simulated charge
-                                    gatewayCharge     = Math.Round(invoiceDueAmount * 0.02038m, 2);
+                                    // Localhost: simulated charge (প্রতি হাজারে ১০ টাকা)
+                                    gatewayCharge     = Math.Round(invoiceDueAmount / 1000m * 10m, 2);
                                     customerPaidAmount = invoiceDueAmount + gatewayCharge;
                                     isSimulated       = true;
                                 }
                                 else
                                 {
-                                    // Live: actual 2.038% ShurjoPay charge
-                                    gatewayCharge     = Math.Round(invoiceDueAmount * 0.02038m, 2);
+                                    // Live: প্রতি হাজারে ১০ টাকা গেটওয়ে চার্জ
+                                    gatewayCharge     = Math.Round(invoiceDueAmount / 1000m * 10m, 2);
                                     customerPaidAmount = invoiceDueAmount + gatewayCharge;
                                 }
                             }
@@ -788,14 +788,14 @@ namespace EDUCATION.COM.Profile.Invoice
                             if (isSimulated)
                             {
                                 successMsg += string.Format(
-                                    "<br/><small class='text-info'>🧪 [Sandbox] বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ (2.038%): <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
-                                    invoiceDueAmount, gatewayCharge, customerPaidAmount);
-                            }
-                            else
-                            {
-                                successMsg += string.Format(
-                                    "<br/><small>বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ (2.038%): <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
-                                    invoiceDueAmount, gatewayCharge, customerPaidAmount);
+                                                    "<br/><small class='text-info'>🧪 [Sandbox] বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ: <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
+                                                    invoiceDueAmount, gatewayCharge, customerPaidAmount);
+                                            }
+                                            else
+                                            {
+                                                successMsg += string.Format(
+                                                    "<br/><small>বিলের পরিমাণ: <b>{0:F2} ৳</b> | গেটওয়ে চার্জ: <b>{1:F2} ৳</b> | মোট পরিশোধিত: <b>{2:F2} ৳</b></small>",
+                                                    invoiceDueAmount, gatewayCharge, customerPaidAmount);
                             }
                         }
                         if (!logTableExists)

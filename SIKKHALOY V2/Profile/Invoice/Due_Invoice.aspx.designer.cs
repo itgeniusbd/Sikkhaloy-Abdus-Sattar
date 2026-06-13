@@ -33,6 +33,24 @@ namespace EDUCATION.COM.Profile.Invoice
         protected global::System.Web.UI.WebControls.HiddenField hfDueAmount;
 
         /// <summary>
+        /// hfGatewayCharge control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfGatewayCharge;
+
+        /// <summary>
+        /// hfTotalPayable control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfTotalPayable;
+
+        /// <summary>
         /// hfIsBlocked control.
         /// </summary>
         /// <remarks>

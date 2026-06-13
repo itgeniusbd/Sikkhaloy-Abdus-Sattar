@@ -384,6 +384,42 @@ namespace EDUCATION.COM.Authority.Invoice
         protected global::System.Web.UI.UpdatePanel UpdatePanel8;
 
         /// <summary>
+        /// RunAutoGenerateBtn control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button RunAutoGenerateBtn;
+
+        /// <summary>
+        /// EnableJobBtn control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button EnableJobBtn;
+
+        /// <summary>
+        /// JobDisabledWarningLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label JobDisabledWarningLabel;
+
+        /// <summary>
+        /// AutoGenerateMsgLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label AutoGenerateMsgLabel;
+
+        /// <summary>
         /// RefreshJobStatusBtn control.
         /// </summary>
         /// <remarks>

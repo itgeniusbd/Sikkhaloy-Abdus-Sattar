@@ -36,7 +36,7 @@
 
     <div class="info-box">
         <i class="fa fa-info-circle"></i>
-        <strong>তথ্য:</strong> রিচার্জের সময় পেমেন্ট করতে হবে — কোনো বাকি থাকবে না।
+        <strong>তথ্য:</strong> 24/7 যেকোন সময় অনলাইনে পে করে  রিচার্জের করতে পারবেন। অফিসে কল দেওয়ার দরকার নাই। 
         <br /><strong>রেট: ০.৩৬ টাকা প্রতি SMS</strong>
     </div>
 
@@ -80,13 +80,13 @@
             </div>
             <div class="form-group mr-2">
                 <asp:Button ID="RechargeButton" runat="server" CssClass="btn btn-warning font-weight-bold"
-                    Text="রিচার্জ ও ShurjoPay পেমেন্ট" OnClick="RechargeButton_Click" ValidationGroup="R"
+                    Text="রিচার্জ করতে অনলাইনে পে করুন" OnClick="RechargeButton_Click" ValidationGroup="R"
                     OnClientClick="return confirmRecharge(this);" />
             </div>
             <asp:Label ID="MessageLabel" runat="server"></asp:Label>
         </div>
         <small class="text-muted mt-2 d-block">
-            * রেট: <strong>০.৩৬ টাকা</strong> প্রতি SMS। ShurjoPay-এ পেমেন্ট সম্পন্ন হলে রিচার্জ সত্যি হবে।
+            * রেট: <strong>০.৩৬ টাকা</strong> প্রতি SMS + গেটওয়ে চার্জ। অনলাইনে পেমেন্ট সম্পন্ন হলে রিচার্জ সত্যি হবে।
         </small>
     </div>
 

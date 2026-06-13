@@ -1,9 +1,11 @@
 ﻿using Education;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Web;
 using System.Web.UI;
@@ -27,6 +29,12 @@ namespace EDUCATION.COM.Exam
                 return ViewState["SortDirection"] as SortDirection? ?? SortDirection.Ascending;
             }
             set { ViewState["SortDirection"] = value; }
+        }
+
+        private List<string> SubjectNames
+        {
+            get { return ViewState["SubjectNames"] as List<string> ?? new List<string>(); }
+            set { ViewState["SubjectNames"] = value; }
         }
 
         protected void Page_Load(object sender, EventArgs e)
@@ -313,6 +321,12 @@ namespace EDUCATION.COM.Exam
                 DataTable dt = new DataTable();
                 new SqlDataAdapter(cmd).Fill(dt);
 
+                var subjectNames = subjectList.AsEnumerable()
+                    .Select(r => r["SubjectName"].ToString())
+                    .ToList();
+                SubjectNames = subjectNames;
+                MergeSubjectPassStatus(con, dt, subjectNames, examID, classID, pivotColumns.ToString());
+
                 // Step 5: Build GridView columns in desired order
                 StudentsGridView.Columns.Clear();
 
@@ -391,6 +405,96 @@ namespace EDUCATION.COM.Exam
             }
         }
 
+
+
+        private void MergeSubjectPassStatus(SqlConnection con, DataTable dt, List<string> subjectNames, string examID, int classID, string pivotColumns)
+        {
+            if (dt.Rows.Count == 0 || subjectNames.Count == 0)
+                return;
+
+            foreach (string subject in subjectNames)
+                dt.Columns.Add(subject + "_Pass", typeof(string));
+
+            string passQuery = $@"
+        SELECT StudentID, {pivotColumns}
+        FROM
+        (
+            SELECT
+              s.StudentID,
+              sub.SubjectName,
+              subR.PassStatus_Subject
+            FROM Exam_Result_of_Student ers
+            INNER JOIN StudentsClass sc ON ers.StudentClassID = sc.StudentClassID
+            INNER JOIN Student s ON sc.StudentID = s.StudentID
+            INNER JOIN Exam_Result_of_Subject subR ON ers.StudentResultID = subR.StudentResultID
+            INNER JOIN Subject sub ON subR.SubjectID = sub.SubjectID
+            WHERE ers.ExamID = @ExamID
+              AND sc.ClassID = @ClassID
+              AND sc.SectionID LIKE @SectionID
+              AND sc.ShiftID LIKE @ShiftID
+              AND sc.SubjectGroupID LIKE @GroupID
+        ) AS SourceTable
+        PIVOT
+        (
+            MAX(PassStatus_Subject)
+            FOR SubjectName IN ({pivotColumns})
+        ) AS PivotTable";
+
+            using (SqlCommand passCmd = new SqlCommand(passQuery, con))
+            {
+                passCmd.Parameters.AddWithValue("@ExamID", examID);
+                passCmd.Parameters.AddWithValue("@ClassID", classID);
+                passCmd.Parameters.AddWithValue("@SectionID", SectionDropDownList.SelectedValue);
+                passCmd.Parameters.AddWithValue("@ShiftID", ShiftDropDownList.SelectedValue);
+                passCmd.Parameters.AddWithValue("@GroupID", GroupDropDownList.SelectedValue);
+
+                DataTable dtPass = new DataTable();
+                new SqlDataAdapter(passCmd).Fill(dtPass);
+
+                var passByStudent = dtPass.AsEnumerable()
+                    .ToDictionary(r => Convert.ToInt32(r["StudentID"]), r => r);
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    int studentId = Convert.ToInt32(row["StudentID"]);
+                    if (!passByStudent.TryGetValue(studentId, out DataRow passRow))
+                        continue;
+
+                    foreach (string subject in subjectNames)
+                    {
+                        if (dtPass.Columns.Contains(subject) && passRow[subject] != DBNull.Value)
+                            row[subject + "_Pass"] = passRow[subject].ToString();
+                    }
+                }
+            }
+        }
+
+        private void ApplyFailedSubjectMarkStyle(GridViewRow row, DataRowView data)
+        {
+            if (SubjectNames.Count == 0)
+                return;
+
+            foreach (string subject in SubjectNames)
+            {
+                string passColumn = subject + "_Pass";
+                if (!data.DataView.Table.Columns.Contains(passColumn))
+                    continue;
+
+                object passStatus = data[passColumn];
+                if (passStatus == null || passStatus == DBNull.Value || passStatus.ToString() != "F")
+                    continue;
+
+                for (int i = 0; i < StudentsGridView.Columns.Count; i++)
+                {
+                    if (StudentsGridView.Columns[i].HeaderText != subject)
+                        continue;
+
+                    if (i < row.Cells.Count)
+                        row.Cells[i].CssClass = (row.Cells[i].CssClass + " fail-mark").Trim();
+                    break;
+                }
+            }
+        }
 
 
         private DataTable GetSubjectList(SqlConnection con, string examID, int classID)
@@ -473,6 +577,10 @@ namespace EDUCATION.COM.Exam
         {
             if (e.Row.RowType == DataControlRowType.DataRow)
             {
+                DataRowView rowData = e.Row.DataItem as DataRowView;
+                if (rowData != null)
+                    ApplyFailedSubjectMarkStyle(e.Row, rowData);
+
                 // Find the actual column indices for Class Position and Section Position
                 int classPositionIndex = -1;
                 int sectionPositionIndex = -1;

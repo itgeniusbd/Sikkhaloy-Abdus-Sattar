@@ -114,7 +114,7 @@
                             SchoolInfo.Discount, 
                             SchoolInfo.Fixed, 
                             AAP_Student_Count_Monthly.SchoolID, 
-                            AAP_Student_Count_Monthly.StudentCount, 
+                            ISNULL(AAP_Student_Count_Monthly.StudentCount, AAP_Student_Count_Monthly.Active_Student) AS StudentCount, 
                             AAP_Student_Count_Monthly.Active_Student, 
                             AAP_Student_Count_Monthly.Reject_Countable, 
                             AAP_Student_Count_Monthly.Reject_Uncountable, 
@@ -127,7 +127,7 @@
                             <asp:ControlParameter ControlID="Month_DropDownList" Name="Month" PropertyName="SelectedValue" />
                         </SelectParameters>
                     </asp:SqlDataSource>
-                    <asp:SqlDataSource ID="PayOrderSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS (SELECT InvoiceID FROM AAP_Invoice WHERE (SchoolID = @SchoolID) AND (InvoiceCategoryID = (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE (InvoiceCategory = N'Service Charge'))) AND (EOMONTH(MonthName) = @MonthName))
+                    <asp:SqlDataSource ID="PayOrderSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS (SELECT InvoiceID FROM AAP_Invoice WHERE (SchoolID = @SchoolID) AND (InvoiceCategoryID = (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE (InvoiceCategory = N'Service Charge'))) AND (EOMONTH(MonthName) = EOMONTH(@MonthName)) AND (IsPaid = 0))
 BEGIN
 INSERT INTO AAP_Invoice(RegistrationID, InvoiceCategoryID, SchoolID, IssuDate, EndDate, Invoice_For, TotalAmount, Discount, MonthName, Invoice_SN, Unit, UnitPrice) VALUES (@RegistrationID, (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE (InvoiceCategory = N'Service Charge')), @SchoolID, @IssuDate, @EndDate, @Invoice_For, @TotalAmount, @Discount, @MonthName, dbo.Invoice_SerialNumber(@SchoolID), @Unit, @UnitPrice)
 END"
@@ -364,6 +364,20 @@ END"
                             <asp:Button ID="RefreshJobStatusBtn" runat="server" Text="↻ Refresh" CssClass="btn btn-sm btn-outline-light" OnClick="RefreshJobStatusBtn_Click" />
                         </div>
                         <div class="card-body py-2">
+                            <div class="mb-2">
+                                <asp:Button ID="RunAutoGenerateBtn" runat="server" Text="Auto Generate চালান (Selected Month)"
+                                    CssClass="btn btn-sm btn-success"
+                                    OnClick="RunAutoGenerateBtn_Click"
+                                    OnClientClick="return confirm('নির্বাচিত মাসের Student Count + Invoice জেনারেট করবেন?');" />
+                                <asp:Button ID="EnableJobBtn" runat="server" Text="Job Enable করুন"
+                                    CssClass="btn btn-sm btn-warning ml-1"
+                                    OnClick="EnableJobBtn_Click"
+                                    OnClientClick="return confirm('SQL Agent Job সক্রিয় করবেন?');" />
+                                <small class="text-muted d-block mt-1">মাসের ১ তারিখ ১২:০১ AM-এ আগের মাসের Count + Invoice অটো চলে (Job Enabled থাকতে হবে)</small>
+                                <asp:Label ID="JobDisabledWarningLabel" runat="server" Visible="false"
+                                    CssClass="d-block mt-1 alert alert-danger py-1 px-2 small mb-0" />
+                                <asp:Label ID="AutoGenerateMsgLabel" runat="server" CssClass="d-block mt-1 small" Visible="false" />
+                            </div>
                             <asp:Panel ID="JobStatusPanel" runat="server">
                                 <table class="table table-sm table-bordered mb-0" style="font-size:13px;">
                                     <thead class="thead-light">
@@ -661,10 +675,58 @@ GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly
             $('#myModal').modal('show');
         }
 
+        function setCheckboxState($checkbox, checked) {
+            $checkbox.prop("checked", checked);
+            $("td", $checkbox.closest("tr")).toggleClass("selected", checked);
+        }
+
+        function bindInvoiceCheckboxes() {
+            $("[id*=AllCheckBox]").off("click.invoiceAll").on("click.invoiceAll", function () {
+                var isChecked = $(this).is(":checked");
+                var table = $(this).closest("table");
+                $("[id*=Invoice_CheckBox]", table).each(function () {
+                    setCheckboxState($(this), isChecked);
+                });
+            });
+
+            $("[id*=Invoice_CheckBox]").off("click.invoiceRow").on("click.invoiceRow", function () {
+                var table = $(this).closest("table");
+                var allBox = $("[id*=AllCheckBox]", table);
+                var total = $("[id*=Invoice_CheckBox]", table).length;
+                var checked = $("[id*=Invoice_CheckBox]:checked", table).length;
+                allBox.prop("checked", total > 0 && total === checked);
+            });
+
+            $('.mGrid tr').each(function () {
+                if ($(this).find('.IS_ServiceActive').val() === "False") {
+                    $(this).addClass("Invaid_Ins");
+                }
+            });
+        }
+
+        function bindSmsCheckboxes() {
+            $("[id*=AllSMS_CheckBox]").off("click.smsAll").on("click.smsAll", function () {
+                var isChecked = $(this).is(":checked");
+                var table = $(this).closest("table");
+                $("[id*=SMS_CheckBox]", table).each(function () {
+                    setCheckboxState($(this), isChecked);
+                });
+            });
+
+            $("[id*=SMS_CheckBox]").off("click.smsRow").on("click.smsRow", function () {
+                var table = $(this).closest("table");
+                var allBox = $("[id*=AllSMS_CheckBox]", table);
+                var total = $("[id*=SMS_CheckBox]", table).length;
+                var checked = $("[id*=SMS_CheckBox]:checked", table).length;
+                allBox.prop("checked", total > 0 && total === checked);
+            });
+        }
+
         $(function () {
-            // Initialize Select2 for Institution dropdown
             initializeSelect2();
-            
+            bindInvoiceCheckboxes();
+            bindSmsCheckboxes();
+
             $('.datepicker').datepicker({
                 format: 'dd M yyyy',
                 todayBtn: "linked",
@@ -672,25 +734,11 @@ GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly
                 autoclose: true
             });
 
-            // Initialize monthpicker for Generate Student Count modal
             $('.monthpicker').datepicker({
                 format: 'MM yyyy',
                 minViewMode: 'months',
                 autoclose: true,
                 todayHighlight: true
-            });
-
-            //SMS Checkbox
-            $("[id*=AllSMS_CheckBox]").on("click", function () {
-                var a = $(this), b = $(this).closest("table");
-                $("[id*=SMS_CheckBox]", b).each(function () {
-                    a.is(":checked") ? ($(this).attr("checked", "checked"), $("td", $(this).closest("tr")).addClass("selected")) : ($(this).removeAttr("checked"), $("td", $(this).closest("tr")).removeClass("selected"));
-                });
-            });
-
-            $("[id*=SMS_CheckBox]").on("click", function () {
-                var a = $(this).closest("table"), b = $("[id*=AllSMS_CheckBox]", a);
-                $(this).is(":checked") ? ($("td", $(this).closest("tr")).addClass("selected"), $("[id*=SMS_CheckBox]", a).length == $("[id*=SMS_CheckBox]:checked", a).length && b.attr("checked", "checked")) : ($("td", $(this).closest("tr")).removeClass("selected"), b.removeAttr("checked"));
             });
         });
 
@@ -733,41 +781,9 @@ GROUP BY AAP_StudentClass_Count_Monthly.SchoolID, AAP_StudentClass_Count_Monthly
         }
 
         Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (a, b) {
-            // Re-initialize Select2 after UpdatePanel postback
             initializeSelect2();
-            
-            //Service charge Checkbox
-            $("[id*=AllCheckBox]").on("click", function () {
-                var a = $(this), b = $(this).closest("table");
-                $("[id*=Invoice_CheckBox]", b).each(function () {
-                    a.is(":checked") ? ($(this).attr("checked", "checked"), $("td", $(this).closest("tr")).addClass("selected")) : ($(this).removeAttr("checked"), $("td", $(this).closest("tr")).removeClass("selected"));
-                });
-            });
-
-            $("[id*=Invoice_CheckBox]").on("click", function () {
-                var a = $(this).closest("table"), b = $("[id*=AllCheckBox]", a);
-                $(this).is(":checked") ? ($("td", $(this).closest("tr")).addClass("selected"), $("[id*=Invoice_CheckBox]", a).length == $("[id*=Invoice_CheckBox]:checked", a).length && b.attr("checked", "checked")) : ($("td", $(this).closest("tr")).removeClass("selected"), b.removeAttr("checked"));
-            });
-
-            //SMS Checkbox
-            $("[id*=AllSMS_CheckBox]").on("click", function () {
-                var a = $(this), b = $(this).closest("table");
-                $("[id*=SMS_CheckBox]", b).each(function () {
-                    a.is(":checked") ? ($(this).attr("checked", "checked"), $("td", $(this).closest("tr")).addClass("selected")) : ($(this).removeAttr("checked"), $("td", $(this).closest("tr")).removeClass("selected"));
-                });
-            });
-
-            $("[id*=SMS_CheckBox]").on("click", function () {
-                var a = $(this).closest("table"), b = $("[id*=AllCheckBox]", a);
-                $(this).is(":checked") ? ($("td", $(this).closest("tr")).addClass("selected"), $("[id*=SMS_CheckBox]", a).length == $("[id*=SMS_CheckBox]:checked", a).length && b.attr("checked", "checked")) : ($("td", $(this).closest("tr")).removeClass("selected"), b.removeAttr("checked"));
-            });
-
-            $('.mGrid tr').each(function () {
-                if ($(this).find('.IS_ServiceActive').val() === "False") {
-                    $(this).addClass("Invaid_Ins");
-                }
-            });
-
+            bindInvoiceCheckboxes();
+            bindSmsCheckboxes();
 
             $('.datepicker').datepicker({
                 format: 'dd M yyyy',

@@ -136,10 +136,11 @@ BEGIN
         
         -- Generate school-wise total student count
         INSERT INTO AAP_Student_Count_Monthly 
-        (SchoolID, Month, Active_Student, Reject_Countable, Reject_Uncountable)
+        (SchoolID, Month, StudentCount, Active_Student, Reject_Countable, Reject_Uncountable)
         SELECT 
             SchoolID,
             @MonthEnd AS Month,
+            SUM(Active_Student) AS StudentCount,
             SUM(Active_Student) AS Active_Student,
             SUM(Reject_Countable) AS Reject_Countable,
             SUM(Reject_Uncountable) AS Reject_Uncountable
@@ -248,6 +249,7 @@ BEGIN
             AND InvoiceCategoryID = @ServiceChargeCategoryID
             AND MONTH(MonthName) = MONTH(@MonthEnd) 
             AND YEAR(MonthName) = YEAR(@MonthEnd)
+            AND IsPaid = 0
         )
         
         SET @GeneratedCount = @@ROWCOUNT

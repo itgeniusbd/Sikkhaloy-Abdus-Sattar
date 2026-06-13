@@ -48,6 +48,11 @@ namespace EDUCATION.COM.SMS
             int registrationID = Convert.ToInt32(Session["RegistrationID"]);
             double totalAmount = smsQty * PerSMSRate;
 
+            // গেটওয়ে চার্জ: প্রতি হাজারে ১৯ টাকা
+            decimal invoiceAmt    = (decimal)totalAmount;
+            decimal gatewayCharge = Math.Round(invoiceAmt / 1000m * 19m, 2);
+            decimal totalPayable  = invoiceAmt + gatewayCharge;
+
             // পেমেন্ট সফল হওয়ার পর callback-এ DB save করার জন্য session-এ রাখি
             Session["PendingSMSRecharge_SchoolID"]       = schoolID;
             Session["PendingSMSRecharge_RegistrationID"] = registrationID;
@@ -63,11 +68,11 @@ namespace EDUCATION.COM.SMS
                 string cancelUrl = baseUrl + "/SMS/SMS_Recharge.aspx?cancelled=1";
 
                 // value2 = "SMS_RECHARGE" — callback-এ এটা দেখে SMS save করবে
-                // value3 = smsQty, value4 = registrationID
+                // value3 = মূল invoice amount (গেটওয়ে চার্জ ছাড়া) — callback-এ reference-এর জন্য
                 var spRequest = new ShurjoPayOrderRequest
                 {
                     SchoolID         = schoolID,
-                    Amount           = (decimal)totalAmount,
+                    Amount           = totalPayable,  // invoice + gateway charge
                     CustomerName     = info.SchoolName ?? Session["School_Name"]?.ToString() ?? "School",
                     CustomerPhone    = info.Phone ?? "01700000000",
                     CustomerEmail    = info.Email ?? "info@school.com",
@@ -78,7 +83,8 @@ namespace EDUCATION.COM.SMS
                     CustomerCountry  = "Bangladesh",
                     ReturnUrl        = returnUrl,
                     CancelUrl        = cancelUrl,
-                    InvoiceNote      = "SMS_RECHARGE|" + smsQty + "|" + registrationID + "|" + schoolID
+                    InvoiceNote      = "SMS_RECHARGE|" + smsQty + "|" + registrationID + "|" + schoolID,
+                    Value3           = invoiceAmt.ToString("F2")  // মূল বিল (গেটওয়ে চার্জ ছাড়া) callback-এ reference-এর জন্য
                 };
 
                 var service  = new ShurjoPayService();

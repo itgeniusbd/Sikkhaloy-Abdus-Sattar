@@ -515,6 +515,7 @@
     <Content Include="CSS\Search_In_DropdownList.css" />
     <Content Include="CSS\SideNavbar.css" />
     <Content Include="Database\AddSeatNoColumn.sql" />
+    <Content Include="Database\Add_UnpaidBy_Columns.sql" />
     <Content Include="Database\AdvancedOptimization.sql" />
     <Content Include="Database\Migration_Employee_SubCategory.sql" />
     <Content Include="Employee\Acadamic_Calender.aspx" />
@@ -558,6 +559,7 @@
     <Content Include="Exam\Admit_Card\Old_AdmitCardWithoutPhoto.aspx" />
     <Content Include="Exam\CumulativeResult\Cumulative_Result.aspx" />
     <Content Include="Exam\ExamSetting\Marks_Collect_Paper_Bangla.aspx" />
+    <Content Include="Exam\AllClassTopMeritBangla.aspx" />
     <Content Include="Exam\ExmamPositionBangla.aspx" />
     <Content Include="Exam\Input_Exam_Marks_WithSubExam.aspx" />
     <Content Include="Exam\Result\Assets\Analytical_Result.css" />
@@ -2230,6 +2232,13 @@
     </Compile>
     <Compile Include="Exam\ExamSetting\Marks_Collect_Paper_Bangla.aspx.designer.cs">
       <DependentUpon>Marks_Collect_Paper_Bangla.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Exam\AllClassTopMeritBangla.aspx.cs">
+      <DependentUpon>AllClassTopMeritBangla.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Exam\AllClassTopMeritBangla.aspx.designer.cs">
+      <DependentUpon>AllClassTopMeritBangla.aspx</DependentUpon>
     </Compile>
     <Compile Include="Exam\ExmamPositionBangla.aspx.cs">
       <DependentUpon>ExmamPositionBangla.aspx</DependentUpon>

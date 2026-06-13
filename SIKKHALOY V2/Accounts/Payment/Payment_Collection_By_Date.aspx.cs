@@ -423,6 +423,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
                     double totalPaid = 0;
                     string message = "";
+                    string sessionInfo = "";
 
                     foreach (var item in items)
                     {
@@ -430,12 +431,12 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                         if (item.PaidAmount > due) continue;
 
                         int roleID = 0, payOrderEduYearID = educationYearID, scid = studentClassID;
-                        string payFor = "";
-                        using (var cmd = new SqlCommand("SELECT RoleID, PayFor, EducationYearID, StudentClassID FROM Income_PayOrder WHERE PayOrderID=@P", con))
+                        string payFor = "", roleName = "";
+                        using (var cmd = new SqlCommand("SELECT po.RoleID, po.PayFor, po.EducationYearID, po.StudentClassID, ir.Role FROM Income_PayOrder po INNER JOIN Income_Roles ir ON po.RoleID = ir.RoleID WHERE po.PayOrderID=@P", con))
                         {
                             cmd.Parameters.AddWithValue("@P", item.PayOrderID);
                             using (var dr = cmd.ExecuteReader())
-                                if (dr.Read()) { roleID = Convert.ToInt32(dr["RoleID"]); payFor = dr["PayFor"].ToString(); payOrderEduYearID = Convert.ToInt32(dr["EducationYearID"]); scid = Convert.ToInt32(dr["StudentClassID"]); }
+                                if (dr.Read()) { roleID = Convert.ToInt32(dr["RoleID"]); payFor = dr["PayFor"].ToString(); payOrderEduYearID = Convert.ToInt32(dr["EducationYearID"]); scid = Convert.ToInt32(dr["StudentClassID"]); roleName = dr["Role"].ToString(); }
                         }
 
                         using (var cmd = new SqlCommand(@"INSERT INTO Income_PaymentRecord(StudentID,RegistrationID,RoleID,PayOrderID,PaidAmount,PayFor,PaidDate,MoneyReceiptID,StudentClassID,EducationYearID,SchoolID,AccountID)
@@ -475,7 +476,8 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                         }
 
                         totalPaid += item.PaidAmount;
-                        message += $", {payFor}";
+                        message += $", {roleName}-{payFor}";
+                        sessionInfo = payOrderEduYearID.ToString();
                     }
 
                     using (var cmd = new SqlCommand("UPDATE Income_MoneyReceipt SET TotalAmount=@T WHERE MoneyReceiptID=@MID", con))
@@ -493,8 +495,21 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                         cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
                         receiptSN = cmd.ExecuteScalar()?.ToString();
                     }
+                    if (string.IsNullOrEmpty(receiptSN))
+                        receiptSN = moneyReceiptID.ToString();
 
-                    if (smsActive) TrySendSMS(smsPhoneNo, studentID, studentName, totalPaid, receiptSN, message, schoolID, studentDbID);
+                    // Get education year name for {Session} placeholder
+                    string sessionName = "";
+                    if (!string.IsNullOrEmpty(sessionInfo))
+                    {
+                        using (var cmd = new SqlCommand("SELECT EducationYear FROM Education_Year WHERE EducationYearID=@EID", con))
+                        {
+                            cmd.Parameters.AddWithValue("@EID", sessionInfo);
+                            sessionName = cmd.ExecuteScalar()?.ToString() ?? "";
+                        }
+                    }
+
+                    if (smsActive) TrySendSMS(smsPhoneNo, studentID, studentName, totalPaid, receiptSN, message, schoolID, studentDbID, sessionName);
 
                     return new
                     {
@@ -583,7 +598,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
         // ?? SMS ???????????????????????????????????????????????????????????????
         private static void TrySendSMS(string phoneNo, string studentID, string studentName,
-            double totalAmount, string receiptNo, string details, int schoolID, int studentDbID)
+            double totalAmount, string receiptNo, string details, int schoolID, int studentDbID, string sessionName = "")
         {
             try
             {
@@ -597,6 +612,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                         .Replace("{Amount}", totalAmount.ToString("0.00")).Replace("{ReceiptNo}", receiptNo)
                         .Replace("{CurrentDue}", currentDue.ToString("0.00"))
                         .Replace("{PaymentDetails}", details.TrimStart(',', ' '))
+                        .Replace("{Session}", sessionName)
                         .Replace("{SchoolName}", HttpContext.Current.Session["School_Name"]?.ToString())
                     : $"অভিনন্দন! {studentName} (ID:{studentID}). আপনি: {totalAmount} টাকা পরিশোধ করেছেন. রিসিট নম্বর: {receiptNo}, ধন্যবাদ, {HttpContext.Current.Session["School_Name"]}";
 

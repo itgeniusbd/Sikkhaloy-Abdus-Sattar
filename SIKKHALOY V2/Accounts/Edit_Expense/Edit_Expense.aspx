@@ -72,7 +72,8 @@
                 <div class="table-responsive">
                     <asp:GridView ID="ExpenseGridView" runat="server" AutoGenerateColumns="False" DataSourceID="ExpenseSQL"
                         CssClass="mGrid" DataKeyNames="ExpenseID" AllowPaging="True" PageSize="80" AllowSorting="True"
-                        OnRowDataBound="ExpenseGridView_RowDataBound" OnRowUpdating="ExpenseGridView_RowUpdating">
+                        OnRowDataBound="ExpenseGridView_RowDataBound" OnRowUpdating="ExpenseGridView_RowUpdating"
+                        OnRowDeleting="ExpenseGridView_RowDeleting">
                         <PagerStyle CssClass="pgr" />
                         <Columns>
                             <asp:TemplateField HeaderText="SN">
@@ -145,18 +146,19 @@
                         <FooterStyle CssClass="GridFooter" />
                     </asp:GridView>
                     <asp:SqlDataSource ID="ExpenseSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                        DeleteCommand="set context_info @RegistrationID
-DELETE FROM [Expenditure] WHERE [ExpenseID] = @ExpenseID"
-                        InsertCommand="INSERT INTO Expenditure(RegistrationID, ExpenseCategoryID, ExpenseSubCategoryID, Amount, ExpenseFor, ExpenseDate, SchoolID, EducationYearID, AccountID) VALUES (@RegistrationID, @ExpenseCategoryID, NULLIF(@ExpenseSubCategoryID,''), @Amount, @ExpenseFor, @ExpenseDate, @SchoolID, @EducationYearID, @AccountID)"
+                        DeleteCommand="SET context_info @RegistrationID DELETE FROM [Expenditure] WHERE [ExpenseID] = @ExpenseID"
+                        InsertCommand="SET context_info @RegistrationID
+INSERT INTO Expenditure(RegistrationID, ExpenseCategoryID, ExpenseSubCategoryID, Amount, ExpenseFor, ExpenseDate, SchoolID, EducationYearID, AccountID) VALUES (@RegistrationID, @ExpenseCategoryID, NULLIF(@ExpenseSubCategoryID,''), @Amount, @ExpenseFor, @ExpenseDate, @SchoolID, @EducationYearID, @AccountID)"
                         SelectCommand="SELECT Expense_CategoryName.CategoryName, ISNULL(sc.SubCategoryName,'') AS SubCategoryName, Expenditure.ExpenseID, Expenditure.SchoolID, Expenditure.EducationYearID, Expenditure.RegistrationID, Expenditure.ExpenseCategoryID, Expenditure.ExpenseSubCategoryID, Expenditure.Amount, Expenditure.ExpenseFor, Expenditure.ExpenseDate FROM Expenditure INNER JOIN Expense_CategoryName ON Expenditure.ExpenseCategoryID = Expense_CategoryName.ExpenseCategoryID LEFT JOIN Expense_SubCategory sc ON Expenditure.ExpenseSubCategoryID = sc.ExpenseSubCategoryID WHERE (Expenditure.SchoolID = @SchoolID) AND (Expenditure.EducationYearID = @EducationYearID) AND (Expenditure.ExpenseCategoryID LIKE @ExpenseCategoryID) AND (ISNULL(CAST(Expenditure.ExpenseSubCategoryID AS VARCHAR),'%') LIKE @ExpenseSubCategoryID) AND (Expenditure.ExpenseDate BETWEEN ISNULL(@Fdate, '1-1-1760') AND ISNULL(@TDate, '1-1-3760')) AND (Expenditure.ExpenseID LIKE @ExpenseID) ORDER BY Expenditure.ExpenseID DESC"
-                        UpdateCommand="set context_info @RegistrationID
+                        UpdateCommand="SET context_info @RegistrationID
 UPDATE Expenditure SET Amount = @Amount, ExpenseFor = @ExpenseFor, ExpenseCategoryID = @ExpenseCategoryID, ExpenseSubCategoryID = NULLIF(@ExpenseSubCategoryID,'') WHERE (ExpenseID = @ExpenseID)"
                         CancelSelectOnNullParameter="False">
                         <DeleteParameters>
-                            <asp:Parameter Name="ExpenseID" Type="Int32" />
                             <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
+                            <asp:Parameter Name="ExpenseID" Type="Int32" />
                         </DeleteParameters>
                         <InsertParameters>
+                            <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                             <asp:ControlParameter ControlID="ExCategoryDropDownList" Name="ExpenseCategoryID" PropertyName="SelectedValue" Type="Int32" />
                             <asp:ControlParameter ControlID="ExSubCategoryDropDownList" Name="ExpenseSubCategoryID" PropertyName="SelectedValue" Type="String" />
                             <asp:ControlParameter ControlID="AmountTextBox" Name="Amount" PropertyName="Text" Type="Double" />
@@ -164,7 +166,6 @@ UPDATE Expenditure SET Amount = @Amount, ExpenseFor = @ExpenseFor, ExpenseCatego
                             <asp:ControlParameter ControlID="ExpenseDateTextBox" DbType="Date" Name="ExpenseDate" PropertyName="Text" />
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                             <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-                            <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
                             <asp:ControlParameter ControlID="AccountDropDownList" Name="AccountID" PropertyName="SelectedValue" />
                         </InsertParameters>
                         <SelectParameters>
@@ -211,22 +212,27 @@ UPDATE Expenditure SET Amount = @Amount, ExpenseFor = @ExpenseFor, ExpenseCatego
                                 </div>
                             </div>
 
-                            <asp:SqlDataSource ID="CategorySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" DeleteCommand="DELETE FROM [Expense_CategoryName] WHERE [ExpenseCategoryID] = @ExpenseCategoryID" InsertCommand=" IF NOT EXISTS ( SELECT  * FROM [Expense_CategoryName] WHERE (SchoolID = @SchoolID) AND (CategoryName = @CategoryName))
+                            <asp:SqlDataSource ID="CategorySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" DeleteCommand="SET context_info @RegistrationID
+DELETE FROM [Expense_CategoryName] WHERE [ExpenseCategoryID] = @ExpenseCategoryID" InsertCommand="SET context_info @RegistrationID
+ IF NOT EXISTS ( SELECT  * FROM [Expense_CategoryName] WHERE (SchoolID = @SchoolID) AND (CategoryName = @CategoryName))
 INSERT INTO Expense_CategoryName(CategoryName, RegistrationID, SchoolID) VALUES (LTRIM(RTRIM(@CategoryName)), @RegistrationID, @SchoolID)"
-                                SelectCommand="SELECT ExpenseCategoryID, SchoolID, RegistrationID, CategoryName FROM Expense_CategoryName WHERE (SchoolID = @SchoolID)" UpdateCommand=" IF NOT EXISTS ( SELECT  * FROM [Expense_CategoryName] WHERE (SchoolID = @SchoolID) AND (CategoryName = @CategoryName))
+                                SelectCommand="SELECT ExpenseCategoryID, SchoolID, RegistrationID, CategoryName FROM Expense_CategoryName WHERE (SchoolID = @SchoolID)" UpdateCommand="SET context_info @RegistrationID
+ IF NOT EXISTS ( SELECT  * FROM [Expense_CategoryName] WHERE (SchoolID = @SchoolID) AND (CategoryName = @CategoryName))
 UPDATE [Expense_CategoryName] SET [CategoryName] = LTRIM(RTRIM(@CategoryName)) WHERE [ExpenseCategoryID] = @ExpenseCategoryID">
                                 <DeleteParameters>
+                                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                                     <asp:Parameter Name="ExpenseCategoryID" Type="Int32" />
                                 </DeleteParameters>
                                 <InsertParameters>
+                                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                                     <asp:ControlParameter ControlID="CategoryNameTextBox" Name="CategoryName" PropertyName="Text" Type="String" />
                                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
                                 </InsertParameters>
                                 <SelectParameters>
                                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                                 </SelectParameters>
                                 <UpdateParameters>
+                                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                                     <asp:Parameter Name="CategoryName" Type="String" />
                                     <asp:Parameter Name="ExpenseCategoryID" Type="Int32" />
                                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -274,13 +280,17 @@ UPDATE [Expense_CategoryName] SET [CategoryName] = LTRIM(RTRIM(@CategoryName)) W
 
                             <!-- SubCategory SqlDataSource -->
                             <asp:SqlDataSource ID="SubCategorySQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                                DeleteCommand="DELETE FROM Expense_SubCategory WHERE ExpenseSubCategoryID = @ExpenseSubCategoryID"
-                                UpdateCommand="UPDATE Expense_SubCategory SET SubCategoryName = LTRIM(RTRIM(@SubCategoryName)) WHERE ExpenseSubCategoryID = @ExpenseSubCategoryID"
+                                DeleteCommand="SET context_info @RegistrationID
+DELETE FROM Expense_SubCategory WHERE ExpenseSubCategoryID = @ExpenseSubCategoryID"
+                                UpdateCommand="SET context_info @RegistrationID
+UPDATE Expense_SubCategory SET SubCategoryName = LTRIM(RTRIM(@SubCategoryName)) WHERE ExpenseSubCategoryID = @ExpenseSubCategoryID"
                                 SelectCommand="SELECT ExpenseSubCategoryID, SubCategoryName FROM Expense_SubCategory WHERE ExpenseCategoryID = @ExpenseCategoryID AND SchoolID = @SchoolID ORDER BY ExpenseSubCategoryID">
                                 <DeleteParameters>
+                                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                                     <asp:Parameter Name="ExpenseSubCategoryID" Type="Int32" />
                                 </DeleteParameters>
                                 <UpdateParameters>
+                                    <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
                                     <asp:Parameter Name="SubCategoryName" Type="String" />
                                     <asp:Parameter Name="ExpenseSubCategoryID" Type="Int32" />
                                 </UpdateParameters>

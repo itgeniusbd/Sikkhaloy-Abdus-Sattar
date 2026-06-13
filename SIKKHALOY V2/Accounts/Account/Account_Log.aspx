@@ -87,9 +87,8 @@
                                 <asp:BoundField DataField="Insert_Time" HeaderText="Time" SortExpression="Insert_Time" />
                             </Columns>
                         </asp:GridView>
-                        <asp:SqlDataSource ID="In_SubCategorySQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Account_Log.Log_SN, Account_Log.SubCategory, Account_Log.Amount, Account_Log.Details, Registration.UserName, Account_Log.Insert_Date,Account_Log.Activity_Date, CONVERT(varchar(15),Account_Log.Insert_Time,100) AS Insert_Time FROM Account_Log INNER JOIN
- Registration ON Account_Log.RegistrationID = Registration.RegistrationID WHERE (Account_Log.SchoolID = @SchoolID) AND (Account_Log.ClassOrOtherCategory = @ClassOrOtherCategory) AND (Account_Log.Add_Subtraction = N'Add') AND (Account_Log.ClassOrOtherCategory not like '%Updated%' AND Account_Log.ClassOrOtherCategory not  like '%Deleted%')AND 
-(Account_Log.Insert_Date BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000'))"
+                        <asp:SqlDataSource ID="In_SubCategorySQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                            SelectCommand="SELECT AL.Log_SN, AL.SubCategory, AL.Amount, AL.Details, COALESCE(OpReg.UserName, Reg.UserName) AS UserName, AL.Insert_Date, AL.Activity_Date, CONVERT(varchar(15),AL.Insert_Time,100) AS Insert_Time FROM Account_Log AL INNER JOIN Registration Reg ON AL.RegistrationID = Reg.RegistrationID OUTER APPLY (SELECT TRY_CAST(LTRIM(RTRIM(SUBSTRING(AL.Details, CHARINDEX('ID =', AL.Details) + 4, 10))) AS INT) AS OpRegID) AS P LEFT JOIN Registration OpReg ON OpReg.RegistrationID = P.OpRegID WHERE (AL.SchoolID = @SchoolID) AND (AL.ClassOrOtherCategory = @ClassOrOtherCategory) AND (AL.Add_Subtraction = N'Add') AND (AL.ClassOrOtherCategory not like '%Updated%' AND AL.ClassOrOtherCategory not  like '%Deleted%') AND (AL.Insert_Date BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000'))"
                             ProviderName="<%$ ConnectionStrings:EducationConnectionString.ProviderName %>">
                             <SelectParameters>
                                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -157,9 +156,8 @@ GROUP BY ClassOrOtherCategory ORDER BY ClassOrOtherCategory"
                                 <asp:BoundField DataField="Insert_Time" HeaderText="Time" SortExpression="Insert_Time" />
                             </Columns>
                         </asp:GridView>
-                        <asp:SqlDataSource ID="Out_SubCategory_SQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Account_Log.Log_SN, Account_Log.SubCategory, Account_Log.Amount, Account_Log.Details, Registration.UserName, Account_Log.Insert_Date,Account_Log.Activity_Date, CONVERT(varchar(15),Account_Log.Insert_Time,100) AS Insert_Time FROM Account_Log INNER JOIN
-Registration ON Account_Log.RegistrationID = Registration.RegistrationID WHERE (Account_Log.SchoolID = @SchoolID) AND (Account_Log.ClassOrOtherCategory = @ClassOrOtherCategory) AND (Account_Log.Add_Subtraction = N'Subtraction')
-AND  (Account_Log.ClassOrOtherCategory not  like '%Updated%' AND Account_Log.ClassOrOtherCategory  not like '%Deleted%')  AND (Account_Log.Insert_Date BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000')) "
+                        <asp:SqlDataSource ID="Out_SubCategory_SQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                            SelectCommand="SELECT AL.Log_SN, AL.SubCategory, AL.Amount, AL.Details, COALESCE(OpReg.UserName, Reg.UserName) AS UserName, AL.Insert_Date, AL.Activity_Date, CONVERT(varchar(15),AL.Insert_Time,100) AS Insert_Time FROM Account_Log AL INNER JOIN Registration Reg ON AL.RegistrationID = Reg.RegistrationID OUTER APPLY (SELECT TRY_CAST(LTRIM(RTRIM(SUBSTRING(AL.Details, CHARINDEX('ID =', AL.Details) + 4, 10))) AS INT) AS OpRegID) AS P LEFT JOIN Registration OpReg ON OpReg.RegistrationID = P.OpRegID WHERE (AL.SchoolID = @SchoolID) AND (AL.ClassOrOtherCategory = @ClassOrOtherCategory) AND (AL.Add_Subtraction = N'Subtraction') AND  (AL.ClassOrOtherCategory not  like '%Updated%' AND AL.ClassOrOtherCategory  not like '%Deleted%')  AND (AL.Insert_Date BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000')) "
                             ProviderName="<%$ ConnectionStrings:EducationConnectionString.ProviderName %>">
                             <SelectParameters>
                                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -230,9 +228,8 @@ GROUP BY ClassOrOtherCategory ORDER BY ClassOrOtherCategory "
                         <FooterStyle HorizontalAlign="Center" />
                         <HeaderStyle BackColor="#F4F4F4" />
                     </asp:GridView>
-                    <asp:SqlDataSource ID="IN_Deleted_SubCategorySQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Account_Log.Log_SN, Account_Log.SubCategory, Account_Log.Amount, Account_Log.Details, Registration.UserName, Account_Log.Insert_Date, Account_Log.Activity_Date, CONVERT(varchar(15),Account_Log.Insert_Time,100) AS Insert_Time FROM Account_Log INNER JOIN
-Registration ON Account_Log.RegistrationID = Registration.RegistrationID WHERE (Account_Log.SchoolID = @SchoolID) AND (Account_Log.ClassOrOtherCategory = @ClassOrOtherCategory) AND
-Insert_Up_De &lt;&gt; 'In' AND (Account_Log.Insert_Date BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000')) "
+                    <asp:SqlDataSource ID="IN_Deleted_SubCategorySQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+                        SelectCommand="SELECT AL.Log_SN, AL.SubCategory, AL.Amount, AL.Details, COALESCE(OpReg.UserName, Reg.UserName) AS UserName, AL.Insert_Date, AL.Activity_Date, CONVERT(varchar(15),AL.Insert_Time,100) AS Insert_Time FROM Account_Log AL INNER JOIN Registration Reg ON AL.RegistrationID = Reg.RegistrationID OUTER APPLY (SELECT TRY_CAST(LTRIM(RTRIM(SUBSTRING(AL.Details, CHARINDEX('ID =', AL.Details) + 4, 10))) AS INT) AS OpRegID) AS P LEFT JOIN Registration OpReg ON OpReg.RegistrationID = P.OpRegID WHERE (AL.SchoolID = @SchoolID) AND (AL.ClassOrOtherCategory = @ClassOrOtherCategory) AND Insert_Up_De &lt;&gt; 'In' AND (AL.Insert_Date BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000')) "
                         ProviderName="<%$ ConnectionStrings:EducationConnectionString.ProviderName %>">
                         <SelectParameters>
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />

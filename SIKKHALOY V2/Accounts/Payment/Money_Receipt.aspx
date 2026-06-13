@@ -200,7 +200,7 @@ UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceipt
         </ItemTemplate>
     </asp:FormView>
 
-    <asp:GridView ID="PaidDetailsGridView" DataKeyNames="Role,PayFor" runat="server" AutoGenerateColumns="False" DataSourceID="PaidDetailsSQL" CssClass="mGrid" ShowFooter="True" Font-Bold="False" RowStyle-CssClass="Rows">
+    <asp:GridView ID="PaidDetailsGridView" DataKeyNames="Role,PayFor,RawPayFor,EducationYear" runat="server" AutoGenerateColumns="False" DataSourceID="PaidDetailsSQL" CssClass="mGrid" ShowFooter="True" Font-Bold="False" RowStyle-CssClass="Rows">
         <Columns>
             <asp:BoundField DataField="PayFor" HeaderText="Pay For" />
             <asp:TemplateField HeaderText="Fee">
@@ -251,7 +251,9 @@ UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceipt
         SelectCommand="SELECT 
     Income_PaymentRecord.MoneyReceiptID, 
     Income_Roles.Role, 
-    Income_PaymentRecord.PayFor + ' (' + Education_Year.EducationYear + ')' AS PayFor, 
+    Income_PaymentRecord.PayFor + ' (' + Education_Year.EducationYear + ')' AS PayFor,
+    Income_PaymentRecord.PayFor AS RawPayFor,
+    Education_Year.EducationYear,
     Income_PaymentRecord.PaidAmount,
     ISNULL(Income_PayOrder.Discount, 0) + ISNULL(Income_PayOrder.LateFee_Discount, 0) AS Total_Discount,
     CASE 

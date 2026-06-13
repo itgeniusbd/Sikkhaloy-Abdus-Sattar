@@ -25,7 +25,10 @@ namespace EDUCATION.COM.Profile.Invoice
                     if (int.TryParse(Session["SchoolID"].ToString(), out schoolId) && schoolId > 0)
                     {
                         decimal due = GetTotalDueAmount(schoolId);
-                        hfDueAmount.Value = due.ToString("F0");
+                                decimal gwCharge = Math.Round(due / 1000m * 10m, 2);
+                                hfDueAmount.Value = due.ToString("F0");
+                                hfGatewayCharge.Value = gwCharge.ToString("F0");
+                                hfTotalPayable.Value = (due + gwCharge).ToString("F0");
 
                         var status = GetSubscriptionStatus(schoolId);
                         hfIsBlocked.Value = status.IsBlocked ? "1" : "0";
@@ -63,6 +66,10 @@ namespace EDUCATION.COM.Profile.Invoice
                     return;
                 }
 
+                // গেটওয়ে চার্জ: প্রতি হাজারে ১০ টাকা (১%)
+                decimal gatewayCharge = Math.Round(dueAmount / 1000m * 10m, 2);
+                decimal totalPayable  = dueAmount + gatewayCharge;
+
                 // School info নেওয়া
                 SchoolContactInfo info = GetSchoolInfo(schoolId);
 
@@ -84,7 +91,7 @@ namespace EDUCATION.COM.Profile.Invoice
                 var request = new ShurjoPayOrderRequest
                 {
                     SchoolID         = schoolId,
-                    Amount           = dueAmount,
+                    Amount           = totalPayable,
                     CustomerName     = customerName,
                     CustomerPhone    = customerPhone,
                     CustomerEmail    = !string.IsNullOrWhiteSpace(info.Email)      ? info.Email      : "info@school.com",
@@ -97,7 +104,7 @@ namespace EDUCATION.COM.Profile.Invoice
                     CancelUrl        = cancelUrl,
                     InvoiceNote      = "Sikkhaloy Invoice - SchoolID:" + schoolId,
                     // Callback-এ gateway charge calculate করার জন্য invoice due amount store
-                    Value3           = dueAmount.ToString("F2")
+                    Value3           = dueAmount.ToString("F2")  // original due (gateway charge ছাড়া)
                 };
 
                 var service  = new ShurjoPayService();

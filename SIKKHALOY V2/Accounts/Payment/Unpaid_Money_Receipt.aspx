@@ -98,7 +98,8 @@
     </asp:FormView>
     <asp:SqlDataSource ID="MoneyRSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
         SelectCommand="SELECT PaidDate, MoneyReceipt_SN, TotalAmount FROM Income_MoneyReceipt WHERE (SchoolID = @SchoolID) AND (MoneyReceipt_SN = @MoneyReceipt_SN)"
-        DeleteCommand="BEGIN TRY
+        DeleteCommand="SET context_info @RegistrationID
+BEGIN TRY
     BEGIN TRANSACTION
        UPDATE Income_PayOrder SET PaidAmount = Income_PayOrder.PaidAmount - Income_PaymentRecord.PaidAmount ,NumberOfPayment = 0, LastPaidDate = NULL 
         FROM Income_MoneyReceipt INNER JOIN Income_PaymentRecord ON Income_MoneyReceipt.MoneyReceiptID = Income_PaymentRecord.MoneyReceiptID INNER JOIN Income_PayOrder
@@ -115,6 +116,7 @@ BEGIN CATCH
     ROLLBACK
 END CATCH">
         <DeleteParameters>
+            <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" Type="Int32" />
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             <asp:ControlParameter ControlID="ReceiptTextBox" Name="MoneyReceipt_SN" PropertyName="Text" />
         </DeleteParameters>

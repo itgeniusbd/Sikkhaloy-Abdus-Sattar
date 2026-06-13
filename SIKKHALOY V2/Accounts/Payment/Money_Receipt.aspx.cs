@@ -98,14 +98,20 @@ namespace EDUCATION.COM.Accounts.Payment
                 var paid = ReceiptFormView.DataKey["TotalAmount"].ToString();
                 var studentName = (StudentInfoFormView.Row.FindControl("StudentsNameLabel") as Label)?.Text;
                 var receiptNo = (ReceiptFormView.Row.FindControl("MoneyReceiptIDLabel") as Label)?.Text;
+                if (string.IsNullOrEmpty(receiptNo))
+                    receiptNo = CurrentMoneyReceiptID;
 
-                // Build payment details for template
+                // Build payment details for template (role + rawPayFor only, no session year)
                 var paymentDetails = "";
+                string sessionName = "";
                 foreach (GridViewRow row in PaidDetailsGridView.Rows)
                 {
                     var role = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["Role"];
-                    var payFor = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["PayFor"];
-                    paymentDetails += $", {role}: {payFor}";
+                    var rawPayFor = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["RawPayFor"];
+                    var eduYear = PaidDetailsGridView.DataKeys[row.DataItemIndex]?["EducationYear"];
+                    paymentDetails += $", {role}: {rawPayFor}";
+                    if (eduYear != null && !string.IsNullOrEmpty(eduYear.ToString()))
+                        sessionName = eduYear.ToString();
                 }
 
                 // Try to get Payment SMS Template from database
@@ -115,7 +121,7 @@ namespace EDUCATION.COM.Accounts.Payment
                 {
                     // Use template and replace placeholders
                     msg = BuildPaymentReceiptMessageFromTemplate(paymentTemplate, studentName, studentId,
-                            Convert.ToDouble(paid), receiptNo, paymentDetails, currentDue);
+                            Convert.ToDouble(paid), receiptNo, paymentDetails, currentDue, sessionName);
                 }
                 else
                 {
@@ -138,7 +144,13 @@ namespace EDUCATION.COM.Accounts.Payment
 
                 if (smsBalance >= totalSMS)
                 {
-                    if (sms.SMS_GetBalance() >= totalSMS)
+                    int liveBalance;
+                    try { liveBalance = sms.SMS_GetBalance(); }
+                    catch { liveBalance = smsBalance; }
+
+                    if (liveBalance <= 0) liveBalance = smsBalance;
+
+                    if (liveBalance >= totalSMS)
                     {
                         var isValid = sms.SMS_Validation(phoneNo, msg);
 
@@ -344,7 +356,7 @@ IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES
         /// Build Payment Receipt SMS message from template by replacing placeholders
         /// </summary>
         private string BuildPaymentReceiptMessageFromTemplate(string template, string studentName, string studentId,
-          double amount, string receiptNo, string paymentDetails, decimal currentDue)
+          double amount, string receiptNo, string paymentDetails, decimal currentDue, string sessionName = "")
         {
             string message = template;
 
@@ -354,6 +366,7 @@ IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES
             message = message.Replace("{Amount}", amount.ToString("0.00"));
             message = message.Replace("{ReceiptNo}", receiptNo);
             message = message.Replace("{CurrentDue}", currentDue.ToString("0.00"));
+            message = message.Replace("{Session}", sessionName);
 
             // Clean up payment details
             if (!string.IsNullOrEmpty(paymentDetails))

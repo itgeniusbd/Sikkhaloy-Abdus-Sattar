@@ -68,7 +68,8 @@ namespace EDUCATION.COM.Accounts.Edit_Expense
                 string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString();
                 using (SqlConnection con = new SqlConnection(connStr))
                 {
-                    string sql = @"IF NOT EXISTS (SELECT * FROM Expense_SubCategory WHERE ExpenseCategoryID=@CatID AND SchoolID=@SchoolID AND SubCategoryName=@Name)
+                    string sql = @"SET context_info @RegID
+                                   IF NOT EXISTS (SELECT * FROM Expense_SubCategory WHERE ExpenseCategoryID=@CatID AND SchoolID=@SchoolID AND SubCategoryName=@Name)
                                    INSERT INTO Expense_SubCategory(ExpenseCategoryID, SubCategoryName, SchoolID, RegistrationID)
                                    VALUES(@CatID, LTRIM(RTRIM(@Name)), @SchoolID, @RegID)";
                     SqlCommand cmd = new SqlCommand(sql, con);
@@ -236,6 +237,36 @@ namespace EDUCATION.COM.Accounts.Edit_Expense
                 }
             }
             catch { }
+        }
+
+        protected void ExpenseGridView_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+            e.Cancel = true;
+
+            try
+            {
+                int expenseId = Convert.ToInt32(ExpenseGridView.DataKeys[e.RowIndex].Value);
+                int registrationId = Convert.ToInt32(Session["RegistrationID"]);
+
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString();
+                using (SqlConnection con = new SqlConnection(connStr))
+                using (SqlCommand cmd = new SqlCommand(
+                    "SET context_info @RegistrationID; DELETE FROM [Expenditure] WHERE [ExpenseID] = @ExpenseID", con))
+                {
+                    cmd.Parameters.AddWithValue("@RegistrationID", registrationId);
+                    cmd.Parameters.AddWithValue("@ExpenseID", expenseId);
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+
+                ExpenseGridView.DataBind();
+                Total_FormView.DataBind();
+            }
+            catch
+            {
+                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage",
+                    "alert('Could not delete expense. It may already be in use.')", true);
+            }
         }
 
         // On Update: read EditSubCategoryDropDownList value and pass to SQL

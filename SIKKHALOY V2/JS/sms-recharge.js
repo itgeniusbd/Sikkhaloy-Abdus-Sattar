@@ -1,4 +1,4 @@
-var _rechargeSubmitting = false;
+﻿var _rechargeSubmitting = false;
 
 function confirmRecharge(btn) {
     if (_rechargeSubmitting) return false;
@@ -30,9 +30,15 @@ window.addEventListener('DOMContentLoaded', function () {
     if (!qtyInput) return;
 
     qtyInput.addEventListener('input', function () {
-        var qty   = parseInt(this.value) || 0;
-        var total = (qty * 0.36).toFixed(2);
-        if (lblCost) lblCost.textContent = qty > 0 ? 'Total: ' + total + ' Tk' : '';
-        if (btn)     btn.disabled = false;
+        var qty          = parseInt(this.value) || 0;
+        var invoice      = qty * 0.36;
+        var gwCharge     = Math.round(invoice / 1000 * 19 * 100) / 100;
+        var totalPayable = invoice + gwCharge;
+        if (lblCost) {
+            lblCost.textContent = qty > 0
+                ? 'বিল: ' + invoice.toFixed(2) + ' + চার্জ: ' + gwCharge.toFixed(2) + ' = মোট: ' + totalPayable.toFixed(2) + ' Tk'
+                : '';
+        }
+        if (btn) btn.disabled = false;
     });
 });

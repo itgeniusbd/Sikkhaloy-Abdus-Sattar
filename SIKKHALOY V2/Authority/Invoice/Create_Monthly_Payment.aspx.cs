@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Globalization;
+using System.Text;
+using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -52,10 +55,8 @@ namespace EDUCATION.COM.Authority.Invoice
                               + ' ' +
                               STUFF(STUFF(RIGHT('000000'+CAST(s.next_run_time AS VARCHAR(6)),6),5,0,':'),3,0,':'))
                     END                             AS NextRunDateTime,
-                    -- Currently running?
-                    (SELECT COUNT(*) FROM msdb.dbo.sysjobactivity a2
-                     WHERE a2.job_id = j.job_id AND a2.start_execution_date IS NOT NULL
-                       AND a2.stop_execution_date IS NULL)  AS IsRunning
+                    -- Currently running? (sysjobactivity requires extra permission; use 0 as safe fallback)
+                    0 AS IsRunning
                 FROM msdb.dbo.sysjobs j
                 LEFT JOIN (
                     SELECT job_id, run_date, run_time, run_status, message
@@ -92,6 +93,16 @@ namespace EDUCATION.COM.Authority.Invoice
                             JobEnabledLabel.Text = enabled
                                 ? "<span class='badge badge-success'>Yes</span>"
                                 : "<span class='badge badge-danger'>No</span>";
+
+                            if (JobDisabledWarningLabel != null)
+                            {
+                                JobDisabledWarningLabel.Visible = !enabled;
+                                JobDisabledWarningLabel.Text = enabled
+                                    ? string.Empty
+                                    : "<i class='fa fa-exclamation-triangle'></i> <strong>সতর্কতা:</strong> Job বর্তমানে <strong>Disabled</strong> — মাসের ১ তারিখে অটো ইনভয়েস চলবে না। <strong>Job Enable করুন</strong> বাটনে ক্লিক করুন।";
+                            }
+                            if (EnableJobBtn != null)
+                                EnableJobBtn.Visible = !enabled;
 
                             // Last run
                             JobLastRunLabel.Text = dr["LastRunDateTime"] == DBNull.Value
@@ -149,6 +160,106 @@ namespace EDUCATION.COM.Authority.Invoice
             LoadJobStatus();
         }
 
+        protected void RunAutoGenerateBtn_Click(object sender, EventArgs e)
+        {
+            AutoGenerateMsgLabel.Visible = false;
+
+            if (string.IsNullOrWhiteSpace(Month_DropDownList.SelectedValue))
+            {
+                AutoGenerateMsgLabel.Text = "<span class='text-danger'>Service Charge ট্যাবে মাস নির্বাচন করুন।</span>";
+                AutoGenerateMsgLabel.Visible = true;
+                return;
+            }
+
+            DateTime targetMonth;
+            if (!DateTime.TryParse(Month_DropDownList.SelectedValue, out targetMonth))
+            {
+                AutoGenerateMsgLabel.Text = "<span class='text-danger'>মাস সঠিক নয়।</span>";
+                AutoGenerateMsgLabel.Visible = true;
+                return;
+            }
+
+            DateTime monthEnd = new DateTime(targetMonth.Year, targetMonth.Month,
+                DateTime.DaysInMonth(targetMonth.Year, targetMonth.Month));
+
+            int registrationId = 1;
+            if (Session["RegistrationID"] != null)
+                int.TryParse(Session["RegistrationID"].ToString(), out registrationId);
+
+            try
+            {
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                string countMessage = RunStudentCountGeneration(connStr, monthEnd);
+
+                using (SqlConnection con = new SqlConnection(connStr))
+                using (SqlCommand cmd = new SqlCommand("AAP_Auto_Generate_Monthly_Invoice", con))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = 180;
+                    cmd.Parameters.AddWithValue("@TargetMonth", monthEnd);
+                    cmd.Parameters.AddWithValue("@RegistrationID", registrationId);
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+
+                AutoGenerateMsgLabel.Text = "<span class='text-success'><i class='fa fa-check'></i> Student Count + Invoice সম্পন্ন। "
+                    + HttpUtility.HtmlEncode(countMessage) + " Paid Invoice থেকে যাচাই করুন।</span>";
+                AutoGenerateMsgLabel.Visible = true;
+                Payment_GridView.DataBind();
+            }
+            catch (Exception ex)
+            {
+                AutoGenerateMsgLabel.Text = "<span class='text-danger'>Auto generate ত্রুটি: " + HttpUtility.HtmlEncode(ex.Message) + "</span>";
+                AutoGenerateMsgLabel.Visible = true;
+            }
+        }
+
+        protected void EnableJobBtn_Click(object sender, EventArgs e)
+        {
+            AutoGenerateMsgLabel.Visible = false;
+            try
+            {
+                string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+                using (SqlConnection con = new SqlConnection(connStr))
+                using (SqlCommand cmd = new SqlCommand("EXEC msdb.dbo.sp_update_job @job_name = @JobName, @enabled = 1", con))
+                {
+                    cmd.Parameters.AddWithValue("@JobName", "Auto_Generate_Monthly_Invoice");
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+
+                AutoGenerateMsgLabel.Text = "<span class='text-success'><i class='fa fa-check'></i> SQL Agent Job সক্রিয় করা হয়েছে।</span>";
+                AutoGenerateMsgLabel.Visible = true;
+                LoadJobStatus();
+            }
+            catch (Exception ex)
+            {
+                AutoGenerateMsgLabel.Text = "<span class='text-danger'>Job enable করতে পারেনি: " + HttpUtility.HtmlEncode(ex.Message) + "</span>";
+                AutoGenerateMsgLabel.Visible = true;
+            }
+        }
+
+        private static string RunStudentCountGeneration(string connStr, DateTime monthEnd)
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            using (SqlCommand cmd = new SqlCommand("sp_Generate_Monthly_Student_Count", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 180;
+                cmd.Parameters.AddWithValue("@TargetMonth", monthEnd);
+
+                SqlParameter countParam = new SqlParameter("@GeneratedCount", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                SqlParameter msgParam = new SqlParameter("@ErrorMessage", SqlDbType.NVarChar, 500) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(countParam);
+                cmd.Parameters.Add(msgParam);
+
+                con.Open();
+                cmd.ExecuteNonQuery();
+
+                return msgParam.Value != DBNull.Value ? msgParam.Value.ToString() : "Student count completed";
+            }
+        }
+
         protected void Ins_LinkButton_Command(object sender, CommandEventArgs e)
         {
             DetailsSQL.SelectParameters["SchoolID"].DefaultValue = e.CommandName.ToString();
@@ -164,47 +275,193 @@ namespace EDUCATION.COM.Authority.Invoice
 
         protected void Monthly_Button_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(Month_DropDownList.SelectedValue))
+            {
+                ShowInvoiceResult("মাস নির্বাচন করুন।", true);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(sIssueDate_TextBox.Text))
+            {
+                ShowInvoiceResult("Issue Date দিন।", true);
+                return;
+            }
+
+            DateTime issueDate;
+            if (!DateTime.TryParse(sIssueDate_TextBox.Text.Trim(), out issueDate))
+            {
+                ShowInvoiceResult("Issue Date সঠিক নয়।", true);
+                return;
+            }
+
+            DateTime monthEnd;
+            if (!DateTime.TryParse(Month_DropDownList.SelectedValue, out monthEnd))
+            {
+                ShowInvoiceResult("মাস সঠিক নয়।", true);
+                return;
+            }
+            monthEnd = new DateTime(monthEnd.Year, monthEnd.Month, DateTime.DaysInMonth(monthEnd.Year, monthEnd.Month));
+
+            int inserted = 0;
+            int skippedExists = 0;
+            var errors = new List<string>();
+            var skippedDetails = new List<string>();
+            string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
+            int registrationId = 1;
+            if (Session["RegistrationID"] != null)
+                int.TryParse(Session["RegistrationID"].ToString(), out registrationId);
+
+            const string insertSql = @"
+IF NOT EXISTS (
+    SELECT InvoiceID FROM AAP_Invoice
+    WHERE SchoolID = @SchoolID
+      AND InvoiceCategoryID = (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE InvoiceCategory = N'Service Charge')
+      AND EOMONTH(MonthName) = EOMONTH(@MonthName)
+      AND IsPaid = 0
+)
+BEGIN
+    INSERT INTO AAP_Invoice(RegistrationID, InvoiceCategoryID, SchoolID, IssuDate, EndDate, Invoice_For, TotalAmount, Discount, MonthName, Invoice_SN, Unit, UnitPrice)
+    VALUES (@RegistrationID,
+            (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE InvoiceCategory = N'Service Charge'),
+            @SchoolID, @IssuDate, @EndDate, @Invoice_For, @TotalAmount, @Discount, @MonthName,
+            dbo.Invoice_SerialNumber(@SchoolID), @Unit, @UnitPrice);
+    SELECT 1;
+END
+ELSE
+    SELECT 0;";
+
+            const string existingSql = @"
+SELECT TOP 1 InvoiceID, Invoice_For, IsPaid,
+       CAST(TotalAmount - PaidAmount - Discount AS DECIMAL(18,2)) AS Due
+FROM AAP_Invoice
+WHERE SchoolID = @SchoolID
+  AND InvoiceCategoryID = (SELECT InvoiceCategoryID FROM AAP_Invoice_Category WHERE InvoiceCategory = N'Service Charge')
+  AND EOMONTH(MonthName) = EOMONTH(@MonthName)
+ORDER BY InvoiceID DESC";
+
             foreach (GridViewRow row in Payment_GridView.Rows)
             {
-                var Invoice_CheckBox = row.FindControl("Invoice_CheckBox") as CheckBox;
-                var Total_Student_Label = row.FindControl("Total_Student_Label") as Label;
-                var Committee_Count_Label = row.FindControl("Committee_Count_Label") as Label;
-                var PerStudent_Label = row.FindControl("PerStudent_Label") as Label;
-                var Fixed_Label = row.FindControl("Fixed_Label") as Label;
-                var Discount_TextBox = row.FindControl("Discount_TextBox") as TextBox;
+                var invoiceCheckBox = row.FindControl("Invoice_CheckBox") as CheckBox;
+                if (invoiceCheckBox == null || !invoiceCheckBox.Checked)
+                    continue;
 
-                double Amount = 0;
-                double TotalStudent = Convert.ToDouble(Total_Student_Label.Text);
-                double CommitteeCount = Committee_Count_Label != null ? Convert.ToDouble(Committee_Count_Label.Text) : 0;
-                double TotalBillableCount = TotalStudent + CommitteeCount; // Student + Committee
-                double PerStudent = Convert.ToDouble(PerStudent_Label.Text);
-                double Fixed = Convert.ToDouble(Fixed_Label.Text);
-                double Discount = Convert.ToDouble(Discount_TextBox.Text);
-                DateTime Issue = Convert.ToDateTime(sIssueDate_TextBox.Text);
+                int schoolId = Convert.ToInt32(Payment_GridView.DataKeys[row.RowIndex]["SchoolID"]);
+                var totalStudentLabel = row.FindControl("Total_Student_Label") as Label;
+                var committeeCountLabel = row.FindControl("Committee_Count_Label") as Label;
+                var perStudentLabel = row.FindControl("PerStudent_Label") as Label;
+                var fixedLabel = row.FindControl("Fixed_Label") as Label;
+                var discountTextBox = row.FindControl("Discount_TextBox") as TextBox;
 
-                if (Invoice_CheckBox.Checked)
+                try
                 {
-                    if (Fixed == 0)
+                    double totalStudent = SafeToDouble(totalStudentLabel != null ? totalStudentLabel.Text : null);
+                    double committeeCount = SafeToDouble(committeeCountLabel != null ? committeeCountLabel.Text : null);
+                    double totalBillableCount = totalStudent + committeeCount;
+                    double perStudent = SafeToDouble(perStudentLabel != null ? perStudentLabel.Text : null);
+                    double fixedAmount = SafeToDouble(fixedLabel != null ? fixedLabel.Text : null);
+                    double discount = SafeToDouble(discountTextBox != null ? discountTextBox.Text : null);
+
+                    double amount;
+                    object unitPrice;
+                    if (fixedAmount > 0)
                     {
-                        Amount = TotalBillableCount * PerStudent; // Changed: Use total billable count
-                        PayOrderSQL.InsertParameters["UnitPrice"].DefaultValue = PerStudent.ToString();
+                        amount = fixedAmount;
+                        unitPrice = DBNull.Value;
                     }
                     else
                     {
-                        Amount = Fixed;
-                        PayOrderSQL.InsertParameters["UnitPrice"].DefaultValue = null;
+                        amount = totalBillableCount * perStudent;
+                        unitPrice = perStudent;
                     }
 
-                    PayOrderSQL.InsertParameters["EndDate"].DefaultValue = Issue.AddDays(15).ToString();
-                    PayOrderSQL.InsertParameters["SchoolID"].DefaultValue = Payment_GridView.DataKeys[row.DataItemIndex]["SchoolID"].ToString();
-                    PayOrderSQL.InsertParameters["TotalAmount"].DefaultValue = Amount.ToString();
-                    PayOrderSQL.InsertParameters["Discount"].DefaultValue = Discount_TextBox.Text;
-                    PayOrderSQL.InsertParameters["Unit"].DefaultValue = TotalBillableCount.ToString(); // Changed: Use total billable count
-                    PayOrderSQL.Insert();
+                    using (SqlConnection con = new SqlConnection(connStr))
+                    using (SqlCommand cmd = new SqlCommand(insertSql, con))
+                    {
+                        cmd.Parameters.AddWithValue("@RegistrationID", registrationId);
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                        cmd.Parameters.AddWithValue("@IssuDate", issueDate.Date);
+                        cmd.Parameters.AddWithValue("@EndDate", issueDate.Date.AddDays(15));
+                        cmd.Parameters.AddWithValue("@Invoice_For", Month_DropDownList.SelectedItem.Text);
+                        cmd.Parameters.AddWithValue("@TotalAmount", amount);
+                        cmd.Parameters.AddWithValue("@Discount", discount);
+                        cmd.Parameters.AddWithValue("@MonthName", monthEnd);
+                        cmd.Parameters.AddWithValue("@Unit", totalBillableCount);
+                        cmd.Parameters.AddWithValue("@UnitPrice", unitPrice ?? DBNull.Value);
+
+                        con.Open();
+                        int result = Convert.ToInt32(cmd.ExecuteScalar());
+                        if (result == 1)
+                        {
+                            inserted++;
+                        }
+                        else
+                        {
+                            skippedExists++;
+                            skippedDetails.Add(GetSkippedInvoiceReason(con, existingSql, schoolId, monthEnd));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(schoolId + ": " + ex.Message);
                 }
             }
 
-            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Record Inserted Successfully')", true);
+            var msg = new StringBuilder();
+            msg.Append("তৈরি হয়েছে: ").Append(inserted);
+            if (skippedExists > 0)
+            {
+                msg.Append("\\nবকেয়া ইনভয়েস আছে (স্কিপ): ").Append(skippedExists);
+                if (skippedDetails.Count > 0)
+                    msg.Append("\\n").Append(string.Join("\\n", skippedDetails));
+            }
+            if (errors.Count > 0)
+                msg.Append("\\nত্রুটি: ").Append(string.Join("\\n", errors));
+            if (inserted == 0 && skippedExists == 0 && errors.Count == 0)
+                msg.Append("\\nকোনো প্রতিষ্ঠান সিলেক্ট করা হয়নি। All চেকবক্স চেক করে আবার চেষ্টা করুন।");
+
+            ShowInvoiceResult(msg.ToString(), inserted == 0 && errors.Count > 0);
+        }
+
+        private static string GetSkippedInvoiceReason(SqlConnection con, string existingSql, int schoolId, DateTime monthEnd)
+        {
+            using (SqlCommand lookup = new SqlCommand(existingSql, con))
+            {
+                lookup.Parameters.AddWithValue("@SchoolID", schoolId);
+                lookup.Parameters.AddWithValue("@MonthName", monthEnd);
+                using (SqlDataReader reader = lookup.ExecuteReader())
+                {
+                    if (!reader.Read())
+                        return schoolId + ": অজানা কারণে স্কিপ";
+
+                    string invoiceFor = reader["Invoice_For"]?.ToString() ?? "";
+                    bool isPaid = reader["IsPaid"] != DBNull.Value && Convert.ToBoolean(reader["IsPaid"]);
+                    string due = reader["Due"]?.ToString() ?? "0";
+                    string invoiceId = reader["InvoiceID"]?.ToString() ?? "";
+
+                    if (isPaid)
+                        return schoolId + ": পেইড ইনভয়েস #" + invoiceId + " (" + invoiceFor + ") — Due Invoice-এ দেখায় না";
+                    return schoolId + ": বকেয়া ইনভয়েস #" + invoiceId + " (" + invoiceFor + "), Due=" + due + " টাকা";
+                }
+            }
+        }
+
+        private static double SafeToDouble(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return 0;
+
+            double result;
+            return double.TryParse(value.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out result)
+                ? result
+                : 0;
+        }
+
+        private void ShowInvoiceResult(string message, bool isError)
+        {
+            string safeMessage = message.Replace("'", "\\'");
+            ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "invoiceResult",
+                "alert('" + safeMessage + "');", true);
         }
 
 

@@ -187,6 +187,7 @@
                             <span class="placeholder-tag">{Amount}</span>
                             <span class="placeholder-tag">{ReceiptNo}</span>
                             <span class="placeholder-tag">{PaymentDetails}</span>
+                            <span class="placeholder-tag">{Session}</span>
                             <span class="placeholder-tag">{CurrentDue}</span>
                             <span class="placeholder-tag">{SchoolName}</span>
                         </div>

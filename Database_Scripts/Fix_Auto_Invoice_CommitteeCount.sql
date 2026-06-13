@@ -86,7 +86,8 @@ BEGIN
             FROM AAP_Invoice
             WHERE SchoolID = @SchoolID
                 AND InvoiceCategoryID = @InvoiceCategoryID
-                AND FORMAT(MonthName, 'MMM yyyy') = @MonthName;
+                AND EOMONTH(MonthName) = @MonthDate
+                AND IsPaid = 0;
 
             IF @InvoiceExists > 0
             BEGIN

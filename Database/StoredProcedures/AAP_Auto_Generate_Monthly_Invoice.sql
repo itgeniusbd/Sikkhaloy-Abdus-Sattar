@@ -65,6 +65,9 @@ BEGIN
     END
     
     -- Cursor for schools
+    DECLARE @CommitteeCount INT;
+    DECLARE @BillableCount INT;
+
     DECLARE school_cursor CURSOR FOR
     SELECT 
         si.SchoolID,
@@ -73,11 +76,11 @@ BEGIN
         si.IS_ServiceChargeActive,
         ISNULL(si.Discount, 0) AS Discount,
         ISNULL(si.Fixed, 0) AS Fixed,
-        scm.StudentCount,
+        ISNULL(scm.StudentCount, scm.Active_Student) AS StudentCount,
         scm.Active_Student
     FROM SchoolInfo si
     INNER JOIN AAP_Student_Count_Monthly scm ON si.SchoolID = scm.SchoolID
-    WHERE FORMAT(scm.Month, 'MMM yyyy') = @MonthName
+    WHERE EOMONTH(scm.Month) = @MonthDate
         AND si.IS_ServiceChargeActive = 1;  -- Only active schools
     
     OPEN school_cursor;
@@ -95,7 +98,8 @@ BEGIN
             FROM AAP_Invoice
             WHERE SchoolID = @SchoolID
                 AND InvoiceCategoryID = @InvoiceCategoryID
-                AND FORMAT(MonthName, 'MMM yyyy') = @MonthName;
+                AND EOMONTH(MonthName) = @MonthDate
+                AND IsPaid = 0;
             
             IF @InvoiceExists > 0
             BEGIN
@@ -104,6 +108,9 @@ BEGIN
             END
             ELSE
             BEGIN
+                SET @CommitteeCount = dbo.fn_GetBillableCommitteeCount(@SchoolID);
+                SET @BillableCount = @StudentCount + @CommitteeCount;
+
                 -- Calculate total amount
                 IF @Fixed > 0
                 BEGIN
@@ -111,7 +118,7 @@ BEGIN
                 END
                 ELSE
                 BEGIN
-                    SET @TotalAmount = @StudentCount * @PerStudentRate;
+                    SET @TotalAmount = @BillableCount * @PerStudentRate;
                 END
                 
                 -- Insert invoice
@@ -140,7 +147,7 @@ BEGIN
                     @Discount,
                     @MonthDate,
                     dbo.Invoice_SerialNumber(@SchoolID),
-                    @StudentCount,
+                    @BillableCount,
                     CASE WHEN @Fixed > 0 THEN NULL ELSE @PerStudentRate END
                 );
                 
