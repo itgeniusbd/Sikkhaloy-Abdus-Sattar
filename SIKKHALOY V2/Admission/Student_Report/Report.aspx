@@ -3,7 +3,7 @@
 <%@ Register assembly="Microsoft.ReportViewer.WebForms, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" namespace="Microsoft.Reporting.WebForms" tagprefix="rsweb" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="../../Employee/CSS/Acadamic_Calender.css?v=6" rel="stylesheet" />
-    <link href="../CSS/Report.css?v=13" rel="stylesheet" />
+    <link href="../CSS/Report.css?v=14" rel="stylesheet" />
 
     <style>
         /*Allover report*/
@@ -873,14 +873,20 @@ ORDER BY Income_PayOrder.EndDate">
                 </div>
 
                 <div id="Payorder" class="tab-pane fade" role="tabpanel" aria-expanded="false">
+                    <div id="payorderReportWrap" class="payorder-report-wrap">
+                        <div class="payorder-toolbar NoPrint mb-3">
+                            <button type="button" class="btn btn-success btn-sm" id="btnPrintPayOrder" onclick="printPayOrderReport(); return false;">
+                                <i class="fa fa-print"></i> Print Pay Order Report
+                            </button>
+                        </div>
                     <asp:FormView ID="P_SumFormView" runat="server" DataSourceID="PayOrderSummarySQL" Width="100%">
                         <ItemTemplate>
-                            <div class="Accounts-p-title mb-2">
-                                <span class="badge badge-primary">Total Fee: <%# Eval("TotalFee","{0:n0}") %></span>
-                                <span class="badge badge-primary">Total Concession: <%# Eval("TotalDiscount","{0:n0}") %></span>
-                                <span class="badge badge-primary">Total Late Fee: <%# Eval("TotalLateFee","{0:n0}") %></span>
-                                <span class="badge badge-primary">Total Paid: <%# Eval("TotalPaid","{0:n0}") %></span>
-                                <span class="badge badge-primary">Total Due: <%# Eval("Unpaid","{0:n0}") %></span>
+                            <div class="Accounts-p-title payorder-summary mb-3">
+                                <span class="payorder-sum-badge">Total Fee: <%# Eval("TotalFee","{0:n0}") %></span>
+                                <span class="payorder-sum-badge">Total Concession: <%# Eval("TotalDiscount","{0:n0}") %></span>
+                                <span class="payorder-sum-badge">Total Late Fee: <%# Eval("TotalLateFee","{0:n0}") %></span>
+                                <span class="payorder-sum-badge">Total Paid: <%# Eval("TotalPaid","{0:n0}") %></span>
+                                <span class="payorder-sum-badge payorder-sum-due">Total Due: <%# Eval("Unpaid","{0:n0}") %></span>
                             </div>
                         </ItemTemplate>
                     </asp:FormView>
@@ -897,9 +903,9 @@ FROM Income_PayOrder WHERE (SchoolID = @SchoolID) AND (EducationYearID = @Educat
                         </SelectParameters>
                     </asp:SqlDataSource>
 
-                    <div class="table-responsive">
+                    <div class="table-responsive payorder-table-wrap">
                         <asp:GridView ID="PayOrderGridView" AllowSorting="true" runat="server" AutoGenerateColumns="False" DataSourceID="PayOrderSQL"
-                            AlternatingRowStyle-CssClass="alt" CssClass="mGrid" PagerStyle-CssClass="pgr" DataKeyNames="PayOrderID">
+                            AlternatingRowStyle-CssClass="alt" CssClass="mGrid payorder-grid" PagerStyle-CssClass="pgr" DataKeyNames="PayOrderID">
                             <AlternatingRowStyle CssClass="alt" />
                             <RowStyle CssClass="RowStyle" />
                             <PagerStyle CssClass="pgr" />
@@ -930,6 +936,7 @@ FROM Income_PayOrder WHERE (SchoolID = @SchoolID) AND (EducationYearID = @Educat
                                 <asp:QueryStringParameter DefaultValue="" Name="StudentClassID" QueryStringField="Student_Class" />
                             </SelectParameters>
                         </asp:SqlDataSource>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -1594,6 +1601,64 @@ WHERE (Student_Fault.SchoolID = @SchoolID) AND (EducationYearID = @EducationYear
 
         function openModal() {
             $('#myModal').modal('show');
+        }
+
+        function printPayOrderReport() {
+            var school = ($('#InstitutionName').text() || '').trim();
+            var studentName = ($('.info ul li').eq(0).text() || '').replace(/\s+/g, ' ').trim();
+            var fatherLine = ($('.info ul li').eq(1).text() || '').replace(/\s+/g, ' ').trim();
+            var classLine = ($('.info ul li').eq(2).text() || '').replace(/\s+/g, ' ').trim();
+            var photoSrc = $('.p-image img').attr('src') || '';
+            var summaryHtml = $('#Payorder .payorder-summary').html() || $('#Payorder .Accounts-p-title').html() || '';
+            var $table = $('#Payorder table.payorder-grid, #Payorder table.mGrid').first().clone();
+            if (!$table.length) { alert('Pay order table not found.'); return; }
+            $table.find('th a').each(function () {
+                var $a = $(this);
+                $a.parent().html($a.text());
+            });
+            $table.removeAttr('id').addClass('payorder-print-table');
+
+            var w = window.open('', '_blank');
+            if (!w) { alert('Please allow popups to print.'); return; }
+
+            w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Student Pay Order Report</title><style>');
+            w.document.write('body{font-family:Arial,sans-serif;font-size:11px;margin:12px;color:#111;}');
+            w.document.write('h2{margin:0 0 8px;font-size:16px;font-weight:800;color:#1b5e20;text-align:center;}');
+            w.document.write('.hdr-school{background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff;padding:10px 12px;border-radius:6px 6px 0 0;font-size:14px;font-weight:800;text-align:center;}');
+            w.document.write('.hdr-student{display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid #c8e6c9;border-top:none;background:#f1f8e9;margin-bottom:10px;}');
+            w.document.write('.hdr-student img{width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #ccc;}');
+            w.document.write('.hdr-student .info-lines{font-size:13px;font-weight:800;line-height:1.5;color:#000;}');
+            w.document.write('.hdr-student .info-lines div{margin:2px 0;}');
+            w.document.write('.payorder-summary{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}');
+            w.document.write('.payorder-sum-badge,.badge{display:inline-block;padding:6px 12px;border-radius:6px;background:#1976d2;color:#fff;font-size:11px;font-weight:700;white-space:nowrap;}');
+            w.document.write('.payorder-sum-due{background:#c62828 !important;}');
+            w.document.write('table{width:100%;border-collapse:collapse;}');
+            w.document.write('th{background:#37474f;color:#fff;padding:6px 4px;font-size:9px;font-weight:700;white-space:nowrap;border:1px solid #263238;}');
+            w.document.write('td{padding:5px 4px;border:1px solid #ccc;font-size:9px;white-space:nowrap;text-align:center;vertical-align:middle;}');
+            w.document.write('tr:nth-child(even) td{background:#f8fafb;}');
+            w.document.write('@page{size:A4 landscape;margin:10mm;}');
+            w.document.write('thead{display:table-header-group;} tr{page-break-inside:avoid;}');
+            w.document.write('</style></head><body>');
+            w.document.write('<div class="hdr-school">' + escapeHtmlPrint(school) + '</div>');
+            w.document.write('<div class="hdr-student">');
+            if (photoSrc) w.document.write('<img src="' + photoSrc + '" alt="Student" />');
+            w.document.write('<div class="info-lines">');
+            if (studentName) w.document.write('<div>' + escapeHtmlPrint(studentName) + '</div>');
+            if (fatherLine) w.document.write('<div>' + escapeHtmlPrint(fatherLine) + '</div>');
+            if (classLine) w.document.write('<div>' + escapeHtmlPrint(classLine) + '</div>');
+            w.document.write('</div></div>');
+            w.document.write('<h2>All Pay Order Report</h2>');
+            w.document.write('<div class="payorder-summary">' + summaryHtml + '</div>');
+            w.document.write($table.prop('outerHTML'));
+            w.document.write('</body></html>');
+            w.document.close();
+            w.focus();
+            setTimeout(function () { w.print(); w.close(); }, 400);
+        }
+
+        function escapeHtmlPrint(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         //Set Query string. --Subject--

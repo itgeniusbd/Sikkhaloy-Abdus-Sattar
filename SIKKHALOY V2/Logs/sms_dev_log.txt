@@ -1,0 +1,129 @@
+﻿[2026-06-16 13:59:01] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200.00 টাকা, তোমার মানিরিসিট নাম্বার 100326, এবং বিস্তারিত বিবরণ Tution Fee-June 2026, তাছাড়াও  বর্তমানে তোমার 7200.00 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:00:06] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200.00 টাকা, তোমার মানিরিসিট নাম্বার 1143329, এবং বিস্তারিত বিবরণ Tution Fee: June 2026, তাছাড়াও  বর্তমানে তোমার 0.00 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:12:22] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200.00 টাকা, তোমার মানিরিসিট নাম্বার 100327, এবং বিস্তারিত বিবরণ Tution Fee-July 2026, তাছাড়াও  বর্তমানে তোমার 6000.00 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:13:15] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200.00 টাকা, তোমার মানিরিসিট নাম্বার 1143330, এবং বিস্তারিত বিবরণ Tution Fee: July 2026, তাছাড়াও  বর্তমানে তোমার 0.00 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:21:48] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200 টাকা, তোমার মানিরিসিট নাম্বার 100328, এবং বিস্তারিত বিবরণ Tution Fee-August 2026, তাছাড়াও  বর্তমানে তোমার 4800 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:22:39] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200 টাকা, তোমার মানিরিসিট নাম্বার 1143331, এবং বিস্তারিত বিবরণ Tution Fee: August 2026, তাছাড়াও  বর্তমানে তোমার 4800 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:28:14] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200 টাকা, তোমার মানিরিসিট নাম্বার 100329, এবং বিস্তারিত বিবরণ Tution Fee-September 2026, তাছাড়াও  বর্তমানে তোমার 0 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:28:39] To:01911943839 | Purpose:Payment Collection
+প্রিয় Tuba Akter, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 00012, আজ তুমি পরিশোধ করেছো  মোট 1200 টাকা, তোমার মানিরিসিট নাম্বার 1143332, এবং বিস্তারিত বিবরণ Tution Fee: September 2026, তাছাড়াও  বর্তমানে তোমার 0 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:29:29] To:01525958848 | Purpose:Payment Collection
+প্রিয় Abdul Mannan, তোমার প্রাতিষ্ঠানিক আইডি নাম্বার 01164, আজ তুমি পরিশোধ করেছো  মোট 600 টাকা, তোমার মানিরিসিট নাম্বার 100330, এবং বিস্তারিত বিবরণ Tution Fee-2026, তাছাড়াও  বর্তমানে তোমার 500 টাকা বকেয়া  রয়েছে। Sikkhaloy School & Madrasha.
+---
+[2026-06-16 14:30:35] To:01911943839 | Purpose:Donor Due SMS
+সম্মানিত দাতা , Abdus Sattar.আস্সালামু আলাইকুম, আপনার বকেয়া ডোনেশন: 60 টাকা. ধন্যবাদ, Sikkhaloy School & Madrasha
+---
+[2026-06-16 14:33:31] To:01826346531 | Purpose:Donor Due SMS
+সম্মানিত দাতা , Mostofa.আস্সালামু আলাইকুম, আপনার বকেয়া ডোনেশন: 3960 টাকা. ধন্যবাদ, Sikkhaloy School & Madrasha
+---
+[2026-06-16 14:36:11] To:01911943839 | Purpose:Donor Payment
+অভিনন্দন! আ: সাত্তার. আপনি: 10 টাকা পরিশোধ করেছেন, রিসিট নম্বর: 100043, মাসিক চাদা: January 2026. বর্তমান বকেয়া: 50.00 টাকা. ধন্যবাদ, Sikkhaloy School & Madrasha
+---
+[2026-06-16 14:45:53] To:01911943839 | Purpose:Donor Payment
+অভিনন্দন! আ: সাত্তার. আপনি: 10 টাকা পরিশোধ করেছেন, রিসিট নম্বর: 100044, মাসিক চাদা: February 2026. বর্তমান বকেয়া: 40.00 টাকা. ধন্যবাদ, Sikkhaloy School & Madrasha
+---
+[2026-06-16 14:52:39] To:01911943839 | Purpose:Donor Payment
+dear আ: সাত্তার 10 100045 মাসিক চাদা: March 2026 Thanks: Sikkhaloy School & Madrasha
+---
+[2026-06-16 14:54:29] To:01911943839 | Purpose:Donor Due SMS
+dear আ: সাত্তার your Due 30 donation মাসিক চাদা: April 2026 - 10 Tk, মাসিক চাদা: May 2026 - 10 Tk, মাসিক চাদা: June 2026 - 10 Tk thanks: Sikkhaloy School & Madrasha
+---
+[2026-06-16 14:57:42] To:01700000000 | Purpose:Due SMS
+Dear, Mohaiminul Islam, ID: 15007. You've Due Payment: 7500 Tk. Regards, Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:00:10] To:01700000000 | Purpose:Due SMS
+Dear, Mohaiminul Islam, ID: 15007. You've Due Payment: 7500 Tk. Regards, Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:11:40] To:01700000000 | Purpose:Due SMS
+Dear Mohaiminul Islam-15007 Your Total 7500 due Tution Fee: February 2026 - 1500 Tk, Tution Fee: March 2026 - 1500 Tk, Tution Fee: April 2026 - 1500 Tk, Tution Fee: May 2026 - 1500 Tk, Tution Fee: June 2026 - 1500 Tk দ্রুত দিন:  Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:14:16] To:01911943839 | Purpose:Due SMS
+Dear, Ruma Akter, ID: 15010. You've Due Payment: 9000 Tk. Regards, Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:16:08] To:01963001545 | Purpose:Position Result
+Congratulation! বিপুল(ID 0118) You have successfully Passed Half Yearly Exam-2025. Your Total Marks: 290.00, Grade: A+, Point: 2.50. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:16:13] To:01963001545 | Purpose:Position Result
+Congratulation! বিপুল(ID 0118) You have successfully Passed Half Yearly Exam-2025. Your Total Marks: 290.00, Grade: A+, Point: 2.50. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:16:13] To:01911943839 | Purpose:Position Result
+Alas!! Saal Al hasan(ID 02165) You have failed Half Yearly Exam-2025. Your Total Marks Is : 127.00. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:16:34] To:01963001545 | Purpose:Position Result
+Congratulation! বিপুল(ID 0118) You have successfully Passed Half Yearly Exam-2025. Your Total Marks: 290.00, Grade: A+, Point: 2.50. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:16:34] To:01911943839 | Purpose:Position Result
+Alas!! Saal Al hasan(ID 02165) You have failed Half Yearly Exam-2025. Your Total Marks Is : 127.00. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:20:18] To:01963001545 | Purpose:Position Result
+আপনি ফেইল বিপুল, 0118Half Yearly Exam-2025290.00A+2.501 st1 stSikkhaloy School & Madrasha
+---
+[2026-06-16 15:20:18] To:01911943839 | Purpose:Position Result
+আপনি ফেইল Saal Al hasan, 02165Half Yearly Exam-2025127.00C0.005 th5 thSikkhaloy School & Madrasha
+---
+[2026-06-16 15:21:24] To:01911943839 | Purpose:Position Result
+আপনি ফেইল মোঃ আরিফ ভূঁইয়া, 0116Half Yearly Exam-2025275.00A+2.502 nd2 ndSikkhaloy School & Madrasha
+---
+[2026-06-16 15:24:31] To:01963001545 | Purpose:Position Result
+Congratulation! বিপুল(ID 0118) You have successfully Passed Half Yearly Exam-2025. Your Total Marks: 290.00, Grade: A+, Point: 2.50. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:24:31] To:01911943839 | Purpose:Position Result
+Alas!! Saal Al hasan(ID 02165) You have failed Half Yearly Exam-2025. Your Total Marks Is : 127.00. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:25:57] To:01963001545 | Purpose:Position Result
+Congratulation! বিপুল(ID 0118) You have successfully Passed Half Yearly Exam-2025. Your Total Marks: 290.00, Grade: A+, Point: 2.50. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:25:57] To:01911943839 | Purpose:Position Result
+Alas!! Saal Al hasan(ID 02165) You have failed Half Yearly Exam-2025. Your Total Marks Is : 127.00. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:38:10] To:01963001545 | Purpose:Position Result
+তুমি পাস : বিপুল 0118Half Yearly Exam-2025 290.00 A+ 2.501 st 1 st ধন্যবাদ: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:38:10] To:01911943839 | Purpose:Position Result
+আপনি ফেইল Saal Al hasan, 02165Half Yearly Exam-2025127.00C0.005 th5 th সরি :Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:38:38] To:01963001545 | Purpose:Position Result
+Congratulation! বিপুল(ID 0118) You have successfully Passed Half Yearly Exam-2025. Your Total Marks: 290.00, Grade: A+, Point: 2.50. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:38:38] To:01911943839 | Purpose:Position Result
+Alas!! Saal Al hasan(ID 02165) You have failed Half Yearly Exam-2025. Your Total Marks Is : 127.00. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:42:21] To:01911943839 | Purpose:Admission
+Congratulation!! সুমি You have been Online admitted into class: ONE . ID: 01111. Roll No:  Please save this information for future. Regards: Sikkhaloy School & Madrasha
+---
+[2026-06-16 15:44:32] To:01911943839 | Purpose:Admission
+আস্সালামু আলাইকুম, সুমি আক্তার ( আইডি : 00111),ONE 16 Jun 2026 ধন্যবাদ: Sikkhaloy School & Madrasha
+---
+[2026-06-17 11:51:08] To:01911943839 | Purpose:SMS Service
+test sms for novocom
+---
+[2026-06-23 17:02:58] To:01960040840 | Purpose:Authority Client SMS
+test sms from authurity
+---
+[2026-06-23 17:04:55] To:01911943839 | Purpose:Authority Client SMS
+test messge from  aour penel
+---
+[2026-06-23 17:04:55] To:01857719565 | Purpose:Authority Client SMS
+test messge from  aour penel
+---
+[2026-06-23 17:05:55] To:01911943839 | Purpose:Authority Client SMS
+test messge from  aour penel
+---
+[2026-06-23 17:08:22] To:01911943839 | Purpose:Authority Client SMS
+messge from sikkhalooy
+---

@@ -40,6 +40,7 @@ namespace EDUCATION.COM.Accounts.Payment
                 CurrentMoneyReceiptID = decryptedMoneyReceiptID;
 
                 StudentInfoSQL.SelectParameters["ID"].DefaultValue = Decrypt(HttpUtility.UrlDecode(Request.QueryString["s_icD"]));
+                StudentInfoSQL.SelectParameters["MoneyReceiptID"].DefaultValue = decryptedMoneyReceiptID;
                 ID_DueDetailsODS.SelectParameters["ID"].DefaultValue = Decrypt(HttpUtility.UrlDecode(Request.QueryString["s_icD"]));
                 MoneyRSQL.SelectParameters["MoneyReceiptID"].DefaultValue = decryptedMoneyReceiptID;
                 PaidDetailsSQL.SelectParameters["MoneyReceiptID"].DefaultValue = decryptedMoneyReceiptID;
@@ -78,23 +79,12 @@ namespace EDUCATION.COM.Accounts.Payment
             var msg = "";
             var isSentSMS = false;
 
-            decimal currentDue = 0.0m;
-            if (DueDetailsGridView.Rows.Count > 0)
-            {
-                foreach (GridViewRow row in DueDetailsGridView.Rows)
-                {
-                    var numberLabel = row.FindControl("DueLabel") as Label;
-                    if (numberLabel != null)
-                    {
-                        currentDue += Convert.ToDecimal(numberLabel.Text);
-                    }
-                }
-            }
-
             if (StudentInfoFormView.CurrentMode == FormViewMode.ReadOnly)
             {
                 var phoneNo = StudentInfoFormView.DataKey["SMSPhoneNo"].ToString();
                 var studentId = StudentInfoFormView.DataKey["ID"].ToString();
+                int schoolId = Convert.ToInt32(Session["SchoolID"]);
+                decimal currentDue = SMS_Template_Helper.GetStudentCurrentDue(studentId, schoolId);
                 var paid = ReceiptFormView.DataKey["TotalAmount"].ToString();
                 var studentName = (StudentInfoFormView.Row.FindControl("StudentsNameLabel") as Label)?.Text;
                 var receiptNo = (ReceiptFormView.Row.FindControl("MoneyReceiptIDLabel") as Label)?.Text;
@@ -363,9 +353,9 @@ IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES
             // Replace all payment-related placeholders
             message = message.Replace("{StudentName}", studentName);
             message = message.Replace("{ID}", studentId);
-            message = message.Replace("{Amount}", amount.ToString("0.00"));
+            message = message.Replace("{Amount}", SMS_Template_Helper.FormatPaymentAmount(amount));
             message = message.Replace("{ReceiptNo}", receiptNo);
-            message = message.Replace("{CurrentDue}", currentDue.ToString("0.00"));
+            message = message.Replace("{CurrentDue}", SMS_Template_Helper.FormatPaymentAmount(currentDue));
             message = message.Replace("{Session}", sessionName);
 
             // Clean up payment details

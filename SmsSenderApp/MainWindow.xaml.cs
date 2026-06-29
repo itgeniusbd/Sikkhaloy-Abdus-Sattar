@@ -174,7 +174,21 @@ namespace SmsSenderApp
                 // Stop timer during processing to prevent overlapping calls
                 timer.Stop();
 
-                Log.Information("Timer tick started - checking for SMS to send");
+                GlobalClass.Instance.ReloadSettings();
+
+                var intervalMinutes = GlobalClass.Instance.Setting?.SmsSendInterval ?? 2;
+                if (intervalMinutes < 1)
+                    intervalMinutes = 2;
+
+                if (timer.Interval != TimeSpan.FromMinutes(intervalMinutes))
+                {
+                    timer.Interval = TimeSpan.FromMinutes(intervalMinutes);
+                    Log.Information($"SMS send interval updated to {intervalMinutes} minute(s)");
+                }
+
+                Log.Information("Timer tick started - checking for SMS to send (Provider: {Provider}, Multiple: {ProviderMultiple})",
+                    GlobalClass.Instance.Setting?.SmsProvider,
+                    GlobalClass.Instance.Setting?.SmsProviderMultiple);
 
                 var today = DateTime.Now;
 

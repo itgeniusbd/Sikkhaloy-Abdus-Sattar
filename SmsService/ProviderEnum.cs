@@ -3,6 +3,7 @@
     public enum ProviderEnum
     {
         BanglaPhone,
-        GreenWeb
+        GreenWeb,
+        Novocom
     }
 }

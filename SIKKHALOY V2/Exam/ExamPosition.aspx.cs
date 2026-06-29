@@ -1,8 +1,6 @@
 using Education;
 using System;
-using System.Configuration;
 using System.Data;
-using System.Data.SqlClient;
 using System.IO;
 using System.Text;
 using System.Web;
@@ -13,8 +11,6 @@ namespace EDUCATION.COM.Exam
 {
     public partial class ExamPosition : System.Web.UI.Page
     {
-   private readonly string _connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString();
-
         protected void Page_Load(object sender, EventArgs e)
    {
      Session["Group"] = GroupDropDownList.SelectedValue;
@@ -225,8 +221,9 @@ namespace EDUCATION.COM.Exam
     int FailedMsgCont = 0;
 
             // Get SMS Templates
-      string passedTemplate = GetSMSTemplate("Passed");
-            string failedTemplate = GetSMSTemplate("Failed");
+            int schoolId = Convert.ToInt32(Session["SchoolID"]);
+            string passedTemplate = SMS_Template_Helper.GetExamResultTemplate(schoolId, "Passed");
+            string failedTemplate = SMS_Template_Helper.GetExamResultTemplate(schoolId, "Failed");
 
     foreach (GridViewRow row in StudentsGridView.Rows)
    {
@@ -389,54 +386,6 @@ SMS_OtherInfoSQL.InsertParameters["SchoolID"].DefaultValue = Session["SchoolID"]
       {
            ErrorLabel.Text = "You don't have sufficient SMS balance, Your Current Balance is " + SMSBalance;
           }
-        }
-
-        /// <summary>
-        /// Get SMS Template from database
-        /// </summary>
- private string GetSMSTemplate(string templateType)
-        {
-    try
-            {
-  using (SqlConnection con = new SqlConnection(_connectionString))
-      {
-     con.Open();
-
-         // First check if SMS_Template table exists
-        SqlCommand checkTableCmd = new SqlCommand(@"
-              IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
- WHERE TABLE_NAME = 'SMS_Template')
-           SELECT 1
-          ELSE
-   SELECT 0", con);
-
-        int tableExists = (int)checkTableCmd.ExecuteScalar();
-
-         if (tableExists == 0)
-   {
-        // Table doesn't exist, return empty string to use default message
-           return string.Empty;
-        }
-
-         SqlCommand cmd = new SqlCommand(@"SELECT TOP 1 MessageTemplate 
-   FROM SMS_Template 
-         WHERE SchoolID = @SchoolID 
-     AND TemplateType = @TemplateType 
-   AND IsActive = 1 
-   ORDER BY CreatedDate DESC", con);
-      cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-         cmd.Parameters.AddWithValue("@TemplateType", templateType);
-
-           object result = cmd.ExecuteScalar();
-        return result != null ? result.ToString() : string.Empty;
-       }
-       }
-            catch (Exception ex)
-            {
-          // Log error if needed, but return empty to use default message
-                // System.Diagnostics.Debug.WriteLine("Error getting SMS template: " + ex.Message);
-    return string.Empty;
-     }
         }
 
         /// <summary>

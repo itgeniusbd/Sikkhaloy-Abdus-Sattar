@@ -96,15 +96,16 @@
     <!-- Payment Receipt Header -->
     <div class="payment-receipt-header">PAYMENT RECEIPT</div>
 
-    <asp:SqlDataSource ID="StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.SMSPhoneNo, Student.StudentsName, CreateClass.Class, Student.StudentID, CreateSection.Section, StudentsClass.RollNo FROM StudentsClass INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (Student.SchoolID = @SchoolID) AND (Student.ID = @ID) AND (StudentsClass.Class_Status IS NULL)">
+    <asp:SqlDataSource ID="StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.SMSPhoneNo, Student.StudentsName, CreateClass.Class, Student.StudentID, CreateSection.Section, StudentsClass.RollNo FROM Income_MoneyReceipt INNER JOIN StudentsClass ON Income_MoneyReceipt.StudentClassID = StudentsClass.StudentClassID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID) AND (Student.ID = @ID)">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             <asp:Parameter Name="ID" Type="String" />
+            <asp:Parameter Name="MoneyReceiptID" />
         </SelectParameters>
     </asp:SqlDataSource>
 
     <asp:SqlDataSource ID="MoneyRSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-        SelectCommand="SELECT DISTINCT Income_MoneyReceipt.PaidDate, Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.MoneyReceiptID, Income_MoneyReceipt.PrintedReceiptNo, Account.AccountName FROM Account INNER JOIN Income_PaymentRecord ON Account.AccountID = Income_PaymentRecord.AccountID RIGHT OUTER JOIN Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID = Income_MoneyReceipt.MoneyReceiptID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)"
+        SelectCommand="SELECT DISTINCT Income_MoneyReceipt.PaidDate, ISNULL(Income_MoneyReceipt.CollectionDate, Income_MoneyReceipt.PaidDate) AS CollectionDate, Income_MoneyReceipt.MoneyReceipt_SN, Income_MoneyReceipt.TotalAmount, Income_MoneyReceipt.MoneyReceiptID, Income_MoneyReceipt.PrintedReceiptNo, Account.AccountName FROM Account INNER JOIN Income_PaymentRecord ON Account.AccountID = Income_PaymentRecord.AccountID RIGHT OUTER JOIN Income_MoneyReceipt ON Income_PaymentRecord.MoneyReceiptID = Income_MoneyReceipt.MoneyReceiptID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID)"
         UpdateCommand="UPDATE Income_MoneyReceipt SET PrintedReceiptNo = @PrintedReceiptNo WHERE MoneyReceiptID = @MoneyReceiptID AND SchoolID = @SchoolID">
         <SelectParameters>
             <asp:Parameter Name="MoneyReceiptID" />
@@ -143,8 +144,8 @@
                     <p style="color: #000 !important;"><strong style="color: #000 !important;">Receipt No:</strong> <span style="color: #000 !important;"><%# Eval("MoneyReceipt_SN") %></span></p>
                 </div>
                 <div class="receipt-info-right">
-                    <p style="color: #000 !important;"><strong style="color: #000 !important;">Paid Date:</strong> <span style="color: #000 !important;"><%# Eval("PaidDate","{0:d-MMM-yy (hh:mm tt)}") %></span></p>
-                    <p style="color: #000 !important;"><strong style="color: #000 !important;">Payment Method:</strong> <span style="color: #000 !important;"><%# Eval("AccountName") %></span></p>
+                    <p style="color: #000 !important;"><strong style="color: #000 !important;">Payment Date:</strong> <span style="color: #000 !important;"><%# Eval("PaidDate","{0:d-MMM-yy}") %> (<%# Eval("AccountName") %>)</span></p>
+                    <p style="color: #000 !important;"><strong style="color: #000 !important;">Collection Date:</strong> <span style="color: #000 !important;"><%# Eval("CollectionDate","{0:d-MMM-yy (hh:mm tt)}") %></span></p>
                     <p style="color: #000 !important;">
                         <strong style="color: #000 !important;">Printed Receipt No:</strong> 
                         <asp:Label ID="PrintedReceiptNoLabel" runat="server" 

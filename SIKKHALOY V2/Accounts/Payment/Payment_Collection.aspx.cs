@@ -144,12 +144,13 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
         public static List<object> GetRecentPayments(string studentID)
         {
             const string sql = @"SELECT TOP 10 mr.MoneyReceipt_SN, mr.TotalAmount,
-                FORMAT(mr.PaidDate, 'dd MMM yyyy (hh:mm tt)') AS PaidDate,
+                FORMAT(mr.PaidDate, 'dd MMM yyyy') AS PaymentDate,
+                FORMAT(ISNULL(mr.CollectionDate, mr.PaidDate), 'dd MMM yyyy (hh:mm tt)') AS CollectionDate,
                 mr.MoneyReceiptID
                 FROM Income_MoneyReceipt mr
                 INNER JOIN Student st ON mr.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
                 WHERE mr.EducationYearID = @EduYear AND mr.SchoolID = @SchoolID
-                ORDER BY mr.PaidDate DESC";
+                ORDER BY ISNULL(mr.CollectionDate, mr.PaidDate) DESC";
             var list = new List<object>();
             using (var con = new SqlConnection(ConnStr))
             using (var cmd = new SqlCommand(sql, con))
@@ -160,7 +161,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 con.Open();
                 using (var dr = cmd.ExecuteReader())
                     while (dr.Read())
-                        list.Add(new { MoneyReceiptID = dr["MoneyReceiptID"], MoneyReceipt_SN = dr["MoneyReceipt_SN"], TotalAmount = dr["TotalAmount"], PaidDate = dr["PaidDate"] });
+                        list.Add(new { MoneyReceiptID = dr["MoneyReceiptID"], MoneyReceipt_SN = dr["MoneyReceipt_SN"], TotalAmount = dr["TotalAmount"], PaymentDate = dr["PaymentDate"], CollectionDate = dr["CollectionDate"] });
             }
             return list;
         }
@@ -171,14 +172,23 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
         {
             const string sql = @"SELECT TOP 50 mr.MoneyReceipt_SN, mr.PrintedReceiptNo,
                 mr.TotalAmount,
-                FORMAT(mr.PaidDate, 'dd MMM yyyy (hh:mm tt)') AS PaidDate,
+                FORMAT(mr.PaidDate, 'dd MMM yyyy') AS PaymentDate,
+                FORMAT(ISNULL(mr.CollectionDate, mr.PaidDate), 'dd MMM yyyy (hh:mm tt)') AS CollectionDate,
                 mr.MoneyReceiptID,
-                ad.FirstName+' '+ad.LastName AS ReceivedBy
+                ad.FirstName+' '+ad.LastName AS ReceivedBy,
+                ISNULL(STUFF((
+                    SELECT ', ' + ir.Role + ' - ' + pr.PayFor
+                    FROM Income_PaymentRecord pr
+                    INNER JOIN Income_Roles ir ON pr.RoleID = ir.RoleID
+                    WHERE pr.MoneyReceiptID = mr.MoneyReceiptID AND pr.SchoolID = mr.SchoolID
+                    ORDER BY ir.Role, pr.PayFor
+                    FOR XML PATH(''), TYPE
+                ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''), '') AS PayFor
                 FROM Income_MoneyReceipt mr
                 INNER JOIN Student st ON mr.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
                 INNER JOIN Admin ad ON mr.RegistrationID = ad.RegistrationID
                 WHERE mr.EducationYearID = @EduYear AND mr.SchoolID = @SchoolID
-                ORDER BY mr.PaidDate DESC";
+                ORDER BY ISNULL(mr.CollectionDate, mr.PaidDate) DESC";
 
             var list = new List<object>();
             using (var con = new SqlConnection(ConnStr))
@@ -190,7 +200,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 con.Open();
                 using (var dr = cmd.ExecuteReader())
                     while (dr.Read())
-                        list.Add(new { MoneyReceiptID = dr["MoneyReceiptID"], MoneyReceipt_SN = dr["MoneyReceipt_SN"], PrintedReceiptNo = dr["PrintedReceiptNo"], TotalAmount = dr["TotalAmount"], PaidDate = dr["PaidDate"], ReceivedBy = dr["ReceivedBy"] });
+                        list.Add(new { MoneyReceiptID = dr["MoneyReceiptID"], MoneyReceipt_SN = dr["MoneyReceipt_SN"], PrintedReceiptNo = dr["PrintedReceiptNo"], TotalAmount = dr["TotalAmount"], PaymentDate = dr["PaymentDate"], CollectionDate = dr["CollectionDate"], ReceivedBy = dr["ReceivedBy"], PayFor = dr["PayFor"] });
             }
             return list;
         }
@@ -201,7 +211,8 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
         {
             const string sql = @"SELECT mr.MoneyReceipt_SN,
                 mr.TotalAmount,
-                FORMAT(mr.PaidDate, 'dd MMM yyyy (hh:mm tt)') AS PaidDate,
+                FORMAT(mr.PaidDate, 'dd MMM yyyy') AS PaymentDate,
+                FORMAT(ISNULL(mr.CollectionDate, mr.PaidDate), 'dd MMM yyyy (hh:mm tt)') AS CollectionDate,
                 mr.MoneyReceiptID,
                 ey.EducationYear
                 FROM Income_MoneyReceipt mr
@@ -212,7 +223,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                     SELECT MAX(EducationYearID) FROM Income_MoneyReceipt
                     WHERE StudentID = st.StudentID AND SchoolID = @SchoolID AND EducationYearID <> @EduYear
                 )
-                ORDER BY mr.PaidDate DESC";
+                ORDER BY ISNULL(mr.CollectionDate, mr.PaidDate) DESC";
 
             var list = new List<object>();
             using (var con = new SqlConnection(ConnStr))
@@ -229,7 +240,8 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                             MoneyReceiptID = dr["MoneyReceiptID"],
                             MoneyReceipt_SN = dr["MoneyReceipt_SN"],
                             TotalAmount = dr["TotalAmount"],
-                            PaidDate = dr["PaidDate"],
+                            PaymentDate = dr["PaymentDate"],
+                            CollectionDate = dr["CollectionDate"],
                             EducationYear = dr["EducationYear"]
                         });
             }
@@ -343,21 +355,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
         [WebMethod(EnableSession = true)]
         public static double GetCurrentDue(string studentID)
         {
-            const string sql = @"SELECT ISNULL(SUM(
-                ISNULL(po.Amount,0)+ISNULL(po.LateFee,0)-ISNULL(po.Discount,0)-ISNULL(po.PaidAmount,0)-ISNULL(po.LateFee_Discount,0)
-                ),0) AS Due
-                FROM Income_PayOrder po
-                INNER JOIN Student st ON po.StudentID = st.StudentID AND st.ID = @ID AND st.SchoolID = @SchoolID
-                WHERE po.SchoolID = @SchoolID AND po.Status = 'Due' AND po.EndDate <= GETDATE()";
-            using (var con = new SqlConnection(ConnStr))
-            using (var cmd = new SqlCommand(sql, con))
-            {
-                cmd.Parameters.AddWithValue("@ID", studentID);
-                cmd.Parameters.AddWithValue("@SchoolID", SchoolID);
-                con.Open();
-                var val = cmd.ExecuteScalar();
-                return val != null && val != DBNull.Value ? Convert.ToDouble(val) : 0;
-            }
+            return (double)SMS_Template_Helper.GetStudentCurrentDue(studentID, Convert.ToInt32(SchoolID));
         }
 
         // ── Encrypt Receipt ID ────────────────────────────────────────────────
@@ -619,14 +617,14 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             try
             {
                 var sms = new SMS_Class(schoolID.ToString());
-                string template = GetSMSTemplate(schoolID);
-                decimal currentDue = GetCurrentDue(studentID, schoolID);
+                string template = SMS_Template_Helper.GetTemplateForSchool(schoolID, "Payment", "Payment");
+                decimal currentDue = SMS_Template_Helper.GetStudentCurrentDue(studentID, schoolID);
 
                 string msg = !string.IsNullOrEmpty(template)
                     ? template
                         .Replace("{StudentName}", studentName).Replace("{ID}", studentID)
-                        .Replace("{Amount}", totalAmount.ToString("0.00")).Replace("{ReceiptNo}", receiptNo)
-                        .Replace("{CurrentDue}", currentDue.ToString("0.00"))
+                        .Replace("{Amount}", SMS_Template_Helper.FormatPaymentAmount(totalAmount)).Replace("{ReceiptNo}", receiptNo)
+                        .Replace("{CurrentDue}", SMS_Template_Helper.FormatPaymentAmount(currentDue))
                         .Replace("{PaymentDetails}", details.TrimStart(',', ' '))
                         .Replace("{Session}", sessionName)
                         .Replace("{SchoolName}", HttpContext.Current.Session["School_Name"]?.ToString())
@@ -670,40 +668,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
         private static string GetSMSTemplate(int schoolID)
         {
-            try
-            {
-                using (var con = new SqlConnection(ConnStr))
-                using (var cmd = new SqlCommand(@"SELECT TOP 1 MessageTemplate FROM SMS_Template
-                    WHERE SchoolID=@SchoolID AND TemplateType='Payment' AND IsActive=1 ORDER BY CreatedDate DESC", con))
-                {
-                    cmd.Parameters.AddWithValue("@SchoolID", schoolID);
-                    con.Open();
-                    var r = cmd.ExecuteScalar();
-                    return r?.ToString() ?? "";
-                }
-            }
-            catch { return ""; }
-        }
-
-        private static decimal GetCurrentDue(string studentID, int schoolID)
-        {
-            try
-            {
-                using (var con = new SqlConnection(ConnStr))
-                using (var cmd = new SqlCommand(@"SELECT ISNULL(SUM(CASE WHEN Income_PayOrder.EndDate<GETDATE()-1
-                    THEN ISNULL(Income_PayOrder.Amount,0)+ISNULL(Income_PayOrder.LateFee,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0)-ISNULL(Income_PayOrder.LateFee_Discount,0)
-                    ELSE ISNULL(Income_PayOrder.Amount,0)-ISNULL(Income_PayOrder.Discount,0)-ISNULL(Income_PayOrder.PaidAmount,0) END),0)
-                    FROM Income_PayOrder INNER JOIN Student ON Income_PayOrder.StudentID=Student.StudentID
-                    WHERE Income_PayOrder.Status='Due' AND Student.ID=@ID AND Income_PayOrder.SchoolID=@SchID", con))
-                {
-                    cmd.Parameters.AddWithValue("@ID", studentID);
-                    cmd.Parameters.AddWithValue("@SchID", schoolID);
-                    con.Open();
-                    var r = cmd.ExecuteScalar();
-                    return r != null && r != DBNull.Value ? Convert.ToDecimal(r) : 0;
-                }
-            }
-            catch { return 0; }
+            return SMS_Template_Helper.GetTemplateForSchool(schoolID, "Payment", "Payment") ?? "";
         }
 
         // ── Encrypt ───────────────────────────────────────────────────────────

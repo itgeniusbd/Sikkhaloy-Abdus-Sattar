@@ -15,16 +15,28 @@ namespace SmsSenderApp
 
         public SMS_Class()
         {
-            var smsProvider = GlobalClass.Instance.Setting.SmsProvider;
-            var smsProviderMultiple = GlobalClass.Instance.Setting.SmsProviderMultiple;
+            var smsProvider = GlobalClass.Instance.Setting?.SmsProvider;
+            var smsProviderMultiple = GlobalClass.Instance.Setting?.SmsProviderMultiple;
 
-            var isProviderExist = Enum.TryParse<ProviderEnum>(smsProvider, out var provider);
-            var isProviderMultipleExist = Enum.TryParse<ProviderEnum>(smsProviderMultiple, out var providerMultiple);
+            var provider = ParseProvider(smsProvider, ProviderEnum.BanglaPhone);
+            var providerMultiple = ParseProvider(smsProviderMultiple, ProviderEnum.GreenWeb);
 
-            if (!isProviderExist) provider = ProviderEnum.BanglaPhone;
-            if (!isProviderMultipleExist) provider = ProviderEnum.GreenWeb;
+            Serilog.Log.Information(
+                "SmsSenderApp using Single={SingleProvider}, Multiple={MultipleProvider} (raw: {RawSingle}/{RawMultiple})",
+                provider, providerMultiple, smsProvider ?? "(null)", smsProviderMultiple ?? "(null)");
 
             SmsService = new SmsServiceBuilder(provider, providerMultiple);
+        }
+
+        private static ProviderEnum ParseProvider(string value, ProviderEnum fallback)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return fallback;
+
+            if (Enum.TryParse(value.Trim(), true, out ProviderEnum parsed))
+                return parsed;
+
+            return fallback;
         }
 
         public Get_Validation SMS_Validation(string number, string text)

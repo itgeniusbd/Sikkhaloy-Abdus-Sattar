@@ -17,10 +17,45 @@
         .pc-table tr.others-payment td { background:#5fc42a !important; color:#fff !important; }
         .pc-input { width:100px; padding:5px 6px; border:1px solid #bbb; border-radius:4px; font-size:13px; text-align:center; display:block; margin:0 auto; }
         .pc-section-title { font-weight:bold; margin:18px 0 8px; font-size:1rem; border-left:4px solid #2196f3; padding-left:8px; }
-        .pc-receipt-table { width:100%; font-size:13px; }
-        .pc-receipt-table td { padding:4px 6px; border-bottom:1px solid #eee; }
+        .pc-receipt-table { width:100%; font-size:13px; border-collapse:collapse; table-layout:fixed; }
+        .pc-receipt-table th { background:#37474f; color:#fff; padding:7px 5px; border:1px solid #263238; text-align:center; font-weight:700; font-size:12px; line-height:1.35; }
+        .pc-receipt-table td { padding:7px 5px; border:1px solid #cfd8dc; vertical-align:middle; text-align:center; line-height:1.45; word-break:break-word; color:#000; font-size:12px; font-weight:600; }
+        .pc-receipt-table tbody tr:nth-child(even) td { background:#f5f7fa; }
+        .pc-receipt-table td.rcpt-no { font-weight:700; font-size:13px; }
+        .pc-receipt-table td.rcpt-no a { color:#0d47a1; font-weight:700; text-decoration:none; }
+        .pc-receipt-table td.rcpt-no a:hover { text-decoration:underline; }
+        .pc-receipt-table td.rcpt-date { color:#000; font-weight:600; font-size:12px; }
+        .pc-receipt-table td.rcpt-date .rcpt-time { display:block; margin-top:2px; font-size:11px; font-weight:600; color:#333; }
+        .pc-receipt-table td.rcpt-paid { font-weight:700; color:#1b5e20; font-size:13px; }
+        .pc-receipt-table .print-link { font-size:12px; font-weight:700; color:#1565c0; white-space:nowrap; }
+        /* All Paid Records Modal */
+        #allPaidModal .modal-dialog { max-width: 1140px; }
+        .all-paid-modal-header { background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); color: #fff; border-bottom: none; padding: 12px 16px; }
+        .all-paid-modal-header .modal-title { font-size: 1.05rem; font-weight: 700; margin: 0; white-space: nowrap; }
+        .all-paid-modal-header .close { color: #fff; opacity: .95; text-shadow: none; }
+        .all-paid-modal-body { padding: 0; max-height: 72vh; overflow: auto; }
+        .all-paid-count { padding: 8px 14px; background: #e8f5e9; color: #2e7d32; font-size: 12px; font-weight: 600; border-bottom: 1px solid #c8e6c9; white-space: nowrap; }
+        .all-paid-table-wrap { overflow-x: auto; }
+        .all-paid-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 0; }
+        .all-paid-table thead th { background: linear-gradient(180deg, #37474f 0%, #263238 100%); color: #fff; padding: 9px 7px; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; border: 1px solid #1a2327; position: sticky; top: 0; z-index: 2; }
+        .all-paid-table tbody td { padding: 7px 7px; border: 1px solid #e0e0e0; vertical-align: middle; white-space: nowrap; font-size: 11px; color: #212529; }
+        .all-paid-table tbody tr:nth-child(even) td { background: #f8fafb; }
+        .all-paid-table tbody tr:hover td { background: #e8f5e9; }
+        .all-paid-table .col-rcpt a { color: #1565c0; font-weight: 700; text-decoration: none; }
+        .all-paid-table .col-rcpt a:hover { text-decoration: underline; }
+        .all-paid-table .col-amount { font-weight: 700; color: #1b5e20; }
+        .all-paid-table .col-print a { color: #1565c0; font-weight: 600; font-size: 11px; }
+        .all-paid-table .col-received { color: #455a64; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+        .all-paid-table .col-payfor { min-width: 200px; }
+        .payfor-tags { display: inline-flex; flex-wrap: nowrap; gap: 4px; align-items: center; vertical-align: middle; }
+        .payfor-tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; white-space: nowrap; line-height: 1.25; border: 1px solid transparent; flex-shrink: 0; }
+        .payfor-tuition { background: #e3f2fd; color: #0d47a1; border-color: #90caf9; }
+        .payfor-exam { background: #fce4ec; color: #ad1457; border-color: #f48fb1; }
+        .payfor-other { background: #f3e5f5; color: #6a1b9a; border-color: #ce93d8; }
+        .payfor-empty { background: #f5f5f5; color: #9e9e9e; }
+        .all-paid-modal-footer { background: #f5f5f5; border-top: 1px solid #e0e0e0; }
         #payment-submit { display:none; }
-        #total-pay-amount { font-weight:bold; font-size:1.1rem; margin-bottom:4px; }
+        #total-pay-amount { font-weight:bold; font-size:1rem; color:#1a237e; }
         #grand-total-fixed { display:none; opacity:.95; position:fixed; width:87%; background:#fff; bottom:0; box-shadow:0 0 16px -1px rgba(40,40,40,.75); margin-left:-15px; text-align:center; font-size:1.5rem; font-weight:bold; padding:1.5rem 0; z-index:999; }
         @media(max-width:767px){ #grand-total-fixed { width:100%; } }
         .spinner-wrap { text-align:center; padding:30px; }
@@ -172,17 +207,18 @@
 
     <!-- All Paid Records Modal -->
     <div class="modal fade" id="allPaidModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">Student Paid Records (Current Session)</h4>
+                <div class="modal-header all-paid-modal-header">
+                    <h4 class="modal-title"><i class="fa fa-list-alt"></i> Student Paid Records (Current Session)</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
-                <div class="modal-body" id="allPaidModalBody">
+                <div class="modal-body all-paid-modal-body" id="allPaidModalBody">
                     <div class="text-center py-3"><div class="spin-icon"></div></div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-danger" data-dismiss="modal">Close</button>
+                <div class="modal-footer all-paid-modal-footer">
+                    <button type="button" class="btn btn-success btn-sm" id="btnPrintAllPaid"><i class="fa fa-print"></i> Print</button>
+                    <button class="btn btn-danger btn-sm" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -361,20 +397,35 @@
         tb.innerHTML = html;
     }
 
+    function formatCollectionDate(value) {
+        if (!value) return '-';
+        var idx = value.indexOf('(');
+        if (idx === -1) return value;
+        return value.substring(0, idx).trim() + '<span class="rcpt-time">' + value.substring(idx).trim() + '</span>';
+    }
+
     // ── Recent Payments ───────────────────────────────────────────────────────
     function loadRecentPayments() {
         ajax('GetRecentPayments', { studentID: state.studentID }, function (d) {
             var html = '<div class="mb-2"><button type="button" class="btn btn-outline-purple btn-sm w-100" id="btnPrevYear" style="border-color:#6f42c1; color:#6f42c1;"><i class="fa fa-history"></i> Previous Year Receipts</button></div>';
             if (d && d.length) {
-                html += '<table class="pc-receipt-table"><thead><tr><th>Receipt</th><th style="text-align:right">Paid</th></tr></thead><tbody>';
+                html += '<table class="pc-receipt-table"><thead><tr>' +
+                    '<th style="width:18%">Receipt</th>' +
+                    '<th style="width:24%">Payment Date</th>' +
+                    '<th style="width:34%">Collection Date</th>' +
+                    '<th style="width:24%">Paid</th>' +
+                    '</tr></thead><tbody>';
                 d.slice(0, 5).forEach(function (r) {
-                    html += '<tr><td><a href="#" class="rcpt-link" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN +
-                        '</a><small class="d-block text-muted">' + r.PaidDate + '</small></td>' +
-                        '<td style="text-align:right">' + r.TotalAmount + ' Tk<br>' +
-                        '<a href="#" class="print-link" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td></tr>';
+                    html += '<tr>' +
+                        '<td class="rcpt-no"><a href="#" class="rcpt-link" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN + '</a></td>' +
+                        '<td class="rcpt-date">' + (r.PaymentDate || '-') + '</td>' +
+                        '<td class="rcpt-date">' + formatCollectionDate(r.CollectionDate) + '</td>' +
+                        '<td class="rcpt-paid">' + r.TotalAmount + ' Tk<br>' +
+                        '<a href="#" class="print-link" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td>' +
+                        '</tr>';
                 });
                 html += '</tbody></table>';
-                if (d.length > 5) html += '<div class="mt-2"><button type="button" class="btn btn-outline-success btn-sm" id="btnViewAll">View All</button></div>';
+                if (d.length > 0) html += '<div class="mt-2"><button type="button" class="btn btn-outline-success btn-sm" id="btnViewAll">View All</button></div>';
             } else {
                 html += '<div class="text-muted">No payment records</div>';
             }
@@ -409,18 +460,72 @@
         });
     }
 
+    function escapeHtml(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function formatPayForTags(payFor) {
+        if (!payFor || payFor === '-') return '<span class="payfor-tag payfor-empty">-</span>';
+        return payFor.split(',').map(function (item) {
+            item = item.trim();
+            if (!item) return '';
+            var cls = 'payfor-other';
+            if (/exam/i.test(item)) cls = 'payfor-exam';
+            else if (/tuition/i.test(item)) cls = 'payfor-tuition';
+            return '<span class="payfor-tag ' + cls + '">' + escapeHtml(item) + '</span>';
+        }).filter(Boolean).join('');
+    }
+
+    function printAllPaidModal() {
+        var area = document.getElementById('allPaidPrintArea');
+        if (!area) return;
+        var w = window.open('', '_blank');
+        if (!w) { alert('Please allow popups to print.'); return; }
+        w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Paid Records</title><style>');
+        w.document.write('body{font-family:Arial,sans-serif;font-size:11px;margin:16px;color:#222;}');
+        w.document.write('h3{margin:0 0 6px;font-size:16px;font-weight:800;color:#111;}');
+        w.document.write('.print-student-info{margin:0 0 14px;font-size:14px;font-weight:800;color:#000;line-height:1.4;}');
+        w.document.write('.print-student-info .lbl{color:#1b5e20;}');
+        w.document.write('table{width:100%;border-collapse:collapse;} th{background:#37474f;color:#fff;padding:6px 5px;font-size:10px;white-space:nowrap;border:1px solid #263238;}');
+        w.document.write('td{padding:5px;border:1px solid #ddd;white-space:nowrap;font-size:10px;vertical-align:middle;} tr:nth-child(even){background:#f8f8f8;}');
+        w.document.write('.all-paid-count{font-weight:700;color:#1b5e20;font-size:12px;margin-bottom:8px;}');
+        w.document.write('.payfor-tags{display:inline-flex;flex-wrap:nowrap;gap:3px;} .payfor-tag{padding:1px 5px;border-radius:8px;font-size:9px;font-weight:600;border:1px solid #ccc;}');
+        w.document.write('.payfor-tuition{background:#e3f2fd;color:#0d47a1;} .payfor-exam{background:#fce4ec;color:#ad1457;} .payfor-other{background:#f3e5f5;color:#6a1b9a;}');
+        w.document.write('</style></head><body>');
+        w.document.write('<h3>Student Paid Records (Current Session)</h3>');
+        if (state.studentName || state.studentID)
+            w.document.write('<p class="print-student-info"><span class="lbl">Student:</span> ' + escapeHtml(state.studentName) + ' &nbsp;|&nbsp; <span class="lbl">ID:</span> ' + escapeHtml(state.studentID) + '</p>');
+        w.document.write(area.innerHTML);
+        w.document.write('</body></html>');
+        w.document.close();
+        w.focus();
+        setTimeout(function () { w.print(); w.close(); }, 300);
+    }
+
     function loadAllPaid() {
         document.getElementById('allPaidModalBody').innerHTML = '<div class="text-center py-3"><div class="spin-icon"></div></div>';
         ajax('GetAllPaidRecords', { studentID: state.studentID }, function (d) {
-            if (!d || !d.length) { document.getElementById('allPaidModalBody').innerHTML = '<p class="text-muted">No records.</p>'; return; }
-            var html = '<table class="table table-sm table-bordered"><thead><tr><th>Receipt No</th><th>Printed Receipt</th><th>Paid Date</th><th>Amount</th><th>Re-Print</th><th>Received By</th></tr></thead><tbody>';
+            if (!d || !d.length) { document.getElementById('allPaidModalBody').innerHTML = '<p class="text-muted p-3">No records.</p>'; return; }
+            var html = '<div id="allPaidPrintArea">';
+            html += '<div class="all-paid-count"><i class="fa fa-file-text-o"></i> Total Records: ' + d.length + '</div>';
+            html += '<div class="all-paid-table-wrap"><table class="all-paid-table"><thead><tr>';
+            html += '<th>Receipt</th><th>Printed</th><th>Payment Date</th><th>Collection Date</th>';
+            html += '<th>Pay For</th><th>Amount</th><th>Print</th><th>Received By</th>';
+            html += '</tr></thead><tbody>';
             d.forEach(function (r) {
-                html += '<tr><td><a href="#" class="rcpt-link2" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN + '</a></td>' +
-                    '<td>' + (r.PrintedReceiptNo || '-') + '</td><td>' + r.PaidDate + '</td><td>' + r.TotalAmount + ' Tk</td>' +
-                    '<td><a href="#" class="print-link2" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td>' +
-                    '<td>' + (r.ReceivedBy || '') + '</td></tr>';
+                html += '<tr>';
+                html += '<td class="col-rcpt"><a href="#" class="rcpt-link2" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN + '</a></td>';
+                html += '<td>' + escapeHtml(r.PrintedReceiptNo || '-') + '</td>';
+                html += '<td>' + escapeHtml(r.PaymentDate || '-') + '</td>';
+                html += '<td>' + escapeHtml(r.CollectionDate || '-') + '</td>';
+                html += '<td class="col-payfor"><div class="payfor-tags">' + formatPayForTags(r.PayFor) + '</div></td>';
+                html += '<td class="col-amount">' + r.TotalAmount + ' Tk</td>';
+                html += '<td class="col-print"><a href="#" class="print-link2" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td>';
+                html += '<td class="col-received" title="' + escapeHtml(r.ReceivedBy || '') + '">' + escapeHtml(r.ReceivedBy || '') + '</td>';
+                html += '</tr>';
             });
-            html += '</tbody></table>';
+            html += '</tbody></table></div></div>';
             document.getElementById('allPaidModalBody').innerHTML = html;
             document.querySelectorAll('.rcpt-link2').forEach(function (a) {
                 a.addEventListener('click', function (e) { e.preventDefault(); $('#allPaidModal').modal('hide'); openReceiptDetail(this.dataset.id); });
@@ -441,10 +546,10 @@
         document.getElementById('prevYearModalBody').innerHTML = '<div class="text-center py-3"><div class="spin-icon"></div></div>';
         ajax('GetPreviousYearPaidRecords', { studentID: state.studentID }, function (d) {
             if (!d || !d.length) { document.getElementById('prevYearModalBody').innerHTML = '<p class="text-muted text-center">No previous year records found.</p>'; return; }
-            var html = '<table class="table table-sm table-bordered"><thead><tr><th>Receipt No</th><th>Session</th><th>Paid Date</th><th>Amount</th><th>Re-Print</th></tr></thead><tbody>';
+            var html = '<table class="table table-sm table-bordered"><thead><tr><th>Receipt No</th><th>Session</th><th>Payment Date</th><th>Collection Date</th><th>Amount</th><th>Re-Print</th></tr></thead><tbody>';
             d.forEach(function (r) {
                 html += '<tr><td><a href="#" class="rcpt-link3" data-id="' + r.MoneyReceiptID + '">' + r.MoneyReceipt_SN + '</a></td>' +
-                    '<td>' + (r.EducationYear || '') + '</td><td>' + r.PaidDate + '</td><td>' + r.TotalAmount + ' Tk</td>' +
+                    '<td>' + (r.EducationYear || '') + '</td><td>' + (r.PaymentDate || '-') + '</td><td>' + (r.CollectionDate || '-') + '</td><td>' + r.TotalAmount + ' Tk</td>' +
                     '<td><a href="#" class="print-link3" data-id="' + r.MoneyReceiptID + '"><i class="fa fa-print"></i> Print</a></td></tr>';
             });
             html += '</tbody></table>';
@@ -643,6 +748,9 @@
         var d = parseDate(val); if (isNaN(d)) return val || '';
         return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
+
+    var btnPrintAllPaid = document.getElementById('btnPrintAllPaid');
+    if (btnPrintAllPaid) btnPrintAllPaid.addEventListener('click', printAllPaidModal);
 })();
 </script>
 </asp:Content>

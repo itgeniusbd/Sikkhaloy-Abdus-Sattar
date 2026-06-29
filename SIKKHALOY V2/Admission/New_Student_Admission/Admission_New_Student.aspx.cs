@@ -383,7 +383,7 @@ if (SubjectCheckBox != null && SubjectCheckBox.Checked)
                 string Text;
 
                 // Try to get admission template
-                string admissionTemplate = GetSMSTemplate("Admission", isBangla ? "AdmissionWelcome" : "AdmissionConfirm");
+                string admissionTemplate = GetSMSTemplate("Admission", "AdmissionConfirm");
 
                 if (!string.IsNullOrEmpty(admissionTemplate))
                 {

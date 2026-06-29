@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
+using System.IO;
+using System.Web;
 
 namespace Education
 {
@@ -12,8 +14,46 @@ namespace Education
 
         public int SMSBalance { get; }
 
+        public string LastSendError { get; private set; }
+
         private readonly SqlConnection _con =
             new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
+
+        private static bool IsSmsDevMode()
+        {
+            if (string.Equals(ConfigurationManager.AppSettings["SmsDevMode"], "true", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (!string.Equals(ConfigurationManager.AppSettings["SmsAllowLocalhost"], "true", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var ctx = HttpContext.Current;
+            return ctx != null && ctx.Request.IsLocal;
+        }
+
+        public static bool IsDevModeActive()
+        {
+            return IsSmsDevMode();
+        }
+
+        private static void LogDevSms(string number, string text, string purpose)
+        {
+            try
+            {
+                var ctx = HttpContext.Current;
+                if (ctx == null) return;
+
+                string logPath = ctx.Server.MapPath("~/Logs/sms_dev_log.txt");
+                string dir = Path.GetDirectoryName(logPath);
+                if (!Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                string line = string.Format("[{0:yyyy-MM-dd HH:mm:ss}] To:{1} | Purpose:{2}{3}{4}{3}---{3}",
+                    DateTime.Now, number, purpose, Environment.NewLine, text);
+                File.AppendAllText(logPath, line, System.Text.Encoding.UTF8);
+            }
+            catch { /* dev log only */ }
+        }
 
         public SMS_Class(string schoolId)
         {
@@ -76,8 +116,32 @@ namespace Education
         {
             var smsSendId = Guid.NewGuid();
 
+            if (IsSmsDevMode())
+            {
+                LogDevSms(number, text, smsPurpose);
+
+                var sendRecordCmd = new SqlCommand(
+                    "INSERT INTO [SMS_Send_Record] ([SMS_Send_ID], [PhoneNumber], [TextSMS], [TextCount], [SMSCount], [PurposeOfSMS], [Status], [Date], [SMS_Response]) VALUES (@SMS_Send_ID, @PhoneNumber, @TextSMS, @TextCount, @SMSCount, @PurposeOfSMS, @Status, Getdate(), @SMS_Response)",
+                    _con);
+                sendRecordCmd.Parameters.AddWithValue("@SMS_Send_ID", smsSendId);
+                sendRecordCmd.Parameters.AddWithValue("@PhoneNumber", number);
+                sendRecordCmd.Parameters.AddWithValue("@TextSMS", text);
+                sendRecordCmd.Parameters.AddWithValue("@TextCount", text.Length);
+                sendRecordCmd.Parameters.AddWithValue("@SMSCount", SmsValidator.TotalSmsCount(text));
+                sendRecordCmd.Parameters.AddWithValue("@PurposeOfSMS", smsPurpose);
+                sendRecordCmd.Parameters.AddWithValue("@Status", "Local");
+                sendRecordCmd.Parameters.AddWithValue("@SMS_Response", "Dev mode - log only");
+
+                _con.Open();
+                sendRecordCmd.ExecuteNonQuery();
+                _con.Close();
+
+                return smsSendId;
+            }
+
             var responseMessage = SmsService.SendSms(text, number);
-            var isError = !SmsService.IsSuccess;
+            var isError = !SmsService.IsSuccess || string.IsNullOrWhiteSpace(responseMessage);
+            LastSendError = isError ? (SmsService.Error ?? "Gateway returned empty response.") : string.Empty;
 
             if (!isError)
             {
@@ -102,6 +166,58 @@ namespace Education
             else
             {
                 return Guid.Empty;
+            }
+        }
+
+        public static string GetActiveProviderSummary()
+        {
+            try
+            {
+                using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                using (var cmd = new SqlCommand("SELECT TOP 1 SmsProvider, SmsProviderMultiple FROM SikkhaloySetting", con))
+                {
+                    con.Open();
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (!reader.Read())
+                            return "Unknown";
+
+                        var single = reader["SmsProvider"]?.ToString() ?? "-";
+                        var multiple = reader["SmsProviderMultiple"]?.ToString() ?? "-";
+                        return string.Format("Single: {0} | Multiple: {1}", single, multiple);
+                    }
+                }
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        public static string GetGatewayResponse(Guid smsSendId)
+        {
+            try
+            {
+                using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                using (var cmd = new SqlCommand("SELECT TOP 1 SMS_Response, Status, PhoneNumber FROM SMS_Send_Record WHERE SMS_Send_ID = @SMS_Send_ID", con))
+                {
+                    cmd.Parameters.AddWithValue("@SMS_Send_ID", smsSendId);
+                    con.Open();
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (!reader.Read())
+                            return string.Empty;
+
+                        var response = reader["SMS_Response"]?.ToString() ?? "";
+                        var status = reader["Status"]?.ToString() ?? "";
+                        var phone = reader["PhoneNumber"]?.ToString() ?? "";
+                        return string.Format("{0} → Status: {1}, Gateway: {2}", phone, status, response);
+                    }
+                }
+            }
+            catch
+            {
+                return string.Empty;
             }
         }
 
@@ -153,6 +269,9 @@ namespace Education
 
         public int SMS_GetBalance()
         {
+            if (IsSmsDevMode())
+                return Math.Max(SMSBalance, 99999);
+
             return SmsService.SmsBalance();
         }
     }

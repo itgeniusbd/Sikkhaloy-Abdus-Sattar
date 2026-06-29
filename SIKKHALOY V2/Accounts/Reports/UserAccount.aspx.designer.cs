@@ -60,6 +60,24 @@ namespace EDUCATION.COM.Accounts.Reports
         protected global::System.Web.UI.WebControls.SqlDataSource UserInExSQL;
 
         /// <summary>
+        /// IncomeCategoryDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList IncomeCategoryDropDown;
+
+        /// <summary>
+        /// IncomeCategoryListSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource IncomeCategoryListSQL;
+
+        /// <summary>
         /// IncomeRepeater control.
         /// </summary>
         /// <remarks>
@@ -76,6 +94,24 @@ namespace EDUCATION.COM.Accounts.Reports
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource IncomeDetailsSQL;
+
+        /// <summary>
+        /// ExpenseCategoryDropDown control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ExpenseCategoryDropDown;
+
+        /// <summary>
+        /// ExpenseCategoryListSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource ExpenseCategoryListSQL;
 
         /// <summary>
         /// ExpenseRepeater control.

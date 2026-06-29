@@ -258,10 +258,11 @@ namespace EDUCATION.COM.API
                                     }
                                 }
                             }
-                            #endregion Late_Abs
+                        }
+                        #endregion Late_Abs
 
-                            #region Exit
-                            if (ExitConfirmed_Status == "Yes" && Exit_Confirmation && !Is_ExitTime_SMS_Sent)
+                        #region Exit
+                        if (ExitConfirmed_Status == "Yes" && Exit_Confirmation && !Is_ExitTime_SMS_Sent)
                             {
                                 // Use Template System
                                 SMS_Template_Helper exitTemplateHelper = new SMS_Template_Helper(SchoolID);
@@ -366,8 +367,7 @@ namespace EDUCATION.COM.API
                             }
                             #endregion Abs SMS
 
-                            #endregion SMS_Send
-                        }
+                        #endregion SMS_Send
                     }
                     else
                     {

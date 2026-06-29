@@ -4,17 +4,88 @@ using System.Data.SqlClient;
 using System.Configuration;
 using System.Text;
 using System.Globalization;
+using System.Web.UI;
+using System.Web.UI.WebControls;
 
 namespace EDUCATION.COM.Authority
 {
     public partial class Auth_Profile : System.Web.UI.Page
     {
+        private const string InstitutionBaseQuery = @"
+SELECT Sch.SchoolID, Sch.SchoolName, Sch.Phone, Sch.Validation, Sch.Date, Sch.UserName,
+    ses.LoggedInUser, ses.LoginRole, ses.LoginTime, ses.LastActivity
+FROM SchoolInfo AS Sch
+OUTER APPLY (
+    SELECT TOP 1 u.UserName AS LoggedInUser, u.Category AS LoginRole, u.LoginTime, u.LastActivity
+    FROM User_Active_Sessions u
+    WHERE u.SchoolID = Sch.SchoolID
+      AND (u.LastActivity >= DATEADD(HOUR, -1, GETDATE()) OR CAST(u.LoginTime AS DATE) = CAST(GETDATE() AS DATE))
+    ORDER BY u.LastActivity DESC
+) ses";
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
             {
                 LoadSchoolData();
-                LoadLoggedInUsersCount();
+            }
+        }
+
+        protected void Page_PreRender(object sender, EventArgs e)
+        {
+            LoadLoggedInUsersCount();
+            UpdateLiveFilterButtons();
+        }
+
+        protected void FilterAllBtn_Click(object sender, EventArgs e)
+        {
+            ApplyLiveFilter("");
+        }
+
+        protected void FilterActiveBtn_Click(object sender, EventArgs e)
+        {
+            ApplyLiveFilter("LoggedIn");
+        }
+
+        protected void FilterTodayBtn_Click(object sender, EventArgs e)
+        {
+            ApplyLiveFilter("Today");
+        }
+
+        protected void FilterLastHourBtn_Click(object sender, EventArgs e)
+        {
+            ApplyLiveFilter("LastHour");
+        }
+
+        protected void FilterLiveNowBtn_Click(object sender, EventArgs e)
+        {
+            ApplyLiveFilter("LiveNow");
+        }
+
+        private void ApplyLiveFilter(string filterKey)
+        {
+            OnlineFilterValue.Value = filterKey ?? "";
+            LoadSchoolData();
+            UpdateLiveFilterButtons();
+        }
+
+        private void UpdateLiveFilterButtons()
+        {
+            var current = OnlineFilterValue.Value ?? "";
+
+            FilterAllPanel.CssClass = "live-filter-item live-filter-all" + (current == "" ? " selected" : "");
+            FilterActivePanel.CssClass = "live-filter-item live-filter-active" + (current == "LoggedIn" ? " selected" : "");
+            FilterTodayPanel.CssClass = "live-filter-item live-filter-today" + (current == "Today" ? " selected" : "");
+            FilterLastHourPanel.CssClass = "live-filter-item live-filter-hour" + (current == "LastHour" ? " selected" : "");
+            FilterLiveNowPanel.CssClass = "live-filter-item live-filter-live" + (current == "LiveNow" ? " selected" : "");
+
+            switch (current)
+            {
+                case "LoggedIn": ActiveFilterLabel.Text = "Currently Active (15 min)"; break;
+                case "Today": ActiveFilterLabel.Text = "Today"; break;
+                case "LastHour": ActiveFilterLabel.Text = "Last Hour"; break;
+                case "LiveNow": ActiveFilterLabel.Text = "Online Now (5 min)"; break;
+                default: ActiveFilterLabel.Text = "All"; break;
             }
         }
 
@@ -32,9 +103,43 @@ namespace EDUCATION.COM.Authority
         {
             SearchTextBox.Text = "";
             ValidationFilter.SelectedValue = "";
+            OnlineFilterValue.Value = "";
             StartDateTextBox.Text = "";
             EndDateTextBox.Text = "";
             LoadSchoolData();
+            UpdateLiveFilterButtons();
+        }
+
+        protected void SchoolGridView_RowDataBound(object sender, GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType != DataControlRowType.DataRow)
+                return;
+
+            var lastActivityObj = DataBinder.Eval(e.Row.DataItem, "LastActivity");
+            if (lastActivityObj == null || lastActivityObj == DBNull.Value)
+                return;
+
+            var lastActivity = Convert.ToDateTime(lastActivityObj);
+            if (lastActivity >= DateTime.Now.AddMinutes(-5))
+                e.Row.CssClass = "online-now-row";
+            else if (lastActivity >= DateTime.Now.AddMinutes(-15))
+                e.Row.CssClass = "online-active-row";
+        }
+
+        protected string GetOnlineStatusBadge(object lastActivityObj)
+        {
+            if (lastActivityObj == null || lastActivityObj == DBNull.Value)
+                return string.Empty;
+
+            var lastActivity = Convert.ToDateTime(lastActivityObj);
+
+            if (lastActivity >= DateTime.Now.AddMinutes(-5))
+                return "<span class=\"online-badge online-now\"><i class=\"fa fa-circle\"></i> Online</span>";
+
+            if (lastActivity >= DateTime.Now.AddMinutes(-15))
+                return "<span class=\"online-badge online-active\"><i class=\"fa fa-circle\"></i> Active</span>";
+
+            return string.Empty;
         }
 
         private void LoadSchoolData()
@@ -42,31 +147,29 @@ namespace EDUCATION.COM.Authority
             StringBuilder whereClause = new StringBuilder();
             bool hasCondition = false;
 
-            // Text search condition
             if (!string.IsNullOrEmpty(SearchTextBox.Text.Trim()))
             {
-                string searchText = SearchTextBox.Text.Trim();
-                whereClause.Append("(SchoolName LIKE @SearchText OR UserName LIKE @SearchText OR Phone LIKE @SearchText OR CAST(SchoolID AS VARCHAR) LIKE @SearchText)");
+                whereClause.Append("(Sch.SchoolName LIKE @SearchText OR Sch.UserName LIKE @SearchText OR Sch.Phone LIKE @SearchText OR CAST(Sch.SchoolID AS VARCHAR) LIKE @SearchText)");
                 hasCondition = true;
             }
 
-            // Validation filter condition
             if (!string.IsNullOrEmpty(ValidationFilter.SelectedValue))
             {
                 if (hasCondition)
                     whereClause.Append(" AND ");
-                
-                whereClause.Append("Validation = @ValidationStatus");
+
+                whereClause.Append("Sch.Validation = @ValidationStatus");
                 hasCondition = true;
             }
 
-            // Date filter conditions
+            AppendOnlineFilter(whereClause, ref hasCondition);
+
             if (!string.IsNullOrEmpty(StartDateTextBox.Text.Trim()))
             {
                 if (hasCondition)
                     whereClause.Append(" AND ");
-                
-                whereClause.Append("Date >= @StartDate");
+
+                whereClause.Append("Sch.Date >= @StartDate");
                 hasCondition = true;
             }
 
@@ -74,23 +177,18 @@ namespace EDUCATION.COM.Authority
             {
                 if (hasCondition)
                     whereClause.Append(" AND ");
-                
-                whereClause.Append("Date <= @EndDate");
+
+                whereClause.Append("Sch.Date <= @EndDate");
                 hasCondition = true;
             }
 
-            // Build the complete SQL query
-            string baseQuery = "SELECT SchoolID, SchoolName, Phone, Validation, Date, UserName FROM SchoolInfo AS Sch";
-            string orderBy = " ORDER BY Date DESC, SchoolID";
-            
-            string finalQuery = baseQuery;
+            string finalQuery = InstitutionBaseQuery;
             if (hasCondition)
             {
-                finalQuery += " WHERE " + whereClause.ToString();
+                finalQuery += " WHERE " + whereClause;
             }
-            finalQuery += orderBy;
+            finalQuery += " ORDER BY ses.LastActivity DESC, Sch.Date DESC, Sch.SchoolID";
 
-            // Update the SqlDataSource
             InstitutionSQL.SelectCommand = finalQuery;
             InstitutionSQL.SelectParameters.Clear();
 
@@ -107,53 +205,73 @@ namespace EDUCATION.COM.Authority
             if (!string.IsNullOrEmpty(StartDateTextBox.Text.Trim()))
             {
                 DateTime startDate;
-                if (DateTime.TryParseExact(StartDateTextBox.Text.Trim(), new string[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate))
+                if (DateTime.TryParseExact(StartDateTextBox.Text.Trim(), new[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate))
                 {
                     InstitutionSQL.SelectParameters.Add("StartDate", TypeCode.DateTime, startDate.ToString("yyyy-MM-dd"));
                 }
                 else
                 {
-                    // If parsing fails, try to remove the WHERE condition for StartDate
-                    finalQuery = finalQuery.Replace("Date >= @StartDate", "1=1");
-                    if (finalQuery.Contains(" AND 1=1"))
-                        finalQuery = finalQuery.Replace(" AND 1=1", "");
-                    if (finalQuery.Contains("WHERE 1=1 AND "))
-                        finalQuery = finalQuery.Replace("WHERE 1=1 AND ", "WHERE ");
-                    if (finalQuery.Contains("WHERE 1=1"))
-                        finalQuery = finalQuery.Replace("WHERE 1=1", "");
+                    finalQuery = finalQuery.Replace("Sch.Date >= @StartDate", "1=1");
+                    CleanupPlaceholderConditions(ref finalQuery);
                 }
             }
 
             if (!string.IsNullOrEmpty(EndDateTextBox.Text.Trim()))
             {
                 DateTime endDate;
-                if (DateTime.TryParseExact(EndDateTextBox.Text.Trim(), new string[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out endDate))
+                if (DateTime.TryParseExact(EndDateTextBox.Text.Trim(), new[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out endDate))
                 {
-                    // Add 23:59:59 to include the entire end date
                     endDate = endDate.AddDays(1).AddSeconds(-1);
                     InstitutionSQL.SelectParameters.Add("EndDate", TypeCode.DateTime, endDate.ToString("yyyy-MM-dd HH:mm:ss"));
                 }
                 else
                 {
-                    // If parsing fails, try to remove the WHERE condition for EndDate
-                    finalQuery = finalQuery.Replace("Date <= @EndDate", "1=1");
-                    if (finalQuery.Contains(" AND 1=1"))
-                        finalQuery = finalQuery.Replace(" AND 1=1", "");
-                    if (finalQuery.Contains("WHERE 1=1 AND "))
-                        finalQuery = finalQuery.Replace("WHERE 1=1 AND ", "WHERE ");
-                    if (finalQuery.Contains("WHERE 1=1"))
-                        finalQuery = finalQuery.Replace("WHERE 1=1", "");
+                    finalQuery = finalQuery.Replace("Sch.Date <= @EndDate", "1=1");
+                    CleanupPlaceholderConditions(ref finalQuery);
                 }
             }
 
-            // Update the final query after parameter validation
             InstitutionSQL.SelectCommand = finalQuery;
-
-            // Rebind the GridView
             SchoolGridView.DataBind();
-
-            // Calculate and display summary
             CalculateAndDisplaySummary(finalQuery);
+        }
+
+        private static void CleanupPlaceholderConditions(ref string finalQuery)
+        {
+            if (finalQuery.Contains(" AND 1=1"))
+                finalQuery = finalQuery.Replace(" AND 1=1", "");
+            if (finalQuery.Contains("WHERE 1=1 AND "))
+                finalQuery = finalQuery.Replace("WHERE 1=1 AND ", "WHERE ");
+            if (finalQuery.Contains("WHERE 1=1"))
+                finalQuery = finalQuery.Replace("WHERE 1=1", "");
+        }
+
+        private void AppendOnlineFilter(StringBuilder whereClause, ref bool hasCondition)
+        {
+            var filter = OnlineFilterValue.Value ?? "";
+            if (string.IsNullOrEmpty(filter))
+                return;
+
+            if (hasCondition)
+                whereClause.Append(" AND ");
+
+            switch (filter)
+            {
+                case "LiveNow":
+                    whereClause.Append("EXISTS (SELECT 1 FROM User_Active_Sessions u WHERE u.SchoolID = Sch.SchoolID AND u.SchoolID IS NOT NULL AND u.LastActivity >= DATEADD(MINUTE, -5, GETDATE()))");
+                    break;
+                case "LoggedIn":
+                    whereClause.Append("EXISTS (SELECT 1 FROM User_Active_Sessions u WHERE u.SchoolID = Sch.SchoolID AND u.SchoolID IS NOT NULL AND u.LastActivity >= DATEADD(MINUTE, -15, GETDATE()))");
+                    break;
+                case "LastHour":
+                    whereClause.Append("EXISTS (SELECT 1 FROM User_Active_Sessions u WHERE u.SchoolID = Sch.SchoolID AND u.SchoolID IS NOT NULL AND u.LastActivity >= DATEADD(HOUR, -1, GETDATE()))");
+                    break;
+                case "Today":
+                    whereClause.Append("EXISTS (SELECT 1 FROM User_Active_Sessions u WHERE u.SchoolID = Sch.SchoolID AND u.SchoolID IS NOT NULL AND CAST(u.LoginTime AS DATE) = CAST(GETDATE() AS DATE))");
+                    break;
+            }
+
+            hasCondition = true;
         }
 
         private void CalculateAndDisplaySummary(string query)
@@ -161,17 +279,16 @@ namespace EDUCATION.COM.Authority
             try
             {
                 string connectionString = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
-                
+
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
-                    // Count total results
-                    string countQuery = query.Replace("SELECT SchoolID, SchoolName, Phone, Validation, Date, UserName FROM", "SELECT COUNT(*) as TotalCount, SUM(CASE WHEN Validation = 'Valid' THEN 1 ELSE 0 END) as ValidCount, SUM(CASE WHEN Validation = 'Invalid' THEN 1 ELSE 0 END) as InvalidCount FROM");
-                    // Remove ORDER BY clause for count query
-                    countQuery = countQuery.Replace(" ORDER BY Date DESC, SchoolID", "");
+                    int fromIndex = query.IndexOf("FROM SchoolInfo", StringComparison.OrdinalIgnoreCase);
+                    string countQuery = "SELECT COUNT(*) as TotalCount, SUM(CASE WHEN Sch.Validation = 'Valid' THEN 1 ELSE 0 END) as ValidCount, SUM(CASE WHEN Sch.Validation = 'Invalid' THEN 1 ELSE 0 END) as InvalidCount " +
+                                        query.Substring(fromIndex);
+                    countQuery = countQuery.Replace(" ORDER BY ses.LastActivity DESC, Sch.Date DESC, Sch.SchoolID", "");
 
                     using (SqlCommand command = new SqlCommand(countQuery, connection))
                     {
-                        // Add parameters if they exist
                         if (!string.IsNullOrEmpty(SearchTextBox.Text.Trim()))
                         {
                             command.Parameters.AddWithValue("@SearchText", "%" + SearchTextBox.Text.Trim() + "%");
@@ -185,7 +302,7 @@ namespace EDUCATION.COM.Authority
                         if (!string.IsNullOrEmpty(StartDateTextBox.Text.Trim()) && countQuery.Contains("@StartDate"))
                         {
                             DateTime startDate;
-                            if (DateTime.TryParseExact(StartDateTextBox.Text.Trim(), new string[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate))
+                            if (DateTime.TryParseExact(StartDateTextBox.Text.Trim(), new[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate))
                             {
                                 command.Parameters.AddWithValue("@StartDate", startDate);
                             }
@@ -194,7 +311,7 @@ namespace EDUCATION.COM.Authority
                         if (!string.IsNullOrEmpty(EndDateTextBox.Text.Trim()) && countQuery.Contains("@EndDate"))
                         {
                             DateTime endDate;
-                            if (DateTime.TryParseExact(EndDateTextBox.Text.Trim(), new string[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out endDate))
+                            if (DateTime.TryParseExact(EndDateTextBox.Text.Trim(), new[] { "dd M yyyy", "d M yyyy", "dd MMM yyyy", "d MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out endDate))
                             {
                                 endDate = endDate.AddDays(1).AddSeconds(-1);
                                 command.Parameters.AddWithValue("@EndDate", endDate);
@@ -206,24 +323,20 @@ namespace EDUCATION.COM.Authority
                         {
                             if (reader.Read())
                             {
-                                // Handle potential null values
                                 int totalCount = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
                                 int validCount = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                                 int invalidCount = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
 
-                                // Update summary labels
                                 TotalCountLabel.Text = totalCount.ToString();
                                 ValidCountLabel.Text = validCount.ToString();
                                 InvalidCountLabel.Text = invalidCount.ToString();
-
-                                // Update date range label
                                 UpdateDateRangeLabel();
 
-                                // Show/hide summary based on search activity
-                                bool hasSearch = !string.IsNullOrEmpty(SearchTextBox.Text.Trim()) || 
-                                               !string.IsNullOrEmpty(ValidationFilter.SelectedValue) ||
-                                               !string.IsNullOrEmpty(StartDateTextBox.Text.Trim()) ||
-                                               !string.IsNullOrEmpty(EndDateTextBox.Text.Trim());
+                                bool hasSearch = !string.IsNullOrEmpty(SearchTextBox.Text.Trim()) ||
+                                                 !string.IsNullOrEmpty(ValidationFilter.SelectedValue) ||
+                                                 !string.IsNullOrEmpty(OnlineFilterValue.Value) ||
+                                                 !string.IsNullOrEmpty(StartDateTextBox.Text.Trim()) ||
+                                                 !string.IsNullOrEmpty(EndDateTextBox.Text.Trim());
                                 searchSummary.Visible = hasSearch || totalCount > 0;
                             }
                         }
@@ -232,8 +345,6 @@ namespace EDUCATION.COM.Authority
             }
             catch (Exception)
             {
-                // Log error or handle exception
-                // For now, hide summary on error and show default counts
                 searchSummary.Visible = false;
                 TotalCountLabel.Text = "0";
                 ValidCountLabel.Text = "0";
@@ -245,22 +356,16 @@ namespace EDUCATION.COM.Authority
         private void UpdateDateRangeLabel()
         {
             string dateRangeText = "All Time";
-            
+
             bool hasStartDate = !string.IsNullOrEmpty(StartDateTextBox.Text.Trim());
             bool hasEndDate = !string.IsNullOrEmpty(EndDateTextBox.Text.Trim());
 
             if (hasStartDate && hasEndDate)
-            {
                 dateRangeText = $"{StartDateTextBox.Text} to {EndDateTextBox.Text}";
-            }
             else if (hasStartDate)
-            {
                 dateRangeText = $"From {StartDateTextBox.Text}";
-            }
             else if (hasEndDate)
-            {
                 dateRangeText = $"Up to {EndDateTextBox.Text}";
-            }
 
             DateRangeLabel.Text = dateRangeText;
         }
@@ -275,101 +380,79 @@ namespace EDUCATION.COM.Authority
                 {
                     connection.Open();
 
-                    // Clean up old sessions (older than 30 minutes)
                     string cleanupQuery = @"
                         DELETE FROM User_Active_Sessions 
                         WHERE LastActivity < DATEADD(MINUTE, -30, GETDATE())";
-                    
+
                     using (SqlCommand cleanupCmd = new SqlCommand(cleanupQuery, connection))
                     {
                         cleanupCmd.ExecuteNonQuery();
                     }
 
-                    // Get active users (active in last 15 minutes) - distinct by SchoolID
                     string activeUsersQuery = @"
-                        SELECT COUNT(DISTINCT 
-                            CASE 
-                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
-                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
-                            END
-                        ) as ActiveUsers
-                        FROM User_Active_Sessions
-                        WHERE LastActivity >= DATEADD(MINUTE, -15, GETDATE())";
+                        SELECT COUNT(DISTINCT u.SchoolID)
+                        FROM User_Active_Sessions u
+                        WHERE u.SchoolID IS NOT NULL
+                          AND u.LastActivity >= DATEADD(MINUTE, -15, GETDATE())";
 
-                    // Get today's unique logins
                     string todayLoginsQuery = @"
-                        SELECT COUNT(DISTINCT 
-                            CASE 
-                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
-                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
-                            END
-                        ) as TodayLogins
-                        FROM User_Active_Sessions
-                        WHERE CAST(LoginTime AS DATE) = CAST(GETDATE() AS DATE)";
+                        SELECT COUNT(DISTINCT u.SchoolID)
+                        FROM User_Active_Sessions u
+                        WHERE u.SchoolID IS NOT NULL
+                          AND CAST(u.LoginTime AS DATE) = CAST(GETDATE() AS DATE)";
 
-                    // Get last hour active users
                     string lastHourQuery = @"
-                        SELECT COUNT(DISTINCT 
-                            CASE 
-                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
-                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
-                            END
-                        ) as LastHourUsers
-                        FROM User_Active_Sessions
-                        WHERE LastActivity >= DATEADD(HOUR, -1, GETDATE())";
+                        SELECT COUNT(DISTINCT u.SchoolID)
+                        FROM User_Active_Sessions u
+                        WHERE u.SchoolID IS NOT NULL
+                          AND u.LastActivity >= DATEADD(HOUR, -1, GETDATE())";
 
-                    // Get currently online (active in last 5 minutes)
                     string onlineNowQuery = @"
-                        SELECT COUNT(DISTINCT 
-                            CASE 
-                                WHEN SchoolID IS NOT NULL THEN CAST(SchoolID AS VARCHAR)
-                                ELSE 'Authority_' + CAST(RegistrationID AS VARCHAR)
-                            END
-                        ) as OnlineNow
-                        FROM User_Active_Sessions
-                        WHERE LastActivity >= DATEADD(MINUTE, -5, GETDATE())";
+                        SELECT COUNT(DISTINCT u.SchoolID)
+                        FROM User_Active_Sessions u
+                        WHERE u.SchoolID IS NOT NULL
+                          AND u.LastActivity >= DATEADD(MINUTE, -5, GETDATE())";
 
-                    // Get active users count (main display)
                     using (SqlCommand cmd = new SqlCommand(activeUsersQuery, connection))
                     {
                         object result = cmd.ExecuteScalar();
                         LoggedInUsersCountLabel.Text = result != null ? result.ToString() : "0";
                     }
 
-                    // Get today's logins
                     using (SqlCommand cmd = new SqlCommand(todayLoginsQuery, connection))
                     {
                         object result = cmd.ExecuteScalar();
                         TodayLoginsLabel.Text = result != null ? result.ToString() : "0";
                     }
 
-                    // Get last hour users
                     using (SqlCommand cmd = new SqlCommand(lastHourQuery, connection))
                     {
                         object result = cmd.ExecuteScalar();
                         LastHourLoginsLabel.Text = result != null ? result.ToString() : "0";
                     }
 
-                    // Get online now count
                     using (SqlCommand cmd = new SqlCommand(onlineNowQuery, connection))
                     {
                         object result = cmd.ExecuteScalar();
                         OnlineNowLabel.Text = result != null ? result.ToString() : "0";
                     }
+
+                    using (SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM SchoolInfo", connection))
+                    {
+                        object result = cmd.ExecuteScalar();
+                        AllInstitutionCountLabel.Text = result != null ? result.ToString() : "0";
+                    }
                 }
             }
             catch (Exception ex)
             {
-                // Show 0 on error but don't crash
                 LoggedInUsersCountLabel.Text = "0";
                 TodayLoginsLabel.Text = "0";
                 LastHourLoginsLabel.Text = "0";
                 OnlineNowLabel.Text = "0";
-                
-                // Log to debug
+                AllInstitutionCountLabel.Text = "0";
                 System.Diagnostics.Debug.WriteLine("Error loading active users: " + ex.Message);
-                
-                // Try to log to file
+
                 try
                 {
                     string logPath = Server.MapPath("~/App_Data/session_tracking_errors.txt");

@@ -22,6 +22,10 @@ namespace SmsService
             {
                 _provider = new SmsProviderGreenWeb();
             }
+            else if (provider == ProviderEnum.Novocom)
+            {
+                _provider = new SmsProviderNovocom();
+            }
 
 
             if (providerMultiple == ProviderEnum.BanglaPhone)
@@ -31,6 +35,10 @@ namespace SmsService
             else if (providerMultiple == ProviderEnum.GreenWeb)
             {
                 _providerMultiple = new SmsProviderGreenWeb();
+            }
+            else if (providerMultiple == ProviderEnum.Novocom)
+            {
+                _providerMultiple = new SmsProviderNovocom();
             }
         }
         public int SmsBalance()
@@ -70,7 +78,7 @@ namespace SmsService
             try
             {
                 this.IsSuccess = true;
-                _provider.SendSmsMultiple(smsList);
+                (_providerMultiple ?? _provider).SendSmsMultiple(smsList);
             }
             catch (Exception e)
             {

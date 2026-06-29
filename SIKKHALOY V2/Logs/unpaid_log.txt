@@ -1,0 +1,87 @@
+2026-06-08 17:15:34.365 - === UNPAID BUTTON CLICKED ===
+2026-06-08 17:15:34.366 - Receipt No: 100303
+2026-06-08 17:15:34.367 - SchoolID: 1012, RegistrationID: 27173
+2026-06-08 17:15:35.392 - Error in DeleteReceiptButton_Click: String or binary data would be truncated.
+The statement has been terminated. | Stack:    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, Boolean inRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.InternalExecuteNonQuery(TaskCompletionSource`1 completion, String methodName, Boolean sendToPipe, Int32 timeout, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.ExecuteNonQuery()
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.UpdateUnpaidReceipt(String receiptNo, Int64 schoolID, Int64 currentUserRegistrationID) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 238
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.DeleteReceiptButton_Click(Object sender, EventArgs e) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 40
+2026-06-08 17:55:58.230 - === UNPAID BUTTON CLICKED ===
+2026-06-08 17:55:58.242 - Receipt No: 100303
+2026-06-08 17:55:58.242 - SchoolID: 1012, RegistrationID: 27173
+2026-06-08 17:55:58.931 - Error in DeleteReceiptButton_Click: String or binary data would be truncated.
+The statement has been terminated. | Stack:    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, Boolean inRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.InternalExecuteNonQuery(TaskCompletionSource`1 completion, String methodName, Boolean sendToPipe, Int32 timeout, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.ExecuteNonQuery()
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.UpdateUnpaidReceipt(String receiptNo, Int64 schoolID, Int64 currentUserRegistrationID) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 242
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.DeleteReceiptButton_Click(Object sender, EventArgs e) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 40
+2026-06-08 18:06:05.126 - === UNPAID BUTTON CLICKED ===
+2026-06-08 18:06:05.147 - Receipt No: 100303
+2026-06-08 18:06:05.147 - SchoolID: 1012, RegistrationID: 27173
+2026-06-08 18:06:05.792 - Error in DeleteReceiptButton_Click: String or binary data would be truncated.
+The statement has been terminated. | Stack:    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, Boolean inRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.InternalExecuteNonQuery(TaskCompletionSource`1 completion, String methodName, Boolean sendToPipe, Int32 timeout, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.ExecuteNonQuery()
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.UpdateUnpaidReceipt(String receiptNo, Int64 schoolID, Int64 currentUserRegistrationID) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 274
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.DeleteReceiptButton_Click(Object sender, EventArgs e) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 72
+2026-06-08 18:12:29.505 - === UNPAID BUTTON CLICKED ===
+2026-06-08 18:12:29.506 - Receipt No: 100303
+2026-06-08 18:12:29.506 - SchoolID: 1012, RegistrationID: 27173
+2026-06-08 18:12:30.684 - Error in DeleteReceiptButton_Click: String or binary data would be truncated.
+The statement has been terminated. | Stack:    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, Boolean inRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.InternalExecuteNonQuery(TaskCompletionSource`1 completion, String methodName, Boolean sendToPipe, Int32 timeout, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.ExecuteNonQuery()
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.UpdateUnpaidReceipt(String receiptNo, Int64 schoolID, Int64 currentUserRegistrationID) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 274
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.DeleteReceiptButton_Click(Object sender, EventArgs e) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 72
+2026-06-08 18:12:44.041 - === UNPAID BUTTON CLICKED ===
+2026-06-08 18:12:44.041 - Receipt No: 100303
+2026-06-08 18:12:44.041 - SchoolID: 1012, RegistrationID: 27173
+2026-06-08 18:12:44.968 - Error in DeleteReceiptButton_Click: String or binary data would be truncated.
+The statement has been terminated. | Stack:    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, Boolean inRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.InternalExecuteNonQuery(TaskCompletionSource`1 completion, String methodName, Boolean sendToPipe, Int32 timeout, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.ExecuteNonQuery()
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.UpdateUnpaidReceipt(String receiptNo, Int64 schoolID, Int64 currentUserRegistrationID) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 274
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.DeleteReceiptButton_Click(Object sender, EventArgs e) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 72
+2026-06-08 18:16:00.843 - === UNPAID BUTTON CLICKED ===
+2026-06-08 18:16:00.843 - Receipt No: 100303
+2026-06-08 18:16:00.843 - SchoolID: 1012, RegistrationID: 27173
+2026-06-08 18:16:01.745 - About to insert Account_Log entries for 4 records
+2026-06-08 18:16:01.813 - Error inserting Account_Log: String or binary data would be truncated.
+The statement has been terminated.
+2026-06-08 18:16:01.871 - Error in DeleteReceiptButton_Click: String or binary data would be truncated.
+The statement has been terminated. | Stack:    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, Boolean inRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.InternalExecuteNonQuery(TaskCompletionSource`1 completion, String methodName, Boolean sendToPipe, Int32 timeout, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   at System.Data.SqlClient.SqlCommand.ExecuteNonQuery()
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.UpdateUnpaidReceipt(String receiptNo, Int64 schoolID, Int64 currentUserRegistrationID) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 301
+   at EDUCATION.COM.Accounts.Payment.Unpaid_Money_Receipt.DeleteReceiptButton_Click(Object sender, EventArgs e) in F:\SIKKHALOY-V3\SIKKHALOY V2\Accounts\Payment\Unpaid_Money_Receipt.aspx.cs:line 72

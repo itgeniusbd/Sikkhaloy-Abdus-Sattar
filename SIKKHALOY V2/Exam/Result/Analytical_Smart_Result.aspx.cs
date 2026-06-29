@@ -93,12 +93,7 @@ namespace EDUCATION.COM.Exam.Result
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateClassExamLabel();
-            if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedValue != "0")
-            {
-                LoadGradeChartData();
-                GenerateSubjectWiseGradeDistribution();
-            }
-            else
+            if (ClassDropDownList.SelectedIndex <= 0 || ExamDropDownList.SelectedIndex <= 0 || ExamDropDownList.SelectedValue == "0")
             {
                 ClearReportData();
             }
@@ -120,6 +115,8 @@ namespace EDUCATION.COM.Exam.Result
         {
             if (ClassDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedIndex > 0 && ExamDropDownList.SelectedValue != "0")
             {
+                LoadGradeChartData();
+                GenerateSubjectWiseGradeDistribution();
                 GenerateDynamicUnsuccessfulStudentsTable();
             }
         }
@@ -143,11 +140,16 @@ namespace EDUCATION.COM.Exam.Result
             try
             {
                 var gradeData = GetGradeDistribution();
+                var institutionGrades = GetInstitutionGrades();
+                if (institutionGrades.Count == 0 && gradeData.Count > 0)
+                    institutionGrades = SortGrades(gradeData.Keys.ToList());
+
                 StringBuilder chartHtml = new StringBuilder();
-                foreach (var grade in gradeData)
+                foreach (var grade in institutionGrades)
                 {
-                    chartHtml.AppendFormat("<div class='grade-chart'><div class='grade-count'>{0}</div><div class='grade-label'>Grade {1}</div></div>", 
-                        grade.Value, grade.Key);
+                    int count = GetGradeCount(gradeData, grade);
+                    chartHtml.AppendFormat("<div class='grade-chart'><div class='grade-count'>{0}</div><div class='grade-label'>Grade {1}</div></div>",
+                        count, grade);
                 }
                 GradeChartLiteral.Text = chartHtml.ToString();
             }
@@ -167,6 +169,7 @@ namespace EDUCATION.COM.Exam.Result
                     con.Open();
                     string query = @"SELECT Student_Grade, COUNT(*) as StudentCount FROM Exam_Result_of_Student 
                         WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID AND ExamID = @ExamID
+                        AND Student_Grade IS NOT NULL AND LTRIM(RTRIM(Student_Grade)) <> ''
                         GROUP BY Student_Grade
                         ORDER BY CASE Student_Grade WHEN 'A+' THEN 1 WHEN 'A' THEN 2 WHEN 'A-' THEN 3 WHEN 'B' THEN 4 WHEN 'C' THEN 5 WHEN 'D' THEN 6 WHEN 'F' THEN 7 ELSE 8 END";
                     using (SqlCommand cmd = new SqlCommand(query, con))
@@ -210,9 +213,9 @@ namespace EDUCATION.COM.Exam.Result
                     int examID = Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0");
                     
                     literalControl.Text = $@"<div class='alert alert-warning' style='margin-top: 15px;'>
-                        <strong>?? No grading system found for this institution.</strong><br/>
-                        <small>Debug Info: SchoolID={schoolID}, EducationYearID={educationYearID}, ClassID={classID}, ExamID={examID}</small><br/>
-                        <small>Please check if grades are recorded in the database for the selected class and exam.</small>
+                        <strong>???? ????? ???? ?????? ???????</strong><br/>
+                        <small>????????? ????? ? ???????? ???? Exam_Result_of_Student ?? Exam_Result_of_Subject ?????? ????? ??????? ??? ???? ??????</small><br/>
+                        <small>Debug: SchoolID={schoolID}, EducationYearID={educationYearID}, ClassID={classID}, ExamID={examID}</small>
                     </div>";
                     return;
                 }
@@ -271,44 +274,9 @@ namespace EDUCATION.COM.Exam.Result
                         color: #721c24;
                         font-weight: bold;
                     }
-                    .absent-cell {
-                        background-color: #ffeaa7 !important;
-                        color: #6c5ce7;
-                        font-weight: bold;
-                    }
                     .total-cell {
                         font-weight: bold;
                         background-color: #e9ecef;
-                    }
-                    .missing-reason-cell {
-                        text-align: left;
-                        font-size: 11px;
-                        padding: 6px 8px;
-                        background-color: #fff8e6;
-                        max-width: 300px;
-                    }
-                    .missing-student-item {
-                        margin: 4px 0;
-                        padding: 4px 6px;
-                        background-color: white;
-                        border-left: 3px solid #6c5ce7;
-                        border-radius: 3px;
-                    }
-                    .missing-student-name {
-                        font-weight: bold;
-                        color: #2c3e50;
-                        font-size: 11px;
-                    }
-                    .missing-student-reason {
-                        color: #e74c3c;
-                        font-style: italic;
-                        font-size: 10px;
-                        margin-top: 2px;
-                    }
-                    .missing-student-status {
-                        color: #95a5a6;
-                        font-size: 9px;
-                        margin-top: 1px;
                     }
                     @media print {
                         .subject-grade-table {
@@ -316,10 +284,6 @@ namespace EDUCATION.COM.Exam.Result
                         }
                         .subject-grade-table th, .subject-grade-table td {
                             padding: 4px;
-                        }
-                        .missing-reason-cell {
-                            font-size: 9px;
-                            max-width: 250px;
                         }
                     }
                 </style>");
@@ -331,85 +295,27 @@ namespace EDUCATION.COM.Exam.Result
                     tableHtml.AppendFormat("<th>Grade {0}</th>", grade);
                 }
                
-                tableHtml.Append("<th style='background-color: #ffeaa7; color: #6c5ce7;'>Absent/Missing</th>");
-                 tableHtml.Append("<th style='background-color: #28a745;'>Total Students</th>");
-                tableHtml.Append("<th style='background-color: #ff9999; color: #333; min-width: 200px;'>Missing Reason</th></tr></thead>");
+                tableHtml.Append("<th style='background-color: #17a2b8; color: white;'>Appeared</th>");
+                tableHtml.Append("<th style='background-color: #28a745; color: white;'>Total Students</th></tr></thead>");
 
                 tableHtml.Append("<tbody>");
                 
-                // Get total class students for comparison
                 int totalClassStudents = GetTotalClassStudents();
                 
                 foreach (var subjectData in subjectGradeData)
                 {
                     tableHtml.Append("<tr>");
                     tableHtml.AppendFormat("<td>{0}</td>", subjectData.SubjectName);
-                    int totalStudents = 0;
                     foreach (var grade in institutionGrades)
                     {
-                        int count = subjectData.GradeCounts.ContainsKey(grade) ? subjectData.GradeCounts[grade] : 0;
-                        totalStudents += count;
+                        int count = GetGradeCount(subjectData.GradeCounts, grade);
                         string cellClass = count > 20 ? "grade-cell-high" : (count > 5 ? "grade-cell-medium" : (count > 0 && grade == "F" ? "grade-cell-low" : ""));
                         tableHtml.AppendFormat("<td class='{0}'>{1}</td>", cellClass, count > 0 ? count.ToString() : "-");
                     }
                     
-                    // Calculate absent/missing students
-                    int absentCount = totalClassStudents - totalStudents;
-                    
-                    if (absentCount > 0)
-                    {
-                        tableHtml.AppendFormat("<td class='absent-cell'>{0}</td>", absentCount);
-                    }
-                    else
-                    {
-                        tableHtml.Append("<td class='absent-cell'>-</td>");
-                    }
-                    
-                    tableHtml.AppendFormat("<td class='total-cell'>{0}</td>", totalStudents);
-                    
-                    // Missing Reason Column
-                    if (absentCount > 0)
-                    {
-                        var missingStudents = GetMissingStudentsForSubject(subjectData.SubjectID);
-                        
-                        tableHtml.Append("<td class='missing-reason-cell'>");
-                        
-                        if (missingStudents != null && missingStudents.Count > 0)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"?? Displaying {missingStudents.Count} missing students for {subjectData.SubjectName}");
-                            
-                            foreach (var student in missingStudents)
-                            {
-                                tableHtml.Append("<div class='missing-student-item'>");
-                                tableHtml.AppendFormat("<div class='missing-student-name'>?? {0} (ID: {1})</div>", 
-                                    student.StudentName, student.StudentID);
-                                tableHtml.AppendFormat("<div class='missing-student-reason'>{0}</div>", student.Reason);
-                                if (!string.IsNullOrEmpty(student.StudentStatus) && student.StudentStatus != "Active")
-                                {
-                                    tableHtml.AppendFormat("<div class='missing-student-status'>?? Status: {0}</div>", student.StudentStatus);
-                                }
-                                tableHtml.Append("</div>");
-                            }
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"?? No missing student details found for {subjectData.SubjectName}");
-                            tableHtml.Append("<div style='color: #e74c3c; font-style: italic; padding: 8px;'>");
-                            tableHtml.AppendFormat("?? {0} student(s) missing data<br/>", absentCount);
-                            tableHtml.Append("<small>Possible reasons:</small><br/>");
-                            tableHtml.Append("<small>• Subject not assigned to students</small><br/>");
-                            tableHtml.Append("<small>• Marks not entered yet</small><br/>");
-                            tableHtml.Append("<small>• Student records incomplete</small>");
-                            tableHtml.Append("</div>");
-                        }
-                        
-                        tableHtml.Append("</td>");
-                    }
-                    else
-                    {
-                        tableHtml.Append("<td class='missing-reason-cell' style='text-align: center; color: #28a745;'>? All Present</td>");
-                    }
-                    
+                    int appearedCount = subjectData.GradeCounts.Values.Sum();
+                    tableHtml.AppendFormat("<td style='font-weight:bold; background-color:#d1ecf1;'>{0}</td>", appearedCount);
+                    tableHtml.AppendFormat("<td class='total-cell'>{0}</td>", subjectData.TotalEnrolled);
                     tableHtml.Append("</tr>");
                 }
                 tableHtml.Append("</tbody></table></div>");
@@ -432,6 +338,7 @@ namespace EDUCATION.COM.Exam.Result
         private List<string> GetInstitutionGrades()
         {
             var grades = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 int schoolID = Convert.ToInt32(Session["SchoolID"] ?? "1");
@@ -439,65 +346,118 @@ namespace EDUCATION.COM.Exam.Result
                 int classID = Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0");
                 int examID = Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0");
 
-                System.Diagnostics.Debug.WriteLine($"?? GetInstitutionGrades Parameters: SchoolID={schoolID}, EduYear={educationYearID}, ClassID={classID}, ExamID={examID}");
-
-                // Use the EXACT same query as GetGradeDistribution() to ensure we get the same grades
-                var gradeDistribution = GetGradeDistribution();
-                
-                if (gradeDistribution != null && gradeDistribution.Count > 0)
-                {
-                    grades = gradeDistribution.Keys.ToList();
-                    System.Diagnostics.Debug.WriteLine($"? Got {grades.Count} grades from GetGradeDistribution(): {string.Join(", ", grades)}");
-                    return grades;
-                }
-                
-                System.Diagnostics.Debug.WriteLine("?? GetGradeDistribution() returned no grades, trying direct query");
-
                 using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
                 {
                     con.Open();
-                    
-                    // Exact same query as GetGradeDistribution()
-                    string query = @"SELECT DISTINCT Student_Grade as Grade FROM Exam_Result_of_Student 
-                        WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID 
+
+                    // 1. Institution grading system ? full grade scale for this exam (A+ through F)
+                    MergeGrades(grades, seen, LoadDistinctGrades(con, @"SELECT DISTINCT gs.Grades AS Grade
+                        FROM Exam_Grading_System gs
+                        INNER JOIN Exam_Grading_Assign ga ON gs.GradeNameID = ga.GradeNameID AND gs.SchoolID = ga.SchoolID
+                        WHERE ga.SchoolID = @SchoolID AND ga.EducationYearID = @EducationYearID
+                        AND ga.ClassID = @ClassID AND ga.ExamID = @ExamID
+                        ORDER BY gs.Point DESC",
+                        schoolID, educationYearID, classID, examID));
+
+                    // 2. Subject-level grades ? includes B,C,D that may not appear in overall Student_Grade
+                    MergeGrades(grades, seen, LoadDistinctGrades(con, @"SELECT DISTINCT ers.SubjectGrades AS Grade
+                        FROM Exam_Result_of_Subject ers
+                        INNER JOIN Exam_Result_of_Student erst ON ers.StudentResultID = erst.StudentResultID
+                        WHERE ers.SchoolID = @SchoolID AND ers.EducationYearID = @EducationYearID
+                        AND erst.ClassID = @ClassID AND erst.ExamID = @ExamID
+                        AND ers.SubjectGrades IS NOT NULL AND LTRIM(RTRIM(ers.SubjectGrades)) <> ''",
+                        schoolID, educationYearID, classID, examID));
+
+                    // 3. Overall student grades for this exam
+                    MergeGrades(grades, seen, LoadDistinctGrades(con, @"SELECT DISTINCT Student_Grade AS Grade
+                        FROM Exam_Result_of_Student
+                        WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
                         AND ClassID = @ClassID AND ExamID = @ExamID
-                        AND Student_Grade IS NOT NULL AND LTRIM(RTRIM(Student_Grade)) != ''
-                        ORDER BY CASE Student_Grade 
-                            WHEN 'A+' THEN 1 WHEN 'A' THEN 2 WHEN 'A-' THEN 3 
-                            WHEN 'B' THEN 4 WHEN 'C' THEN 5 WHEN 'D' THEN 6 WHEN 'F' THEN 7 ELSE 8 END";
-                    
-                    using (SqlCommand cmd = new SqlCommand(query, con))
-                    {
-                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
-                        cmd.Parameters.AddWithValue("@EducationYearID", educationYearID);
-                        cmd.Parameters.AddWithValue("@ClassID", classID);
-                        cmd.Parameters.AddWithValue("@ExamID", examID);
-                        
-                        System.Diagnostics.Debug.WriteLine($"?? Executing direct query for grades");
-                        
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                string grade = reader["Grade"]?.ToString()?.Trim();
-                                if (!string.IsNullOrEmpty(grade))
-                                {
-                                    grades.Add(grade);
-                                    System.Diagnostics.Debug.WriteLine($"? Found grade: {grade}");
-                                }
-                            }
-                        }
-                    }
+                        AND Student_Grade IS NOT NULL AND LTRIM(RTRIM(Student_Grade)) <> ''",
+                        schoolID, educationYearID, classID, examID));
                 }
-                
-                System.Diagnostics.Debug.WriteLine($"? Total Found {grades.Count} grades: {string.Join(", ", grades)}");
+
+                grades = SortGrades(grades);
+                System.Diagnostics.Debug.WriteLine($"? GetInstitutionGrades: {string.Join(", ", grades)}");
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"? Error getting institution grades: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
             }
             return grades;
+        }
+
+        private static void MergeGrades(List<string> target, HashSet<string> seen, IEnumerable<string> newGrades)
+        {
+            foreach (var grade in newGrades)
+            {
+                if (!string.IsNullOrWhiteSpace(grade) && seen.Add(grade.Trim()))
+                    target.Add(grade.Trim());
+            }
+        }
+
+        private static List<string> SortGrades(List<string> grades)
+        {
+            return grades.OrderBy(g => GetGradeSortOrder(g)).ThenBy(g => g, StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private static int GetGradeSortOrder(string grade)
+        {
+            switch (grade?.Trim().ToUpperInvariant())
+            {
+                case "A+": return 1;
+                case "A": return 2;
+                case "A-": return 3;
+                case "B": return 4;
+                case "C": return 5;
+                case "D": return 6;
+                case "F": return 7;
+                default: return 8;
+            }
+        }
+
+        private static int GetGradeCount(Dictionary<string, int> gradeCounts, string grade)
+        {
+            if (gradeCounts == null || string.IsNullOrEmpty(grade))
+                return 0;
+            if (gradeCounts.TryGetValue(grade, out int count))
+                return count;
+            foreach (var kvp in gradeCounts)
+            {
+                if (string.Equals(kvp.Key, grade, StringComparison.OrdinalIgnoreCase))
+                    return kvp.Value;
+            }
+            return 0;
+        }
+
+        private static List<string> LoadDistinctGrades(SqlConnection con, string query, int schoolID, int educationYearID, int classID, int examID)
+        {
+            var result = new List<string>();
+            try
+            {
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                    cmd.Parameters.AddWithValue("@EducationYearID", educationYearID);
+                    cmd.Parameters.AddWithValue("@ClassID", classID);
+                    cmd.Parameters.AddWithValue("@ExamID", examID);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string grade = reader["Grade"]?.ToString()?.Trim();
+                            if (!string.IsNullOrEmpty(grade))
+                                result.Add(grade);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"? LoadDistinctGrades failed: {ex.Message}");
+            }
+            return result;
         }
 
         private List<SubjectGradeDistribution> GetSubjectWiseGradeData(List<string> institutionGrades)
@@ -649,7 +609,8 @@ namespace EDUCATION.COM.Exam.Result
                         }
 
                         int finalCount = subjectData.GradeCounts.Values.Sum();
-                        System.Diagnostics.Debug.WriteLine($"? Subject {subjectData.SubjectName}: Final total = {finalCount} (Expected: {totalStudents})");
+                        subjectData.TotalEnrolled = totalStudents;
+                        System.Diagnostics.Debug.WriteLine($"? Subject {subjectData.SubjectName}: Final total = {finalCount} (Enrolled: {totalStudents})");
                     }
                 }
             }
@@ -753,99 +714,6 @@ namespace EDUCATION.COM.Exam.Result
             return totalStudents;
         }
 
-        // Helper method to get missing students details for a subject
-        private List<MissingStudentInfo> GetMissingStudentsForSubject(int subjectID)
-        {
-            var missingStudents = new List<MissingStudentInfo>();
-            try
-            {
-                using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-                {
-                    con.Open();
-                    
-                    // Strategy 1: Find students who are in the class but don't have records for this subject
-                    string query = @"
-                    -- Get all students in the exam
-                    SELECT DISTINCT 
-                        s.StudentID,
-                        s.StudentsName,
-                        s.Status as StudentStatus,
-                        CASE 
-                            WHEN s.Status = 'Deactive' THEN '?? Student Deactivated/TC'
-                            WHEN NOT EXISTS (
-                                SELECT 1 FROM Exam_Result_of_Subject ers2 
-                                WHERE ers2.StudentResultID = erst.StudentResultID 
-                                AND ers2.SubjectID = @SubjectID
-                            ) THEN '? Subject Not Assigned/No Record'
-                            WHEN ers.ObtainedMark_ofSubject IS NULL OR LTRIM(RTRIM(ers.ObtainedMark_ofSubject)) = '' THEN '?? Marks Not Entered'
-                            WHEN UPPER(LTRIM(RTRIM(ers.ObtainedMark_ofSubject))) IN ('A', 'ABS', 'ABSENT') THEN '?? Marked as Absent'
-                            WHEN ers.SubjectGrades IS NULL OR LTRIM(RTRIM(ers.SubjectGrades)) = '' THEN '?? Grade Not Calculated'
-                            ELSE '? Unknown Reason'
-                        END as Reason
-                    FROM Exam_Result_of_Student erst
-                    INNER JOIN Student s ON erst.StudentID = s.StudentID
-                    LEFT JOIN Exam_Result_of_Subject ers ON erst.StudentResultID = ers.StudentResultID 
-                        AND ers.SubjectID = @SubjectID
-                    WHERE erst.SchoolID = @SchoolID 
-                        AND erst.EducationYearID = @EducationYearID 
-                        AND erst.ClassID = @ClassID 
-                        AND erst.ExamID = @ExamID
-                        AND (
-                            -- No record for this subject
-                            NOT EXISTS (
-                                SELECT 1 FROM Exam_Result_of_Subject ers2 
-                                WHERE ers2.StudentResultID = erst.StudentResultID 
-                                AND ers2.SubjectID = @SubjectID
-                            )
-                            OR 
-                            -- Has record but no grade
-                            (ers.SubjectGrades IS NULL OR LTRIM(RTRIM(ers.SubjectGrades)) = '')
-                            OR
-                            -- Student is deactivated
-                            s.Status = 'Deactive'
-                        )
-                    ORDER BY s.StudentsName";
-                    
-                    using (SqlCommand cmd = new SqlCommand(query, con))
-                    {
-                        cmd.Parameters.AddWithValue("@SchoolID", Convert.ToInt32(Session["SchoolID"] ?? "1"));
-                        cmd.Parameters.AddWithValue("@EducationYearID", Convert.ToInt32(Session["Edu_Year"] ?? "1"));
-                        cmd.Parameters.AddWithValue("@ClassID", Convert.ToInt32(ClassDropDownList?.SelectedValue ?? "0"));
-                        cmd.Parameters.AddWithValue("@ExamID", Convert.ToInt32(ExamDropDownList?.SelectedValue ?? "0"));
-                        cmd.Parameters.AddWithValue("@SubjectID", subjectID);
-                        
-                        System.Diagnostics.Debug.WriteLine($"?? Querying missing students for SubjectID: {subjectID}");
-                        
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                var student = new MissingStudentInfo
-                                {
-                                    StudentID = Convert.ToInt32(reader["StudentID"]),
-                                    StudentName = reader["StudentsName"]?.ToString() ?? "Unknown",
-                                    Reason = reader["Reason"]?.ToString() ?? "Unknown Reason",
-                                    StudentStatus = reader["StudentStatus"]?.ToString() ?? "",
-                                    ClassStatus = ""
-                                };
-                                
-                                missingStudents.Add(student);
-                                System.Diagnostics.Debug.WriteLine($"  ? Found: {student.StudentName} - {student.Reason}");
-                            }
-                        }
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"?? Total missing students for SubjectID {subjectID}: {missingStudents.Count}");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"? Error getting missing students for SubjectID {subjectID}: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
-            }
-            return missingStudents;
-        }
-
         // Simplified version - You can add full implementation later if needed
         private void GenerateDynamicUnsuccessfulStudentsTable()
         {
@@ -881,172 +749,104 @@ namespace EDUCATION.COM.Exam.Result
 
                 // Build the dynamic table HTML
                 StringBuilder tableHtml = new StringBuilder();
-                
-                // Add CSS styles
-                tableHtml.Append(@"<style>
-                    .dynamic-unsuccessful-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-family: 'Arial', sans-serif;
-                        background-color: white;
-                        font-size: 11px;
-                        margin-top: 15px;
-                    }
-                    .dynamic-unsuccessful-table th,
-                    .dynamic-unsuccessful-table td {
-                        border: 1px solid #dee2e6;
-                        padding: 6px 8px;
-                        text-align: center;
-                        vertical-align: middle;
-                    }
-                    .dynamic-unsuccessful-table thead {
-                        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-                        color: white;
-                        font-weight: bold;
-                    }
-                    .dynamic-unsuccessful-table .subject-header {
-                        background-color: #f8d7da;
-                        color: #721c24;
-                        font-weight: bold;
-                        font-size: 10px;
-                    }
-                    .dynamic-unsuccessful-table tbody tr:nth-child(even) {
-                        background-color: #f8f9fa;
-                    }
-                    .dynamic-unsuccessful-table tbody tr:hover {
-                        background-color: #fff3cd;
-                        transition: background-color 0.2s ease;
-                    }
-                    .dynamic-unsuccessful-table .student-col {
-                        text-align: left;
-                        font-weight: 600;
-                        color: #2c3e50;
-                        white-space: nowrap;
-                        max-width: 200px;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                    .dynamic-unsuccessful-table .roll-col {
-                        font-weight: 600;
-                        color: #495057;
-                    }
-                    .dynamic-unsuccessful-table .om-cell {
-                        background-color: #fff3cd;
-                        color: #856404;
-                        font-weight: bold;
-                    }
-                    .dynamic-unsuccessful-table .lack-cell {
-                        background-color: #f8d7da;
-                        color: #721c24;
-                        font-weight: bold;
-                    }
-                    .dynamic-unsuccessful-table .pass-cell {
-                        background-color: #d4edda;
-                        color: #155724;
-                    }
-                    .dynamic-unsuccessful-table .absent-cell {
-                        background-color: #ffeaa7;
-                        color: #6c5ce7;
-                        font-weight: bold;
-                        font-style: italic;
-                    }
-                    @media print {
-                        .dynamic-unsuccessful-table {
-                            font-size: 9px;
-                        }
-                        .dynamic-unsuccessful-table th,
-                        .dynamic-unsuccessful-table td {
-                            padding: 3px 4px;
-                        }
-                    }
-                </style>");
 
-                // Start table
-                tableHtml.Append("<div class='table-responsive'><table class='dynamic-unsuccessful-table'>");
-                
+                tableHtml.Append(@"<div class='unsuccessful-table-wrapper table-wrapper'>
+                    <div class='unsuccessful-legend d-print-none'>
+                        <span class='legend-item'><span class='legend-swatch legend-pass'></span> Pass</span>
+                        <span class='legend-item'><span class='legend-swatch legend-fail'></span> Fail</span>
+                        <span class='legend-item'><span class='legend-swatch legend-absent'></span> Absent</span>
+                        <span class='legend-item legend-note'><strong>OM</strong> = Obtained Marks &nbsp;|&nbsp; <strong>Lack</strong> = Shortage from pass marks (33%)</span>
+                    </div>
+                    <table class='dynamic-unsuccessful-table'>");
+
                 // Table header
-                tableHtml.Append("<thead><tr>");
-                tableHtml.Append("<th rowspan='2'>SL</th>");
-                tableHtml.Append("<th rowspan='2'>ID</th>");
-                tableHtml.Append("<th rowspan='2'>Student Name</th>");
-                tableHtml.Append("<th rowspan='2'>Roll</th>");
-                tableHtml.Append("<th rowspan='2'>Grade</th>");
-                tableHtml.Append("<th rowspan='2'>Failed<br/>Subjects</th>");
-                
-                // Subject columns (2 rows each: OM and Lack)
-                foreach (var subject in subjects)
+                tableHtml.Append("<thead>");
+                tableHtml.Append("<tr class='header-row'>");
+                tableHtml.Append("<th rowspan='2' class='fixed-col col-sl'>SL</th>");
+                tableHtml.Append("<th rowspan='2' class='fixed-col col-id'>ID</th>");
+                tableHtml.Append("<th rowspan='2' class='fixed-col col-name'>Name</th>");
+                tableHtml.Append("<th rowspan='2' class='fixed-col col-roll'>Roll</th>");
+                tableHtml.Append("<th rowspan='2' class='fixed-col col-grade'>Grd</th>");
+                tableHtml.Append("<th rowspan='2' class='fixed-col failed-col' title='Failed Subjects'>Fail</th>");
+
+                for (int i = 0; i < subjects.Count; i++)
                 {
-                    tableHtml.AppendFormat("<th colspan='2' class='subject-header'>{0}</th>", subject.SubjectName);
+                    string groupClass = "subject-group-" + (i % 5);
+                    string subjectTitle = System.Web.HttpUtility.HtmlEncode(subjects[i].SubjectName);
+                    string shortLabel = GetCompactSubjectLabel(subjects[i].SubjectName);
+                    tableHtml.AppendFormat("<th colspan='2' class='subject-group-header {0}' title='{1}'>{2}</th>",
+                        groupClass, subjectTitle, System.Web.HttpUtility.HtmlEncode(shortLabel));
                 }
                 tableHtml.Append("</tr>");
-                
-                // Second header row for OM and Lack
-                tableHtml.Append("<tr>");
-                foreach (var subject in subjects)
+
+                tableHtml.Append("<tr class='om-lack-header-row'>");
+                for (int i = 0; i < subjects.Count; i++)
                 {
-                    tableHtml.Append("<th class='subject-header'>OM</th>");
-                    tableHtml.Append("<th class='subject-header'>Lack</th>");
+                    string groupClass = "subject-group-" + (i % 5);
+                    tableHtml.AppendFormat("<th class='subject-om-header subject-group-start {0}'>OM</th>", groupClass);
+                    tableHtml.AppendFormat("<th class='subject-lack-header {0}'>Lack</th>", groupClass);
                 }
                 tableHtml.Append("</tr></thead>");
 
                 // Table body
                 tableHtml.Append("<tbody>");
                 int serialNo = 1;
-                
+
                 foreach (var student in unsuccessfulStudents)
                 {
                     tableHtml.Append("<tr>");
-                    tableHtml.AppendFormat("<td>{0}</td>", serialNo++);
-                    tableHtml.AppendFormat("<td class='roll-col'>{0}</td>", student.StudentID);
-                    tableHtml.AppendFormat("<td class='student-col' title='{0}'>{0}</td>", student.StudentName);
-                    tableHtml.AppendFormat("<td class='roll-col'>{0}</td>", student.Roll);
-                    tableHtml.AppendFormat("<td style='color: #dc3545; font-weight: bold;'>{0}</td>", student.Grade);
-                    tableHtml.AppendFormat("<td style='background-color: #f8d7da; color: #721c24; font-weight: bold;'>{0}</td>", student.FailedCount);
-                    
-                    // Subject marks and shortage columns
-                    foreach (var subject in subjects)
+                    tableHtml.AppendFormat("<td class='fixed-col'>{0}</td>", serialNo++);
+                    tableHtml.AppendFormat("<td class='fixed-col student-id-cell'>{0}</td>", student.StudentID);
+                    tableHtml.AppendFormat("<td class='fixed-col student-name-cell' title='{0}'>{0}</td>",
+                        System.Web.HttpUtility.HtmlEncode(student.StudentName));
+                    tableHtml.AppendFormat("<td class='fixed-col roll-col'>{0}</td>", student.Roll);
+                    tableHtml.AppendFormat("<td class='fixed-col grade-fail-cell'>{0}</td>", student.Grade);
+                    tableHtml.AppendFormat("<td class='fixed-col failed-count-cell'>{0}</td>", student.FailedCount);
+
+                    for (int i = 0; i < subjects.Count; i++)
                     {
+                        var subject = subjects[i];
+                        string groupClass = "subject-group-" + (i % 5);
+                        string omClass = "subject-om-cell subject-group-start " + groupClass;
+                        string lackClass = "subject-lack-cell " + groupClass;
+
                         if (student.SubjectResults.ContainsKey(subject.SubjectID))
                         {
                             var result = student.SubjectResults[subject.SubjectID];
-                            
+
                             if (result.IsAbsent)
                             {
-                                // Absent
-                                tableHtml.Append("<td class='absent-cell'>ABS</td>");
-                                tableHtml.Append("<td class='absent-cell'>-</td>");
+                                tableHtml.AppendFormat("<td class='{0} absent-cell'>ABS</td>", omClass);
+                                tableHtml.AppendFormat("<td class='{0} absent-cell'>-</td>", lackClass);
                             }
                             else if (result.IsFailed)
                             {
-                                // Failed
-                                tableHtml.AppendFormat("<td class='om-cell'>{0}</td>", result.ObtainedMarks);
-                                tableHtml.AppendFormat("<td class='lack-cell'>{0}</td>", result.Shortage);
+                                tableHtml.AppendFormat("<td class='{0} om-cell fail-cell'>{1}</td>", omClass, result.ObtainedMarks);
+                                tableHtml.AppendFormat("<td class='{0} lack-cell fail-cell'>{1}</td>", lackClass, result.Shortage);
                             }
                             else
                             {
-                                // Passed
-                                tableHtml.AppendFormat("<td class='pass-cell'>{0}</td>", result.ObtainedMarks);
-                                tableHtml.Append("<td class='pass-cell'>-</td>");
+                                tableHtml.AppendFormat("<td class='{0} pass-cell'>{1}</td>", omClass, result.ObtainedMarks);
+                                tableHtml.AppendFormat("<td class='{0} pass-cell'>-</td>", lackClass);
                             }
                         }
                         else
                         {
-                            // No data
-                            tableHtml.Append("<td>-</td>");
-                            tableHtml.Append("<td>-</td>");
+                            tableHtml.AppendFormat("<td class='{0} no-data-cell'>-</td>", omClass);
+                            tableHtml.AppendFormat("<td class='{0} no-data-cell'>-</td>", lackClass);
                         }
                     }
-                    
+
                     tableHtml.Append("</tr>");
                 }
 
                 tableHtml.Append("</tbody></table></div>");
-                
+
                 // Summary footer
-                tableHtml.AppendFormat("<div style='margin-top: 10px; text-align: center; color: #6c757d; font-size: 11px;'>");
-                tableHtml.AppendFormat("?? Showing <strong>{0}</strong> unsuccessful students across <strong>{1}</strong> subjects. ", 
+                tableHtml.AppendFormat("<div class='unsuccessful-table-footer'>");
+                tableHtml.AppendFormat("Showing <strong>{0}</strong> unsuccessful students across <strong>{1}</strong> subjects.",
                     unsuccessfulStudents.Count, subjects.Count);
-                tableHtml.Append("OM = Obtained Marks, Lack = Shortage from pass marks (33)</div>");
+                tableHtml.Append("</div>");
 
                 DynamicTableLiteral.Text = tableHtml.ToString();
                 System.Diagnostics.Debug.WriteLine("? Unsuccessful students table generated successfully");
@@ -1061,6 +861,54 @@ namespace EDUCATION.COM.Exam.Result
                     DynamicTableLiteral.Text = $"<div class='alert alert-danger' style='margin-top: 15px;'>?? Error loading unsuccessful students: {ex.Message}</div>";
                 }
             }
+        }
+
+        private static string GetCompactSubjectLabel(string subjectName)
+        {
+            if (string.IsNullOrWhiteSpace(subjectName))
+                return "";
+
+            string name = subjectName.Trim().ToUpperInvariant();
+
+            if (name.Contains("BANGLA") && (name.Contains("1") || name.Contains("FIRST")))
+                return "BN-1";
+            if (name.Contains("BANGLA") && (name.Contains("2") || name.Contains("SECOND")))
+                return "BN-2";
+            if (name.Contains("ENGLISH") && (name.Contains("1") || name.Contains("FIRST")))
+                return "EN-1";
+            if (name.Contains("ENGLISH") && (name.Contains("2") || name.Contains("SECOND")))
+                return "EN-2";
+            if (name.Contains("MATHEMATIC"))
+                return "MATH";
+            if (name == "G.K" || name.Contains("G.K") || name.Contains("GENERAL KNOWLEDGE"))
+                return "G.K";
+            if (name.Contains("RELIGION") || name.Contains("ISLAM") || name.Contains("HINDU"))
+                return "REL";
+            if (name.Contains("SCIENCE") && !name.Contains("SOCIAL"))
+                return "SCI";
+            if (name.Contains("SOCIAL"))
+                return "SOC";
+            if (name.Contains("BANGLADESH") && name.Contains("GLOBAL"))
+                return "BGS";
+            if (name.Contains("ICT") || name.Contains("COMPUTER"))
+                return "ICT";
+            if (name.Contains("PHYSICS"))
+                return "PHY";
+            if (name.Contains("CHEMISTRY"))
+                return "CHM";
+            if (name.Contains("BIOLOGY"))
+                return "BIO";
+
+            if (name.Length <= 7)
+                return name;
+
+            var words = name.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length >= 2)
+            {
+                return string.Join("-", words.Select(w => w.Length > 3 ? w.Substring(0, 3) : w));
+            }
+
+            return name.Substring(0, 7);
         }
 
         private List<SubjectInfo> GetSubjectsForExam()
@@ -1304,6 +1152,7 @@ namespace EDUCATION.COM.Exam.Result
             public int SubjectID { get; set; }
             public string SubjectName { get; set; }
             public Dictionary<string, int> GradeCounts { get; set; }
+            public int TotalEnrolled { get; set; }
         }
 
         [Serializable]
@@ -1312,16 +1161,6 @@ namespace EDUCATION.COM.Exam.Result
             public string Grade { get; set; }
             public decimal MinMarks { get; set; }
             public decimal MaxMarks { get; set; }
-        }
-
-        [Serializable]
-        public class MissingStudentInfo
-        {
-            public int StudentID { get; set; }
-            public string StudentName { get; set; }
-            public string Reason { get; set; }
-            public string StudentStatus { get; set; }
-            public string ClassStatus { get; set; }
         }
 
         [Serializable]

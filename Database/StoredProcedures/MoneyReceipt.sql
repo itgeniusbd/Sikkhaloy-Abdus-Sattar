@@ -30,8 +30,8 @@ BEGIN
 	SET @MoneyReceipt_SN = [dbo].[F_MoneyReceipt_SN](@SchoolID)
 
 INSERT INTO Income_MoneyReceipt
-                         (StudentID, RegistrationID, StudentClassID, PaidDate, EducationYearID, PaymentBy, SchoolID, MoneyReceipt_SN)
-VALUES        (@StudentID,@RegistrationID,@StudentClassID,@PaidDate,@EducationYearID,@PaymentBy,@SchoolID,@MoneyReceipt_SN)
+                         (StudentID, RegistrationID, StudentClassID, PaidDate, EducationYearID, PaymentBy, SchoolID, MoneyReceipt_SN, CollectionDate)
+VALUES        (@StudentID,@RegistrationID,@StudentClassID,@PaidDate,@EducationYearID,@PaymentBy,@SchoolID,@MoneyReceipt_SN, GETDATE())
 
 Select SCOPE_IDENTITY();
 END;

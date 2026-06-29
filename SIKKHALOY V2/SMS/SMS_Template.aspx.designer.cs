@@ -15,6 +15,24 @@ namespace EDUCATION.COM.SMS
     {
 
         /// <summary>
+        /// ActiveTabHiddenField control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField ActiveTabHiddenField;
+
+        /// <summary>
+        /// OpenModalAfterPostbackHiddenField control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField OpenModalAfterPostbackHiddenField;
+
+        /// <summary>
         /// MessageLabel control.
         /// </summary>
         /// <remarks>
@@ -213,6 +231,24 @@ namespace EDUCATION.COM.SMS
         protected global::System.Web.UI.WebControls.HiddenField CurrentCategoryHiddenField;
 
         /// <summary>
+        /// CurrentTemplateTypeHiddenField control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField CurrentTemplateTypeHiddenField;
+
+        /// <summary>
+        /// TemplateCategoryDropDownList control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList TemplateCategoryDropDownList;
+
+        /// <summary>
         /// TemplateNameTextBox control.
         /// </summary>
         /// <remarks>
@@ -231,15 +267,6 @@ namespace EDUCATION.COM.SMS
         protected global::System.Web.UI.WebControls.RequiredFieldValidator TemplateNameRequired;
 
         /// <summary>
-        /// TemplateCategoryDropDownList control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList TemplateCategoryDropDownList;
-
-        /// <summary>
         /// TemplateTypeDropDownList control.
         /// </summary>
         /// <remarks>
@@ -247,6 +274,15 @@ namespace EDUCATION.COM.SMS
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList TemplateTypeDropDownList;
+
+        /// <summary>
+        /// TemplateSaveValidationSummary control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.ValidationSummary TemplateSaveValidationSummary;
 
         /// <summary>
         /// MessageTemplateTextBox control.

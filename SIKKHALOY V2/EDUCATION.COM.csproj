@@ -436,6 +436,7 @@
     <Content Include="Authority\Create_Delete_Role.aspx" />
     <Content Include="Authority\CSS\Authority_Basic.css" />
     <Content Include="Authority\CSS\Authority_Sidebar.css" />
+    <Content Include="Authority\Bulk_Client_SMS.aspx" />
     <Content Include="Authority\Free_SMS.aspx" />
     <Content Include="Authority\Institutions\Device\InstitutionRegister.aspx" />
     <Content Include="Authority\Institutions\Institution_Details.aspx" />
@@ -1644,6 +1645,13 @@
     </Compile>
     <Compile Include="Authority\Create_Delete_Role.aspx.designer.cs">
       <DependentUpon>Create_Delete_Role.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Authority\Bulk_Client_SMS.aspx.cs">
+      <DependentUpon>Bulk_Client_SMS.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Authority\Bulk_Client_SMS.aspx.designer.cs">
+      <DependentUpon>Bulk_Client_SMS.aspx</DependentUpon>
     </Compile>
     <Compile Include="Authority\Free_SMS.aspx.cs">
       <DependentUpon>Free_SMS.aspx</DependentUpon>

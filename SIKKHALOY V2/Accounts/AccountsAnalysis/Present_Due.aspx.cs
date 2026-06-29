@@ -48,7 +48,7 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
             int SMSBalance = SMS.SMSBalance;
 
             // Try to get Due notification template
-            string dueTemplate = GetSMSTemplate("Due", "Due"); // Updated to use "Due" category
+            string dueTemplate = SMS_Template_Helper.GetStudentDueTemplate(SchoolID);
 
             foreach (GridViewRow row in TotalDueGridView.Rows)
             {
@@ -259,7 +259,7 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
                 }
 
                 // Try to get Due notification template
-                string dueTemplate = GetSMSTemplate("Due", "Due"); // Updated to use "Due" category
+                string dueTemplate = SMS_Template_Helper.GetStudentDueTemplate(SchoolID);
 
                 if (!string.IsNullOrEmpty(dueTemplate))
                 {
@@ -369,81 +369,6 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
         }
 
         /// <summary>
-        /// Get SMS Template from database by category and type
-        /// </summary>
-        private string GetSMSTemplate(string category, string templateType)
-        {
-            try
-            {
-                using (System.Data.SqlClient.SqlConnection tempCon = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-                {
-                    tempCon.Open();
-
-                    // First check if SMS_Template table exists
-                    System.Data.SqlClient.SqlCommand checkTableCmd = new System.Data.SqlClient.SqlCommand(@"
-       IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
-      WHERE TABLE_NAME = 'SMS_Template')
-      SELECT 1
-ELSE
-              SELECT 0", tempCon);
-
-                    int tableExists = (int)checkTableCmd.ExecuteScalar();
-
-                    if (tableExists == 0)
-                    {
-                        return string.Empty;
-                    }
-
-                    // Check if TemplateCategory column exists
-                    System.Data.SqlClient.SqlCommand checkColumnCmd = new System.Data.SqlClient.SqlCommand(@"
-     IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-   WHERE TABLE_NAME = 'SMS_Template' AND COLUMN_NAME = 'TemplateCategory')
-           SELECT 1
-  ELSE
-              SELECT 0", tempCon);
-
-                    int columnExists = (int)checkColumnCmd.ExecuteScalar();
-
-                    string selectQuery;
-                    if (columnExists == 1)
-                    {
-                        selectQuery = @"SELECT TOP 1 MessageTemplate 
-  FROM SMS_Template 
-        WHERE SchoolID = @SchoolID 
-AND TemplateCategory = @TemplateCategory
-        AND TemplateType = @TemplateType 
-  AND IsActive = 1 
-      ORDER BY CreatedDate DESC";
-                    }
-                    else
-                    {
-                        selectQuery = @"SELECT TOP 1 MessageTemplate 
-    FROM SMS_Template 
-          WHERE SchoolID = @SchoolID 
-       AND TemplateType = @TemplateType 
-        AND IsActive = 1 
-       ORDER BY CreatedDate DESC";
-                    }
-
-                    System.Data.SqlClient.SqlCommand cmd = new System.Data.SqlClient.SqlCommand(selectQuery, tempCon);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                    if (columnExists == 1)
-                    {
-                        cmd.Parameters.AddWithValue("@TemplateCategory", category);
-                    }
-                    cmd.Parameters.AddWithValue("@TemplateType", templateType);
-
-                    object result = cmd.ExecuteScalar();
-                    return result != null ? result.ToString() : string.Empty;
-                }
-            }
-            catch (Exception ex)
-            {
-                return string.Empty;
-            }
-        }
-
-        /// <summary>
         /// Build Due notification SMS from template
         /// </summary>
         private string BuildDueNotificationMessage(string template, string studentName, string studentId, double totalDue, string dueDetails)
@@ -453,7 +378,7 @@ AND TemplateCategory = @TemplateCategory
             // Replace placeholders
             message = message.Replace("{StudentName}", studentName);
             message = message.Replace("{ID}", studentId);
-            message = message.Replace("{TotalDue}", totalDue.ToString("0.00"));
+            message = message.Replace("{TotalDue}", SMS_Template_Helper.FormatPaymentAmount((decimal)totalDue));
             
             // Clean up due details
             if (!string.IsNullOrEmpty(dueDetails))

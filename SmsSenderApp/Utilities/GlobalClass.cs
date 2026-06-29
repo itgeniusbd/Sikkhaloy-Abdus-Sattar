@@ -29,6 +29,8 @@ namespace SmsSenderApp
         {
             public int SmsSendInterval { get; set; }
             public int SmsProcessingUnit { get; set; }
+            public string SmsProvider { get; set; }
+            public string SmsProviderMultiple { get; set; }
         }
 
         private void LoadSettings()
@@ -38,25 +40,27 @@ namespace SmsSenderApp
                 using (var db = new EduEntities())
                 {
                     // Use raw SQL query with strongly-typed result
-                    var sqlQuery = "SELECT SmsSendInterval, SmsProcessingUnit FROM SikkhaloySetting";
-                    
+                    var sqlQuery = "SELECT SmsSendInterval, SmsProcessingUnit, SmsProvider, SmsProviderMultiple FROM SikkhaloySetting";
+
                     try
                     {
                         // Execute raw SQL with strongly-typed class
                         var result = db.Database.SqlQuery<SettingDto>(sqlQuery).FirstOrDefault();
-                        
+
                         if (result != null)
                         {
-                            Log.Information($"RAW SQL successful - SmsSendInterval: {result.SmsSendInterval}, SmsProcessingUnit: {result.SmsProcessingUnit}");
-                            
+                            Log.Information($"RAW SQL successful - SmsSendInterval: {result.SmsSendInterval}, SmsProcessingUnit: {result.SmsProcessingUnit}, SmsProvider: {result.SmsProvider}, SmsProviderMultiple: {result.SmsProviderMultiple}");
+
                             // Create setting object with values from raw query
                             Setting = new SikkhaloySetting
                             {
                                 SmsSendInterval = result.SmsSendInterval,
-                                SmsProcessingUnit = result.SmsProcessingUnit
+                                SmsProcessingUnit = result.SmsProcessingUnit,
+                                SmsProvider = result.SmsProvider,
+                                SmsProviderMultiple = result.SmsProviderMultiple
                             };
-                            
-                            Log.Information($"Settings loaded successfully - SmsSendInterval: {Setting.SmsSendInterval}, SmsProcessingUnit: {Setting.SmsProcessingUnit}");
+
+                            Log.Information($"Settings loaded successfully - SmsSendInterval: {Setting.SmsSendInterval}, SmsProcessingUnit: {Setting.SmsProcessingUnit}, SmsProvider: {Setting.SmsProvider}, SmsProviderMultiple: {Setting.SmsProviderMultiple}");
                         }
                         else
                         {

@@ -55,11 +55,12 @@ namespace EDUCATION.COM.Authority
         {
             try
             {
+                SmsSettingSQL.Update();
                 SmsSettingSQL.Insert();
                 
                 // Show success message
                 ScriptManager.RegisterStartupScript(this, GetType(), "alert", 
-                    "alert('SMS Settings updated successfully!');", true);
+                    "alert('SMS Settings updated successfully! Restart SmsSenderApp if it is already running.');", true);
             }
             catch (Exception ex)
             {

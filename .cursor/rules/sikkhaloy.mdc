@@ -1,0 +1,50 @@
+---
+description: SIKKHALOY-V3 school management platform conventions
+alwaysApply: true
+---
+
+# SIKKHALOY-V3
+
+Full project index: `PROJECT_OVERVIEW.md`
+
+## Stack and target
+
+- Primary app: `SIKKHALOY V2/` — ASP.NET Web Forms (.NET 4.7.2), assembly `EDUCATION.COM`
+- Not MVC. Match existing Web Forms patterns; do not introduce new frameworks or DAL layers unless asked
+- Satellite projects: `Attendance_API`, `AttendanceDevice`, `SmsService`, `ZKTeco_Manager`
+
+## Page structure
+
+New pages need the triplet: `.aspx` + `.aspx.cs` + `.designer.cs`
+
+```aspx
+<%@ Page MasterPageFile="~/BASIC.Master" CodeBehind="Page.aspx.cs"
+    Inherits="EDUCATION.COM.Module.SubModule.Page" %>
+```
+
+Namespace: `EDUCATION.COM.{folder path}`. Shared SMS helpers may use `Education`.
+
+## Data access
+
+- Connection string: `EducationConnectionString` from `Web.config` (attendance: `AttendanceConnectionString`)
+- Always parameterize `@SchoolID`, `@EducationYearID`, `@RegistrationID` from session
+- Follow existing style: inline ADO.NET or `SqlDataSource` in markup — no new ORM in the main app
+- SQL scripts: `Database_Scripts/` or `SIKKHALOY V2/Database/`
+
+## Session and auth
+
+Pages on `BASIC.Master` assume session is populated (`SchoolID`, `Edu_Year`, etc.). Use `Roles.IsUserInRole()` for access checks.
+
+## Payments
+
+- **ShurjoPay** — platform invoices, SMS recharge (`ShurjoPayService.cs`)
+- **Amarpay** — per-school student fees (`Student/OnlinePayment/`)
+
+## Conventions to preserve
+
+- Page names: `PascalCase_With_Underscores.aspx`
+- Folder spelling: `Handeler` (not Handler)
+- Bengali/UTF-8 strings — do not break encoding
+- Validation values: `'Valid'` / `'Invalid'`
+- Minimize diff scope; match surrounding code style per `.editorconfig`
+- Never commit secrets from `Web.config`

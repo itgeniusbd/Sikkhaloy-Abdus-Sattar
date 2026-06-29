@@ -13,6 +13,84 @@
 .Accounts-p-title .badge { padding: 7px 18px; font-size: 19px; }
 .Accounts-p-title label {margin-bottom: 0;}
 
+/* Pay Order Report */
+.payorder-report-wrap {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 8px;
+}
+
+.payorder-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.payorder-sum-badge {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.payorder-sum-due {
+    background: linear-gradient(135deg, #c62828, #b71c1c) !important;
+}
+
+.payorder-table-wrap {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: auto;
+    margin-top: 4px;
+}
+
+.payorder-grid th {
+    background: linear-gradient(180deg, #37474f 0%, #263238 100%) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 8px 6px !important;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.payorder-grid th a {
+    color: #fff !important;
+    text-decoration: none;
+}
+
+.payorder-grid th a:after {
+    content: '' !important;
+}
+
+.payorder-grid td {
+    font-size: 11px !important;
+    padding: 6px 5px !important;
+    white-space: nowrap;
+}
+
+.payorder-grid tr.alt td,
+.payorder-grid tr:nth-child(even) td {
+    background: #f8fafb;
+}
+
+.payorder-grid tr:hover td {
+    background: #e8f5e9 !important;
+}
+
+.payorder-grid td:nth-child(2) {
+    text-align: left;
+    font-weight: 600;
+}
+
 /*Attendance Calender*/
 .Pre { background-color: #d4edda; border-left: 4px solid #28a745; color: #155724; }
 .Abs { background-color: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
@@ -35,7 +113,14 @@
 .bg-lv { background-color:#93BE52}
 
 
-@page{margin:0.5cm}
-@media print{
+@page { margin: 10mm; size: A4 landscape; }
 
+@media print {
+    .NoPrint, .d-print-none, .nav-tabs, .form-inline, a.NoPrint { display: none !important; }
+    .payorder-grid thead { display: table-header-group; }
+    .payorder-grid tr { page-break-inside: avoid; }
+    .payorder-grid th, .payorder-grid td { font-size: 9px !important; padding: 4px 3px !important; }
+    .payorder-report-wrap { border: none; padding: 0; }
+    .tab-content > .tab-pane { display: none !important; }
+    #Accounts, #Payorder { display: block !important; opacity: 1 !important; }
 }

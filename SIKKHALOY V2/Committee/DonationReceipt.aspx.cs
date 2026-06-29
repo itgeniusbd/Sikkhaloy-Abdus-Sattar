@@ -160,7 +160,8 @@ namespace EDUCATION.COM.Committee
                 decimal currentDue = GetDonorCurrentDue(memberName, mobileNumber);
 
                 // Try to get Donor Payment SMS Template from database
-                string donorPaymentTemplate = GetSMSTemplate("Donor", "DonorPayment");
+                string donorPaymentTemplate = SMS_Template_Helper.GetDonorPaymentTemplate(
+                    Convert.ToInt32(Session["SchoolID"]));
 
                 string message = "";
                 if (!string.IsNullOrEmpty(donorPaymentTemplate))
@@ -282,81 +283,6 @@ namespace EDUCATION.COM.Committee
         }
 
         /// <summary>
-        /// Get SMS Template from database by category and type
-        /// </summary>
-        private string GetSMSTemplate(string category, string templateType)
-        {
-            try
-            {
-                using (SqlConnection tempCon = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
-                {
-                    tempCon.Open();
-
-                    // First check if SMS_Template table exists
-                    SqlCommand checkTableCmd = new SqlCommand(@"
-                        IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES 
-                                   WHERE TABLE_NAME = 'SMS_Template')
-                            SELECT 1
-                        ELSE
-                            SELECT 0", tempCon);
-
-                    int tableExists = (int)checkTableCmd.ExecuteScalar();
-
-                    if (tableExists == 0)
-                    {
-                        return string.Empty;
-                    }
-
-                    // Check if TemplateCategory column exists
-                    SqlCommand checkColumnCmd = new SqlCommand(@"
-                        IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-                                   WHERE TABLE_NAME = 'SMS_Template' AND COLUMN_NAME = 'TemplateCategory')
-                            SELECT 1
-                        ELSE
-                            SELECT 0", tempCon);
-
-                    int columnExists = (int)checkColumnCmd.ExecuteScalar();
-
-                    string selectQuery;
-                    if (columnExists == 1)
-                    {
-                        selectQuery = @"SELECT TOP 1 MessageTemplate 
-                                      FROM SMS_Template 
-                                      WHERE SchoolID = @SchoolID 
-                                      AND TemplateCategory = @TemplateCategory
-                                      AND TemplateType = @TemplateType 
-                                      AND IsActive = 1 
-                                      ORDER BY CreatedDate DESC";
-                    }
-                    else
-                    {
-                        selectQuery = @"SELECT TOP 1 MessageTemplate 
-                                      FROM SMS_Template 
-                                      WHERE SchoolID = @SchoolID 
-                                      AND TemplateType = @TemplateType 
-                                      AND IsActive = 1 
-                                      ORDER BY CreatedDate DESC";
-                    }
-
-                    SqlCommand cmd = new SqlCommand(selectQuery, tempCon);
-                    cmd.Parameters.AddWithValue("@SchoolID", Session["SchoolID"]);
-                    if (columnExists == 1)
-                    {
-                        cmd.Parameters.AddWithValue("@TemplateCategory", category);
-                    }
-                    cmd.Parameters.AddWithValue("@TemplateType", templateType);
-
-                    object result = cmd.ExecuteScalar();
-                    return result != null ? result.ToString() : string.Empty;
-                }
-            }
-            catch (Exception ex)
-            {
-                return string.Empty;
-            }
-        }
-
-        /// <summary>
         /// Build Donor Payment SMS message from template by replacing placeholders
         /// </summary>
         private string BuildDonorPaymentMessage(string template, string donorName, double amount, string receiptNo, 
@@ -366,9 +292,9 @@ namespace EDUCATION.COM.Committee
 
             // Replace all donor payment-related placeholders
             message = message.Replace("{DonorName}", donorName);
-            message = message.Replace("{Amount}", amount.ToString("0.00"));
+            message = message.Replace("{Amount}", SMS_Template_Helper.FormatPaymentAmount(amount));
             message = message.Replace("{ReceiptNo}", receiptNo);
-            message = message.Replace("{CurrentDue}", currentDue.ToString("0.00"));
+            message = message.Replace("{CurrentDue}", SMS_Template_Helper.FormatPaymentAmount(currentDue));
             
             // Clean up payment details
             if (!string.IsNullOrEmpty(paymentDetails))

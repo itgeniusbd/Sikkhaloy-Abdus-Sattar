@@ -33,6 +33,71 @@ namespace EDUCATION.COM.Authority
         protected global::System.Web.UI.WebControls.DropDownList ValidationFilter;
 
         /// <summary>
+        /// OnlineFilterValue control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.HiddenField OnlineFilterValue;
+
+        /// <summary>
+        /// ActiveFilterLabel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Label ActiveFilterLabel;
+
+        /// <summary>
+        /// FilterAllPanel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Panel FilterAllPanel;
+
+        /// <summary>
+        /// FilterAllBtn control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Button FilterAllBtn;
+
+        /// <summary>
+        /// AllInstitutionCountLabel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Label AllInstitutionCountLabel;
+
+        /// <summary>
+        /// FilterActivePanel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Panel FilterActivePanel;
+
+        /// <summary>
+        /// FilterActiveBtn control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Button FilterActiveBtn;
+
+        /// <summary>
+        /// FilterTodayPanel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Panel FilterTodayPanel;
+
+        /// <summary>
+        /// FilterTodayBtn control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Button FilterTodayBtn;
+
+        /// <summary>
+        /// FilterLastHourPanel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Panel FilterLastHourPanel;
+
+        /// <summary>
+        /// FilterLastHourBtn control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Button FilterLastHourBtn;
+
+        /// <summary>
+        /// FilterLiveNowPanel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Panel FilterLiveNowPanel;
+
+        /// <summary>
+        /// FilterLiveNowBtn control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Button FilterLiveNowBtn;
+
+        /// <summary>
         /// StartDateTextBox control.
         /// </summary>
         /// <remarks>

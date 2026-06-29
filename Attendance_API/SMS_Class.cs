@@ -35,7 +35,7 @@ namespace Attendance_API
             var isProviderMultipleExist = Enum.TryParse<ProviderEnum>(smsProviderMultiple, out var providerMultiple);
 
             if (!isProviderExist) provider = ProviderEnum.BanglaPhone;
-            if (!isProviderMultipleExist) provider = ProviderEnum.GreenWeb;
+            if (!isProviderMultipleExist) providerMultiple = ProviderEnum.GreenWeb;
 
             SmsService = new SmsServiceBuilder(provider, providerMultiple);
         }

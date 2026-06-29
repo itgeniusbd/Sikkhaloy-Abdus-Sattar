@@ -50,7 +50,7 @@ namespace SmsService
 
         }
 
-        public string SendSms(string massage, string number)
+        public string SendSms(string massage, string number, string senderId = null)
         {
             const string actionUrl = "api.php?json";
             var request = HttpWebRequest.Create(HostUrl + actionUrl);

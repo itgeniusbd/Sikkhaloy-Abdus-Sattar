@@ -96,10 +96,11 @@
     <!-- Payment Receipt Header -->
     <div class="payment-receipt-header">PAYMENT RECEIPT</div>
 
-    <asp:SqlDataSource ID="StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.SMSPhoneNo, Student.StudentsName, CreateClass.Class, Student.StudentID, CreateSection.Section, StudentsClass.RollNo, StudentsClass.Class_Status FROM StudentsClass INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (Student.SchoolID = @SchoolID) AND (Student.ID = @ID) AND (StudentsClass.Class_Status IS NULL)">
+    <asp:SqlDataSource ID="StudentInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.ID, Student.SMSPhoneNo, Student.StudentsName, CreateClass.Class, Student.StudentID, CreateSection.Section, StudentsClass.RollNo, StudentsClass.Class_Status FROM Income_MoneyReceipt INNER JOIN StudentsClass ON Income_MoneyReceipt.StudentClassID = StudentsClass.StudentClassID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID LEFT OUTER JOIN CreateSection ON StudentsClass.SectionID = CreateSection.SectionID WHERE (Income_MoneyReceipt.SchoolID = @SchoolID) AND (Income_MoneyReceipt.MoneyReceiptID = @MoneyReceiptID) AND (Student.ID = @ID)">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             <asp:Parameter Name="ID" Type="String" />
+            <asp:Parameter Name="MoneyReceiptID" />
         </SelectParameters>
     </asp:SqlDataSource>
 

@@ -5,6 +5,70 @@
         .mGrid { text-align: left; }
         .Invaid_Ins td { color: #ff2b2b; }
         .Invaid_Ins td a { color: #ff2b2b; }
+
+        /* Online institution row highlight */
+        .online-now-row {
+            background: linear-gradient(90deg, #dcfce7 0%, #f0fdf4 100%) !important;
+            border-left: 4px solid #22c55e;
+        }
+
+        .online-now-row td {
+            background: transparent !important;
+        }
+
+        .online-active-row {
+            background: linear-gradient(90deg, #fef9c3 0%, #fefce8 100%) !important;
+            border-left: 4px solid #eab308;
+        }
+
+        .online-active-row td {
+            background: transparent !important;
+        }
+
+        .online-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .online-badge.online-now {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+
+        .online-badge.online-active {
+            background: #fef9c3;
+            color: #a16207;
+            border: 1px solid #fde047;
+        }
+
+        .online-badge .fa-circle {
+            font-size: 8px;
+        }
+
+        .online-badge.online-now .fa-circle {
+            color: #22c55e;
+            animation: onlinePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes onlinePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+
+        .session-live-row {
+            background: #f0fdf4 !important;
+        }
+
+        .session-active-row {
+            background: #fefce8 !important;
+        }
         
         /* Enhanced Search Panel Styles */
         .search-filters {
@@ -211,144 +275,190 @@
             font-weight: 500;
         }
 
-        /* Compact Active Users Bar */
-        .active-users-bar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+        /* Live Login Monitor - compact toolbar */
+        .live-stats-panel {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
         }
 
-        .users-bar-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 25px;
-            gap: 30px;
-        }
-
-        .users-main-info {
+        .live-stats-toolbar {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
-        .users-icon {
-            font-size: 28px;
-            color: white;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .users-text {
-            color: white;
-            display: flex;
+        .live-stats-title {
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        .live-stats-title i {
+            color: #22c55e;
             font-size: 14px;
         }
 
-        .users-text strong {
-            font-weight: 600;
+        .live-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            flex-wrap: wrap;
         }
 
-        .users-count {
+        .live-filter-item {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px 5px 5px;
+            border: 1px solid #dbe3ef;
+            border-radius: 8px;
+            background: #f8fafc;
+            white-space: nowrap;
+            line-height: 1.2;
+            transition: all 0.2s ease;
+        }
+
+        .live-filter-item:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+
+        .live-filter-item.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        .live-filter-item.live-filter-all.selected {
+            border-color: #64748b;
+            background: #f1f5f9;
+            box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.15);
+        }
+
+        .live-filter-hitarea {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            border: none !important;
+            background: transparent !important;
+            cursor: pointer;
+            padding: 0 !important;
+            margin: 0;
+            z-index: 2;
+            min-width: 0;
+            min-height: 0;
+            box-shadow: none !important;
+        }
+
+        .live-filter-hitarea:focus {
+            outline: none;
+        }
+
+        .live-filter-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.25);
-            color: white;
-            font-size: 24px;
-            font-weight: 700;
-            padding: 2px 16px;
-            border-radius: 20px;
-            min-width: 50px;
-            backdrop-filter: blur(10px);
+            font-size: 12px;
+            color: #fff !important;
+            flex-shrink: 0;
         }
 
-        .users-label {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 13px;
+        .live-filter-icon.icon-all { background: #64748b; }
+        .live-filter-icon.icon-active { background: #2563eb; }
+        .live-filter-icon.icon-today { background: #7c3aed; }
+        .live-filter-icon.icon-hour { background: #d97706; }
+        .live-filter-icon.icon-live { background: #16a34a; animation: liveIconPulse 2s ease-in-out infinite; }
+
+        @keyframes liveIconPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
         }
 
-        .users-stats {
-            display: flex;
-            align-items: center;
-            gap: 20px;
+        .live-filter-text {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 5px;
         }
 
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-            font-size: 13px;
+        .live-filter-count {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a !important;
+            margin-bottom: 0;
+            display: inline;
+        }
+
+        .live-filter-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b !important;
+        }
+
+        .live-filter-active-tag {
+            margin-left: auto;
+            font-size: 11px;
+            color: #64748b;
             white-space: nowrap;
         }
 
-        .stat-item i {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .stat-item strong {
-            font-size: 16px;
+        .live-filter-active-tag strong {
+            color: #2563eb;
             font-weight: 700;
         }
 
-        .stat-online strong {
-            color: #4ade80;
-            animation: numberPulse 2s ease-in-out infinite;
+        /* Compact institution grid */
+        .auth-grid-wrap .mGrid th {
+            padding: 5px 7px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            line-height: 1.2;
+            vertical-align: middle;
         }
 
-        @keyframes numberPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
+        .auth-grid-wrap .mGrid th a {
+            font-size: 11px;
+            white-space: nowrap;
         }
 
-        .stat-divider {
-            width: 1px;
-            height: 30px;
-            background: rgba(255, 255, 255, 0.3);
+        .auth-grid-wrap .mGrid th a:after {
+            font-size: 9px;
+            padding-left: 2px;
         }
 
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .users-bar-content {
-                flex-direction: column;
-                gap: 15px;
-                padding: 20px;
-            }
+        .auth-grid-wrap .mGrid td {
+            padding: 4px 7px;
+            font-size: 12px;
+            line-height: 1.3;
+            vertical-align: middle;
+        }
 
-            .users-stats {
+        .auth-grid-wrap .mGrid .list-group-item {
+            font-size: 11px;
+            padding: 1px 0;
+        }
+
+        @media (max-width: 992px) {
+            .live-filter-active-tag {
+                margin-left: 0;
                 width: 100%;
-                justify-content: space-around;
-                flex-wrap: wrap;
-                gap: 15px;
-            }
-
-            .stat-divider {
-                display: none;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .users-text {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 5px;
-            }
-
-            .stat-item {
-                font-size: 12px;
-            }
-
-            .stat-item strong {
-                font-size: 14px;
             }
         }
     </style>
@@ -422,48 +532,80 @@
         </div>
     </div>
 
-    <!-- Compact Active Users Bar -->
-    <div class="active-users-bar mb-3">
-        <div class="users-bar-content">
-            <div class="users-main-info">
-                <i class="fa fa-users users-icon"></i>
-                <div class="users-text">
-                    <strong>Currently Active:</strong>
-                    <span class="users-count">
-                        <asp:Label ID="LoggedInUsersCountLabel" runat="server" Text="0"></asp:Label>
+    <!-- Live Login Monitor -->
+    <asp:HiddenField ID="OnlineFilterValue" runat="server" Value="" />
+    <div class="live-stats-panel">
+        <div class="live-stats-toolbar">
+            <h6 class="live-stats-title"><i class="fa fa-signal"></i> Live Monitor</h6>
+            <div class="live-filter-group">
+                <asp:Panel ID="FilterAllPanel" runat="server" CssClass="live-filter-item live-filter-all selected">
+                    <span class="live-filter-icon icon-all"><i class="fa fa-th-list"></i></span>
+                    <span class="live-filter-text">
+                        <asp:Label ID="AllInstitutionCountLabel" runat="server" CssClass="live-filter-count" Text="0"></asp:Label>
+                        <span class="live-filter-name">All</span>
                     </span>
-                    <span class="users-label">users online (last 15 min)</span>
-                </div>
+                    <asp:Button ID="FilterAllBtn" runat="server" CssClass="live-filter-hitarea" CausesValidation="false" OnClick="FilterAllBtn_Click" />
+                </asp:Panel>
+
+                <asp:Panel ID="FilterActivePanel" runat="server" CssClass="live-filter-item live-filter-active">
+                    <span class="live-filter-icon icon-active"><i class="fa fa-users"></i></span>
+                    <span class="live-filter-text">
+                        <asp:Label ID="LoggedInUsersCountLabel" runat="server" CssClass="live-filter-count" Text="0"></asp:Label>
+                        <span class="live-filter-name">Active · 15m</span>
+                    </span>
+                    <asp:Button ID="FilterActiveBtn" runat="server" CssClass="live-filter-hitarea" CausesValidation="false" OnClick="FilterActiveBtn_Click" />
+                </asp:Panel>
+
+                <asp:Panel ID="FilterTodayPanel" runat="server" CssClass="live-filter-item live-filter-today">
+                    <span class="live-filter-icon icon-today"><i class="fa fa-calendar"></i></span>
+                    <span class="live-filter-text">
+                        <asp:Label ID="TodayLoginsLabel" runat="server" CssClass="live-filter-count" Text="0"></asp:Label>
+                        <span class="live-filter-name">Today</span>
+                    </span>
+                    <asp:Button ID="FilterTodayBtn" runat="server" CssClass="live-filter-hitarea" CausesValidation="false" OnClick="FilterTodayBtn_Click" />
+                </asp:Panel>
+
+                <asp:Panel ID="FilterLastHourPanel" runat="server" CssClass="live-filter-item live-filter-hour">
+                    <span class="live-filter-icon icon-hour"><i class="fa fa-clock-o"></i></span>
+                    <span class="live-filter-text">
+                        <asp:Label ID="LastHourLoginsLabel" runat="server" CssClass="live-filter-count" Text="0"></asp:Label>
+                        <span class="live-filter-name">Last Hour</span>
+                    </span>
+                    <asp:Button ID="FilterLastHourBtn" runat="server" CssClass="live-filter-hitarea" CausesValidation="false" OnClick="FilterLastHourBtn_Click" />
+                </asp:Panel>
+
+                <asp:Panel ID="FilterLiveNowPanel" runat="server" CssClass="live-filter-item live-filter-live">
+                    <span class="live-filter-icon icon-live"><i class="fa fa-bolt"></i></span>
+                    <span class="live-filter-text">
+                        <asp:Label ID="OnlineNowLabel" runat="server" CssClass="live-filter-count" Text="0"></asp:Label>
+                        <span class="live-filter-name">Online · 5m</span>
+                    </span>
+                    <asp:Button ID="FilterLiveNowBtn" runat="server" CssClass="live-filter-hitarea" CausesValidation="false" OnClick="FilterLiveNowBtn_Click" />
+                </asp:Panel>
             </div>
-            <div class="users-stats">
-                <div class="stat-item">
-                    <i class="fa fa-calendar"></i>
-                    <span>Today: <strong><asp:Label ID="TodayLoginsLabel" runat="server" Text="0"></asp:Label></strong></span>
-                </div>
-                <div class="stat-divider"></div>
-                <div class="stat-item">
-                    <i class="fa fa-clock-o"></i>
-                    <span>Last Hour: <strong><asp:Label ID="LastHourLoginsLabel" runat="server" Text="0"></asp:Label></strong></span>
-                </div>
-                <div class="stat-divider"></div>
-                <div class="stat-item stat-online">
-                    <i class="fa fa-bolt"></i>
-                    <span>Online Now: <strong><asp:Label ID="OnlineNowLabel" runat="server" Text="0"></asp:Label></strong> (5 min)</span>
-                </div>
-            </div>
+            <span class="live-filter-active-tag">Filter: <strong><asp:Label ID="ActiveFilterLabel" runat="server" Text="All"></asp:Label></strong></span>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <asp:GridView ID="SchoolGridView" CssClass="mGrid" runat="server" AutoGenerateColumns="False" DataKeyNames="SchoolID" DataSourceID="InstitutionSQL" AllowSorting="True">
+    <div class="table-responsive auth-grid-wrap">
+        <asp:GridView ID="SchoolGridView" CssClass="mGrid" runat="server" AutoGenerateColumns="False" DataKeyNames="SchoolID" DataSourceID="InstitutionSQL" AllowSorting="True" OnRowDataBound="SchoolGridView_RowDataBound">
             <Columns>
-                <asp:BoundField DataField="SchoolID" HeaderText="School ID" SortExpression="SchoolID" />
-                <asp:HyperLinkField SortExpression="SchoolName" DataNavigateUrlFields="SchoolID" DataNavigateUrlFormatString="Institutions/Institution_Details.aspx?SchoolID={0}" DataTextField="SchoolName" HeaderText="Select" />
-                <asp:BoundField DataField="UserName" HeaderText="User id" SortExpression="UserName" />
-                <asp:BoundField DataField="Phone" HeaderText="Phone" SortExpression="Phone" />
-                <asp:BoundField DataField="Validation" HeaderText="Validation" SortExpression="Validation" />
-                <asp:BoundField DataField="Date" HeaderText="Registration Date" SortExpression="Date" DataFormatString="{0:dd MMM yyyy}" />
-                <asp:TemplateField HeaderText="Act. Session" SortExpression="EducationYear">
+                <asp:BoundField DataField="SchoolID" HeaderText="ID" SortExpression="SchoolID" ItemStyle-Width="50px" />
+                <asp:HyperLinkField SortExpression="SchoolName" DataNavigateUrlFields="SchoolID" DataNavigateUrlFormatString="Institutions/Institution_Details.aspx?SchoolID={0}" DataTextField="SchoolName" HeaderText="Institution" />
+                <asp:BoundField DataField="UserName" HeaderText="User ID" SortExpression="UserName" ItemStyle-Width="90px" />
+                <asp:BoundField DataField="Phone" HeaderText="Phone" SortExpression="Phone" ItemStyle-Width="100px" />
+                <asp:BoundField DataField="Validation" HeaderText="Valid" SortExpression="Validation" ItemStyle-Width="55px" />
+                <asp:TemplateField HeaderText="Online" ItemStyle-Width="70px">
+                    <ItemTemplate>
+                        <%# GetOnlineStatusBadge(Eval("LastActivity")) %>
+                    </ItemTemplate>
+                </asp:TemplateField>
+                <asp:BoundField DataField="LoggedInUser" HeaderText="User" SortExpression="LoggedInUser" NullDisplayText="-" ItemStyle-Width="90px" />
+                <asp:BoundField DataField="LoginRole" HeaderText="Role" SortExpression="LoginRole" NullDisplayText="-" ItemStyle-Width="70px" />
+                <asp:BoundField DataField="LoginTime" HeaderText="Login" SortExpression="LoginTime" DataFormatString="{0:dd MMM hh:mm tt}" NullDisplayText="-" ItemStyle-Width="110px" />
+                <asp:BoundField DataField="LastActivity" HeaderText="Last Act." SortExpression="LastActivity" DataFormatString="{0:dd MMM hh:mm tt}" NullDisplayText="-" ItemStyle-Width="110px" />
+                <asp:BoundField DataField="Date" HeaderText="Reg. Date" SortExpression="Date" DataFormatString="{0:dd MMM yyyy}" ItemStyle-Width="90px" />
+                <asp:TemplateField HeaderText="Session" SortExpression="EducationYear" ItemStyle-Width="80px">
                     <ItemTemplate>
                         <asp:HiddenField ID="SchoolIDHF" runat="server" Value='<%#Eval("SchoolID") %>' />
                         <asp:Repeater ID="SessionRepeater" runat="server" DataSourceID="AcSessionSQL">

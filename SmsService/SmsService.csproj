@@ -49,6 +49,7 @@
     <Compile Include="ProviderEnum.cs" />
     <Compile Include="Providers\SmsProviderBanglaPhone.cs" />
     <Compile Include="Providers\SmsProviderGreenWeb.cs" />
+    <Compile Include="Providers\SmsProviderNovocom.cs" />
     <Compile Include="SendSmsModel.cs" />
     <Compile Include="SmsServiceBuilder.cs" />
     <Compile Include="SmsValidator.cs" />

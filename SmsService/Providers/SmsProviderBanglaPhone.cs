@@ -86,7 +86,7 @@ namespace SmsService
             }
         }
 
-        public string SendSms(string massage, string number)
+        public string SendSms(string massage, string number, string senderId = null)
         {
             const string actionUrl = "sendsms"; // your powers ms site url; register the ip first
             var request = HttpWebRequest.Create(HostUrl + actionUrl);

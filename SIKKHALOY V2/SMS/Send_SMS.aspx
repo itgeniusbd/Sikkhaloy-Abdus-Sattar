@@ -4,6 +4,46 @@
     <style>
         .Counter_St { color: #00009b; font-size: 15px; font-weight: bold; }
         .ID_tb {height:38px; }
+
+        .sms-template-bar {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(255, 193, 7, 0.25);
+        }
+
+        .sms-template-bar-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            color: #856404;
+            font-weight: 500;
+        }
+
+        .sms-template-bar-info i {
+            color: #ff9800;
+            font-size: 18px;
+        }
+
+        .sms-template-btn {
+            font-size: 14px;
+            padding: 6px 16px;
+            font-weight: 600;
+            text-decoration: none !important;
+            box-shadow: 0 2px 4px rgba(255, 152, 0, 0.35);
+        }
+
+        .sms-template-btn:hover {
+            box-shadow: 0 3px 6px rgba(255, 152, 0, 0.45);
+        }
     </style>
 </asp:Content>
 
@@ -21,6 +61,16 @@
             </SelectParameters>
         </asp:SqlDataSource>
     </h3>
+
+    <div class="sms-template-bar">
+        <span class="sms-template-bar-info">
+            <i class="fa fa-info-circle"></i>
+            <span>SMS টেমপ্লেট তৈরি/এডিট করুন (Exam, Payment, Attendance, Due...)</span>
+        </span>
+        <a href="/SMS/SMS_Template.aspx" class="btn btn-warning sms-template-btn">
+            <i class="fa fa-edit"></i> Edit Template
+        </a>
+    </div>
 
     <div class="mb-4">
         <asp:RadioButtonList ID="SelectRadioButtonList" runat="server" RepeatLayout="Flow" RepeatDirection="Horizontal" AutoPostBack="True" CssClass="Radio-button">
