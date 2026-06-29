@@ -14,6 +14,7 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
     public partial class Present_Due : System.Web.UI.Page
     {
         int SchoolID;
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["SchoolID"] != null)
@@ -21,6 +22,37 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
                 SchoolID = Convert.ToInt32(Session["SchoolID"].ToString());
                 DueMultiView.ActiveViewIndex = DueRadioButtonList.SelectedIndex;
             }
+        }
+
+        protected void IntotalPDueSQL_Selecting(object sender, SqlDataSourceSelectingEventArgs e)
+        {
+            e.Command.CommandTimeout = 120;
+        }
+
+        protected void TotalDueSQL_Selecting(object sender, SqlDataSourceSelectingEventArgs e)
+        {
+            if (!IsClassSelected())
+            {
+                e.Cancel = true;
+                return;
+            }
+            e.Command.CommandTimeout = 90;
+        }
+
+        protected void RoleSQL_Selecting(object sender, SqlDataSourceSelectingEventArgs e)
+        {
+            if (!IsClassSelected())
+            {
+                e.Cancel = true;
+                return;
+            }
+            e.Command.CommandTimeout = 60;
+        }
+
+        private bool IsClassSelected()
+        {
+            int classId;
+            return int.TryParse(ClassDropDownList.SelectedValue, out classId) && classId > 0;
         }
 
         protected void SectionDropDownList_DataBound(object sender, EventArgs e)
@@ -350,7 +382,16 @@ namespace EDUCATION.COM.ACCOUNTS.AccountsAnalysis
         {
             //'Export to word' required to avoid the run time error Control 
         }
-        protected void TotalDueGridView_RowDataBound(object sender, GridViewRowEventArgs e)
+        protected void Page_PreRender(object sender, EventArgs e)
+        {
+            if (!IsClassSelected())
+            {
+                TotalDueGridView.DataSource = null;
+                TotalDueGridView.DataBind();
+            }
+        }
+
+        protected void TotalDueGridView_DataBound(object sender, EventArgs e)
         {
             GridView_Printer(TotalDueGridView);
         }

@@ -19704,3 +19704,46 @@ SUCCESS: Session tracked successfully from Design.Master!
 
 ========== 2026-06-29 11:02:45 SUCCESS ==========
 [Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-06-29 11:10:57 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: afma_admin============================================================
+
+========== 2026-06-29 11:10:57 SUCCESS ==========
+[Design.Master] School user detected: SchoolID=1012, RegID=3104============================================================
+
+========== 2026-06-29 11:10:57 SUCCESS ==========
+[Design.Master] Calling TrackUserLogin with category=Admin============================================================
+
+========== 2026-06-29 11:10:57 SUCCESS ==========
+[Design.Master] Starting tracking for user: afma_admin, Category: Admin
+Session Key: 4whf1dkzekfddugujdfq12pw_639183282578772678
+SchoolID: 1012, RegID: 3104
+Database connection opened
+Deleted 1 old session(s)
+Using SchoolID: 1012
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-06-29 11:10:57 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: afma_admin============================================================
+
+========== 2026-06-29 11:12:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-06-29 11:12:44 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-06-29 11:12:44 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: dun2g1gi1uxlp55v22eu0qvd_639183283643696417
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-06-29 11:12:44 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
