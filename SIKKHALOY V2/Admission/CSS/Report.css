@@ -1,4 +1,39 @@
 ﻿
+/* ── Individual Result Card ── */
+.sr-result-card { border: 2px solid #0072bc; border-radius: 6px; padding: 14px; margin: 10px 0; background: #fff; font-family: Arial, sans-serif; font-size: 13px; }
+.src-header { display: flex; align-items: center; border-bottom: 2px solid #0072bc; padding-bottom: 8px; margin-bottom: 6px; min-height: 80px; }
+.src-logo  { width: 70px; height: 75px; object-fit: contain; margin-right: 12px; flex-shrink: 0; }
+.src-photo { width: 65px; height: 75px; object-fit: cover; border: 2px solid #0072bc; border-radius: 4px; margin-left: auto; flex-shrink: 0; }
+.src-school-info { flex: 1; text-align: center; }
+.src-school-name { font-size: 20px; font-weight: 700; color: #0072bc; }
+.src-school-addr { font-size: 12px; color: #333; }
+.src-exam-title { text-align: center; background: #2e7d32; color: #fff; font-size: 15px; font-weight: 700; padding: 6px; border-radius: 4px; margin: 6px 0; }
+/* Top section: info+summary left, grading chart right */
+.src-top { display: flex; gap: 12px; margin-bottom: 6px; align-items: flex-start; }
+.src-info-box { flex: 1; min-width: 0; }
+.src-info-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 6px; }
+.src-info-table td { padding: 5px 8px; border-bottom: 1px solid #e0e0e0; font-size: 14px; }
+.src-grade-chart { width: 150px; flex-shrink: 0; }
+.src-grade-chart table { border-collapse: collapse; width: 100%; font-size: 9px !important; }
+.src-grade-chart th { background: #37474f; color: #fff; padding: 2px 4px; text-align: center; border: 1px solid #555; font-size: 9px !important; }
+.src-grade-chart td { border: 1px solid #ccc; padding: 2px 4px; text-align: center; font-size: 9px !important; background: #fff; color: #000; }
+/* Summary / attendance row */
+.src-summary { width: 100%; border-collapse: collapse; margin: 4px 0 6px; font-size: 12px; }
+.src-sum-hdr td { background: #1565c0; color: #fff; padding: 5px 6px; text-align: center; border: 1px solid #0072bc; font-weight: 700; white-space: nowrap; font-size: 12px; }
+.src-sum-val td { background: #fff; padding: 5px 6px; text-align: center; border: 1px solid #0072bc; font-weight: 600; white-space: nowrap; font-size: 12px; }
+/* Subject table */
+.src-marks-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+.src-note { font-size: 9px; color: #666; margin-top: 6px; }
+
+@media print {
+    .sr-result-card { border: 2px solid #000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .src-exam-title { background: #2e7d32 !important; color: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .src-sum-hdr td { background: #1565c0 !important; color: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .src-grade-chart th { background: #37474f !important; color: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .sr-result-card .src-marks-table th,
+    .sr-result-card .src-marks-table td { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
 /*Profile info*/
 .p-image { flex-shrink:0;padding-right:1rem}
 .p-image img{ height: 208px; width: 208px;}
@@ -91,16 +126,53 @@
     font-weight: 600;
 }
 
-/*Attendance Calender*/
-.Pre { background-color: #d4edda; border-left: 4px solid #28a745; color: #155724; }
-.Abs { background-color: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
-.Late { background-color: #fff3cd; border-left: 4px solid #ffc107; color: #856404; }
-.Late_Abs { background-color: #f5c6cb; border-left: 4px solid #e83e4c; color: #721c24; }
-.Att_Holidays { background-color: #cce5ff; border-left: 4px solid #004085; color: #004085; }
+/*Attendance Calendar*/
+.Pre       { background-color: #d4edda !important; border-left: 4px solid #28a745 !important; color: #155724 !important; }
+.Abs       { background-color: #f8d7da !important; border-left: 4px solid #dc3545 !important; color: #721c24 !important; }
+.Late      { background-color: #fff3cd !important; border-left: 4px solid #ffc107 !important; color: #856404 !important; }
+.Late_Abs  { background-color: #fce4ec !important; border-left: 4px solid #e83e4c !important; color: #880e4f !important; }
+.Att_Holidays { background-color: #e3f2fd !important; border-left: 4px solid #1565c0 !important; color: #0d47a1 !important; }
+.Student_Leave { background-color: #ede7f6 !important; border-left: 4px solid #6f42c1 !important; color: #4527a0 !important; }
 
-  #Attendance .Appointment {font-family: tahoma; font-size: 15px; }
- .Re_Desin { float: left; font-weight: bold; padding: 5px 10px; }
-  #Attendance .myCalendar tr td.myCalendarDay {height: 60px; }
+/* Legend bar */
+.att-legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 4px 10px; margin-bottom: 4px; }
+.Re_Desin {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    float: none;
+    margin: 2px;
+}
+.Re_Desin::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.Pre.Re_Desin  { background-color: #d4edda; color: #155724; border: 1.5px solid #28a745; }
+.Pre.Re_Desin::before  { background-color: #28a745; }
+.Abs.Re_Desin  { background-color: #f8d7da; color: #721c24; border: 1.5px solid #dc3545; }
+.Abs.Re_Desin::before  { background-color: #dc3545; }
+.Late.Re_Desin { background-color: #fff3cd; color: #856404; border: 1.5px solid #ffc107; }
+.Late.Re_Desin::before { background-color: #ffc107; }
+.Late_Abs.Re_Desin { background-color: #fce4ec; color: #880e4f; border: 1.5px solid #e83e4c; }
+.Late_Abs.Re_Desin::before { background-color: #e83e4c; }
+.Att_Holidays.Re_Desin { background-color: #e3f2fd; color: #0d47a1; border: 1.5px solid #1565c0; }
+.Att_Holidays.Re_Desin::before { background-color: #1565c0; }
+.Student_Leave.Re_Desin { background-color: #ede7f6; color: #4527a0; border: 1.5px solid #6f42c1; }
+.Student_Leave.Re_Desin::before { background-color: #6f42c1; }
+
+#Attendance .Appointment { font-family: tahoma; font-size: 13px; }
+#Attendance .myCalendar tr td.myCalendarDay { height: 70px; }
+
+/* Wrapper clearfix */
+.calendarWrapper { clear: both; }
 
   /*Attendance Summary*/
 .box { padding:20px; text-align:center; margin-bottom:15px; color:#fff}
@@ -113,14 +185,154 @@
 .bg-lv { background-color:#93BE52}
 
 
-@page { margin: 10mm; size: A4 landscape; }
+@page { margin: 10mm; }
 
 @media print {
+    html, body { height: auto !important; overflow: hidden !important; background: #fff !important; }
+    * { overflow-x: visible !important; }
+    /* Do NOT set max-width:100% globally — it breaks flex children widths */
+    .sr-result-card * { box-sizing: border-box; }
+
     .NoPrint, .d-print-none, .nav-tabs, .form-inline, a.NoPrint { display: none !important; }
+
+    /* Compact school header for other tabs */
+    #header, #mainHeader { padding: 1mm 0 !important; margin: 0 !important; }
+    #header .logo-waper img { height: 26px !important; max-width: 34px !important; }
+    #header .InsInfo a { font-size: 11px !important; line-height: 1.2 !important; }
+    #header .InsInfo p { display: none !important; }
+    #header .school-name-logo-wrapper img { max-height: 28px !important; }
+    /* Hide master page header completely when printing Individual Result (has its own header) */
+    body[data-print-tab="Individual_Exam"] #header { display: none !important; }
+
+    /* Student info — bigger & visible */
+    .sr-print-area { }
+    .sr-print-area .p-image img { height: 80px !important; width: 80px !important; }
+    .sr-print-area .p-image { padding-right: 12px !important; }
+    .sr-print-area .info ul li { font-size: 13px !important; line-height: 20px !important; margin: 3px 0 !important; padding-bottom: 3px !important; }
+    .sr-print-area .z-depth-1 { box-shadow: none !important; margin-bottom: 4mm !important; padding: 4mm !important; }
+    .sr-print-area .col-lg-3 { display: none !important; }
+    .sr-print-area .col-lg-9, .sr-print-area .col-md-8 { width: 100% !important; flex: 0 0 100% !important; max-width: 100% !important; }
+
+    /* ── Individual Result tab: hide the top student profile in print ── */
+    /* (handled via JS in preparePrintTabs — data-print-hidden elements are hidden) */
+    body[data-print-tab="Individual_Exam"] .stu-profile-block { display: none !important; }
+
+    /* ── Fix src-top flex in print (info+summary left, grading chart right) ── */
+    .sr-result-card .src-top { display: flex !important; flex-direction: row !important; gap: 10px !important; align-items: flex-start !important; width: 100% !important; }
+    .sr-result-card .src-info-box { flex: 1 1 auto !important; min-width: 0 !important; overflow: hidden !important; }
+    .sr-result-card .src-grade-chart { flex: 0 0 120px !important; width: 120px !important; min-width: 120px !important; max-width: 120px !important; }
+    .sr-result-card .src-grade-chart table { font-size: 9px !important; }
+    .sr-result-card .src-grade-chart th { font-size: 9px !important; padding: 2px 3px !important; background: #37474f !important; color: #fff !important; }
+    .sr-result-card .src-grade-chart td { font-size: 9px !important; padding: 2px 3px !important; background: #fff !important; color: #000 !important; }
+    .sr-result-card .src-info-table { width: 100% !important; max-width: 100% !important; font-size: 13px !important; }
+    .sr-result-card .src-info-table td { font-size: 13px !important; padding: 4px 8px !important; }
+    .sr-result-card .src-summary { width: 100% !important; max-width: 100% !important; table-layout: auto !important; }
+    .sr-result-card .src-sum-hdr td,
+    .sr-result-card .src-sum-val td { white-space: nowrap; font-size: 11px !important; padding: 4px 4px !important; }
+
     .payorder-grid thead { display: table-header-group; }
     .payorder-grid tr { page-break-inside: avoid; }
-    .payorder-grid th, .payorder-grid td { font-size: 9px !important; padding: 4px 3px !important; }
+    .payorder-grid th, .payorder-grid td { font-size: 7px !important; padding: 2px 2px !important; }
     .payorder-report-wrap { border: none; padding: 0; }
-    .tab-content > .tab-pane { display: none !important; }
-    #Accounts, #Payorder { display: block !important; opacity: 1 !important; }
+
+    .tab-pane { display: none !important; }
+    .tab-pane.print-show {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .tab-content.card { padding: 0 !important; margin: 0 !important; border: none !important; box-shadow: none !important; }
+
+    /* Attendance summary — cards top full-width, chart below full-width */
+    #Att_Summary.print-show { overflow: visible !important; }
+
+    /* Stack the two col-md-6 columns vertically, both full width */
+    #Att_Summary.print-show > .row { display: block !important; margin: 0 !important; }
+    #Att_Summary.print-show > .row > .col-md-6:first-child { width: 100% !important; max-width: 100% !important; padding: 0 0 8px 0 !important; }
+    #Att_Summary.print-show > .row > .col-md-6:last-child  { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+
+    /* Attendance card grid — 3 columns per row, 2 rows = 6 cards full width */
+    #Att_Summary.print-show .row .row { display: flex !important; flex-wrap: wrap !important; margin: 0 !important; }
+    #Att_Summary.print-show .row .row .col-md-6 { width: 33.33% !important; flex: 0 0 33.33% !important; max-width: 33.33% !important; padding: 4px !important; }
+
+    /* Attendance cards */
+    #Att_Summary.print-show .box {
+        padding: 14px 10px !important;
+        margin-bottom: 0 !important;
+        background: #fff !important;
+        color: #111 !important;
+        border: 2px solid #333 !important;
+        border-radius: 6px !important;
+        text-align: center !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    #Att_Summary.print-show .box h4 { font-size: 26px !important; font-weight: 800 !important; margin: 4px 0 0 !important; color: #111 !important; }
+    #Att_Summary.print-show .box h5 { font-size: 13px !important; font-weight: 600 !important; margin: 0 !important; color: #333 !important; }
+
+    /* Remove color backgrounds */
+    #Att_Summary.print-show .bg-w,
+    #Att_Summary.print-show .bg-p,
+    #Att_Summary.print-show .bg-a,
+    #Att_Summary.print-show .bg-l,
+    #Att_Summary.print-show .bg-la,
+    #Att_Summary.print-show .bg-lv { background: #fff !important; color: #111 !important; }
+
+    /* Chart — full width below cards */
+    #Att_Summary.print-show canvas { max-height: 320px !important; height: 320px !important; width: 100% !important; display: block !important; }
+
+    /* Attendance calendar — print */
+    #Att_Monthly.print-show .att-legend { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; padding: 4px 0 6px !important; }
+    #Att_Monthly.print-show .Re_Desin {
+        font-size: 10px !important;
+        padding: 3px 8px !important;
+        margin: 0 !important;
+        border-radius: 12px !important;
+        float: none !important;
+    }
+    /* Keep attendance colors in print */
+    #Att_Monthly.print-show .Pre.Re_Desin  { background-color: #d4edda !important; color: #155724 !important; border: 1.5px solid #28a745 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .Abs.Re_Desin  { background-color: #f8d7da !important; color: #721c24 !important; border: 1.5px solid #dc3545 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .Late.Re_Desin { background-color: #fff3cd !important; color: #856404 !important; border: 1.5px solid #ffc107 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .Late_Abs.Re_Desin { background-color: #fce4ec !important; color: #880e4f !important; border: 1.5px solid #e83e4c !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .Att_Holidays.Re_Desin { background-color: #e3f2fd !important; color: #0d47a1 !important; border: 1.5px solid #1565c0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .Student_Leave.Re_Desin { background-color: #ede7f6 !important; color: #4527a0 !important; border: 1.5px solid #6f42c1 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    /* Calendar grid */
+    #Att_Monthly.print-show .myCalendar { border-radius: 0 !important; box-shadow: none !important; border: 2px solid #555 !important; width: 100% !important; border-collapse: collapse !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar table { border-collapse: collapse !important; width: 100% !important; }
+    #Att_Monthly.print-show .myCalendar tr { border-bottom: 1px solid #888 !important; }
+    #Att_Monthly.print-show .myCalendar td,
+    #Att_Monthly.print-show .myCalendar th { border: 1px solid #888 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar .myCalendarTitle { height: 36px !important; line-height: 36px !important; font-size: 15px !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar .myCalendarNextPrev { display: none !important; }
+    #Att_Monthly.print-show .myCalendar .myCalendarDayHeader { height: 24px !important; font-size: 11px !important; background-color: #f0f0f0 !important; font-weight: 700 !important; border: 1px solid #888 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar tr td.myCalendarDay { height: 52px !important; font-size: 10px !important; min-height: 52px !important; padding: 3px !important; border: 1px solid #bbb !important; vertical-align: top !important; }
+    #Att_Monthly.print-show .myCalendar .calendar-english-date { font-size: 16px !important; margin-bottom: 2px !important; }
+    #Att_Monthly.print-show .myCalendar .calendar-bangla-date,
+    #Att_Monthly.print-show .myCalendar .calendar-hijri-date { display: none !important; }
+    #Att_Monthly.print-show .myCalendar .Appointment { font-size: 8px !important; padding: 1px 3px !important; }
+    /* Print attendance cell colors */
+    #Att_Monthly.print-show .myCalendar td.Pre  { background-color: #d4edda !important; border-left: 3px solid #28a745 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar td.Abs  { background-color: #f8d7da !important; border-left: 3px solid #dc3545 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar td.Late { background-color: #fff3cd !important; border-left: 3px solid #ffc107 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar td.Late_Abs { background-color: #fce4ec !important; border-left: 3px solid #e83e4c !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar td.Att_Holidays { background-color: #e3f2fd !important; border-left: 3px solid #1565c0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar td.Student_Leave { background-color: #ede7f6 !important; border-left: 3px solid #6f42c1 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #Att_Monthly.print-show .myCalendar td.myCalendarToday { border: 2px solid #667eea !important; }
+
+    /* Tables / accounts */
+    .table-responsive, .payorder-table-wrap, .calendarWrapper { overflow: visible !important; overflow-x: visible !important; }
+    .tab-pane.print-show .mGrid { font-size: 7px !important; }
+    .tab-pane.print-show .mGrid th,
+    .tab-pane.print-show .mGrid td { padding: 1px 3px !important; line-height: 1.15 !important; }
+    .Accounts-p-title { font-size: 10px !important; padding: 1px 4px !important; margin: 0 0 1px !important; }
+    .Accounts-p-title .badge { font-size: 10px !important; padding: 2px 6px !important; }
+    .alert { padding: 1px 4px !important; margin-bottom: 1px !important; }
+
+    /* Result analysis */
+    #ResultAnalysis.print-show { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+    .statistic, .statistic2 { padding: 3px !important; margin-bottom: 2px !important; }
+    .statistic strong, .statistic2 strong { font-size: 0.9em !important; }
 }

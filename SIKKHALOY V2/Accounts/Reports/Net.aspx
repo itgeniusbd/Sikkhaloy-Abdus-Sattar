@@ -264,7 +264,7 @@ GROUP BY Expense_CategoryName.CategoryName)as t  GROUP  BY Category"
                             ৳<%# Eval("Income","{0:N0}") %>
                         </div>
 
-                        <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" AllowSorting="True" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
+                        <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
                             <Columns>
                                 <asp:BoundField DataField="UserName" HeaderText="User Name" ReadOnly="True" SortExpression="UserName" />
                                 <asp:BoundField DataField="AccountName" HeaderText="Account" ReadOnly="True" SortExpression="AccountName" />
@@ -356,7 +356,7 @@ GROUP BY CommitteeDonationCategory.DonationCategory)as t  GROUP  BY Category ord
              ৳<%# Eval("Total","{0:N0}") %>
          </div>
 
-       <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" AllowSorting="True" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
+       <asp:GridView ID="DetailsGridView" runat="server" AutoGenerateColumns="False" CssClass="mGrid" AllowPaging="True" PageSize="150" OnRowDataBound="DetailsGridView_RowDataBound">
        <Columns>
   <asp:BoundField DataField="UserName" HeaderText="User Name" ReadOnly="True" SortExpression="UserName" />
    <asp:BoundField DataField="AccountName" HeaderText="Account" ReadOnly="True" SortExpression="AccountName" />
@@ -367,26 +367,29 @@ GROUP BY CommitteeDonationCategory.DonationCategory)as t  GROUP  BY Category ord
           <ItemStyle HorizontalAlign="Right" />
      </asp:BoundField>
 <asp:BoundField DataField="Date" HeaderText="Date" ReadOnly="True" SortExpression="Date" DataFormatString="{0:d MMM yyyy}" />
+<asp:BoundField DataField="Session" HeaderText="Session" ReadOnly="True" SortExpression="Session" />
         </Columns>
         <PagerStyle CssClass="pgr" />
          </asp:GridView>
      <asp:SqlDataSource ID="DetailsSQL" runat="server" CancelSelectOnNullParameter="False" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT        ISNULL(Admin.FirstName, '') + ' ' + ISNULL(Admin.LastName, '') + '(' + Registration.UserName + ')' AS UserName, ISNULL(Account.AccountName, 'N/A') AS AccountName,Expense_CategoryName.CategoryName as Category, 
-              Expenditure.ExpenseFor AS Details, Expenditure.Amount, Expenditure.ExpenseDate as [Date]
+              Expenditure.ExpenseFor AS Details, Expenditure.Amount, Expenditure.ExpenseDate as [Date], ISNULL(ey.EducationYear, 'N/A') AS Session
 FROM   Expenditure INNER JOIN
       Registration ON Expenditure.RegistrationID = Registration.RegistrationID INNER JOIN
            Expense_CategoryName ON Expenditure.ExpenseCategoryID= Expense_CategoryName.ExpenseCategoryID INNER JOIN
                Admin ON Admin.RegistrationID = Registration.RegistrationID LEFT OUTER JOIN
-            Account ON Expenditure.AccountID = Account.AccountID
+            Account ON Expenditure.AccountID = Account.AccountID LEFT OUTER JOIN
+            Education_Year ey ON Expenditure.EducationYearID = ey.EducationYearID
 WHERE        (Expenditure.SchoolID = @SchoolID) and Expenditure.ExpenseDate BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000') AND Expense_CategoryName.CategoryName = @Category
 Union ALL
 SELECT   ISNULL(Admin.FirstName, '') + ' ' + ISNULL(Admin.LastName, '') + '(' + Registration.UserName + ')' AS UserName, ISNULL(Account.AccountName, 'N/A') AS AccountName, 
-        Employee_Payorder_Name.Payorder_Name AS Category, Employee_Payorder_Records.Paid_For AS Details, Employee_Payorder_Records.Amount, Employee_Payorder_Records.Paid_date AS [Date]
+        Employee_Payorder_Name.Payorder_Name AS Category, Employee_Payorder_Records.Paid_For AS Details, Employee_Payorder_Records.Amount, Employee_Payorder_Records.Paid_date AS [Date], ISNULL(ey2.EducationYear, 'N/A') AS Session
 FROM       Registration INNER JOIN
          Admin ON Admin.RegistrationID = Registration.RegistrationID INNER JOIN
            Employee_Payorder_Records ON Registration.RegistrationID = Employee_Payorder_Records.RegistrationID INNER JOIN
       Employee_Payorder ON Employee_Payorder.Employee_PayorderID = Employee_Payorder_Records.Employee_PayorderID INNER JOIN
      Employee_Payorder_Name ON Employee_Payorder.Employee_Payorder_NameID = Employee_Payorder_Name.Employee_Payorder_NameID LEFT OUTER JOIN
-        Account ON Employee_Payorder_Records.AccountID = Account.AccountID
+        Account ON Employee_Payorder_Records.AccountID = Account.AccountID LEFT OUTER JOIN
+        Education_Year ey2 ON Employee_Payorder_Records.EducationYearID = ey2.EducationYearID
 WHERE        (Employee_Payorder_Records.SchoolID = @SchoolID) AND (Employee_Payorder_Records.Paid_date BETWEEN ISNULL(@From_Date, N'1-1-1000') AND ISNULL(@To_Date, N'1-1-3000')) AND Employee_Payorder_Name.Payorder_Name = @Category
 order by [Date]">
            <SelectParameters>

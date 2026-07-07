@@ -392,7 +392,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                 {
                     con.Open();
 
-                    // Validate: no item exceeds due
+                    // Validate: no item exceeds due (before opening transaction)
                     foreach (var item in items)
                     {
                         double due = GetDueByPayOrderID(con, item.PayOrderID);
@@ -400,121 +400,138 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                             return new { Success = false, Message = "Paid amount exceeds due for PayOrder " + item.PayOrderID };
                     }
 
-                    // Insert Money Receipt via Stored Procedure
-                    int moneyReceiptID = 0;
-                    using (var cmd = new SqlCommand("dbo.MoneyReceipt", con))
+                    using (var tran = con.BeginTransaction())
                     {
-                        cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@StudentID", studentDbID);
-                        cmd.Parameters.AddWithValue("@RegistrationID", registrationID);
-                        cmd.Parameters.AddWithValue("@StudentClassID", studentClassID);
-                        cmd.Parameters.AddWithValue("@EducationYearID", educationYearID);
-                        cmd.Parameters.AddWithValue("@PaymentBy", "Institution");
-                        cmd.Parameters.AddWithValue("@PaidDate", paidDateTime);  // ? custom paid date
-                        cmd.Parameters.AddWithValue("@SchoolID", schoolID);
-                        var result = cmd.ExecuteScalar();
-                        moneyReceiptID = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
-                    }
-
-                    if (moneyReceiptID <= 0)
-                        return new { Success = false, Message = "Money Receipt ???? ??????" };
-
-                    double totalPaid = 0;
-                    string message = "";
-                    string sessionInfo = "";
-
-                    foreach (var item in items)
-                    {
-                        double due = GetDueByPayOrderID(con, item.PayOrderID);
-                        if (item.PaidAmount > due) continue;
-
-                        int roleID = 0, payOrderEduYearID = educationYearID, scid = studentClassID;
-                        string payFor = "", roleName = "";
-                        using (var cmd = new SqlCommand("SELECT po.RoleID, po.PayFor, po.EducationYearID, po.StudentClassID, ir.Role FROM Income_PayOrder po INNER JOIN Income_Roles ir ON po.RoleID = ir.RoleID WHERE po.PayOrderID=@P", con))
+                        try
                         {
-                            cmd.Parameters.AddWithValue("@P", item.PayOrderID);
-                            using (var dr = cmd.ExecuteReader())
-                                if (dr.Read()) { roleID = Convert.ToInt32(dr["RoleID"]); payFor = dr["PayFor"].ToString(); payOrderEduYearID = Convert.ToInt32(dr["EducationYearID"]); scid = Convert.ToInt32(dr["StudentClassID"]); roleName = dr["Role"].ToString(); }
-                        }
+                            // Insert Money Receipt via Stored Procedure
+                            int moneyReceiptID = 0;
+                            using (var cmd = new SqlCommand("dbo.MoneyReceipt", con, tran))
+                            {
+                                cmd.CommandType = CommandType.StoredProcedure;
+                                cmd.Parameters.AddWithValue("@StudentID", studentDbID);
+                                cmd.Parameters.AddWithValue("@RegistrationID", registrationID);
+                                cmd.Parameters.AddWithValue("@StudentClassID", studentClassID);
+                                cmd.Parameters.AddWithValue("@EducationYearID", educationYearID);
+                                cmd.Parameters.AddWithValue("@PaymentBy", "Institution");
+                                cmd.Parameters.AddWithValue("@PaidDate", paidDateTime);
+                                cmd.Parameters.AddWithValue("@SchoolID", schoolID);
+                                var result = cmd.ExecuteScalar();
+                                moneyReceiptID = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+                            }
 
-                        using (var cmd = new SqlCommand(@"INSERT INTO Income_PaymentRecord(StudentID,RegistrationID,RoleID,PayOrderID,PaidAmount,PayFor,PaidDate,MoneyReceiptID,StudentClassID,EducationYearID,SchoolID,AccountID)
-                        VALUES(@SID,@RID,@RoleID,@PID,@PA,@PF,@Date,@MID,@SCID,@EID,@SchID,@AccID)", con))
+                            if (moneyReceiptID <= 0)
+                            {
+                                tran.Rollback();
+                                return new { Success = false, Message = "Money Receipt তৈরি হয়নি।" };
+                            }
+
+                            double totalPaid = 0;
+                            string message = "";
+                            string sessionInfo = "";
+
+                            foreach (var item in items)
+                            {
+                                double due = GetDueByPayOrderID(con, item.PayOrderID, tran);
+                                if (item.PaidAmount > due) continue;
+
+                                int roleID = 0, payOrderEduYearID = educationYearID, scid = studentClassID;
+                                string payFor = "", roleName = "";
+                                using (var cmd = new SqlCommand("SELECT po.RoleID, po.PayFor, po.EducationYearID, po.StudentClassID, ir.Role FROM Income_PayOrder po INNER JOIN Income_Roles ir ON po.RoleID = ir.RoleID WHERE po.PayOrderID=@P", con, tran))
+                                {
+                                    cmd.Parameters.AddWithValue("@P", item.PayOrderID);
+                                    using (var dr = cmd.ExecuteReader())
+                                        if (dr.Read()) { roleID = Convert.ToInt32(dr["RoleID"]); payFor = dr["PayFor"].ToString(); payOrderEduYearID = Convert.ToInt32(dr["EducationYearID"]); scid = Convert.ToInt32(dr["StudentClassID"]); roleName = dr["Role"].ToString(); }
+                                }
+
+                                using (var cmd = new SqlCommand(@"INSERT INTO Income_PaymentRecord(StudentID,RegistrationID,RoleID,PayOrderID,PaidAmount,PayFor,PaidDate,MoneyReceiptID,StudentClassID,EducationYearID,SchoolID,AccountID)
+                                VALUES(@SID,@RID,@RoleID,@PID,@PA,@PF,@Date,@MID,@SCID,@EID,@SchID,@AccID)", con, tran))
+                                {
+                                    cmd.Parameters.AddWithValue("@SID", studentDbID);
+                                    cmd.Parameters.AddWithValue("@RID", registrationID);
+                                    cmd.Parameters.AddWithValue("@RoleID", roleID);
+                                    cmd.Parameters.AddWithValue("@PID", item.PayOrderID);
+                                    cmd.Parameters.AddWithValue("@PA", item.PaidAmount);
+                                    cmd.Parameters.AddWithValue("@PF", payFor);
+                                    cmd.Parameters.AddWithValue("@Date", paidDateTime);
+                                    cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
+                                    cmd.Parameters.AddWithValue("@SCID", scid);
+                                    cmd.Parameters.AddWithValue("@EID", payOrderEduYearID);
+                                    cmd.Parameters.AddWithValue("@SchID", schoolID);
+                                    cmd.Parameters.AddWithValue("@AccID", accountID);
+                                    cmd.ExecuteNonQuery();
+                                }
+
+                                using (var cmd = new SqlCommand(@"UPDATE Income_PayOrder
+                                    SET PaidAmount = PaidAmount + @PA,
+                                        LastPaidDate = @Date,
+                                        NumberOfPayment = NumberOfPayment + 1,
+                                        Is_LateFeeAdded = CASE 
+                                            WHEN EndDate < GETDATE() AND ISNULL(LateFee,0) > 0 THEN 1 
+                                            ELSE Is_LateFeeAdded 
+                                        END
+                                    WHERE PayOrderID = @P", con, tran))
+                                {
+                                    cmd.Parameters.AddWithValue("@PA", item.PaidAmount);
+                                    cmd.Parameters.AddWithValue("@Date", paidDateTime);
+                                    cmd.Parameters.AddWithValue("@P", item.PayOrderID);
+                                    cmd.ExecuteNonQuery();
+                                }
+
+                                totalPaid += item.PaidAmount;
+                                message += $", {roleName}-{payFor}";
+                                sessionInfo = payOrderEduYearID.ToString();
+                            }
+
+                            if (totalPaid == 0)
+                            {
+                                tran.Rollback();
+                                return new { Success = false, Message = "No payment processed." };
+                            }
+
+                            using (var cmd = new SqlCommand("UPDATE Income_MoneyReceipt SET TotalAmount=@T WHERE MoneyReceiptID=@MID", con, tran))
+                            {
+                                cmd.Parameters.AddWithValue("@T", totalPaid);
+                                cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            tran.Commit();
+
+                            string receiptSN = "";
+                            using (var cmd = new SqlCommand("SELECT MoneyReceipt_SN FROM Income_MoneyReceipt WHERE MoneyReceiptID=@MID", con))
+                            {
+                                cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
+                                receiptSN = cmd.ExecuteScalar()?.ToString();
+                            }
+                            if (string.IsNullOrEmpty(receiptSN))
+                                receiptSN = moneyReceiptID.ToString();
+
+                            string sessionName = "";
+                            if (!string.IsNullOrEmpty(sessionInfo))
+                            {
+                                using (var cmd = new SqlCommand("SELECT EducationYear FROM Education_Year WHERE EducationYearID=@EID", con))
+                                {
+                                    cmd.Parameters.AddWithValue("@EID", sessionInfo);
+                                    sessionName = cmd.ExecuteScalar()?.ToString() ?? "";
+                                }
+                            }
+
+                            if (smsActive) TrySendSMS(smsPhoneNo, studentID, studentName, totalPaid, receiptSN, message, schoolID, studentDbID, sessionName);
+
+                            return new
+                            {
+                                Success = true,
+                                MRid = HttpUtility.UrlEncode(Encrypt(moneyReceiptID.ToString())),
+                                Sid  = HttpUtility.UrlEncode(Encrypt(studentID))
+                            };
+                        }
+                        catch
                         {
-                            cmd.Parameters.AddWithValue("@SID", studentDbID);
-                            cmd.Parameters.AddWithValue("@RID", registrationID);
-                            cmd.Parameters.AddWithValue("@RoleID", roleID);
-                            cmd.Parameters.AddWithValue("@PID", item.PayOrderID);
-                            cmd.Parameters.AddWithValue("@PA", item.PaidAmount);
-                            cmd.Parameters.AddWithValue("@PF", payFor);
-                            cmd.Parameters.AddWithValue("@Date", paidDateTime);  // ? custom paid date
-                            cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
-                            cmd.Parameters.AddWithValue("@SCID", scid);
-                            cmd.Parameters.AddWithValue("@EID", payOrderEduYearID);
-                            cmd.Parameters.AddWithValue("@SchID", schoolID);
-                            cmd.Parameters.AddWithValue("@AccID", accountID);
-                            cmd.ExecuteNonQuery();
-                        }
-
-                        // Update PayOrder PaidAmount and Is_LateFeeAdded
-                        // Is_LateFeeAdded=1 ensures the computed Status column uses LateFee in calculation
-                        using (var cmd = new SqlCommand(@"UPDATE Income_PayOrder
-                            SET PaidAmount = PaidAmount + @PA,
-                                LastPaidDate = @Date,
-                                NumberOfPayment = NumberOfPayment + 1,
-                                Is_LateFeeAdded = CASE 
-                                    WHEN EndDate < GETDATE() AND ISNULL(LateFee,0) > 0 THEN 1 
-                                    ELSE Is_LateFeeAdded 
-                                END
-                            WHERE PayOrderID = @P", con))
-                        {
-                            cmd.Parameters.AddWithValue("@PA", item.PaidAmount);
-                            cmd.Parameters.AddWithValue("@Date", paidDateTime);
-                            cmd.Parameters.AddWithValue("@P", item.PayOrderID);
-                            cmd.ExecuteNonQuery();
-                        }
-
-                        totalPaid += item.PaidAmount;
-                        message += $", {roleName}-{payFor}";
-                        sessionInfo = payOrderEduYearID.ToString();
-                    }
-
-                    using (var cmd = new SqlCommand("UPDATE Income_MoneyReceipt SET TotalAmount=@T WHERE MoneyReceiptID=@MID", con))
-                    {
-                        cmd.Parameters.AddWithValue("@T", totalPaid);
-                        cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
-                        cmd.ExecuteNonQuery();
-                    }
-
-                    if (totalPaid == 0) return new { Success = false, Message = "No payment processed." };
-
-                    string receiptSN = "";
-                    using (var cmd = new SqlCommand("SELECT MoneyReceipt_SN FROM Income_MoneyReceipt WHERE MoneyReceiptID=@MID", con))
-                    {
-                        cmd.Parameters.AddWithValue("@MID", moneyReceiptID);
-                        receiptSN = cmd.ExecuteScalar()?.ToString();
-                    }
-                    if (string.IsNullOrEmpty(receiptSN))
-                        receiptSN = moneyReceiptID.ToString();
-
-                    // Get education year name for {Session} placeholder
-                    string sessionName = "";
-                    if (!string.IsNullOrEmpty(sessionInfo))
-                    {
-                        using (var cmd = new SqlCommand("SELECT EducationYear FROM Education_Year WHERE EducationYearID=@EID", con))
-                        {
-                            cmd.Parameters.AddWithValue("@EID", sessionInfo);
-                            sessionName = cmd.ExecuteScalar()?.ToString() ?? "";
+                            tran.Rollback();
+                            throw;
                         }
                     }
-
-                    if (smsActive) TrySendSMS(smsPhoneNo, studentID, studentName, totalPaid, receiptSN, message, schoolID, studentDbID, sessionName);
-
-                    return new
-                    {
-                        Success = true,
-                        MRid = HttpUtility.UrlEncode(Encrypt(moneyReceiptID.ToString())),
-                        Sid  = HttpUtility.UrlEncode(Encrypt(studentID))
-                    };
                 }
             }
             catch (Exception ex)
@@ -523,14 +540,14 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             }
         }
 
-        private static double GetDueByPayOrderID(SqlConnection con, int payOrderID)
+        private static double GetDueByPayOrderID(SqlConnection con, int payOrderID, SqlTransaction tran = null)
         {
             // LateFee শুধু EndDate পার হলে Due তে যোগ হবে
             const string sql = @"SELECT ISNULL(Amount,0)
                 + CASE WHEN EndDate < GETDATE() THEN ISNULL(LateFee,0) ELSE 0 END
                 - ISNULL(Discount,0) - ISNULL(LateFee_Discount,0) - ISNULL(PaidAmount,0) AS Due
                 FROM Income_PayOrder WHERE PayOrderID=@P";
-            using (var cmd = new SqlCommand(sql, con))
+            using (var cmd = new SqlCommand(sql, con, tran))
             {
                 cmd.Parameters.AddWithValue("@P", payOrderID);
                 var val = cmd.ExecuteScalar();

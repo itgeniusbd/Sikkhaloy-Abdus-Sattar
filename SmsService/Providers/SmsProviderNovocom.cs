@@ -106,7 +106,7 @@ namespace SmsService
                 using (var response = request.GetResponse())
                 {
                     var responseObject = ParseResponse(response) as JObject;
-                    EnsureSuccess(responseObject);
+                    EnsureSuccess(responseObject, requireMessageId: !parseBalance);
                     responseText = responseObject.ToString(Formatting.None);
 
                     if (!parseBalance)
@@ -169,7 +169,7 @@ namespace SmsService
             }
         }
 
-        private static void EnsureSuccess(JObject responseObject)
+        private static void EnsureSuccess(JObject responseObject, bool requireMessageId)
         {
             if (responseObject == null)
                 throw new Exception("Invalid response from Novocom SMS service.");
@@ -181,6 +181,9 @@ namespace SmsService
             var firstItem = responseObject["Data"]?.First as JObject;
             if (firstItem == null)
                 throw new Exception("Novocom response has no message data.");
+
+            if (!requireMessageId)
+                return;
 
             var messageErrorCode = firstItem["MessageErrorCode"]?.Value<int?>();
             if (messageErrorCode.HasValue && messageErrorCode.Value != 0)

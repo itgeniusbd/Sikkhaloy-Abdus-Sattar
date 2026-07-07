@@ -3,7 +3,7 @@
 <%@ Register assembly="Microsoft.ReportViewer.WebForms, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" namespace="Microsoft.Reporting.WebForms" tagprefix="rsweb" %>
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="../../Employee/CSS/Acadamic_Calender.css?v=6" rel="stylesheet" />
-    <link href="../CSS/Report.css?v=14" rel="stylesheet" />
+    <link href="../CSS/Report.css?v=16" rel="stylesheet" />
 
     <style>
         /*Allover report*/
@@ -54,10 +54,11 @@
         </div>
     </div>
 
+    <div class="sr-print-area">
     <asp:FormView ID="StudentInfoFormView" runat="server" DataKeyNames="ClassID" DataSourceID="StudentInfoSQL" Width="100%">
         <ItemTemplate>
             <input id="StudentID" type="hidden" value="<%# Eval("StudentID") %>" />
-            <div class="row">
+            <div class="row stu-profile-block">
                 <div class="col-lg-9 col-md-8">
                     <div class="z-depth-1 mb-4 p-3">
                         <div class="d-flex flex-sm-row flex-column text-center text-sm-left">
@@ -440,12 +441,14 @@ Education_Year ON T_AP.EducationYearID = Education_Year.EducationYearID ORDER BY
                 <div id="Att_Monthly" class="tab-pane fade" role="tabpanel" aria-expanded="false">
                     <asp:UpdatePanel ID="UpdatePanel3" runat="server">
                         <ContentTemplate>
-                            <div class="Pre Re_Desin">Present</div>
-                            <div class="Abs Re_Desin">Absent</div>
-                            <div class="Late Re_Desin">Late</div>
-                            <div class="Late_Abs Re_Desin">Late Abs</div>
-                            <div class="Att_Holidays Re_Desin">Holidays</div>
-                            <div class="Student_Leave Re_Desin">Leave</div>
+                            <div class="att-legend">
+                                <div class="Pre Re_Desin">Present</div>
+                                <div class="Abs Re_Desin">Absent</div>
+                                <div class="Late Re_Desin">Late</div>
+                                <div class="Late_Abs Re_Desin">Late Abs</div>
+                                <div class="Att_Holidays Re_Desin">Holidays</div>
+                                <div class="Student_Leave Re_Desin">Leave</div>
+                            </div>
 
                             <div class="calendarWrapper">
                                 <asp:Calendar ID="AttendanceCalendar" SelectionMode="None" OnDayRender="AttendanceCalendar_DayRender" runat="server" Font-Names="Tahoma" Font-Size="20px" NextMonthText="." PrevMonthText="." SelectMonthText="»" SelectWeekText="›" CellPadding="0" CssClass="myCalendar" Width="100%" FirstDayOfWeek="Saturday">
@@ -464,65 +467,34 @@ Education_Year ON T_AP.EducationYearID = Education_Year.EducationYearID ORDER BY
             </div>
         </div>
 
-        <div id="Individual_Exam" class="tab-pane fade" role="tabpanel" aria-expanded="false">
-            <!--Individual_Exam tab-->
-            <asp:UpdatePanel ID="UpdatePanel2" runat="server">
-                <ContentTemplate>
-                    <div class="row NoPrint">
-                        <div class="col-sm-4 col-md-2 form-group">
-                            <label>
-                                Individual Result
-					   <asp:RequiredFieldValidator ID="RequiredFieldValidator2" runat="server" ControlToValidate="ExamDropDownList" CssClass="EroorSummer" ErrorMessage="Select Exam" InitialValue="0" ValidationGroup="Ex"></asp:RequiredFieldValidator>
-                            </label>
+		<div id="Individual_Exam" class="tab-pane fade" role="tabpanel" aria-expanded="false">
+			<asp:UpdatePanel ID="UpdatePanel2" runat="server">
+				<ContentTemplate>
+					<div class="form-inline NoPrint mb-3">
+						<div class="form-group">
+							<label class="mr-2">Individual Result</label>
+							<asp:DropDownList ID="ExamDropDownList" runat="server" CssClass="form-control" DataSourceID="ExamNameSQl" DataTextField="ExamName" DataValueField="ExamID" AppendDataBoundItems="True" AutoPostBack="True" OnSelectedIndexChanged="ExamDropDownList_SelectedIndexChanged">
+								<asp:ListItem Value="0">[ SELECT ]</asp:ListItem>
+							</asp:DropDownList>
+							<asp:RequiredFieldValidator ID="RequiredFieldValidator2" runat="server" ControlToValidate="ExamDropDownList" CssClass="EroorSummer" ErrorMessage="*" InitialValue="0" ValidationGroup="Ex"></asp:RequiredFieldValidator>
+							<asp:SqlDataSource ID="ExamNameSQl" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
+								SelectCommand="SELECT DISTINCT Exam_Name.ExamID, Exam_Name.ExamName FROM Exam_Name INNER JOIN Exam_Result_of_Student ON Exam_Name.ExamID = Exam_Result_of_Student.ExamID WHERE (Exam_Name.SchoolID = @SchoolID) AND (Exam_Name.EducationYearID = @EducationYearID) AND (Exam_Result_of_Student.StudentClassID = @StudentClassID)">
+								<SelectParameters>
+									<asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+									<asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
+									<asp:QueryStringParameter Name="StudentClassID" QueryStringField="Student_Class" />
+								</SelectParameters>
+							</asp:SqlDataSource>
+						</div>
+					</div>
 
-                            <asp:DropDownList ID="ExamDropDownList" runat="server" CssClass="form-control" DataSourceID="ExamNameSQl" DataTextField="ExamName" DataValueField="ExamID" AppendDataBoundItems="True" AutoPostBack="True" OnSelectedIndexChanged="ExamDropDownList_SelectedIndexChanged">
-                                <asp:ListItem Value="0">[ SELECT ]</asp:ListItem>
-                            </asp:DropDownList>
-                            <asp:SqlDataSource ID="ExamNameSQl" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-                                SelectCommand="SELECT DISTINCT Exam_Name.ExamID, Exam_Name.ExamName FROM Exam_Name INNER JOIN Exam_Result_of_Student ON Exam_Name.ExamID = Exam_Result_of_Student.ExamID WHERE (Exam_Name.SchoolID = @SchoolID) AND (Exam_Name.EducationYearID = @EducationYearID) AND (Exam_Result_of_Student.StudentClassID = @StudentClassID)">
-                                <SelectParameters>
-                                    <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                                    <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-                                    <asp:QueryStringParameter Name="StudentClassID" QueryStringField="Student_Class" />
-                                </SelectParameters>
-                            </asp:SqlDataSource>
-                        </div>
-                    </div>
+					<asp:Panel ID="IndividualResultPanel" runat="server" Visible="false">
+						<%# RenderIndividualResultCard() %>
+					</asp:Panel>
 
-                    <div class="table-responsive">
-                        <rsweb:ReportViewer ID="ResultReportViewer" runat="server" Font-Names="Verdana" Font-Size="8pt" WaitMessageFont-Names="Verdana" WaitMessageFont-Size="14pt" Width="" Height="100%" AsyncRendering="False" SizeToReportContent="True" SplitterBackColor="White">
-                            <LocalReport ReportEmbeddedResource="EDUCATION.COM.Report_Individual_Result.rdlc" ReportPath="Report_Individual_Result.rdlc">
-                                <DataSources>
-                                    <rsweb:ReportDataSource DataSourceId="ExamResultODS" Name="DataSet1" />
-                                </DataSources>
-                            </LocalReport>
-                        </rsweb:ReportViewer>
-
-                        <asp:ObjectDataSource ID="ExamResultODS" runat="server" OldValuesParameterFormatString="original_{0}" SelectMethod="GetData" TypeName="EDUCATION.COM.Exam_ResultTableAdapters.Profile_newTableAdapter">
-                            <SelectParameters>
-                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
-                                <asp:QueryStringParameter Name="StudentClassID" QueryStringField="Student_Class" Type="Int32" />
-                                <asp:ControlParameter ControlID="ExamDropDownList" Name="ExamID" PropertyName="SelectedValue" Type="Int32" />
-                            </SelectParameters>
-                        </asp:ObjectDataSource>
-                        <asp:ObjectDataSource ID="GradingSystemODS" runat="server" OldValuesParameterFormatString="original_{0}" SelectMethod="GetData" TypeName="EDUCATION.COM.Exam_ResultTableAdapters.Exam_Grading_SystemTableAdapter">
-                            <SelectParameters>
-                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" Type="Int32" />
-                                <asp:ControlParameter ControlID="StudentInfoFormView" Name="ClassID" PropertyName="DataKey['ClassID']" Type="Int32" />
-                                <asp:ControlParameter ControlID="ExamDropDownList" Name="ExamID" PropertyName="SelectedValue" Type="Int32" />
-                                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" Type="Int32" />
-                            </SelectParameters>
-                        </asp:ObjectDataSource>
-                        <asp:ObjectDataSource ID="SchoolInfoODS" runat="server" OldValuesParameterFormatString="original_{0}" SelectMethod="GetData" TypeName="EDUCATION.COM.Exam_ResultTableAdapters.SchoolInfoTableAdapter">
-                            <SelectParameters>
-                                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-                            </SelectParameters>
-                        </asp:ObjectDataSource>
-                    </div>
-                </ContentTemplate>
-            </asp:UpdatePanel>
-        </div>
+				</ContentTemplate>
+			</asp:UpdatePanel>
+		</div>
 
         <div id="CumulativeResult" class="tab-pane fade" role="tabpanel" aria-expanded="false">
             <asp:UpdatePanel ID="UpdatePanel1" runat="server">
@@ -982,7 +954,7 @@ FROM Income_PayOrder WHERE (SchoolID = @SchoolID) AND (EducationYearID = @Educat
             <asp:Button ID="Find_Button" CssClass="btn btn-primary" runat="server" Text="Submit" />
         </div>
         <div class="form-group pull-right Print">
-            <a title="Print This Page" onclick="window.print();"><i class="fa fa-print" aria-hidden="true"></i></a>
+            <a title="Print This Page" onclick="printActiveTab(); return false;"><i class="fa fa-print" aria-hidden="true"></i></a>
         </div>
     </div>
                     <asp:GridView ID="Fault_Gridview" CssClass="mGrid" DataKeyNames="StudentFaultID" runat="server" DataSourceID="FaultSQL" AutoGenerateColumns="False" Width="100%" AllowPaging="True" AllowSorting="True" PageSize="30">
@@ -1066,8 +1038,9 @@ WHERE (Student_Fault.SchoolID = @SchoolID) AND (EducationYearID = @EducationYear
             </asp:UpdatePanel>
         </div>
     </div>
+    </div><!-- /.sr-print-area -->
 
-    <button class="btn btn-primary d-print-none mt-3" onclick="window.print()" type="button">Print</button>
+    <button class="btn btn-primary d-print-none mt-3" onclick="printActiveTab(); return false;" type="button">Print</button>
 
     <!-- Modal fault -->
     <div class="modal fade" id="FaultModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -1153,6 +1126,60 @@ WHERE (Student_Fault.SchoolID = @SchoolID) AND (EducationYearID = @EducationYear
     </asp:UpdateProgress>
 
     <script type="text/javascript">
+        function preparePrintTabs() {
+            cleanupPrintTabs();
+            var mainHref = $('.nav-tabs.nav-justified > .nav-item > .nav-link.active').first().attr('href');
+            if (!mainHref) return;
+            var $mainPane = $(mainHref);
+            $mainPane.addClass('print-show');
+            $mainPane.find('.nav-tabs .nav-link.active').each(function () {
+                var subHref = $(this).attr('href');
+                if (subHref && subHref.indexOf('#') === 0) $(subHref).addClass('print-show');
+            });
+            $('body').addClass('sr-print-mode');
+            // Tag the active tab on body so CSS can target it
+            $('body').attr('data-print-tab', mainHref.replace('#', ''));
+            if (window.attendanceChart && $('#Att_Summary').hasClass('print-show')) {
+                var canvas = document.getElementById('myChart');
+                if (canvas) { canvas.style.height = '320px'; canvas.style.maxHeight = '320px'; }
+                window.attendanceChart.resize();
+            }
+            setTimeout(applyPrintScale, 80);
+        }
+
+        function applyPrintScale() {
+            var area = document.querySelector('.sr-print-area');
+            if (!area) return;
+            area.style.transform = '';
+            area.style.transformOrigin = '';
+            area.style.width = '';
+        }
+
+        function cleanupPrintTabs() {
+            $('.print-show').removeClass('print-show');
+            $('body').removeClass('sr-print-mode').removeAttr('data-print-tab');
+
+            var area = document.querySelector('.sr-print-area');
+            if (area) {
+                area.style.transform = '';
+                area.style.transformOrigin = '';
+                area.style.width = '';
+            }
+            if (window.attendanceChart) {
+                var canvas = document.getElementById('myChart');
+                if (canvas) { canvas.style.height = ''; canvas.style.maxHeight = ''; }
+                window.attendanceChart.resize();
+            }
+        }
+
+        function printActiveTab() {
+            preparePrintTabs();
+            setTimeout(function () { window.print(); }, 150);
+        }
+
+        window.addEventListener('beforeprint', preparePrintTabs);
+        window.addEventListener('afterprint', cleanupPrintTabs);
+
         $(function () {
             //chart
             var ctx = document.getElementById("myChart");
@@ -1169,7 +1196,7 @@ WHERE (Student_Fault.SchoolID = @SchoolID) AND (EducationYearID = @EducationYear
             $("#la_percen").text(Math.round((parseFloat(LateAbs) * 100) / parseFloat(wd)).toFixed() + "%");
             $("#lv_percen").text(Math.round((parseFloat(Leave) * 100) / parseFloat(wd)).toFixed() + "%");
 
-            var myChart = new Chart(ctx, {
+            window.attendanceChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: ["Working Days", "Present", "Absence", "Late", "Late Absence", "Leave"],

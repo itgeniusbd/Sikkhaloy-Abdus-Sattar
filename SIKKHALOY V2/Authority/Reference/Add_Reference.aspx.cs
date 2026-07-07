@@ -11,7 +11,7 @@ namespace EDUCATION.COM.Authority.Reference
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-
+            Response.Redirect("~/Authority/Reference/Referral_Management.aspx", true);
         }
 
         protected void SubmitButton_Click(object sender, EventArgs e)

@@ -8,19 +8,10 @@
 //------------------------------------------------------------------------------
 
 namespace EDUCATION.COM.Student.Exam {
-    
-    
+
+
     public partial class Cumulative_Exam {
-        
-        /// <summary>
-        /// UpdatePanel6 control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.UpdatePanel UpdatePanel6;
-        
+
         /// <summary>
         /// Cum_ExamDropDownList control.
         /// </summary>
@@ -29,7 +20,7 @@ namespace EDUCATION.COM.Student.Exam {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList Cum_ExamDropDownList;
-        
+
         /// <summary>
         /// CumiExamSQL control.
         /// </summary>
@@ -38,32 +29,26 @@ namespace EDUCATION.COM.Student.Exam {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource CumiExamSQL;
-        
+
         /// <summary>
-        /// Cu_ResultReportViewer control.
+        /// HiddenTeacherSign control.
         /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::Microsoft.Reporting.WebForms.ReportViewer Cu_ResultReportViewer;
-        
+        protected global::System.Web.UI.WebControls.HiddenField HiddenTeacherSign;
+
         /// <summary>
-        /// Cum_ExamResultODS control.
+        /// HiddenPrincipalSign control.
         /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource Cum_ExamResultODS;
-        
+        protected global::System.Web.UI.WebControls.HiddenField HiddenPrincipalSign;
+
         /// <summary>
-        /// Cu_GradingSystemODS control.
+        /// ResultPanel control.
         /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.ObjectDataSource Cu_GradingSystemODS;
+        protected global::System.Web.UI.WebControls.Panel ResultPanel;
+
+        /// <summary>
+        /// ResultRepeater control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Repeater ResultRepeater;
     }
 }
+

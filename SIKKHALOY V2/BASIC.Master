@@ -393,7 +393,7 @@
             
             <!-- Copyright Section -->
             <div class="footer-copyright text-center py-3" style="border-top: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.2);">
-                © 2015-<span id="CurrentYear"></span> Copyright : <a href="http://itgeniusbd.com/" target="_blank" class="copyright-link">IT GENIUS</a>
+                © 2015-<span id="CurrentYear"></span> Copyright : <a href="https://itgenius.com.bd/" target="_blank" class="copyright-link">IT GENIUS</a>
             </div>
         </footer>
 

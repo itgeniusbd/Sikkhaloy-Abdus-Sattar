@@ -3,7 +3,7 @@
 .Appointment {font-size: 13px; }
 .Evnt_Date {padding: 2px 0; text-align: center; color: #05b401;border: 1px solid #ddd;}
 
-.myCalendar {width:100% !important; background-color: #fff; border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;}
+.myCalendar {width:100% !important; background-color: #fff; border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 .myCalendar a { text-decoration: none; color: #2c3e50; }
 .myCalendar .myCalendarTitle {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -36,7 +36,7 @@
     border-bottom: 2px solid #dee2e6;
 }
 
-.myCalendar tr { border-bottom: solid 1px #e9ecef; }
+.myCalendar tr { border-bottom: solid 1px #e9ecef; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
 .myCalendar table tr { border-bottom: none !important; }
 .myCalendar tr:last-child td { border-bottom: none; }
@@ -45,6 +45,8 @@
     text-align:center;
     vertical-align: top;
     position: relative;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }
 .myCalendar tr td:last-child.myCalendarDay, .myCalendar tr th:last-child.myCalendarDayHeader { border-right: none; }
 
@@ -268,27 +270,33 @@ background-color: #d4edda !important;
 /* ── Attendance Day Colors ── */
 .myCalendar td.myCalendarDay.Pre,
 .myCalendar td.Pre  { background-color: #d4edda !important; border-left: 4px solid #28a745 !important; }
-.myCalendar td.Pre a, .myCalendar td.myCalendarDay.Pre a { color: #155724 !important; }
+.myCalendar td.Pre .calendar-english-date,
+.myCalendar td.myCalendarDay.Pre .calendar-english-date { color: #155724 !important; font-weight: 800 !important; }
 
 .myCalendar td.myCalendarDay.Abs,
 .myCalendar td.Abs  { background-color: #f8d7da !important; border-left: 4px solid #dc3545 !important; }
-.myCalendar td.Abs a, .myCalendar td.myCalendarDay.Abs a { color: #721c24 !important; }
+.myCalendar td.Abs .calendar-english-date,
+.myCalendar td.myCalendarDay.Abs .calendar-english-date { color: #721c24 !important; font-weight: 800 !important; }
 
 .myCalendar td.myCalendarDay.Late,
 .myCalendar td.Late { background-color: #fff3cd !important; border-left: 4px solid #ffc107 !important; }
-.myCalendar td.Late a, .myCalendar td.myCalendarDay.Late a { color: #856404 !important; }
+.myCalendar td.Late .calendar-english-date,
+.myCalendar td.myCalendarDay.Late .calendar-english-date { color: #856404 !important; font-weight: 800 !important; }
 
 .myCalendar td.myCalendarDay.Late_Abs,
-.myCalendar td.Late_Abs { background-color: #f5c6cb !important; border-left: 4px solid #e83e4c !important; }
-.myCalendar td.Late_Abs a, .myCalendar td.myCalendarDay.Late_Abs a { color: #721c24 !important; }
+.myCalendar td.Late_Abs { background-color: #fce4ec !important; border-left: 4px solid #e83e4c !important; }
+.myCalendar td.Late_Abs .calendar-english-date,
+.myCalendar td.myCalendarDay.Late_Abs .calendar-english-date { color: #880e4f !important; font-weight: 800 !important; }
 
 .myCalendar td.myCalendarDay.Att_Holidays,
-.myCalendar td.Att_Holidays { background-color: #cce5ff !important; border-left: 4px solid #004085 !important; }
-.myCalendar td.Att_Holidays a, .myCalendar td.myCalendarDay.Att_Holidays a { color: #004085 !important; }
+.myCalendar td.Att_Holidays { background-color: #e3f2fd !important; border-left: 4px solid #1565c0 !important; }
+.myCalendar td.Att_Holidays .calendar-english-date,
+.myCalendar td.myCalendarDay.Att_Holidays .calendar-english-date { color: #0d47a1 !important; font-weight: 800 !important; }
 
 .myCalendar td.myCalendarDay.Student_Leave,
-.myCalendar td.Student_Leave { background-color: #e2d9f3 !important; border-left: 4px solid #6f42c1 !important; }
-.myCalendar td.Student_Leave a, .myCalendar td.myCalendarDay.Student_Leave a { color: #3d1a78 !important; }
+.myCalendar td.Student_Leave { background-color: #ede7f6 !important; border-left: 4px solid #6f42c1 !important; }
+.myCalendar td.Student_Leave .calendar-english-date,
+.myCalendar td.myCalendarDay.Student_Leave .calendar-english-date { color: #4527a0 !important; font-weight: 800 !important; }
 
 /* Other month dates */
 .myCalendar .myCalendarDay[style*="color:Silver"] {

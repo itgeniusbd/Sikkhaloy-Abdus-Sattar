@@ -460,6 +460,9 @@
     <Content Include="Authority\Page_Link\Sub_Category.aspx" />
     <Content Include="Authority\Page_Link\Sub_Category_Links.aspx" />
     <Content Include="Authority\Reference\Add_Reference.aspx" />
+    <Content Include="Authority\Reference\ReferralManagement_DB_Migration.sql" />
+    <Content Include="Authority\Reference\Referral_Commission_Report.aspx" />
+    <Content Include="Authority\Reference\Referral_Management.aspx" />
     <Content Include="Authority\Reference\School_Reference.aspx" />
     <Content Include="Authority\SignUp_Institution.aspx" />
     <Content Include="Authority\SmsSetting.aspx" />
@@ -1799,6 +1802,20 @@
     </Compile>
     <Compile Include="Authority\Reference\Add_Reference.aspx.designer.cs">
       <DependentUpon>Add_Reference.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Authority\Reference\Referral_Commission_Report.aspx.cs">
+      <DependentUpon>Referral_Commission_Report.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Authority\Reference\Referral_Commission_Report.aspx.designer.cs">
+      <DependentUpon>Referral_Commission_Report.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Authority\Reference\Referral_Management.aspx.cs">
+      <DependentUpon>Referral_Management.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Authority\Reference\Referral_Management.aspx.designer.cs">
+      <DependentUpon>Referral_Management.aspx</DependentUpon>
     </Compile>
     <Compile Include="Authority\Reference\School_Reference.aspx.cs">
       <DependentUpon>School_Reference.aspx</DependentUpon>

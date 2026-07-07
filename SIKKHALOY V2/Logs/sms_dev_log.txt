@@ -127,3 +127,21 @@ test messge from  aour penel
 [2026-06-23 17:08:22] To:01911943839 | Purpose:Authority Client SMS
 messge from sikkhalooy
 ---
+[2026-07-02 09:39:17] To:01911943839 | Purpose:SMS Service
+test sms
+---
+[2026-07-02 09:43:47] To:01911943839 | Purpose:SMS Service
+test sms from  server
+---
+[2026-07-02 09:44:59] To:01911943839 | Purpose:SMS Service
+test sms from novo com Live Server
+---
+[2026-07-05 16:01:04] To:01911943839 | Purpose:Referral Commission Payment OTP
+Your OTP for referral commission payment is: 109992. Valid for 5 minutes. - SIKKHALOY
+---
+[2026-07-05 16:10:46] To:01911943839 | Purpose:Referral Commission Payment OTP
+Your OTP for referral commission payment is: 232288. Valid for 5 minutes. - SIKKHALOY
+---
+[2026-07-05 16:13:17] To:01911943839 | Purpose:Referral Commission Payment OTP
+Your OTP for referral commission payment is: 338277. Valid for 5 minutes. - SIKKHALOY
+---

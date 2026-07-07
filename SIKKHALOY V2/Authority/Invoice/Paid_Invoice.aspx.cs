@@ -44,6 +44,9 @@ namespace EDUCATION.COM.Authority.Invoice
 
                     // Update SMS_Recharge_Record if this is an SMS invoice
                     UpdateSMSRechargeStatus(invoiceID, connectionString);
+
+                    // রেফারেল কমিশন স্বয়ংক্রিয়ভাবে রেকর্ড করুন
+                    RecordReferralCommission(invoiceID, connectionString);
                 }
             }
 
@@ -146,6 +149,51 @@ namespace EDUCATION.COM.Authority.Invoice
             {
                 // Log error but don't break the payment flow
                 System.Diagnostics.Debug.WriteLine("Error updating SMS Recharge Status: " + ex.Message);
+            }
+        }
+
+        // সার্ভিস চার্জ পেমেন্ট হলে স্বয়ংক্রিয়ভাবে রেফারেল কমিশন রেকর্ড করা
+        private void RecordReferralCommission(string invoiceID, string connectionString)
+        {
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    con.Open();
+                    string sql = @"
+                        -- শুধুমাত্র Service Charge ইনভয়েসের জন্য এবং ডুপ্লিকেট এড়িয়ে
+                        IF NOT EXISTS (SELECT 1 FROM AAP_Reference_Commission WHERE InvoiceID = @InvoiceID)
+                        BEGIN
+                            INSERT INTO AAP_Reference_Commission
+                                (ReferenceID, Reference_School_ID, InvoiceID, SchoolID, 
+                                 Commission_Amount, Commission_Percentage, ServiceCharge_Amount, Commission_Date)
+                            SELECT 
+                                rs.ReferenceID,
+                                rs.Reference_School_ID,
+                                i.InvoiceID,
+                                i.SchoolID,
+                                CAST(i.TotalAmount * rs.Percentage / 100.0 AS DECIMAL(18,2)),
+                                rs.Percentage,
+                                i.TotalAmount,
+                                GETDATE()
+                            FROM AAP_Invoice i
+                            INNER JOIN AAP_Reference_School rs ON rs.SchoolID = i.SchoolID
+                                AND (rs.End_Reference_Date IS NULL OR GETDATE() <= rs.End_Reference_Date)
+                            INNER JOIN AAP_Invoice_Category cat ON i.InvoiceCategoryID = cat.InvoiceCategoryID
+                                AND cat.InvoiceCategory = N'Service Charge'
+                            WHERE i.InvoiceID = @InvoiceID
+                        END";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    {
+                        cmd.Parameters.AddWithValue("@InvoiceID", invoiceID);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("RecordReferralCommission Error: " + ex.Message);
             }
         }
     }
