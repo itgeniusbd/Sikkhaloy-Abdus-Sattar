@@ -67,14 +67,26 @@ namespace EDUCATION.COM.SMS
                 string returnUrl = baseUrl + "/Profile/Invoice/ShurjoPayCallback.aspx";
                 string cancelUrl = baseUrl + "/SMS/SMS_Recharge.aspx?cancelled=1";
 
+                // ShurjoPay API-এর customer_name-এর সর্বোচ্চ দৈর্ঘ্য প্রায় ৫০ ক্যারেক্টার
+                string customerName = info.SchoolName ?? Session["School_Name"]?.ToString() ?? "School";
+                if (customerName.Length > 50)
+                    customerName = customerName.Substring(0, 50);
+
+                // একাধিক ফোন নাম্বার/অন্যান্য ডিলিমিটার থাকলে প্রথমটি নেওয়া হবে
+                string customerPhone = !string.IsNullOrWhiteSpace(info.Phone)
+                    ? info.Phone.Split(new[] { ',', '/', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim()
+                    : "01700000000";
+                if (string.IsNullOrEmpty(customerPhone))
+                    customerPhone = "01700000000";
+
                 // value2 = "SMS_RECHARGE" — callback-এ এটা দেখে SMS save করবে
                 // value3 = মূল invoice amount (গেটওয়ে চার্জ ছাড়া) — callback-এ reference-এর জন্য
                 var spRequest = new ShurjoPayOrderRequest
                 {
                     SchoolID         = schoolID,
                     Amount           = totalPayable,  // invoice + gateway charge
-                    CustomerName     = info.SchoolName ?? Session["School_Name"]?.ToString() ?? "School",
-                    CustomerPhone    = info.Phone ?? "01700000000",
+                    CustomerName     = customerName,
+                    CustomerPhone    = customerPhone,
                     CustomerEmail    = info.Email ?? "info@school.com",
                     CustomerAddress  = info.Address ?? "Dhaka",
                     CustomerCity     = "Dhaka",
@@ -108,6 +120,16 @@ namespace EDUCATION.COM.SMS
                         Context.ApplicationInstance.CompleteRequest();
                         return;
                     }
+
+                    // API response এলো কিন্তু checkout URL নেই — ShurjoPay-এর নিজস্ব মেসেজ দেখাও
+                    string apiMsg = !string.IsNullOrWhiteSpace(response.message)
+                        ? response.message
+                        : (!string.IsNullOrWhiteSpace(response.sp_massage) ? response.sp_massage : "checkout_url পাওয়া যায়নি।");
+                    System.Web.HttpContext.Current.Application.Remove(lockKey);
+                    ClearPendingSession();
+                    MessageLabel.ForeColor = System.Drawing.Color.Red;
+                    MessageLabel.Text      = "ShurjoPay গেটওয়ে এরর: " + apiMsg;
+                    return;
                 }
 
                 // Gateway সংযোগ না হলে session ও lock clear করে error দেখাও
@@ -131,6 +153,7 @@ namespace EDUCATION.COM.SMS
             Session.Remove("PendingSMSRecharge_RegistrationID");
             Session.Remove("PendingSMSRecharge_SMSQty");
             Session.Remove("PendingSMSRecharge_Amount");
+            Session.Remove("PendingSMSRecharge_MerOrderID");
         }
 
         private SchoolContactInfo GetSchoolInfo(int schoolId)

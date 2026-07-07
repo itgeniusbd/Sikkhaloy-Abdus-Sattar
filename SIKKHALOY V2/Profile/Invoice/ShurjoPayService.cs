@@ -81,7 +81,12 @@ namespace EDUCATION.COM.Profile.Invoice
                 ? token.execute_url
                 : _baseUrl + "/api/secret-pay";
 
-            string orderId = !string.IsNullOrEmpty(request.InvoiceNote) && request.InvoiceNote.StartsWith("SMS_RECHARGE|")
+            // value2 (InvoiceNote) অনেক বড় হলে API রেজেক্ট করতে পারে
+            string safeInvoiceNote = (request.InvoiceNote ?? "").Length > 250
+                ? (request.InvoiceNote ?? "").Substring(0, 250)
+                : (request.InvoiceNote ?? "");
+
+            string orderId = !string.IsNullOrEmpty(safeInvoiceNote) && safeInvoiceNote.StartsWith("SMS_RECHARGE|")
                 ? "SMSR_" + request.SchoolID + "_" + DateTime.Now.ToString("yyyyMMddHHmmss")
                 : _orderPrefix + "_" + request.SchoolID + "_" + DateTime.Now.ToString("yyyyMMddHHmmss");
 
@@ -105,15 +110,32 @@ namespace EDUCATION.COM.Profile.Invoice
                         + "&customer_postcode=" + Uri.EscapeDataString(request.CustomerPostcode ?? "1200")
                         + "&customer_country="  + Uri.EscapeDataString(request.CustomerCountry ?? "Bangladesh")
                         + "&value1="            + Uri.EscapeDataString(request.SchoolID.ToString())
-                        + "&value2="            + Uri.EscapeDataString(request.InvoiceNote ?? "")
+                        + "&value2="            + Uri.EscapeDataString(safeInvoiceNote)
                         + "&value3="            + Uri.EscapeDataString(request.Value3 ?? "")
                         + "&value4=";
 
             string response   = PostFormWithBearer(url, body, token.token);
             LastRawCreateOrderResponse = response;
             System.Diagnostics.Debug.WriteLine("ShurjoPay CreateOrder raw response: " + response);
-            var    serializer = new JavaScriptSerializer();
-            var    result     = serializer.Deserialize<ShurjoPayOrderResponse>(response);
+
+            // API কখনো কখনো HTML/PHP এরর পাঠায়; তখন JSON পার্স করলে exception হয়
+            string trimmed = (response ?? "").Trim();
+            if (!trimmed.StartsWith("{") && !trimmed.StartsWith("["))
+            {
+                string preview = trimmed.Length > 200 ? trimmed.Substring(0, 200) + "..." : trimmed;
+                throw new Exception("ShurjoPay গেটওয়ে একটি অকার্যকর রেসপন্স দিয়েছে (সম্ভবত নাম/তথ্য বড়)। রেসপন্স: " + preview);
+            }
+
+            var serializer = new JavaScriptSerializer();
+            ShurjoPayOrderResponse result;
+            try
+            {
+                result = serializer.Deserialize<ShurjoPayOrderResponse>(response);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("ShurjoPay রেসপন্স পার্স করা সম্ভব হয়নি: " + ex.Message + " | রেসপন্স: " + trimmed);
+            }
 
             if (result != null)
                 result.order_id = orderId;
