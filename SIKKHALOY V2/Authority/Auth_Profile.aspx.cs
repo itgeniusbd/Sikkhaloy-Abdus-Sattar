@@ -25,10 +25,7 @@ OUTER APPLY (
 
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (!IsPostBack)
-            {
-                LoadSchoolData();
-            }
+            LoadSchoolData();
         }
 
         protected void Page_PreRender(object sender, EventArgs e)
