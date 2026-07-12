@@ -634,7 +634,7 @@
                 No Found !
             </EmptyDataTemplate>
         </asp:GridView>
-        <asp:SqlDataSource ID="InstitutionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT SchoolID, SchoolName, Phone, Validation, Date, UserName FROM SchoolInfo AS Sch ORDER BY SchoolID">
+        <asp:SqlDataSource ID="InstitutionSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Sch.SchoolID, Sch.SchoolName, Sch.Phone, Sch.Validation, Sch.Date, Sch.UserName, ses.LoggedInUser, ses.LoginRole, ses.LoginTime, ses.LastActivity FROM SchoolInfo AS Sch OUTER APPLY (SELECT TOP 1 u.UserName AS LoggedInUser, u.Category AS LoginRole, u.LoginTime, u.LastActivity FROM User_Active_Sessions u WHERE u.SchoolID = Sch.SchoolID AND (u.LastActivity >= DATEADD(HOUR, -1, GETDATE()) OR CAST(u.LoginTime AS DATE) = CAST(GETDATE() AS DATE)) ORDER BY u.LastActivity DESC) ses ORDER BY ses.LastActivity DESC, Sch.Date DESC, Sch.SchoolID">
         </asp:SqlDataSource>
     </div>
 
