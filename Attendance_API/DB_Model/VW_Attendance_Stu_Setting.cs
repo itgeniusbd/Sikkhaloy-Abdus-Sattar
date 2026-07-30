@@ -1,11 +1,12 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Attendance_API.DB_Model
 {
+    [Table("VW_Attendance_Stu_Setting")]
     public class VW_Attendance_Stu_Setting
     {
-        [Key]
         public int StudentID { get; set; }
         public int SchoolID { get; set; }
         public int ScheduleID { get; set; }

@@ -56,6 +56,34 @@
                     Style="{StaticResource MaterialDesignRaisedButton}">
                     Find
                 </Button>
+                <Button
+                    Margin="15,0,0,0"
+                    VerticalAlignment="Center"
+                    Click="BtnResetSync_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}">
+                    Mark For Resend
+                </Button>
+                <Button
+                    Margin="15,0,0,0"
+                    VerticalAlignment="Center"
+                    Click="BtnMarkSynced_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}">
+                    Mark Synced (Today)
+                </Button>
+                <Button
+                    Margin="15,0,0,0"
+                    VerticalAlignment="Center"
+                    Click="BtnClearToday_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}">
+                    Clear Today (Local)
+                </Button>
+                <Button
+                    Margin="15,0,0,0"
+                    VerticalAlignment="Center"
+                    Click="BtnClearDateRange_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}">
+                    Clear Date Range (Local)
+                </Button>
             </StackPanel>
 
             <StackPanel

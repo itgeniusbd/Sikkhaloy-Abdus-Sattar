@@ -576,22 +576,22 @@
                                     <tr>
                                         <td>✅ <strong>Entry</strong><br /><small class="text-muted">প্রবেশ</small></td>
                                         <td>শিক্ষার্থী <strong>সময়মতো</strong> স্কুলে প্রবেশ করলে</td>
-                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{EntryTime}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
+                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{EntryTime}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{ScheduleName}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
                                     </tr>
                                     <tr>
                                         <td>🚪 <strong>Exit</strong><br /><small class="text-muted">প্রস্থান</small></td>
                                         <td>শিক্ষার্থী স্কুল <strong>ত্যাগ</strong> করলে</td>
-                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{ExitTime}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
+                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{ExitTime}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{ScheduleName}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
                                     </tr>
                                     <tr>
                                         <td>⏰ <strong>Late</strong><br /><small class="text-muted">দেরি</small></td>
                                         <td>শিক্ষার্থী <strong>দেরিতে</strong> এলে (কিন্তু উপস্থিত)</td>
-                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{EntryTime}</span><span class="placeholder-tag">{LateMinutes}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
+                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{EntryTime}</span><span class="placeholder-tag">{LateMinutes}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{ScheduleName}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
                                     </tr>
                                     <tr>
                                         <td>❌ <strong>Absent</strong><br /><small class="text-muted">অনুপস্থিত</small></td>
                                         <td>শিক্ষার্থী স্কুলে <strong>আসেনি</strong></td>
-                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
+                                        <td><span class="placeholder-tag">{StudentName}</span><span class="placeholder-tag">{ID}</span><span class="placeholder-tag">{Date}</span><span class="placeholder-tag">{ScheduleName}</span><span class="placeholder-tag">{SchoolName}</span><span class="placeholder-tag">{Class}</span><span class="placeholder-tag">{Roll}</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -856,22 +856,22 @@
                 'Entry': {
                     title: '✅ Entry — স্কুলে প্রবেশ',
                     desc: 'শিক্ষার্থী সময়মতো স্কুলে প্রবেশ করলে এই SMS পাঠানো হয়।',
-                    placeholders: ['{StudentName}', '{ID}', '{EntryTime}', '{Date}', '{SchoolName}', '{Class}', '{Roll}']
+                    placeholders: ['{StudentName}', '{ID}', '{EntryTime}', '{Date}', '{ScheduleName}', '{SchoolName}', '{Class}', '{Roll}']
                 },
                 'Exit': {
                     title: '🚪 Exit — স্কুল ত্যাগ',
                     desc: 'শিক্ষার্থী স্কুল ত্যাগ করলে এই SMS পাঠানো হয়।',
-                    placeholders: ['{StudentName}', '{ID}', '{ExitTime}', '{Date}', '{SchoolName}', '{Class}', '{Roll}']
+                    placeholders: ['{StudentName}', '{ID}', '{ExitTime}', '{Date}', '{ScheduleName}', '{SchoolName}', '{Class}', '{Roll}']
                 },
                 'Late': {
                     title: '⏰ Late — দেরিতে আসা',
                     desc: 'শিক্ষার্থী দেরিতে এলে (কিন্তু উপস্থিত হিসেবে গণনা) এই SMS পাঠানো হয়।',
-                    placeholders: ['{StudentName}', '{ID}', '{EntryTime}', '{LateMinutes}', '{Date}', '{SchoolName}', '{Class}', '{Roll}']
+                    placeholders: ['{StudentName}', '{ID}', '{EntryTime}', '{LateMinutes}', '{Date}', '{ScheduleName}', '{SchoolName}', '{Class}', '{Roll}']
                 },
                 'Absent': {
                     title: '❌ Absent — অনুপস্থিত',
                     desc: 'শিক্ষার্থী স্কুলে আসেনি — অনুপস্থিত হিসেবে এই SMS পাঠানো হয়।',
-                    placeholders: ['{StudentName}', '{ID}', '{Date}', '{SchoolName}', '{Class}', '{Roll}']
+                    placeholders: ['{StudentName}', '{ID}', '{Date}', '{ScheduleName}', '{SchoolName}', '{Class}', '{Roll}']
                 }
             },
             'Due': {

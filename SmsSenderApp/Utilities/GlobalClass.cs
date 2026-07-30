@@ -187,29 +187,54 @@ namespace SmsSenderApp
             }
         }
 
-        public async Task<List<Attendance_SMS>> GetAttendanceSmsListAndDeleteFromDbAsync()
+        public async Task<List<Attendance_SMS>> GetAttendanceSmsListAsync()
         {
             try
             {
-                var smsList = new List<Attendance_SMS>();
-
                 using (var db = new EduEntities())
                 {
-                    smsList = await db.Attendance_SMS.Take(Setting.SmsProcessingUnit).ToListAsync();
-                    db.Attendance_SMS.RemoveRange(smsList);
-                    await db.SaveChangesAsync();
+                    return await db.Attendance_SMS
+                        .OrderBy(s => s.Attendance_SMSID)
+                        .Take(Setting.SmsProcessingUnit)
+                        .ToListAsync();
                 }
-
-
-                return smsList;
-
             }
             catch (Exception e)
             {
                 Log.Error(e, e.Message);
                 throw;
             }
+        }
 
+        public async Task RemoveAttendanceSmsFromDbAsync(IEnumerable<Attendance_SMS> smsList)
+        {
+            var items = smsList?.ToList();
+            if (items == null || items.Count == 0)
+                return;
+
+            try
+            {
+                var ids = items.Select(s => s.Attendance_SMSID).Distinct().ToList();
+
+                using (var db = new EduEntities())
+                {
+                    var rows = await db.Attendance_SMS
+                        .Where(s => ids.Contains(s.Attendance_SMSID))
+                        .ToListAsync();
+
+                    if (rows.Count == 0)
+                        return;
+
+                    db.Attendance_SMS.RemoveRange(rows);
+                    await db.SaveChangesAsync();
+                    Log.Information("Removed {Count} processed SMS rows from queue", rows.Count);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Failed to remove processed SMS rows from queue");
+                throw;
+            }
         }
 
         public async Task<List<int>> NoSmsBalanceSchoolIdsAsync(List<int> allSchoolIds)
@@ -279,20 +304,69 @@ namespace SmsSenderApp
             }
         }
 
-        public async Task Attendance_SMS_FailedAddAsync(IEnumerable<Attendance_SMS_Failed> dataList)
+        public async Task<List<Attendance_SMS>> FilterAlreadySentAsync(List<Attendance_SMS> smsList)
         {
+            if (smsList == null || smsList.Count == 0)
+                return smsList;
+
             try
             {
                 using (var db = new EduEntities())
                 {
-                    db.Attendance_SMS_Failed.AddRange(dataList);
-                    await db.SaveChangesAsync();
+                    var today = DateTime.Today;
+                    var sentTexts = await db.SMS_Send_Record
+                        .Where(sr =>
+                            sr.PurposeOfSMS == "Device Attendance" &&
+                            DbFunctions.TruncateTime(sr.Date) == today &&
+                            sr.TextSMS != null)
+                        .Select(sr => sr.TextSMS)
+                        .ToListAsync();
+
+                    if (sentTexts.Count == 0)
+                        return smsList;
+
+                    var sentSet = new HashSet<string>(sentTexts, StringComparer.Ordinal);
+                    var filtered = smsList
+                        .Where(item => string.IsNullOrWhiteSpace(item.SMS_Text) || !sentSet.Contains(item.SMS_Text))
+                        .ToList();
+
+                    if (filtered.Count < smsList.Count)
+                    {
+                        Log.Information(
+                            "Skipped {Count} duplicate SMS already sent today",
+                            smsList.Count - filtered.Count);
+                    }
+
+                    return filtered;
                 }
             }
             catch (Exception e)
             {
+                Log.Error(e, "Failed to filter duplicate SMS; sending all queued rows");
+                return smsList;
+            }
+        }
+
+        public async Task<bool> Attendance_SMS_FailedAddAsync(IEnumerable<Attendance_SMS_Failed> dataList)
+        {
+            var items = dataList?.ToList();
+            if (items == null || items.Count == 0)
+                return true;
+
+            try
+            {
+                using (var db = new EduEntities())
+                {
+                    db.Attendance_SMS_Failed.AddRange(items);
+                    await db.SaveChangesAsync();
+                }
+
+                return true;
+            }
+            catch (Exception e)
+            {
                 Log.Error(e, e.Message);
-                throw;
+                return false;
             }
         }
     }

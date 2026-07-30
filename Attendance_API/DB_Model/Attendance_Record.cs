@@ -15,6 +15,7 @@ namespace Attendance_API.DB_Model
         public int? ClassID { get; set; }
         public int? StudentClassID { get; set; }
         public int? EducationYearID { get; set; }
+        public int? Attendance_ScheduleID { get; set; }
         public string Attendance { get; set; }
         public DateTime AttendanceDate { get; set; }
         public string Reason { get; set; }

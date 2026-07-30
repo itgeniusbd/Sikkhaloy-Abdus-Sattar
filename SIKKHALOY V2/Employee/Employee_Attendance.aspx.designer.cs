@@ -22,6 +22,21 @@ namespace EDUCATION.COM.Employee {
         protected global::System.Web.UI.WebControls.RadioButtonList EmpTypeRadioButtonList;
         
         /// <summary>
+        /// ScheduleDropDownList control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.DropDownList ScheduleDropDownList;
+        
+        /// <summary>
+        /// ScheduleSQL control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.SqlDataSource ScheduleSQL;
+        
+        /// <summary>
+        /// ScheduleRFV control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator ScheduleRFV;
+        
+        /// <summary>
         /// AttendanceDateTextBox control.
         /// </summary>
         /// <remarks>
@@ -85,12 +100,8 @@ namespace EDUCATION.COM.Employee {
         protected global::System.Web.UI.WebControls.Button AttendanceButton;
         
         /// <summary>
-        /// Attendance_RecordSQL control.
+        /// ErrorLabel control.
         /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource Attendance_RecordSQL;
+        protected global::System.Web.UI.WebControls.Label ErrorLabel;
     }
 }

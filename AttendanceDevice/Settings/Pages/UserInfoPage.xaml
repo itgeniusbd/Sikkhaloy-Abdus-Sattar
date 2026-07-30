@@ -80,6 +80,28 @@
                             <TextBlock Grid.Row="1" Foreground="#333" Text="download Only schedule assigned student" />
                         </Grid>
                     </Button>
+                    <Button
+                        Name="DownloadPhotosButton"
+                        Margin="5,0,0,0"
+                        Background="{x:Null}"
+                        BorderBrush="{x:Null}"
+                        Click="DownloadPhotosButton_Click"
+                        Height="45">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon
+                                    VerticalAlignment="Bottom"
+                                    Foreground="#FF00796B"
+                                    Kind="ImageAlbum" />
+                                <TextBlock Foreground="#FF00796B" Text="Download Photos" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Foreground="#333" Text="save to Institution photo folder" />
+                        </Grid>
+                    </Button>
                 </StackPanel>
             </Grid>
 
@@ -156,7 +178,7 @@
                                                 Color="#dddddd" />
                                         </Ellipse.Effect>
                                         <Ellipse.Fill>
-                                            <ImageBrush ImageSource="{Binding ImgLink, FallbackValue={StaticResource DefaultImage}}" />
+                                            <ImageBrush ImageSource="{Binding ImgLink, TargetNullValue={StaticResource DefaultImage}, FallbackValue={StaticResource DefaultImage}}" />
                                         </Ellipse.Fill>
                                     </Ellipse>
                                 </Grid>

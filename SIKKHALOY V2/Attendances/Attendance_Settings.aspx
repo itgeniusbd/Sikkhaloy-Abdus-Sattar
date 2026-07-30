@@ -19,12 +19,15 @@
                 </span>
             </h4>
             <div>
-                <button id="DownloadButton" onclick="Download();" type="button" class="btn btn-indigo">
+                <asp:LinkButton ID="AppDownloadLinkButton" runat="server" CssClass="btn btn-success" OnClick="AppDownload_Click">
+                    <i class="fa fa-download" aria-hidden="true"></i> Download Latest Version
+                </asp:LinkButton>
+                <button id="DownloadButton" onclick="Download();" type="button" class="btn btn-indigo ml-1">
                     <i class="fa fa-picture-o" aria-hidden="true"></i>
                     Download Photo
             <img id="loading" style="display: none;" src="CSS/Loading.gif" />
                 </button>
-                <asp:LinkButton ID="InfoLinkButton" runat="server" CssClass="btn btn-cyan" OnClick="InfoDownload_Click">
+                <asp:LinkButton ID="InfoLinkButton" runat="server" CssClass="btn btn-cyan ml-1" OnClick="InfoDownload_Click">
          <i class="fa fa-download" aria-hidden="true"></i> Download Info
                 </asp:LinkButton>
             </div>
@@ -281,7 +284,7 @@
             <asp:Parameter Name="AttendanceSettingID" Type="Int32" />
             <asp:Parameter Name="Is_Student_Attendance_Enable" Type="Boolean" />
             <asp:Parameter Name="Is_Employee_Attendance_Enable" Type="Boolean" />
-            <asp:Parameter Name="Is_English_SMS" />
+            <asp:Parameter Name="Is_English_SMS" Type="Boolean" />
         </UpdateParameters>
     </asp:SqlDataSource>
 

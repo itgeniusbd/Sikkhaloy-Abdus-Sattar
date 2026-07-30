@@ -1,35 +1,46 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 
 namespace ZKdllRegistrationApp
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
             try
             {
-                // Windows bit type check 64 ro 32
-                var systemType = IntPtr.Size == 8 ? "SysWow64" : "System32";
+                string windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+                string targetDir = Path.Combine(windowsDir, Environment.Is64BitOperatingSystem ? "SysWOW64" : "System32");
+                string sourceDir = args.Length > 0 && Directory.Exists(args[0])
+                    ? args[0]
+                    : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dll");
 
-                var filePath = $@"C:\Windows\{systemType}\zkemkeeper.dll";
+                if (!Directory.Exists(sourceDir))
+                {
+                    Console.WriteLine("SDK source folder not found: " + sourceDir);
+                    return 1;
+                }
 
-                var argFileInfo = "";
+                foreach (string dll in Directory.GetFiles(sourceDir, "*.dll"))
+                {
+                    string targetPath = Path.Combine(targetDir, Path.GetFileName(dll));
+                    File.Copy(dll, targetPath, true);
+                }
 
-                ////Show message boxes or Don't Show any message boxes. ('/s' : Specifies regsvr32 to run silently)  
-                var showMessageBox = true;
+                string zkemkeeperPath = Path.Combine(targetDir, "zkemkeeper.dll");
+                if (!File.Exists(zkemkeeperPath))
+                {
+                    Console.WriteLine("zkemkeeper.dll was not copied.");
+                    return 1;
+                }
 
-                if (!showMessageBox) argFileInfo += "/s";
-
-                argFileInfo += "\"" + filePath + "\"";
-
-                //This file registers .dll files as command components in the registry.
                 var reg = new Process
                 {
                     StartInfo =
                     {
                         FileName = "regsvr32.exe",
-                        Arguments = argFileInfo,
+                        Arguments = "/s \"" + zkemkeeperPath + "\"",
                         UseShellExecute = false,
                         CreateNoWindow = true,
                         RedirectStandardOutput = true
@@ -39,10 +50,13 @@ namespace ZKdllRegistrationApp
                 reg.Start();
                 reg.WaitForExit();
                 reg.Close();
+
+                return reg.ExitCode == 0 ? 0 : 1;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                return 1;
             }
         }
     }

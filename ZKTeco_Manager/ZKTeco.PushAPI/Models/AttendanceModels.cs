@@ -14,6 +14,7 @@ namespace ZKTeco.PushAPI.Models
         public int EducationYearID { get; set; }
         public int StudentID { get; set; }
         public int StudentClassID { get; set; }
+        public int ScheduleID { get; set; }
         public string Attendance { get; set; } // Pre, Late, Late Abs, Abs
         public DateTime AttendanceDate { get; set; }
         public TimeSpan? EntryTime { get; set; }

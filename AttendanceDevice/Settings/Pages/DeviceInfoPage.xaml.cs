@@ -93,7 +93,14 @@ namespace AttendanceDevice.Settings.Pages
 
             LoadingDH.IsOpen = false;
 
-            if (!status.IsSuccess) return;
+            if (!status.IsSuccess)
+            {
+                if (ErrorSnackbar.Message != null)
+                    ErrorSnackbar.Message.Content = status.Message;
+
+                ErrorSnackbar.IsActive = true;
+                return;
+            }
 
             device.DeviceSN = d1.DeviceSerialNumber();
             device.IsConnected = 1;

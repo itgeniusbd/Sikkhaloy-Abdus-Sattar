@@ -1,8 +1,13 @@
-﻿using AttendanceDevice.Config_Class;
+﻿using AttendanceDevice.APIClass;
+using AttendanceDevice.Config_Class;
 using AttendanceDevice.Model;
 using AttendanceDevice.Settings;
+using AttendanceDevice.ViewModel;
+using Microsoft.Web.WebView2.Core;
+using Newtonsoft.Json;
 using RestSharp;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
 using System.Diagnostics;
@@ -11,6 +16,7 @@ using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace AttendanceDevice
@@ -23,6 +29,22 @@ namespace AttendanceDevice
     {
         private DispatcherTimer _tmr = new DispatcherTimer();
         private readonly DeviceDisplay _deviceDisplay;
+        private bool _syncTimerStarted;
+        private bool _timerBusy;
+        private bool _webViewNavigationReady;
+        private bool _webViewIsNavigating;
+        private static readonly TimeSpan DisplaySyncInterval = TimeSpan.FromMinutes(2);
+        private static readonly TimeSpan ScheduleSyncInterval = TimeSpan.FromMinutes(5);
+        private DateTime _lastScheduleSync = DateTime.MinValue;
+        private bool _scheduleFilterUpdating;
+        private bool _scheduleFilterApplyBusy;
+        private DateTime _lastScheduleFilterApply = DateTime.MinValue;
+
+        private sealed class DisplayScheduleFilterItem
+        {
+            public int id { get; set; }
+            public string name { get; set; }
+        }
 
         public DisplayWindow(DeviceDisplay deviceDisplay)
         {
@@ -32,17 +54,64 @@ namespace AttendanceDevice
 
         async Task InitializeAsync()
         {
-            await webView.EnsureCoreWebView2Async(null);
+            var env = await CoreWebView2Environment.CreateAsync(null, AppPaths.WebView2UserDataFolder);
+            await webView.EnsureCoreWebView2Async(env);
+            webView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
+        }
+
+        private void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            _webViewIsNavigating = false;
+            _webViewNavigationReady = e.IsSuccess;
+
+            if (!e.IsSuccess)
+            {
+                DeviceError.Text = $"Display load failed ({e.WebErrorStatus})";
+                return;
+            }
+
+            if (DeviceError.Text.StartsWith("Display load failed", StringComparison.Ordinal))
+                DeviceError.Text = "";
+
+            _ = SyncScheduleFilterPanelAsync();
+            StartSyncTimerIfNeeded();
+        }
+
+        private void StartSyncTimerIfNeeded()
+        {
+            if (_syncTimerStarted) return;
+
+            _syncTimerStarted = true;
+            _tmr.Interval = DisplaySyncInterval;
+            RemoveClickEvent(_tmr);
+            _tmr.Tick += Timer_Tick;
+            _tmr.Start();
+
+            // First sync + reload as soon as the display page finishes loading.
+            _ = RunDisplaySyncCycleAsync(reloadAfterSync: true);
+        }
+
+        private void RefreshWebViewDisplay()
+        {
+            if (webView?.CoreWebView2 == null || _webViewIsNavigating || !_webViewNavigationReady)
+                return;
+
+            _webViewIsNavigating = true;
+            webView.Reload();
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             DataContext = LocalData.Instance.institution;
+            FitInstitutionName();
             var schoolId = LocalData.Instance.institution.SchoolID;
 
             await InitializeAsync();
 
-            var url = $"{ApiUrl.WebUrl}/Attendances/Online_Display/DeviceDisplay.aspx?schoolId={schoolId}";
+            BuildScheduleFilterPanelFromLocal(null);
+
+            var url = $"{ApiUrl.WebUrl}/Attendances/Online_Display/DeviceDisplay.aspx?SchoolID={schoolId}&embed=1";
+            _webViewIsNavigating = true;
             webView.CoreWebView2.Navigate(url);
 
             countDevice.Badge = _deviceDisplay.Total_Devices();
@@ -52,18 +121,95 @@ namespace AttendanceDevice
                 device.EnrollUserCard = UserDataGrid;
             }
 
-            //Timer-setup
-            _tmr.Interval = new TimeSpan(0, 1, 0);
+            ShowLatestTodayPunchOnCard();
 
-            RemoveClickEvent(_tmr);
-
-            _tmr.Tick += Timer_Tick;
-            _tmr.Start();
             Closing += Window_Closing;
+        }
+
+        private void InstitutionHeaderGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            FitInstitutionName();
+            NotifyWebViewLayoutChanged();
+        }
+
+        private async void NotifyWebViewLayoutChanged()
+        {
+            if (webView?.CoreWebView2 == null || !_webViewNavigationReady)
+                return;
+
+            try
+            {
+                await webView.CoreWebView2.ExecuteScriptAsync(
+                    "if (window.fitEmbedSliderLayout) { window.fitEmbedSliderLayout(); }");
+            }
+            catch
+            {
+                // WebView may be reloading; ignore transient script errors.
+            }
+        }
+
+        private void FitInstitutionName()
+        {
+            if (InstitutionNameText == null || InstitutionHeaderGrid == null)
+                return;
+
+            var availableWidth = InstitutionHeaderGrid.ActualWidth - 64;
+            if (availableWidth <= 0)
+                return;
+
+            InstitutionNameFontHelper.ApplyAndFit(
+                InstitutionNameText,
+                LocalData.Instance.institution?.InstitutionName,
+                availableWidth,
+                InstitutionHeaderGrid.ActualHeight - 4);
+        }
+
+        private void ShowLatestTodayPunchOnCard()
+        {
+            try
+            {
+                var today = LocalData.Instance.GetAttendanceDateString();
+                using (var db = new ModelContext())
+                {
+                    var latest = db.attendance_Records
+                        .AsEnumerable()
+                        .Where(a => AttendanceDateHelper.DatesMatch(a.AttendanceDate, today)
+                                    && !a.Is_OUT
+                                    && !string.IsNullOrWhiteSpace(a.EntryTime))
+                        .Select(a =>
+                        {
+                            ScheduleTimeHelper.TryParse(a.EntryTime, out var time);
+                            return new { Record = a, Time = time };
+                        })
+                        .OrderByDescending(x => x.Time)
+                        .FirstOrDefault();
+
+                    if (latest == null)
+                        return;
+
+                    var userView = LocalData.Instance.GetUserView(latest.Record.DeviceID);
+                    if (userView == null)
+                        return;
+
+                    userView.Enroll_Time = LocalData.Instance.GetAttendanceDate().Add(latest.Time);
+                    userView.ImgLink = UserPhotoHelper.ResolvePhotoUri(
+                        LocalData.Instance.institution?.Image_Link,
+                        userView.ID);
+                    ScheduleDisplayHelper.ApplyTo(userView, latest.Record.ScheduleID);
+                    UserDataGrid.DataContext = userView;
+                }
+            }
+            catch
+            {
+                // Keep empty card if lookup fails.
+            }
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
+            if (webView?.CoreWebView2 != null)
+                webView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
+
             //Clean up.
             _tmr.Stop();
             _tmr = null;
@@ -86,6 +232,16 @@ namespace AttendanceDevice
 
         private async void Timer_Tick(object sender, EventArgs e)
         {
+            await RunDisplaySyncCycleAsync(reloadAfterSync: true);
+        }
+
+        private async Task RunDisplaySyncCycleAsync(bool reloadAfterSync)
+        {
+            if (_timerBusy)
+                return;
+
+            _timerBusy = true;
+            var shouldReload = false;
             try
             {
                 var totalDeviceConnected = _deviceDisplay.Total_Devices();
@@ -103,12 +259,50 @@ namespace AttendanceDevice
 
                 using (var db = new ModelContext())
                 {
+                    LocalData.Instance.ArchiveExpiredAttendanceRecords();
+                    LocalData.Instance.FlagIncompleteRecordsForResync();
+                    LocalData.Instance.RepairTodayScheduleIdsForResync();
+
                     var ins = LocalData.Instance.institution;
                     var client = new RestClient(ApiUrl.EndPoint);
                     var allDevices = db.Devices.Count();
 
+                    if (ins != null && !string.IsNullOrWhiteSpace(ins.Token))
+                    {
+                        if (_lastScheduleSync == DateTime.MinValue ||
+                            DateTime.Now - _lastScheduleSync >= ScheduleSyncInterval)
+                        {
+                            var schoolId = LocalData.Instance.GetEffectiveSchoolId();
+                            await ScheduleAssignmentSync.SyncScheduleDaysFromServerAsync(client, schoolId, ins.Token);
+                            _lastScheduleSync = DateTime.Now;
+                            await Dispatcher.InvokeAsync(() => BuildScheduleFilterPanelFromLocal(null));
+                        }
+
+                        // Assignments refresh every sync cycle (multi-schedule must stay current).
+                        {
+                            var schoolId = LocalData.Instance.GetEffectiveSchoolId();
+                            await ScheduleAssignmentSync.SyncAssignmentsFromServerAsync(client, schoolId, ins.Token);
+                        }
+                    }
+
+                    if (ins != null)
+                    {
+                        var schoolRequest = new RestRequest("api/school/{id}", Method.GET);
+                        schoolRequest.AddUrlSegment("id", ins.UserName);
+                        ApiRequestHelper.AddAuthorizedJsonHeaders(schoolRequest, ins.Token);
+                        var schoolResponse = await client.ExecuteTaskAsync(schoolRequest);
+                        if (schoolResponse.StatusCode == HttpStatusCode.OK && !string.IsNullOrWhiteSpace(schoolResponse.Content))
+                        {
+                            var schoolInfo = JsonConvert.DeserializeObject<SchoolApiDto>(schoolResponse.Content);
+                            if (schoolInfo != null)
+                                await LocalData.Instance.ApplySchoolStatusFromApiAsync(schoolInfo);
+                        }
+
+                        ins = LocalData.Instance.institution;
+                    }
+
                     var currentDateTime = DateTime.Now;
-                    var currentDate = currentDateTime.ToShortDateString();
+                    var currentDate = LocalData.Instance.GetAttendanceDateString();
                     DeviceError.Text = "";
 
                     //Device Attendance Disabled
@@ -149,7 +343,6 @@ namespace AttendanceDevice
                         DeviceError.Text = "Student Attendance Disabled";
                     }
 
-
                     //check internet
                     var internet = await ApiUrl.IsNoNetConnection();
                     if (internet) return;
@@ -157,6 +350,10 @@ namespace AttendanceDevice
                     //check server ok
                     var server = await ApiUrl.IsServerUnavailable();
                     if (server) return;
+
+                    shouldReload = reloadAfterSync;
+
+                    countRecord.Badge = LocalData.Instance.GetPendingAttendanceCount();
 
                     #region Student Post
                     var studentLog = await LocalData.Instance.StudentLog_Post();
@@ -166,23 +363,25 @@ namespace AttendanceDevice
                         var request = new RestRequest("api/Attendance/{id}/Students", Method.POST);
 
                         request.AddUrlSegment("id", ins.SchoolID);
-                        request.AddHeader("Authorization", "Bearer " + ins.Token);
-                        request.AddJsonBody(studentLog);
+                        ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
+                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(studentLog));
 
                         var response = await client.ExecutePostTaskAsync(request);
+                        var syncResult = AttendanceSyncResponseParser.Parse(response);
 
-                        if (response.StatusCode == HttpStatusCode.OK)
+                        if (response.StatusCode == HttpStatusCode.OK &&
+                            (AttendanceSyncResponseParser.IsLegacyEmptyOk(response) ||
+                             (syncResult != null && (syncResult.Matched > 0 || syncResult.Inserted > 0))))
                         {
-                            foreach (var log in studentLog)
-                            {
-                                log.Is_Sent = true;
-                                log.Is_Updated = true;
-                                db.Entry(log).State = EntityState.Modified;
-                                await db.SaveChangesAsync();
-                            }
+                            var synced = FilterSyncedLogs(studentLog, syncResult);
+                            await MarkAttendanceRecordsAsync(db, synced, markSent: true, markUpdated: true);
 
-                            //reload webview after send data success
-                            webView.Reload();
+                            DeviceError.Text = BuildPartialSyncMessage("Student", studentLog.Count, syncResult);
+                        }
+                        else if (AttendanceSyncResponseParser.TryGetStudentPostFailureMessage(
+                            response, syncResult, out var failureMessage))
+                        {
+                            DeviceError.Text = failureMessage;
                         }
                     }
 
@@ -196,25 +395,22 @@ namespace AttendanceDevice
                         var request = new RestRequest("api/Attendance/{id}/StudentsUpdate", Method.POST);
 
                         request.AddUrlSegment("id", ins.SchoolID);
-                        request.AddHeader("Authorization", "Bearer " + ins.Token);
-                        request.AddJsonBody(studentLogUpdate);
+                        ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
+                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(studentLogUpdate));
 
                         var response = await client.ExecutePostTaskAsync(request);
 
                         if (response.StatusCode == HttpStatusCode.OK)
                         {
-                            foreach (var log in studentLogUpdate)
-                            {
-                                log.Is_Updated = true;
-                                db.Entry(log).State = EntityState.Modified;
-                                await db.SaveChangesAsync();
-                            }
-
-                            //reload webview after send data success
-                            webView.Reload();
+                            await MarkAttendanceRecordsAsync(db, studentLogUpdate, markSent: false, markUpdated: true);
                         }
-
-                        //MessageBox.Show("Student put " + response.StatusCode.ToString());
+                        else
+                        {
+                            var detail = string.IsNullOrWhiteSpace(response.Content)
+                                ? $"Student update failed ({(int)response.StatusCode})"
+                                : $"Student update failed ({(int)response.StatusCode}): {response.Content}";
+                            DeviceError.Text = detail;
+                        }
                     }
                     #endregion Student Update
 
@@ -228,25 +424,27 @@ namespace AttendanceDevice
                         if (ins != null)
                         {
                             request.AddUrlSegment("id", ins.SchoolID);
-                            request.AddHeader("Authorization", "Bearer " + ins.Token);
+                            ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
                         }
 
-                        request.AddJsonBody(empLog);
+                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(empLog));
 
                         var response = await client.ExecutePostTaskAsync(request);
+                        var syncResult = AttendanceSyncResponseParser.Parse(response);
 
-                        if (response.StatusCode == HttpStatusCode.OK)
+                        if (response.StatusCode == HttpStatusCode.OK &&
+                            (AttendanceSyncResponseParser.IsLegacyEmptyOk(response) ||
+                             (syncResult != null && (syncResult.Matched > 0 || syncResult.Inserted > 0))))
                         {
-                            foreach (var log in empLog)
-                            {
-                                log.Is_Sent = true;
-                                log.Is_Updated = true;
-                                db.Entry(log).State = EntityState.Modified;
-                                await db.SaveChangesAsync();
-                            }
+                            var synced = FilterSyncedLogs(empLog, syncResult);
+                            await MarkAttendanceRecordsAsync(db, synced, markSent: true, markUpdated: true);
 
-                            //reload webview after send data success
-                            webView.Reload();
+                            DeviceError.Text = BuildPartialSyncMessage("Employee", empLog.Count, syncResult);
+                        }
+                        else if (AttendanceSyncResponseParser.TryGetEmployeePostFailureMessage(
+                            response, syncResult, out var failureMessage))
+                        {
+                            DeviceError.Text = failureMessage;
                         }
                     }
                     #endregion Employee Post
@@ -259,41 +457,243 @@ namespace AttendanceDevice
                         var request = new RestRequest("api/Attendance/{id}/EmployeesUpdate", Method.POST);
 
                         request.AddUrlSegment("id", ins.SchoolID);
-                        request.AddHeader("Authorization", "Bearer " + ins.Token);
-                        request.AddJsonBody(empLogUpdate);
+                        ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
+                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(empLogUpdate));
 
                         var response = await client.ExecutePostTaskAsync(request);
 
                         if (response.StatusCode != HttpStatusCode.OK) return;
 
-                        foreach (var log in empLogUpdate)
-                        {
-                            log.Is_Updated = true;
-                            db.Entry(log).State = EntityState.Modified;
-                            await db.SaveChangesAsync();
-                        }
-
-                        //reload webview after send data success
-                        webView.Reload();
+                        await MarkAttendanceRecordsAsync(db, empLogUpdate, markSent: false, markUpdated: true);
                     }
-                    #endregion Employee Put
+                    #endregion Employees Update
 
-                    //#region SMS_Send
-
-                    //var smsRequest = new RestRequest("api/Attendance/{id}/SendSms", Method.POST);
-
-                    //smsRequest.AddUrlSegment("id", ins.SchoolID);
-                    //smsRequest.AddHeader("Authorization", "Bearer " + ins.Token);
-
-                    //var responseSms = await client.ExecutePostTaskAsync(smsRequest);
-
-                    //#endregion
+                    countRecord.Badge = LocalData.Instance.GetPendingAttendanceCount();
                 }
             }
             catch (Exception exception)
             {
                 // ignored
             }
+            finally
+            {
+                _timerBusy = false;
+
+                if (shouldReload)
+                    RefreshWebViewDisplay();
+            }
+        }
+
+        private static async Task MarkAttendanceRecordsAsync(
+            ModelContext db,
+            System.Collections.Generic.IEnumerable<Attendance_Record> logs,
+            bool markSent,
+            bool markUpdated)
+        {
+            foreach (var log in logs)
+            {
+                if (!log.Is_OUT &&
+                    !string.Equals(log.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) &&
+                    string.IsNullOrWhiteSpace(log.EntryTime))
+                    continue;
+
+                var record = log.RecordID > 0
+                    ? await db.attendance_Records.SingleOrDefaultAsync(r => r.RecordID == log.RecordID)
+                    : null;
+
+                if (record == null)
+                {
+                    record = await db.attendance_Records.FirstOrDefaultAsync(r =>
+                        r.DeviceID == log.DeviceID &&
+                        r.ScheduleID == log.ScheduleID &&
+                        r.AttendanceDate == log.AttendanceDate);
+                }
+
+                if (record == null) continue;
+
+                if (markSent) record.Is_Sent = true;
+                if (markUpdated) record.Is_Updated = true;
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        private static System.Collections.Generic.List<Attendance_Record> FilterSyncedLogs(
+            System.Collections.Generic.List<Attendance_Record> logs,
+            AttendanceSyncResultDto syncResult)
+        {
+            if (logs == null || logs.Count == 0)
+                return logs ?? new System.Collections.Generic.List<Attendance_Record>();
+
+            if (syncResult?.MatchedDeviceIds != null && syncResult.MatchedDeviceIds.Length > 0)
+            {
+                var matched = new System.Collections.Generic.HashSet<int>(syncResult.MatchedDeviceIds);
+                return logs.Where(l => matched.Contains(l.DeviceID)).ToList();
+            }
+
+            return logs;
+        }
+
+        private static string BuildPartialSyncMessage(
+            string entityLabel,
+            int sentCount,
+            AttendanceSyncResultDto syncResult)
+        {
+            if (syncResult == null || string.IsNullOrWhiteSpace(syncResult.Message))
+                return string.Empty;
+
+            if (syncResult.MatchedDeviceIds != null &&
+                syncResult.MatchedDeviceIds.Length >= sentCount)
+                return string.Empty;
+
+            return $"{entityLabel}: {syncResult.Message}";
+        }
+
+        private void BuildScheduleFilterPanelFromLocal(HashSet<int> activeIdsOverride)
+        {
+            var schedules = LocalData.Instance.GetTodayDisplaySchedules()
+                .Select(s => new DisplayScheduleFilterItem
+                {
+                    id = s.ScheduleID,
+                    name = string.IsNullOrWhiteSpace(s.ScheduleName)
+                        ? $"Schedule {s.ScheduleID}"
+                        : s.ScheduleName
+                })
+                .GroupBy(s => s.id)
+                .Select(g => g.First())
+                .OrderBy(s => s.id)
+                .ToList();
+
+            RenderScheduleFilterPanel(schedules, activeIdsOverride);
+        }
+
+        private void RenderScheduleFilterPanel(List<DisplayScheduleFilterItem> schedules, HashSet<int> activeIdsOverride)
+        {
+            if (ScheduleFilterPanel == null)
+                return;
+
+            _scheduleFilterUpdating = true;
+            try
+            {
+                var existingChecks = ScheduleFilterPanel.Children
+                    .OfType<CheckBox>()
+                    .ToDictionary(cb => (int)cb.Tag, cb => cb.IsChecked == true);
+
+                ScheduleFilterPanel.Children.Clear();
+                if (!schedules.Any())
+                    return;
+
+                HashSet<int> activeIds;
+                if (activeIdsOverride != null)
+                    activeIds = activeIdsOverride;
+                else if (existingChecks.Any())
+                    activeIds = new HashSet<int>(existingChecks.Where(p => p.Value).Select(p => p.Key));
+                else
+                    activeIds = new HashSet<int>(schedules.Select(s => s.id));
+
+                foreach (var schedule in schedules)
+                {
+                    var cb = new CheckBox
+                    {
+                        Content = schedule.name,
+                        Tag = schedule.id,
+                        IsChecked = activeIds.Contains(schedule.id),
+                        Margin = new Thickness(0, 0, 14, 0),
+                        FontSize = 12,
+                        FontWeight = FontWeights.SemiBold,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                    cb.Checked += ScheduleFilter_Changed;
+                    cb.Unchecked += ScheduleFilter_Changed;
+                    ScheduleFilterPanel.Children.Add(cb);
+                }
+            }
+            finally
+            {
+                _scheduleFilterUpdating = false;
+            }
+        }
+
+        private async Task SyncScheduleFilterPanelAsync()
+        {
+            if (webView?.CoreWebView2 == null)
+                return;
+
+            try
+            {
+                var schedulesJson = await webView.CoreWebView2.ExecuteScriptAsync(
+                    "JSON.stringify(typeof window.getDisplaySchedules==='function'?window.getDisplaySchedules():[])");
+                var schedules = ParseScriptJsonArray<DisplayScheduleFilterItem>(schedulesJson);
+                if (schedules.Count > 0)
+                {
+                    HashSet<int> activeIds = null;
+                    var activeJson = await webView.CoreWebView2.ExecuteScriptAsync(
+                        "JSON.stringify(typeof window.getScheduleFilterActiveIds==='function'?window.getScheduleFilterActiveIds():null)");
+                    var activeInner = JsonConvert.DeserializeObject<string>(activeJson);
+                    if (!string.IsNullOrWhiteSpace(activeInner) && !string.Equals(activeInner, "null", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var ids = JsonConvert.DeserializeObject<List<int>>(activeInner);
+                        if (ids != null)
+                            activeIds = new HashSet<int>(ids);
+                    }
+
+                    RenderScheduleFilterPanel(schedules, activeIds);
+                }
+            }
+            catch
+            {
+                // Keep local fallback panel if web filter sync fails.
+            }
+        }
+
+        private async Task ApplyWebScheduleFilterAsync()
+        {
+            if (webView?.CoreWebView2 == null || !_webViewNavigationReady || ScheduleFilterPanel == null)
+                return;
+
+            if (_scheduleFilterApplyBusy)
+                return;
+
+            if ((DateTime.Now - _lastScheduleFilterApply).TotalMilliseconds < 400)
+                return;
+
+            _scheduleFilterApplyBusy = true;
+            _lastScheduleFilterApply = DateTime.Now;
+            try
+            {
+                var activeIds = ScheduleFilterPanel.Children
+                    .OfType<CheckBox>()
+                    .Where(cb => cb.IsChecked == true)
+                    .Select(cb => (int)cb.Tag)
+                    .ToList();
+
+                var json = JsonConvert.SerializeObject(activeIds);
+                await webView.CoreWebView2.ExecuteScriptAsync($"window.setScheduleFilter({json})");
+            }
+            finally
+            {
+                _scheduleFilterApplyBusy = false;
+            }
+        }
+
+        private async void ScheduleFilter_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_scheduleFilterUpdating)
+                return;
+
+            await ApplyWebScheduleFilterAsync();
+        }
+
+        private static List<T> ParseScriptJsonArray<T>(string scriptResult)
+        {
+            if (string.IsNullOrWhiteSpace(scriptResult) || scriptResult == "null")
+                return new List<T>();
+
+            var inner = JsonConvert.DeserializeObject<string>(scriptResult);
+            if (string.IsNullOrWhiteSpace(inner))
+                return new List<T>();
+
+            return JsonConvert.DeserializeObject<List<T>>(inner) ?? new List<T>();
         }
 
         //Re-connect device

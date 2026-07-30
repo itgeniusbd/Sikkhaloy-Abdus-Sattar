@@ -13,6 +13,15 @@ namespace EDUCATION.COM.Attendances {
     public partial class Attendance_Settings {
         
         /// <summary>
+        /// AppDownloadLinkButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.LinkButton AppDownloadLinkButton;
+
+        /// <summary>
         /// InfoLinkButton control.
         /// </summary>
         /// <remarks>

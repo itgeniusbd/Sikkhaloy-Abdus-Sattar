@@ -1,17 +1,22 @@
-﻿
-using System.Data.Entity;
+﻿using System.Data.Entity;
 using System.Data.SQLite;
-using System.IO;
-using System.Reflection;
+using AttendanceDevice.Config_Class;
 
 
 namespace AttendanceDevice.Model
 {
     class ModelContext : DbContext
     {
-        public ModelContext() : base(new SQLiteConnection(@"Data Source=" + Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\SikkhaloyAppDB.db"), true) { }
+        static ModelContext()
+        {
+            SqliteDatabaseBootstrap.EnsureDatabase();
+            SqliteMultiScheduleMigration.EnsureApplied();
+        }
+
+        public ModelContext() : base(new SQLiteConnection(@"Data Source=" + Config_Class.AppPaths.DatabasePath), true) { }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<User_Schedule> User_Schedules { get; set; }
         public DbSet<Institution> Institutions { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<AttendanceLog_Backup> attendanceLog_Backups { get; set; }

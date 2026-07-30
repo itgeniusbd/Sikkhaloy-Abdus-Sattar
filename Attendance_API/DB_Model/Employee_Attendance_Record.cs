@@ -12,6 +12,7 @@ namespace Attendance_API.DB_Model
         public int SchoolID { get; set; }
         public int RegistrationID { get; set; }
         public int EmployeeID { get; set; }
+        public int? Attendance_ScheduleID { get; set; }
         public string AttendanceStatus { get; set; }
         public DateTime AttendanceDate { get; set; }
         public TimeSpan? EntryTime { get; set; }

@@ -155,22 +155,146 @@ namespace ZKTeco.PushAPI.DataAccess
                     {
                         if (reader.Read())
                         {
-                            return new ScheduleInfo
-                            {
-                                ScheduleID = Convert.ToInt32(reader["ScheduleID"]),
-                                SchoolID = Convert.ToInt32(reader["SchoolID"]),
-                                Day = reader["Day"].ToString(),
-                                StartTime = (TimeSpan)reader["StartTime"],
-                                LateEntryTime = (TimeSpan)reader["LateEntryTime"],
-                                EndTime = (TimeSpan)reader["EndTime"],
-                                Is_OnDay = Convert.ToBoolean(reader["Is_OnDay"])
-                            };
+                            return ReadScheduleInfo(reader);
                         }
                     }
                 }
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Get all schedule IDs assigned to a user (student or employee).
+        /// </summary>
+        public List<int> GetAssignedScheduleIds(int schoolId, int userId, bool isStudent)
+        {
+            var scheduleIds = new List<int>();
+
+            using (var conn = _dbConnection.GetConnection())
+            {
+                conn.Open();
+
+                var query = isStudent
+                    ? @"SELECT ScheduleID
+                        FROM Attendance_Schedule_AssignStudent
+                        WHERE SchoolID = @SchoolID AND StudentID = @UserID"
+                    : @"SELECT ScheduleID
+                        FROM Employee_Attendance_Schedule_Assign
+                        WHERE SchoolID = @SchoolID AND EmployeeID = @UserID";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+                    cmd.Parameters.AddWithValue("@UserID", userId);
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            scheduleIds.Add(Convert.ToInt32(reader["ScheduleID"]));
+                        }
+                    }
+                }
+            }
+
+            return scheduleIds.Distinct().ToList();
+        }
+
+        /// <summary>
+        /// Get on-day schedule rows for the given schedule IDs.
+        /// </summary>
+        public List<ScheduleInfo> GetScheduleInfosForDay(IEnumerable<int> scheduleIds, string dayName)
+        {
+            var ids = scheduleIds?.Where(id => id > 0).Distinct().ToList() ?? new List<int>();
+            var schedules = new List<ScheduleInfo>();
+
+            if (!ids.Any())
+                return schedules;
+
+            using (var conn = _dbConnection.GetConnection())
+            {
+                conn.Open();
+
+                var paramNames = ids.Select((id, index) => "@ScheduleID" + index).ToList();
+                var query = $@"
+                    SELECT
+                        ScheduleID,
+                        SchoolID,
+                        Day,
+                        StartTime,
+                        LateEntryTime,
+                        EndTime,
+                        Is_OnDay
+                    FROM Attendance_Schedule_Day
+                    WHERE Day = @Day
+                      AND Is_OnDay = 1
+                      AND ScheduleID IN ({string.Join(", ", paramNames)})";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Day", dayName);
+
+                    for (var i = 0; i < ids.Count; i++)
+                    {
+                        cmd.Parameters.AddWithValue(paramNames[i], ids[i]);
+                    }
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            schedules.Add(ReadScheduleInfo(reader));
+                        }
+                    }
+                }
+            }
+
+            return schedules;
+        }
+
+        /// <summary>
+        /// Pick the active schedule for a punch time (multi-schedule aware).
+        /// </summary>
+        public ScheduleInfo GetActiveScheduleForUser(DeviceUserInfo userInfo, DateTime punchDateTime)
+        {
+            if (userInfo == null)
+                return null;
+
+            var dayName = punchDateTime.ToString("dddd");
+            var punchTime = punchDateTime.TimeOfDay;
+
+            var scheduleIds = GetAssignedScheduleIds(userInfo.SchoolID, userInfo.UserID, userInfo.IsStudent);
+            if (!scheduleIds.Any() && userInfo.ScheduleID > 0)
+            {
+                scheduleIds.Add(userInfo.ScheduleID);
+            }
+
+            var candidates = GetScheduleInfosForDay(scheduleIds, dayName);
+            if (!candidates.Any())
+                return null;
+
+            var exactMatch = candidates.FirstOrDefault(s => punchTime >= s.StartTime && punchTime <= s.EndTime);
+            if (exactMatch != null)
+                return exactMatch;
+
+            return candidates
+                .OrderBy(s => Math.Abs((s.StartTime - punchTime).TotalMinutes))
+                .FirstOrDefault();
+        }
+
+        private static ScheduleInfo ReadScheduleInfo(SqlDataReader reader)
+        {
+            return new ScheduleInfo
+            {
+                ScheduleID = Convert.ToInt32(reader["ScheduleID"]),
+                SchoolID = Convert.ToInt32(reader["SchoolID"]),
+                Day = reader["Day"].ToString(),
+                StartTime = (TimeSpan)reader["StartTime"],
+                LateEntryTime = (TimeSpan)reader["LateEntryTime"],
+                EndTime = (TimeSpan)reader["EndTime"],
+                Is_OnDay = Convert.ToBoolean(reader["Is_OnDay"])
+            };
         }
 
         /// <summary>
@@ -253,7 +377,8 @@ namespace ZKTeco.PushAPI.DataAccess
                     FROM Attendance_Record 
                     WHERE SchoolID = @SchoolID 
                         AND StudentID = @StudentID 
-                        AND AttendanceDate = @AttendanceDate";
+                        AND AttendanceDate = @AttendanceDate
+                        AND ISNULL(Attendance_ScheduleID, 0) = ISNULL(@ScheduleID, 0)";
 
                 int? existingRecordID = null;
 
@@ -262,6 +387,7 @@ namespace ZKTeco.PushAPI.DataAccess
                     checkCmd.Parameters.AddWithValue("@SchoolID", record.SchoolID);
                     checkCmd.Parameters.AddWithValue("@StudentID", record.StudentID);
                     checkCmd.Parameters.AddWithValue("@AttendanceDate", record.AttendanceDate.Date);
+                    checkCmd.Parameters.AddWithValue("@ScheduleID", record.ScheduleID == 0 ? (object)DBNull.Value : record.ScheduleID);
 
                     var result = await checkCmd.ExecuteScalarAsync();
                     if (result != null)
@@ -300,10 +426,10 @@ namespace ZKTeco.PushAPI.DataAccess
                     // Insert new record
                     var insertQuery = @"
                         INSERT INTO Attendance_Record 
-                        (SchoolID, ClassID, EducationYearID, StudentID, StudentClassID, 
+                        (SchoolID, ClassID, EducationYearID, StudentID, StudentClassID, Attendance_ScheduleID,
                          Attendance, AttendanceDate, EntryTime, ExitStatus, ExitTime, Is_OUT)
                         VALUES 
-                        (@SchoolID, @ClassID, @EducationYearID, @StudentID, @StudentClassID,
+                        (@SchoolID, @ClassID, @EducationYearID, @StudentID, @StudentClassID, @ScheduleID,
                          @Attendance, @AttendanceDate, @EntryTime, @ExitStatus, @ExitTime, @Is_OUT)";
 
                     using (var insertCmd = new SqlCommand(insertQuery, conn))
@@ -313,6 +439,7 @@ namespace ZKTeco.PushAPI.DataAccess
                         insertCmd.Parameters.AddWithValue("@EducationYearID", record.EducationYearID);
                         insertCmd.Parameters.AddWithValue("@StudentID", record.StudentID);
                         insertCmd.Parameters.AddWithValue("@StudentClassID", record.StudentClassID);
+                        insertCmd.Parameters.AddWithValue("@ScheduleID", record.ScheduleID == 0 ? (object)DBNull.Value : record.ScheduleID);
                         insertCmd.Parameters.AddWithValue("@Attendance", record.Attendance ?? "");
                         insertCmd.Parameters.AddWithValue("@AttendanceDate", record.AttendanceDate.Date);
                         insertCmd.Parameters.AddWithValue("@EntryTime", (object)record.EntryTime ?? DBNull.Value);

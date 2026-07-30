@@ -45,11 +45,10 @@ namespace ZKTeco.PushAPI.Services
                     return false;
                 }
 
-                // Get schedule info
-                var dayName = log.AttendanceTime.ToString("dddd"); // Monday, Tuesday, etc.
-                var schedule = _repository.GetScheduleInfo(userInfo.ScheduleID, dayName);
-                
-                if (schedule == null || !schedule.Is_OnDay)
+                // Pick active schedule based on punch time (multi-schedule aware)
+                var schedule = _repository.GetActiveScheduleForUser(userInfo, log.AttendanceTime);
+
+                if (schedule == null)
                 {
                     return false;
                 }
@@ -89,6 +88,7 @@ namespace ZKTeco.PushAPI.Services
                 EducationYearID = userInfo.EducationYearID,
                 StudentID = userInfo.UserID,
                 StudentClassID = userInfo.StudentClassID ?? 0,
+                ScheduleID = schedule.ScheduleID,
                 AttendanceDate = attendanceDate
             };
 

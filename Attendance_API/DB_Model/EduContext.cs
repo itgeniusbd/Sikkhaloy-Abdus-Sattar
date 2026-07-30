@@ -10,7 +10,11 @@ namespace Attendance_API.DB_Model
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            //throw new UnintentionalCodeFirstException();
+            modelBuilder.Entity<VW_Attendance_Stu_Setting>()
+                .HasKey(s => new { s.StudentID, s.ScheduleID });
+
+            modelBuilder.Entity<VW_Attendance_Emp_Setting>()
+                .HasKey(e => new { e.EmployeeID, e.ScheduleID });
         }
         public virtual DbSet<VW_Attendance_Users> VW_Attendance_Users { get; set; }
         public virtual DbSet<SchoolInfo> SchoolInfos { get; set; }

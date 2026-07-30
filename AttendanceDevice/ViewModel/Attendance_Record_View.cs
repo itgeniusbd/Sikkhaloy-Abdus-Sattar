@@ -1,10 +1,12 @@
-﻿using System;
+﻿using AttendanceDevice.Config_Class;
+using System;
 
 namespace AttendanceDevice.ViewModel
 {
     public class Attendance_Record_View
     {
         public int DeviceID { get; set; }
+        public int ScheduleID { get; set; }
         public string ID { get; set; }
         public string Name { get; set; }
         public string AttendanceDate { get; set; }
@@ -13,6 +15,12 @@ namespace AttendanceDevice.ViewModel
         public string EntryTime { get; set; }
         public string ExitTime { get; set; }
         public bool Is_Student { get; set; }
-        public DateTime dtAttendanceDate { get { return Convert.ToDateTime(this.AttendanceDate); } }
+        public DateTime dtAttendanceDate
+        {
+            get
+            {
+                return AttendanceDateHelper.TryParse(this.AttendanceDate, out var date) ? date : DateTime.MinValue;
+            }
+        }
     }
 }

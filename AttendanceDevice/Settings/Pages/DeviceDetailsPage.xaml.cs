@@ -18,6 +18,7 @@ namespace AttendanceDevice.Settings.Pages
     {
         private readonly DeviceConnection _deviceCon;
         private string _deviceId = "";
+        private List<User> _pendingDevicePush = new List<User>();
         public DeviceDetailsPage(DeviceConnection d1)
         {
             _deviceCon = d1;
@@ -32,17 +33,10 @@ namespace AttendanceDevice.Settings.Pages
             DeviceIP.Text = _deviceCon.Device.DeviceIP;
             DeviceTime.Text = _deviceCon.GetDateTime().ToString("d MMM yy (hh:mm.tt)");
 
-            var deDetails = _deviceCon.GetDeviceDetails();
-
-            CapacityTB.Text = deDetails.UserCapacity + "/" + deDetails.NumberOfUsers;
-            LogCapacity.Text = deDetails.AttendanceRecordCapacity + "/" + deDetails.AttendanceRecords;
-            FP_Capacity.Text = deDetails.FpCapacity + "/" + deDetails.NumberOfFp;
-
-            //duplicate time
-            btnDuplicateTime.Content = "Set Duplicate Punch Time (" + deDetails.DuplicatePunchTime + " min)";
+            RefreshDeviceCapacityDisplay();
 
             //PC new user
-            PcNewUser();
+            _ = PcNewUser();
         }
 
         private async void BtnSyncPcTimetoDevice_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -76,21 +70,29 @@ namespace AttendanceDevice.Settings.Pages
         {
             if (!await _deviceCon.IsConnectedAsync()) return;
 
+            if (_pendingDevicePush == null || _pendingDevicePush.Count == 0)
+                return;
+
             LoadingDH.IsOpen = true;
             btnUploadUsers.IsEnabled = false;
 
-            using (var db = new ModelContext())
+            var usersToUpload = _pendingDevicePush.ToList();
+            var uploaded = await Task.Run(() => _deviceCon.Upload_User(usersToUpload));
+
+            if (!uploaded)
             {
-                var user = db.Users.ToList();
-                if (user.Count > 0)
-                {
-                    await Task.Run(() => _deviceCon.Upload_User(user));
-                }
+                MessageBox.Show(
+                    "Device upload failed. Some users may still show in PC NEW USERS.\n\n" +
+                    "Check device connection, capacity, and try Upload again.",
+                    "Upload failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
 
+            RefreshDeviceCapacityDisplay();
+            await PcNewUser();
+
             LoadingDH.IsOpen = false;
-            btnUploadUsers.IsEnabled = true;
-            NavigationService?.Refresh();
         }
         private async void BtnDownloadUsersDevice_Click(object sender, RoutedEventArgs e)
         {
@@ -109,11 +111,23 @@ namespace AttendanceDevice.Settings.Pages
 
             NavigationService?.Refresh();
         }
-        private async void PcNewUser()
+        private void RefreshDeviceCapacityDisplay()
+        {
+            if (!_deviceCon.IsConnected()) return;
+
+            var deDetails = _deviceCon.GetDeviceDetails();
+
+            CapacityTB.Text = deDetails.UserCapacity + "/" + deDetails.NumberOfUsers;
+            LogCapacity.Text = deDetails.AttendanceRecordCapacity + "/" + deDetails.AttendanceRecords;
+            FP_Capacity.Text = deDetails.FpCapacity + "/" + deDetails.NumberOfFp;
+            btnDuplicateTime.Content = "Set Duplicate Punch Time (" + deDetails.DuplicatePunchTime + " min)";
+        }
+
+        private async Task PcNewUser()
         {
             LoadingDH.IsOpen = true;
             var deviceUsers = await Task.Run(() => _deviceCon.Download_User().OrderBy(x => x.RFID));
-            var dUsers = deviceUsers.Select(x => new { x.DeviceID, x.RFID }).ToList();
+            RefreshDeviceCapacityDisplay();
 
             List<User> pcUsers;
             using (var db = new ModelContext())
@@ -121,17 +135,23 @@ namespace AttendanceDevice.Settings.Pages
                 pcUsers = db.Users.OrderBy(x => x.RFID).ToList();
             }
 
-            var newUser = pcUsers.Where(pu => !dUsers.Any(du => du.RFID.ToInt(0) == pu.RFID.ToInt(0) && du.DeviceID == pu.DeviceID)).ToList();
+            var pending = DeviceUserSyncHelper.GetUsersPendingPush(pcUsers, deviceUsers);
+            _pendingDevicePush = pending.Users;
 
-            if (newUser.Count > 0)
+            if (pending.Views.Count > 0)
             {
-                PCNewUserDG.ItemsSource = newUser;
+                PCNewUserDG.Visibility = Visibility.Visible;
+                PCNewUserDG.ItemsSource = pending.Views;
+                Utb.Text = "Upload " + pending.Views.Count + " User(s) To Device";
+                btnUploadUsers.IsEnabled = true;
             }
             else
             {
                 PCNewUserDG.Visibility = Visibility.Collapsed;
+                PCNewUserDG.ItemsSource = null;
                 Utb.Text = "No new User Found!";
                 btnUploadUsers.IsEnabled = false;
+                _pendingDevicePush = new List<User>();
             }
 
             LoadingDH.IsOpen = false;

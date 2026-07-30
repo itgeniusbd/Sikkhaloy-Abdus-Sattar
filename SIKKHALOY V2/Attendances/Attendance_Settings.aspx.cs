@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
+using System.Linq;
 using System.Web;
 using System.Web.Script.Serialization;
 using System.Web.Services;
@@ -13,7 +15,43 @@ namespace EDUCATION.COM.Attendances
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (IsPostBack)
+                return;
 
+            if (GetLatestAppInstaller() == null)
+            {
+                AppDownloadLinkButton.Enabled = false;
+                AppDownloadLinkButton.ToolTip = "Attendance app installer is not available yet.";
+            }
+        }
+
+        protected void AppDownload_Click(object sender, EventArgs e)
+        {
+            var latestInstaller = GetLatestAppInstaller();
+            if (latestInstaller == null)
+                return;
+
+            AppDownloadLinkButton.Enabled = false;
+            Response.Clear();
+            Response.Buffer = true;
+            Response.ContentType = "application/octet-stream";
+            Response.AddHeader("content-disposition", "attachment;filename=" + latestInstaller.Name);
+            Response.AddHeader("Content-Length", latestInstaller.Length.ToString());
+            Response.TransmitFile(latestInstaller.FullName);
+            Response.Flush();
+            Response.End();
+        }
+
+        private static FileInfo GetLatestAppInstaller()
+        {
+            string folderPath = HttpContext.Current.Server.MapPath("~/Attendances/App_For_Download/");
+            if (!Directory.Exists(folderPath))
+                return null;
+
+            return new DirectoryInfo(folderPath)
+                .GetFiles("*.exe", SearchOption.TopDirectoryOnly)
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .FirstOrDefault();
         }
 
         //Download user info

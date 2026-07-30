@@ -2,6 +2,7 @@
 using AttendanceDevice.Config_Class;
 using AttendanceDevice.Model;
 using AttendanceDevice.Settings;
+using AttendanceDevice.ViewModel;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
@@ -24,8 +25,10 @@ namespace AttendanceDevice
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            const string stagePrefix = "startup";
             try
             {
+                StartupLogger.LogStage($"{stagePrefix}: begin");
                 //Empty Error
                 LocalData.Current_Error = new Setting_Error();
 
@@ -35,6 +38,7 @@ namespace AttendanceDevice
 
                 if (ins == null)
                 {
+                    StartupLogger.LogStage($"{stagePrefix}: no institution -> login");
                     LocalData.Current_Error.Message = "No institutional information found in your local Machine";
                     var login = new Login_Window();
                     login.Show();
@@ -142,21 +146,19 @@ namespace AttendanceDevice
                 //Date update to Local Machine 
 
 
+                StartupLogger.LogStage($"{stagePrefix}: token request");
                 //get user token
                 var client = new RestClient(ApiUrl.EndPoint);
-                var loginRequest = new RestRequest("token", Method.POST);
-                var loginUsers = new LoginUser(ins.UserName, ins.Password);
-
-                loginRequest.AddObject(loginUsers);
+                var loginRequest = ApiLoginHelper.CreateTokenRequest(ins.UserName, ins.Password);
 
                 //Login execute the request
-                var loginResponse = await client.ExecuteTaskAsync<Token>(loginRequest);
+                var loginResponse = await client.ExecuteTaskAsync(loginRequest);
 
                 //API call for token
                 if (loginResponse.StatusCode != HttpStatusCode.OK)
                 {
                     //Invalid username and password
-                    LocalData.Current_Error.Message = loginResponse.Data?.error_description ?? "Response not found";
+                    LocalData.Current_Error.Message = ApiLoginHelper.GetTokenErrorMessage(loginResponse);
                     var login = new Login_Window();
                     login.Show();
                     this.Close();
@@ -164,9 +166,18 @@ namespace AttendanceDevice
                 }
 
                 //Get Token
-                var token = loginResponse.Data.access_token;
+                var token = ApiResponseHelper.GetAccessToken(loginResponse);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    LocalData.Current_Error.Message = "Login token missing in server response.";
+                    var login = new Login_Window();
+                    login.Show();
+                    this.Close();
+                    return;
+                }
 
 
+                StartupLogger.LogStage($"{stagePrefix}: school info");
                 //get institution info
                 var schoolRequest = new RestRequest("api/school/{id}", Method.GET);
 
@@ -186,7 +197,7 @@ namespace AttendanceDevice
                     return;
                 }
 
-                var schoolInfo = JsonConvert.DeserializeObject<Institution>(schoolResponse.Content);
+                var schoolInfo = ApiResponseHelper.ParseSchoolApi(ApiResponseHelper.ReadContent(schoolResponse));
 
                 if (schoolInfo == null)
                 {
@@ -221,17 +232,11 @@ namespace AttendanceDevice
 
                 //Update Institution Information
                 ins.Token = token.Trim();
-                ins.IsValid = schoolInfo.IsValid;
-                ins.SettingKey = schoolInfo.SettingKey.Trim();
-                ins.Is_Device_Attendance_Enable = schoolInfo.Is_Device_Attendance_Enable;
-                ins.Is_Employee_Attendance_Enable = schoolInfo.Is_Employee_Attendance_Enable;
-                ins.Is_Student_Attendance_Enable = schoolInfo.Is_Student_Attendance_Enable;
-                ins.Is_Today_Holiday = schoolInfo.Is_Today_Holiday;
-                ins.Holiday_NotActive = schoolInfo.Holiday_NotActive;
-
+                LocalData.Instance.MergeSchoolApiIntoInstitution(ins, schoolInfo);
 
                 await LocalData.Instance.InstitutionUpdate(ins);
 
+                StartupLogger.LogStage($"{stagePrefix}: leave sync");
                 //Leave request
 
                 #region Leave request
@@ -240,11 +245,12 @@ namespace AttendanceDevice
                 leaveRequest.AddUrlSegment("id", ins.SchoolID);
                 leaveRequest.AddHeader("Authorization", "Bearer " + token);
                 //Leave execute the request
-                var leaveResponse = await client.ExecuteTaskAsync<List<User_Leave_Record>>(leaveRequest);
+                var leaveResponse = await client.ExecuteTaskAsync(leaveRequest);
 
-                if (leaveResponse.StatusCode == HttpStatusCode.OK && leaveResponse.Data != null)
+                if (leaveResponse.StatusCode == HttpStatusCode.OK)
                 {
-                    await LocalData.Instance.LeaveDataHandling(leaveResponse.Data);
+                    var leaveRecords = ApiResponseHelper.ParseLeaveRecords(ApiResponseHelper.ReadContent(leaveResponse));
+                    await LocalData.Instance.LeaveDataHandling(leaveRecords);
                 }
                 else
                 {
@@ -257,37 +263,42 @@ namespace AttendanceDevice
 
                 #endregion Leave request
 
+                StartupLogger.LogStage($"{stagePrefix}: schedule sync");
                 //Schedule Day Request
 
                 #region Schedule data
 
-                var scheduleDayRequest = new RestRequest("api/Users/{id}/schedule", Method.GET);
-                scheduleDayRequest.AddUrlSegment("id", ins.SchoolID);
-                scheduleDayRequest.AddHeader("Authorization", "Bearer " + token);
-
-                var scheduleDayResponse =
-                    await client.ExecuteTaskAsync<List<Attendance_Schedule_Day>>(scheduleDayRequest);
-
-                if (scheduleDayResponse.StatusCode == HttpStatusCode.OK && scheduleDayResponse.Data != null &&
-                    scheduleDayResponse.Data.Any())
+                var schoolId = LocalData.Instance.GetEffectiveSchoolId();
+                var scheduleResult = await ScheduleAssignmentSync.EnsureScheduleBundleAsync(client, schoolId, token);
+                if (!scheduleResult.Success && !LocalData.Instance.Schedules_Get().Any())
                 {
-                    var isNoScheduleUserExist =
-                        await LocalData.Instance.ScheduleDataHandling(scheduleDayResponse.Data);
-                    if (isNoScheduleUserExist)
-                    {
-                        LocalData.Current_Error.Message =
-                            "Not all User assigned in the schedule on PC, Update User from server!";
-                        LocalData.Current_Error.Type = Error_Type.UserInfoPage;
+                    StartupLogger.LogStage($"{stagePrefix}: schedule sync failed — no local schedule rows");
+                    LocalData.Current_Error.Message =
+                        "Schedule download failed. Open Settings → Schedule → Download from Server.";
+                    LocalData.Current_Error.Type = Error_Type.SchedulePage;
 
-                        var setting = new Setting();
-                        setting.Show();
-                        this.Close();
-                        return;
-                    }
+                    var setting = new Setting();
+                    setting.Show();
+                    this.Close();
+                    return;
                 }
-                else
+
+                StartupLogger.LogStage($"{stagePrefix}: schedule sync done");
+
+                LocalData.Instance.EnsureUserScheduleAssignmentsFromUsers();
+                LocalData.Instance.ArchiveExpiredAttendanceRecords();
+                LocalData.Instance.RepairTodayScheduleIdsForResync();
+
+                if (scheduleResult.UserScheduleMismatch)
                 {
-                    throw new InvalidDataException("No Schedule data found in Server");
+                    LocalData.Current_Error.Message =
+                        "Not all User assigned in the schedule on PC, Update User from server!";
+                    LocalData.Current_Error.Type = Error_Type.UserInfoPage;
+
+                    var setting = new Setting();
+                    setting.Show();
+                    this.Close();
+                    return;
                 }
 
                 #endregion Schedule data
@@ -296,80 +307,120 @@ namespace AttendanceDevice
                 ins.LastUpdateDate = schoolInfo.LastUpdateDate;
                 await LocalData.Instance.InstitutionUpdate(ins);
 
-                //Get Today attendance data form server
-                var todayAttendanceRequest = new RestRequest("api/Attendance/{id}/GetTodayAttendance", Method.GET);
-                todayAttendanceRequest.AddUrlSegment("id", ins.SchoolID);
-                todayAttendanceRequest.AddHeader("Authorization", "Bearer " + token);
-
-                var todayAttendanceResponse =
-                    await client.ExecuteTaskAsync<List<Attendance_Record>>(todayAttendanceRequest);
-
-                if (todayAttendanceResponse.StatusCode == HttpStatusCode.OK && todayAttendanceResponse.Data != null &&
-                    todayAttendanceResponse.Data.Any())
+                StartupLogger.LogStage($"{stagePrefix}: today attendance");
+                try
                 {
-                    await LocalData.Instance.GetTodayAttendanceRecords(todayAttendanceResponse.Data);
+                    var todayAttendanceRequest = new RestRequest("api/Attendance/{id}/GetTodayAttendance", Method.GET);
+                    todayAttendanceRequest.AddUrlSegment("id", ins.SchoolID);
+                    todayAttendanceRequest.AddHeader("Authorization", "Bearer " + token);
+
+                    var todayAttendanceResponse =
+                        await client.ExecuteTaskAsync(todayAttendanceRequest);
+
+                    StartupLogger.LogStage(
+                        $"{stagePrefix}: today attendance response {(int)todayAttendanceResponse.StatusCode}");
+
+                    var todayContent = ApiResponseHelper.ReadContent(todayAttendanceResponse);
+                    if (todayAttendanceResponse.StatusCode == HttpStatusCode.OK &&
+                        !string.IsNullOrWhiteSpace(todayContent))
+                    {
+                        var todayRecords = AttendanceRecordMapper.FromTodayAttendanceJson(todayContent);
+                        StartupLogger.LogStage($"{stagePrefix}: today attendance parsed {todayRecords.Count} rows");
+                        if (todayRecords.Any())
+                            await LocalData.Instance.GetTodayAttendanceRecords(todayRecords);
+                    }
+                }
+                catch (Exception todayEx)
+                {
+                    StartupLogger.LogFailure($"{stagePrefix}: today attendance", todayEx);
                 }
 
 
+                StartupLogger.LogStage($"{stagePrefix}: device logs");
                 //Device data send to server
                 #region Device data send to server
 
                 foreach (var device in deviceConnections)
                 {
-                    var status = await Task.Run(() => device.ConnectDevice());
-                    if (!status.IsSuccess) continue;
-
-                    var deviceTime = device.GetDateTime();
-                    if (deviceTime.ToString("dd-MM-yyyy hh:mm tt") != DateTime.Now.ToString("dd-MM-yyyy hh:mm tt"))
+                    try
                     {
-                        //Set server time to device
-                        await Task.Run(() => device.SetDateTime());
+                        var status = await Task.Run(() => device.ConnectDevice());
+                        if (!status.IsSuccess) continue;
+
+                        var deviceTime = device.GetDateTime();
+                        if (deviceTime.ToString("dd-MM-yyyy hh:mm tt") != DateTime.Now.ToString("dd-MM-yyyy hh:mm tt"))
+                        {
+                            //Set server time to device
+                            await Task.Run(() => device.SetDateTime());
+                        }
+
+
+                        var todayLog = device.DownloadTodayLogs();
+                        var prevLog = device.DownloadPrevLogs();
+
+                        await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, ins, device.Device);
                     }
-
-
-                    var todayLog = device.DownloadTodayLogs();
-                    var prevLog = device.DownloadPrevLogs();
-
-                    await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, ins, device.Device);
+                    catch (Exception deviceEx)
+                    {
+                        StartupLogger.LogFailure($"{stagePrefix}: device logs ({device.Device?.DeviceIP})", deviceEx);
+                    }
                 }
 
                 #endregion Device data send to server
 
 
 
+                StartupLogger.LogStage($"{stagePrefix}: update notifications");
                 //Get any update notification from server
                 var updateNotificationRequest = new RestRequest("api/Users/{id}/updateInfo", Method.GET);
                 updateNotificationRequest.AddUrlSegment("id", ins.SchoolID);
                 updateNotificationRequest.AddHeader("Authorization", "Bearer " + token);
 
                 var updateNotificationResponse =
-                    await client.ExecuteTaskAsync<List<DataUpdateList>>(updateNotificationRequest);
+                    await client.ExecuteTaskAsync(updateNotificationRequest);
 
-                if (updateNotificationResponse.StatusCode == HttpStatusCode.OK && updateNotificationResponse.Data != null &&
-                    updateNotificationResponse.Data.Any())
+                if (updateNotificationResponse.StatusCode == HttpStatusCode.OK)
                 {
-                    await LocalData.Instance.AddNotifications(updateNotificationResponse.Data);
+                    var notifications = ApiResponseHelper.ParseUpdateNotifications(
+                        ApiResponseHelper.ReadContent(updateNotificationResponse));
+                    if (notifications.Any())
+                    {
+                        await LocalData.Instance.AddNotifications(notifications);
 
-                    var setting = new Setting();
-                    setting.Show();
-                    this.Close();
-                    return;
-
+                        var setting = new Setting();
+                        setting.Show();
+                        this.Close();
+                        return;
+                    }
                 }
 
 
-                //show display
-                var display = new DisplayWindow(initDevice);
-                display.Show();
+                StartupLogger.LogStage($"{stagePrefix}: open display");
+                var displayWindow = new DisplayWindow(initDevice);
+                displayWindow.Show();
                 this.Close();
             }
             catch (Exception ex)
             {
-                var errorObj = new Error("System Error", ex.Message);
+                StartupLogger.LogFailure($"{stagePrefix}: unhandled", ex);
+                var errorObj = new Error("System Error", GetFullExceptionMessage(ex));
                 var errorWindow = new Error_Window(errorObj);
                 errorWindow.Show();
                 this.Close();
             }
+        }
+
+        private static string GetFullExceptionMessage(Exception ex)
+        {
+            var parts = new List<string>();
+            while (ex != null)
+            {
+                if (!string.IsNullOrWhiteSpace(ex.Message))
+                    parts.Add(ex.Message.Trim());
+                ex = ex.InnerException;
+            }
+
+            return string.Join(Environment.NewLine + Environment.NewLine, parts.Distinct());
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)

@@ -21,6 +21,6 @@ namespace SmsSenderApp
         public int? EmployeeID { get; set; }
         public int? StudentID { get; set; }
         public string FailedReson { get; set; }
-        //public DateTime InsertDate { get; set; }
+        public DateTime InsertDate { get; set; }
     }
 }

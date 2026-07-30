@@ -24,6 +24,7 @@ namespace AttendanceDevice.Model
         public bool Is_Today_Holiday { get; set; }
         public bool Holiday_NotActive { get; set; }
         public string LastUpdateDate { get; set; }
+        public string ServerTodayDate { get; set; }
         public int PingTimeOut { get; set; }
         [NotMapped]
         public DateTime Current_Datetime { get; set; }
