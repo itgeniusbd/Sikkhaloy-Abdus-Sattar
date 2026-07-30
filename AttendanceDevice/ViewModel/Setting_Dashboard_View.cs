@@ -1,4 +1,5 @@
-﻿using AttendanceDevice.Model;
+﻿using AttendanceDevice.Config_Class;
+using AttendanceDevice.Model;
 using System.Linq;
 
 namespace AttendanceDevice.ViewModel
@@ -20,8 +21,8 @@ namespace AttendanceDevice.ViewModel
                     Entry_Date = b.Entry_Date,
                     Backup_Reason = b.Backup_Reason
                 }).Distinct().Count();
-                Pending_Attn_Records = db.attendance_Records.Where(a => !a.Is_Sent || !a.Is_Updated).Count();
-                No_of_Schedules = db.attendance_Schedule_Days.Count();
+                Pending_Attn_Records = LocalData.Instance.GetPendingAttendanceCount();
+                No_of_Schedules = db.attendance_Schedule_Days.Select(s => s.ScheduleID).Distinct().Count();
                 Total_Leave_Users = db.user_Leave_Records.Count();
                 Ins = db.Institutions.FirstOrDefault();
             }

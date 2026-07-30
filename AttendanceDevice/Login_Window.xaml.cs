@@ -2,6 +2,7 @@
 using AttendanceDevice.Config_Class;
 using AttendanceDevice.Model;
 using AttendanceDevice.Settings;
+using AttendanceDevice.ViewModel;
 using MaterialDesignThemes.Wpf;
 using Newtonsoft.Json;
 using RestSharp;
@@ -66,25 +67,31 @@ namespace AttendanceDevice
 
                 //get user token
                 var client = new RestClient(ApiUrl.EndPoint);
-                var loginRequest = new RestRequest("token", Method.POST);
-                var loginUsers = new LoginUser(UserNameTextBox.Text.Trim(), PasswordPasswordBox.Password);
-
-                loginRequest.AddObject(loginUsers);
+                var loginRequest = ApiLoginHelper.CreateTokenRequest(
+                    UserNameTextBox.Text.Trim(),
+                    PasswordPasswordBox.Password);
 
                 //Login execute the request
-                var loginResponse = await client.ExecuteTaskAsync<Token>(loginRequest);
+                var loginResponse = await client.ExecuteTaskAsync(loginRequest);
 
                 //API call for token
                 if (loginResponse.StatusCode != HttpStatusCode.OK)
                 {
-                    queue.Enqueue(loginResponse.Data?.error_description ?? "Response not found");
+                    queue.Enqueue(ApiLoginHelper.GetTokenErrorMessage(loginResponse));
                     LoadingPb.IsIndeterminate = false;
                     LoginButton.IsEnabled = true;
                     return;
                 }
 
                 //get institution info
-                var token = loginResponse.Data.access_token;
+                var token = ApiResponseHelper.GetAccessToken(loginResponse);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    queue.Enqueue("Login token missing in server response.");
+                    LoadingPb.IsIndeterminate = false;
+                    LoginButton.IsEnabled = true;
+                    return;
+                }
                 var schoolRequest = new RestRequest("api/school/{id}", Method.GET);
 
                 schoolRequest.AddUrlSegment("id", UserNameTextBox.Text.Trim());
@@ -101,7 +108,7 @@ namespace AttendanceDevice
                     return;
                 }
 
-                var schoolInfo = JsonConvert.DeserializeObject<Institution>(schoolResponse.Content);
+                var schoolInfo = ApiResponseHelper.ParseSchoolApi(ApiResponseHelper.ReadContent(schoolResponse));
 
                 if (schoolInfo == null)
                 {
@@ -127,7 +134,8 @@ namespace AttendanceDevice
                 var isFirstSetup = ins == null;
                 if (isFirstSetup)
                 {
-                    ins = schoolInfo;
+                    ins = new Institution();
+                    LocalData.Instance.MergeSchoolApiIntoInstitution(ins, schoolInfo);
                     ins.UserName = schoolInfo.UserName.Trim();
                     ins.Token = token.Trim();
                     ins.Password = PasswordPasswordBox.Password;
@@ -139,14 +147,7 @@ namespace AttendanceDevice
                     ins.Token = token;
                     ins.UserName = schoolInfo.UserName.Trim();
                     ins.Password = PasswordPasswordBox.Password;
-                    ins.IsValid = schoolInfo.IsValid;
-                    ins.SettingKey = schoolInfo.SettingKey.Trim();
-                    ins.Is_Device_Attendance_Enable = schoolInfo.Is_Device_Attendance_Enable;
-                    ins.Is_Employee_Attendance_Enable = schoolInfo.Is_Employee_Attendance_Enable;
-                    ins.Is_Student_Attendance_Enable = schoolInfo.Is_Student_Attendance_Enable;
-                    ins.Is_Today_Holiday = schoolInfo.Is_Today_Holiday;
-                    ins.Holiday_NotActive = schoolInfo.Holiday_NotActive;
-
+                    LocalData.Instance.MergeSchoolApiIntoInstitution(ins, schoolInfo);
                 }
                 await LocalData.Instance.InstitutionUpdate(ins);
 
@@ -172,11 +173,12 @@ namespace AttendanceDevice
                 leaveRequest.AddHeader("Authorization", "Bearer " + token);
 
                 //Leave execute the request
-                var leaveResponse = await client.ExecuteTaskAsync<List<User_Leave_Record>>(leaveRequest);
+                var leaveResponse = await client.ExecuteTaskAsync(leaveRequest);
 
-                if (leaveResponse.StatusCode == HttpStatusCode.OK && leaveResponse.Data != null)
+                if (leaveResponse.StatusCode == HttpStatusCode.OK)
                 {
-                    await LocalData.Instance.LeaveDataHandling(leaveResponse.Data);
+                    var leaveRecords = ApiResponseHelper.ParseLeaveRecords(ApiResponseHelper.ReadContent(leaveResponse));
+                    await LocalData.Instance.LeaveDataHandling(leaveRecords);
                 }
 
                 #endregion Leave data
@@ -184,30 +186,26 @@ namespace AttendanceDevice
                 //Schedule Day Request
                 #region Schedule data
 
-                var scheduleDayRequest = new RestRequest("api/Users/{id}/schedule", Method.GET);
-                scheduleDayRequest.AddUrlSegment("id", ins.SchoolID);
-                scheduleDayRequest.AddHeader("Authorization", "Bearer " + token);
-
-                var scheduleDayResponse =
-                    await client.ExecuteTaskAsync<List<Attendance_Schedule_Day>>(scheduleDayRequest);
-
-                if (scheduleDayResponse.StatusCode == HttpStatusCode.OK && scheduleDayResponse.Data != null && scheduleDayResponse.Data.Any())
+                var schoolId = LocalData.Instance.GetEffectiveSchoolId();
+                var scheduleResult = await ScheduleAssignmentSync.EnsureScheduleBundleAsync(client, schoolId, token);
+                if (!scheduleResult.Success && !LocalData.Instance.Schedules_Get().Any())
                 {
-                    var isNoScheduleUserExist = await LocalData.Instance.ScheduleDataHandling(scheduleDayResponse.Data);
-                    if (isNoScheduleUserExist)
-                    {
-                        LocalData.Current_Error.Message = "Not all User assigned in the schedule on PC, Update User from server!";
-                        LocalData.Current_Error.Type = Error_Type.UserInfoPage;
+                    LocalData.Current_Error.Message =
+                        "Schedule download failed. Open Settings → Schedule → Download from Server.";
+                    LocalData.Current_Error.Type = Error_Type.SchedulePage;
 
-                        var setting = new Setting();
-                        setting.Show();
-                        this.Close();
-                        return;
-                    }
+                    var setting = new Setting();
+                    setting.Show();
+                    this.Close();
+                    return;
                 }
-                else
+
+                LocalData.Instance.EnsureUserScheduleSeeded();
+
+                if (scheduleResult.UserScheduleMismatch)
                 {
-                    throw new InvalidDataException("No Schedule data found in Server");
+                    ScheduleAssignmentSync.RedirectToUserInfoIfScheduleMismatch(scheduleResult, this);
+                    return;
                 }
 
                 #endregion Schedule data
@@ -288,14 +286,16 @@ namespace AttendanceDevice
                     todayAttendanceRequest.AddUrlSegment("id", ins.SchoolID);
                     todayAttendanceRequest.AddHeader("Authorization", "Bearer " + token);
 
-                    var todayAttendanceResponse =
-                        await client.ExecuteTaskAsync<List<Attendance_Record>>(todayAttendanceRequest);
+                var todayAttendanceResponse =
+                    await client.ExecuteTaskAsync(todayAttendanceRequest);
 
-                    if (todayAttendanceResponse.StatusCode == HttpStatusCode.OK && todayAttendanceResponse.Data != null &&
-                        todayAttendanceResponse.Data.Any())
-                    {
-                        await LocalData.Instance.GetTodayAttendanceRecords(todayAttendanceResponse.Data);
-                    }
+                if (todayAttendanceResponse.StatusCode == HttpStatusCode.OK &&
+                    !string.IsNullOrWhiteSpace(todayAttendanceResponse.Content))
+                {
+                    var todayRecords = AttendanceRecordMapper.FromTodayAttendanceJson(todayAttendanceResponse.Content);
+                    if (todayRecords.Any())
+                        await LocalData.Instance.GetTodayAttendanceRecords(todayRecords);
+                }
 
                     //log to attendance
                     var prevLog = device.DownloadPrevLogs();
@@ -325,28 +325,29 @@ namespace AttendanceDevice
                     updateNotificationRequest.AddHeader("Authorization", "Bearer " + token);
 
                     var updateNotificationResponse =
-                        await client.ExecuteTaskAsync<List<DataUpdateList>>(updateNotificationRequest)
+                        await client.ExecuteTaskAsync(updateNotificationRequest)
                             .ConfigureAwait(false);
 
-                    if (updateNotificationResponse.StatusCode == HttpStatusCode.OK &&
-                        updateNotificationResponse.Data != null &&
-                        updateNotificationResponse.Data.Any())
+                    if (updateNotificationResponse.StatusCode == HttpStatusCode.OK)
                     {
-                        await LocalData.Instance.AddNotifications(updateNotificationResponse.Data)
-                            .ConfigureAwait(false);
+                        var notifications = ApiResponseHelper.ParseUpdateNotifications(
+                            ApiResponseHelper.ReadContent(updateNotificationResponse));
+                        if (notifications.Any())
+                        {
+                            await LocalData.Instance.AddNotifications(notifications)
+                                .ConfigureAwait(false);
 
-                        var setting = new Setting();
-                        setting.Show();
-                        this.Close();
-                        return;
-
+                            var setting = new Setting();
+                            setting.Show();
+                            this.Close();
+                            return;
+                        }
                     }
                 }
 
-                //show display
                 var initDevice = new DeviceDisplay(deviceConnections);
-                var display = new DisplayWindow(initDevice);
-                display.Show();
+                var displayWindow = new DisplayWindow(initDevice);
+                displayWindow.Show();
                 this.Close();
             }
             catch (Exception ex)
@@ -366,6 +367,8 @@ namespace AttendanceDevice
         }
     }
 }
+
+
 
 
 

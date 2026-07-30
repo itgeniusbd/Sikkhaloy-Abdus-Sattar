@@ -190,40 +190,38 @@ namespace SmsSenderApp
                     GlobalClass.Instance.Setting?.SmsProvider,
                     GlobalClass.Instance.Setting?.SmsProviderMultiple);
 
-                var today = DateTime.Now;
+                var todayDate = DateTime.Today;
 
                 var failedSmsList = new List<Attendance_SMS_Failed>();
                 var smsList = new List<Attendance_SMS>();
 
                 var currentTime = DateTime.Now.TimeOfDay;
 
-                //Get the list from database
-                var totalSmsList = await GlobalClass.Instance.GetAttendanceSmsListAndDeleteFromDbAsync();
+                // Read queue first; delete only after send/failed is logged.
+                var totalSmsList = await GlobalClass.Instance.GetAttendanceSmsListAsync();
 
                 Log.Information($"Retrieved {totalSmsList.Count} SMS from database");
 
                 //Get the To-days SMS List
-                var smsListOfToDay = totalSmsList.Where(s => s.AttendanceDate == today.Date).ToList();
+                var smsListOfToDay = totalSmsList
+                    .Where(s => s.AttendanceDate.Date == todayDate)
+                    .ToList();
 
                 Log.Information($"Found {smsListOfToDay.Count} SMS for today");
 
+                if (totalSmsList.Count > 0 && smsListOfToDay.Count == 0)
+                {
+                    Log.Warning(
+                        "All {Count} queued SMS were treated as non-today. Sample AttendanceDate={SampleDate}",
+                        totalSmsList.Count,
+                        totalSmsList[0].AttendanceDate.ToString("yyyy-MM-dd HH:mm:ss"));
+                }
+
                 //Get the other days SMS List
-                var smsListOfOtherDay = totalSmsList.Where(s => s.AttendanceDate != today.Date)
-                    .Select(s => new Attendance_SMS_Failed
-                    {
-                        SchoolID = s.SchoolID,
-                        ScheduleTime = s.ScheduleTime,
-                        CreateTime = s.CreateTime,
-                        SentTime = s.SentTime,
-                        AttendanceDate = s.AttendanceDate,
-                        SMS_Text = s.SMS_Text,
-                        MobileNo = s.MobileNo,
-                        AttendanceStatus = s.AttendanceStatus,
-                        SMS_TimeOut = s.SMS_TimeOut,
-                        EmployeeID = s.EmployeeID,
-                        StudentID = s.StudentID,
-                        FailedReson = "Not current date",
-                    }).ToList();
+                var smsListOfOtherDay = totalSmsList
+                    .Where(s => s.AttendanceDate.Date != todayDate)
+                    .Select(s => ToFailedRecord(s, "Not current date"))
+                    .ToList();
 
                 failedSmsList.AddRange(smsListOfOtherDay);
 
@@ -237,21 +235,8 @@ namespace SmsSenderApp
                     //Get the List of time-up SMS
                     var timeupSmsList = smsListOfToDay.Where(s =>
                             s.ScheduleTime.TotalMinutes + s.SMS_TimeOut <= currentTime.TotalMinutes)
-                        .Select(s => new Attendance_SMS_Failed
-                        {
-                            SchoolID = s.SchoolID,
-                            ScheduleTime = s.ScheduleTime,
-                            CreateTime = s.CreateTime,
-                            SentTime = s.SentTime,
-                            AttendanceDate = s.AttendanceDate,
-                            SMS_Text = s.SMS_Text,
-                            MobileNo = s.MobileNo,
-                            AttendanceStatus = s.AttendanceStatus,
-                            SMS_TimeOut = s.SMS_TimeOut,
-                            EmployeeID = s.EmployeeID,
-                            StudentID = s.StudentID,
-                            FailedReson = "SMS sending time up",
-                        }).ToList();
+                        .Select(s => ToFailedRecord(s, "SMS sending time up"))
+                        .ToList();
 
                     failedSmsList.AddRange(timeupSmsList);
 
@@ -285,22 +270,7 @@ namespace SmsSenderApp
                         if (noSmsBalanceSchoolIds.Any())
                         {
                             noBalanceSmsList = smsList.Where(s => noSmsBalanceSchoolIds.Contains(s.SchoolID)).Select(
-                                s =>
-                                    new Attendance_SMS_Failed
-                                    {
-                                        SchoolID = s.SchoolID,
-                                        ScheduleTime = s.ScheduleTime,
-                                        CreateTime = s.CreateTime,
-                                        SentTime = s.SentTime,
-                                        AttendanceDate = s.AttendanceDate,
-                                        SMS_Text = s.SMS_Text,
-                                        MobileNo = s.MobileNo,
-                                        AttendanceStatus = s.AttendanceStatus,
-                                        SMS_TimeOut = s.SMS_TimeOut,
-                                        EmployeeID = s.EmployeeID,
-                                        StudentID = s.StudentID,
-                                        FailedReson = "Insufficient SMS Balance",
-                                    }).ToList();
+                                s => ToFailedRecord(s, "Insufficient SMS Balance")).ToList();
 
                             smsList = smsList.Where(s => !noSmsBalanceSchoolIds.Contains(s.SchoolID)).ToList();
 
@@ -308,7 +278,15 @@ namespace SmsSenderApp
                         }
 
                         failedSmsList.AddRange(noBalanceSmsList);
-                        //check the Duplicate SMS (Check in database insert)
+
+                        var sendableBeforeDedup = smsList.Count;
+                        smsList = await GlobalClass.Instance.FilterAlreadySentAsync(smsList);
+                        if (smsList.Count < sendableBeforeDedup)
+                        {
+                            Log.Information(
+                                "Skipped {Count} duplicate SMS already sent today",
+                                sendableBeforeDedup - smsList.Count);
+                        }
 
                         //Send the smsList
                         if (smsList.Any())
@@ -351,21 +329,7 @@ namespace SmsSenderApp
                             }
                             else
                             {
-                                var smsSendFail = smsList.Select(s => new Attendance_SMS_Failed
-                                {
-                                    SchoolID = s.SchoolID,
-                                    ScheduleTime = s.ScheduleTime,
-                                    CreateTime = s.CreateTime,
-                                    SentTime = s.SentTime,
-                                    AttendanceDate = s.AttendanceDate,
-                                    SMS_Text = s.SMS_Text,
-                                    MobileNo = s.MobileNo,
-                                    AttendanceStatus = s.AttendanceStatus,
-                                    SMS_TimeOut = s.SMS_TimeOut,
-                                    EmployeeID = s.EmployeeID,
-                                    StudentID = s.StudentID,
-                                    FailedReson = "SMS Send Failed",
-                                }).ToList();
+                                var smsSendFail = smsList.Select(s => ToFailedRecord(s, "SMS Send Failed")).ToList();
 
                                 failedSmsList.AddRange(smsSendFail);
 
@@ -387,10 +351,19 @@ namespace SmsSenderApp
                 }
 
                 //insert the fail SMS table
+                var failedLogged = true;
                 if (failedSmsList.Any())
                 {
-                    await GlobalClass.Instance.Attendance_SMS_FailedAddAsync(failedSmsList);
-                    Log.Information($"Recorded {failedSmsList.Count} failed SMS");
+                    failedLogged = await GlobalClass.Instance.Attendance_SMS_FailedAddAsync(failedSmsList);
+                    if (failedLogged)
+                        Log.Information($"Recorded {failedSmsList.Count} failed SMS");
+                    else
+                        Log.Error("Failed to record {Count} failed SMS; queue rows will be kept", failedSmsList.Count);
+                }
+
+                if (totalSmsList.Any() && failedLogged)
+                {
+                    await GlobalClass.Instance.RemoveAttendanceSmsFromDbAsync(totalSmsList);
                 }
 
                 //Update the total send and fail status
@@ -457,6 +430,26 @@ namespace SmsSenderApp
             {
                 Log.Error(ex, "Failed to update status");
             }
+        }
+
+        private static Attendance_SMS_Failed ToFailedRecord(Attendance_SMS source, string reason)
+        {
+            return new Attendance_SMS_Failed
+            {
+                SchoolID = source.SchoolID,
+                ScheduleTime = source.ScheduleTime,
+                CreateTime = source.CreateTime,
+                SentTime = source.SentTime,
+                AttendanceDate = source.AttendanceDate.Date,
+                SMS_Text = source.SMS_Text,
+                MobileNo = source.MobileNo,
+                AttendanceStatus = source.AttendanceStatus,
+                SMS_TimeOut = source.SMS_TimeOut,
+                EmployeeID = source.EmployeeID,
+                StudentID = source.StudentID,
+                FailedReson = reason,
+                InsertDate = DateTime.Now
+            };
         }
 
         private void SetStartup()

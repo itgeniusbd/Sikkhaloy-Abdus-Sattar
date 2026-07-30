@@ -1,7 +1,7 @@
 ﻿<%@ Page Title="Manual Students Attendance" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Students_Attendance.aspx.cs" Inherits="EDUCATION.COM.ATTENDANCES.Students_Attendance" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="CSS/Students_Attendance.css?v=2" rel="stylesheet" />
+    <link href="CSS/Students_Attendance.css?v=3" rel="stylesheet" />
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <asp:UpdatePanel ID="ContainUpdatePanel" runat="server">
@@ -54,11 +54,22 @@
                     </asp:SqlDataSource>
                 </div>
                 <div class="form-group">
+                    <asp:DropDownList ID="ScheduleDropDownList" runat="server" AppendDataBoundItems="True" AutoPostBack="True" CssClass="form-control" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID" OnSelectedIndexChanged="ScheduleDropDownList_SelectedIndexChanged">
+                        <asp:ListItem Value="0">[ SELECT SCHEDULE ]</asp:ListItem>
+                    </asp:DropDownList>
+                    <asp:SqlDataSource ID="ScheduleSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ScheduleID, ScheduleName FROM Attendance_Schedule WHERE (SchoolID = @SchoolID)">
+                        <SelectParameters>
+                            <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                        </SelectParameters>
+                    </asp:SqlDataSource>
+                    <asp:RequiredFieldValidator ID="ScheduleRFV" runat="server" ControlToValidate="ScheduleDropDownList" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="1" InitialValue="0"></asp:RequiredFieldValidator>
+                </div>
+                <div class="form-group">
                     <asp:TextBox ID="AttendanceDateTextBox" autocomplete="off" placeholder="Attendance Date" runat="server" CssClass="form-control Datetime" onkeypress="return DisableAllKey()"></asp:TextBox>
                     <asp:RequiredFieldValidator ID="RequiredFieldValidator7" runat="server" ControlToValidate="AttendanceDateTextBox" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="1"></asp:RequiredFieldValidator>
                 </div>
                 <div class="form-group">
-                    <asp:Button ID="FindButton" runat="server" Text="Find" CssClass="btn btn-primary" OnClick="FindButton_Click" />
+                    <asp:Button ID="FindButton" runat="server" Text="Find" CssClass="btn btn-primary" OnClick="FindButton_Click" CausesValidation="False" />
                 </div>
                 <div class="form-group">
                     <asp:RadioButtonList CssClass="form-control" ID="SMSRadioButtonList" runat="server" RepeatDirection="Horizontal">
@@ -69,7 +80,7 @@
             </div>
 
             <div class="table-responsive">
-                <asp:GridView ID="StudentsAttendanceGridView" AllowSorting="true" runat="server" AutoGenerateColumns="False" DataKeyNames="StudentClassID,SMSPhoneNo,ID,StudentsName,StudentID" DataSourceID="StudentsRecordSQL" CssClass="mGrid" PageSize="50" Visible="False">
+                <asp:GridView ID="StudentsAttendanceGridView" AllowSorting="true" runat="server" AutoGenerateColumns="False" DataKeyNames="StudentClassID,SMSPhoneNo,ID,StudentsName,StudentID" DataSourceID="StudentsRecordSQL" CssClass="mGrid" PageSize="50" Visible="False" OnDataBinding="StudentsAttendanceGridView_DataBinding" OnRowDataBound="StudentsAttendanceGridView_RowDataBound">
                     <Columns>
                         <asp:TemplateField>
                             <HeaderTemplate>
@@ -91,11 +102,11 @@
                         <asp:TemplateField HeaderText="Attendance">
                             <ItemTemplate>
                                 <asp:RadioButtonList ID="AttendenceRadioButtonList" runat="server" RepeatDirection="Horizontal">
-                                    <asp:ListItem Selected="True">Pre</asp:ListItem>
-                                    <asp:ListItem>Abs</asp:ListItem>
-                                    <asp:ListItem>Late</asp:ListItem>
-                                    <asp:ListItem>Leave</asp:ListItem>
-                                    <asp:ListItem>Bunk</asp:ListItem>
+                                    <asp:ListItem Value="Pre" Selected="True">Pre</asp:ListItem>
+                                    <asp:ListItem Value="Abs">Abs</asp:ListItem>
+                                    <asp:ListItem Value="Late">Late</asp:ListItem>
+                                    <asp:ListItem Value="Leave">Leave</asp:ListItem>
+                                    <asp:ListItem Value="Bunk">Bunk</asp:ListItem>
                                 </asp:RadioButtonList>
                             </ItemTemplate>
                             <ItemStyle Width="235px" />
@@ -107,6 +118,12 @@
                             </ItemTemplate>
                             <ItemStyle Width="203px" />
                         </asp:TemplateField>
+                        <asp:TemplateField HeaderText="Taken By">
+                            <ItemTemplate>
+                                <asp:Label ID="UpdatedByLabel" runat="server" CssClass="UpdatedByName"></asp:Label>
+                            </ItemTemplate>
+                            <HeaderStyle Width="120px" />
+                        </asp:TemplateField>
                         <asp:BoundField DataField="SMSPhoneNo" HeaderText="Phone" SortExpression="SMSPhoneNo" />
                         <asp:TemplateField HeaderText="SMS">
                             <ItemTemplate>
@@ -117,13 +134,15 @@
                     </Columns>
                     <PagerStyle CssClass="pgr" />
                 </asp:GridView>
-                <asp:SqlDataSource ID="StudentsRecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.StudentsName, Student.ID, Student.FathersName, StudentsClass.StudentID, StudentsClass.StudentClassID, StudentsClass.ShiftID, StudentsClass.RollNo, Student.SMSPhoneNo FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID  WHERE (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END">
+                <asp:SqlDataSource ID="StudentsRecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Student.StudentsName, Student.ID, Student.FathersName, StudentsClass.StudentID, StudentsClass.StudentClassID, StudentsClass.ShiftID, StudentsClass.RollNo, Student.SMSPhoneNo FROM StudentsClass INNER JOIN Student ON StudentsClass.StudentID = Student.StudentID WHERE (StudentsClass.SchoolID = @SchoolID) AND (StudentsClass.ClassID = @ClassID) AND (StudentsClass.SectionID LIKE @SectionID) AND (StudentsClass.SubjectGroupID LIKE @SubjectGroupID) AND (StudentsClass.EducationYearID = @EducationYearID) AND (StudentsClass.ShiftID LIKE @ShiftID) AND (Student.Status = @Status) AND EXISTS (SELECT 1 FROM Attendance_Schedule_AssignStudent ass WHERE ass.SchoolID = StudentsClass.SchoolID AND ass.StudentID = Student.StudentID AND ass.ScheduleID = @ScheduleID) ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END">
                     <SelectParameters>
+                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                         <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" />
                         <asp:ControlParameter ControlID="SectionDropDownList" Name="SectionID" PropertyName="SelectedValue" />
                         <asp:ControlParameter ControlID="GroupDropDownList" Name="SubjectGroupID" PropertyName="SelectedValue" />
                         <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
                         <asp:ControlParameter ControlID="ShiftDropDownList" Name="ShiftID" PropertyName="SelectedValue" />
+                        <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" Type="Int32" />
                         <asp:Parameter DefaultValue="Active" Name="Status" />
                     </SelectParameters>
                 </asp:SqlDataSource>
@@ -133,14 +152,14 @@
                     <asp:CustomValidator ID="CV" runat="server" ClientValidationFunction="Validate" ErrorMessage="You do not select any Student from Student list." ForeColor="Red" ValidationGroup="1"> </asp:CustomValidator>
                     <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
                 </div>
-                <asp:SqlDataSource ID="Attendance_RecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS(SELECT AttendanceRecordID from Attendance_Record Where StudentClassID = @StudentClassID and AttendanceDate = @AttendanceDate and SchoolID = @SchoolID and EducationYearID = @EducationYearID)
+                <asp:SqlDataSource ID="Attendance_RecordSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="IF NOT EXISTS(SELECT AttendanceRecordID from Attendance_Record Where StudentClassID = @StudentClassID and CAST(AttendanceDate AS DATE) = @AttendanceDate and SchoolID = @SchoolID and EducationYearID = @EducationYearID and ISNULL(Attendance_ScheduleID, 0) = @ScheduleID)
 BEGIN
-INSERT INTO Attendance_Record(SchoolID, RegistrationID, EducationYearID, StudentID, ClassID, StudentClassID, Attendance, AttendanceDate, Reason) VALUES (@SchoolID, @RegistrationID, @EducationYearID, @StudentID, @ClassID, @StudentClassID, @Attendance, @AttendanceDate, @Reason)
+INSERT INTO Attendance_Record(SchoolID, RegistrationID, EducationYearID, StudentID, ClassID, StudentClassID, Attendance_ScheduleID, Attendance, AttendanceDate, Reason) VALUES (@SchoolID, @RegistrationID, @EducationYearID, @StudentID, @ClassID, @StudentClassID, @ScheduleID, @Attendance, @AttendanceDate, @Reason)
 END
 ELSE
 BEGIN 
-UPDATE Attendance_Record SET Attendance = @Attendance
-WHERE (StudentClassID = @StudentClassID) AND (AttendanceDate = @AttendanceDate) AND (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID)
+UPDATE Attendance_Record SET Attendance = @Attendance, Reason = @Reason, RegistrationID = @RegistrationID
+WHERE (StudentClassID = @StudentClassID) AND (CAST(AttendanceDate AS DATE) = @AttendanceDate) AND (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ISNULL(Attendance_ScheduleID, 0) = @ScheduleID)
 END"
                     SelectCommand="SELECT * FROM [Attendance_Record]">
                     <InsertParameters>
@@ -150,6 +169,7 @@ END"
                         <asp:ControlParameter ControlID="ClassDropDownList" Name="ClassID" PropertyName="SelectedValue" Type="Int32" />
                         <asp:Parameter Name="StudentID" Type="Int32" />
                         <asp:Parameter Name="StudentClassID" Type="Int32" />
+                        <asp:ControlParameter ControlID="ScheduleDropDownList" DefaultValue="0" Name="ScheduleID" PropertyName="SelectedValue" Type="Int32" />
                         <asp:Parameter Name="Attendance" Type="String" />
                         <asp:Parameter DbType="Date" Name="AttendanceDate" />
                         <asp:Parameter Name="Reason" Type="String" />
@@ -206,9 +226,20 @@ END"
             //Default SMS
             var eng1 = "Respected Guardian, ";
             var eng2 = ", Today(";
-            var eng_Abs = ") absent from class. Please send to class regularly.";
-            var eng_Late = ") Late In Class.";
-            var eng_Bunk = ") Bunk from class.";
+            var eng_Abs = ") was absent in {0} schedule. Please send to class regularly.";
+            var eng_Late = ") was late in {0} schedule.";
+            var eng_Bunk = ") bunked from {0} schedule.";
+
+            function getScheduleName() {
+                var schedule = $("[id*=ScheduleDropDownList] option:selected").text();
+                if (!schedule || schedule.indexOf("SELECT") >= 0)
+                    return "class";
+                return schedule;
+            }
+
+            function formatSms(template) {
+                return template.replace("{0}", getScheduleName());
+            }
 
             $("[id*=AttendenceRadioButtonList]").click(function () {
                 var td = $("td", $(this).parent().closest("table").closest("tr"));
@@ -229,17 +260,17 @@ END"
                 }
 
                 if ($(this).val() == "Abs") {
-                    $("[id*=ReasonTextBox]", td).val(eng1 + Name_ID + eng2 + Date + eng_Abs).attr("disabled", false).addClass("Etextbox");
+                    $("[id*=ReasonTextBox]", td).val(eng1 + Name_ID + eng2 + Date + formatSms(eng_Abs)).attr("disabled", false).addClass("Etextbox");
                     $("[id*=SMSCheckBox]", td).attr('checked', true).attr("disabled", false);
                 }
 
                 if ($(this).val() == "Late") {
-                    $("[id*=ReasonTextBox]", td).val(eng1 + Name_ID + eng2 + Date + eng_Late).attr("disabled", false).addClass("Etextbox");
+                    $("[id*=ReasonTextBox]", td).val(eng1 + Name_ID + eng2 + Date + formatSms(eng_Late)).attr("disabled", false).addClass("Etextbox");
                     $("[id*=SMSCheckBox]", td).attr('checked', true).attr("disabled", false);
                 }
 
                 if ($(this).val() == "Bunk") {
-                    $("[id*=ReasonTextBox]", td).val(eng1 + Name_ID + eng2 + Date + eng_Bunk).attr("disabled", false).addClass("Etextbox");
+                    $("[id*=ReasonTextBox]", td).val(eng1 + Name_ID + eng2 + Date + formatSms(eng_Bunk)).attr("disabled", false).addClass("Etextbox");
                     $("[id*=SMSCheckBox]", td).attr('checked', true).attr("disabled", false);
                 }
             });
@@ -249,16 +280,16 @@ END"
                 if ($(this).val() == "0") {
                     eng1 = "Respected Guardian, ";
                     eng2 = ", Today(";
-                    eng_Abs = ") absent from class. Please send to class regularly.";
-                    eng_Late = ") Late In Class.";
-                    eng_Bunk = ") Bunk from class.";
+                    eng_Abs = ") was absent in {0} schedule. Please send to class regularly.";
+                    eng_Late = ") was late in {0} schedule.";
+                    eng_Bunk = ") bunked from {0} schedule.";
                 }
                 if ($(this).val() == "1") {
                     eng1 = "সম্মানিত অভিভাবক, ";
                     eng2 = ", আজ(";
-                    eng_Abs = ") ক্লাসে অনুপস্থিত। অনুগ্রহ করে নিয়মিত ক্লাসে পাঠান।";
-                    eng_Late = ") ক্লাসে যথাসময় আসেনি।";
-                    eng_Bunk = ") ক্লাস থেকে পলায়ন করেছে।";
+                    eng_Abs = ") {0} শিডিউলে অনুপস্থিত। অনুগ্রহ করে নিয়মিত ক্লাসে পাঠান।";
+                    eng_Late = ") {0} শিডিউলে যথাসময় আসেনি।";
+                    eng_Bunk = ") {0} শিডিউল থেকে পলায়ন করেছে।";
                 }
             });
 

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using AttendanceDevice.Config_Class;
+using System;
+using System.Globalization;
 
 namespace AttendanceDevice.ViewModel
 {
@@ -14,7 +16,12 @@ namespace AttendanceDevice.ViewModel
             }
             set
             {
-                this._Entry_Time = Convert.ToDateTime(value).ToString("hh:mm tt");
+                if (ScheduleTimeHelper.TryParse(value, out var time))
+                    this._Entry_Time = DateTime.Today.Add(time).ToString("hh:mm tt", CultureInfo.CurrentCulture);
+                else if (DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.None, out var dt))
+                    this._Entry_Time = dt.ToString("hh:mm tt", CultureInfo.CurrentCulture);
+                else
+                    this._Entry_Time = value;
             }
         }
         public string Entry_Date { get; set; }
@@ -22,6 +29,12 @@ namespace AttendanceDevice.ViewModel
         public string Name { get; set; }
         public bool Is_Student { get; set; }
         public string Backup_Reason { get; set; }
-        public DateTime dtEntry_Date { get { return Convert.ToDateTime(this.Entry_Date); } }
+        public DateTime dtEntry_Date
+        {
+            get
+            {
+                return AttendanceDateHelper.TryParse(this.Entry_Date, out var date) ? date : DateTime.MinValue;
+            }
+        }
     }
 }

@@ -4,6 +4,20 @@
     <link href="../Attendances/TimePicker/jquery.timepicker.css" rel="stylesheet" />
     <style>
         .No_Schedule { background-color: #f78693; }
+        .schedule-filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            width: 100%;
+        }
+        .schedule-action-bar {
+            margin-left: auto;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .schedule-action-bar .btn {
+            margin-left: 8px;
+        }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -13,7 +27,7 @@
         Add/Change Schedule
     </a>
 
-    <div class="form-inline NoPrint">
+    <div class="form-inline schedule-filter-row NoPrint">
         <div class="form-group">
             <asp:DropDownList ID="ScheduleDropDownList" runat="server" AppendDataBoundItems="True" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID" CssClass="form-control" AutoPostBack="True">
                 <asp:ListItem Value="0">[ SELECT SCHEDULE ]</asp:ListItem>
@@ -24,6 +38,7 @@
                 </SelectParameters>
             </asp:SqlDataSource>
             <asp:RequiredFieldValidator ID="RequiredFieldValidator6" runat="server" ControlToValidate="ScheduleDropDownList" CssClass="EroorSummer" ErrorMessage="*" InitialValue="0" ValidationGroup="A"></asp:RequiredFieldValidator>
+            <asp:RequiredFieldValidator ID="ScheduleRFVUnassign" runat="server" ControlToValidate="ScheduleDropDownList" CssClass="EroorSummer" ErrorMessage="*" InitialValue="0" ValidationGroup="U"></asp:RequiredFieldValidator>
         </div>
 
         <div class="form-group">
@@ -32,6 +47,12 @@
                 <asp:ListItem>Teacher</asp:ListItem>
                 <asp:ListItem>Staff</asp:ListItem>
             </asp:RadioButtonList>
+        </div>
+
+        <div class="form-group schedule-action-bar">
+            <asp:CustomValidator ID="CVUnassign" runat="server" ClientValidationFunction="ValidateUnassign" ErrorMessage="Select at least one employee to unassign." ForeColor="Red" ValidationGroup="U"></asp:CustomValidator>
+            <asp:Button ID="SubmitButton" runat="server" CssClass="btn btn-primary" OnClick="SubmitButton_Click" Text="Submit" ValidationGroup="A" />
+            <asp:Button ID="UnassignButton" runat="server" CssClass="btn btn-warning" OnClick="UnassignButton_Click" Text="Unassign" ValidationGroup="U" OnClientClick="return confirm('Selected employee(s) will be unassigned from this schedule. Continue?');" />
         </div>
     </div>
 
@@ -82,7 +103,7 @@
                 </asp:TemplateField>
             </Columns>
         </asp:GridView>
-        <asp:SqlDataSource ID="EmployeeSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT VW_Emp_Info.EmployeeID, VW_Emp_Info.ID, VW_Emp_Info.DeviceID, VW_Emp_Info.EmployeeType, VW_Emp_Info.FirstName + ' ' + VW_Emp_Info.LastName AS Name, VW_Emp_Info.Designation, VW_Emp_Info.Phone, VW_Emp_Info.RFID, ISNULL(S_T.Is_Abs_SMS, 0) AS Is_Abs_SMS, ISNULL(S_T.Is_Late_SMS, 0) AS Is_Late_SMS, CAST(CASE WHEN S_T.EmployeeID IS NULL THEN 0 ELSE 1 END AS BIT) AS IsSchedule, Employee_Attendance_Schedule_Assign_1.Employee_Schedule_AssignID FROM VW_Emp_Info LEFT OUTER JOIN Employee_Attendance_Schedule_Assign AS Employee_Attendance_Schedule_Assign_1 ON VW_Emp_Info.EmployeeID = Employee_Attendance_Schedule_Assign_1.EmployeeID LEFT OUTER JOIN (SELECT EmployeeID, Is_Abs_SMS, Is_Late_SMS FROM Employee_Attendance_Schedule_Assign WHERE (ScheduleID = @ScheduleID)) AS S_T ON VW_Emp_Info.EmployeeID = S_T.EmployeeID WHERE (VW_Emp_Info.SchoolID = @SchoolID) AND (VW_Emp_Info.Job_Status = N'Active') AND (VW_Emp_Info.EmployeeType LIKE @EmployeeType)" UpdateCommand="UPDATE Employee_Info SET RFID = @RFID WHERE (EmployeeID = @EmployeeID) AND (SchoolID = @SchoolID)">
+        <asp:SqlDataSource ID="EmployeeSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT VW_Emp_Info.EmployeeID, VW_Emp_Info.ID, VW_Emp_Info.DeviceID, VW_Emp_Info.EmployeeType, VW_Emp_Info.FirstName + ' ' + VW_Emp_Info.LastName AS Name, VW_Emp_Info.Designation, VW_Emp_Info.Phone, VW_Emp_Info.RFID, ISNULL(S_T.Is_Abs_SMS, 0) AS Is_Abs_SMS, ISNULL(S_T.Is_Late_SMS, 0) AS Is_Late_SMS, CAST(CASE WHEN S_T.EmployeeID IS NULL THEN 0 ELSE 1 END AS BIT) AS IsSchedule, EA.Employee_Schedule_AssignID FROM VW_Emp_Info LEFT OUTER JOIN (SELECT EmployeeID, Employee_Schedule_AssignID FROM Employee_Attendance_Schedule_Assign WHERE (SchoolID = @SchoolID) AND (ScheduleID = @ScheduleID)) AS EA ON VW_Emp_Info.EmployeeID = EA.EmployeeID LEFT OUTER JOIN (SELECT EmployeeID, Is_Abs_SMS, Is_Late_SMS FROM Employee_Attendance_Schedule_Assign WHERE (SchoolID = @SchoolID) AND (ScheduleID = @ScheduleID)) AS S_T ON VW_Emp_Info.EmployeeID = S_T.EmployeeID WHERE (VW_Emp_Info.SchoolID = @SchoolID) AND (VW_Emp_Info.Job_Status = N'Active') AND (VW_Emp_Info.EmployeeType LIKE @EmployeeType)" UpdateCommand="UPDATE Employee_Info SET RFID = @RFID WHERE (EmployeeID = @EmployeeID) AND (SchoolID = @SchoolID)">
             <SelectParameters>
                 <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" />
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -94,14 +115,11 @@
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
             </UpdateParameters>
         </asp:SqlDataSource>
-        <asp:SqlDataSource ID="Schedule_AssignSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" DeleteCommand="DELETE FROM Employee_Attendance_Schedule_Assign WHERE (EmployeeID = @EmployeeID) AND (ScheduleID = @ScheduleID)" InsertCommand="DELETE FROM Employee_Attendance_Schedule_Assign WHERE (EmployeeID = @EmployeeID) 
-
-INSERT INTO Employee_Attendance_Schedule_Assign
-                         (SchoolID, RegistrationID, EmployeeID, ScheduleID, Is_Abs_SMS, Is_Late_SMS)
-VALUES        (@SchoolID,@RegistrationID,@EmployeeID,@ScheduleID,@Is_Abs_SMS,@Is_Late_SMS)"
+        <asp:SqlDataSource ID="Schedule_AssignSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" DeleteCommand="DELETE FROM Employee_Attendance_Schedule_Assign WHERE (SchoolID = @SchoolID) AND (EmployeeID = @EmployeeID) AND (ScheduleID = @ScheduleID)" InsertCommand="DELETE FROM Employee_Attendance_Schedule_Assign WHERE (SchoolID = @SchoolID) AND (EmployeeID = @EmployeeID) AND (ScheduleID = @ScheduleID); INSERT INTO Employee_Attendance_Schedule_Assign (SchoolID, RegistrationID, EmployeeID, ScheduleID, Is_Abs_SMS, Is_Late_SMS) VALUES (@SchoolID, @RegistrationID, @EmployeeID, @ScheduleID, @Is_Abs_SMS, @Is_Late_SMS)"
             SelectCommand="SELECT Employee_Schedule_AssignID, SchoolID, RegistrationID, EmployeeID, ScheduleID, CreateDate FROM Employee_Attendance_Schedule_Assign WHERE (SchoolID = @SchoolID) AND (ScheduleID = @ScheduleID) AND (EmployeeID = @EmployeeID)">
             <DeleteParameters>
                 <asp:Parameter Name="EmployeeID" />
+                <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                 <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" />
             </DeleteParameters>
             <InsertParameters>
@@ -131,9 +149,7 @@ END" SelectCommand="SELECT * FROM [Attendance_Device_DataUpdateList]">
                 </InsertParameters>
             </asp:SqlDataSource>
 
-        <asp:CustomValidator ID="CV" runat="server" ClientValidationFunction="Validate" ErrorMessage="You do not select any employee from employee list." ForeColor="Red" ValidationGroup="A"> </asp:CustomValidator>
     </div>
-    <asp:Button ID="SubmitButton" runat="server" CssClass="btn btn-primary" OnClick="SubmitButton_Click" Text="Submit" ValidationGroup="A" />
 
     <script>
         $(function () {
@@ -178,17 +194,15 @@ END" SelectCommand="SELECT * FROM [Attendance_Device_DataUpdateList]">
             });
         });
 
-        //Select at least one Checkbox Students GridView
-        function Validate(d, c) {
-            if ($('[id*=EmployeeGridView] tr').length) {
-                for (var b = document.getElementById("<%=EmployeeGridView.ClientID %>").getElementsByTagName("input"), a = 0; a < b.length; a++) {
-                    if ("checkbox" == b[a].type && b[a].checked) {
-                        c.IsValid = !0;
-                        return;
-                    }
+        function ValidateUnassign(d, c) {
+            var checks = document.querySelectorAll("[id*=AddCheckBox]");
+            for (var i = 0; i < checks.length; i++) {
+                if (checks[i].checked) {
+                    c.IsValid = true;
+                    return;
                 }
-                c.IsValid = !1;
             }
+            c.IsValid = false;
         }
     </script>
 </asp:Content>

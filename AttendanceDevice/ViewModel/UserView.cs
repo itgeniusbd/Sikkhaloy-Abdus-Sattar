@@ -14,6 +14,9 @@ namespace AttendanceDevice.Model
         public bool Is_Student { get; set; }
 
         public int ScheduleID { get; set; }
+        public string ScheduleDisplay { get; set; }
+        public string ScheduleNameLine { get; set; }
+        public string ScheduleTimeLine { get; set; }
     }
 
     public class Attendance_view

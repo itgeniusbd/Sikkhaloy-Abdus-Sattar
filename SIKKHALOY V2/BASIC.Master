@@ -507,20 +507,21 @@
         </div>
 
         <script>
-
             // Language Translation Dictionary
             var menuTranslations = {
                 'Basic Settings': 'মূল সেটিংস',
                 'Settings': 'সেটিংস',
                 'Teacher & Staff': 'শিক্ষক ও কর্মচারী',
                 'Admission': 'ভর্তি',
-                'Student Management': 'শিক্ষার্থী ব্যবস্থাাপনা',
+                'Student Management': 'শিক্ষার্থী ব্যবস্থাপনা',
+                'Class Change, In Current Session': 'বার্তমান শিক্ষাবর্ষে, শ্রেনি প্ররিবর্তন',
                 'Student\'s Info': 'শিক্ষার্থী তথ্য',
                 'Attendances': 'উপস্থিতি',
+                'Leave Report': 'ছুটির রিপোর্ট',
 
                 'SMS': 'এস এম এস',
                 'SMS Recharge': 'SMS রিচার্জ করুন',
-                
+
                 'Routines': 'রুটিন',
                 'Committee': 'কমিটি',
                 'SIKKHALOY INVOICE': 'শিক্ষালয় ইনভয়েস',

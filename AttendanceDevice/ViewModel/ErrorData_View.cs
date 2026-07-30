@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AttendanceDevice.Config_Class;
+using System;
 
 namespace AttendanceDevice.ViewModel
 {
@@ -8,6 +9,12 @@ namespace AttendanceDevice.ViewModel
         public string ErrorType { get; set; }
         public string ErrorDescription { get; set; }
         public string ErrorDate { get; set; }
-        public DateTime dtErrorDate { get { return Convert.ToDateTime(this.ErrorDate); } }
+        public DateTime dtErrorDate
+        {
+            get
+            {
+                return AttendanceDateHelper.TryParse(this.ErrorDate, out var date) ? date : DateTime.MinValue;
+            }
+        }
     }
 }

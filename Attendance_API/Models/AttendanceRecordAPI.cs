@@ -6,6 +6,7 @@ namespace Attendance_API.Models
     {
         public int RecordID { get; set; }
         public int DeviceID { get; set; }
+        public int ScheduleID { get; set; }
         public DateTime AttendanceDate { get; set; }
         public string AttendanceStatus { get; set; }
         public string ExitStatus { get; set; }

@@ -496,14 +496,14 @@ namespace Education
         /// <summary>
         /// Generate Attendance Entry SMS
         /// </summary>
-public string GenerateEntrySMS(string studentName, string studentId, string schoolName, DateTime entryTime, DateTime date, string className = "", string roll = "")
+public string GenerateEntrySMS(string studentName, string studentId, string schoolName, DateTime entryTime, DateTime date, string className = "", string roll = "", string scheduleName = "")
         {
             string template = ResolveAttendanceTemplate("Entry");
 
  if (string.IsNullOrEmpty(template))
             {
                 // Default template if no custom template found
-       template = "Respected Guardian, {StudentName} has safely entered in {SchoolName} at {EntryTime}. Date: {Date}";
+       template = "Respected Guardian, {StudentName} has safely entered in {SchoolName} at {EntryTime}. Schedule: {ScheduleName}. Date: {Date}";
             }
 
    return template
@@ -513,20 +513,21 @@ public string GenerateEntrySMS(string studentName, string studentId, string scho
         .Replace("{EntryTime}", entryTime.ToString("h:mm tt"))
     .Replace("{Date}", date.ToString("d MMM yyyy"))
     .Replace("{Class}", className)
-     .Replace("{Roll}", roll);
+     .Replace("{Roll}", roll)
+     .Replace("{ScheduleName}", scheduleName ?? "");
         }
 
         /// <summary>
         /// Generate Attendance Exit SMS
         /// </summary>
- public string GenerateExitSMS(string studentName, string studentId, string schoolName, DateTime exitTime, DateTime date, string className = "", string roll = "")
+ public string GenerateExitSMS(string studentName, string studentId, string schoolName, DateTime exitTime, DateTime date, string className = "", string roll = "", string scheduleName = "")
     {
             string template = ResolveAttendanceTemplate("Exit");
 
   if (string.IsNullOrEmpty(template))
             {
       // Default template
-            template = "Respected Guardian, {StudentName} has left {SchoolName} at {ExitTime}. Date: {Date}";
+            template = "Respected Guardian, {StudentName} has left {SchoolName} at {ExitTime}. Schedule: {ScheduleName}. Date: {Date}";
   }
 
         return template
@@ -536,20 +537,21 @@ public string GenerateEntrySMS(string studentName, string studentId, string scho
           .Replace("{ExitTime}", exitTime.ToString("h:mm tt"))
         .Replace("{Date}", date.ToString("d MMM yyyy"))
   .Replace("{Class}", className)
-      .Replace("{Roll}", roll);
+      .Replace("{Roll}", roll)
+      .Replace("{ScheduleName}", scheduleName ?? "");
         }
 
         /// <summary>
         /// Generate Late Entry SMS
    /// </summary>
-        public string GenerateLateSMS(string studentName, string studentId, string schoolName, DateTime entryTime, int lateMinutes, DateTime date, string className = "", string roll = "")
+        public string GenerateLateSMS(string studentName, string studentId, string schoolName, DateTime entryTime, int lateMinutes, DateTime date, string className = "", string roll = "", string scheduleName = "")
         {
        string template = ResolveAttendanceTemplate("Late");
 
       if (string.IsNullOrEmpty(template))
    {
       // Default template
-   template = "Respected Guardian, {StudentName} (ID: {ID}) arrived {LateMinutes} minutes late at {SchoolName}. Entry Time: {EntryTime}. Date: {Date}";
+   template = "Respected Guardian, {StudentName} (ID: {ID}) arrived {LateMinutes} minutes late from schedule \"{ScheduleName}\" at {SchoolName}. Entry Time: {EntryTime}. Date: {Date}";
    }
 
             return template
@@ -560,20 +562,21 @@ public string GenerateEntrySMS(string studentName, string studentId, string scho
            .Replace("{LateMinutes}", lateMinutes.ToString())
                 .Replace("{Date}", date.ToString("d MMM yyyy"))
      .Replace("{Class}", className)
-     .Replace("{Roll}", roll);
+     .Replace("{Roll}", roll)
+     .Replace("{ScheduleName}", scheduleName ?? "");
         }
 
         /// <summary>
         /// Generate Absent SMS
    /// </summary>
-        public string GenerateAbsentSMS(string studentName, string studentId, string schoolName, DateTime date, string className = "", string roll = "")
+        public string GenerateAbsentSMS(string studentName, string studentId, string schoolName, DateTime date, string className = "", string roll = "", string scheduleName = "")
         {
  string template = ResolveAttendanceTemplate("Absent");
 
             if (string.IsNullOrEmpty(template))
     {
      // Default template
-           template = "Respected Guardian, {StudentName} (ID: {ID}, Class: {Class}, Roll: {Roll}) is absent from {SchoolName} today ({Date}). Please send regularly.";
+           template = "Respected Guardian, {StudentName} (ID: {ID}, Class: {Class}, Roll: {Roll}) is absent from {ScheduleName} at {SchoolName} today ({Date}). Please send regularly.";
 }
 
        return template
@@ -582,20 +585,21 @@ public string GenerateEntrySMS(string studentName, string studentId, string scho
       .Replace("{SchoolName}", schoolName)
             .Replace("{Date}", date.ToString("d MMM yyyy"))
            .Replace("{Class}", className)
-          .Replace("{Roll}", roll);
+          .Replace("{Roll}", roll)
+          .Replace("{ScheduleName}", scheduleName ?? "");
         }
 
         /// <summary>
      /// Generate Late Absent SMS (Late + counted as absent)
         /// </summary>
-   public string GenerateLateAbsSMS(string studentName, string studentId, string schoolName, DateTime entryTime, int lateMinutes, DateTime date, string className = "", string roll = "")
+   public string GenerateLateAbsSMS(string studentName, string studentId, string schoolName, DateTime entryTime, int lateMinutes, DateTime date, string className = "", string roll = "", string scheduleName = "")
         {
           string template = ResolveAttendanceTemplate("LateAbs");
 
             if (string.IsNullOrEmpty(template))
   {
       // Default template
-        template = "Respected Guardian, {StudentName} arrived {LateMinutes} min late (counted as Absent) at {SchoolName}. Entry: {EntryTime}. Date: {Date}";
+        template = "Respected Guardian, {StudentName} arrived {LateMinutes} min late (counted as Absent) from {ScheduleName} at {SchoolName}. Entry: {EntryTime}. Date: {Date}";
             }
 
          return template
@@ -606,7 +610,8 @@ public string GenerateEntrySMS(string studentName, string studentId, string scho
   .Replace("{LateMinutes}", lateMinutes.ToString())
     .Replace("{Date}", date.ToString("d MMM yyyy"))
           .Replace("{Class}", className)
-       .Replace("{Roll}", roll);
+       .Replace("{Roll}", roll)
+       .Replace("{ScheduleName}", scheduleName ?? "");
         }
 
     /// <summary>

@@ -64,11 +64,11 @@ namespace EDUCATION.COM.Attendances.Online_Display
 
         protected void Reload_LinkButton_Click(object sender, EventArgs e)
         {
-            Employee_FormView.DataBind();
+            EmployeeScheduleSummaryRepeater.DataBind();
             EmployeeIN_Repeater.DataBind();
             EmployeeOUT_Repeater.DataBind();
 
-            Student_FormView.DataBind();
+            StudentScheduleSummaryRepeater.DataBind();
             StudentINRepeater.DataBind();
             StudentOUTRepeater.DataBind();
         }

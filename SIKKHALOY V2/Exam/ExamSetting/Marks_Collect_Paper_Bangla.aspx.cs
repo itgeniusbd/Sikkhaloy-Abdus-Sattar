@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -10,7 +7,11 @@ namespace EDUCATION.COM.Exam.ExamSetting
 {
     public partial class WebForm1 : System.Web.UI.Page
     {
-        protected void view()//Function for view dropdownlist
+        private const int FixedColumnCount = 4;
+
+        protected bool HasMarksDistribution { get; private set; }
+
+        protected void view()
         {
             DataView GroupDV = new DataView();
             GroupDV = (DataView)GroupSQL.Select(DataSourceSelectArguments.Empty);
@@ -56,11 +57,44 @@ namespace EDUCATION.COM.Exam.ExamSetting
             if (!IsPostBack)
             {
                 GroupDropDownList.Visible = false;
-
                 SectionDropDownList.Visible = false;
-
                 ShiftDropDownList.Visible = false;
             }
+        }
+
+        protected void Page_PreRender(object sender, EventArgs e)
+        {
+            bool filtersSelected = SubjectDropDownList.SelectedIndex > 0
+                && ExamDropDownList.SelectedIndex > 0
+                && ClassDropDownList.SelectedIndex > 0;
+
+            HasMarksDistribution = filtersSelected && HasMarksDistributionForSelection();
+
+            NoMarksDistributionPanel.Visible = filtersSelected && !HasMarksDistribution;
+            GridPanel.Visible = HasMarksDistribution;
+
+            if (NoMarksDistributionPanel.Visible)
+            {
+                NoMarksDistributionLiteral.Text = string.Format(
+                    "<strong>মার্ক ড্রিটিভিউশন পাওয়া যায়নি।</strong>" +
+                    "<b>{0}</b> পরীক্ষা, শ্রেণি <b>{1}</b>, বিষয় <b>{2}</b>-এর জন্য পূর্ণ নম্বর সেট করা হয়নি। " +
+                    "প্রিন্ট করার আগে <a href=\"Marks_Distribution.aspx\">পরীক্ষা সেটিং &rarr; মার্ক ড্রিটিভিউশন</a> " +
+                    "থেকে একই পরীক্ষা ও শ্রেণি নির্বাচন করে বিষয়ের পূর্ণ নম্বর দিয়ে Submit করুন।",
+                    ExamDropDownList.SelectedItem.Text,
+                    ClassDropDownList.SelectedItem.Text,
+                    SubjectDropDownList.SelectedItem.Text);
+            }
+
+            if (HasMarksDistribution)
+            {
+                RebuildMarkColumns();
+            }
+        }
+
+        private bool HasMarksDistributionForSelection()
+        {
+            DataView marksDv = (DataView)SubExamSQL.Select(DataSourceSelectArguments.Empty);
+            return marksDv != null && marksDv.Count > 0;
         }
 
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
@@ -75,7 +109,7 @@ namespace EDUCATION.COM.Exam.ExamSetting
             ShiftDropDownList.Visible = false;
         }
 
-        protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)//Class DDL
+        protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             Session["Group"] = "%";
             Session["Shift"] = "%";
@@ -88,6 +122,7 @@ namespace EDUCATION.COM.Exam.ExamSetting
             StudentsGridView.DataBind();
             view();
         }
+
         protected void ClassDropDownList_DataBound(object sender, EventArgs e)
         {
             ClassDropDownList.Items.Insert(0, new ListItem("[ শ্রেণি নির্বাচন করুন ]", "0"));
@@ -98,6 +133,7 @@ namespace EDUCATION.COM.Exam.ExamSetting
             view();
             Session["Subject"] = "0";
         }
+
         protected void GroupDropDownList_DataBound(object sender, EventArgs e)
         {
             GroupDropDownList.Items.Insert(0, new ListItem("[ গ্রুপ নির্বাচন করুন ]", "%"));
@@ -109,6 +145,7 @@ namespace EDUCATION.COM.Exam.ExamSetting
         {
             view();
         }
+
         protected void SectionDropDownList_DataBound(object sender, EventArgs e)
         {
             SectionDropDownList.Items.Insert(0, new ListItem("[ সকল শাখা ]", "%"));
@@ -120,13 +157,13 @@ namespace EDUCATION.COM.Exam.ExamSetting
         {
             view();
         }
-        protected void ShiftDropDownList_DataBound(object sender, EventArgs e)  //...End DDl
+
+        protected void ShiftDropDownList_DataBound(object sender, EventArgs e)
         {
             ShiftDropDownList.Items.Insert(0, new ListItem("[ সকল শিফট ]", "%"));
             if (IsPostBack)
                 ShiftDropDownList.Items.FindByValue(Session["Shift"].ToString()).Selected = true;
         }
-
 
         protected void SubjectDropDownList_DataBound(object sender, EventArgs e)
         {
@@ -141,12 +178,15 @@ namespace EDUCATION.COM.Exam.ExamSetting
 
         protected void SubjectDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int a = StudentsGridView.Columns.Count - 4;
-            for (int i = 0; i < a; i++)
-            {
-                StudentsGridView.Columns.RemoveAt(4);
-            }
+            RebuildMarkColumns();
+        }
 
+        private void RebuildMarkColumns()
+        {
+            while (StudentsGridView.Columns.Count > FixedColumnCount)
+            {
+                StudentsGridView.Columns.RemoveAt(FixedColumnCount);
+            }
 
             DataView SubExamDV = new DataView();
             SubExamDV = (DataView)SubExamSQL.Select(DataSourceSelectArguments.Empty);
@@ -157,11 +197,13 @@ namespace EDUCATION.COM.Exam.ExamSetting
                 {
                     BoundField Marks_BoundField = new BoundField();
 
-                    string Sub_Ex_Name = SubExamDV[i]["SubExamName"].ToString();
+                    string Sub_Ex_Name = SubExamDV[i]["SubExamName"] == DBNull.Value
+                        ? string.Empty
+                        : SubExamDV[i]["SubExamName"].ToString().Trim();
 
                     if (!string.IsNullOrEmpty(Sub_Ex_Name))
                     {
-                        Marks_BoundField.HeaderText = Sub_Ex_Name;
+                        Marks_BoundField.HeaderText = "নম্বর (" + Sub_Ex_Name + ")";
                     }
                     else
                     {
@@ -170,6 +212,12 @@ namespace EDUCATION.COM.Exam.ExamSetting
 
                     StudentsGridView.Columns.Add(Marks_BoundField);
                 }
+            }
+            else
+            {
+                BoundField Marks_BoundField = new BoundField();
+                Marks_BoundField.HeaderText = "নম্বর";
+                StudentsGridView.Columns.Add(Marks_BoundField);
             }
 
             BoundField Sign_BoundField = new BoundField();

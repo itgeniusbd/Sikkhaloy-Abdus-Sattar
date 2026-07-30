@@ -47,6 +47,15 @@ namespace EDUCATION.COM.Attendances {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator7;
+
+        /// <summary>
+        /// ScheduleRFVUnassign control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator ScheduleRFVUnassign;
         
         /// <summary>
         /// ClassDropDownList control.
@@ -74,6 +83,15 @@ namespace EDUCATION.COM.Attendances {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator6;
+
+        /// <summary>
+        /// ClassRFVUnassign control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator ClassRFVUnassign;
         
         /// <summary>
         /// GroupDropDownList control.
@@ -173,6 +191,15 @@ namespace EDUCATION.COM.Attendances {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource Device_DataUpdateSQL;
+
+        /// <summary>
+        /// CVUnassign control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CustomValidator CVUnassign;
         
         /// <summary>
         /// AssignButton control.
@@ -182,6 +209,15 @@ namespace EDUCATION.COM.Attendances {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button AssignButton;
+
+        /// <summary>
+        /// UnassignButton control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button UnassignButton;
         
         /// <summary>
         /// ValidationSummary1 control.
@@ -191,5 +227,14 @@ namespace EDUCATION.COM.Attendances {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.ValidationSummary ValidationSummary1;
+
+        /// <summary>
+        /// ValidationSummaryUnassign control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.ValidationSummary ValidationSummaryUnassign;
     }
 }

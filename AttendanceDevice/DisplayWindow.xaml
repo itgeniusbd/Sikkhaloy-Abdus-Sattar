@@ -25,7 +25,7 @@
 
     <Window.Resources>
         <BitmapImage x:Key="DefaultLogo" UriSource="/AttendanceDevice;component/Resources/Sikkhaloy.ico" />
-        <BitmapImage x:Key="DefaultImage" UriSource="Resources/Default.png" />
+        <BitmapImage x:Key="DefaultImage" UriSource="/AttendanceDevice;component/Resources/Default.png" />
 
         <Style x:Key="CountDataStyle" TargetType="materialDesign:Badged">
             <Setter Property="BadgeBackground" Value="#f44336" />
@@ -51,6 +51,7 @@
                 Background="#FFFFFFFF">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
                         <RowDefinition Height="auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
@@ -161,39 +162,61 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid Grid.Row="1" MaxHeight="110">
+                    <ScrollViewer
+                        Grid.Row="1"
+                        MaxHeight="34"
+                        VerticalScrollBarVisibility="Disabled"
+                        HorizontalScrollBarVisibility="Auto"
+                        Background="#eceff1">
+                        <StackPanel Margin="10,4" Orientation="Horizontal">
+                            <TextBlock
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Text="Schedules:" />
+                            <StackPanel x:Name="ScheduleFilterPanel" Orientation="Horizontal" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Grid
+                        x:Name="InstitutionHeaderGrid"
+                        Grid.Row="2"
+                        MinHeight="56"
+                        MaxHeight="68"
+                        SizeChanged="InstitutionHeaderGrid_SizeChanged">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="{Binding ActualHeight, ElementName=InstitutionName}" />
+                            <ColumnDefinition Width="56" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Image
-                            Margin="5,0,0,0"
+                            Width="48"
+                            Height="48"
+                            Margin="4,0,0,0"
                             VerticalAlignment="Center"
                             Source="{Binding Logo, TargetNullValue={StaticResource DefaultLogo}}"
                             Stretch="Uniform" />
-                        <Viewbox
-                            Name="InstitutionName"
+                        <TextBlock
+                            x:Name="InstitutionNameText"
                             Grid.Column="1"
-                            Margin="0,0,5,0"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                FontWeight="Heavy"
-                                Text="{Binding InstitutionName}" />
-                        </Viewbox>
+                            Margin="6,0,6,0"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Center"
+                            Foreground="#001F5C"
+                            TextOptions.TextFormattingMode="Ideal"
+                            TextOptions.TextRenderingMode="ClearType" />
                     </Grid>
                 </Grid>
             </materialDesign:ColorZone>
 
             <!--  Main  -->
-            <Grid Panel.ZIndex="1" Grid.Row="1" Margin="20">
+            <Grid Panel.ZIndex="1" Grid.Row="1" Margin="6,8,8,8">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="0.2*"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="0.21*" MinWidth="240"/>
+                    <ColumnDefinition Width="*" MinWidth="400"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Margin="0 0 15 0">
+                <StackPanel Margin="0,0,8,0">
                     <materialDesign:Card
                         Name="UserDataGrid"
                         materialDesign:ShadowAssist.ShadowDepth="Depth2">
@@ -203,40 +226,61 @@
                                 <RowDefinition Height="auto" />
                             </Grid.RowDefinitions>
 
-                            <Image MaxWidth="500" Source="{Binding ImgLink, FallbackValue={StaticResource DefaultImage}}"/>
-                            <Grid Grid.Row="1">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto" />
-                                    <RowDefinition Height="auto" />
-                                    <RowDefinition Height="50" />
-                                </Grid.RowDefinitions>
-                                <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Image MaxWidth="500" Source="{Binding ImgLink, TargetNullValue={StaticResource DefaultImage}, FallbackValue={StaticResource DefaultImage}}"/>
+                            <Border
+                                Grid.Row="1"
+                                Margin="8,6,8,10"
+                                Padding="8,10"
+                                Background="#FAFAFA"
+                                CornerRadius="6">
+                                <StackPanel HorizontalAlignment="Stretch">
                                     <TextBlock
-                                FontWeight="Black"
-                                Margin="5"
-                                Foreground="#000"
-                                Text="{Binding Name}"
-                                TextAlignment="Center" />
-                                </Viewbox>
-
-                                <Viewbox Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        Margin="0,0,0,8"
+                                        FontSize="26"
+                                        FontWeight="Bold"
+                                        Foreground="#212121"
+                                        Text="{Binding Name}"
+                                        TextAlignment="Center"
+                                        TextWrapping="Wrap" />
                                     <TextBlock
-                                        Margin="5"
-                                FontWeight="Bold"
-                                Foreground="#4285F4"
-                                Text="{Binding Enroll_Time, StringFormat=dd MMM yyyy (hh:mm tt)}"
-                                TextAlignment="Center" />
-                                </Viewbox>
-
-                                <Viewbox Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        Margin="0,0,0,8"
+                                        FontSize="22"
+                                        FontWeight="Bold"
+                                        Foreground="#1565C0"
+                                        Text="{Binding Enroll_Time, StringFormat=dd MMM yyyy · hh:mm tt}"
+                                        TextAlignment="Center" />
                                     <TextBlock
-                                Margin="5"
-                                FontWeight="Bold"
-                                Foreground="#333"
-                                Text="{Binding ID}"
-                                TextAlignment="Center" />
-                                </Viewbox>
-                            </Grid>
+                                        Margin="0,0,0,8"
+                                        FontSize="20"
+                                        FontWeight="Bold"
+                                        Foreground="#6A1B9A"
+                                        Text="{Binding ID, StringFormat=ID : {0}}"
+                                        TextAlignment="Center" />
+                                    <Border
+                                        Margin="0,2,0,0"
+                                        Padding="10,10"
+                                        Background="#E8F5E9"
+                                        CornerRadius="4">
+                                        <StackPanel HorizontalAlignment="Stretch">
+                                            <TextBlock
+                                                FontSize="19"
+                                                FontWeight="Bold"
+                                                Foreground="#1B5E20"
+                                                Text="{Binding ScheduleNameLine, FallbackValue=Schedule: —, TargetNullValue=Schedule: —}"
+                                                TextAlignment="Center"
+                                                TextWrapping="NoWrap" />
+                                            <TextBlock
+                                                Margin="0,4,0,0"
+                                                FontSize="16"
+                                                FontWeight="SemiBold"
+                                                Foreground="#2E7D32"
+                                                Text="{Binding ScheduleTimeLine, FallbackValue=—, TargetNullValue=—}"
+                                                TextAlignment="Center"
+                                                TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
                         </Grid>
                     </materialDesign:Card>
                 </StackPanel>

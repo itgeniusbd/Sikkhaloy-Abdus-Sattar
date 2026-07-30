@@ -103,6 +103,33 @@ namespace EDUCATION.COM.ATTENDANCES {
         protected global::System.Web.UI.WebControls.SqlDataSource ShiftSQL;
         
         /// <summary>
+        /// ScheduleDropDownList control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ScheduleDropDownList;
+        
+        /// <summary>
+        /// ScheduleSQL control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.SqlDataSource ScheduleSQL;
+        
+        /// <summary>
+        /// ScheduleRFV control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator ScheduleRFV;
+        
+        /// <summary>
         /// AttendanceDateTextBox control.
         /// </summary>
         /// <remarks>

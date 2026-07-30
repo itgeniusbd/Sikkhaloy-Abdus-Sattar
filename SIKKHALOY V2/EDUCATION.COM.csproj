@@ -383,6 +383,8 @@
     <Content Include="Attendances\Attendance_Fine_Generate.aspx" />
     <Content Include="Attendances\Attendance_Records.aspx" />
     <Content Include="Attendances\Attendance_Settings.aspx" />
+    <Content Include="Attendances\App_For_Download\README.txt" />
+    <Content Include="Attendances\App_For_Download\*.exe" />
     <Content Include="Attendances\CSS\Attendance_Records.css" />
     <Content Include="Attendances\CSS\Loading.gif" />
     <Content Include="Attendances\CSS\Students_Attendance.css" />
@@ -794,6 +796,7 @@
     </Content>
     <Content Include="RejectedIDSearch.ashx" />
     <Content Include="Handeler\Employee_Image.ashx" />
+    <Content Include="Handeler\Device_UserPhotos.ashx" />
     <Content Include="packages.config" />
     <Content Include="Handeler\Student_Photo.ashx" />
     <Content Include="Handeler\Student_Id_Based_Photo.ashx" />
@@ -2510,6 +2513,9 @@
     <Compile Include="Handeler\Employee_Image.ashx.cs">
       <DependentUpon>Employee_Image.ashx</DependentUpon>
     </Compile>
+    <Compile Include="Handeler\Device_UserPhotos.ashx.cs">
+      <DependentUpon>Device_UserPhotos.ashx</DependentUpon>
+    </Compile>
     <Compile Include="Handeler\FindDonar.asmx.cs">
       <DependentUpon>FindDonar.asmx</DependentUpon>
       <SubType>Component</SubType>
@@ -2798,6 +2804,7 @@
     </Compile>
     <Compile Include="SMS_Class.cs" />
     <Compile Include="SMS_Template_Helper.cs" />
+    <Compile Include="ScheduleOverlapValidator.cs" />
     <Compile Include="Student\Accounts.aspx.cs">
       <DependentUpon>Accounts.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

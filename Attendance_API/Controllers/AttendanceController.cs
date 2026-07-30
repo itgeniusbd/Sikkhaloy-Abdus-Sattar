@@ -1,4 +1,5 @@
 ﻿using Attendance_API.DB_Model;
+using Attendance_API.Helpers;
 using Attendance_API.Models;
 using System;
 using System.Collections.Generic;
@@ -20,8 +21,8 @@ namespace Attendance_API.Controllers
         {
             try
             {
-                if (logRecord == null) return Ok();
-                if (logRecord.Count < 1) return Ok();
+                if (logRecord == null) return BadRequest("Attendance payload is empty.");
+                if (logRecord.Count < 1) return BadRequest("Attendance payload is empty.");
 
                 using (var db = new EduContext())
                 {
@@ -30,8 +31,11 @@ namespace Attendance_API.Controllers
                     var attSetting = db.Attendance_Device_Settings.FirstOrDefault(s => s.SchoolID == id);
                     var schoolName = db.SchoolInfos.Find(id)?.SchoolName;
 
-                    if (attSetting == null) return Ok();
-                    if (!attSetting.Is_Device_Attendance_Enable && !attSetting.Is_Student_Attendance_Enable) return Ok();
+                    if (attSetting == null)
+                        return Ok(new AttendanceSyncResult { Message = "Attendance settings not found." });
+
+                    if (!attSetting.Is_Device_Attendance_Enable && !attSetting.Is_Student_Attendance_Enable)
+                        return Ok(new AttendanceSyncResult { Message = "Student attendance is disabled." });
 
                     var attendanceRecords = db.VW_Attendance_Stus.Where(a => a.SchoolID == id).ToList();
 
@@ -46,6 +50,7 @@ namespace Attendance_API.Controllers
                                           EducationYearID = s.EducationYearID,
                                           StudentID = s.StudentID,
                                           StudentClassID = s.StudentClassID,
+                                          Attendance_ScheduleID = a.ScheduleID == 0 ? (int?)null : a.ScheduleID,
                                           Attendance = a.AttendanceStatus,
                                           AttendanceDate = a.AttendanceDate,
                                           EntryTime = a.EntryTime == _clearTime ? (TimeSpan?)null : a.EntryTime,
@@ -54,16 +59,56 @@ namespace Attendance_API.Controllers
                                           Is_OUT = a.Is_OUT
                                       }).ToList();
 
-                    var newRecords = allRecords.Where(na => !db.Attendance_Records.Any(sa =>
-                        sa.SchoolID == na.SchoolID &&
-                        sa.StudentID == na.StudentID &&
-                        sa.AttendanceDate == na.AttendanceDate)).ToList();
+                    try
+                    {
+                        BackfillStudentScheduleRows(db, allRecords);
+                    }
+                    catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+                    {
+                        DetachAllTrackedEntities(db);
+                    }
 
+                    var newRecords = FilterNewStudentRecords(db, id, allRecords);
+
+                    var insertedCount = 0;
                     if (newRecords.Count > 0)
                     {
                         db.Attendance_Records.AddRange(newRecords);
-                        db.SaveChanges();
+                        insertedCount = SaveAfterInsteadOfInsertTrigger(db, newRecords.Count);
                     }
+
+                    var smsQueued = 0;
+                    if (attSetting != null)
+                    {
+                        if (newRecords.Count > 0)
+                        {
+                            smsQueued += AttendanceStudentSmsService.QueueStudentSms(
+                                db, id, attSetting, schoolName, newRecords);
+                        }
+                    }
+
+                    var matchedDeviceIds = allRecords.Count > 0
+                        ? logRecord
+                            .Where(a => attendanceRecords.Any(s => s.DeviceID == a.DeviceID && s.SchoolID == id))
+                            .Select(a => a.DeviceID)
+                            .Distinct()
+                            .ToArray()
+                        : new int[0];
+
+                    return Ok(new AttendanceSyncResult
+                    {
+                        Matched = allRecords.Count,
+                        Inserted = insertedCount,
+                        SmsQueued = smsQueued,
+                        MatchedDeviceIds = matchedDeviceIds,
+                        Message = allRecords.Count == 0
+                            ? "No student DeviceID matched in VW_Attendance_Stus."
+                            : matchedDeviceIds.Length < logRecord.Count
+                                ? $"{logRecord.Count - matchedDeviceIds.Length} punch(es) skipped: DeviceID not found on server."
+                                : smsQueued == 0 && allRecords.Count > 0
+                                    ? "Attendance saved but no SMS queued (check Pre/Abs flags, phone, or SMS settings)."
+                                    : null
+                    });
 
 
                     ////var newAttendanceRecords = newRecord.Where(na => !db.Attendance_Records.Any(sa => na.SchoolID == sa.SchoolID & na.StudentID == sa.StudentID & na.AttendanceDate == sa.AttendanceDate)).ToList();
@@ -156,7 +201,7 @@ namespace Attendance_API.Controllers
                     //                              ScheduleTime = a.EntryTime ?? s.StartTime,
                     //                              AttendanceDate = a.AttendanceDate,
                     //                              SMS_Text = attSetting.Is_English_SMS ? $"Respected guardian, {s.StudentsName} has reached {schoolName} at {DateTime.Today.Add(a.EntryTime.GetValueOrDefault()):h:mm tt}"
-                    //                                  : $"সম্মানিত অভিভাবক, {s.StudentsName} নিরাপদে {schoolName} এ ({DateTime.Today.Add(a.EntryTime.GetValueOrDefault()):h:mm tt}) প্রবেশ করেছে",
+                    //                                  : $"সম্মানিত আবিভাবক, {s.StudentsName} নিরাপদে {schoolName} এ ({DateTime.Today.Add(a.EntryTime.GetValueOrDefault()):h:mm tt}) প্রবেশ করেছে",
                     //                              MobileNo = s.SMSPhoneNo,
                     //                              AttendanceStatus = a.Attendance,
                     //                              SMS_TimeOut = attSetting.SMS_TimeOut_Minute
@@ -227,13 +272,14 @@ namespace Attendance_API.Controllers
                     //db.Attendance_sms.AddRange(smsList);
 
 
-                    //db.SaveChanges();
                 }
-                return Ok();
             }
             catch (Exception e)
             {
-                return Ok();
+                if (IsIgnorableInsteadOfInsertException(e))
+                    return Ok(new AttendanceSyncResult { Message = "Attendance saved (trigger/EF refresh)." });
+
+                return BadRequest(e.Message);
             }
         }
 
@@ -247,6 +293,8 @@ namespace Attendance_API.Controllers
                 if (logRecords.Count < 1) return NotFound();
 
                 var smsList = new List<Attendance_SMS>();
+                var smsCandidates = new List<Attendance_Record>();
+                var smsQueued = 0;
                 using (var db = new EduContext())
                 {
                     var today = DateTime.Now;
@@ -270,6 +318,7 @@ namespace Attendance_API.Controllers
                                                  EducationYearID = s.EducationYearID,
                                                  StudentID = s.StudentID,
                                                  StudentClassID = s.StudentClassID,
+                                                 Attendance_ScheduleID = a.ScheduleID == 0 ? (int?)null : a.ScheduleID,
                                                  Attendance = a.AttendanceStatus,
                                                  AttendanceDate = a.AttendanceDate,
                                                  EntryTime = a.EntryTime == _clearTime ? (TimeSpan?)null : a.EntryTime,
@@ -278,23 +327,80 @@ namespace Attendance_API.Controllers
                                                  Is_OUT = a.Is_OUT
                                              };
 
-                        foreach (var log in updatedRecords)
+                        foreach (var log in updatedRecords.ToList())
                         {
-                            var updateLog = db.Attendance_Records.FirstOrDefault(u => u.SchoolID == log.SchoolID & u.StudentID == log.StudentID & u.AttendanceDate == log.AttendanceDate);
+                            var updateLog = db.Attendance_Records.FirstOrDefault(u =>
+                                u.SchoolID == log.SchoolID &&
+                                u.StudentID == log.StudentID &&
+                                u.AttendanceDate == log.AttendanceDate &&
+                                (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
+                                 (u.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)));
+
+                            if (updateLog == null && log.EntryTime.HasValue)
+                            {
+                                updateLog = db.Attendance_Records.FirstOrDefault(u =>
+                                    u.SchoolID == log.SchoolID &&
+                                    u.StudentID == log.StudentID &&
+                                    u.AttendanceDate == log.AttendanceDate &&
+                                    string.Equals(u.Attendance, "Abs", StringComparison.OrdinalIgnoreCase) &&
+                                    !u.EntryTime.HasValue &&
+                                    (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
+                                     u.Attendance_ScheduleID == null));
+                            }
 
                             if (updateLog == null) continue;
 
+                            var previousAttendance = updateLog.Attendance;
+                            var wasOut = updateLog.Is_OUT;
+
+                            if (updateLog.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)
+                                updateLog.Attendance_ScheduleID = log.Attendance_ScheduleID;
+
                             updateLog.Attendance = log.Attendance;
                             updateLog.ExitStatus = log.ExitStatus;
-
                             updateLog.ExitTime = log.ExitTime;
                             updateLog.Is_OUT = log.Is_OUT;
                             updateLog.EntryTime = log.EntryTime;
 
                             db.Entry(updateLog).State = EntityState.Modified;
-                            db.SaveChanges();
-                            //  logForSms.Add(updateLog);
+                            try
+                            {
+                                db.SaveChanges();
+
+                                if (attSetting != null)
+                                {
+                                    var statusChanged = previousAttendance != updateLog.Attendance || wasOut != updateLog.Is_OUT;
+                                    if (statusChanged)
+                                    {
+                                        smsCandidates.Add(new Attendance_Record
+                                        {
+                                            SchoolID = updateLog.SchoolID,
+                                            StudentID = updateLog.StudentID,
+                                            Attendance_ScheduleID = updateLog.Attendance_ScheduleID,
+                                            Attendance = updateLog.Attendance,
+                                            AttendanceDate = updateLog.AttendanceDate,
+                                            EntryTime = updateLog.EntryTime,
+                                            ExitTime = updateLog.ExitTime,
+                                            Is_OUT = updateLog.Is_OUT
+                                        });
+                                    }
+                                }
+                            }
+                            catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+                            {
+                                DetachAllTrackedEntities(db);
+                            }
+                            catch
+                            {
+                                // Skip rows that fail to update; do not fail the whole batch.
+                            }
                         }
+                    }
+
+                    if (attSetting != null && smsCandidates.Count > 0)
+                    {
+                        smsQueued += AttendanceStudentSmsService.QueueStudentSms(
+                            db, id, attSetting, schoolName, smsCandidates);
                     }
 
 
@@ -377,7 +483,83 @@ namespace Attendance_API.Controllers
                     //}
                 }
 
-                return Ok();
+                return Ok(new AttendanceSyncResult { SmsQueued = smsQueued });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [Route("api/Attendance/{id}/RequeueStudentSmsToday")]
+        [HttpPost]
+        public IHttpActionResult RequeueStudentSmsToday(int id)
+        {
+            try
+            {
+                using (var db = new EduContext())
+                {
+                    var attSetting = db.Attendance_Device_Settings.FirstOrDefault(s => s.SchoolID == id);
+                    if (attSetting == null)
+                        return Ok(new AttendanceSyncResult { Message = "Attendance settings not found." });
+
+                    var schoolName = db.SchoolInfos.Find(id)?.SchoolName;
+                    var queueResult = AttendanceStudentSmsService.QueueMissingStudentSmsForToday(
+                        db, id, attSetting, schoolName);
+
+                    var message = queueResult.Queued > 0
+                        ? $"{queueResult.Queued} SMS queued for today."
+                        : !string.IsNullOrWhiteSpace(queueResult.SaveError)
+                            ? "SMS save failed: " + queueResult.SaveError
+                            : queueResult.Eligible > 0
+                                ? $"{queueResult.Eligible} eligible but not saved (check API logs)."
+                                : "No SMS queued (flags off, missing phone, or no eligible records).";
+
+                    return Ok(new AttendanceSyncResult
+                    {
+                        SmsQueued = queueResult.Queued,
+                        Matched = queueResult.Eligible,
+                        Message = message
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [Route("api/Attendance/{id}/RequeueEmployeeSmsToday")]
+        [HttpPost]
+        public IHttpActionResult RequeueEmployeeSmsToday(int id)
+        {
+            try
+            {
+                using (var db = new EduContext())
+                {
+                    var attSetting = db.Attendance_Device_Settings.FirstOrDefault(s => s.SchoolID == id);
+                    if (attSetting == null)
+                        return Ok(new AttendanceSyncResult { Message = "Attendance settings not found." });
+
+                    var schoolName = db.SchoolInfos.Find(id)?.SchoolName;
+                    var queueResult = AttendanceEmployeeSmsService.QueueMissingEmployeeSmsForToday(
+                        db, id, attSetting, schoolName);
+
+                    var message = queueResult.Queued > 0
+                        ? $"{queueResult.Queued} employee SMS queued for today."
+                        : !string.IsNullOrWhiteSpace(queueResult.SaveError)
+                            ? "Employee SMS save failed: " + queueResult.SaveError
+                            : queueResult.Eligible > 0
+                                ? $"{queueResult.Eligible} eligible but not saved."
+                                : "No employee SMS queued (Pre not supported; check Abs/Late flags or phone).";
+
+                    return Ok(new AttendanceSyncResult
+                    {
+                        SmsQueued = queueResult.Queued,
+                        Matched = queueResult.Eligible,
+                        Message = message
+                    });
+                }
             }
             catch (Exception e)
             {
@@ -391,19 +573,18 @@ namespace Attendance_API.Controllers
         {
             try
             {
-
-
-                if (logRecord == null) return NotFound();
-                if (logRecord.Count < 1) return NotFound();
+                if (logRecord == null) return BadRequest("Attendance payload is empty.");
+                if (logRecord.Count < 1) return BadRequest("Attendance payload is empty.");
 
                 using (var db = new EduContext())
                 {
-                    var today = DateTime.Now;
-
                     var attSetting = db.Attendance_Device_Settings.FirstOrDefault(s => s.SchoolID == id);
 
-                    if (attSetting == null) return Ok();
-                    if (!attSetting.Is_Device_Attendance_Enable && !attSetting.Is_Employee_Attendance_Enable) return Ok();
+                    if (attSetting == null)
+                        return Ok(new AttendanceSyncResult { Message = "Attendance settings not found." });
+
+                    if (!attSetting.Is_Device_Attendance_Enable && !attSetting.Is_Employee_Attendance_Enable)
+                        return Ok(new AttendanceSyncResult { Message = "Employee attendance is disabled." });
 
                     var empList = db.VW_Emp_Infos.Where(a => a.SchoolID == id).ToList();
 
@@ -416,6 +597,7 @@ namespace Attendance_API.Controllers
                                           SchoolID = e.SchoolID,
                                           EmployeeID = e.EmployeeID,
                                           RegistrationID = 0,
+                                          Attendance_ScheduleID = a.ScheduleID == 0 ? (int?)null : a.ScheduleID,
                                           AttendanceStatus = a.AttendanceStatus,
                                           AttendanceDate = a.AttendanceDate,
                                           EntryTime = a.EntryTime == _clearTime ? (TimeSpan?)null : a.EntryTime,
@@ -424,16 +606,57 @@ namespace Attendance_API.Controllers
                                           Is_OUT = a.Is_OUT
                                       }).ToList();
 
-                    var newRecords = allEmpRecords.Where(na => !db.Employee_Attendance_Records.Any(sa =>
-                        sa.SchoolID == na.SchoolID &&
-                        sa.EmployeeID == na.EmployeeID &&
-                        sa.AttendanceDate == na.AttendanceDate)).ToList();
+                    try
+                    {
+                        BackfillEmployeeScheduleRows(db, allEmpRecords);
+                    }
+                    catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+                    {
+                        DetachAllTrackedEntities(db);
+                    }
 
+                    var newRecords = FilterNewEmployeeRecords(db, id, allEmpRecords);
+
+                    var insertedCount = 0;
                     if (newRecords.Count > 0)
                     {
                         db.Employee_Attendance_Records.AddRange(newRecords);
-                        db.SaveChanges();
+                        insertedCount = SaveAfterInsteadOfInsertTrigger(db, newRecords.Count);
                     }
+
+                    var matchedEmpDeviceIds = allEmpRecords.Count > 0
+                        ? logRecord
+                            .Where(a => empList.Any(e => e.DeviceID == a.DeviceID && e.SchoolID == id))
+                            .Select(a => a.DeviceID)
+                            .Distinct()
+                            .ToArray()
+                        : new int[0];
+
+                    var smsQueued = 0;
+                    if (attSetting != null)
+                    {
+                        var schoolName = db.SchoolInfos.Find(id)?.SchoolName;
+                        if (newRecords.Count > 0)
+                        {
+                            smsQueued += AttendanceEmployeeSmsService.QueueEmployeeSms(
+                                db, id, attSetting, schoolName, newRecords);
+                        }
+                    }
+
+                    return Ok(new AttendanceSyncResult
+                    {
+                        Matched = allEmpRecords.Count,
+                        Inserted = insertedCount,
+                        SmsQueued = smsQueued,
+                        MatchedDeviceIds = matchedEmpDeviceIds,
+                        Message = allEmpRecords.Count == 0
+                            ? "No employee DeviceID matched in VW_Emp_Info."
+                            : matchedEmpDeviceIds.Length < logRecord.Count
+                                ? $"{logRecord.Count - matchedEmpDeviceIds.Length} punch(es) skipped: DeviceID not found on server."
+                                : smsQueued == 0 && allEmpRecords.Count > 0
+                                    ? "Attendance saved but no employee SMS queued (Pre not supported; check Abs/Late flags or phone)."
+                                    : null
+                    });
 
                     //var newAttendanceRecord = newRecord.Where(na => !db.Employee_Attendance_Records.Any(sa => na.SchoolID == sa.SchoolID & na.EmployeeID == sa.EmployeeID & na.AttendanceDate == sa.AttendanceDate)).ToList();
 
@@ -529,12 +752,10 @@ namespace Attendance_API.Controllers
                     //db.Attendance_sms.AddRange(smsList);
                     //db.SaveChanges();
                 }
-
-                return Ok();
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return Ok();
+                return Ok(new AttendanceSyncResult { Message = ex.GetBaseException().Message });
             }
         }
 
@@ -545,12 +766,14 @@ namespace Attendance_API.Controllers
             if (logRecord == null) return NotFound();
             if (logRecord.Count < 1) return NotFound();
 
+            var smsQueued = 0;
             using (var db = new EduContext())
             {
                 var today = DateTime.Now;
 
                 var attSetting = db.Attendance_Device_Settings.FirstOrDefault(s => s.SchoolID == id);
                 var schoolName = db.SchoolInfos.Find(id)?.SchoolName;
+                var smsCandidates = new List<Employee_Attendance_Record>();
 
                 if (attSetting != null && attSetting.Is_Device_Attendance_Enable && attSetting.Is_Employee_Attendance_Enable)
                 {
@@ -565,6 +788,7 @@ namespace Attendance_API.Controllers
                                              SchoolID = e.SchoolID,
                                              EmployeeID = e.EmployeeID,
                                              RegistrationID = 0,
+                                             Attendance_ScheduleID = a.ScheduleID == 0 ? (int?)null : a.ScheduleID,
                                              AttendanceStatus = a.AttendanceStatus,
                                              AttendanceDate = a.AttendanceDate,
                                              EntryTime = a.EntryTime == _clearTime ? (TimeSpan?)null : a.EntryTime,
@@ -575,8 +799,31 @@ namespace Attendance_API.Controllers
 
                     foreach (var log in updatedRecords)
                     {
-                        var updateLog = db.Employee_Attendance_Records.FirstOrDefault(u => u.SchoolID == log.SchoolID & u.EmployeeID == log.EmployeeID & u.AttendanceDate == log.AttendanceDate);
+                        var updateLog = db.Employee_Attendance_Records.FirstOrDefault(u =>
+                            u.SchoolID == log.SchoolID &&
+                            u.EmployeeID == log.EmployeeID &&
+                            u.AttendanceDate == log.AttendanceDate &&
+                            (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
+                             (u.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)));
+
+                        if (updateLog == null && log.EntryTime.HasValue)
+                        {
+                            updateLog = db.Employee_Attendance_Records.FirstOrDefault(u =>
+                                u.SchoolID == log.SchoolID &&
+                                u.EmployeeID == log.EmployeeID &&
+                                u.AttendanceDate == log.AttendanceDate &&
+                                string.Equals(u.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) &&
+                                !u.EntryTime.HasValue &&
+                                (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
+                                 u.Attendance_ScheduleID == null));
+                        }
+
                         if (updateLog == null) continue;
+
+                        var previousStatus = updateLog.AttendanceStatus;
+
+                        if (updateLog.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)
+                            updateLog.Attendance_ScheduleID = log.Attendance_ScheduleID;
 
                         updateLog.AttendanceStatus = log.AttendanceStatus;
                         updateLog.ExitStatus = log.ExitStatus;
@@ -586,12 +833,44 @@ namespace Attendance_API.Controllers
                         updateLog.EntryTime = log.EntryTime;
 
                         db.Entry(updateLog).State = EntityState.Modified;
-                        db.SaveChanges();
+                        try
+                        {
+                            db.SaveChanges();
+
+                            if (attSetting != null)
+                            {
+                                var statusChanged = previousStatus != updateLog.AttendanceStatus;
+                                if (statusChanged)
+                                {
+                                    smsCandidates.Add(new Employee_Attendance_Record
+                                    {
+                                        SchoolID = updateLog.SchoolID,
+                                        EmployeeID = updateLog.EmployeeID,
+                                        Attendance_ScheduleID = updateLog.Attendance_ScheduleID,
+                                        AttendanceStatus = updateLog.AttendanceStatus,
+                                        AttendanceDate = updateLog.AttendanceDate,
+                                        EntryTime = updateLog.EntryTime,
+                                        ExitTime = updateLog.ExitTime,
+                                        Is_OUT = updateLog.Is_OUT
+                                    });
+                                }
+                            }
+                        }
+                        catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+                        {
+                            DetachAllTrackedEntities(db);
+                        }
                     }
+                }
+
+                if (attSetting != null && smsCandidates.Count > 0)
+                {
+                    smsQueued += AttendanceEmployeeSmsService.QueueEmployeeSms(
+                        db, id, attSetting, schoolName, smsCandidates);
                 }
             }
 
-            return Ok();
+            return Ok(new AttendanceSyncResult { SmsQueued = smsQueued });
         }
 
 
@@ -651,8 +930,12 @@ namespace Attendance_API.Controllers
                             else
                             {
 
+                                int? scheduleId = data.ScheduleID == 0 ? (int?)null : data.ScheduleID;
                                 var attRecord = db.Attendance_Records.FirstOrDefault(s =>
-                                    s.SchoolID == id & s.StudentID == sInfo.StudentID & s.AttendanceDate == dt);
+                                    s.SchoolID == id &&
+                                    s.StudentID == sInfo.StudentID &&
+                                    s.AttendanceDate == dt &&
+                                    s.Attendance_ScheduleID == scheduleId);
                                 var sStartTime = schedule.StartTime;
                                 var sLateTime = schedule.LateEntryTime;
                                 var sEndTime = schedule.EndTime;
@@ -666,6 +949,7 @@ namespace Attendance_API.Controllers
                                         EducationYearID = sInfo.EducationYearID,
                                         StudentID = sInfo.StudentID,
                                         StudentClassID = sInfo.StudentClassID,
+                                        Attendance_ScheduleID = scheduleId,
                                         AttendanceDate = dt
                                     };
 
@@ -790,8 +1074,12 @@ namespace Attendance_API.Controllers
                             else
                             {
 
+                                int? scheduleId = data.ScheduleID == 0 ? (int?)null : data.ScheduleID;
                                 var attRecord = db.Employee_Attendance_Records.FirstOrDefault(s =>
-                                    s.SchoolID == id && s.EmployeeID == eInfo.EmployeeID && s.AttendanceDate == dt);
+                                    s.SchoolID == id &&
+                                    s.EmployeeID == eInfo.EmployeeID &&
+                                    s.AttendanceDate == dt &&
+                                    s.Attendance_ScheduleID == scheduleId);
                                 var sStartTime = schedule.StartTime;
                                 var sLateTime = schedule.LateEntryTime;
                                 var sEndTime = schedule.EndTime;
@@ -803,6 +1091,7 @@ namespace Attendance_API.Controllers
                                         SchoolID = eInfo.SchoolID,
                                         EmployeeID = eInfo.EmployeeID,
                                         RegistrationID = 0,
+                                        Attendance_ScheduleID = scheduleId,
                                         AttendanceDate = dt
                                     };
 
@@ -912,6 +1201,7 @@ namespace Attendance_API.Controllers
                                               select new AttendanceRecordAPI
                                               {
                                                   DeviceID = u.DeviceID,
+                                                  ScheduleID = a.Attendance_ScheduleID ?? 0,
                                                   AttendanceDate = a.AttendanceDate,
                                                   AttendanceStatus = a.Attendance,
                                                   ExitStatus = a.ExitStatus,
@@ -937,6 +1227,7 @@ namespace Attendance_API.Controllers
                                               select new AttendanceRecordAPI
                                               {
                                                   DeviceID = u.DeviceID,
+                                                  ScheduleID = a.Attendance_ScheduleID ?? 0,
                                                   AttendanceDate = a.AttendanceDate,
                                                   AttendanceStatus = a.AttendanceStatus,
                                                   ExitStatus = a.ExitStatus,
@@ -1074,6 +1365,259 @@ namespace Attendance_API.Controllers
         //        return BadRequest(ex.Message);
         //    }
         //}
+
+        /// <summary>
+        /// INSTEAD OF INSERT triggers commit rows but EF fails refreshing the object context.
+        /// </summary>
+        private static int SaveAfterInsteadOfInsertTrigger(EduContext db, int expectedInsertCount)
+        {
+            try
+            {
+                db.SaveChanges();
+                return expectedInsertCount;
+            }
+            catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+            {
+                DetachAllTrackedEntities(db);
+                return expectedInsertCount;
+            }
+            catch (Exception ex) when (IsDuplicateKeyViolation(ex))
+            {
+                DetachAllTrackedEntities(db);
+                return 0;
+            }
+        }
+
+        private static bool IsIgnorableInsteadOfInsertException(Exception exception)
+        {
+            for (var ex = exception; ex != null; ex = ex.InnerException)
+            {
+                if (ex.Message.IndexOf("committed successfully", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+                if (ex.Message.IndexOf("unexpected number of rows", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsInsteadOfTriggerCommitSuccess(Exception exception)
+        {
+            return IsIgnorableInsteadOfInsertException(exception);
+        }
+
+        private static bool IsDuplicateKeyViolation(Exception exception)
+        {
+            for (var ex = exception; ex != null; ex = ex.InnerException)
+            {
+                if (ex.Message.IndexOf("duplicate key", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+                if (ex.Message.IndexOf("UQ_Employee_Attendance_Record", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static List<Attendance_Record> FilterNewStudentRecords(
+            EduContext db, int schoolId, List<Attendance_Record> incoming)
+        {
+            if (incoming == null || !incoming.Any())
+                return new List<Attendance_Record>();
+
+            var studentIds = incoming.Select(r => r.StudentID).Distinct().ToList();
+            var dates = incoming.Select(r => r.AttendanceDate).Distinct().ToList();
+
+            var existing = db.Attendance_Records
+                .Where(sa => sa.SchoolID == schoolId
+                             && studentIds.Contains(sa.StudentID)
+                             && dates.Contains(sa.AttendanceDate))
+                .Select(sa => new
+                {
+                    sa.StudentID,
+                    sa.AttendanceDate,
+                    ScheduleId = sa.Attendance_ScheduleID ?? 0
+                })
+                .ToList();
+
+            return incoming.Where(na => !existing.Any(ek =>
+                ek.StudentID == na.StudentID &&
+                ek.AttendanceDate == na.AttendanceDate &&
+                ek.ScheduleId == (na.Attendance_ScheduleID ?? 0))).ToList();
+        }
+
+        private static List<Employee_Attendance_Record> FilterNewEmployeeRecords(
+            EduContext db, int schoolId, List<Employee_Attendance_Record> incoming)
+        {
+            if (incoming == null || !incoming.Any())
+                return new List<Employee_Attendance_Record>();
+
+            var employeeIds = incoming.Select(r => r.EmployeeID).Distinct().ToList();
+            var dates = incoming.Select(r => r.AttendanceDate).Distinct().ToList();
+
+            var existing = db.Employee_Attendance_Records
+                .Where(sa => sa.SchoolID == schoolId
+                             && employeeIds.Contains(sa.EmployeeID)
+                             && dates.Contains(sa.AttendanceDate))
+                .Select(sa => new
+                {
+                    sa.EmployeeID,
+                    sa.AttendanceDate,
+                    ScheduleId = sa.Attendance_ScheduleID ?? 0
+                })
+                .ToList();
+
+            return incoming.Where(na => !existing.Any(ek =>
+                ek.EmployeeID == na.EmployeeID &&
+                ek.AttendanceDate == na.AttendanceDate &&
+                ek.ScheduleId == (na.Attendance_ScheduleID ?? 0))).ToList();
+        }
+
+        private static void BackfillStudentScheduleRows(EduContext db, List<Attendance_Record> incoming)
+        {
+            var updated = false;
+
+            foreach (var row in incoming.Where(r => r.Attendance_ScheduleID.HasValue))
+            {
+                var scheduled = db.Attendance_Records.FirstOrDefault(sa =>
+                    sa.SchoolID == row.SchoolID &&
+                    sa.StudentID == row.StudentID &&
+                    sa.AttendanceDate == row.AttendanceDate &&
+                    sa.Attendance_ScheduleID == row.Attendance_ScheduleID);
+
+                if (scheduled != null)
+                {
+                    MergeStudentAttendanceRow(scheduled, row);
+                    updated = true;
+
+                    var legacyDuplicate = db.Attendance_Records.FirstOrDefault(sa =>
+                        sa.SchoolID == row.SchoolID &&
+                        sa.StudentID == row.StudentID &&
+                        sa.AttendanceDate == row.AttendanceDate &&
+                        sa.Attendance_ScheduleID == null);
+
+                    if (legacyDuplicate != null)
+                    {
+                        db.Attendance_Records.Remove(legacyDuplicate);
+                        updated = true;
+                    }
+
+                    continue;
+                }
+
+                var legacy = db.Attendance_Records.FirstOrDefault(sa =>
+                    sa.SchoolID == row.SchoolID &&
+                    sa.StudentID == row.StudentID &&
+                    sa.AttendanceDate == row.AttendanceDate &&
+                    sa.Attendance_ScheduleID == null);
+
+                if (legacy == null)
+                    continue;
+
+                legacy.Attendance_ScheduleID = row.Attendance_ScheduleID;
+                MergeStudentAttendanceRow(legacy, row);
+                updated = true;
+            }
+
+            if (updated)
+            {
+                try
+                {
+                    db.SaveChanges();
+                }
+                catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+                {
+                    DetachAllTrackedEntities(db);
+                }
+            }
+        }
+
+        private static void MergeStudentAttendanceRow(Attendance_Record target, Attendance_Record source)
+        {
+            if (!string.IsNullOrWhiteSpace(source.Attendance))
+                target.Attendance = source.Attendance;
+            if (source.EntryTime.HasValue)
+                target.EntryTime = source.EntryTime;
+            target.ExitStatus = source.ExitStatus;
+            target.ExitTime = source.ExitTime;
+            target.Is_OUT = source.Is_OUT;
+        }
+
+        private static void BackfillEmployeeScheduleRows(EduContext db, List<Employee_Attendance_Record> incoming)
+        {
+            var updated = false;
+
+            foreach (var row in incoming.Where(r => r.Attendance_ScheduleID.HasValue))
+            {
+                var scheduled = db.Employee_Attendance_Records.FirstOrDefault(sa =>
+                    sa.SchoolID == row.SchoolID &&
+                    sa.EmployeeID == row.EmployeeID &&
+                    sa.AttendanceDate == row.AttendanceDate &&
+                    sa.Attendance_ScheduleID == row.Attendance_ScheduleID);
+
+                if (scheduled != null)
+                {
+                    MergeEmployeeAttendanceRow(scheduled, row);
+                    updated = true;
+
+                    var legacyDuplicate = db.Employee_Attendance_Records.FirstOrDefault(sa =>
+                        sa.SchoolID == row.SchoolID &&
+                        sa.EmployeeID == row.EmployeeID &&
+                        sa.AttendanceDate == row.AttendanceDate &&
+                        sa.Attendance_ScheduleID == null);
+
+                    if (legacyDuplicate != null)
+                    {
+                        db.Employee_Attendance_Records.Remove(legacyDuplicate);
+                        updated = true;
+                    }
+
+                    continue;
+                }
+
+                var legacy = db.Employee_Attendance_Records.FirstOrDefault(sa =>
+                    sa.SchoolID == row.SchoolID &&
+                    sa.EmployeeID == row.EmployeeID &&
+                    sa.AttendanceDate == row.AttendanceDate &&
+                    sa.Attendance_ScheduleID == null);
+
+                if (legacy == null)
+                    continue;
+
+                legacy.Attendance_ScheduleID = row.Attendance_ScheduleID;
+                MergeEmployeeAttendanceRow(legacy, row);
+                updated = true;
+            }
+
+            if (updated)
+            {
+                try
+                {
+                    db.SaveChanges();
+                }
+                catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+                {
+                    DetachAllTrackedEntities(db);
+                }
+            }
+        }
+
+        private static void MergeEmployeeAttendanceRow(Employee_Attendance_Record target, Employee_Attendance_Record source)
+        {
+            if (!string.IsNullOrWhiteSpace(source.AttendanceStatus))
+                target.AttendanceStatus = source.AttendanceStatus;
+            if (source.EntryTime.HasValue)
+                target.EntryTime = source.EntryTime;
+            target.ExitStatus = source.ExitStatus;
+            target.ExitTime = source.ExitTime;
+            target.Is_OUT = source.Is_OUT;
+        }
+
+        private static void DetachAllTrackedEntities(EduContext db)
+        {
+            foreach (var entry in db.ChangeTracker.Entries().ToList())
+                entry.State = EntityState.Detached;
+        }
 
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Attendance_API.DB_Model
 {
@@ -14,5 +15,8 @@ namespace Attendance_API.DB_Model
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
         public bool Is_OnDay { get; set; }
+
+        [NotMapped]
+        public string ScheduleName { get; set; }
     }
 }

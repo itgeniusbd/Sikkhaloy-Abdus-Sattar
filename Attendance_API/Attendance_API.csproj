@@ -227,6 +227,11 @@
     <Compile Include="Areas\HelpPage\SampleGeneration\SampleDirection.cs" />
     <Compile Include="Areas\HelpPage\SampleGeneration\TextSample.cs" />
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
+    <Compile Include="Helpers\AttendanceSmsTemplateHelper.cs" />
+    <Compile Include="Helpers\AttendanceSmsScheduleHelper.cs" />
+    <Compile Include="Helpers\AttendanceSmsQueueWriter.cs" />
+    <Compile Include="Helpers\AttendanceStudentSmsService.cs" />
+    <Compile Include="Helpers\AttendanceEmployeeSmsService.cs" />
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\AttendanceController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
@@ -257,6 +262,7 @@
     <Compile Include="Models\AccountBindingModels.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\AttendanceRecordAPI.cs" />
+    <Compile Include="Models\AttendanceSyncResult.cs" />
     <Compile Include="Models\BackupDataAPI.cs" />
     <Compile Include="Models\FingerPrintRecordAPI.cs" />
     <Compile Include="Models\IdentityModels.cs" />
@@ -270,10 +276,13 @@
     <Compile Include="Results\ChallengeResult.cs" />
     <Compile Include="SMS_Class.cs" />
     <Compile Include="Startup.cs" />
+    <Compile Include="ViewModel\DeviceScheduleAssignmentVM.cs" />
     <Compile Include="ViewModel\LeaveVM.cs" />
+    <Compile Include="ViewModel\ScheduleDayDeviceVM.cs" />
     <Compile Include="ViewModel\SchoolShortVM.cs" />
     <Compile Include="ViewModel\SchoolVM.cs" />
     <Compile Include="ViewModel\DataUpdateList_VM.cs" />
+    <Compile Include="ViewModel\UserPhotoVM.cs" />
     <Compile Include="ViewModel\User_FingerPrintVM.cs" />
   </ItemGroup>
   <ItemGroup>

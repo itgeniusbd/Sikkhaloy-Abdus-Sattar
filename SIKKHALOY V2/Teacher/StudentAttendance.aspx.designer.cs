@@ -105,6 +105,21 @@ namespace EDUCATION.COM.Teacher
         protected global::System.Web.UI.WebControls.SqlDataSource ShiftSQL;
 
         /// <summary>
+        /// ScheduleDropDownList control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.DropDownList ScheduleDropDownList;
+
+        /// <summary>
+        /// ScheduleSQL control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.SqlDataSource ScheduleSQL;
+
+        /// <summary>
+        /// ScheduleRFV control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator ScheduleRFV;
+
+        /// <summary>
         /// SMSLanguageRadioButtonList control.
         /// </summary>
         /// <remarks>
@@ -175,15 +190,6 @@ namespace EDUCATION.COM.Teacher
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label ErrorLabel;
-
-        /// <summary>
-        /// Attendance_RecordSQL control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource Attendance_RecordSQL;
 
         /// <summary>
         /// SMS_OtherInfoSQL control.

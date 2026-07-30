@@ -17,11 +17,17 @@ namespace EDUCATION.COM.ATTENDANCES
                     ToDateTextBox.Text = DateTime.Now.ToString("d MMM yyyy");
                 }
 
-                // Initial load-এ GridView data load করবে না - class select করার পর load হবে
-                AttendanceGridView.DataSourceID = "";
+                Session["Group"] = "%";
+                Session["Shift"] = "%";
+                Session["Section"] = "%";
+                Session["Schedule"] = "0";
+
                 GroupDropDownList.Visible = false;
                 SectionDropDownList.Visible = false;
                 ShiftDropDownList.Visible = false;
+
+                EnsureWildcardFilters();
+                BindAttendanceData();
             }
             else
             {
@@ -30,6 +36,32 @@ namespace EDUCATION.COM.ATTENDANCES
                 Session["Section"] = SectionDropDownList.SelectedValue;
                 Session["Schedule"] = ScheduleDropDownList.SelectedValue ?? "0";
             }
+        }
+
+        private void EnsureWildcardFilters()
+        {
+            if (ClassDropDownList.SelectedValue != "0")
+                return;
+
+            if (GroupDropDownList.Items.Count == 0)
+                GroupDropDownList.Items.Add(new ListItem("[ ALL GROUP ]", "%"));
+            if (SectionDropDownList.Items.Count == 0)
+                SectionDropDownList.Items.Add(new ListItem("[ ALL SECTION ]", "%"));
+            if (ShiftDropDownList.Items.Count == 0)
+                ShiftDropDownList.Items.Add(new ListItem("[ ALL SHIFT ]", "%"));
+
+            GroupDropDownList.SelectedValue = "%";
+            SectionDropDownList.SelectedValue = "%";
+            ShiftDropDownList.SelectedValue = "%";
+        }
+
+        private void BindAttendanceData()
+        {
+            EnsureWildcardFilters();
+            AttendanceGridView.DataSourceID = "AttendanceSQL";
+            AttendanceGridView.DataBind();
+            AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
+            Summery_GridView.DataBind();
         }
 
         protected void view()
@@ -56,9 +88,7 @@ namespace EDUCATION.COM.ATTENDANCES
             catch { ShiftDropDownList.Visible = false; }
 
             // GridView reconnect করো যাতে data load হয়
-            AttendanceGridView.DataSourceID = "AttendanceSQL";
-            AttendanceGridView.DataBind();
-            AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
+            BindAttendanceData();
         }
 
         //Class DDL
@@ -72,6 +102,10 @@ namespace EDUCATION.COM.ATTENDANCES
             GroupDropDownList.DataBind();
             ShiftDropDownList.DataBind();
             SectionDropDownList.DataBind();
+
+            if (ClassDropDownList.SelectedValue == "0")
+                EnsureWildcardFilters();
+
             view();
         }
         //Group DDL
@@ -120,10 +154,7 @@ namespace EDUCATION.COM.ATTENDANCES
 
         protected void SubmitButton_Click(object sender, EventArgs e)
         {
-            AttendanceGridView.DataSourceID = "AttendanceSQL";
-            AttendanceGridView.DataBind();
-            AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
-            Summery_GridView.DataBind();
+            BindAttendanceData();
         }
 
         protected int GetTotalRows()
@@ -141,8 +172,7 @@ namespace EDUCATION.COM.ATTENDANCES
 
         protected void AttenDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            AttendanceGridView.DataSourceID = "AttendanceSQL";
-            AttendanceCountLabel.Text = " Total: " + GetTotalRows().ToString();
+            BindAttendanceData();
         }
 
         protected void AttendanceGridView_RowDataBound(object sender, GridViewRowEventArgs e)

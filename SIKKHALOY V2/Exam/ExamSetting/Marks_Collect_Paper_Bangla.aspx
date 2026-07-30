@@ -7,6 +7,24 @@
         .Ex_Cls { font-size:18px; font-weight:bold; text-align: center; display: none; margin-bottom: 8px; border-bottom: 1px solid #000; color:#000}
         .Class_GSS { font-size: 16px; font-weight:bold; text-align:center; display: none; color:#000}
         .Ins_Name { display:none;}
+
+        .no-marks-msg {
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            color: #856404;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .no-marks-msg strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 6px;
+            color: #664d03;
+        }
         
         /* Page Header with Badge */
         .page-header-section {
@@ -151,13 +169,26 @@
                     <asp:RequiredFieldValidator ID="RequiredFieldValidator7" runat="server" ControlToValidate="SubjectDropDownList" CssClass="EroorStar" ErrorMessage="বিষয় নির্বাচন করুন" InitialValue="0" ValidationGroup="1">*</asp:RequiredFieldValidator>
                 </div>
                 <div class="form-group">
-                    <button type="button" class="btn btn-primary" onclick="window.print()"><span class="glyphicon glyphicon-print" aria-hidden="true"></span> প্রিন্ট</button>
-                </div>
-                <div class="form-group">
                     <input type="button" id="ExportWord" class="btn btn-primary" value="ওয়ার্ড এ এক্সপোর্ট করুন" />
                 </div>
             </div>
 
+            <%if (HasMarksDistribution && StudentsGridView.Rows.Count > 0)
+                {%>
+            <div class="d-print-none mb-2" id="col-toggle-panel" style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:8px 14px;">
+                <strong style="margin-right:8px; font-size:13px;">যে কোন কলাম বাদ দিয়ে প্রিন্ট দিতে টিক তুলুন:</strong>
+                <span id="col-toggle-checkboxes"></span>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <span class="glyphicon glyphicon-print" aria-hidden="true"></span> প্রিন্ট
+                </button>
+            </div>
+            <%}%>
+
+            <asp:Panel ID="NoMarksDistributionPanel" runat="server" Visible="false" CssClass="no-marks-msg d-print-none">
+                <asp:Literal ID="NoMarksDistributionLiteral" runat="server" />
+            </asp:Panel>
+
+            <asp:Panel ID="GridPanel" runat="server">
             <div id="Ex-word-data">
                 <h2 class="Ins_Name"></h2>
                 <div class="Ex_Cls">
@@ -196,12 +227,15 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                         </SelectParameters>
                     </asp:SqlDataSource>
-                    <asp:SqlDataSource ID="SubExamSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT        Exam_SubExam_Name.SubExamName
-FROM            Exam_Full_Marks LEFT OUTER JOIN
-                         Exam_SubExam_Name ON Exam_Full_Marks.SubExamID = Exam_SubExam_Name.SubExamID
-WHERE        (Exam_Full_Marks.SchoolID = @SchoolID) AND (Exam_Full_Marks.ExamID = @ExamID) AND (Exam_Full_Marks.ClassID = @ClassID) AND (Exam_Full_Marks.EducationYearID = @EducationYearID) AND 
-                         (Exam_Full_Marks.SubjectID = @SubjectID)
-ORDER BY Exam_SubExam_Name.Sub_ExamSN">
+                    <asp:SqlDataSource ID="SubExamSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Exam_Full_Marks.SubExamID, Exam_SubExam_Name.SubExamName, Exam_SubExam_Name.Sub_ExamSN
+FROM Exam_Full_Marks
+INNER JOIN Exam_SubExam_Name ON Exam_Full_Marks.SubExamID = Exam_SubExam_Name.SubExamID AND Exam_SubExam_Name.SchoolID = @SchoolID
+WHERE (Exam_Full_Marks.SchoolID = @SchoolID) AND (Exam_Full_Marks.ExamID = @ExamID) AND (Exam_Full_Marks.ClassID = @ClassID) AND (Exam_Full_Marks.EducationYearID = @EducationYearID) AND (Exam_Full_Marks.SubjectID = @SubjectID) AND (Exam_Full_Marks.SubExamID IS NOT NULL) AND (Exam_Full_Marks.FullMarks IS NOT NULL AND Exam_Full_Marks.FullMarks &gt; 0)
+UNION ALL
+SELECT Exam_Full_Marks.SubExamID, NULL AS SubExamName, 999 AS Sub_ExamSN
+FROM Exam_Full_Marks
+WHERE (Exam_Full_Marks.SchoolID = @SchoolID) AND (Exam_Full_Marks.ExamID = @ExamID) AND (Exam_Full_Marks.ClassID = @ClassID) AND (Exam_Full_Marks.EducationYearID = @EducationYearID) AND (Exam_Full_Marks.SubjectID = @SubjectID) AND (Exam_Full_Marks.SubExamID IS NULL) AND (Exam_Full_Marks.FullMarks IS NOT NULL AND Exam_Full_Marks.FullMarks &gt; 0)
+ORDER BY Sub_ExamSN">
                         <SelectParameters>
                             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                             <asp:ControlParameter ControlID="ExamDropDownList" Name="ExamID" PropertyName="SelectedValue" />
@@ -211,7 +245,7 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
                         </SelectParameters>
                     </asp:SqlDataSource>
 
-                    <%if (StudentsGridView.Rows.Count > 0)
+                    <%if (HasMarksDistribution && StudentsGridView.Rows.Count > 0)
                         {%>
                     <div class="mt-4">
                         শিক্ষকের স্বাক্ষর
@@ -219,6 +253,7 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
                     <%} %>
                 </div>
             </div>
+            </asp:Panel>
         </ContentTemplate>
     </asp:UpdatePanel>
 
@@ -236,7 +271,54 @@ ORDER BY Exam_SubExam_Name.Sub_ExamSN">
     <script src="/JS/ExportWord/FileSaver.js"></script>
     <script src="/JS/ExportWord/jquery.wordexport.js"></script>
     <script>
+        function applyColToggleChange() {
+            var table = $("[id*=StudentsGridView]");
+            $(".col-toggle").each(function () {
+                var headerText = $(this).data("header");
+                var visible = $(this).is(":checked");
+                var colNum = -1;
+                table.find("thead th").each(function (i) {
+                    if ($(this).text().trim() === headerText) { colNum = i + 1; return false; }
+                });
+                if (colNum === -1) return;
+                table.find("tr").each(function () {
+                    $(this).find("th:nth-child(" + colNum + "), td:nth-child(" + colNum + ")").toggle(visible);
+                });
+            });
+        }
+
+        function buildColToggleCheckboxes() {
+            var panel = $("#col-toggle-checkboxes");
+            if (!panel.length) return;
+
+            var saved = {};
+            panel.find(".col-toggle").each(function () {
+                saved[$(this).data("header")] = $(this).is(":checked");
+            });
+
+            panel.empty();
+            $("[id*=StudentsGridView] thead th").each(function () {
+                var headerText = $(this).text().trim();
+                if (!headerText) return;
+                var checked = saved.hasOwnProperty(headerText) ? saved[headerText] : true;
+                var lbl = $('<label style="margin-right:10px; font-size:13px; cursor:pointer;"></label>');
+                var cb = $('<input type="checkbox" class="col-toggle" style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" />');
+                cb.attr("data-header", headerText).prop("checked", checked);
+                lbl.append(cb).append(document.createTextNode(" " + headerText));
+                panel.append(lbl);
+            });
+            applyColToggleChange();
+        }
+
+        $(document).ready(function () {
+            buildColToggleCheckboxes();
+            $(document).on("change", ".col-toggle", function () {
+                applyColToggleChange();
+            });
+        });
+
         Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function (e, f) {
+            buildColToggleCheckboxes();
             var Class = "";
             if ($('[id*=ClassDropDownList] :selected').index() > 0) {
                 Class = "শ্রেণি: " + $('[id*=ClassDropDownList] :selected').text();

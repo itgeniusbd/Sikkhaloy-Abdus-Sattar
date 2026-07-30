@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Education;
+using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Web.UI;
 using System.Web.UI.WebControls;
@@ -123,53 +125,152 @@ namespace EDUCATION.COM.Attendances
 
         protected void AssignButton_Click(object sender, EventArgs e)
         {
-            bool IsAssign = false;
-            foreach (GridViewRow ROW in StudentsGridView.Rows)
+            if (ScheduleDropDownList.SelectedValue == "0" || ClassDropDownList.SelectedValue == "0")
+                return;
+
+            int schoolId = Convert.ToInt32(Session["SchoolID"]);
+            int scheduleId = int.Parse(ScheduleDropDownList.SelectedValue);
+            var errors = new List<string>();
+            int savedCount = 0;
+
+            foreach (GridViewRow row in StudentsGridView.Rows)
             {
-                var AddSch_SelectCheckBox = (CheckBox)ROW.FindControl("AddSch_SelectCheckBox");
-                var RFIDCodeTextBox = StudentsGridView.Rows[ROW.RowIndex].FindControl("RFIDTextBox") as TextBox;
+                var addSchSelectCheckBox = (CheckBox)row.FindControl("AddSch_SelectCheckBox");
+                var rfidCodeTextBox = row.FindControl("RFIDTextBox") as TextBox;
+                var entrySelectCheckBox = (CheckBox)row.FindControl("Entry_SelectCheckBox");
+                var exitSelectCheckBox = (CheckBox)row.FindControl("Exit_SelectCheckBox");
+                var absSelectCheckBox = (CheckBox)row.FindControl("Abs_SelectCheckBox");
+                var lateSelectCheckBox = (CheckBox)row.FindControl("Late_SelectCheckBox");
+                string studentIdText = StudentsGridView.DataKeys[row.RowIndex]["StudentID"].ToString();
+                int studentId = int.Parse(studentIdText);
+                string studentName = row.Cells[3].Text.Trim();
 
-                var Entry_SelectCheckBox = (CheckBox)ROW.FindControl("Entry_SelectCheckBox");
-                var Exit_SelectCheckBox = (CheckBox)ROW.FindControl("Exit_SelectCheckBox");
-
-                var Abs_SelectCheckBox = (CheckBox)ROW.FindControl("Abs_SelectCheckBox");
-                var Late_SelectCheckBox = (CheckBox)ROW.FindControl("Late_SelectCheckBox");
-
-
-                ScheduleAssignSQL.DeleteParameters["StudentID"].DefaultValue = StudentsGridView.DataKeys[ROW.DataItemIndex]["StudentID"].ToString();
-                ScheduleAssignSQL.Delete();
-
-                if (AddSch_SelectCheckBox.Checked)
+                if (addSchSelectCheckBox.Checked)
                 {
-                    ScheduleAssignSQL.InsertParameters["StudentID"].DefaultValue = StudentsGridView.DataKeys[ROW.DataItemIndex]["StudentID"].ToString();
-                    ScheduleAssignSQL.InsertParameters["Entry_Confirmation"].DefaultValue = Entry_SelectCheckBox.Checked.ToString();
-                    ScheduleAssignSQL.InsertParameters["Exit_Confirmation"].DefaultValue = Exit_SelectCheckBox.Checked.ToString();
-                    ScheduleAssignSQL.InsertParameters["Is_Abs_SMS"].DefaultValue = Abs_SelectCheckBox.Checked.ToString();
-                    ScheduleAssignSQL.InsertParameters["Is_Late_SMS"].DefaultValue = Late_SelectCheckBox.Checked.ToString();
+                    string existingAssignId = GetHiddenAssignId(row, "IsNotAssign");
+                    if (string.IsNullOrEmpty(existingAssignId))
+                    {
+                        ScheduleOverlapInfo overlap = ScheduleOverlapValidator.GetStudentOverlap(schoolId, studentId, scheduleId);
+                        if (overlap != null)
+                        {
+                            errors.Add(studentName + ": " + overlap.Message);
+                            ScheduleAssignSQL.UpdateParameters["StudentID"].DefaultValue = studentIdText;
+                            ScheduleAssignSQL.UpdateParameters["RFID"].DefaultValue = rfidCodeTextBox.Text;
+                            ScheduleAssignSQL.Update();
+                            continue;
+                        }
+                    }
+
+                    ScheduleAssignSQL.DeleteParameters["StudentID"].DefaultValue = studentIdText;
+                    ScheduleAssignSQL.Delete();
+                    ScheduleAssignSQL.InsertParameters["StudentID"].DefaultValue = studentIdText;
+                    ScheduleAssignSQL.InsertParameters["Entry_Confirmation"].DefaultValue = entrySelectCheckBox.Checked.ToString();
+                    ScheduleAssignSQL.InsertParameters["Exit_Confirmation"].DefaultValue = exitSelectCheckBox.Checked.ToString();
+                    ScheduleAssignSQL.InsertParameters["Is_Abs_SMS"].DefaultValue = absSelectCheckBox.Checked.ToString();
+                    ScheduleAssignSQL.InsertParameters["Is_Late_SMS"].DefaultValue = lateSelectCheckBox.Checked.ToString();
                     ScheduleAssignSQL.Insert();
-                    IsAssign = true;
+                    savedCount++;
+                }
+                else
+                {
+                    ScheduleAssignSQL.DeleteParameters["StudentID"].DefaultValue = studentIdText;
+                    ScheduleAssignSQL.Delete();
                 }
 
-
-                ScheduleAssignSQL.UpdateParameters["StudentID"].DefaultValue = StudentsGridView.DataKeys[ROW.DataItemIndex]["StudentID"].ToString();
-                ScheduleAssignSQL.UpdateParameters["RFID"].DefaultValue = RFIDCodeTextBox.Text;
+                ScheduleAssignSQL.UpdateParameters["StudentID"].DefaultValue = studentIdText;
+                ScheduleAssignSQL.UpdateParameters["RFID"].DefaultValue = rfidCodeTextBox.Text;
                 ScheduleAssignSQL.Update();
 
-                ConfSMS_UpdateSQL.UpdateParameters["StudentID"].DefaultValue = StudentsGridView.DataKeys[ROW.DataItemIndex]["StudentID"].ToString();
-                ConfSMS_UpdateSQL.UpdateParameters["Entry_Confirmation"].DefaultValue = Entry_SelectCheckBox.Checked.ToString();
-                ConfSMS_UpdateSQL.UpdateParameters["Exit_Confirmation"].DefaultValue = Exit_SelectCheckBox.Checked.ToString();
-                ConfSMS_UpdateSQL.UpdateParameters["Is_Abs_SMS"].DefaultValue = Abs_SelectCheckBox.Checked.ToString();
-                ConfSMS_UpdateSQL.UpdateParameters["Is_Late_SMS"].DefaultValue = Late_SelectCheckBox.Checked.ToString();
+                ConfSMS_UpdateSQL.UpdateParameters["StudentID"].DefaultValue = studentIdText;
+                ConfSMS_UpdateSQL.UpdateParameters["Entry_Confirmation"].DefaultValue = entrySelectCheckBox.Checked.ToString();
+                ConfSMS_UpdateSQL.UpdateParameters["Exit_Confirmation"].DefaultValue = exitSelectCheckBox.Checked.ToString();
+                ConfSMS_UpdateSQL.UpdateParameters["Is_Abs_SMS"].DefaultValue = absSelectCheckBox.Checked.ToString();
+                ConfSMS_UpdateSQL.UpdateParameters["Is_Late_SMS"].DefaultValue = lateSelectCheckBox.Checked.ToString();
                 ConfSMS_UpdateSQL.Update();
-
-                IsAssign = true;
             }
 
-            if (IsAssign)
+            if (savedCount > 0 || errors.Count == 0)
+                Device_DataUpdateSQL.Insert();
+
+            StudentsGridView.DataBind();
+            ShowResultMessage(savedCount, errors, "Assign Successfully.");
+        }
+
+        protected void UnassignButton_Click(object sender, EventArgs e)
+        {
+            if (ScheduleDropDownList.SelectedValue == "0" || ClassDropDownList.SelectedValue == "0")
+                return;
+
+            int unassignedCount = 0;
+
+            foreach (GridViewRow row in StudentsGridView.Rows)
+            {
+                var addSchSelectCheckBox = (CheckBox)row.FindControl("AddSch_SelectCheckBox");
+                if (addSchSelectCheckBox == null || !addSchSelectCheckBox.Checked)
+                    continue;
+
+                string studentId = StudentsGridView.DataKeys[row.RowIndex]["StudentID"].ToString();
+                ScheduleAssignSQL.DeleteParameters["StudentID"].DefaultValue = studentId;
+                ScheduleAssignSQL.Delete();
+                unassignedCount++;
+            }
+
+            if (unassignedCount > 0)
             {
                 Device_DataUpdateSQL.Insert();
                 StudentsGridView.DataBind();
-                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Assign Successfully.')", true);
+
+                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "unassignMessage",
+                    "alert('" + unassignedCount + " student(s) unassigned from this schedule.');", true);
+            }
+        }
+
+        private static string GetHiddenAssignId(GridViewRow row, string cssClass)
+        {
+            foreach (Control control in row.Controls)
+            {
+                string value = FindHiddenAssignValue(control, cssClass);
+                if (value != null)
+                    return value;
+            }
+
+            return string.Empty;
+        }
+
+        private static string FindHiddenAssignValue(Control root, string cssClass)
+        {
+            if (root is System.Web.UI.HtmlControls.HtmlInputHidden hidden
+                && hidden.Attributes["class"] == cssClass)
+            {
+                return hidden.Value ?? string.Empty;
+            }
+
+            foreach (Control child in root.Controls)
+            {
+                string value = FindHiddenAssignValue(child, cssClass);
+                if (value != null)
+                    return value;
+            }
+
+            return null;
+        }
+
+        private void ShowResultMessage(int savedCount, List<string> errors, string successMessage)
+        {
+            if (errors.Count > 0)
+            {
+                string message = string.Join("\\n", errors);
+                if (savedCount > 0)
+                    message = successMessage + "\\n\\nSome records were skipped:\\n" + message;
+                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "assignErrors",
+                    "alert('" + message.Replace("'", "\\'") + "');", true);
+                return;
+            }
+
+            if (savedCount > 0)
+            {
+                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage",
+                    "alert('" + successMessage + "');", true);
             }
         }
     }

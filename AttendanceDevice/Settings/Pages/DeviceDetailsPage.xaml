@@ -364,7 +364,9 @@
                                 ColumnWidth="*">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Binding="{Binding DeviceID}" Header="Device ID" />
-                                    <DataGridTextColumn Binding="{Binding RFID}" Header="RFID" />
+                                    <DataGridTextColumn Binding="{Binding RFID}" Header="PC RFID" />
+                                    <DataGridTextColumn Binding="{Binding DeviceRfid}" Header="Device RFID" />
+                                    <DataGridTextColumn Binding="{Binding Status}" Header="Status" />
                                     <DataGridTextColumn Binding="{Binding ID}" Header="ID" />
                                     <DataGridTextColumn Binding="{Binding Name}" Header="Name" />
                                 </DataGrid.Columns>
