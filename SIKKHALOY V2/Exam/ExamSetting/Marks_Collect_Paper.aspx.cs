@@ -1,12 +1,14 @@
 ﻿using System;
-using System.Data;
-using System.Web.UI;
+using System.Data;using System.Web.UI;
 using System.Web.UI.WebControls;
 
 namespace EDUCATION.COM.Exam.ExamSetting
 {
     public partial class Marks_Collect_Paper : System.Web.UI.Page
     {
+        private const int FixedColumnCount = 4;
+
+        protected bool HasMarksDistribution { get; private set; }
         protected void view()//Function for view dropdownlist
         {
             DataView GroupDV = new DataView();
@@ -58,6 +60,41 @@ namespace EDUCATION.COM.Exam.ExamSetting
 
                 ShiftDropDownList.Visible = false;
             }
+        }
+
+        protected void Page_PreRender(object sender, EventArgs e)
+        {
+            bool filtersSelected = SubjectDropDownList.SelectedIndex > 0
+                && ExamDropDownList.SelectedIndex > 0
+                && ClassDropDownList.SelectedIndex > 0;
+
+            HasMarksDistribution = filtersSelected && HasMarksDistributionForSelection();
+
+            NoMarksDistributionPanel.Visible = filtersSelected && !HasMarksDistribution;
+            GridPanel.Visible = HasMarksDistribution;
+
+            if (NoMarksDistributionPanel.Visible)
+            {
+                NoMarksDistributionLiteral.Text = string.Format(
+                    "<strong>Marks distribution not found.</strong>" +
+                    "Full marks have not been configured for <b>{0}</b>, Class <b>{1}</b>, Subject <b>{2}</b>. " +
+                    "Please go to <a href=\"Marks_Distribution.aspx\">Exam Setting &rarr; Marks Distribution</a>, " +
+                    "select the same exam and class, enter full marks for this subject, then click Submit before printing this paper.",
+                    ExamDropDownList.SelectedItem.Text,
+                    ClassDropDownList.SelectedItem.Text,
+                    SubjectDropDownList.SelectedItem.Text);
+            }
+
+            if (HasMarksDistribution)
+            {
+                RebuildMarkColumns();
+            }
+        }
+
+        private bool HasMarksDistributionForSelection()
+        {
+            DataView marksDv = (DataView)SubExamSQL.Select(DataSourceSelectArguments.Empty);
+            return marksDv != null && marksDv.Count > 0;
         }
 
         protected void ExamDropDownList_SelectedIndexChanged(object sender, EventArgs e)
@@ -138,12 +175,15 @@ namespace EDUCATION.COM.Exam.ExamSetting
 
         protected void SubjectDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int a = StudentsGridView.Columns.Count - 3;
-            for (int i = 0; i < a; i++)
-            {
-                StudentsGridView.Columns.RemoveAt(3);
-            }
+            RebuildMarkColumns();
+        }
 
+        private void RebuildMarkColumns()
+        {
+            while (StudentsGridView.Columns.Count > FixedColumnCount)
+            {
+                StudentsGridView.Columns.RemoveAt(FixedColumnCount);
+            }
 
             DataView SubExamDV = new DataView();
             SubExamDV = (DataView)SubExamSQL.Select(DataSourceSelectArguments.Empty);
@@ -154,11 +194,13 @@ namespace EDUCATION.COM.Exam.ExamSetting
                 {
                     BoundField Marks_BoundField = new BoundField();
 
-                    string Sub_Ex_Name = SubExamDV[i]["SubExamName"].ToString();
+                    string Sub_Ex_Name = SubExamDV[i]["SubExamName"] == DBNull.Value
+                        ? string.Empty
+                        : SubExamDV[i]["SubExamName"].ToString().Trim();
 
                     if (!string.IsNullOrEmpty(Sub_Ex_Name))
                     {
-                        Marks_BoundField.HeaderText = Sub_Ex_Name;
+                        Marks_BoundField.HeaderText = "Marks (" + Sub_Ex_Name + ")";
                     }
                     else
                     {
@@ -167,6 +209,12 @@ namespace EDUCATION.COM.Exam.ExamSetting
 
                     StudentsGridView.Columns.Add(Marks_BoundField);
                 }
+            }
+            else
+            {
+                BoundField Marks_BoundField = new BoundField();
+                Marks_BoundField.HeaderText = "Marks";
+                StudentsGridView.Columns.Add(Marks_BoundField);
             }
 
             BoundField Sign_BoundField = new BoundField();

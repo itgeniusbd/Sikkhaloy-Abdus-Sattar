@@ -30,15 +30,18 @@
                <EditItemTemplate>
                   <tr class="ExamListview_Edit">
                      <td>
-                        <asp:Button ID="UpdateButton" CssClass="btn btn-default btn-sm" runat="server" CommandName="Update" Text="Update" />
+                        <asp:Button ID="UpdateButton" CssClass="btn btn-default btn-sm" runat="server" CommandName="Update" Text="Update" ValidationGroup="EditSubExam" />
                         <asp:Button ID="CancelButton" CssClass="btn btn-default btn-sm" runat="server" CommandName="Cancel" Text="Cancel" />
                      </td>
 
                      <td>
                         <asp:TextBox ID="ExamNameTextBox" CssClass="form-control" runat="server" Text='<%# Bind("SubExamName") %>' />
+                        <asp:RequiredFieldValidator ID="ReqEditSubExamName" runat="server" ControlToValidate="ExamNameTextBox" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="EditSubExam" Display="Dynamic" />
                      </td>
                        <td>
                         <asp:TextBox ID="TextBox1" CssClass="form-control" runat="server" Text='<%# Bind("Sub_ExamSN") %>' />
+                        <asp:RequiredFieldValidator ID="ReqEditSubExamSN" runat="server" ControlToValidate="TextBox1" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="EditSubExam" Display="Dynamic" />
+                        <asp:RegularExpressionValidator ID="RevEditSubExamSN" runat="server" ControlToValidate="TextBox1" CssClass="EroorStar" ErrorMessage="Number only" ValidationExpression="^\d+$" ValidationGroup="EditSubExam" Display="Dynamic" />
                      </td>
                   </tr>
                </EditItemTemplate>
@@ -46,14 +49,17 @@
                <InsertItemTemplate>
                   <tr class="ExamListview_Insert">
                      <td>
-                        <asp:Button ID="InsertButton"  CssClass="btn btn-primary btn-sm" runat="server" CommandName="Insert" Text="Insert" />
+                        <asp:Button ID="InsertButton"  CssClass="btn btn-primary btn-sm" runat="server" CommandName="Insert" Text="Insert" ValidationGroup="InsertSubExam" />
                         <asp:Button ID="CancelButton" CssClass="btn btn-primary btn-sm" runat="server" CommandName="Cancel" Text="Clear"/>
                      </td>
                      <td>
-                        <asp:TextBox ID="ExamNameTextBox" placeholder="Sub-Exam" CssClass="form-control" runat="server" Text='<%# Bind("SubExamName") %>' />
+                        <asp:TextBox ID="ExamNameTextBox" placeholder="e.g. Written, MCQ" CssClass="form-control" runat="server" Text='<%# Bind("SubExamName") %>' />
+                        <asp:RequiredFieldValidator ID="ReqSubExamName" runat="server" ControlToValidate="ExamNameTextBox" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="InsertSubExam" Display="Dynamic" />
                      </td>
                         <td>
-                        <asp:TextBox ID="TextBox3" CssClass="form-control" placeholder="Serial No" runat="server" Text='<%# Bind("Sub_ExamSN") %>' />
+                        <asp:TextBox ID="TextBox3" CssClass="form-control" placeholder="e.g. 1" runat="server" Text='<%# Bind("Sub_ExamSN") %>' />
+                        <asp:RequiredFieldValidator ID="ReqSubExamSN" runat="server" ControlToValidate="TextBox3" CssClass="EroorStar" ErrorMessage="*" ValidationGroup="InsertSubExam" Display="Dynamic" />
+                        <asp:RegularExpressionValidator ID="RevSubExamSN" runat="server" ControlToValidate="TextBox3" CssClass="EroorStar" ErrorMessage="Number only" ValidationExpression="^\d+$" ValidationGroup="InsertSubExam" Display="Dynamic" />
                      </td>
                   </tr>
                </InsertItemTemplate>

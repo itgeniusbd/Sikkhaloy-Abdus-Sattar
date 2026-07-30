@@ -157,6 +157,21 @@ namespace EDUCATION.COM.Exam.ExamSetting {
         protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator7;
         
         /// <summary>
+        /// NoMarksDistributionPanel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Panel NoMarksDistributionPanel;
+
+        /// <summary>
+        /// NoMarksDistributionLiteral control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Literal NoMarksDistributionLiteral;
+
+        /// <summary>
+        /// GridPanel control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.Panel GridPanel;
+        
+        /// <summary>
         /// StudentsGridView control.
         /// </summary>
         /// <remarks>

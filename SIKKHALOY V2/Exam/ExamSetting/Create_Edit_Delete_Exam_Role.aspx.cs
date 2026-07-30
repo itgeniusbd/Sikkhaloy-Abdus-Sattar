@@ -19,11 +19,20 @@ namespace EDUCATION.COM.EXAM.ExamSetting
         protected void ExamRoleListView_ItemInserting(object sender, ListViewInsertEventArgs e)
         {
             TextBox ExamNameTextBox = (TextBox)e.Item.FindControl("ExamNameTextBox");
+            TextBox SerialNoTextBox = (TextBox)e.Item.FindControl("TextBox3");
 
-            if (ExamNameTextBox.Text == string.Empty)
+            if (ExamNameTextBox.Text.Trim() == string.Empty)
             {
                 e.Cancel = true;
-                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Enter Exam role name')", true);
+                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Enter Sub-Exam name (e.g. Written, MCQ)')", true);
+                return;
+            }
+
+            int serialNo;
+            if (!int.TryParse(SerialNoTextBox.Text.Trim(), out serialNo))
+            {
+                e.Cancel = true;
+                ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "alertMessage", "alert('Serial No must be a number (e.g. 1, 2, 3)')", true);
             }
         }
 
