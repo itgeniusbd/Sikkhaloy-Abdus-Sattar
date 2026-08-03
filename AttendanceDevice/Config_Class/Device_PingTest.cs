@@ -9,7 +9,7 @@ namespace AttendanceDevice.Config_Class
         // Default timeout if not configured
         private const int DefaultTimeout = 5000; // 5 seconds
 
-        public static async Task<bool> PingHostAsync(string nameOrAddress)
+        public static async Task<bool> PingHostAsync(string nameOrAddress, int? timeoutOverrideMs = null)
         {
             var pingAble = false;
 
@@ -17,8 +17,9 @@ namespace AttendanceDevice.Config_Class
             {
                 using (var ping = new Ping())
                 {
-                    // Use configured timeout or default
-                    var timeout = LocalData.Instance.institution?.PingTimeOut ?? DefaultTimeout;
+                    var timeout = timeoutOverrideMs
+                        ?? LocalData.Instance.institution?.PingTimeOut
+                        ?? DefaultTimeout;
 
                     // Ensure minimum timeout of 1000ms
                     if (timeout < 1000)

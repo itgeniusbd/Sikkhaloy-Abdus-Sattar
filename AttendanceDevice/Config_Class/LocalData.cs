@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 
@@ -31,6 +32,8 @@ namespace AttendanceDevice.Config_Class
                 {
                     User_Schedules = new List<User_Schedule>();
                 }
+
+                RebuildUserViewCache();
             }
         }
 
@@ -40,34 +43,61 @@ namespace AttendanceDevice.Config_Class
         public Institution institution { get; set; }
         public List<User> Users { get; set; } = new List<User>();
         public List<User_Schedule> User_Schedules { get; set; } = new List<User_Schedule>();
+
+        private List<Attendance_Schedule_Day> _schedulesCache;
+        private readonly Dictionary<int, UserView> _userViewByDeviceId = new Dictionary<int, UserView>();
+        private DateTime _lastNetworkBootstrapUtc = DateTime.MinValue;
+        private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1, 1);
+
+        public void InvalidateScheduleCache()
+        {
+            _schedulesCache = null;
+        }
+
+        public void RebuildUserViewCache()
+        {
+            _userViewByDeviceId.Clear();
+
+            if (!Users.Any())
+                return;
+
+            foreach (var u in Users)
+            {
+                if (u.DeviceID <= 0)
+                    continue;
+
+                _userViewByDeviceId[u.DeviceID] = new UserView
+                {
+                    DeviceID = u.DeviceID,
+                    ID = u.ID,
+                    RFID = u.RFID,
+                    Name = u.Name,
+                    Designation = u.Designation,
+                    ImgLink = UserPhotoHelper.ResolvePhotoUri(institution?.Image_Link, u.ID),
+                    Is_Student = u.Is_Student,
+                    ScheduleID = u.ScheduleID
+                };
+            }
+        }
+
         public List<UserView> UserViews
         {
             get
             {
-                if (Users.Any())
-                {
-                    return Users.Select(u => new UserView
-                    {
-                        DeviceID = u.DeviceID,
-                        ID = u.ID,
-                        RFID = u.RFID,
-                        Name = u.Name,
-                        Designation = u.Designation,
-                        ImgLink = UserPhotoHelper.ResolvePhotoUri(institution?.Image_Link, u.ID),
-                        Is_Student = u.Is_Student,
-                        ScheduleID = u.ScheduleID
-                    }).ToList();
-                }
-                else
-                {
-                    return new List<UserView>();
-                }
+                if (!_userViewByDeviceId.Any() && Users.Any())
+                    RebuildUserViewCache();
+
+                return _userViewByDeviceId.Values.ToList();
             }
-            private set => UserViews = value;
         }
+
         public UserView GetUserView(int deviceID)
         {
-            return this.UserViews.Where(u => u.DeviceID == deviceID).FirstOrDefault();
+            if (!_userViewByDeviceId.Any() && Users.Any())
+                RebuildUserViewCache();
+
+            _userViewByDeviceId.TryGetValue(deviceID, out var view);
+            return view;
         }
 
         // public List<Attendance_Schedule_Day> Schedules { get; set; } = new List<Attendance_Schedule_Day>();
@@ -251,12 +281,13 @@ namespace AttendanceDevice.Config_Class
 
         public List<Attendance_Schedule_Day> Schedules_Get()
         {
-            var schedules = new List<Attendance_Schedule_Day>();
+            if (_schedulesCache != null)
+                return _schedulesCache;
+
             using (var db = new ModelContext())
-            {
-                schedules = db.attendance_Schedule_Days.ToList();
-            }
-            return schedules;
+                _schedulesCache = db.attendance_Schedule_Days.ToList();
+
+            return _schedulesCache;
             //return Schedules.Select(a => new Attendance_Schedule_Day
             //{
             //    id = a.id,
@@ -322,7 +353,6 @@ namespace AttendanceDevice.Config_Class
         {
             const int earlyPreMinutes = 120;
 
-            RefreshUserSchedulesFromDb();
             EnsureUserScheduleAssignmentsFromUsers();
             var time = punchDateTime.TimeOfDay;
 
@@ -594,24 +624,59 @@ namespace AttendanceDevice.Config_Class
                 });
         }
 
-        public async Task EnsureScheduleBootstrapAsync()
+        public void EnsureScheduleDataForPunch()
+        {
+            RefreshUserSchedulesFromDb();
+            EnsureUserScheduleAssignmentsFromUsers();
+        }
+
+        public async Task EnsureScheduleBootstrapFromNetworkIfStaleAsync()
+        {
+            if (DateTime.UtcNow - _lastNetworkBootstrapUtc < PerformanceSettings.ScheduleBootstrapInterval)
+                return;
+
+            await EnsureScheduleBootstrapAsync(forceNetwork: true).ConfigureAwait(false);
+        }
+
+        public async Task EnsureScheduleBootstrapAsync(bool forceNetwork = false)
         {
             RefreshUserSchedulesFromDb();
 
             var ins = institution;
-            if (ins != null && !string.IsNullOrWhiteSpace(ins.Token))
+            if (ins == null || string.IsNullOrWhiteSpace(ins.Token))
+                return;
+
+            if (!forceNetwork &&
+                DateTime.UtcNow - _lastNetworkBootstrapUtc < PerformanceSettings.ScheduleBootstrapInterval)
             {
+                EnsureUserScheduleAssignmentsFromUsers();
+                return;
+            }
+
+            await _bootstrapLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (!forceNetwork &&
+                    DateTime.UtcNow - _lastNetworkBootstrapUtc < PerformanceSettings.ScheduleBootstrapInterval)
+                {
+                    EnsureUserScheduleAssignmentsFromUsers();
+                    return;
+                }
+
                 var client = new RestClient(ApiUrl.EndPoint);
                 var schoolId = GetEffectiveSchoolId();
 
                 if (!Schedules_Get().Any())
                     await ScheduleAssignmentSync.SyncScheduleDaysFromServerAsync(client, schoolId, ins.Token);
 
-                // Always pull latest multi-schedule assignments before resolving a punch.
                 await ScheduleAssignmentSync.SyncAssignmentsFromServerAsync(client, schoolId, ins.Token);
+                EnsureUserScheduleAssignmentsFromUsers();
+                _lastNetworkBootstrapUtc = DateTime.UtcNow;
             }
-
-            EnsureUserScheduleAssignmentsFromUsers();
+            finally
+            {
+                _bootstrapLock.Release();
+            }
         }
 
         public void ReconcileUserScheduleAssignments()
@@ -1434,6 +1499,8 @@ namespace AttendanceDevice.Config_Class
                 }
             }
 
+            InvalidateScheduleCache();
+
             var scheduleIds = data.Select(s => s.ScheduleID).Distinct().ToArray();
 
             using (var db = new ModelContext())
@@ -1496,6 +1563,7 @@ namespace AttendanceDevice.Config_Class
                 ApplyStudentFlagsFromUserSchedules(db);
                 await db.SaveChangesAsync();
                 Users = db.Users.ToList();
+                RebuildUserViewCache();
             }
         }
 
@@ -1521,6 +1589,8 @@ namespace AttendanceDevice.Config_Class
                 foreach (var row in db.attendance_Schedule_Days.Where(s => s.ScheduleID == scheduleId))
                     row.Is_Abs_Count = false;
             }
+
+            InvalidateScheduleCache();
         }
 
         private static bool DatesMatch(string left, string right)

@@ -33,12 +33,14 @@ namespace AttendanceDevice
         private bool _timerBusy;
         private bool _webViewNavigationReady;
         private bool _webViewIsNavigating;
-        private static readonly TimeSpan DisplaySyncInterval = TimeSpan.FromMinutes(2);
-        private static readonly TimeSpan ScheduleSyncInterval = TimeSpan.FromMinutes(5);
         private DateTime _lastScheduleSync = DateTime.MinValue;
+        private DateTime _lastAssignmentSync = DateTime.MinValue;
+        private DateTime _lastSchoolStatusSync = DateTime.MinValue;
         private bool _scheduleFilterUpdating;
         private bool _scheduleFilterApplyBusy;
         private DateTime _lastScheduleFilterApply = DateTime.MinValue;
+        private DateTime _lastWebViewRefresh = DateTime.MinValue;
+        private bool _displayDataDirty;
 
         private sealed class DisplayScheduleFilterItem
         {
@@ -82,22 +84,48 @@ namespace AttendanceDevice
             if (_syncTimerStarted) return;
 
             _syncTimerStarted = true;
-            _tmr.Interval = DisplaySyncInterval;
+            _tmr.Interval = PerformanceSettings.DisplaySyncInterval;
             RemoveClickEvent(_tmr);
             _tmr.Tick += Timer_Tick;
             _tmr.Start();
 
-            // First sync + reload as soon as the display page finishes loading.
-            _ = RunDisplaySyncCycleAsync(reloadAfterSync: true);
+            // First sync after page load — refresh sliders only if attendance data changed.
+            _ = RunDisplaySyncCycleAsync(reloadAfterSync: false);
         }
 
-        private void RefreshWebViewDisplay()
+        private void ApplySyncTimerInterval()
+        {
+            if (_tmr != null)
+                _tmr.Interval = PerformanceSettings.DisplaySyncInterval;
+        }
+
+        private async Task RefreshWebViewDisplayAsync(bool forceFullReload = false)
         {
             if (webView?.CoreWebView2 == null || _webViewIsNavigating || !_webViewNavigationReady)
                 return;
 
+            if (!forceFullReload && PerformanceSettings.PreferPartialWebViewRefresh)
+            {
+                try
+                {
+                    await webView.CoreWebView2.ExecuteScriptAsync(
+                        "if (typeof window.requestEmbedDisplayRefresh==='function') window.requestEmbedDisplayRefresh();");
+                    _lastWebViewRefresh = DateTime.Now;
+                    return;
+                }
+                catch
+                {
+                    // Fall back to full reload below.
+                }
+            }
+
             _webViewIsNavigating = true;
             webView.Reload();
+        }
+
+        private void RefreshWebViewDisplay()
+        {
+            _ = RefreshWebViewDisplayAsync(forceFullReload: false);
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -110,11 +138,15 @@ namespace AttendanceDevice
 
             BuildScheduleFilterPanelFromLocal(null);
 
-            var url = $"{ApiUrl.WebUrl}/Attendances/Online_Display/DeviceDisplay.aspx?SchoolID={schoolId}&embed=1";
+            var lowPower = PerformanceSettings.LowPowerMode ? "&lowPower=1" : string.Empty;
+            var marqueePerf =
+                $"&scroll={PerformanceSettings.MarqueeScrollAmount}&delay={PerformanceSettings.MarqueeScrollDelay}";
+            var url =
+                $"{ApiUrl.WebUrl}/Attendances/Online_Display/DeviceDisplay.aspx?SchoolID={schoolId}&embed=1{lowPower}{marqueePerf}";
             _webViewIsNavigating = true;
             webView.CoreWebView2.Navigate(url);
 
-            countDevice.Badge = _deviceDisplay.Total_Devices();
+            countDevice.Badge = await _deviceDisplay.Total_DevicesAsync();
             foreach (var device in _deviceDisplay.Devices)
             {
                 //Data Show context pass to the device class
@@ -125,6 +157,8 @@ namespace AttendanceDevice
 
             Closing += Window_Closing;
         }
+
+        private DateTime _lastWebViewLayoutNotify = DateTime.MinValue;
 
         private void InstitutionHeaderGrid_SizeChanged(object sender, SizeChangedEventArgs e)
         {
@@ -137,10 +171,18 @@ namespace AttendanceDevice
             if (webView?.CoreWebView2 == null || !_webViewNavigationReady)
                 return;
 
+            if (_lastWebViewLayoutNotify != DateTime.MinValue &&
+                DateTime.Now - _lastWebViewLayoutNotify < TimeSpan.FromMilliseconds(500))
+            {
+                return;
+            }
+
+            _lastWebViewLayoutNotify = DateTime.Now;
+
             try
             {
                 await webView.CoreWebView2.ExecuteScriptAsync(
-                    "if (window.fitEmbedSliderLayout) { window.fitEmbedSliderLayout(); }");
+                    "if (window.scheduleFitEmbedLayout) { window.scheduleFitEmbedLayout(); }");
             }
             catch
             {
@@ -232,7 +274,30 @@ namespace AttendanceDevice
 
         private async void Timer_Tick(object sender, EventArgs e)
         {
-            await RunDisplaySyncCycleAsync(reloadAfterSync: true);
+            await RunDisplaySyncCycleAsync(reloadAfterSync: false);
+        }
+
+        private bool ShouldRefreshWebViewDisplay()
+        {
+            if (!_displayDataDirty)
+                return false;
+
+            if (_lastWebViewRefresh != DateTime.MinValue &&
+                DateTime.Now - _lastWebViewRefresh < PerformanceSettings.WebViewRefreshMinInterval)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task RefreshWebViewDisplayIfNeededAsync()
+        {
+            if (!ShouldRefreshWebViewDisplay())
+                return;
+
+            _displayDataDirty = false;
+            await RefreshWebViewDisplayAsync(forceFullReload: false);
         }
 
         private async Task RunDisplaySyncCycleAsync(bool reloadAfterSync)
@@ -240,11 +305,13 @@ namespace AttendanceDevice
             if (_timerBusy)
                 return;
 
+            if (reloadAfterSync)
+                _displayDataDirty = true;
+
             _timerBusy = true;
-            var shouldReload = false;
             try
             {
-                var totalDeviceConnected = _deviceDisplay.Total_Devices();
+                var totalDeviceConnected = await _deviceDisplay.Total_DevicesAsync();
 
                 if (totalDeviceConnected == 0)
                 {
@@ -260,8 +327,13 @@ namespace AttendanceDevice
                 using (var db = new ModelContext())
                 {
                     LocalData.Instance.ArchiveExpiredAttendanceRecords();
-                    LocalData.Instance.FlagIncompleteRecordsForResync();
-                    LocalData.Instance.RepairTodayScheduleIdsForResync();
+
+                    var pendingCount = LocalData.Instance.GetPendingAttendanceCount();
+                    if (pendingCount > 0)
+                    {
+                        LocalData.Instance.FlagIncompleteRecordsForResync();
+                        LocalData.Instance.RepairTodayScheduleIdsForResync();
+                    }
 
                     var ins = LocalData.Instance.institution;
                     var client = new RestClient(ApiUrl.EndPoint);
@@ -270,7 +342,7 @@ namespace AttendanceDevice
                     if (ins != null && !string.IsNullOrWhiteSpace(ins.Token))
                     {
                         if (_lastScheduleSync == DateTime.MinValue ||
-                            DateTime.Now - _lastScheduleSync >= ScheduleSyncInterval)
+                            DateTime.Now - _lastScheduleSync >= PerformanceSettings.ScheduleDaysSyncInterval)
                         {
                             var schoolId = LocalData.Instance.GetEffectiveSchoolId();
                             await ScheduleAssignmentSync.SyncScheduleDaysFromServerAsync(client, schoolId, ins.Token);
@@ -278,14 +350,18 @@ namespace AttendanceDevice
                             await Dispatcher.InvokeAsync(() => BuildScheduleFilterPanelFromLocal(null));
                         }
 
-                        // Assignments refresh every sync cycle (multi-schedule must stay current).
+                        if (_lastAssignmentSync == DateTime.MinValue ||
+                            DateTime.Now - _lastAssignmentSync >= PerformanceSettings.AssignmentSyncInterval)
                         {
                             var schoolId = LocalData.Instance.GetEffectiveSchoolId();
                             await ScheduleAssignmentSync.SyncAssignmentsFromServerAsync(client, schoolId, ins.Token);
+                            _lastAssignmentSync = DateTime.Now;
                         }
                     }
 
-                    if (ins != null)
+                    if (ins != null &&
+                        (_lastSchoolStatusSync == DateTime.MinValue ||
+                         DateTime.Now - _lastSchoolStatusSync >= PerformanceSettings.SchoolStatusSyncInterval))
                     {
                         var schoolRequest = new RestRequest("api/school/{id}", Method.GET);
                         schoolRequest.AddUrlSegment("id", ins.UserName);
@@ -298,11 +374,17 @@ namespace AttendanceDevice
                                 await LocalData.Instance.ApplySchoolStatusFromApiAsync(schoolInfo);
                         }
 
+                        _lastSchoolStatusSync = DateTime.Now;
+                        ins = LocalData.Instance.institution;
+                    }
+                    else if (ins != null)
+                    {
                         ins = LocalData.Instance.institution;
                     }
 
                     var currentDateTime = DateTime.Now;
                     var currentDate = LocalData.Instance.GetAttendanceDateString();
+                    var attendanceChanged = false;
                     DeviceError.Text = "";
 
                     //Device Attendance Disabled
@@ -330,6 +412,7 @@ namespace AttendanceDevice
                         if (schScheduleIDs.Any())
                         {
                             LocalData.Instance.Abs_Insert(schScheduleIDs, currentDate, ins);
+                            attendanceChanged = true;
                         }
                     }
 
@@ -350,8 +433,6 @@ namespace AttendanceDevice
                     //check server ok
                     var server = await ApiUrl.IsServerUnavailable();
                     if (server) return;
-
-                    shouldReload = reloadAfterSync;
 
                     countRecord.Badge = LocalData.Instance.GetPendingAttendanceCount();
 
@@ -377,6 +458,7 @@ namespace AttendanceDevice
                             await MarkAttendanceRecordsAsync(db, synced, markSent: true, markUpdated: true);
 
                             DeviceError.Text = BuildPartialSyncMessage("Student", studentLog.Count, syncResult);
+                            attendanceChanged = true;
                         }
                         else if (AttendanceSyncResponseParser.TryGetStudentPostFailureMessage(
                             response, syncResult, out var failureMessage))
@@ -403,6 +485,7 @@ namespace AttendanceDevice
                         if (response.StatusCode == HttpStatusCode.OK)
                         {
                             await MarkAttendanceRecordsAsync(db, studentLogUpdate, markSent: false, markUpdated: true);
+                            attendanceChanged = true;
                         }
                         else
                         {
@@ -440,6 +523,7 @@ namespace AttendanceDevice
                             await MarkAttendanceRecordsAsync(db, synced, markSent: true, markUpdated: true);
 
                             DeviceError.Text = BuildPartialSyncMessage("Employee", empLog.Count, syncResult);
+                            attendanceChanged = true;
                         }
                         else if (AttendanceSyncResponseParser.TryGetEmployeePostFailureMessage(
                             response, syncResult, out var failureMessage))
@@ -465,10 +549,14 @@ namespace AttendanceDevice
                         if (response.StatusCode != HttpStatusCode.OK) return;
 
                         await MarkAttendanceRecordsAsync(db, empLogUpdate, markSent: false, markUpdated: true);
+                        attendanceChanged = true;
                     }
                     #endregion Employees Update
 
                     countRecord.Badge = LocalData.Instance.GetPendingAttendanceCount();
+
+                    if (attendanceChanged)
+                        _displayDataDirty = true;
                 }
             }
             catch (Exception exception)
@@ -478,9 +566,7 @@ namespace AttendanceDevice
             finally
             {
                 _timerBusy = false;
-
-                if (shouldReload)
-                    RefreshWebViewDisplay();
+                await RefreshWebViewDisplayIfNeededAsync();
             }
         }
 

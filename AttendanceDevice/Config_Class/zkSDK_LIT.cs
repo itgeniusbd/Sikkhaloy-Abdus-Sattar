@@ -17,7 +17,8 @@ namespace AttendanceDevice.Config_Class
         {
             var DuplicatePunchCountableMin = 10;
 
-            await LocalData.Instance.EnsureScheduleBootstrapAsync();
+            LocalData.Instance.EnsureScheduleDataForPunch();
+            await LocalData.Instance.EnsureScheduleBootstrapFromNetworkIfStaleAsync();
 
             using (var db = new ModelContext())
             {
@@ -237,8 +238,9 @@ namespace AttendanceDevice.Config_Class
 
                         }
 
-                        await db.SaveChangesAsync();
                     }
+
+                    await db.SaveChangesAsync();
                 }
 
                 //Device last update time record

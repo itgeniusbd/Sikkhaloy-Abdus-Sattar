@@ -39,9 +39,6 @@ namespace AttendanceDevice.Config_Class
         private DeviceReturn Returns { get; set; }
         public CZKEM axCZKEM1 { get; private set; }
 
-        private DispatcherTimer _dialogTimer = new DispatcherTimer();
-
-
         private void ShowLivePunch(UserView userView)
         {
             if (EnrollUserCard == null || userView == null)
@@ -93,7 +90,8 @@ namespace AttendanceDevice.Config_Class
 
                 ShowLivePunch(userView);
 
-                await LocalData.Instance.EnsureScheduleBootstrapAsync();
+                LocalData.Instance.EnsureScheduleDataForPunch();
+                _ = LocalData.Instance.EnsureScheduleBootstrapFromNetworkIfStaleAsync();
 
                 var isStuDisable = userView.Is_Student && !LocalData.Instance.institution.Is_Student_Attendance_Enable;
                 var isEmpDisable = !userView.Is_Student && !LocalData.Instance.institution.Is_Employee_Attendance_Enable;
@@ -571,13 +569,18 @@ namespace AttendanceDevice.Config_Class
             if (axCZKEM1 == null)
                 return false;
 
+            var connectStatus = -1;
+            axCZKEM1.GetConnectStatus(ref connectStatus);
+            if (connectStatus == 0)
+                return true;
+
             var pingCheck = Device_PingTest.PingHost(this.Device.DeviceIP);
+            if (!pingCheck)
+                return false;
 
-            if (!pingCheck) return false;
-
-            var a = -1;
-            axCZKEM1.GetConnectStatus(ref a);
-            return a == 0;
+            connectStatus = -1;
+            axCZKEM1.GetConnectStatus(ref connectStatus);
+            return connectStatus == 0;
         }
 
 
@@ -586,12 +589,18 @@ namespace AttendanceDevice.Config_Class
             if (axCZKEM1 == null)
                 return false;
 
-            var checkIp = await Device_PingTest.PingHostAsync(this.Device.DeviceIP);
-            if (!checkIp) return false;
+            var connectStatus = -1;
+            axCZKEM1.GetConnectStatus(ref connectStatus);
+            if (connectStatus == 0)
+                return true;
 
-            var dwErrorCode = -1;
-            axCZKEM1.GetConnectStatus(ref dwErrorCode);
-            return dwErrorCode == 0;
+            var checkIp = await Device_PingTest.PingHostAsync(this.Device.DeviceIP, 2000);
+            if (!checkIp)
+                return false;
+
+            connectStatus = -1;
+            axCZKEM1.GetConnectStatus(ref connectStatus);
+            return connectStatus == 0;
         }
 
         public string DeviceSerialNumber()

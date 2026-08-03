@@ -16,7 +16,7 @@
 
     <link href="/CSS/bootstrap/bootstrap.css" rel="stylesheet" />
 
-    <link href="CSS/device-display.css?v=3.13.0" rel="stylesheet" />
+    <link href="CSS/device-display.css?v=3.14.0" rel="stylesheet" />
 
 </head>
 
@@ -1084,8 +1084,20 @@ ORDER BY SortStart, Name">
 
         (function () {
             var isEmbed = /(?:^|[?&])embed=1(?:&|$)/.test(window.location.search);
+            var isLowPower = /(?:^|[?&])lowPower=1(?:&|$)/.test(window.location.search);
+            var scrollMatch = window.location.search.match(/[?&]scroll=(\d+)/i);
+            var delayMatch = window.location.search.match(/[?&]delay=(\d+)/i);
+            var marqueeScroll = scrollMatch ? parseInt(scrollMatch[1], 10) : (isLowPower ? 8 : 18);
+            var marqueeDelay = delayMatch ? parseInt(delayMatch[1], 10) : (isLowPower ? 100 : 40);
+            if (!marqueeScroll || marqueeScroll < 4) marqueeScroll = isLowPower ? 8 : 18;
+            if (isNaN(marqueeDelay) || marqueeDelay < 0) marqueeDelay = isLowPower ? 100 : 40;
+            var refreshBusy = false;
+            var refreshQueued = false;
             if (isEmbed) {
                 document.body.classList.add('embed-mode');
+            }
+            if (isLowPower) {
+                document.body.classList.add('low-power-mode');
             }
 
             function scheduleFilterStorageKey() {
@@ -1207,36 +1219,35 @@ ORDER BY SortStart, Name">
                 clearTimeout(fitLayoutTimer);
                 fitLayoutTimer = setTimeout(function () {
                     fitEmbedSliderLayout();
-                }, 50);
+                }, 250);
             }
 
             function initMarquee() {
                 destroyAllMarquees();
 
-                $('.slide-in').liMarquee({
+                var marqueeOptionsIn = {
                     direction: 'left',
                     loop: -1,
-                    scrolldelay: 0,
-                    scrollamount: 35,
+                    scrolldelay: marqueeDelay,
+                    scrollamount: marqueeScroll,
                     circular: true,
                     hoverStop: false,
                     drag: false
-                });
+                };
 
-                $('.slide-out').liMarquee({
+                var marqueeOptionsOut = {
                     direction: 'right',
                     loop: -1,
-                    scrolldelay: 0,
-                    scrollamount: 35,
+                    scrolldelay: marqueeDelay,
+                    scrollamount: marqueeScroll,
                     circular: true,
                     hoverStop: false,
                     drag: false
-                });
+                };
 
-                setTimeout(function () {
-                    fitEmbedSliderLayout();
-                    centerMarqueeSlides();
-                }, 50);
+                $('.slide-in').liMarquee(marqueeOptionsIn);
+                $('.slide-out').liMarquee(marqueeOptionsOut);
+
                 setTimeout(function () {
                     fitEmbedSliderLayout();
                     centerMarqueeSlides();
@@ -1295,6 +1306,57 @@ ORDER BY SortStart, Name">
             window.initMarquee = initMarquee;
             window.initScheduleFilterUI = initScheduleFilterUI;
             window.fitEmbedSliderLayout = fitEmbedSliderLayout;
+            window.scheduleFitEmbedLayout = scheduleFitEmbedLayout;
+
+            window.setLowPowerMode = function (enabled) {
+                isLowPower = !!enabled;
+                document.body.toggleClass('low-power-mode', isLowPower);
+                marqueeScroll = isLowPower ? 8 : 18;
+                marqueeDelay = isLowPower ? 100 : 40;
+                initMarquee();
+            };
+
+            window.requestEmbedDisplayRefresh = function () {
+                if (!isEmbed || refreshBusy) {
+                    refreshQueued = true;
+                    return;
+                }
+
+                refreshBusy = true;
+                refreshQueued = false;
+
+                var url = window.location.href.split('#')[0];
+                var filterIds = window.getScheduleFilterActiveIds();
+
+                fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+                    .then(function (response) { return response.text(); })
+                    .then(function (html) {
+                        var parser = new DOMParser();
+                        var doc = parser.parseFromString(html, 'text/html');
+                        var newShell = doc.querySelector('.display-shell');
+                        var oldShell = document.querySelector('.display-shell');
+                        if (!newShell || !oldShell) return;
+
+                        oldShell.innerHTML = newShell.innerHTML;
+                        initScheduleFilterUI();
+                        if (filterIds && filterIds.length) {
+                            window.setScheduleFilter(filterIds);
+                        } else {
+                            initMarquee();
+                        }
+                        scheduleFitEmbedLayout();
+                    })
+                    .catch(function () { })
+                    .then(function () {
+                        refreshBusy = false;
+                        if (refreshQueued) {
+                            refreshQueued = false;
+                            window.requestEmbedDisplayRefresh();
+                        }
+                    });
+            };
+
+            window.refreshEmbedDisplayData = window.requestEmbedDisplayRefresh;
 
             function resizeScheduleCards() {
                 $('.summary-column .schedule-cards').each(function () {
@@ -1319,6 +1381,13 @@ ORDER BY SortStart, Name">
                         new ResizeObserver(scheduleFitEmbedLayout).observe(shellEl);
                     }
                 }
+                document.addEventListener('visibilitychange', function () {
+                    if (document.hidden) {
+                        destroyAllMarquees();
+                    } else {
+                        initMarquee();
+                    }
+                });
                 if (!isEmbed) {
                     setInterval(function () {
                         window.location.reload();

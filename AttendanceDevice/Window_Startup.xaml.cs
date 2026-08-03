@@ -85,14 +85,14 @@ namespace AttendanceDevice
                 var deviceList = await LocalData.Instance.DeviceListAsync();
                 var deviceConnections = new List<DeviceConnection>();
 
-                foreach (var device in deviceList)
+                var pingResults = await Task.WhenAll(deviceList.Select(async device =>
                 {
-                    var checkIp = await Device_PingTest.PingHostAsync(device.DeviceIP);
-                    if (checkIp)
-                    {
-                        deviceConnections.Add(new DeviceConnection(device));
-                    }
-                }
+                    var checkIp = await Device_PingTest.PingHostAsync(device.DeviceIP, 2000);
+                    return checkIp ? device : null;
+                }));
+
+                foreach (var device in pingResults.Where(d => d != null))
+                    deviceConnections.Add(new DeviceConnection(device));
 
                 //check device ip
                 if (!deviceConnections.Any())

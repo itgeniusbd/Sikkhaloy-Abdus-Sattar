@@ -32,7 +32,7 @@ namespace AttendanceDevice
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             //Timer-setup
-            _tmr.Interval = new TimeSpan(0, 2, 0);
+            _tmr.Interval = PerformanceSettings.DisplaySyncInterval;
             _tmr.Tick += Timer_Tick;
             _tmr.Start();
             this.Closing += Window_Closing;

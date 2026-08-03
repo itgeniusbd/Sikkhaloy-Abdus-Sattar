@@ -87,6 +87,11 @@ WHERE (ScheduleID = 0 OR ScheduleID IS NULL)
             {
                 TryAddColumn(conn, tx, "Institution_Info", "ServerTodayDate TEXT");
             }
+
+            if (TableExists(conn, tx, "Institution_Info") && !ColumnExists(conn, tx, "Institution_Info", "Is_Low_Power_Mode"))
+            {
+                TryAddColumn(conn, tx, "Institution_Info", "Is_Low_Power_Mode INTEGER NOT NULL DEFAULT 0");
+            }
         }
 
         private static bool TableExists(SQLiteConnection conn, SQLiteTransaction tx, string tableName)
