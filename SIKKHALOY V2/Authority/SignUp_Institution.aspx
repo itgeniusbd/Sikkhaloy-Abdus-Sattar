@@ -1,7 +1,10 @@
 ﻿<%@ Page Title="Sign Up Institution" Language="C#" MasterPageFile="~/Basic_Authority.Master" AutoEventWireup="true" CodeBehind="SignUp_Institution.aspx.cs" Inherits="EDUCATION.COM.Authority.SignUp_Institution" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-
+    <style>
+        .ref-duration-list label { margin-right: 18px; font-weight: 500; cursor: pointer; }
+        .ref-duration-list input { margin-right: 5px; }
+    </style>
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
@@ -147,6 +150,29 @@
                                         <asp:TextBox ID="AddressTextBox" runat="server" CssClass="form-control"></asp:TextBox>
                                     </div>
                                     <div class="form-group">
+                                        <label>Referrer <small class="text-muted">(optional)</small></label>
+                                        <asp:DropDownList ID="ReferrerDropDownList" runat="server" CssClass="form-control"
+                                            AppendDataBoundItems="True">
+                                            <asp:ListItem Value="0">[ No Referrer ]</asp:ListItem>
+                                        </asp:DropDownList>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Referrer Commission %</label>
+                                        <asp:TextBox ID="ReferrerCommissionTextBox" runat="server" CssClass="form-control" placeholder="Ex: 10" Text="10"></asp:TextBox>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Referrer Duration <small class="text-muted">(from today → auto expiry)</small></label>
+                                        <asp:RadioButtonList ID="ReferrerDurationRadio" runat="server" RepeatDirection="Horizontal" CssClass="ref-duration-list">
+                                            <asp:ListItem Value="2" Selected="True">2 Years</asp:ListItem>
+                                            <asp:ListItem Value="3">3 Years</asp:ListItem>
+                                            <asp:ListItem Value="5">5 Years</asp:ListItem>
+                                        </asp:RadioButtonList>
+                                        <small class="text-info">
+                                            Expiry Date:
+                                            <asp:Label ID="ReferrerExpiryPreviewLabel" runat="server" Font-Bold="True"></asp:Label>
+                                        </small>
+                                    </div>
+                                    <div class="form-group">
                                         <label>Logo</label>
                                         <asp:FileUpload ID="LogoUpload" runat="server" />
                                     </div>
@@ -238,4 +264,33 @@
                 <asp:Button ID="StepNextButton" runat="server" CommandName="MoveNext" Text="Next" />
             </StepNavigationTemplate>
         </asp:CreateUserWizard>
+
+    <script type="text/javascript">
+        function updateReferrerExpiryPreview() {
+            var list = document.getElementById('<%= ReferrerDurationRadio.ClientID %>');
+            var preview = document.getElementById('<%= ReferrerExpiryPreviewLabel.ClientID %>');
+            if (!list || !preview) return;
+
+            var years = 2;
+            var inputs = list.getElementsByTagName('input');
+            for (var i = 0; i < inputs.length; i++) {
+                if (inputs[i].checked) {
+                    years = parseInt(inputs[i].value, 10) || 2;
+                    break;
+                }
+            }
+
+            var d = new Date();
+            d.setFullYear(d.getFullYear() + years);
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var day = ('0' + d.getDate()).slice(-2);
+            preview.innerHTML = day + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
+                + ' <span class="text-muted">(' + years + ' years from today)</span>';
+        }
+
+        $(function () {
+            updateReferrerExpiryPreview();
+            $(document).on('change', '#<%= ReferrerDurationRadio.ClientID %> input', updateReferrerExpiryPreview);
+        });
+    </script>
 </asp:Content>

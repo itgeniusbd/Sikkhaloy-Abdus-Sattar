@@ -16,7 +16,7 @@
 
     <link href="/CSS/bootstrap/bootstrap.css" rel="stylesheet" />
 
-    <link href="CSS/device-display.css?v=3.14.0" rel="stylesheet" />
+    <link href="CSS/device-display.css?v=3.17.0" rel="stylesheet" />
 
 </head>
 
@@ -78,6 +78,9 @@
 
         INNER JOIN Student s ON ass.StudentID = s.StudentID
 
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
+
         WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID AND s.Status = N'Active') AS Total_User,
 
        (SELECT COUNT(*)
@@ -85,6 +88,8 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
         WHERE ar.SchoolID = @SchoolID
 
           AND ar.AttendanceDate = CONVERT(date, GETDATE())
@@ -102,6 +107,8 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
         WHERE ar.SchoolID = @SchoolID
 
           AND ar.AttendanceDate = CONVERT(date, GETDATE())
@@ -117,6 +124,8 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
         WHERE ar.SchoolID = @SchoolID
 
           AND ar.AttendanceDate = CONVERT(date, GETDATE())
@@ -130,6 +139,8 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
         WHERE ar.SchoolID = @SchoolID
 
           AND ar.AttendanceDate = CONVERT(date, GETDATE())
@@ -143,6 +154,8 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
         WHERE ar.SchoolID = @SchoolID
 
           AND ar.AttendanceDate = CONVERT(date, GETDATE())
@@ -156,6 +169,8 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
         WHERE ar.SchoolID = @SchoolID
 
           AND ar.AttendanceDate = CONVERT(date, GETDATE())
@@ -167,6 +182,8 @@
        (SELECT COUNT(DISTINCT ass.StudentID)
         FROM Attendance_Schedule_AssignStudent ass
         INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
+          AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
         WHERE ass.SchoolID = @SchoolID
           AND ass.ScheduleID = sch.ScheduleID
           AND CAST(GETDATE() AS time) > sd.LateEntryTime
@@ -200,6 +217,11 @@ WHERE sch.SchoolID = @SchoolID
       SELECT 1
 
       FROM Attendance_Schedule_AssignStudent ass
+
+      INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
+
+      INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
+        AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
 
       WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID
 
@@ -484,6 +506,9 @@ FROM Attendance_Record ar
 
 INNER JOIN Student s ON ar.StudentID = s.StudentID AND s.Status = N'Active'
 
+INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+  AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
+
 LEFT JOIN Attendance_Schedule schInfo
     ON schInfo.SchoolID = ar.SchoolID
    AND schInfo.ScheduleID = ar.Attendance_ScheduleID
@@ -641,6 +666,9 @@ FROM Attendance_Record ar
 
 INNER JOIN Student s ON ar.StudentID = s.StudentID AND s.Status = N'Active'
 
+INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
+  AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
+
 LEFT JOIN Attendance_Schedule schInfo
     ON schInfo.SchoolID = ar.SchoolID
    AND schInfo.ScheduleID = ar.Attendance_ScheduleID
@@ -679,6 +707,9 @@ SELECT ass.StudentID,
 FROM Attendance_Schedule_AssignStudent ass
 
 INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
+
+INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
+  AND scEy.EducationYearID = COALESCE((SELECT TOP 1 scPick.EducationYearID FROM Attendance_Schedule_AssignStudent assPick INNER JOIN Student sPick ON assPick.StudentID = sPick.StudentID AND sPick.Status = N'Active' INNER JOIN StudentsClass scPick ON scPick.StudentID = sPick.StudentID AND scPick.SchoolID = assPick.SchoolID WHERE assPick.SchoolID = @SchoolID GROUP BY scPick.EducationYearID ORDER BY COUNT(DISTINCT assPick.StudentID) DESC, scPick.EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID AND Status = N'True' ORDER BY SN DESC, EducationYearID DESC), (SELECT TOP 1 EducationYearID FROM Education_Year WHERE SchoolID = @SchoolID ORDER BY SN DESC, EducationYearID DESC))
 
 INNER JOIN Attendance_Schedule sch
     ON sch.ScheduleID = ass.ScheduleID AND sch.SchoolID = ass.SchoolID
@@ -1131,7 +1162,9 @@ ORDER BY SortStart, Name">
 
             window.setScheduleFilter = function (activeIds) {
                 if (!Array.isArray(activeIds)) activeIds = [];
-                localStorage.setItem(scheduleFilterStorageKey(), JSON.stringify(activeIds));
+                if (!isEmbed) {
+                    localStorage.setItem(scheduleFilterStorageKey(), JSON.stringify(activeIds));
+                }
                 applyScheduleFilter(activeIds);
                 clearTimeout(window.__marqueeRefreshTimer);
                 window.__marqueeRefreshTimer = setTimeout(function () {
@@ -1141,10 +1174,15 @@ ORDER BY SortStart, Name">
             };
 
             function applyScheduleFilter(activeIds) {
-                var activeSet = {};
-                if (Array.isArray(activeIds)) {
-                    activeIds.forEach(function (id) { activeSet[String(id)] = true; });
+                if (!Array.isArray(activeIds) || !activeIds.length) {
+                    $('.summary-column .schedule-card[data-schedule-id], .info-block[data-schedule-id]')
+                        .removeClass('filter-hidden');
+                    resizeScheduleCards();
+                    return;
                 }
+
+                var activeSet = {};
+                activeIds.forEach(function (id) { activeSet[String(id)] = true; });
 
                 $('.summary-column .schedule-card[data-schedule-id], .info-block[data-schedule-id]').each(function () {
                     var id = String($(this).attr('data-schedule-id') || '');
@@ -1256,13 +1294,7 @@ ORDER BY SortStart, Name">
 
             function initScheduleFilterUI() {
                 if ($('body').hasClass('embed-mode')) {
-                    var stored = window.getScheduleFilterActiveIds();
-                    var schedules = window.getDisplaySchedules();
-                    if (!stored) {
-                        applyScheduleFilter(schedules.map(function (s) { return s.id; }));
-                    } else {
-                        applyScheduleFilter(stored);
-                    }
+                    // Embed display: WPF host owns schedule filter state.
                     return;
                 }
 
@@ -1326,7 +1358,6 @@ ORDER BY SortStart, Name">
                 refreshQueued = false;
 
                 var url = window.location.href.split('#')[0];
-                var filterIds = window.getScheduleFilterActiveIds();
 
                 fetch(url, { cache: 'no-store', credentials: 'same-origin' })
                     .then(function (response) { return response.text(); })
@@ -1339,11 +1370,11 @@ ORDER BY SortStart, Name">
 
                         oldShell.innerHTML = newShell.innerHTML;
                         initScheduleFilterUI();
-                        if (filterIds && filterIds.length) {
-                            window.setScheduleFilter(filterIds);
-                        } else {
-                            initMarquee();
+                        var schedules = window.getDisplaySchedules();
+                        if (schedules.length) {
+                            applyScheduleFilter(schedules.map(function (s) { return s.id; }));
                         }
+                        initMarquee();
                         scheduleFitEmbedLayout();
                     })
                     .catch(function () { })
@@ -1372,6 +1403,12 @@ ORDER BY SortStart, Name">
 
             $(function () {
                 initScheduleFilterUI();
+                if (isEmbed) {
+                    var schedules = window.getDisplaySchedules();
+                    if (schedules.length) {
+                        applyScheduleFilter(schedules.map(function (s) { return s.id; }));
+                    }
+                }
                 initMarquee();
                 scheduleFitEmbedLayout();
                 $(window).on('resize.fitEmbedLayout', scheduleFitEmbedLayout);

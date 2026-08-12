@@ -141,7 +141,7 @@ namespace EDUCATION.COM.ATTENDANCES
                 studentDisplayID, classInfo, leaveLabel, leaveNo, ad, sd, ed, at, leaveDays, description, ad, guardianLabel,
                 "শিক্ষার্থীর কপি", approverName));
             sb.Append("<div class=\"scissor-divider\">&#9988; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>");
-            sb.Append(OfficeSection(studentName, fathersName, studentDisplayID, leaveNo, sd, ed, leaveDays));
+            sb.Append(OfficeSection(studentName, fathersName, studentDisplayID, classInfo, leaveNo, sd, ed, leaveDays, leaveLabel, approverName));
             sb.Append("</div>");
             return sb.ToString();
         }
@@ -214,8 +214,8 @@ namespace EDUCATION.COM.ATTENDANCES
             return sb.ToString();
         }
 
-        private string OfficeSection(string stuN, string fatN, string stuID,
-            int leaveNo, string sd, string ed, int days)
+        private string OfficeSection(string stuN, string fatN, string stuID, string cls,
+            int leaveNo, string sd, string ed, int days, string leaveType, string approverName)
         {
             var sb = new StringBuilder();
             sb.Append("<div class=\"gp-office\">");
@@ -225,10 +225,12 @@ namespace EDUCATION.COM.ATTENDANCES
             sb.Append("<div class=\"gp-info-col\">");
             sb.Append(IR("নাম", Encode(stuN)));
             sb.Append(IR("পিতা", Encode(fatN)));
+            sb.Append(IR("শ্রেণি", Encode(cls)));
             sb.Append("</div>");
             sb.Append("<div class=\"gp-info-col\">");
             sb.Append(IR("পাস নং", leaveNo.ToString()));
             sb.Append(IR("আইডি", Encode(stuID)));
+            sb.Append(IR("ছুটির ধরণ", leaveType));
             sb.Append("</div>");
             sb.Append("</div>");
             sb.Append("<table class=\"gp-office-table\"><tbody><tr>");
@@ -236,7 +238,13 @@ namespace EDUCATION.COM.ATTENDANCES
             sb.AppendFormat("<td> &nbsp; <strong>{0}</strong> পর্যন্ত</td>", ed);
             sb.AppendFormat("<td><strong>{0}</strong> দিন</td>", days);
             sb.Append("</tr></tbody></table>");
-            sb.Append("<div class=\"gp-sign-row\">অভিভাবকের স্বাক্ষর :</div>");
+            sb.Append("<div class=\"gp-sign-row\">");
+            sb.Append("<span class=\"sign-left\">অভিভাবকের স্বাক্ষর :</span>");
+            if (!string.IsNullOrWhiteSpace(approverName))
+                sb.AppendFormat("<span class=\"sign-right\"><strong>অনুমতি দাতা :</strong> {0}</span>", Encode(approverName));
+            else
+                sb.Append("<span class=\"sign-right\">&nbsp;</span>");
+            sb.Append("</div>");
             sb.Append("</div></div>");
             return sb.ToString();
         }

@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
 using System.Web.UI.WebControls;
+using Education;
 
 namespace EDUCATION.COM.ATTENDANCES
 {
@@ -12,11 +13,21 @@ namespace EDUCATION.COM.ATTENDANCES
         {
             if (!IsPostBack)
             {
+                BindLeaveTypeDropdown();
                 // Default: current month start to today
                 FromDateTextBox.Text = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("d MMM yyyy");
                 ToDateTextBox.Text   = DateTime.Now.ToString("d MMM yyyy");
                 LoadLeaveData();
             }
+        }
+
+        private void BindLeaveTypeDropdown()
+        {
+            int schoolId = 0;
+            if (Session["SchoolID"] != null)
+                int.TryParse(Session["SchoolID"].ToString(), out schoolId);
+
+            new LeaveType_Helper().BindDropDownList(EditLeaveTypeDropDownList, schoolId);
         }
 
         protected void FilterButton_Click(object sender, EventArgs e)

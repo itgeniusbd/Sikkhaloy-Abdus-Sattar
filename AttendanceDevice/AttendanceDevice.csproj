@@ -189,6 +189,7 @@
     <Compile Include="Config_Class\AttendanceRecordMapper.cs" />
     <Compile Include="Config_Class\AppPaths.cs" />
     <Compile Include="Config_Class\PerformanceSettings.cs" />
+    <Compile Include="Config_Class\StartupHelper.cs" />
     <Compile Include="Config_Class\LocalInstallGuard.cs" />
     <Compile Include="Config_Class\InstitutionNameFontHelper.cs" />
     <Compile Include="Config_Class\ScheduleDisplayHelper.cs" />

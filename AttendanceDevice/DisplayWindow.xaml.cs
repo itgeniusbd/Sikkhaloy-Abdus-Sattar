@@ -110,6 +110,8 @@ namespace AttendanceDevice
                 {
                     await webView.CoreWebView2.ExecuteScriptAsync(
                         "if (typeof window.requestEmbedDisplayRefresh==='function') window.requestEmbedDisplayRefresh();");
+                    await Task.Delay(500);
+                    await ApplyWebScheduleFilterAsync();
                     _lastWebViewRefresh = DateTime.Now;
                     return;
                 }
@@ -673,7 +675,14 @@ namespace AttendanceDevice
                 if (activeIdsOverride != null)
                     activeIds = activeIdsOverride;
                 else if (existingChecks.Any())
+                {
                     activeIds = new HashSet<int>(existingChecks.Where(p => p.Value).Select(p => p.Key));
+                    foreach (var schedule in schedules)
+                    {
+                        if (!existingChecks.ContainsKey(schedule.id))
+                            activeIds.Add(schedule.id);
+                    }
+                }
                 else
                     activeIds = new HashSet<int>(schedules.Select(s => s.id));
 
@@ -712,18 +721,8 @@ namespace AttendanceDevice
                 var schedules = ParseScriptJsonArray<DisplayScheduleFilterItem>(schedulesJson);
                 if (schedules.Count > 0)
                 {
-                    HashSet<int> activeIds = null;
-                    var activeJson = await webView.CoreWebView2.ExecuteScriptAsync(
-                        "JSON.stringify(typeof window.getScheduleFilterActiveIds==='function'?window.getScheduleFilterActiveIds():null)");
-                    var activeInner = JsonConvert.DeserializeObject<string>(activeJson);
-                    if (!string.IsNullOrWhiteSpace(activeInner) && !string.Equals(activeInner, "null", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var ids = JsonConvert.DeserializeObject<List<int>>(activeInner);
-                        if (ids != null)
-                            activeIds = new HashSet<int>(ids);
-                    }
-
-                    RenderScheduleFilterPanel(schedules, activeIds);
+                    RenderScheduleFilterPanel(schedules, null);
+                    await ApplyWebScheduleFilterAsync();
                 }
             }
             catch

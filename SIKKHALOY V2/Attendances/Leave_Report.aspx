@@ -195,7 +195,7 @@
                         <ItemTemplate>
                             <button type="button" class="btn-act btn-reprint NoPrint"
                                 title="রি-প্রিন্ট"
-                                onclick="window.open('Leave_Print.aspx?lid=<%# Eval("LeaveID") %>','_blank')">
+                                onclick="window.open('Leave_Print.aspx?lid=<%# Eval("LeaveID") %>&from=report','_blank')">
                                 🖨️
                             </button>
                             <button type="button" class="btn-act btn-edit NoPrint"
@@ -246,17 +246,8 @@
                 <div class="edit-row">
                     <div class="lf-group">
                         <label>ছুটির ধরণ</label>
-                        <select id="editLeaveType" class="form-control">
-                            <option>অসুস্থতার জন্য</option>
-                            <option>ব্যাক্তিগত কারনে</option>
-                            <option>ফ্যামেলি প্রয়োজনে</option>
-                            <option>মেডিক্যাল</option>
-                            <option>Medical</option>
-                            <option>সাময়িক</option>
-                            <option>সাপ্তাহিক</option>
-                            <option>মাসিক</option>
-                            <option>অন্যান্ন</option>
-                        </select>
+                        <asp:DropDownList ID="EditLeaveTypeDropDownList" runat="server" CssClass="form-control">
+                        </asp:DropDownList>
                     </div>
                     <div class="lf-group">
                         <label>অভিভাবকের নাম</label>
@@ -317,9 +308,11 @@
         document.getElementById('editEndDate').value    = end;
         document.getElementById('editGuardian').value   = guardian;
         document.getElementById('editDesc').value       = desc;
-        var sel = document.getElementById('editLeaveType');
-        for (var i = 0; i < sel.options.length; i++) {
-            if (sel.options[i].value === type) { sel.selectedIndex = i; break; }
+        var sel = document.getElementById('<%= EditLeaveTypeDropDownList.ClientID %>');
+        if (sel) {
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === type) { sel.selectedIndex = i; break; }
+            }
         }
         document.getElementById('editModal').style.display = 'flex';
     }
@@ -329,7 +322,7 @@
         $('[id$=hfAction]').val('Edit');
         $('[id$=hfStartDate]').val(document.getElementById('editStartDate').value);
         $('[id$=hfEndDate]').val(document.getElementById('editEndDate').value);
-        $('[id$=hfLeaveType]').val(document.getElementById('editLeaveType').value);
+        $('[id$=hfLeaveType]').val(document.getElementById('<%= EditLeaveTypeDropDownList.ClientID %>').value);
         $('[id$=hfGuardianName]').val(document.getElementById('editGuardian').value);
         $('[id$=hfDescription]').val(document.getElementById('editDesc').value);
         document.getElementById('editModal').style.display = 'none';

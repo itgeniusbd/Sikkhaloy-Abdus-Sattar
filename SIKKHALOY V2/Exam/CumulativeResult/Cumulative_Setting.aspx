@@ -242,7 +242,7 @@ WHERE        (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND
                             </asp:SqlDataSource>
                             <asp:SqlDataSource ID="Exam_Publish_SettingSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" DeleteCommand="DELETE FROM Exam_Cumulative_Setting
 WHERE  (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ClassID = @ClassID) AND (CumulativeNameID = @CumulativeNameID)"
-                                InsertCommand="INSERT INTO Exam_Cumulative_Setting(CumulativeNameID, SchoolID, RegistrationID, EducationYearID, ClassID, IS_Fail_Enable_Optional_Subject, IS_Add_Optional_Mark_In_FullMarks, IS_Enable_Grade_as_it_is_if_Fail, Optional_Percentage_Deduction, Exam_Position_Format, IS_Hide_SubExam, IS_Hide_Sec_Position,IS_Hide_Class_Position, Attendance_FromDate, Attendance_ToDate, GradeNameID,IS_Grade_BasePoint) VALUES (@CumulativeNameID, @SchoolID, @RegistrationID, @EducationYearID, @ClassID, @IS_Fail_Enable_Optional_Subject, @IS_Add_Optional_Mark_In_FullMarks, @IS_Enable_Grade_as_it_is_if_Fail, @Optional_Percentage_Deduction, @Exam_Position_Format, @IS_Hide_SubExam, @IS_Hide_Sec_Position,@IS_Hide_Class_Position, @Attendance_FromDate, @Attendance_ToDate, @GradeNameID,@IS_Grade_BasePoint)
+                                InsertCommand="INSERT INTO Exam_Cumulative_Setting(CumulativeNameID, SchoolID, RegistrationID, EducationYearID, ClassID, IS_Fail_Enable_Optional_Subject, IS_Add_Optional_Mark_In_FullMarks, IS_Enable_Grade_as_it_is_if_Fail, Optional_Percentage_Deduction, Exam_Position_Format, IS_Hide_SubExam, IS_Hide_Sec_Position,IS_Hide_Class_Position, Attendance_FromDate, Attendance_ToDate, Attendance_ScheduleID, GradeNameID,IS_Grade_BasePoint) VALUES (@CumulativeNameID, @SchoolID, @RegistrationID, @EducationYearID, @ClassID, @IS_Fail_Enable_Optional_Subject, @IS_Add_Optional_Mark_In_FullMarks, @IS_Enable_Grade_as_it_is_if_Fail, @Optional_Percentage_Deduction, @Exam_Position_Format, @IS_Hide_SubExam, @IS_Hide_Sec_Position,@IS_Hide_Class_Position, @Attendance_FromDate, @Attendance_ToDate, @Attendance_ScheduleID, @GradeNameID,@IS_Grade_BasePoint)
 SET @Cumulative_SettingID = scope_identity()"
                                 OnInserted="Exam_Publish_SettingSQL_Inserted" SelectCommand="SELECT * FROM Exam_Cumulative_Setting WHERE (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ClassID = @ClassID) AND (CumulativeNameID = @CumulativeNameID)">
                                 <DeleteParameters>
@@ -267,6 +267,7 @@ SET @Cumulative_SettingID = scope_identity()"
                                     <asp:ControlParameter ControlID="ClassPositionCheckBox" Name="IS_Hide_Class_Position" PropertyName="Checked" />
                                     <asp:ControlParameter ControlID="FromDateTextBox" Name="Attendance_FromDate" PropertyName="Text" />
                                     <asp:ControlParameter ControlID="ToDateTextBox" Name="Attendance_ToDate" PropertyName="Text" />
+                                    <asp:ControlParameter ControlID="ScheduleDropDownList" Name="Attendance_ScheduleID" PropertyName="SelectedValue" DefaultValue="0" />
                                     <asp:ControlParameter ControlID="Grading_System_DropDownList" Name="GradeNameID" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="GradeSetting_RBList" Name="IS_Grade_BasePoint" PropertyName="SelectedValue" />
                                     <asp:Parameter Direction="Output" Name="Cumulative_SettingID" Size="50" />
@@ -280,7 +281,7 @@ SET @Cumulative_SettingID = scope_identity()"
                             </asp:SqlDataSource>
                             <asp:SqlDataSource ID="Exam_PS_SQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="EXEC [dbo].[SP_Cumulative_Exam_Student] @SchoolID,@RegistrationID,@EducationYearID,@ClassID,@CumulativeNameID,@Cumulative_SettingID
 EXEC [dbo].[SP_Cumulative_HighestMark_Position]@SchoolID,@EducationYearID,@ClassID,@CumulativeNameID,@Exam_Position_Format 
-EXEC [dbo].[SP_Cumulative_Attendance] @SchoolID,@EducationYearID,@ClassID,@CumulativeNameID,@RegistrationID,@From_Date,@To_Date"
+EXEC [dbo].[SP_Cumulative_Attendance] @SchoolID,@EducationYearID,@ClassID,@CumulativeNameID,@RegistrationID,@From_Date,@To_Date,@ScheduleID"
                                 SelectCommand="SELECT * FROM [Exam_Cumulative_Name]">
                                 <InsertParameters>
                                     <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
@@ -292,6 +293,7 @@ EXEC [dbo].[SP_Cumulative_Attendance] @SchoolID,@EducationYearID,@ClassID,@Cumul
                                     <asp:ControlParameter ControlID="Position_RadioButtonList" Name="Exam_Position_Format" PropertyName="SelectedValue" />
                                     <asp:ControlParameter ControlID="FromDateTextBox" Name="From_Date" PropertyName="Text" />
                                     <asp:ControlParameter ControlID="ToDateTextBox" Name="To_Date" PropertyName="Text" />
+                                    <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" DefaultValue="0" />
                                 </InsertParameters>
                             </asp:SqlDataSource>
                             <asp:SqlDataSource ID="Sub_Add_ExamSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="SP_Cumulative_Exam_Subject" InsertCommandType="StoredProcedure" SelectCommand="SELECT DISTINCT SubjectID, IS_Add_InExam FROM Exam_Cumulative_Subject WHERE (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (CumulativeNameID = @CumulativeNameID) AND (ClassID = @ClassID)" UpdateCommand="UPDATE       Exam_Cumulative_Subject
@@ -332,10 +334,21 @@ WHERE        (CumulativeNameID = @CumulativeNameID) AND (SchoolID = @SchoolID) A
                         <div class="md-form mr-2">
                             <asp:TextBox ID="FromDateTextBox" onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" placeholder="From Date" runat="server" CssClass="form-control Datetime"></asp:TextBox>
                         </div>
-                        <div class="md-form">
+                        <div class="md-form mr-2">
                             <asp:TextBox ID="ToDateTextBox" onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" placeholder="To Date" runat="server" CssClass="form-control Datetime"></asp:TextBox>
                         </div>
+                        <div class="md-form">
+                            <asp:DropDownList ID="ScheduleDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID">
+                                <asp:ListItem Value="0">[ ALL SCHEDULE ]</asp:ListItem>
+                            </asp:DropDownList>
+                            <asp:SqlDataSource ID="ScheduleSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ScheduleID, ScheduleName FROM Attendance_Schedule WHERE (SchoolID = @SchoolID) ORDER BY ScheduleName">
+                                <SelectParameters>
+                                    <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                                </SelectParameters>
+                            </asp:SqlDataSource>
+                        </div>
                     </div>
+                    <p class="Help text-muted mt-2 mb-0">Multi-schedule থাকলে নির্দিষ্ট schedule সিলেক্ট করুন। [ ALL SCHEDULE ] দিলে সব schedule-এর হাজিরা একসাথে যোগ হবে।</p>
                 </div>
             </div>
 

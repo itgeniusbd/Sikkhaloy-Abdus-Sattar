@@ -41,6 +41,14 @@ namespace AttendanceDevice.Config_Class
 
         public static bool PreferPartialWebViewRefresh => true;
 
+        public static int ApiRequestTimeoutMs => LowPowerMode ? 25000 : 20000;
+
+        public static int StartupDeviceConnectTimeoutMs => LowPowerMode ? 12000 : 10000;
+
+        public static int StartupScheduleFetchTimeoutSeconds => LowPowerMode ? 25 : 20;
+
+        public static int StartupNetworkProbeTimeoutSeconds => 5;
+
         public static async Task SetLowPowerModeAsync(bool enabled)
         {
             using (var db = new ModelContext())

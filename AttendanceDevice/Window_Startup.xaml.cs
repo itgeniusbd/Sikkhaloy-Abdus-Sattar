@@ -107,16 +107,10 @@ namespace AttendanceDevice
                 }
 
                 //try connection to device successfully & Device data send to server
-                var isDeviceConnected = false;
-                foreach (var device in deviceConnections)
-                {
-                    var status = await Task.Run(() => device.ConnectDevice());
-                    if (!status.IsSuccess) continue;
-
-                    isDeviceConnected = true;
-                }
-
-
+                StartupLogger.LogStage($"{stagePrefix}: device connect");
+                var connectResults = await Task.WhenAll(
+                    deviceConnections.Select(StartupHelper.ConnectDeviceWithTimeoutAsync));
+                var isDeviceConnected = connectResults.Any(r => r.IsSuccess);
                 if (!isDeviceConnected)
                 {
                     LocalData.Current_Error.Message = "Device Unable to Connect";
@@ -148,11 +142,11 @@ namespace AttendanceDevice
 
                 StartupLogger.LogStage($"{stagePrefix}: token request");
                 //get user token
-                var client = new RestClient(ApiUrl.EndPoint);
+                var client = ApiRequestHelper.CreateClient();
                 var loginRequest = ApiLoginHelper.CreateTokenRequest(ins.UserName, ins.Password);
 
                 //Login execute the request
-                var loginResponse = await client.ExecuteTaskAsync(loginRequest);
+                var loginResponse = await ApiRequestHelper.ExecuteAsync(client, loginRequest);
 
                 //API call for token
                 if (loginResponse.StatusCode != HttpStatusCode.OK)
@@ -186,7 +180,7 @@ namespace AttendanceDevice
 
 
                 //School info execute the request
-                var schoolResponse = await client.ExecuteTaskAsync(schoolRequest); //response.data not work because of logo image data
+                var schoolResponse = await ApiRequestHelper.ExecuteAsync(client, schoolRequest); //response.data not work because of logo image data
 
                 if (schoolResponse.StatusCode != HttpStatusCode.OK)
                 {
@@ -245,12 +239,18 @@ namespace AttendanceDevice
                 leaveRequest.AddUrlSegment("id", ins.SchoolID);
                 leaveRequest.AddHeader("Authorization", "Bearer " + token);
                 //Leave execute the request
-                var leaveResponse = await client.ExecuteTaskAsync(leaveRequest);
+                var leaveResponse = await ApiRequestHelper.ExecuteAsync(client, leaveRequest);
 
                 if (leaveResponse.StatusCode == HttpStatusCode.OK)
                 {
                     var leaveRecords = ApiResponseHelper.ParseLeaveRecords(ApiResponseHelper.ReadContent(leaveResponse));
                     await LocalData.Instance.LeaveDataHandling(leaveRecords);
+                }
+                else if (leaveResponse.ResponseStatus == ResponseStatus.TimedOut ||
+                         leaveResponse.ResponseStatus == ResponseStatus.Error)
+                {
+                    StartupLogger.LogStage(
+                        $"{stagePrefix}: leave sync skipped ({leaveResponse.ResponseStatus})");
                 }
                 else
                 {
@@ -285,10 +285,6 @@ namespace AttendanceDevice
 
                 StartupLogger.LogStage($"{stagePrefix}: schedule sync done");
 
-                LocalData.Instance.EnsureUserScheduleAssignmentsFromUsers();
-                LocalData.Instance.ArchiveExpiredAttendanceRecords();
-                LocalData.Instance.RepairTodayScheduleIdsForResync();
-
                 if (scheduleResult.UserScheduleMismatch)
                 {
                     LocalData.Current_Error.Message =
@@ -307,6 +303,7 @@ namespace AttendanceDevice
                 ins.LastUpdateDate = schoolInfo.LastUpdateDate;
                 await LocalData.Instance.InstitutionUpdate(ins);
 
+                StartupLogger.LogStage($"{stagePrefix}: local maintenance deferred");
                 StartupLogger.LogStage($"{stagePrefix}: today attendance");
                 try
                 {
@@ -315,7 +312,7 @@ namespace AttendanceDevice
                     todayAttendanceRequest.AddHeader("Authorization", "Bearer " + token);
 
                     var todayAttendanceResponse =
-                        await client.ExecuteTaskAsync(todayAttendanceRequest);
+                        await ApiRequestHelper.ExecuteAsync(client, todayAttendanceRequest);
 
                     StartupLogger.LogStage(
                         $"{stagePrefix}: today attendance response {(int)todayAttendanceResponse.StatusCode}");
@@ -336,40 +333,6 @@ namespace AttendanceDevice
                 }
 
 
-                StartupLogger.LogStage($"{stagePrefix}: device logs");
-                //Device data send to server
-                #region Device data send to server
-
-                foreach (var device in deviceConnections)
-                {
-                    try
-                    {
-                        var status = await Task.Run(() => device.ConnectDevice());
-                        if (!status.IsSuccess) continue;
-
-                        var deviceTime = device.GetDateTime();
-                        if (deviceTime.ToString("dd-MM-yyyy hh:mm tt") != DateTime.Now.ToString("dd-MM-yyyy hh:mm tt"))
-                        {
-                            //Set server time to device
-                            await Task.Run(() => device.SetDateTime());
-                        }
-
-
-                        var todayLog = device.DownloadTodayLogs();
-                        var prevLog = device.DownloadPrevLogs();
-
-                        await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, ins, device.Device);
-                    }
-                    catch (Exception deviceEx)
-                    {
-                        StartupLogger.LogFailure($"{stagePrefix}: device logs ({device.Device?.DeviceIP})", deviceEx);
-                    }
-                }
-
-                #endregion Device data send to server
-
-
-
                 StartupLogger.LogStage($"{stagePrefix}: update notifications");
                 //Get any update notification from server
                 var updateNotificationRequest = new RestRequest("api/Users/{id}/updateInfo", Method.GET);
@@ -377,7 +340,7 @@ namespace AttendanceDevice
                 updateNotificationRequest.AddHeader("Authorization", "Bearer " + token);
 
                 var updateNotificationResponse =
-                    await client.ExecuteTaskAsync(updateNotificationRequest);
+                    await ApiRequestHelper.ExecuteAsync(client, updateNotificationRequest);
 
                 if (updateNotificationResponse.StatusCode == HttpStatusCode.OK)
                 {
@@ -394,10 +357,11 @@ namespace AttendanceDevice
                     }
                 }
 
-
                 StartupLogger.LogStage($"{stagePrefix}: open display");
                 var displayWindow = new DisplayWindow(initDevice);
                 displayWindow.Show();
+                _ = StartupHelper.RunPostScheduleMaintenanceAsync();
+                _ = StartupHelper.DownloadDeviceLogsInBackgroundAsync(deviceConnections, ins);
                 this.Close();
             }
             catch (Exception ex)

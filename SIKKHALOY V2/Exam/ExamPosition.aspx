@@ -119,15 +119,20 @@ h3 {
 
     <%if (StudentsGridView.Rows.Count > 0)
         {%>
-    <div class="d-print-none text-right">
-        <button type="button" class="btn btn-link" data-toggle="modal" data-target="#printOptionModal">
-            <i class="fa fa-cog" aria-hidden="true"></i>
-            Print Option
-        </button>
-
+    <div class="d-print-none mb-2" style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:6px; padding:8px 14px;">
+        <strong style="margin-right:8px; font-size:13px;">যে কোন কলাম হাইড করে প্রিন্ট দিতে টিক উঠান:</strong>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="ID" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> ID</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="Name" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> Name</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="Roll" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> Roll</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="Subjects - Marks" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> Subjects</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="Total" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> Total</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="Grade" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> Grade</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="Point" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> Point</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="AVG." checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> AVG.</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="P.C" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> P.C</label>
+        <label style="margin-right:10px; font-size:13px; cursor:pointer;"><input type="checkbox" class="col-toggle" data-header="P.S" checked style="width:15px; height:15px; display:inline-block; opacity:1; position:relative; margin-right:4px; cursor:pointer;" /> P.S</label>
         <button type="button" class="btn btn-primary" onclick="window.print()">
-            <i class="fa fa-print" aria-hidden="true"></i>
-            Print
+            <i class="fa fa-print" aria-hidden="true"></i> Print
         </button>
     </div>
     <%}%>
@@ -282,37 +287,6 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
     </asp:SqlDataSource>
     <%}%>
 
-    <!-- modal print option--->
-    <div class="modal fade d-print-none" id="printOptionModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Print Option</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <input onchange="printHiddenTableColumn(10, this);" type="checkbox" id="isHiddenPrintClassCol" />
-                        <label for="isHiddenPrintClassCol">Hide Class Position Column</label>
-                    </div>
-                    <div class="form-group">
-                        <input onchange="printHiddenTableColumn(11, this);" type="checkbox" id="isHiddenPrintSectionCol" />
-                        <label for="isHiddenPrintSectionCol">Hide Section Position Column</label>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-
-
     <asp:UpdateProgress ID="UpdateProgress" runat="server">
         <ProgressTemplate>
             <div id="progress_BG"></div>
@@ -325,6 +299,26 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
     </asp:UpdateProgress>
 
     <script type="text/javascript">
+        function applyColToggleChange() {
+            var table = $("[id*=StudentsGridView]");
+            $(".col-toggle").each(function () {
+                var headerText = $(this).data("header");
+                var visible = $(this).is(":checked");
+                var colNum = -1;
+                var headers = table.find("thead th");
+                if (headers.length === 0) {
+                    headers = table.find("tr:first th");
+                }
+                headers.each(function (i) {
+                    if ($(this).text().trim() === headerText) { colNum = i + 1; return false; }
+                });
+                if (colNum === -1) return;
+                table.find("tr").each(function () {
+                    $(this).find("th:nth-child(" + colNum + "), td:nth-child(" + colNum + ")").toggle(visible);
+                });
+            });
+        }
+
         $(function () {
             $(".PassStatus_Subject").each(function () {
                 if ($(this).val() === 'F') {
@@ -338,7 +332,6 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
                 }
             });
 
-
             $("[id*=AllIteamCheckBox]").on("click", function () {
                 var a = $(this), b = $(this).closest("table");
                 $("input[type=checkbox]", b).each(function () {
@@ -349,6 +342,10 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
             $("[id*=SingleCheckBox]").on("click", function () {
                 var a = $(this).closest("table"), b = $("[id*=AllIteamCheckBox]", a);
                 $(this).is(":checked") ? ($("td", $(this).closest("tr")).addClass("selected"), $("[id*=SingleCheckBox]", a).length == $("[id*=SingleCheckBox]:checked", a).length && b.attr("checked", "checked")) : ($("td", $(this).closest("tr")).removeClass("selected"), b.removeAttr("checked"));
+            });
+
+            $(document).on("change", ".col-toggle", function () {
+                applyColToggleChange();
             });
         });
 
@@ -363,56 +360,11 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
             c.IsValid = !1;
         };
 
-        // Print Option - Add class for print media only (don't hide on screen)
-        function printHiddenTableColumn(columnNumber, checkbox) {
-            const gridViewId = '<%=StudentsGridView.ClientID %>';
-            const table = document.getElementById(gridViewId);
-            
-            if (!table) {
-                console.error('GridView not found!');
-                return;
-            }
-
-            const isChecked = checkbox.checked;
-            console.log('Column:', columnNumber, 'Checked:', isChecked);
-
-            // Get header cell
-            const headerRow = table.querySelector('thead tr');
-            const headerCell = headerRow ? headerRow.querySelector(`th:nth-child(${columnNumber})`) : null;
-
-            // Get all body cells in this column
-            const bodyRows = table.querySelectorAll('tbody tr');
-
-            if (isChecked) {
-                // Add class to hide only in print (NOT on screen)
-                if (headerCell) {
-                    headerCell.classList.add('d-print-none');
-                    console.log('Added d-print-none to header column', columnNumber);
-                }
-
-                bodyRows.forEach(row => {
-                    const cell = row.querySelector(`td:nth-child(${columnNumber})`);
-                    if (cell) {
-                        cell.classList.add('d-print-none');
-                    }
-                });
-                console.log('Added d-print-none to', bodyRows.length, 'body rows');
-            } else {
-                // Remove class to show in print
-                if (headerCell) {
-                    headerCell.classList.remove('d-print-none');
-                    console.log('Removed d-print-none from header column', columnNumber);
-                }
-
-                bodyRows.forEach(row => {
-                    const cell = row.querySelector(`td:nth-child(${columnNumber})`);
-                    if (cell) {
-                        cell.classList.remove('d-print-none');
-                    }
-                });
-                console.log('Removed d-print-none from', bodyRows.length, 'body rows');
-            }
-        };
+        if (typeof Sys !== "undefined" && Sys.WebForms) {
+            Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                applyColToggleChange();
+            });
+        }
     </script>
 
 </asp:Content>

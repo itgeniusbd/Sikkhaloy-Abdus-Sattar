@@ -148,13 +148,9 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         protected global::System.Web.UI.WebControls.SqlDataSource OtherRolesSQL;
         
         /// <summary>
-        /// PayForDropDownList control.
+        /// PayForGridView control.
         /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList PayForDropDownList;
+        protected global::System.Web.UI.WebControls.GridView PayForGridView;
         
         /// <summary>
         /// PayForSQL control.
@@ -200,16 +196,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.SqlDataSource DueSQL;
-        
-        /// <summary>
-        /// RemovePayOrderSQL control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.SqlDataSource RemovePayOrderSQL;
-        
+
         /// <summary>
         /// CV2 control.
         /// </summary>
@@ -218,14 +205,14 @@ namespace EDUCATION.COM.ACCOUNTS.Payment {
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.CustomValidator CV2;
-        
+
         /// <summary>
-        /// RemoveOrderButton control.
+        /// RefreshDueGridButton control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button RemoveOrderButton;
+        protected global::System.Web.UI.WebControls.Button RefreshDueGridButton;
     }
 }

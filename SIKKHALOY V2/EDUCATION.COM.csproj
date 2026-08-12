@@ -290,6 +290,7 @@
     <Content Include="Accounts\Payment\Payment_Concession_All.aspx" />
     <Content Include="Accounts\Payment\Pay_Order.aspx" />
     <Content Include="Accounts\Payment\Remove_Pay_order.aspx" />
+    <Content Include="Accounts\Payment\Remove_PayOrder_Batch.ashx" />
     <Content Include="Accounts\Payment\paymentJsBackup.txt" />
     <Content Include="Accounts\Payment\Unpaid_Money_Receipt.aspx" />
     <Content Include="Accounts\ReportsSession\Concession_Report.aspx" />
@@ -398,6 +399,7 @@
     <Content Include="Attendances\Leave_for_Student.aspx" />
     <Content Include="Attendances\Leave_Print.aspx" />
     <Content Include="Attendances\Leave_Report.aspx" />
+    <Content Include="Attendances\Leave_Type_Settings.aspx" />
     <Content Include="Attendances\Online_Display\Attendance_Slider.aspx" />
     <Content Include="Attendances\Online_Display\CSS\0068.jpg" />
     <Content Include="Attendances\Online_Display\CSS\device-display.css" />
@@ -442,6 +444,9 @@
     <Content Include="Authority\Free_SMS.aspx" />
     <Content Include="Authority\Institutions\Device\InstitutionRegister.aspx" />
     <Content Include="Authority\Institutions\Institution_Details.aspx" />
+    <Content Include="Authority\Institutions\Reset_Institution_Data.aspx" />
+    <Content Include="Authority\Institutions\Reset_Institution_Data_API.ashx" />
+    <Content Include="Authority\Institutions\Reset_Institution_Data_Menu.sql" />
     <Content Include="Authority\Institutions\Paid_Due\Due_Details.aspx" />
     <Content Include="Authority\Institutions\Paid_Due\PaidDetails.aspx" />
     <Content Include="Authority\Institutions\Paid_Institutions_Report.aspx" />
@@ -616,7 +621,11 @@
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
     <Content Include="Home\DascApp.html" />
+    <Content Include="Home\DarulHudaApp.html" />
+    <Content Include="Home\KhadizatulKubraApp.html" />
     <Content Include="Home\logo\DahscLogo.jpg" />
+    <Content Include="Home\logo\darul-huda-logo.png" />
+    <Content Include="Home\logo\khadizatul-kubra-logo.png" />
     <Content Include="Home\logo\Logo-Sikkhaloy.png" />
     <Content Include="Home\logo\mgc-logo.jpg" />
     <Content Include="Home\logo\noorani-logo.png" />
@@ -1015,6 +1024,10 @@
     </Compile>
     <Compile Include="Accounts\Payment\Remove_Pay_order.aspx.designer.cs">
       <DependentUpon>Remove_Pay_order.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Accounts\Payment\PayOrder_DeleteHelper.cs" />
+    <Compile Include="Accounts\Payment\Remove_PayOrder_Batch.ashx.cs">
+      <DependentUpon>Remove_PayOrder_Batch.ashx</DependentUpon>
     </Compile>
     <Compile Include="Accounts\Payment\Unpaid_Money_Receipt.aspx.cs">
       <DependentUpon>Unpaid_Money_Receipt.aspx</DependentUpon>
@@ -1554,6 +1567,13 @@
     <Compile Include="Attendances\Leave_Report.aspx.designer.cs">
       <DependentUpon>Leave_Report.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Attendances\Leave_Type_Settings.aspx.cs">
+      <DependentUpon>Leave_Type_Settings.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Attendances\Leave_Type_Settings.aspx.designer.cs">
+      <DependentUpon>Leave_Type_Settings.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Attendances\Online_Display\Attendance_Slider.aspx.cs">
       <DependentUpon>Attendance_Slider.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -1672,6 +1692,16 @@
     </Compile>
     <Compile Include="Authority\Institutions\Device\InstitutionRegister.aspx.designer.cs">
       <DependentUpon>InstitutionRegister.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Authority\Institutions\Reset_Institution_Data_API.ashx.cs">
+      <DependentUpon>Reset_Institution_Data_API.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Authority\Institutions\Reset_Institution_Data.aspx.cs">
+      <DependentUpon>Reset_Institution_Data.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Authority\Institutions\Reset_Institution_Data.aspx.designer.cs">
+      <DependentUpon>Reset_Institution_Data.aspx</DependentUpon>
     </Compile>
     <Compile Include="Authority\Institutions\Institution_Details.aspx.cs">
       <DependentUpon>Institution_Details.aspx</DependentUpon>
@@ -2804,6 +2834,7 @@
     </Compile>
     <Compile Include="SMS_Class.cs" />
     <Compile Include="SMS_Template_Helper.cs" />
+    <Compile Include="LeaveType_Helper.cs" />
     <Compile Include="ScheduleOverlapValidator.cs" />
     <Compile Include="Student\Accounts.aspx.cs">
       <DependentUpon>Accounts.aspx</DependentUpon>

@@ -4,7 +4,7 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
 
-    <link href="CSS/Display.css?v=11.3" rel="stylesheet" />
+    <link href="CSS/Display.css?v=11.4" rel="stylesheet" />
 
 </asp:Content>
 
@@ -30,7 +30,7 @@
 
                             <ItemTemplate>
 
-                                <div class="schedule-card tone-<%# Container.ItemIndex % 4 %>">
+                                <div class="schedule-card tone-<%# Container.ItemIndex % 4 %>" data-schedule-id="<%# Eval("ScheduleID") %>">
 
                                     <div class="schedule-head">
 
@@ -80,6 +80,8 @@
 
         INNER JOIN Student s ON ass.StudentID = s.StudentID
 
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID AND scEy.EducationYearID = @EducationYearID
+
         WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID AND s.Status = N'Active') AS Total_User,
 
        (SELECT COUNT(*)
@@ -87,9 +89,10 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
         WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ar.Attendance_ScheduleID = sch.ScheduleID
+          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
 
           AND ar.EntryTime IS NOT NULL AND ar.Is_OUT = 0 AND ar.Attendance IN (N'Pre', N'Late', N'Late Abs')) AS Current_IN,
 
@@ -98,9 +101,10 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
         WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ar.Attendance_ScheduleID = sch.ScheduleID
+          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
 
           AND ar.ExitTime IS NOT NULL AND ar.Is_OUT = 1) AS Total_Out,
 
@@ -109,36 +113,64 @@
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
         WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ar.Attendance_ScheduleID = sch.ScheduleID AND ar.Attendance = N'Pre') AS Total_Present,
+          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Pre') AS Total_Present,
 
        (SELECT COUNT(*)
 
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
         WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ar.Attendance_ScheduleID = sch.ScheduleID AND ar.Attendance = N'Late') AS Total_Late,
+          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Late') AS Total_Late,
 
        (SELECT COUNT(*)
 
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
         WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ar.Attendance_ScheduleID = sch.ScheduleID AND ar.Attendance = N'Late Abs') AS Total_Late_Absent,
+          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Late Abs') AS Total_Late_Absent,
 
-       (SELECT COUNT(*)
+       ((SELECT COUNT(*)
 
         FROM Attendance_Record ar
         INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
         INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
         WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ar.Attendance_ScheduleID = sch.ScheduleID AND ar.Attendance = N'Abs') AS Total_Absent
+          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Abs')
+       +
+       (SELECT COUNT(DISTINCT ass.StudentID)
+        FROM Attendance_Schedule_AssignStudent ass
+        INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
+        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID AND scEy.EducationYearID = @EducationYearID
+        WHERE ass.SchoolID = @SchoolID
+          AND ass.ScheduleID = sch.ScheduleID
+          AND CAST(GETDATE() AS time) > sd.LateEntryTime
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Attendance_Record ar2
+              WHERE ar2.SchoolID = @SchoolID
+                AND ar2.StudentID = ass.StudentID
+                AND ar2.AttendanceDate = CONVERT(date, GETDATE())
+                AND ISNULL(ar2.Attendance_ScheduleID, 0) = sch.ScheduleID
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Attendance_Leave al
+              WHERE al.SchoolID = @SchoolID
+                AND al.StudentID = ass.StudentID
+                AND CONVERT(date, GETDATE()) BETWEEN al.StartDate AND al.EndDate
+          )
+       )) AS Total_Absent
 
 FROM Attendance_Schedule sch
 
@@ -152,6 +184,10 @@ WHERE sch.SchoolID = @SchoolID
 
       SELECT 1 FROM Attendance_Schedule_AssignStudent ass
 
+      INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
+
+      INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID AND scEy.EducationYearID = @EducationYearID
+
       WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID
 
   )
@@ -161,6 +197,8 @@ ORDER BY sd.StartTime">
                             <SelectParameters>
 
                                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+
+                                <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
 
                             </SelectParameters>
 
@@ -182,7 +220,7 @@ ORDER BY sd.StartTime">
 
                             <ItemTemplate>
 
-                                <div class="schedule-card tone-<%# Container.ItemIndex % 4 %>">
+                                <div class="schedule-card tone-<%# Container.ItemIndex % 4 %>" data-schedule-id="<%# Eval("ScheduleID") %>">
 
                                     <div class="schedule-head">
 
@@ -416,7 +454,9 @@ ORDER BY sd.StartTime">
 
 FROM Attendance_Record ar
 
-INNER JOIN Student s ON ar.StudentID = s.StudentID
+INNER JOIN Student s ON ar.StudentID = s.StudentID AND s.Status = N'Active'
+
+INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
 
 LEFT JOIN Attendance_Schedule sch ON ar.Attendance_ScheduleID = sch.ScheduleID AND sch.SchoolID = ar.SchoolID
 
@@ -435,6 +475,8 @@ ORDER BY ar.EntryTime DESC">
                                     <SelectParameters>
 
                                         <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+
+                                        <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
 
                                     </SelectParameters>
 
@@ -524,7 +566,9 @@ SELECT ar.StudentID, s.StudentsName,
 
 FROM Attendance_Record ar
 
-INNER JOIN Student s ON ar.StudentID = s.StudentID
+INNER JOIN Student s ON ar.StudentID = s.StudentID AND s.Status = N'Active'
+
+INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
 
 LEFT JOIN Attendance_Schedule sch ON ar.Attendance_ScheduleID = sch.ScheduleID AND sch.SchoolID = ar.SchoolID
 
@@ -543,6 +587,8 @@ ORDER BY ExitTime DESC, EntryTime DESC">
                                     <SelectParameters>
 
                                         <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+
+                                        <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" />
 
                                     </SelectParameters>
 

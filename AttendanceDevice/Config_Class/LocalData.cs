@@ -691,12 +691,21 @@ namespace AttendanceDevice.Config_Class
 
             using (var db = new ModelContext())
             {
+                var assignmentsByDevice = db.User_Schedules
+                    .AsEnumerable()
+                    .GroupBy(us => us.DeviceID)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
                 var changed = false;
 
                 foreach (var user in db.Users.Where(u => u.DeviceID > 0))
                 {
-                    var assignments = db.User_Schedules.Where(us => us.DeviceID == user.DeviceID).ToList();
-                    var validAssignments = assignments.Where(a => knownScheduleIds.Contains(a.ScheduleID)).ToList();
+                    if (!assignmentsByDevice.TryGetValue(user.DeviceID, out var assignments))
+                        assignments = new List<User_Schedule>();
+
+                    var validAssignments = assignments
+                        .Where(a => knownScheduleIds.Contains(a.ScheduleID))
+                        .ToList();
 
                     if (validAssignments.Any())
                         continue;
@@ -826,14 +835,15 @@ namespace AttendanceDevice.Config_Class
                 var today = GetAttendanceDateString();
                 using (var db = new ModelContext())
                 {
-                    var todayLocalRecords = db.attendance_Records
-                        .AsEnumerable()
-                        .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
-                        .Select(a => new { a.DeviceID, a.ScheduleID })
-                        .ToList();
+                    var todayLocalKeys = new HashSet<string>(
+                        db.attendance_Records
+                            .AsEnumerable()
+                            .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
+                            .Select(a => $"{a.DeviceID}:{a.ScheduleID}"));
 
-                    var additionalServerAttendance = records.Where(u =>
-                        !todayLocalRecords.Any(l => l.DeviceID == u.DeviceID && l.ScheduleID == u.ScheduleID)).ToList();
+                    var additionalServerAttendance = records
+                        .Where(u => !todayLocalKeys.Contains($"{u.DeviceID}:{u.ScheduleID}"))
+                        .ToList();
 
                     var attendanceData = additionalServerAttendance
                         .Select(a =>
@@ -975,10 +985,14 @@ namespace AttendanceDevice.Config_Class
             var today = GetAttendanceDateString();
             using (var db = new ModelContext())
             {
+                var todayRows = db.attendance_Records
+                    .AsEnumerable()
+                    .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
+                    .ToList();
+
                 var changed = false;
 
-                foreach (var row in db.attendance_Records.AsEnumerable()
-                    .Where(a => IsSameAttendanceDate(a.AttendanceDate, today)))
+                foreach (var row in todayRows)
                 {
                     var rowChanged = false;
                     var punchAt = GetAttendanceDate();
@@ -988,7 +1002,7 @@ namespace AttendanceDevice.Config_Class
                         punchAt = punchAt.Add(entryTime);
                     }
 
-                    var schedule = ResolveScheduleForPunch(row.DeviceID, punchAt);
+                    var schedule = GetActiveSchedule(row.DeviceID, punchAt);
                     if (schedule != null && schedule.ScheduleID > 0 &&
                         row.ScheduleID != schedule.ScheduleID)
                     {
@@ -1029,10 +1043,8 @@ namespace AttendanceDevice.Config_Class
                     {
                         row.Is_Sent = false;
                         row.Is_Updated = false;
-                    }
-
-                    if (rowChanged)
                         changed = true;
+                    }
                 }
 
                 if (changed)
@@ -1627,9 +1639,14 @@ namespace AttendanceDevice.Config_Class
         /// </summary>
         private static void SeedMissingUserScheduleFallback(ModelContext db)
         {
+            var devicesWithAssignments = db.User_Schedules
+                .Select(us => us.DeviceID)
+                .Distinct()
+                .ToHashSet();
+
             foreach (var user in db.Users.Where(u => u.ScheduleID > 0))
             {
-                if (db.User_Schedules.Any(us => us.DeviceID == user.DeviceID))
+                if (devicesWithAssignments.Contains(user.DeviceID))
                     continue;
 
                 db.User_Schedules.Add(new User_Schedule

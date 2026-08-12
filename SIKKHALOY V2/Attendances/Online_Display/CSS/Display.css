@@ -85,9 +85,10 @@ footer { display: none; }
     background: #f8f9fa;
     border: none !important;
     border-radius: 0 !important;
-    overflow: hidden !important;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
 }
 
 .att-one-view .summary-column .att-schedule-cards::-webkit-scrollbar {
@@ -97,21 +98,21 @@ footer { display: none; }
 }
 
 .att-one-view .summary-column .schedule-card {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     min-height: 0;
     padding: 7px 9px;
     border-radius: 5px;
     border: 1px solid rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
+    justify-content: flex-start;
+    overflow: visible;
     min-width: 0;
 }
 
 .att-one-view .summary-column .schedule-head {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     margin-bottom: 5px;
@@ -119,17 +120,18 @@ footer { display: none; }
     line-height: 1.5;
     padding: 2px 0;
     overflow: visible;
+    flex-shrink: 0;
 }
 
 .att-one-view .summary-column .schedule-title {
-    flex: 0 1 auto;
+    flex: 1 1 100%;
     font-size: 1rem;
     font-weight: 800;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 38%;
-    line-height: 1.55;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: 100%;
+    line-height: 1.35;
     padding: 2px 0;
     color: #1a237e;
 }
@@ -140,8 +142,8 @@ footer { display: none; }
     font-weight: 600;
     color: #37474f;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
     min-width: 0;
 }
 

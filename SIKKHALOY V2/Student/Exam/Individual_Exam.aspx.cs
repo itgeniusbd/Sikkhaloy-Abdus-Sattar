@@ -199,25 +199,37 @@ namespace EDUCATION.COM.Student.Exam
                         }
                     }
                     string fromDate=null, toDate=null;
+                    int scheduleID = 0;
                     int classID=0;
                     using (var cmd2 = new SqlCommand("SELECT ClassID FROM StudentsClass WHERE StudentClassID=@SCID",con))
                     { cmd2.Parameters.AddWithValue("@SCID",studentClassID); var v=cmd2.ExecuteScalar(); if(v!=null) classID=Convert.ToInt32(v); }
-                    using (var cmd3 = new SqlCommand(@"SELECT Attendance_FromDate,Attendance_ToDate FROM Exam_Publish_Setting WHERE SchoolID=@SID AND EducationYearID=@EY AND ExamID=@EID AND ClassID=@CID",con))
+                    using (var cmd3 = new SqlCommand(@"SELECT Attendance_FromDate, Attendance_ToDate, Attendance_ScheduleID
+                        FROM Exam_Publish_Setting WHERE SchoolID=@SID AND EducationYearID=@EY AND ExamID=@EID AND ClassID=@CID",con))
                     {
                         cmd3.Parameters.AddWithValue("@SID",Session["SchoolID"]??1); cmd3.Parameters.AddWithValue("@EY",Session["Edu_Year"]??1);
                         cmd3.Parameters.AddWithValue("@EID",examID); cmd3.Parameters.AddWithValue("@CID",classID);
-                        using (var r3=cmd3.ExecuteReader()) { if(r3.Read()){ fromDate=r3["Attendance_FromDate"]==DBNull.Value?null:r3["Attendance_FromDate"].ToString(); toDate=r3["Attendance_ToDate"]==DBNull.Value?null:r3["Attendance_ToDate"].ToString(); } }
+                        using (var r3=cmd3.ExecuteReader()) {
+                            if(r3.Read()){
+                                fromDate=r3["Attendance_FromDate"]==DBNull.Value?null:r3["Attendance_FromDate"].ToString();
+                                toDate=r3["Attendance_ToDate"]==DBNull.Value?null:r3["Attendance_ToDate"].ToString();
+                                if (r3["Attendance_ScheduleID"] != DBNull.Value)
+                                    scheduleID = Convert.ToInt32(r3["Attendance_ScheduleID"]);
+                            }
+                        }
                     }
                     if (!string.IsNullOrWhiteSpace(fromDate) && !string.IsNullOrWhiteSpace(toDate))
                     {
                         using (var cmd4 = new SqlCommand(@"SELECT dbo.F_Stu_WorkingDay(@SID,@EY,@CID,@F,@T) AS WD,
-                            dbo.F_Stu_Attendance_Summary(@SID,@EY,@SCID,'Pre',@F,@T) AS Pre, dbo.F_Stu_Attendance_Summary(@SID,@EY,@SCID,'Abs',@F,@T) AS Abs,
-                            dbo.F_Stu_Attendance_Summary(@SID,@EY,@SCID,'Late',@F,@T) AS Late, dbo.F_Stu_Attendance_Summary(@SID,@EY,@SCID,'Late Abs',@F,@T) AS LateAbs,
-                            dbo.F_Stu_Attendance_Summary(@SID,@EY,@SCID,'Leave',@F,@T) AS Leave",con))
+                            (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID=@SID AND ar.EducationYearID=@EY AND ar.StudentClassID=@SCID AND ar.Attendance='Pre' AND CAST(ar.AttendanceDate AS DATE)>=CAST(@F AS DATE) AND CAST(ar.AttendanceDate AS DATE)<=CAST(@T AS DATE) AND (@ScheduleID=0 OR ISNULL(ar.Attendance_ScheduleID,0)=@ScheduleID)) AS Pre,
+                            (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID=@SID AND ar.EducationYearID=@EY AND ar.StudentClassID=@SCID AND ar.Attendance='Abs' AND CAST(ar.AttendanceDate AS DATE)>=CAST(@F AS DATE) AND CAST(ar.AttendanceDate AS DATE)<=CAST(@T AS DATE) AND (@ScheduleID=0 OR ISNULL(ar.Attendance_ScheduleID,0)=@ScheduleID)) AS Abs,
+                            (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID=@SID AND ar.EducationYearID=@EY AND ar.StudentClassID=@SCID AND ar.Attendance='Late' AND CAST(ar.AttendanceDate AS DATE)>=CAST(@F AS DATE) AND CAST(ar.AttendanceDate AS DATE)<=CAST(@T AS DATE) AND (@ScheduleID=0 OR ISNULL(ar.Attendance_ScheduleID,0)=@ScheduleID)) AS Late,
+                            (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID=@SID AND ar.EducationYearID=@EY AND ar.StudentClassID=@SCID AND ar.Attendance='Late Abs' AND CAST(ar.AttendanceDate AS DATE)>=CAST(@F AS DATE) AND CAST(ar.AttendanceDate AS DATE)<=CAST(@T AS DATE) AND (@ScheduleID=0 OR ISNULL(ar.Attendance_ScheduleID,0)=@ScheduleID)) AS LateAbs,
+                            (SELECT COUNT(*) FROM Attendance_Record ar WHERE ar.SchoolID=@SID AND ar.EducationYearID=@EY AND ar.StudentClassID=@SCID AND ar.Attendance='Leave' AND CAST(ar.AttendanceDate AS DATE)>=CAST(@F AS DATE) AND CAST(ar.AttendanceDate AS DATE)<=CAST(@T AS DATE) AND (@ScheduleID=0 OR ISNULL(ar.Attendance_ScheduleID,0)=@ScheduleID)) AS Leave",con))
                         {
                             cmd4.Parameters.AddWithValue("@SID",Session["SchoolID"]??1); cmd4.Parameters.AddWithValue("@EY",Session["Edu_Year"]??1);
                             cmd4.Parameters.AddWithValue("@CID",classID); cmd4.Parameters.AddWithValue("@SCID",studentClassID);
                             cmd4.Parameters.AddWithValue("@F",fromDate); cmd4.Parameters.AddWithValue("@T",toDate);
+                            cmd4.Parameters.AddWithValue("@ScheduleID", scheduleID);
                             using(var r4=cmd4.ExecuteReader()) { if(r4.Read()){ wd=r4["WD"]==DBNull.Value?"-":r4["WD"].ToString(); pre=r4["Pre"]==DBNull.Value?"-":r4["Pre"].ToString(); abs=r4["Abs"]==DBNull.Value?"-":r4["Abs"].ToString(); late=r4["Late"]==DBNull.Value?"-":r4["Late"].ToString(); lateAbs=r4["LateAbs"]==DBNull.Value?"-":r4["LateAbs"].ToString(); leave=r4["Leave"]==DBNull.Value?"-":r4["Leave"].ToString(); } }
                         }
                     }

@@ -277,7 +277,13 @@
             font-weight: 600;
             color: #555;
             min-height: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
         }
+        .gp-sign-row .sign-left { flex: 1; text-align: left; }
+        .gp-sign-row .sign-right { flex: 1; text-align: right; white-space: nowrap; }
 
         @media print {
             body { background: #fff; }
@@ -311,7 +317,7 @@
 
         <div class="no-print top-actions">
             <button type="button" class="btn-top btn-top-primary" onclick="window.print()">&#128438; প্রিন্ট করুন</button>
-            <button type="button" class="btn-top btn-top-secondary" onclick="history.back()">&#8592; ফিরে যান</button>
+            <button type="button" class="btn-top btn-top-secondary" onclick="goBack()">&#8592; ফিরে যান</button>
         </div>
 
         <!-- Print Options Panel -->
@@ -352,6 +358,24 @@
     </form>
 
     <script>
+        function goBack() {
+            var params = new URLSearchParams(window.location.search);
+            var from = params.get('from');
+            if (from === 'report') {
+                window.location.href = 'Leave_Report.aspx';
+                return;
+            }
+            if (from === 'student') {
+                window.location.href = 'Leave_for_Student.aspx';
+                return;
+            }
+            if (window.history.length > 1) {
+                history.back();
+            } else {
+                window.location.href = 'Leave_Report.aspx';
+            }
+        }
+
         var printingOptions = {
             isInstitutionHidden: false,
             topSpace: 0,
