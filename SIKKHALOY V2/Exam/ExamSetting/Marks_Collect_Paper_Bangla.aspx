@@ -211,7 +211,7 @@
                             <asp:BoundField DataField="FathersName" HeaderText="পিতার নাম" SortExpression="FathersName" >
                             <ItemStyle HorizontalAlign="Left" />
                             </asp:BoundField>
-                            <asp:BoundField DataField="RollNo" HeaderText="রোল নং" SortExpression="RollNo" />
+                            <asp:BoundField DataField="RollNo" HeaderText=" ক্রমিক/রোল নং" SortExpression="RollNo" />
                         </Columns>
                         <PagerStyle CssClass="pgr" />
                     </asp:GridView>

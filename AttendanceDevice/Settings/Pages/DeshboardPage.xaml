@@ -527,6 +527,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition />
+                <ColumnDefinition />
             </Grid.ColumnDefinitions>
 
             <materialDesign:Card
@@ -595,6 +596,54 @@
                                     Foreground="#777"
                                     Text="PING TIME OUT" />
                         </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <materialDesign:Card
+                    Grid.Column="2"
+                    Margin="15,15,0, 15"
+                    Padding="10,20"
+                    materialDesign:ShadowAssist.ShadowDepth="Depth1">
+                <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+                    <materialDesign:PackIcon
+                            Width="45"
+                            Height="45"
+                            Margin="0,0,10,0"
+                            VerticalAlignment="Center"
+                            Foreground="#FF00897B"
+                            Kind="Speedometer" />
+                    <StackPanel>
+                        <CheckBox x:Name="LowPowerModeCheckBox"
+                                  FontWeight="Bold"
+                                  Content="Normal"
+                                  Foreground="#333"
+                                  Checked="LowPowerModeCheckBox_Changed"
+                                  Unchecked="LowPowerModeCheckBox_Changed">
+                            <CheckBox.Style>
+                                <Style TargetType="CheckBox">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter Property="Content" Value="Low Power ON"/>
+                                            <Setter Property="Foreground" Value="#FF00897B"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CheckBox.Style>
+                        </CheckBox>
+                        <TextBlock
+                                FontSize="13"
+                                Foreground="#777"
+                                Text="DISPLAY PC CPU MODE" />
+                        <TextBlock
+                                Margin="0,4,0,0"
+                                FontSize="11"
+                                Foreground="#999"
+                                TextWrapping="Wrap"
+                                Text="Slows sync + marquee to save CPU on normal PCs." />
                     </StackPanel>
                 </StackPanel>
             </materialDesign:Card>

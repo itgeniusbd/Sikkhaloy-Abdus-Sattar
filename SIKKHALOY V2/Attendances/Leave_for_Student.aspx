@@ -337,10 +337,11 @@
             <div class="title-icon">
                 <svg viewBox="0 0 24 24"><path d="M8 7V3m8 4V3M3 11h18M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
             </div>
-            <div>
+            <div style="flex:1;">
                 <h3>Leave for Student</h3>
                 <p>শিক্ষার্থীর ছুটির আবেদন নিবন্ধন করুন</p>
             </div>
+            <a href="Leave_Type_Settings.aspx" class="btn btn-light btn-sm" style="white-space:nowrap;">ছুটির ধরণ সেটিং</a>
         </div>
 
         <%-- Search Card --%>
@@ -440,15 +441,6 @@
                                 <div class="lf-group">
                                     <label>ছুটির ধরণ</label>
                                     <asp:DropDownList ID="LeaveTypeDropDownList" runat="server" CssClass="form-control">
-                                        <asp:ListItem Value="">-- Select --</asp:ListItem>
-                                        <asp:ListItem>অসুস্থতার জন্য</asp:ListItem>
-                                        <asp:ListItem>ব্যাক্তিগত কারনে</asp:ListItem>
-                                        <asp:ListItem>ফ্যামেলি প্রয়োজনে</asp:ListItem>
-                                        <asp:ListItem>মেডিক্যাল</asp:ListItem>
-                                        <asp:ListItem>সাময়িক</asp:ListItem>
-                                        <asp:ListItem>সাপ্তাহিক</asp:ListItem>
-                                        <asp:ListItem>মাসিক</asp:ListItem>
-                                        <asp:ListItem>অন্যান্ন</asp:ListItem>
                                     </asp:DropDownList>
                                 </div>
                                 <div class="lf-group">

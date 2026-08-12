@@ -8,6 +8,7 @@ using System.Web;
 using System.Web.Services;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+using Education;
 
 namespace EDUCATION.COM.ATTENDANCES
 {
@@ -15,7 +16,19 @@ namespace EDUCATION.COM.ATTENDANCES
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            StudentDetailsView.DataBound += StudentDetailsView_DataBound;
+        }
 
+        private void StudentDetailsView_DataBound(object sender, EventArgs e)
+        {
+            DropDownList leaveTypeDropDownList = StudentDetailsView.FindControl("LeaveTypeDropDownList") as DropDownList;
+            if (leaveTypeDropDownList == null) return;
+
+            int schoolId = 0;
+            if (Session["SchoolID"] != null)
+                int.TryParse(Session["SchoolID"].ToString(), out schoolId);
+
+            new LeaveType_Helper().BindDropDownList(leaveTypeDropDownList, schoolId);
         }
 
         protected void FindButton_Click(object sender, EventArgs e)
@@ -54,7 +67,7 @@ namespace EDUCATION.COM.ATTENDANCES
 
                 if (newLeaveID > 0)
                 {
-                    Response.Redirect("Leave_Print.aspx?lid=" + newLeaveID);
+                    Response.Redirect("Leave_Print.aspx?lid=" + newLeaveID + "&from=student");
                 }
                 else
                 {

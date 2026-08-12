@@ -150,6 +150,11 @@ namespace EDUCATION.COM.ATTENDANCES
         protected global::System.Web.UI.WebControls.HiddenField hfDescription;
 
         /// <summary>
+        /// EditLeaveTypeDropDownList control.
+        /// </summary>
+        protected global::System.Web.UI.WebControls.DropDownList EditLeaveTypeDropDownList;
+
+        /// <summary>
         /// ActionButton control.
         /// </summary>
         /// <remarks>

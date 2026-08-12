@@ -25,7 +25,12 @@
         .search-result-item:hover { background: #e9ecef; }
         .ins-search-wrap { position: relative; }
         .selected-ins-badge { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 6px; padding: 6px 12px; display: inline-block; margin: 4px 0; font-size: 0.95rem; }
-        .datepicker { z-index: 2000 !important; }
+        .datepicker { z-index: 1060 !important; }
+        .ref-datepicker { position: relative; }
+        .ref-datepicker .form-control { background: #fff; cursor: pointer; min-width: 130px; }
+        #<%= AssignedSchoolsGridView.ClientID %> { overflow: visible !important; }
+        .section-card { overflow: visible; }
+        .table-responsive, .mGrid { overflow: visible !important; }
     </style>
 </asp:Content>
 
@@ -136,10 +141,16 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group ins-search-wrap">
-                                <label>Search Institution</label>
-                                <asp:TextBox ID="InsSearchTextBox" runat="server" CssClass="form-control"
-                                    placeholder="Type institution name..." AutoPostBack="True"
-                                    OnTextChanged="InsSearchTextBox_TextChanged"></asp:TextBox>
+                                <label>Search Institution <small class="text-muted">(all institutions, with or without invoice)</small></label>
+                                <div class="input-group">
+                                    <asp:TextBox ID="InsSearchTextBox" runat="server" CssClass="form-control"
+                                        placeholder="Name / ID / Phone..." AutoPostBack="True"
+                                        OnTextChanged="InsSearchTextBox_TextChanged"></asp:TextBox>
+                                    <div class="input-group-append">
+                                        <asp:Button ID="InsSearchButton" runat="server" CssClass="btn btn-outline-primary"
+                                            Text="Search" OnClick="InsSearchTextBox_TextChanged" />
+                                    </div>
+                                </div>
                                 <asp:HiddenField ID="SelectedSchoolIDHidden" runat="server" Value="0" />
                                 <asp:HiddenField ID="SelectedSchoolNameHidden" runat="server" Value="" />
                                 <div id="searchResultDiv" runat="server" class="search-result-box" visible="false">
@@ -147,9 +158,10 @@
                                         <ItemTemplate>
                                             <div class="search-result-item">
                                                 <asp:LinkButton runat="server" CommandName="SelectSchool"
-                                                    CommandArgument='<%# Eval("SchoolID") + "|" + Eval("SchoolName") %>'>
-                                                    <%# Eval("SchoolName") %> — <%# Eval("Phone") %>
-                                                </asp:LinkButton>
+                                                    CommandArgument='<%# Eval("SchoolID") %>'
+                                                    Text='<%# Eval("SchoolID") + " — " + Eval("SchoolName")
+                                                        + (string.IsNullOrEmpty(Convert.ToString(Eval("Phone"))) ? "" : " — " + Eval("Phone"))
+                                                        + (Convert.ToInt32(Eval("HasInvoice")) == 1 ? "" : " (No Invoice)") %>' />
                                             </div>
                                         </ItemTemplate>
                                     </asp:Repeater>
@@ -172,7 +184,7 @@
                             <div class="form-group">
                                 <label>Signup Date</label>
                                 <div class="input-group date ref-datepicker">
-                                    <asp:TextBox ID="SignupDateTextBox" runat="server" CssClass="form-control" placeholder="dd MMM yyyy" autocomplete="off"></asp:TextBox>
+                                    <asp:TextBox ID="SignupDateTextBox" runat="server" CssClass="form-control date-field" placeholder="dd M yyyy" autocomplete="off"></asp:TextBox>
                                     <div class="input-group-append">
                                         <span class="input-group-text"><i class="fa fa-calendar"></i></span>
                                     </div>
@@ -183,7 +195,7 @@
                             <div class="form-group">
                                 <label>Expiry Date</label>
                                 <div class="input-group date ref-datepicker">
-                                    <asp:TextBox ID="CommExpireDateTextBox" runat="server" CssClass="form-control" placeholder="dd MMM yyyy" autocomplete="off"></asp:TextBox>
+                                    <asp:TextBox ID="CommExpireDateTextBox" runat="server" CssClass="form-control date-field" placeholder="dd M yyyy" autocomplete="off"></asp:TextBox>
                                     <div class="input-group-append">
                                         <span class="input-group-text"><i class="fa fa-calendar"></i></span>
                                     </div>
@@ -209,8 +221,8 @@
                         OnRowUpdating="AssignedSchoolsGridView_RowUpdating"
                         OnRowCancelingEdit="AssignedSchoolsGridView_RowCancelingEdit">
                         <Columns>
-                            <asp:BoundField DataField="SchoolName" HeaderText="Institution" />
-                            <asp:BoundField DataField="Phone" HeaderText="Phone" />
+                            <asp:BoundField DataField="SchoolName" HeaderText="Institution" ReadOnly="True" />
+                            <asp:BoundField DataField="Phone" HeaderText="Phone" ReadOnly="True" />
                             <asp:TemplateField HeaderText="Commission %">
                                 <ItemTemplate>
                                     <span class="badge-commission"><%# Eval("Percentage") %>%</span>
@@ -220,39 +232,40 @@
                                 </EditItemTemplate>
                             </asp:TemplateField>
                             <asp:TemplateField HeaderText="Signup Date">
-                                <ItemTemplate><%# Eval("School_SignUp_Date", "{0:d MMM yyyy}") %></ItemTemplate>
+                                <ItemTemplate><%# FormatUiDate(Eval("School_SignUp_Date")) %></ItemTemplate>
                                 <EditItemTemplate>
-                                    <div class="input-group date ref-datepicker" style="width:145px">
-                                        <asp:TextBox ID="EditSignupTextBox" runat="server" CssClass="form-control" Text='<%# ((DateTime?)Eval("School_SignUp_Date") != null) ? ((DateTime)Eval("School_SignUp_Date")).ToString("dd MMM yyyy") : "" %>' Style="width:100px" autocomplete="off"></asp:TextBox>
+                                    <div class="input-group date ref-datepicker" style="min-width:160px">
+                                        <asp:TextBox ID="EditSignupTextBox" runat="server" CssClass="form-control date-field" Text='<%# FormatUiDate(Eval("School_SignUp_Date")) %>' autocomplete="off"></asp:TextBox>
                                         <div class="input-group-append"><span class="input-group-text"><i class="fa fa-calendar"></i></span></div>
                                     </div>
                                 </EditItemTemplate>
                             </asp:TemplateField>
                             <asp:TemplateField HeaderText="Expiry Date">
                                 <ItemTemplate>
-                                    <%# Eval("End_Reference_Date", "{0:d MMM yyyy}") %>
-                                    <asp:Label runat="server" Visible='<%# (Eval("End_Reference_Date") != DBNull.Value && (DateTime)Eval("End_Reference_Date") < DateTime.Today) %>'><span class="badge-expired ml-1">Expired</span></asp:Label>
-                                    <asp:Label runat="server" Visible='<%# (Eval("End_Reference_Date") != DBNull.Value && (DateTime)Eval("End_Reference_Date") >= DateTime.Today) %>'><span class="badge-active ml-1">Active</span></asp:Label>
+                                    <%# FormatUiDate(Eval("End_Reference_Date")) %>
+                                    <asp:Label runat="server" Visible='<%# IsExpired(Eval("End_Reference_Date")) %>' CssClass="badge-expired ml-1">Expired</asp:Label>
+                                    <asp:Label runat="server" Visible='<%# IsActiveExpiry(Eval("End_Reference_Date")) %>' CssClass="badge-active ml-1">Active</asp:Label>
                                 </ItemTemplate>
                                 <EditItemTemplate>
-                                    <div class="input-group date ref-datepicker" style="width:145px">
-                                        <asp:TextBox ID="EditExpireTextBox" runat="server" CssClass="form-control" Text='<%# ((DateTime?)Eval("End_Reference_Date") != null) ? ((DateTime)Eval("End_Reference_Date")).ToString("dd MMM yyyy") : "" %>' Style="width:100px" autocomplete="off"></asp:TextBox>
+                                    <div class="input-group date ref-datepicker" style="min-width:160px">
+                                        <asp:TextBox ID="EditExpireTextBox" runat="server" CssClass="form-control date-field" Text='<%# FormatUiDate(Eval("End_Reference_Date")) %>' autocomplete="off"></asp:TextBox>
                                         <div class="input-group-append"><span class="input-group-text"><i class="fa fa-calendar"></i></span></div>
                                     </div>
                                 </EditItemTemplate>
                             </asp:TemplateField>
-                            <asp:BoundField DataField="TotalCommission" HeaderText="Total Commission (৳)" DataFormatString="{0:N0}" />
-                            <asp:BoundField DataField="PaidCommission" HeaderText="Paid (৳)" DataFormatString="{0:N0}" />
+                            <asp:BoundField DataField="TotalCommission" HeaderText="Total Commission (৳)" DataFormatString="{0:N0}" ReadOnly="True" />
+                            <asp:BoundField DataField="PaidCommission" HeaderText="Paid (৳)" DataFormatString="{0:N0}" ReadOnly="True" />
                             <asp:TemplateField HeaderText="Due (৳)">
                                 <ItemTemplate>
                                     <span class="text-danger font-weight-bold"><%# string.Format("{0:N0}", Convert.ToDouble(Eval("TotalCommission") ?? 0) - Convert.ToDouble(Eval("PaidCommission") ?? 0)) %></span>
                                 </ItemTemplate>
                             </asp:TemplateField>
-                            <asp:CommandField ShowEditButton="True" EditText="<i class='fa fa-edit'></i>" UpdateText="Update" CancelText="Cancel" />
+                            <asp:CommandField ShowEditButton="True" ButtonType="Link" EditText="Edit" UpdateText="Update" CancelText="Cancel" CausesValidation="False" />
                             <asp:TemplateField HeaderText="Delete">
                                 <ItemTemplate>
                                     <asp:LinkButton runat="server" CssClass="btn btn-xs btn-danger"
                                         CommandName="DeleteAssign" CommandArgument='<%# Eval("Reference_School_ID") %>'
+                                        CausesValidation="False"
                                         OnClientClick="return confirm('Are you sure you want to delete this assignment?')">
                                         <i class="fa fa-trash"></i>
                                     </asp:LinkButton>
@@ -268,16 +281,25 @@
 
     <script>
         function initDatePickers() {
-            $('.ref-datepicker input').each(function () {
+            $('.ref-datepicker input, input.date-field').each(function () {
                 var $input = $(this);
-                $input.datepicker('destroy');
+                if ($input.data('datepicker')) {
+                    $input.datepicker('destroy');
+                }
                 $input.datepicker({
-                    format: 'dd MMM yyyy',
+                    format: 'dd M yyyy',
                     autoclose: true,
                     todayHighlight: true,
                     orientation: 'bottom auto',
-                    clearBtn: false
+                    clearBtn: true,
+                    forceParse: true,
+                    assumeNearbyYear: true
                 });
+            });
+
+            $(document).off('click.refdp', '.ref-datepicker .input-group-text').on('click.refdp', '.ref-datepicker .input-group-text', function (e) {
+                e.preventDefault();
+                $(this).closest('.ref-datepicker').find('input').datepicker('show');
             });
         }
 

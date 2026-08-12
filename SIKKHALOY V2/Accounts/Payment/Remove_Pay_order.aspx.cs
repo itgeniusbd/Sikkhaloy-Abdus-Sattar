@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -9,19 +7,22 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 {
     public partial class Remove_Pay_order : System.Web.UI.Page
     {
-        string deleteFilter = "";
+        private string DeleteFilter
+        {
+            get { return ViewState["DeleteFilter"] as string ?? string.Empty; }
+            set { ViewState["DeleteFilter"] = value; }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (!this.IsPostBack)
-            {
-                if (Session["SchoolID"] != null)
-                    Session_DropDownList.SelectedValue = Session["Edu_Year"].ToString();
-            }
+            if (!IsPostBack && Session["SchoolID"] != null)
+                Session_DropDownList.SelectedValue = Session["Edu_Year"].ToString();
         }
+
         protected void ClassDropDownList_SelectedIndexChanged(object sender, EventArgs e)
         {
             DueGridView.DataBind();
-            IDTextBox.Text = "";
+            IDTextBox.Text = string.Empty;
         }
 
         protected void SectionDropDownList_DataBound(object sender, EventArgs e)
@@ -36,171 +37,121 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
             foreach (GridViewRow row in StudentsGridView.Rows)
             {
-                CheckBox SingleCheckBox = row.FindControl("SingleCheckBox") as CheckBox;
-                SingleCheckBox.Checked = true;
+                CheckBox singleCheckBox = row.FindControl("SingleCheckBox") as CheckBox;
+                if (singleCheckBox != null)
+                    singleCheckBox.Checked = true;
             }
         }
-      
+
         protected void Role_Find_Button_Click(object sender, EventArgs e)
         {
-            string Filtering = "";
+            string filtering = BuildDueFilter();
+            DeleteFilter = filtering;
+            DueSQL.FilterExpression = filtering;
+            DueGridView.DataSource = DueSQL;
+            DueGridView.DataBind();
+            ScriptManager.RegisterStartupScript(this, GetType(), "Pop", "openModal();", true);
+        }
 
-            if (IDTextBox.Text != "")
+        protected void RefreshDueGridButton_Click(object sender, EventArgs e)
+        {
+            RebindDueGridView();
+            ScriptManager.RegisterStartupScript(this, GetType(), "Pop", "openModal();", true);
+        }
+
+        private string BuildDueFilter()
+        {
+            string filtering;
+
+            if (!string.IsNullOrWhiteSpace(IDTextBox.Text))
             {
-                string SIDs = "";
-                bool S_check = false;
-                foreach (GridViewRow Student_Row in StudentsGridView.Rows)
-                {
-                    CheckBox SingleCheckBox = Student_Row.FindControl("SingleCheckBox") as CheckBox;
-                    if (SingleCheckBox.Checked)
-                    {
-                        SIDs += StudentsGridView.DataKeys[Student_Row.RowIndex]["StudentID"].ToString() + ",";
-                        S_check = true;
-                    }
-                }
-                if (S_check)
-                {
-                    Filtering += "StudentID in(" + SIDs.TrimEnd(',') + ")";
-                }
-                else
-                {
-                    Filtering += "StudentID in(0)";
-                }
-
-
-                string RIDs = "";
-                bool R_check = false;
-                foreach (GridViewRow New_Role_Row in AddNewRoleGridView.Rows)
-                {
-                    CheckBox AddCheckBox = New_Role_Row.FindControl("AddCheckBox") as CheckBox;
-
-                    if (AddCheckBox.Checked)
-                    {
-                        RIDs += AddNewRoleGridView.DataKeys[New_Role_Row.RowIndex]["RoleID"].ToString() + ",";
-                        R_check = true;
-                    }
-                }
-
-                if (R_check)
-                {
-                    Filtering += "and RoleID in(" + RIDs.TrimEnd(',') + ")";
-                }
-                else
-                {
-                    Filtering += "and RoleID in(0)";
-                }
-
-                deleteFilter = Filtering;
-                DueSQL.FilterExpression = Filtering;
-                DueGridView.DataSource = DueSQL;
-                DueGridView.DataBind();
+                filtering = "StudentID in(" + GetCheckedStudentIds() + ")";
+                filtering += "and RoleID in(" + GetCheckedRoleIds() + ")";
+            }
+            else if (ClassDropDownList.SelectedValue != "-1")
+            {
+                filtering = "ClassID =" + ClassDropDownList.SelectedValue;
+                filtering += "and StudentID in(" + GetCheckedStudentIds() + ")";
+                filtering += "and RoleID in(" + GetCheckedRoleIds() + ")";
             }
             else
             {
-                if (ClassDropDownList.SelectedValue != "-1")
-                {
-                    Filtering += "ClassID =" + ClassDropDownList.SelectedValue;
-
-                    string SIDs = "";
-                    bool S_check = false;
-                    foreach (GridViewRow Student_Row in StudentsGridView.Rows)
-                    {
-                        CheckBox SingleCheckBox = Student_Row.FindControl("SingleCheckBox") as CheckBox;
-                        if (SingleCheckBox.Checked)
-                        {
-                            SIDs += StudentsGridView.DataKeys[Student_Row.RowIndex]["StudentID"].ToString() + ",";
-                            S_check = true;
-                        }
-                    }
-                    if (S_check)
-                    {
-                        Filtering += "and StudentID in(" + SIDs.TrimEnd(',') + ")";
-                    }
-                    else
-                    {
-                        Filtering += "and StudentID in(0)";
-                    }
-
-
-                    string RIDs = "";
-                    bool R_check = false;
-                    foreach (GridViewRow New_Role_Row in AddNewRoleGridView.Rows)
-                    {
-                        CheckBox AddCheckBox = New_Role_Row.FindControl("AddCheckBox") as CheckBox;
-
-                        if (AddCheckBox.Checked)
-                        {
-                            RIDs += AddNewRoleGridView.DataKeys[New_Role_Row.RowIndex]["RoleID"].ToString() + ",";
-                            R_check = true;
-                        }
-                    }
-                    if (R_check)
-                    {
-                        Filtering += "and RoleID in(" + RIDs.TrimEnd(',') + ")";
-                    }
-                    else
-                    {
-                        Filtering += "and RoleID in(0)";
-                    }
-
-                    deleteFilter = Filtering;
-                    DueSQL.FilterExpression = Filtering;
-                    DueGridView.DataSource = DueSQL;
-                    DueGridView.DataBind();
-                }
-                else
-                {
-                    string RIDs = "";
-                    bool R_check = false;
-
-                    foreach (GridViewRow New_Role_Row in AddNewRoleGridView.Rows)
-                    {
-                        CheckBox AddCheckBox = New_Role_Row.FindControl("AddCheckBox") as CheckBox;
-
-                        if (AddCheckBox.Checked)
-                        {
-                            RIDs += AddNewRoleGridView.DataKeys[New_Role_Row.RowIndex]["RoleID"].ToString() + ",";
-                            R_check = true;
-                        }
-                    }
-                    if (R_check)
-                    {
-                        Filtering += "RoleID in(" + RIDs.TrimEnd(',') + ")";
-
-                    }
-                    else
-                    {
-                        Filtering += "RoleID in(0)";
-                    }
-
-                    deleteFilter = Filtering;
-                    DueSQL.FilterExpression = Filtering;
-                    DueGridView.DataSource = DueSQL;
-                    DueGridView.DataBind();
-                }
+                filtering = "RoleID in(" + GetCheckedRoleIds() + ")";
             }
 
-            ScriptManager.RegisterStartupScript(this, this.GetType(), "Pop", "openModal();", true);
+            string payForFilter = GetCheckedPayForFilter();
+            if (!string.IsNullOrEmpty(payForFilter))
+                filtering += payForFilter;
+
+            return filtering;
         }
 
-        protected void RemoveOrderButton_Click(object sender, EventArgs e)
+        private string GetCheckedPayForFilter()
         {
-            try
-            {
-                foreach (GridViewRow Row in DueGridView.Rows)
-                {
-                    CheckBox AddCheckBox = Row.FindControl("AddCheckBox") as CheckBox;
-                    if (AddCheckBox.Checked)
-                    {
-                        RemovePayOrderSQL.DeleteParameters["PayOrderID"].DefaultValue = DueGridView.DataKeys[Row.RowIndex]["PayOrderID"].ToString();
-                        RemovePayOrderSQL.Delete();
-                    }
-                }
+            List<string> selectedPayFors = new List<string>();
 
-                Role_Find_Button_Click(null, null);
+            foreach (GridViewRow payForRow in PayForGridView.Rows)
+            {
+                CheckBox payForCheckBox = payForRow.FindControl("PayForCheckBox") as CheckBox;
+                if (payForCheckBox != null && payForCheckBox.Checked)
+                {
+                    string payFor = PayForGridView.DataKeys[payForRow.RowIndex]["PayFor"].ToString()
+                        .Replace("'", "''");
+                    if (!string.IsNullOrWhiteSpace(payFor))
+                        selectedPayFors.Add(payFor);
+                }
             }
-            catch { }
+
+            if (selectedPayFors.Count == 0)
+                return string.Empty;
+
+            return "and PayFor in ('" + string.Join("','", selectedPayFors) + "')";
         }
 
+        private string GetCheckedStudentIds()
+        {
+            string sIds = string.Empty;
+            bool hasSelection = false;
+
+            foreach (GridViewRow studentRow in StudentsGridView.Rows)
+            {
+                CheckBox singleCheckBox = studentRow.FindControl("SingleCheckBox") as CheckBox;
+                if (singleCheckBox != null && singleCheckBox.Checked)
+                {
+                    sIds += StudentsGridView.DataKeys[studentRow.RowIndex]["StudentID"] + ",";
+                    hasSelection = true;
+                }
+            }
+
+            return hasSelection ? sIds.TrimEnd(',') : "0";
+        }
+
+        private string GetCheckedRoleIds()
+        {
+            string rIds = string.Empty;
+            bool hasSelection = false;
+
+            foreach (GridViewRow roleRow in AddNewRoleGridView.Rows)
+            {
+                CheckBox addCheckBox = roleRow.FindControl("AddCheckBox") as CheckBox;
+                if (addCheckBox != null && addCheckBox.Checked)
+                {
+                    rIds += AddNewRoleGridView.DataKeys[roleRow.RowIndex]["RoleID"] + ",";
+                    hasSelection = true;
+                }
+            }
+
+            return hasSelection ? rIds.TrimEnd(',') : "0";
+        }
+
+        private void RebindDueGridView()
+        {
+            if (string.IsNullOrWhiteSpace(DeleteFilter))
+                return;
+
+            DueSQL.FilterExpression = DeleteFilter;
+            DueGridView.DataSource = DueSQL;
+            DueGridView.DataBind();
+        }
     }
 }

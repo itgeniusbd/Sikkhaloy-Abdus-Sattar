@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 
@@ -15,45 +16,35 @@ namespace AttendanceDevice.Config_Class
         public static async Task<bool> IsServerUnavailable()
         {
             if (!NetworkInterface.GetIsNetworkAvailable())
-            {
                 return true;
-            }
 
-            try
-            {
-                using (var client = new WebClient())
-
-                using (await client.OpenReadTaskAsync(EndPoint))
-                {
-                    return false;
-                }
-            }
-            catch
-            {
-                return true;
-            }
+            return !await ProbeUrlAsync(EndPoint);
         }
-
 
         public static async Task<bool> IsNoNetConnection()
         {
             if (!NetworkInterface.GetIsNetworkAvailable())
-            {
                 return true;
-            }
 
+            return !await ProbeUrlAsync("https://www.google.com/generate_204");
+        }
+
+        private static async Task<bool> ProbeUrlAsync(string url)
+        {
             try
             {
-                using (var client = new WebClient())
-
-                using (await client.OpenReadTaskAsync("https://google.com"))
+                using (var http = new HttpClient
                 {
-                    return false;
+                    Timeout = TimeSpan.FromSeconds(PerformanceSettings.StartupNetworkProbeTimeoutSeconds)
+                })
+                using (var response = await http.GetAsync(url))
+                {
+                    return response.IsSuccessStatusCode;
                 }
             }
             catch
             {
-                return true;
+                return false;
             }
         }
     }

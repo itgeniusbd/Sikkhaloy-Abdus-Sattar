@@ -12,6 +12,58 @@ namespace EDUCATION.COM.Authority.Reference
     {
         private string ConnStr => ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
 
+        private static readonly string[] UiDateFormats = {
+            "dd MMM yyyy", "d MMM yyyy", "dd MMMM yyyy", "d MMMM yyyy",
+            "dd-MMM-yyyy", "d-MMM-yyyy", "dd/MM/yyyy", "d/M/yyyy",
+            "yyyy-MM-dd", "dd-MM-yyyy"
+        };
+
+        protected string FormatUiDate(object value)
+        {
+            if (value == null || value == DBNull.Value) return "";
+            return Convert.ToDateTime(value).ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
+        }
+
+        protected bool IsExpired(object value)
+        {
+            if (value == null || value == DBNull.Value) return false;
+            return Convert.ToDateTime(value).Date < DateTime.Today;
+        }
+
+        protected bool IsActiveExpiry(object value)
+        {
+            if (value == null || value == DBNull.Value) return false;
+            return Convert.ToDateTime(value).Date >= DateTime.Today;
+        }
+
+        private static bool TryParseUiDate(string text, out DateTime date)
+        {
+            date = default(DateTime);
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            text = text.Trim();
+
+            // Truncated full-month leftovers like "31 Decembe" from old picker format
+            if (text.EndsWith("Decembe", StringComparison.OrdinalIgnoreCase))
+                text = text.Substring(0, text.Length - "Decembe".Length) + "Dec";
+
+            var cultures = new[]
+            {
+                CultureInfo.InvariantCulture,
+                CultureInfo.GetCultureInfo("en-GB"),
+                CultureInfo.GetCultureInfo("en-US"),
+                CultureInfo.CurrentCulture
+            };
+
+            foreach (var culture in cultures)
+            {
+                if (DateTime.TryParseExact(text, UiDateFormats, culture, DateTimeStyles.AllowWhiteSpaces, out date))
+                    return true;
+                if (DateTime.TryParse(text, culture, DateTimeStyles.AllowWhiteSpaces, out date))
+                    return true;
+            }
+            return false;
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -175,7 +227,7 @@ namespace EDUCATION.COM.Authority.Reference
             searchResultDiv.Visible = false;
         }
 
-        // Search institutions to assign
+        // Search all institutions (with or without invoice)
         protected void InsSearchTextBox_TextChanged(object sender, EventArgs e)
         {
             string keyword = InsSearchTextBox.Text.Trim();
@@ -183,7 +235,7 @@ namespace EDUCATION.COM.Authority.Reference
             SelectedSchoolNameHidden.Value = "";
             SelectedInsPanel.Visible = false;
 
-            if (keyword.Length < 2)
+            if (keyword.Length < 1)
             {
                 searchResultDiv.Visible = false;
                 SearchResultRepeater.DataSource = null;
@@ -191,14 +243,36 @@ namespace EDUCATION.COM.Authority.Reference
                 return;
             }
 
-            string sql = @"SELECT TOP 10 SchoolID, SchoolName, Phone 
-                           FROM SchoolInfo 
-                           WHERE SchoolName LIKE @Keyword OR Phone LIKE @Keyword
-                           ORDER BY SchoolName";
+            int refID = ViewState["CurrentReferenceID"] != null ? (int)ViewState["CurrentReferenceID"] : 0;
+
+            // All SchoolInfo rows — no AAP_Invoice join. Newest / starts-with first.
+            string sql = @"
+                SELECT TOP 50
+                    s.SchoolID,
+                    s.SchoolName,
+                    s.Phone,
+                    CASE WHEN EXISTS (SELECT 1 FROM AAP_Invoice i WHERE i.SchoolID = s.SchoolID) THEN 1 ELSE 0 END AS HasInvoice
+                FROM SchoolInfo s
+                WHERE (
+                        s.SchoolName LIKE @Keyword
+                     OR ISNULL(s.Phone, '') LIKE @Keyword
+                     OR ISNULL(s.UserName, '') LIKE @Keyword
+                     OR CAST(s.SchoolID AS NVARCHAR(20)) LIKE @Keyword
+                     OR CAST(ISNULL(s.School_SN, 0) AS NVARCHAR(20)) LIKE @Keyword
+                  )
+                  AND (@RefID = 0 OR s.SchoolID NOT IN (
+                        SELECT SchoolID FROM AAP_Reference_School WHERE ReferenceID = @RefID
+                  ))
+                ORDER BY
+                    CASE WHEN s.SchoolName LIKE @StartsWith THEN 0 ELSE 1 END,
+                    s.SchoolID DESC";
+
             using (SqlConnection con = new SqlConnection(ConnStr))
             using (SqlDataAdapter da = new SqlDataAdapter(sql, con))
             {
                 da.SelectCommand.Parameters.AddWithValue("@Keyword", "%" + keyword + "%");
+                da.SelectCommand.Parameters.AddWithValue("@StartsWith", keyword + "%");
+                da.SelectCommand.Parameters.AddWithValue("@RefID", refID);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 SearchResultRepeater.DataSource = dt;
@@ -211,11 +285,28 @@ namespace EDUCATION.COM.Authority.Reference
         {
             if (e.CommandName == "SelectSchool")
             {
-                string[] parts = e.CommandArgument.ToString().Split('|');
-                SelectedSchoolIDHidden.Value = parts[0];
-                SelectedSchoolNameHidden.Value = parts[1];
-                InsSearchTextBox.Text = parts[1];
-                SelectedInsNameLabel.Text = parts[1];
+                int schoolID;
+                if (!int.TryParse(e.CommandArgument.ToString(), out schoolID) || schoolID <= 0)
+                    return;
+
+                string schoolName = "";
+                using (SqlConnection con = new SqlConnection(ConnStr))
+                using (SqlCommand cmd = new SqlCommand("SELECT SchoolName FROM SchoolInfo WHERE SchoolID=@ID", con))
+                {
+                    cmd.Parameters.AddWithValue("@ID", schoolID);
+                    con.Open();
+                    object result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        schoolName = result.ToString();
+                }
+
+                if (string.IsNullOrEmpty(schoolName))
+                    return;
+
+                SelectedSchoolIDHidden.Value = schoolID.ToString();
+                SelectedSchoolNameHidden.Value = schoolName;
+                InsSearchTextBox.Text = schoolName;
+                SelectedInsNameLabel.Text = schoolID + " — " + schoolName;
                 SelectedInsPanel.Visible = true;
                 searchResultDiv.Visible = false;
                 SearchResultRepeater.DataSource = null;
@@ -249,11 +340,25 @@ namespace EDUCATION.COM.Authority.Reference
 
             DateTime? signupDate = null;
             DateTime sd;
-            if (DateTime.TryParse(SignupDateTextBox.Text.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out sd)) signupDate = sd;
+            if (TryParseUiDate(SignupDateTextBox.Text, out sd)) signupDate = sd;
 
             DateTime? expireDate = null;
             DateTime ed;
-            if (DateTime.TryParse(CommExpireDateTextBox.Text.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out ed)) expireDate = ed;
+            if (TryParseUiDate(CommExpireDateTextBox.Text, out ed)) expireDate = ed;
+
+            // If user typed an expiry but it could not be parsed, stop with a clear error
+            if (!string.IsNullOrWhiteSpace(CommExpireDateTextBox.Text) && !expireDate.HasValue)
+            {
+                AssignMsgLabel.CssClass = "text-danger font-weight-bold";
+                AssignMsgLabel.Text = "Invalid Expiry Date. Use format like 31 Dec 2026.";
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(SignupDateTextBox.Text) && !signupDate.HasValue)
+            {
+                AssignMsgLabel.CssClass = "text-danger font-weight-bold";
+                AssignMsgLabel.Text = "Invalid Signup Date. Use format like 01 Jul 2024.";
+                return;
+            }
 
             using (SqlConnection con = new SqlConnection(ConnStr))
             {
@@ -280,8 +385,8 @@ namespace EDUCATION.COM.Authority.Reference
                     cmd.Parameters.AddWithValue("@SchoolID", schoolID);
                     cmd.Parameters.AddWithValue("@RefID", refID);
                     cmd.Parameters.AddWithValue("@Pct", pct);
-                    cmd.Parameters.AddWithValue("@Signup", signupDate.HasValue ? (object)signupDate.Value : DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Expire", expireDate.HasValue ? (object)expireDate.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Signup", signupDate.HasValue ? (object)signupDate.Value.Date : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Expire", expireDate.HasValue ? (object)expireDate.Value.Date : DBNull.Value);
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -378,18 +483,43 @@ namespace EDUCATION.COM.Authority.Reference
             int rsID = (int)AssignedSchoolsGridView.DataKeys[e.RowIndex]["Reference_School_ID"];
             GridViewRow row = AssignedSchoolsGridView.Rows[e.RowIndex];
 
+            var pctBox = (TextBox)row.FindControl("EditPctTextBox");
+            var signupBox = (TextBox)row.FindControl("EditSignupTextBox");
+            var expireBox = (TextBox)row.FindControl("EditExpireTextBox");
+
+            if (pctBox == null || signupBox == null || expireBox == null)
+            {
+                e.Cancel = true;
+                AssignMsgLabel.CssClass = "text-danger font-weight-bold";
+                AssignMsgLabel.Text = "Edit controls not found. Please try again.";
+                return;
+            }
+
             double pct = 0;
-            double.TryParse(((TextBox)row.FindControl("EditPctTextBox")).Text.Trim(), out pct);
+            double.TryParse(pctBox.Text.Trim(), out pct);
 
             DateTime? signupDate = null;
-            string signupTxt = ((TextBox)row.FindControl("EditSignupTextBox")).Text.Trim();
             DateTime sd;
-            if (DateTime.TryParse(signupTxt, CultureInfo.InvariantCulture, DateTimeStyles.None, out sd)) signupDate = sd;
+            if (TryParseUiDate(signupBox.Text, out sd)) signupDate = sd;
 
             DateTime? expireDate = null;
-            string expireTxt = ((TextBox)row.FindControl("EditExpireTextBox")).Text.Trim();
             DateTime ed;
-            if (DateTime.TryParse(expireTxt, CultureInfo.InvariantCulture, DateTimeStyles.None, out ed)) expireDate = ed;
+            if (TryParseUiDate(expireBox.Text, out ed)) expireDate = ed;
+
+            if (!string.IsNullOrWhiteSpace(expireBox.Text) && !expireDate.HasValue)
+            {
+                e.Cancel = true;
+                AssignMsgLabel.CssClass = "text-danger font-weight-bold";
+                AssignMsgLabel.Text = "Invalid Expiry Date. Use format like 31 Dec 2026.";
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(signupBox.Text) && !signupDate.HasValue)
+            {
+                e.Cancel = true;
+                AssignMsgLabel.CssClass = "text-danger font-weight-bold";
+                AssignMsgLabel.Text = "Invalid Signup Date. Use format like 01 Jul 2024.";
+                return;
+            }
 
             using (SqlConnection con = new SqlConnection(ConnStr))
             {
@@ -400,8 +530,8 @@ namespace EDUCATION.COM.Authority.Reference
                 using (SqlCommand cmd = new SqlCommand(sql, con))
                 {
                     cmd.Parameters.AddWithValue("@Pct", pct);
-                    cmd.Parameters.AddWithValue("@Signup", signupDate.HasValue ? (object)signupDate.Value : DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Expire", expireDate.HasValue ? (object)expireDate.Value : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Signup", signupDate.HasValue ? (object)signupDate.Value.Date : DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Expire", expireDate.HasValue ? (object)expireDate.Value.Date : DBNull.Value);
                     cmd.Parameters.AddWithValue("@ID", rsID);
                     cmd.ExecuteNonQuery();
                 }
@@ -410,6 +540,8 @@ namespace EDUCATION.COM.Authority.Reference
             AssignedSchoolsGridView.EditIndex = -1;
             int refID = (int)ViewState["CurrentReferenceID"];
             LoadAssignedSchools(refID);
+            AssignMsgLabel.CssClass = "text-success font-weight-bold";
+            AssignMsgLabel.Text = "Assignment updated successfully.";
         }
     }
 }

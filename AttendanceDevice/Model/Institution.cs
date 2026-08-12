@@ -26,6 +26,7 @@ namespace AttendanceDevice.Model
         public string LastUpdateDate { get; set; }
         public string ServerTodayDate { get; set; }
         public int PingTimeOut { get; set; }
+        public bool Is_Low_Power_Mode { get; set; }
         [NotMapped]
         public DateTime Current_Datetime { get; set; }
     }

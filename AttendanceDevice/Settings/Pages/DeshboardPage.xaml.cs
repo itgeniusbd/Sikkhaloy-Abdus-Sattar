@@ -11,6 +11,7 @@ namespace AttendanceDevice.Settings.Pages
     public partial class Deshboard : Page
     {
         private readonly Setting _setting;
+        private bool _lowPowerUiUpdating;
 
         public Deshboard()
         {
@@ -39,6 +40,21 @@ namespace AttendanceDevice.Settings.Pages
             var settingDashboard = new Setting_Dashboard_View();
             DashboardData.DataContext = settingDashboard;
 
+            _lowPowerUiUpdating = true;
+            LowPowerModeCheckBox.IsChecked = settingDashboard.Ins?.Is_Low_Power_Mode == true;
+            _lowPowerUiUpdating = false;
+        }
+
+        private async void LowPowerModeCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_lowPowerUiUpdating)
+                return;
+
+            var enabled = LowPowerModeCheckBox.IsChecked == true;
+            await PerformanceSettings.SetLowPowerModeAsync(enabled);
+
+            if (DashboardData.DataContext is Setting_Dashboard_View dashboard && dashboard.Ins != null)
+                dashboard.Ins.Is_Low_Power_Mode = enabled;
         }
 
         private void ErrorDelete_Button_Click(object sender, RoutedEventArgs e)

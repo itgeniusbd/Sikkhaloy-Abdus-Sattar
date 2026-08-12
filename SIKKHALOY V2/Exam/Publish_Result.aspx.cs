@@ -243,12 +243,25 @@ namespace EDUCATION.COM.Exam
                 {
                     ToDateTextBox.Text = string.Empty;
                 }
+
+                if (ResetDv.Table.Columns.Contains("Attendance_ScheduleID")
+                    && ResetDv[0]["Attendance_ScheduleID"] != DBNull.Value
+                    && ResetDv[0]["Attendance_ScheduleID"].ToString() != "")
+                {
+                    var scheduleItem = ScheduleDropDownList.Items.FindByValue(ResetDv[0]["Attendance_ScheduleID"].ToString());
+                    ScheduleDropDownList.SelectedValue = scheduleItem != null ? scheduleItem.Value : "0";
+                }
+                else
+                {
+                    ScheduleDropDownList.SelectedValue = "0";
+                }
             }
             else
             {
                 MinPercentageTextBox.Text = string.Empty;
                 FromDateTextBox.Text = string.Empty;
                 ToDateTextBox.Text = string.Empty;
+                ScheduleDropDownList.SelectedValue = "0";
                 
                 // Set default grade setting when no previous data
                 GradeSetting_RBList.ClearSelection();

@@ -120,7 +120,10 @@ namespace AttendanceDevice.APIClass
         {
             try
             {
-                using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(90) })
+                using (var http = new HttpClient
+                {
+                    Timeout = TimeSpan.FromSeconds(PerformanceSettings.StartupScheduleFetchTimeoutSeconds)
+                })
                 {
                     http.DefaultRequestHeaders.Accept.Clear();
                     http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

@@ -1984,9 +1984,10 @@ namespace EDUCATION.COM.Exam.Result
                         studentClassID = Convert.ToInt32(val);
                     }
 
-                    // Step 2: Get from/to dates from Exam_Publish_Setting
+                    // Step 2: Get from/to dates and schedule from Exam_Publish_Setting
                     string fromDate = null, toDate = null;
-                    using (var cmd = new SqlCommand(@"SELECT Attendance_FromDate, Attendance_ToDate
+                    int scheduleID = 0;
+                    using (var cmd = new SqlCommand(@"SELECT Attendance_FromDate, Attendance_ToDate, Attendance_ScheduleID
                         FROM Exam_Publish_Setting
                         WHERE SchoolID=@SchoolID AND EducationYearID=@EduYear AND ExamID=@ExamID AND ClassID=@ClassID", con))
                     {
@@ -2000,6 +2001,8 @@ namespace EDUCATION.COM.Exam.Result
                             {
                                 fromDate = reader["Attendance_FromDate"] == DBNull.Value ? null : reader["Attendance_FromDate"].ToString();
                                 toDate   = reader["Attendance_ToDate"]   == DBNull.Value ? null : reader["Attendance_ToDate"].ToString();
+                                if (reader["Attendance_ScheduleID"] != DBNull.Value)
+                                    scheduleID = Convert.ToInt32(reader["Attendance_ScheduleID"]);
                             }
                         }
                     }
@@ -2008,15 +2011,40 @@ namespace EDUCATION.COM.Exam.Result
                     if (string.IsNullOrWhiteSpace(fromDate) || string.IsNullOrWhiteSpace(toDate))
                         return data;
 
-                    // Step 3: Calculate attendance using DB functions
+                    // Step 3: Calculate attendance (schedule-aware, same logic as Attendance Records)
                     using (var cmd = new SqlCommand(@"
                         SELECT
                             dbo.F_Stu_WorkingDay(@SchoolID, @EduYear, @ClassID, @From, @To) AS WorkingDays,
-                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Pre',      @From, @To) AS PresentDays,
-                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Abs',      @From, @To) AS AbsentDays,
-                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Leave',    @From, @To) AS LeaveDays,
-                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Late Abs', @From, @To) AS LateAbsDays,
-                            dbo.F_Stu_Attendance_Summary(@SchoolID, @EduYear, @SCID, 'Late',     @From, @To) AS LateDays", con))
+                            (SELECT COUNT(*) FROM Attendance_Record ar
+                             WHERE ar.SchoolID = @SchoolID AND ar.EducationYearID = @EduYear AND ar.StudentClassID = @SCID
+                               AND ar.Attendance = 'Pre'
+                               AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From AS DATE)
+                               AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To AS DATE)
+                               AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS PresentDays,
+                            (SELECT COUNT(*) FROM Attendance_Record ar
+                             WHERE ar.SchoolID = @SchoolID AND ar.EducationYearID = @EduYear AND ar.StudentClassID = @SCID
+                               AND ar.Attendance = 'Abs'
+                               AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From AS DATE)
+                               AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To AS DATE)
+                               AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS AbsentDays,
+                            (SELECT COUNT(*) FROM Attendance_Record ar
+                             WHERE ar.SchoolID = @SchoolID AND ar.EducationYearID = @EduYear AND ar.StudentClassID = @SCID
+                               AND ar.Attendance = 'Leave'
+                               AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From AS DATE)
+                               AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To AS DATE)
+                               AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS LeaveDays,
+                            (SELECT COUNT(*) FROM Attendance_Record ar
+                             WHERE ar.SchoolID = @SchoolID AND ar.EducationYearID = @EduYear AND ar.StudentClassID = @SCID
+                               AND ar.Attendance = 'Late Abs'
+                               AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From AS DATE)
+                               AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To AS DATE)
+                               AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS LateAbsDays,
+                            (SELECT COUNT(*) FROM Attendance_Record ar
+                             WHERE ar.SchoolID = @SchoolID AND ar.EducationYearID = @EduYear AND ar.StudentClassID = @SCID
+                               AND ar.Attendance = 'Late'
+                               AND CAST(ar.AttendanceDate AS DATE) >= CAST(@From AS DATE)
+                               AND CAST(ar.AttendanceDate AS DATE) <= CAST(@To AS DATE)
+                               AND (@ScheduleID = 0 OR ISNULL(ar.Attendance_ScheduleID, 0) = @ScheduleID)) AS LateDays", con))
                     {
                         cmd.Parameters.AddWithValue("@SchoolID", schoolID);
                         cmd.Parameters.AddWithValue("@EduYear", eduYearID);
@@ -2024,6 +2052,7 @@ namespace EDUCATION.COM.Exam.Result
                         cmd.Parameters.AddWithValue("@SCID", studentClassID);
                         cmd.Parameters.AddWithValue("@From", fromDate);
                         cmd.Parameters.AddWithValue("@To", toDate);
+                        cmd.Parameters.AddWithValue("@ScheduleID", scheduleID);
 
                         using (var reader = cmd.ExecuteReader())
                         {

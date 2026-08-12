@@ -246,7 +246,7 @@ WHERE (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ExamI
                             </asp:SqlDataSource>
                             <asp:SqlDataSource ID="Student_ResultSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="EXEC [dbo].[SP_Exam_Subject] @SchoolID,@EducationYearID,@ClassID,@ExamID
 EXEC [dbo].[SP_Exam_Student] @SchoolID,@EducationYearID,@ClassID,@ExamID
-EXEC [dbo].[SP_Exam_Attendance] @SchoolID,@EducationYearID,@ClassID,@ExamID,@RegistrationID,@From_Date,@To_Date
+EXEC [dbo].[SP_Exam_Attendance] @SchoolID,@EducationYearID,@ClassID,@ExamID,@RegistrationID,@From_Date,@To_Date,@ScheduleID
 EXEC [dbo].[HighestMark_Position] @SchoolID,@EducationYearID,@ClassID,@ExamID,@Exam_Position_Format"
                                 SelectCommand="SELECT * FROM [Exam_Result_of_Student]" OnInserting="Student_ResultSQL_Inserting">
                                 <InsertParameters>
@@ -257,6 +257,7 @@ EXEC [dbo].[HighestMark_Position] @SchoolID,@EducationYearID,@ClassID,@ExamID,@E
                                     <asp:SessionParameter Name="RegistrationID" SessionField="RegistrationID" />
                                     <asp:ControlParameter ControlID="FromDateTextBox" Name="From_Date" PropertyName="Text" />
                                     <asp:ControlParameter ControlID="ToDateTextBox" Name="To_Date" PropertyName="Text" />
+                                    <asp:ControlParameter ControlID="ScheduleDropDownList" Name="ScheduleID" PropertyName="SelectedValue" DefaultValue="0" />
                                     <asp:ControlParameter ControlID="Position_RadioButtonList" Name="Exam_Position_Format" PropertyName="SelectedValue" />
                                 </InsertParameters>
                             </asp:SqlDataSource>
@@ -287,8 +288,8 @@ WHERE        (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND
 BEGIN
 INSERT INTO Exam_Publish_Setting
                          (SchoolID, RegistrationID, EducationYearID, ClassID, ExamID, IS_Fail_Enable_Optional_Subject, IS_Add_Optional_Mark_In_FullMarks, IS_Enable_Grade_as_it_is_if_Fail, IS_Enable_Fail_if_fail_in_sub_Exam, 
-                         Optional_Percentage_Deduction, IS_Published, Exam_Position_Format, IS_Hide_Sec_Position,IS_Hide_Class_Position, Attendance_FromDate, Attendance_ToDate,IS_Hide_FullMark,IS_Hide_PassMark,IS_Grade_BasePoint)
-VALUES        (@SchoolID,@RegistrationID,@EducationYearID,@ClassID,@ExamID,@IS_Fail_Enable_Optional_Subject,@IS_Add_Optional_Mark_In_FullMarks,@IS_Enable_Grade_as_it_is_if_Fail,@IS_Enable_Fail_if_fail_in_sub_Exam,@Optional_Percentage_Deduction,@IS_PUBLISHED,@Exam_Position_Format,@IS_Hide_Sec_Position,@IS_Hide_Class_Position,@Attendance_FromDate,@Attendance_ToDate,@IS_Hide_FullMark,@IS_Hide_PassMark,@IS_Grade_BasePoint)
+                         Optional_Percentage_Deduction, IS_Published, Exam_Position_Format, IS_Hide_Sec_Position,IS_Hide_Class_Position, Attendance_FromDate, Attendance_ToDate, Attendance_ScheduleID, IS_Hide_FullMark,IS_Hide_PassMark,IS_Grade_BasePoint)
+VALUES        (@SchoolID,@RegistrationID,@EducationYearID,@ClassID,@ExamID,@IS_Fail_Enable_Optional_Subject,@IS_Add_Optional_Mark_In_FullMarks,@IS_Enable_Grade_as_it_is_if_Fail,@IS_Enable_Fail_if_fail_in_sub_Exam,@Optional_Percentage_Deduction,@IS_PUBLISHED,@Exam_Position_Format,@IS_Hide_Sec_Position,@IS_Hide_Class_Position,@Attendance_FromDate,@Attendance_ToDate,@Attendance_ScheduleID,@IS_Hide_FullMark,@IS_Hide_PassMark,@IS_Grade_BasePoint)
 
 END
 ELSE
@@ -297,7 +298,7 @@ UPDATE       Exam_Publish_Setting
 SET                IS_Fail_Enable_Optional_Subject = @IS_Fail_Enable_Optional_Subject, IS_Add_Optional_Mark_In_FullMarks = @IS_Add_Optional_Mark_In_FullMarks, 
                          IS_Enable_Grade_as_it_is_if_Fail = @IS_Enable_Grade_as_it_is_if_Fail, IS_Enable_Fail_if_fail_in_sub_Exam = @IS_Enable_Fail_if_fail_in_sub_Exam, 
                          Optional_Percentage_Deduction = @Optional_Percentage_Deduction, IS_PUBLISHED = @IS_PUBLISHED, Exam_Position_Format = @Exam_Position_Format, Last_Published_Date = GETDATE(), 
-                         IS_Hide_Sec_Position = @IS_Hide_Sec_Position,IS_Hide_Class_Position=@IS_Hide_Class_Position, Attendance_FromDate = @Attendance_FromDate, Attendance_ToDate = @Attendance_ToDate,IS_Hide_FullMark = @IS_Hide_FullMark,IS_Hide_PassMark = @IS_Hide_PassMark, IS_Grade_BasePoint=@IS_Grade_BasePoint
+                         IS_Hide_Sec_Position = @IS_Hide_Sec_Position,IS_Hide_Class_Position=@IS_Hide_Class_Position, Attendance_FromDate = @Attendance_FromDate, Attendance_ToDate = @Attendance_ToDate, Attendance_ScheduleID = @Attendance_ScheduleID, IS_Hide_FullMark = @IS_Hide_FullMark,IS_Hide_PassMark = @IS_Hide_PassMark, IS_Grade_BasePoint=@IS_Grade_BasePoint
 WHERE        (SchoolID = @SchoolID) AND (EducationYearID = @EducationYearID) AND (ExamID = @ExamID) AND (ClassID = @ClassID)
 
 END"
@@ -325,6 +326,7 @@ END"
                                     <asp:ControlParameter ControlID="ClassPositionCheckBox" Name="IS_Hide_Class_Position" PropertyName="Checked" />
                                     <asp:ControlParameter ControlID="FromDateTextBox" Name="Attendance_FromDate" PropertyName="Text" />
                                     <asp:ControlParameter ControlID="ToDateTextBox" Name="Attendance_ToDate" PropertyName="Text" />
+                                    <asp:ControlParameter ControlID="ScheduleDropDownList" Name="Attendance_ScheduleID" PropertyName="SelectedValue" DefaultValue="0" />
                                     <asp:ControlParameter ControlID="H_FullMarkCheckBox" Name="IS_Hide_FullMark" PropertyName="Checked" />
                                     <asp:ControlParameter ControlID="H_PassMarkCheckBox" Name="IS_Hide_PassMark" PropertyName="Checked" />
                                     <asp:ControlParameter ControlID="GradeSetting_RBList" Name="IS_Grade_BasePoint" PropertyName="SelectedValue" />
@@ -350,10 +352,21 @@ END"
                             <div class="md-form mr-2">
                                 <asp:TextBox onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" ID="FromDateTextBox" placeholder="From Date" runat="server" CssClass="form-control Datetime"></asp:TextBox>
                             </div>
-                            <div class="md-form">
+                            <div class="md-form mr-2">
                                 <asp:TextBox onkeypress="return isNumberKey(event)" autocomplete="off" onDrop="blur();return false;" onpaste="return false" ID="ToDateTextBox" placeholder="To Date" runat="server" CssClass="form-control Datetime"></asp:TextBox>
                             </div>
+                            <div class="md-form">
+                                <asp:DropDownList ID="ScheduleDropDownList" runat="server" AppendDataBoundItems="True" CssClass="form-control" DataSourceID="ScheduleSQL" DataTextField="ScheduleName" DataValueField="ScheduleID">
+                                    <asp:ListItem Value="0">[ ALL SCHEDULE ]</asp:ListItem>
+                                </asp:DropDownList>
+                                <asp:SqlDataSource ID="ScheduleSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ScheduleID, ScheduleName FROM Attendance_Schedule WHERE (SchoolID = @SchoolID) ORDER BY ScheduleName">
+                                    <SelectParameters>
+                                        <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
+                                    </SelectParameters>
+                                </asp:SqlDataSource>
+                            </div>
                         </div>
+                        <p class="Help text-muted mt-2 mb-0">Multi-schedule থাকলে নির্দিষ্ট schedule সিলেক্ট করুন। [ ALL SCHEDULE ] দিলে সব schedule-এর হাজিরা একসাথে যোগ হবে।</p>
                     </div>
                 </div>
 

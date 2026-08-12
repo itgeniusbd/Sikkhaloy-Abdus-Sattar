@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using RestSharp;
+using System.Threading.Tasks;
 
 namespace AttendanceDevice.Config_Class
 {
@@ -11,6 +12,19 @@ namespace AttendanceDevice.Config_Class
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             NullValueHandling = NullValueHandling.Ignore
         };
+
+        public static RestClient CreateClient(int? timeoutMs = null)
+        {
+            return new RestClient(ApiUrl.EndPoint)
+            {
+                Timeout = timeoutMs ?? PerformanceSettings.ApiRequestTimeoutMs
+            };
+        }
+
+        public static Task<IRestResponse> ExecuteAsync(RestClient client, RestRequest request)
+        {
+            return client.ExecuteTaskAsync(request);
+        }
 
         public static void AddAuthorizedJsonHeaders(RestRequest request, string token)
         {
