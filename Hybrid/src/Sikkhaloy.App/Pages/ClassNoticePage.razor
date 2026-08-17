@@ -1,0 +1,285 @@
+@page "/student-mgmt/notice"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page notice-page">
+    <h1>@Locale.T("sm.notice")</h1>
+    <p class="muted">@Locale.T("sm.crumb")</p>
+    <p class="muted">@Locale.T("sm.noticeHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <section class="notice-compose">
+        <div class="notice-classes">
+            <div class="notice-class-head">
+                <b>@Locale.T("sm.classes")</b>
+                <span class="muted">@Locale.T("sm.classPicked", classChecks.Count, classes.Count)</span>
+                <label class="choice-inline">
+                    <input type="checkbox" checked="@AllClassesSelected" disabled="@(busy || classes.Count == 0)"
+                           @onchange="ToggleAllClasses" />
+                    <span>@Locale.T("sm.selectAll")</span>
+                </label>
+                <button type="button" class="link-btn" disabled="@(busy || classChecks.Count == 0)" @onclick="ClearClasses">
+                    @Locale.T("sm.clearAll")
+                </button>
+            </div>
+            <div class="notice-class-grid">
+                @foreach (var item in classes)
+                {
+                    var on = classChecks.Contains(item.ClassID);
+                    <label class="notice-chip @(on ? "on" : null)">
+                        <input type="checkbox" checked="@on" disabled="@busy"
+                               @onchange="e => ToggleClass(item.ClassID, e)" />
+                        <span>@item.Name</span>
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="notice-fields">
+            <div class="si-tabs">
+                <button type="button" class="@(!isHomeWork ? "active" : null)" disabled="@busy"
+                        @onclick="@(() => isHomeWork = false)">@Locale.T("sm.general")</button>
+                <button type="button" class="@(isHomeWork ? "active" : null)" disabled="@busy"
+                        @onclick="@(() => isHomeWork = true)">@Locale.T("sm.homework")</button>
+            </div>
+            <label>@Locale.T("sm.title")
+                <input type="text" @bind="title" disabled="@busy" placeholder="@Locale.T("sm.title")" />
+            </label>
+            <label>@Locale.T("sm.body")
+                <textarea @bind="body" disabled="@busy" placeholder="@Locale.T("sm.body")"></textarea>
+            </label>
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="PublishAsync">@Locale.T("sm.publish")</button>
+        </div>
+    </section>
+
+    <div class="notice-history-head">
+        <h2 class="emp-list-title">@Locale.T("sm.noticeList")</h2>
+        <button type="button" class="btn-serial notice-delete" disabled="@busy" @onclick="DeleteAsync">@Locale.T("si.delete")</button>
+    </div>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act"><input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" /></th>
+                <th>@Locale.T("sm.date")</th>
+                <th>@Locale.T("sm.type")</th>
+                <th>@Locale.T("sm.title")</th>
+                <th>@Locale.T("sm.classes")</th>
+                <th>@Locale.T("sm.user")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (notices.Count == 0 && !busy)
+        {
+            <tr><td colspan="6" class="empty-row">@Locale.T("si.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in notices)
+            {
+                <tr>
+                    <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                    <td class="notice-date">@(row.InsertDate?.ToString("dd-MMM-yy h:mm tt") ?? "—")</td>
+                    <td>
+                        <span class="@(row.IsHomeWork ? "pill pill-old" : "pill pill-new")">
+                            @(row.IsHomeWork ? Locale.T("sm.homework") : Locale.T("sm.general"))
+                        </span>
+                    </td>
+                    <td>
+                        <div class="notice-title">@row.NoticeTitle</div>
+                        @if (!string.IsNullOrWhiteSpace(row.Notice))
+                        {
+                            <div class="muted notice-preview">@row.Notice</div>
+                        }
+                    </td>
+                    <td>
+                        <div class="notice-class-pills">
+                            @foreach (var name in ClassNames(row.Classes))
+                            {
+                                <span class="pill">@name</span>
+                            }
+                        </div>
+                    </td>
+                    <td>@row.UserName</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly HashSet<int> classChecks = [];
+    private readonly List<NoticeDto> notices = [];
+    private string title = "";
+    private string body = "";
+    private bool isHomeWork;
+    private bool busy;
+    private bool allSelected;
+    private string? error;
+    private string? message;
+
+    private bool AllClassesSelected => classes.Count > 0 && classChecks.Count == classes.Count;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        var structure = await Api.GetClassStructureAsync(Session.AccessToken);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        await LoadAsync();
+    }
+
+    private void ToggleClass(int classId, ChangeEventArgs e)
+    {
+        if (e.Value is true or "true")
+            classChecks.Add(classId);
+        else
+            classChecks.Remove(classId);
+    }
+
+    private void ToggleAllClasses(ChangeEventArgs e)
+    {
+        classChecks.Clear();
+        if (e.Value is true or "true")
+        {
+            foreach (var item in classes)
+                classChecks.Add(item.ClassID);
+        }
+    }
+
+    private void ClearClasses() => classChecks.Clear();
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        allSelected = e.Value is true or "true";
+        foreach (var row in notices)
+            row.Selected = allSelected;
+    }
+
+    private static IEnumerable<string> ClassNames(string? text) =>
+        (text ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private async Task LoadAsync()
+    {
+        notices.Clear();
+        notices.AddRange(await Api.GetNoticesAsync(Session.AccessToken));
+        allSelected = false;
+    }
+
+    private async Task PublishAsync()
+    {
+        error = message = null;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            error = Locale.T("sm.needTitle");
+            return;
+        }
+        if (classChecks.Count == 0)
+        {
+            error = Locale.T("sm.needClass");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.SaveNoticeAsync(Session.AccessToken, new SaveNoticeRequest
+            {
+                NoticeTitle = title.Trim(),
+                Notice = body,
+                IsHomeWork = isHomeWork,
+                ClassIDs = classChecks.ToList()
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            title = body = "";
+            classChecks.Clear();
+            await LoadAsync();
+            message = Locale.T("sm.okNotice");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        error = message = null;
+        var ids = notices.Where(x => x.Selected).Select(x => x.StudentNoticeId).ToList();
+        if (ids.Count == 0)
+        {
+            error = Locale.T("sm.needNotice");
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sm.confirmNotice")))
+            return;
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteNoticesAsync(Session.AccessToken, new DeleteNoticesRequest { NoticeIDs = ids });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            await LoadAsync();
+            message = Locale.T("sm.okDeleteNotice");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+}

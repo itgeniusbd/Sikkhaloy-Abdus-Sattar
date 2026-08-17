@@ -1,0 +1,211 @@
+@page "/student-info/certificates"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("si.certs")</h1>
+    <p class="muted no-print">@Locale.T("si.crumb")</p>
+    <p class="muted no-print">@Locale.T("si.certPick")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="cert-pick no-print">
+        <button type="button" class="cert-card cert-en-char @(kind == "char-en" ? "is-on" : null)" @onclick="@(() => kind = "char-en")">
+            @Locale.T("si.certCharEn")
+            <small>@Locale.T("si.certEn")</small>
+        </button>
+        <button type="button" class="cert-card cert-bn-char @(kind == "char-bn" ? "is-on" : null)" @onclick="@(() => kind = "char-bn")">
+            @Locale.T("si.certCharBn")
+            <small>@Locale.T("si.certBn")</small>
+        </button>
+        <button type="button" class="cert-card cert-en-test @(kind == "test-en" ? "is-on" : null)" @onclick="@(() => kind = "test-en")">
+            @Locale.T("si.certTestEn")
+            <small>@Locale.T("si.certEn")</small>
+        </button>
+        <button type="button" class="cert-card cert-bn-test @(kind == "test-bn" ? "is-on" : null)" @onclick="@(() => kind = "test-bn")">
+            @Locale.T("si.certTestBn")
+            <small>@Locale.T("si.certBn")</small>
+        </button>
+        <button type="button" class="cert-card cert-bn-prot @(kind == "prot-bn" ? "is-on" : null)" @onclick="@(() => kind = "prot-bn")">
+            @Locale.T("si.certProtBn")
+            <small>@Locale.T("si.certBn")</small>
+        </button>
+    </div>
+
+    <div class="filter-row no-print">
+        <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
+        <button type="button" class="link-btn" disabled="@(busy || student is null)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    </div>
+
+    @if (student is not null)
+    {
+        <article class="cert-sheet">
+            @if (kind == "char-en")
+            {
+                <h2>CHARACTER CERTIFICATE</h2>
+                <div class="cert-sub">@Locale.T("si.certConcern")</div>
+                <div class="cert-body">
+                    <p>This is to certify that, Student: <strong>@student.StudentsName</strong></p>
+                    <p>
+                        ID: <strong>@student.ID</strong>, Class: <strong>@student.ClassName</strong>, Roll No: <strong>@student.RollNo</strong>,
+                        Date Of Birth, <strong>@(student.DateofBirth?.ToString("d MMM, yyyy") ?? "—")</strong>,
+                    </p>
+                    <p>@ChildOf <strong>@student.FathersName</strong> &amp; <strong>@student.MothersName</strong>,</p>
+                    <p>
+                        residence of <strong>@student.PermanentAddress</strong> is known to me. @HeShe is a citizen of Bangladesh by birth.
+                        To the best of my knowledge, @heShe bears a good moral character and is not involved in such activities which are against the state freedom and peace.
+                    </p>
+                </div>
+                <div class="cert-foot">I wish all success and prosperity in @hisHer life.</div>
+                <div class="cert-signs">
+                    <span>@Locale.T("si.certDate")</span>
+                    <span>@Locale.T("si.certSign")</span>
+                </div>
+            }
+            else if (kind == "test-en")
+            {
+                <h2>TESTIMONIAL</h2>
+                <div class="cert-sub" style="text-align:right">@Locale.T("si.certDate")</div>
+                <div class="cert-body">
+                    <p>
+                        It is hereby certified that the student: <strong>@student.StudentsName</strong>,
+                        ID: <strong>@student.ID</strong>, Class: <strong>@student.ClassName</strong>, Roll No: <strong>@student.RollNo</strong>,
+                        Father: <strong>@student.FathersName</strong>, Mother: <strong>@student.MothersName</strong>,
+                        Date Of Birth: <strong>@(student.DateofBirth?.ToString("d MMM, yyyy") ?? "—")</strong>,
+                        Address: <strong>@student.PermanentAddress</strong>.
+                        To my knowledge @heShe is of good character and is not involved in any anti-state activities.
+                    </p>
+                </div>
+                <div class="cert-foot">I wish all success and prosperity in @hisHer life.</div>
+                <div class="cert-signs">
+                    <span></span>
+                    <span>@Locale.T("si.certAuth")</span>
+                </div>
+            }
+            else if (kind == "char-bn")
+            {
+                <h2>চারিত্রিক সনদ</h2>
+                <div class="cert-sub" style="text-align:right">@Locale.T("si.certDateBn")</div>
+                <div class="cert-body">
+                    <p>
+                        এই মর্মে প্রত্যয়ন করা হইতেছে যে, শিক্ষার্থী: <strong>@student.StudentsName</strong>,
+                        আইডি নম্বর: <strong>@student.ID</strong>, শ্রেণি: <strong>@student.ClassName</strong>, রোল নং: <strong>@student.RollNo</strong>,
+                        পিতা: <strong>@student.FathersName</strong>, মাতা: <strong>@student.MothersName</strong>,
+                        জন্ম তারিখ: <strong>@(student.DateofBirth?.ToString("d MMM, yyyy") ?? "—")</strong>,
+                        ঠিকানা: <strong>@student.PermanentAddress</strong>। আমার নিকট সে ব্যাক্তিগত ভাবে পরিচিত। আমার জানামতে সে রাষ্ট্র বিরোধী কোন কার্যক্রমে জড়িত নয়।
+                        তাহার স্বভাব চরিত্র ভালো।
+                    </p>
+                </div>
+                <div class="cert-foot">আমি তাহার সর্বাঙ্গীন উন্নতি ও মঙ্গল কামনা করছি।</div>
+                <div class="cert-signs">
+                    <span></span>
+                    <span>@Locale.T("si.certAuthBn")</span>
+                </div>
+            }
+            else if (kind == "test-bn")
+            {
+                <h2>প্রশংসা পত্র</h2>
+                <div class="cert-sub" style="text-align:right">@Locale.T("si.certDateBn")</div>
+                <div class="cert-body">
+                    <p>
+                        এই মর্মে প্রত্যয়ন করা হইতেছে যে, শিক্ষার্থী: <strong>@student.StudentsName</strong>,
+                        আইডি নম্বর: <strong>@student.ID</strong>, শ্রেণি: <strong>@student.ClassName</strong>, রোল নং: <strong>@student.RollNo</strong>,
+                        পিতা: <strong>@student.FathersName</strong>, মাতা: <strong>@student.MothersName</strong>,
+                        জন্ম তারিখ: <strong>@(student.DateofBirth?.ToString("d MMM, yyyy") ?? "—")</strong> ইং,
+                        ঠিকানা: <strong>@student.PermanentAddress</strong>। আমার নিকট সে ব্যাক্তিগত ভাবে পরিচিত। আমার জানামতে সে রাষ্ট্র বিরোধী কোন কার্যক্রমে জড়িত নয়।
+                        তাহার স্বভাব চরিত্র ভালো।
+                    </p>
+                </div>
+                <div class="cert-foot">আমি তাহার সর্বাঙ্গীন উন্নতি ও মঙ্গল কামনা করছি।</div>
+                <div class="cert-signs">
+                    <span></span>
+                    <span>@Locale.T("si.certAuthBn")</span>
+                </div>
+            }
+            else
+            {
+                <h2>প্রত্যয়ন পত্র</h2>
+                <div class="cert-sub" style="text-align:right">@Locale.T("si.certDateBn")</div>
+                <div class="cert-body">
+                    <p>
+                        এই মর্মে প্রত্যয়ন করা হইতেছে যে, শিক্ষার্থী: <strong>@student.StudentsName</strong>,
+                        আইডি: <strong>@student.ID</strong>, শ্রেণি: <strong>@student.ClassName</strong>, রোল: <strong>@student.RollNo</strong>,
+                        পিতা: <strong>@student.FathersName</strong>, মাতা: <strong>@student.MothersName</strong>,
+                        জন্ম তারিখ: <strong>@(student.DateofBirth?.ToString("d MMM, yyyy") ?? "—")</strong>,
+                        ঠিকানা: <strong>@student.PermanentAddress</strong>।
+                        তাহার স্বভাব চরিত্র ভালো।
+                    </p>
+                </div>
+                <div class="cert-foot">আমি তাহার সর্বাঙ্গীন উন্নতি ও মঙ্গল কামনা করছি।</div>
+                <div class="cert-signs">
+                    <span></span>
+                    <span>@Locale.T("si.certAuthBn")</span>
+                </div>
+            }
+        </article>
+    }
+</div>
+
+@code {
+    private StudentPlacementDto? student;
+    private string kind = "char-en";
+    private string findId = "";
+    private bool busy;
+    private string? error;
+
+    private bool IsMale => string.Equals(student?.Gender, "Male", StringComparison.OrdinalIgnoreCase);
+    private string ChildOf => IsMale ? "son of" : "daughter of";
+    private string HeShe => IsMale ? "He" : "She";
+    private string heShe => IsMale ? "he" : "she";
+    private string hisHer => IsMale ? "his" : "her";
+
+    private async Task FindAsync()
+    {
+        error = null;
+        student = null;
+        if (string.IsNullOrWhiteSpace(findId))
+        {
+            error = Locale.T("si.needId");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var found = await Api.GetStudentCertificateAsync(Session.AccessToken, findId.Trim());
+            if (found is null)
+            {
+                error = Locale.T("si.needStudent");
+                return;
+            }
+
+            student = found;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false);
+}

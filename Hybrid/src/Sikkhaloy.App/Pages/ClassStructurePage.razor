@@ -1,0 +1,567 @@
+@page "/basic-settings/class-structure"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="card structure-page">
+    <h1>
+        @Locale.T("cls.title")
+        @if (selectedClass is not null)
+        {
+            <span class="cls-selected">@selectedClass.Name</span>
+        }
+    </h1>
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="classInput" @bind:after="OnClassChanged">
+            <option value="0">@Locale.T("cls.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        <button type="button" class="btn-find" @onclick="() => showClassModal = true">@Locale.T("cls.addNewClass")</button>
+    </div>
+
+    <div class="structure-card @(classReady ? "" : "is-disabled")">
+        <div class="inline-add">
+            <input type="text" placeholder="@Locale.T("cls.groupPlaceholder")" @bind="groupName" disabled="@(!classReady)" />
+            <button type="button" class="primary" disabled="@(!classReady || busy)" @onclick="AddGroup">@Locale.T("cls.addGroup")</button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cls.group")</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (groups.Count == 0)
+            {
+                <tr><td colspan="3" class="empty-row">@Locale.T("cls.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in groups)
+                {
+                    <tr>
+                        <td>
+                            @if (editingGroupId == row.LocalId)
+                            {
+                                <input type="text" @bind="editingName" />
+                            }
+                            else
+                            {
+                                @row.Name
+                            }
+                        </td>
+                        <td class="act">
+                            @if (editingGroupId == row.LocalId)
+                            {
+                                <button type="button" class="link-btn" @onclick="() => SavePart(EntityTypes.ClassGroup, row)">@Locale.T("cls.update")</button>
+                                <button type="button" class="link-btn" @onclick="CancelEdit">@Locale.T("cls.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" @onclick="() => EditPart(EntityTypes.ClassGroup, row)">@Locale.T("cls.edit")</button>
+                            }
+                        </td>
+                        <td class="act">
+                            <button type="button" class="link-btn danger" @onclick="() => DeletePart(EntityTypes.ClassGroup, row.LocalId)">@Locale.T("cls.delete")</button>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="structure-card @(classReady ? "" : "is-disabled")">
+        <div class="inline-add">
+            <input type="text" placeholder="@Locale.T("cls.sectionPlaceholder")" @bind="sectionName" disabled="@(!classReady)" />
+            <button type="button" class="primary" disabled="@(!classReady || busy)" @onclick="AddSection">@Locale.T("cls.addSection")</button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cls.section")</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (sections.Count == 0)
+            {
+                <tr><td colspan="3" class="empty-row">@Locale.T("cls.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in sections)
+                {
+                    <tr>
+                        <td>
+                            @if (editingSectionId == row.LocalId)
+                            {
+                                <input type="text" @bind="editingName" />
+                            }
+                            else
+                            {
+                                @row.Name
+                            }
+                        </td>
+                        <td class="act">
+                            @if (editingSectionId == row.LocalId)
+                            {
+                                <button type="button" class="link-btn" @onclick="() => SavePart(EntityTypes.ClassSection, row)">@Locale.T("cls.update")</button>
+                                <button type="button" class="link-btn" @onclick="CancelEdit">@Locale.T("cls.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" @onclick="() => EditPart(EntityTypes.ClassSection, row)">@Locale.T("cls.edit")</button>
+                            }
+                        </td>
+                        <td class="act">
+                            <button type="button" class="link-btn danger" @onclick="() => DeletePart(EntityTypes.ClassSection, row.LocalId)">@Locale.T("cls.delete")</button>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="structure-card @(classReady ? "" : "is-disabled")">
+        <div class="inline-add">
+            <input type="text" placeholder="@Locale.T("cls.shiftPlaceholder")" @bind="shiftName" disabled="@(!classReady)" />
+            <button type="button" class="primary" disabled="@(!classReady || busy)" @onclick="AddShift">@Locale.T("cls.addShift")</button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cls.shift")</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (shifts.Count == 0)
+            {
+                <tr><td colspan="3" class="empty-row">@Locale.T("cls.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in shifts)
+                {
+                    <tr>
+                        <td>
+                            @if (editingShiftId == row.LocalId)
+                            {
+                                <input type="text" @bind="editingName" />
+                            }
+                            else
+                            {
+                                @row.Name
+                            }
+                        </td>
+                        <td class="act">
+                            @if (editingShiftId == row.LocalId)
+                            {
+                                <button type="button" class="link-btn" @onclick="() => SavePart(EntityTypes.ClassShift, row)">@Locale.T("cls.update")</button>
+                                <button type="button" class="link-btn" @onclick="CancelEdit">@Locale.T("cls.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" @onclick="() => EditPart(EntityTypes.ClassShift, row)">@Locale.T("cls.edit")</button>
+                            }
+                        </td>
+                        <td class="act">
+                            <button type="button" class="link-btn danger" @onclick="() => DeletePart(EntityTypes.ClassShift, row.LocalId)">@Locale.T("cls.delete")</button>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (showClassModal)
+{
+    <div class="modal-back" @onclick="CloseModal">
+        <div class="modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <strong>@Locale.T("cls.modalTitle")</strong>
+                <button type="button" class="link-btn" @onclick="CloseModal">×</button>
+            </div>
+            <div class="inline-add">
+                <input type="text" placeholder="@Locale.T("cls.classPlaceholder")" @bind="newClassName" />
+                <input type="text" class="sn-input" placeholder="@Locale.T("cls.snPlaceholder")" @bind="newClassSn" />
+                <button type="button" class="primary" disabled="@busy" @onclick="AddClass">@Locale.T("cls.addClass")</button>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(modalMessage))
+            {
+                <div class="ok">@modalMessage</div>
+            }
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("cls.class")</th>
+                        <th>@Locale.T("cls.serial")</th>
+                        <th>@Locale.T("cls.edit")</th>
+                        <th>@Locale.T("cls.delete")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in classes)
+                {
+                    <tr>
+                        <td>
+                            @if (editingClassId == row.LocalId)
+                            {
+                                <input type="text" @bind="editingName" />
+                            }
+                            else
+                            {
+                                @row.Name
+                            }
+                        </td>
+                        <td>
+                            <input class="sn-input" value="@SerialOf(row)" @onchange="e => SetSerial(row.ClassID, e.Value?.ToString())" />
+                        </td>
+                        <td class="act">
+                            @if (editingClassId == row.LocalId)
+                            {
+                                <button type="button" class="link-btn" @onclick="() => SaveClassName(row)">@Locale.T("cls.update")</button>
+                                <button type="button" class="link-btn" @onclick="CancelEdit">@Locale.T("cls.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" @onclick="() => StartEditClass(row)">@Locale.T("cls.edit")</button>
+                            }
+                        </td>
+                        <td class="act">
+                            <button type="button" class="link-btn danger" @onclick="() => DeleteClass(row)">@Locale.T("cls.delete")</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="UpdateSerials">@Locale.T("cls.updateSerial")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<SchoolClassDto> classes = [];
+    private List<ClassPartDto> groups = [];
+    private List<ClassPartDto> sections = [];
+    private List<ClassPartDto> shifts = [];
+    private readonly Dictionary<int, int> serialEdits = new();
+    private string classInput = "0";
+    private string groupName = "";
+    private string sectionName = "";
+    private string shiftName = "";
+    private string newClassName = "";
+    private string newClassSn = "";
+    private string editingName = "";
+    private Guid? editingGroupId;
+    private Guid? editingSectionId;
+    private Guid? editingShiftId;
+    private Guid? editingClassId;
+    private bool showClassModal;
+    private bool busy;
+    private string? error;
+    private string? message;
+    private string? modalMessage;
+
+    private SchoolClassDto? selectedClass =>
+        classes.FirstOrDefault(x => x.ClassID.ToString() == classInput);
+
+    private bool classReady => selectedClass is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated || Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        if (Session.Current is null)
+            return;
+        var data = await Sync.GetClassStructureAsync(Session.Current.SchoolID);
+        classes = data.Classes;
+        FilterParts(data);
+    }
+
+    private void FilterParts(ClassStructureDto data)
+    {
+        var classId = selectedClass?.ClassID ?? 0;
+        groups = data.Groups.Where(x => x.ClassID == classId).ToList();
+        sections = data.Sections.Where(x => x.ClassID == classId).ToList();
+        shifts = data.Shifts.Where(x => x.ClassID == classId).ToList();
+    }
+
+    private async Task OnClassChanged()
+    {
+        error = classReady ? null : "";
+        CancelEdit();
+        await Reload();
+    }
+
+    private async Task AddGroup()
+    {
+        if (!classReady)
+        {
+            error = Locale.T("cls.selectClassError");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            error = Locale.T("cls.enterGroup");
+            return;
+        }
+
+        await SaveNewPart(EntityTypes.ClassGroup, groupName);
+        groupName = "";
+    }
+
+    private async Task AddSection()
+    {
+        if (!classReady)
+        {
+            error = Locale.T("cls.selectClassError");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(sectionName))
+        {
+            error = Locale.T("cls.enterSection");
+            return;
+        }
+
+        await SaveNewPart(EntityTypes.ClassSection, sectionName);
+        sectionName = "";
+    }
+
+    private async Task AddShift()
+    {
+        if (!classReady)
+        {
+            error = Locale.T("cls.selectClassError");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(shiftName))
+        {
+            error = Locale.T("cls.enterShift");
+            return;
+        }
+
+        await SaveNewPart(EntityTypes.ClassShift, shiftName);
+        shiftName = "";
+    }
+
+    private async Task SaveNewPart(string entityType, string name)
+    {
+        if (Session.Current is null || selectedClass is null)
+            return;
+        busy = true;
+        error = null;
+        try
+        {
+            await Sync.SaveClassPartAsync(entityType, new ClassPartDto
+            {
+                ClassID = selectedClass.ClassID,
+                Name = name
+            }, Session.Current);
+            await Flush();
+            await Reload();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void EditPart(string entityType, ClassPartDto row)
+    {
+        CancelEdit();
+        editingName = row.Name;
+        if (entityType == EntityTypes.ClassGroup)
+            editingGroupId = row.LocalId;
+        else if (entityType == EntityTypes.ClassSection)
+            editingSectionId = row.LocalId;
+        else
+            editingShiftId = row.LocalId;
+    }
+
+    private async Task SavePart(string entityType, ClassPartDto row)
+    {
+        if (Session.Current is null)
+            return;
+        row.Name = editingName;
+        await Sync.SaveClassPartAsync(entityType, row, Session.Current);
+        CancelEdit();
+        await Flush();
+        await Reload();
+    }
+
+    private async Task DeletePart(string entityType, Guid localId)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("cls.deleteEverywhere")))
+            return;
+        await Sync.DeleteClassPartAsync(entityType, localId);
+        await Flush();
+        await Reload();
+    }
+
+    private async Task AddClass()
+    {
+        if (Session.Current is null)
+            return;
+        if (string.IsNullOrWhiteSpace(newClassName))
+        {
+            modalMessage = Locale.T("cls.enterClass");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            _ = int.TryParse(newClassSn, out var sn);
+            await Sync.SaveClassAsync(new SchoolClassDto
+            {
+                Name = newClassName,
+                SortOrder = sn
+            }, Session.Current);
+            newClassName = "";
+            newClassSn = "";
+            modalMessage = Locale.T("cls.classInserted");
+            await Flush();
+            await Reload();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void StartEditClass(SchoolClassDto row)
+    {
+        CancelEdit();
+        editingClassId = row.LocalId;
+        editingName = row.Name;
+    }
+
+    private async Task SaveClassName(SchoolClassDto row)
+    {
+        if (Session.Current is null)
+            return;
+        row.Name = editingName;
+        row.SortOrder = SerialOf(row);
+        await Sync.SaveClassAsync(row, Session.Current);
+        CancelEdit();
+        await Flush();
+        await Reload();
+    }
+
+    private async Task DeleteClass(SchoolClassDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("cls.deleteClassConfirm")))
+            return;
+        if (Session.Current is null)
+            return;
+        try
+        {
+            await Sync.DeleteClassAsync(row.LocalId, Session.Current);
+            await Flush();
+            if (classInput == row.ClassID.ToString())
+                classInput = "0";
+            await Reload();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task UpdateSerials()
+    {
+        if (Session.Current is null)
+            return;
+        busy = true;
+        try
+        {
+            foreach (var row in classes)
+            {
+                var sn = SerialOf(row);
+                if (sn == row.SortOrder)
+                    continue;
+                row.SortOrder = sn;
+                await Sync.SaveClassAsync(row, Session.Current);
+            }
+
+            await Flush();
+            await Reload();
+            await JS.InvokeVoidAsync("alert", Locale.T("cls.serialUpdated"));
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private int SerialOf(SchoolClassDto row) =>
+        serialEdits.TryGetValue(row.ClassID, out var sn) ? sn : row.SortOrder;
+
+    private void SetSerial(int classId, string? value)
+    {
+        if (int.TryParse(value, out var sn))
+            serialEdits[classId] = sn;
+    }
+
+    private void CancelEdit()
+    {
+        editingGroupId = editingSectionId = editingShiftId = editingClassId = null;
+        editingName = "";
+    }
+
+    private void CloseModal()
+    {
+        showClassModal = false;
+        modalMessage = null;
+        CancelEdit();
+    }
+
+    private async Task Flush()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            await Sync.FlushClassStructureAsync(Session.Current, Session.AccessToken);
+        }
+        catch
+        {
+            message = Locale.T("cls.offlineQueued");
+        }
+    }
+}

@@ -1,0 +1,202 @@
+@page "/attendance/employee/leave"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page att-page">
+    <h1>@Locale.T("att.leaveEmp")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <label class="choice-inline">
+            <input type="radio" name="eleave-type" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
+            <span>@Locale.T("emp.all")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="eleave-type" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
+            <span>@Locale.T("emp.teacher")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="eleave-type" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
+            <span>@Locale.T("emp.staff")</span>
+        </label>
+        <input type="text" placeholder="@Locale.T("emp.search")" @bind="query" @bind:event="oninput" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadAsync">@Locale.T("si.find")</button>
+    </div>
+
+    <div class="filter-row">
+        <input type="date" @bind="start" disabled="@busy" />
+        <input type="date" @bind="end" disabled="@busy" />
+        <input type="text" placeholder="@Locale.T("att.reason")" @bind="reason" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submit")</button>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act"><input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" /></th>
+                <th>@Locale.T("emp.id")</th>
+                <th>@Locale.T("si.name")</th>
+                <th>@Locale.T("emp.designation")</th>
+                <th>@Locale.T("emp.phone")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="5" class="empty-row">@Locale.T("att.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td class="act">
+                        <input type="checkbox" checked="@selected.Contains(row.EmployeeID)" disabled="@busy"
+                               @onchange="e => Toggle(row.EmployeeID, e)" />
+                    </td>
+                    <td>@row.ID</td>
+                    <td>@row.Name</td>
+                    <td>@row.Designation</td>
+                    <td>@row.Phone</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<EmployeeLeavePickDto> rows = [];
+    private readonly HashSet<int> selected = [];
+    private string type = "%";
+    private string query = "";
+    private string reason = "";
+    private DateTime start = DateTime.Today;
+    private DateTime end = DateTime.Today;
+    private bool busy;
+    private bool allSelected;
+    private string? error;
+    private string? message;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private Task SetType(string value)
+    {
+        type = value;
+        return LoadAsync();
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        allSelected = e.Value is true or "true";
+        selected.Clear();
+        if (allSelected)
+        {
+            foreach (var row in rows)
+                selected.Add(row.EmployeeID);
+        }
+    }
+
+    private void Toggle(int id, ChangeEventArgs e)
+    {
+        var on = e.Value is true or "true";
+        if (on) selected.Add(id);
+        else selected.Remove(id);
+        allSelected = rows.Count > 0 && selected.Count == rows.Count;
+    }
+
+    private async Task LoadAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            selected.Clear();
+            allSelected = false;
+            rows.AddRange(await Api.GetEmployeeLeavePicksAsync(Session.AccessToken!, type, query));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = message = null;
+        if (selected.Count == 0)
+        {
+            error = Locale.T("att.needRows");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            error = Locale.T("att.needReason");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveEmployeeLeaveAsync(Session.AccessToken!, new SaveEmployeeLeaveRequest
+            {
+                EmployeeIDs = selected.ToList(),
+                StartDate = start,
+                EndDate = end,
+                Reason = reason.Trim()
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            reason = "";
+            selected.Clear();
+            allSelected = false;
+            message = Locale.T("att.leaveSaved");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

@@ -1,0 +1,284 @@
+@page "/accounts/reports/session"
+@page "/accounts/reports/session/class"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt sess-rpt">
+    <div class="sess-year no-print">
+        <label>@Locale.T("rpt.sessionYear")</label>
+        <select @bind="yearId" @bind:after="OnYearAsync">
+            @foreach (var year in years)
+            {
+                <option value="@year.EducationYearID">@year.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="sess-head">
+        <div>
+            <div class="sess-name">@Locale.T("rpt.classPayTitle")</div>
+        </div>
+        <div class="sess-right">
+            <div class="sess-name">@Locale.T("rpt.sessionLabel") @YearName</div>
+            @if (!string.IsNullOrWhiteSpace(YearRange))
+            {
+                <div class="sess-date">@YearRange</div>
+            }
+        </div>
+    </div>
+
+    <div class="rpt-filters no-print">
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => LoadAsync(0, 0)">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (data is not null)
+    {
+        <div class="sess-tiles">
+            <a class="sess-tile stu" href="@Go("students")">
+                <small>@Locale.T("rpt.student") ›</small>
+                <strong>@data.Students</strong>
+            </a>
+            <a class="sess-tile po" href="@Go("students")">
+                <small>@Locale.T("rpt.payorder") ›</small>
+                <strong>@Tk(data.Payorder) @Locale.T("acc.tk")</strong>
+            </a>
+            <div class="sess-tile late">
+                <small>@Locale.T("rpt.lateFee")</small>
+                <strong>@Tk(data.LateFee) @Locale.T("acc.tk")</strong>
+            </div>
+            <a class="sess-tile con" href="@Go("concession")">
+                <small>@Locale.T("rpt.concession") ›</small>
+                <strong>@Tk(data.Concession) @Locale.T("acc.tk")</strong>
+            </a>
+            <a class="sess-tile paid" href="@Go("paid")">
+                <small>@Locale.T("rpt.paid") ›</small>
+                <strong>@Tk(data.Paid) @Locale.T("acc.tk")</strong>
+            </a>
+            <a class="sess-tile unpaid" href="@Go("due")">
+                <small>@Locale.T("rpt.unpaid") ›</small>
+                <strong>@Tk(data.Unpaid) @Locale.T("acc.tk")</strong>
+            </a>
+        </div>
+        @if (data.Classes.Count > 0)
+        {
+            <div class="rpt-box class-tle">@Locale.T("rpt.classSummary")</div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("rpt.class")</th>
+                        <th class="num">@Locale.T("rpt.student")</th>
+                        <th class="num">@Locale.T("rpt.fee")</th>
+                        <th class="num">@Locale.T("rpt.lateFee")</th>
+                        <th class="num">@Locale.T("rpt.concession")</th>
+                        <th class="num">@Locale.T("rpt.paid")</th>
+                        <th class="num">@Locale.T("rpt.unpaid")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in data.Classes)
+                {
+                    <tr class="@(row.Id == classId ? "is-sel" : null)">
+                        <td><button type="button" class="link-btn" @onclick="() => LoadAsync(row.Id, 0)">@row.Name</button></td>
+                        <td class="num"><a href="@Go("students", row.Id)">@row.Students</a></td>
+                        <td class="num"><a href="@Go("students", row.Id)">@Tk(row.Fee)</a></td>
+                        <td class="num">@Tk(row.LateFee)</td>
+                        <td class="num"><a href="@Go("concession", row.Id)">@Tk(row.Concession)</a></td>
+                        <td class="num"><a href="@Go("paid", row.Id)">@Tk(row.Paid)</a></td>
+                        <td class="num"><a href="@Go("due", row.Id)">@Tk(row.Unpaid)</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+        @if (data.Roles.Count > 0)
+        {
+            <div class="rpt-box pay">@Locale.T("rpt.roleSummary") @ClassName</div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("acc.role")</th>
+                        <th class="num">@Locale.T("rpt.student")</th>
+                        <th class="num">@Locale.T("rpt.fee")</th>
+                        <th class="num">@Locale.T("rpt.lateFee")</th>
+                        <th class="num">@Locale.T("rpt.concession")</th>
+                        <th class="num">@Locale.T("rpt.paid")</th>
+                        <th class="num">@Locale.T("rpt.unpaid")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in data.Roles)
+                {
+                    <tr class="@(row.Id == roleId ? "is-sel" : null)">
+                        <td><button type="button" class="link-btn" @onclick="() => LoadAsync(classId, row.Id)">@row.Name</button></td>
+                        <td class="num"><a href="@Go("students", classId, row.Id)">@row.Students</a></td>
+                        <td class="num"><a href="@Go("students", classId, row.Id)">@Tk(row.Fee)</a></td>
+                        <td class="num">@Tk(row.LateFee)</td>
+                        <td class="num"><a href="@Go("concession", classId, row.Id)">@Tk(row.Concession)</a></td>
+                        <td class="num"><a href="@Go("paid", classId, row.Id)">@Tk(row.Paid)</a></td>
+                        <td class="num"><a href="@Go("due", classId, row.Id)">@Tk(row.Unpaid)</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+        @if (data.PayFors.Count > 0)
+        {
+            <div class="rpt-box for-tle">@Locale.T("rpt.forSummary") @RoleName</div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("rpt.payFor")</th>
+                        <th class="num">@Locale.T("rpt.student")</th>
+                        <th class="num">@Locale.T("rpt.fee")</th>
+                        <th class="num">@Locale.T("rpt.lateFee")</th>
+                        <th class="num">@Locale.T("rpt.concession")</th>
+                        <th class="num">@Locale.T("rpt.paid")</th>
+                        <th class="num">@Locale.T("rpt.unpaid")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in data.PayFors)
+                {
+                    <tr>
+                        <td>@row.Name</td>
+                        <td class="num">@row.Students</td>
+                        <td class="num">@Tk(row.Fee)</td>
+                        <td class="num">@Tk(row.LateFee)</td>
+                        <td class="num">@Tk(row.Concession)</td>
+                        <td class="num">@Tk(row.Paid)</td>
+                        <td class="num">@Tk(row.Unpaid)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? From { get; set; }
+    [SupplyParameterFromQuery] public string? To { get; set; }
+
+    private SessionClassReportDto? data;
+    private List<EducationYearDto> years = [];
+    private int yearId, classId, roleId;
+    private string fromText = "", toText = "", error = "";
+    private bool busy;
+
+    private string ClassName => data?.Classes.FirstOrDefault(x => x.Id == classId)?.Name ?? "";
+    private string RoleName => data?.Roles.FirstOrDefault(x => x.Id == roleId)?.Name ?? "";
+    private EducationYearDto? SelectedYear => years.FirstOrDefault(x => x.EducationYearID == yearId);
+    private string YearName => !string.IsNullOrWhiteSpace(data?.YearName) ? data.YearName : SelectedYear?.Name ?? "";
+    private string YearRange
+    {
+        get
+        {
+            var start = data is not null && data.StartDate != default ? data.StartDate : SelectedYear?.StartDate;
+            var end = data is not null && data.EndDate != default ? data.EndDate : SelectedYear?.EndDate;
+            if (start is null || end is null) return "";
+            return $"{start.Value:d MMM yyyy} - {end.Value:d MMM yyyy}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        Session.Changed += OnSessionChanged;
+        fromText = From ?? "";
+        toText = To ?? "";
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            years.AddRange(await Api.GetYearsAsync(Session.AccessToken));
+            yearId = CurrentYear();
+            await LoadCoreAsync(0, 0);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private int CurrentYear()
+    {
+        var current = Session.Current?.EducationYearID ?? 0;
+        if (current > 0) return current;
+        return years.FirstOrDefault(x => x.IsCurrent)?.EducationYearID ?? years.FirstOrDefault()?.EducationYearID ?? 0;
+    }
+
+    private void OnSessionChanged()
+    {
+        var current = Session.Current?.EducationYearID ?? 0;
+        if (current <= 0 || current == yearId) return;
+        yearId = current;
+        classId = 0;
+        roleId = 0;
+        _ = InvokeAsync(() => LoadAsync(0, 0));
+    }
+
+    private async Task OnYearAsync()
+    {
+        classId = 0;
+        roleId = 0;
+        await LoadAsync(0, 0);
+    }
+
+    private async Task LoadAsync(int nextClass, int nextRole)
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { await LoadCoreAsync(nextClass, nextRole); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadCoreAsync(int nextClass, int nextRole)
+    {
+        classId = nextClass;
+        roleId = nextRole;
+        if (yearId <= 0)
+            yearId = CurrentYear();
+        data = await Api.GetSessionClassReportAsync(Session.AccessToken, yearId, Parse(fromText), Parse(toText), classId, roleId);
+    }
+
+    private string Go(string page, int cls = 0, int role = 0)
+    {
+        var q = $"/accounts/reports/session/{page}";
+        if (!string.IsNullOrWhiteSpace(fromText)) q += $"?from={fromText}";
+        if (!string.IsNullOrWhiteSpace(toText)) q += (q.Contains('?') ? "&" : "?") + $"to={toText}";
+        if (cls > 0) q += (q.Contains('?') ? "&" : "?") + $"class={cls}";
+        if (role > 0) q += (q.Contains('?') ? "&" : "?") + $"role={role}";
+        return q;
+    }
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Tk(decimal n) => n.ToString("N0");
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        base.Dispose();
+    }
+}

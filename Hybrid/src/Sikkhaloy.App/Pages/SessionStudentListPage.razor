@@ -1,0 +1,382 @@
+@page "/accounts/reports/session/students"
+@page "/accounts/reports/session/paid"
+@page "/accounts/reports/session/due"
+@page "/accounts/reports/session/concession"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt sess-rpt">
+    <div class="rpt-filters no-print">
+        <select @bind="classId" @bind:after="OnClassAsync">
+            <option value="0">@Locale.T("rpt.allClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionId">
+                <option value="%">@Locale.T("rpt.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="roleId" @bind:after="OnRoleAsync">
+            <option value="%">@Locale.T("rpt.allRoleOpt")</option>
+            @foreach (var item in roles)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (HasPayFor)
+        {
+            <select @bind="payFor">
+                <option value="%">@Locale.T("rpt.allPayFor")</option>
+                @foreach (var item in payFors)
+                {
+                    <option value="@item.Name">@item.Name</option>
+                }
+            </select>
+        }
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+
+    <h1>@TitleText @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }</h1>
+    @if (!string.IsNullOrWhiteSpace(FilterLine)) { <div class="sess-line">@FilterLine</div> }
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (data is not null)
+    {
+        <div class="sess-tiles @TileCount">
+            <div class="sess-tile stu"><small>@Locale.T("rpt.student")</small><strong>@data.Students</strong></div>
+            @if (Kind == "students")
+            {
+                <div class="sess-tile po"><small>@Locale.T("rpt.payorder")</small><strong>@Tk(data.Payorder) @Locale.T("acc.tk")</strong></div>
+                <div class="sess-tile late"><small>@Locale.T("rpt.lateFee")</small><strong>@Tk(data.LateFee) @Locale.T("acc.tk")</strong></div>
+                <a class="sess-tile con" href="@Go("concession")"><small>@Locale.T("rpt.concession") ›</small><strong>@Tk(data.Concession) @Locale.T("acc.tk")</strong></a>
+                <a class="sess-tile paid" href="@Go("paid")"><small>@Locale.T("rpt.paid") ›</small><strong>@Tk(data.Paid) @Locale.T("acc.tk")</strong></a>
+                <a class="sess-tile unpaid" href="@Go("due")"><small>@Locale.T("rpt.unpaid") ›</small><strong>@Tk(data.Unpaid) @Locale.T("acc.tk")</strong></a>
+            }
+            else if (Kind == "paid")
+            {
+                <div class="sess-tile po"><small>@Locale.T("rpt.paid")</small><strong>@Tk(data.Paid) @Locale.T("acc.tk")</strong></div>
+                <div class="sess-tile paid"><small>@Locale.T("rpt.percentage")</small><strong>@data.Percentage.ToString("0.##")%</strong></div>
+            }
+            else if (Kind == "due")
+            {
+                <div class="sess-tile po"><small>@Locale.T("rpt.noPayorder")</small><strong>@data.PayorderCount</strong></div>
+                <div class="sess-tile con"><small>@Locale.T("rpt.due")</small><strong>@Tk(data.Unpaid) @Locale.T("acc.tk")</strong></div>
+            }
+            else
+            {
+                <div class="sess-tile po"><small>@Locale.T("rpt.payorder")</small><strong>@Tk(data.Payorder) @Locale.T("acc.tk")</strong></div>
+                <div class="sess-tile con"><small>@Locale.T("rpt.concession")</small><strong>@Tk(data.Concession) @Locale.T("acc.tk")</strong></div>
+                <div class="sess-tile paid"><small>@Locale.T("rpt.percentage")</small><strong>@data.Percentage.ToString("0.##")%</strong></div>
+            }
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>@Locale.T("rpt.name")</th>
+                    <th>@Locale.T("rpt.class")</th>
+                    <th>@Locale.T("rpt.roll")</th>
+                    @if (Kind == "students")
+                    {
+                        <th class="num">@Locale.T("rpt.fee")</th>
+                        <th class="num">@Locale.T("rpt.lateFee")</th>
+                        <th class="num">@Locale.T("rpt.concession")</th>
+                        <th class="num">@Locale.T("rpt.paid")</th>
+                        <th class="num">@Locale.T("rpt.unpaid")</th>
+                    }
+                    else if (Kind == "paid")
+                    {
+                        <th class="num">@Locale.T("rpt.paid")</th>
+                        <th class="num">@Locale.T("rpt.percentage")</th>
+                    }
+                    else if (Kind == "due")
+                    {
+                        <th class="num">@Locale.T("rpt.duePayorder")</th>
+                        <th class="num">@Locale.T("rpt.due")</th>
+                    }
+                    else
+                    {
+                        <th class="num">@Locale.T("rpt.fee")</th>
+                        <th class="num">@Locale.T("rpt.concession")</th>
+                        <th class="num">@Locale.T("rpt.percentage")</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+            @if (data.Rows.Count == 0)
+            {
+                <tr><td colspan="9">@Locale.T("rpt.empty")</td></tr>
+            }
+            @foreach (var row in data.Rows)
+            {
+                <tr>
+                    <td>@row.ID</td>
+                    <td>@row.Name</td>
+                    <td>@row.ClassName</td>
+                    <td>@row.RollNo</td>
+                    @if (Kind == "students")
+                    {
+                        <td class="num">@Tk(row.Fee)</td>
+                        <td class="num">@Tk(row.LateFee)</td>
+                        <td class="num">@Tk(row.Concession)</td>
+                        <td class="num">@Tk(row.Paid)</td>
+                        <td class="num">@Tk(row.Unpaid)</td>
+                    }
+                    else if (Kind == "paid")
+                    {
+                        <td class="num">@Tk(row.Paid)</td>
+                        <td class="num">@row.Percentage.ToString("0.##")%</td>
+                    }
+                    else if (Kind == "due")
+                    {
+                        <td class="num">@row.PayorderCount</td>
+                        <td class="num">@Tk(row.Unpaid)</td>
+                    }
+                    else
+                    {
+                        <td class="num">@Tk(row.Fee)</td>
+                        <td class="num">@Tk(row.Concession)</td>
+                        <td class="num">@row.Percentage.ToString("0.##")%</td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public int Class { get; set; }
+    [SupplyParameterFromQuery] public string? Role { get; set; }
+    [SupplyParameterFromQuery] public string? From { get; set; }
+    [SupplyParameterFromQuery] public string? To { get; set; }
+
+    private SessionStudentReportDto? data;
+    private List<NameAmountDto> classes = [], sections = [], roles = [], payFors = [];
+    private int classId;
+    private int YearId => Session.Current?.EducationYearID ?? 0;
+    private string sectionId = "%", roleId = "%", payFor = "%", fromText = "", toText = "", error = "";
+    private bool busy;
+
+    private string loadedKey = "";
+    private int loadSeq;
+
+    private string Kind
+    {
+        get
+        {
+            var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].Trim('/').ToLowerInvariant();
+            if (path.EndsWith("/session/paid")) return "paid";
+            if (path.EndsWith("/session/due")) return "due";
+            if (path.EndsWith("/session/concession")) return "concession";
+            return "students";
+        }
+    }
+    private bool HasPayFor => Kind is "paid" or "due";
+    private string TileCount => Kind == "students" ? "six" : Kind == "concession" ? "four" : "three";
+    private string TitleText => Kind switch
+    {
+        "paid" => Locale.T("rpt.paidSessTitle"),
+        "due" => Locale.T("rpt.dueSessTitle"),
+        "concession" => Locale.T("rpt.concTitle"),
+        _ => Locale.T("rpt.stuPayTitle")
+    };
+    private string DateLabel => RangeLabel(fromText, toText);
+    private string FilterLine
+    {
+        get
+        {
+            var parts = new List<string>();
+            var cls = classes.FirstOrDefault(x => x.Id == classId);
+            if (cls is not null) parts.Add($"{Locale.T("rpt.class")}: {cls.Name}.");
+            var sec = sections.FirstOrDefault(x => x.Id.ToString() == sectionId);
+            if (sec is not null) parts.Add($" {Locale.T("students.section")}: {sec.Name}.");
+            var role = roles.FirstOrDefault(x => x.Id.ToString() == roleId);
+            if (role is not null) parts.Add($" {Locale.T("acc.role")} : {role.Name}.");
+            if (HasPayFor && payFor != "%") parts.Add($" {Locale.T("rpt.payFor")} : {payFor}.");
+            return string.Join("", parts);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Session.Changed += OnSessionChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadFromRouteAsync();
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        try
+        {
+            await LoadFromRouteAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadFromRouteAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        fromText = From ?? "";
+        toText = To ?? "";
+        var nextClass = Class;
+        var nextRole = string.IsNullOrWhiteSpace(Role) ? "%" : Role;
+        var key = $"{Kind}|{YearId}|{nextClass}|{nextRole}|{fromText}|{toText}";
+        if (key == loadedKey) return;
+        loadedKey = key;
+        classId = nextClass;
+        roleId = nextRole;
+        payFor = "%";
+        sectionId = "%";
+        await LoadAllAsync();
+    }
+
+    private void OnSessionChanged()
+    {
+        loadedKey = "";
+        classId = 0;
+        roleId = "%";
+        payFor = "%";
+        sectionId = "%";
+        _ = InvokeAsync(LoadAllAsync);
+    }
+
+    private async Task OnClassAsync()
+    {
+        roleId = "%";
+        payFor = "%";
+        sectionId = "%";
+        await LoadFiltersAsync();
+    }
+
+    private async Task OnRoleAsync()
+    {
+        payFor = "%";
+        await LoadFiltersAsync();
+    }
+
+    private async Task LoadFiltersAsync()
+    {
+        var filters = await Api.GetSessionFiltersAsync(Session.AccessToken, YearId, classId, roleId, Kind, Parse(fromText), Parse(toText));
+        classes = filters.Classes;
+        sections = filters.Sections;
+        roles = filters.Roles;
+        payFors = filters.PayFors;
+    }
+
+    private async Task LoadAllAsync()
+    {
+        var seq = ++loadSeq;
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try
+        {
+            await LoadFiltersAsync();
+            if (seq != loadSeq) return;
+            await LoadCoreAsync();
+            if (seq != loadSeq) return;
+        }
+        catch (Exception ex) { if (seq == loadSeq) error = ex.Message; }
+        finally { if (seq == loadSeq) busy = false; }
+    }
+
+    private async Task LoadAsync()
+    {
+        var seq = ++loadSeq;
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try
+        {
+            await LoadCoreAsync();
+            if (seq != loadSeq) return;
+        }
+        catch (Exception ex) { if (seq == loadSeq) error = ex.Message; }
+        finally { if (seq == loadSeq) busy = false; }
+    }
+
+    private async Task LoadCoreAsync()
+    {
+        data = Kind switch
+        {
+            "paid" => await Api.GetSessionPaidAsync(Session.AccessToken, YearId, classId, sectionId, roleId, payFor, Parse(fromText), Parse(toText)),
+            "due" => await Api.GetSessionDueAsync(Session.AccessToken, YearId, classId, sectionId, roleId, payFor, Parse(fromText), Parse(toText)),
+            "concession" => await Api.GetSessionConcessionAsync(Session.AccessToken, YearId, classId, sectionId, roleId, Parse(fromText), Parse(toText)),
+            _ => await Api.GetSessionStudentsAsync(Session.AccessToken, YearId, classId, sectionId, roleId, Parse(fromText), Parse(toText))
+        };
+    }
+
+    private string Go(string page)
+    {
+        var q = $"/accounts/reports/session/{page}";
+        if (!string.IsNullOrWhiteSpace(fromText)) q += $"?from={fromText}";
+        if (!string.IsNullOrWhiteSpace(toText)) q += (q.Contains('?') ? "&" : "?") + $"to={toText}";
+        if (classId > 0) q += (q.Contains('?') ? "&" : "?") + $"class={classId}";
+        if (roleId != "%") q += (q.Contains('?') ? "&" : "?") + $"role={roleId}";
+        return q;
+    }
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Tk(decimal n) => n.ToString("N0");
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+        base.Dispose();
+    }
+
+    private static string RangeLabel(string fromRaw, string toRaw)
+    {
+        var from = Parse(fromRaw);
+        var to = Parse(toRaw);
+        if (from is null && to is null) return "";
+        if (from is not null && to is not null)
+        {
+            var a = from.Value.ToString("d MMM yyyy");
+            var b = to.Value.ToString("d MMM yyyy");
+            return from.Value == to.Value ? a : $"({a} To {b})";
+        }
+        if (from is not null) return $"After {from.Value:d MMM yyyy}";
+        return $"Before {to!.Value:d MMM yyyy}";
+    }
+}

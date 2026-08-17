@@ -1,0 +1,71 @@
+@inherits LocaleAwareComponent
+
+<div class="as-widget @Css">
+    <div class="as-body">
+        <span class="as-ico" aria-hidden="true">
+            @if (Icon == "area")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 19h18v2H3zm2-3 4-5 3 3.5L16 8l5 6v5H5z"/></svg>
+            }
+            else if (Icon == "bar")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 20h4V10H4zm6 0h4V4h-4zm6 0h4v-8h-4z"/></svg>
+            }
+            else if (Icon == "card")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4H4V6h16v2zm0 10H4v-6h16v6z"/></svg>
+            }
+            else if (Icon == "users")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zM8 11c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.7 0-8 1.3-8 4v2h10v-2c0-1.2.5-2.2 1.4-3C10.3 13.3 9.2 13 8 13zm8 0c-.4 0-.8 0-1.2.1 1.3.8 2.2 2 2.2 3.9V19h7v-2c0-2.7-5.3-4-8-4z"/></svg>
+            }
+            else if (Icon == "user")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+            }
+            else if (Icon == "money")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v12H3zm9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7-8h2v8H5zm14 0h2v8h-2z"/></svg>
+            }
+            else if (Icon == "calc")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm1 4v3h8V6zm0 5v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2zm-8 4v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2z"/></svg>
+            }
+            else if (Icon == "wallet")
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 7H5a1 1 0 0 1 0-2h14V3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+            }
+            else
+            {
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3.5 18.5 9 13l4 4 8-9.5 1.5 1.3L13 20l-4-4-4.1 4.1z"/></svg>
+            }
+        </span>
+        <div class="as-amt">
+            <strong>@Amount</strong>
+            <span>@Label</span>
+        </div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Href) || !string.IsNullOrWhiteSpace(Footer))
+    {
+        @if (!string.IsNullOrWhiteSpace(Href))
+        {
+            <a class="as-foot" href="@Href">
+                <span>@(Footer ?? Locale.T("rpt.view"))</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 4l-1.4 1.4L16.2 11H4v2h12.2l-5.6 5.6L12 20l8-8z"/></svg>
+            </a>
+        }
+        else
+        {
+            <div class="as-foot"><span>@Footer</span></div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Css { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Amount { get; set; } = "";
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public string? Footer { get; set; }
+    [Parameter] public string Icon { get; set; } = "line";
+}

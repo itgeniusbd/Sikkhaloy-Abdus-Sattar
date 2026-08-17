@@ -1,0 +1,42 @@
+@using Microsoft.EntityFrameworkCore
+@using Sikkhaloy.App
+@using Sikkhaloy.App.Services
+@using Sikkhaloy.LocalData
+@inject IDbContextFactory<LocalDbContext> DbFactory
+@inject SyncLoopService SyncLoop
+
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="card" style="margin: 2rem auto; max-width: 560px;">
+        <h1>SIKKHALOY Hybrid</h1>
+        <p class="error">@error</p>
+    </div>
+}
+else if (!ready)
+{
+    <p style="padding: 2rem; text-align: center;">লোড হচ্ছে...</p>
+}
+else
+{
+    <Routes />
+}
+
+@code {
+    private bool ready;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await LocalDbContext.EnsureSchemaAsync(db);
+            SyncLoop.Start();
+            ready = true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+}

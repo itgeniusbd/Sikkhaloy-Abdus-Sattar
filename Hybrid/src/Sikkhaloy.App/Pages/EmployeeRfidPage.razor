@@ -1,0 +1,231 @@
+@page "/attendance/employee/rfid"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page att-page">
+    <h1>@Locale.T("att.rfidEmp")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="scheduleInput" @bind:after="LoadRowsAsync" disabled="@busy">
+            <option value="0">@Locale.T("att.selectSchedule")</option>
+            @foreach (var item in schedules)
+            {
+                <option value="@item.ScheduleID">@item.ScheduleName</option>
+            }
+        </select>
+        <label class="choice-inline">
+            <input type="radio" name="erfid-type" checked="@(type == "%")" @onchange="@(() => ChangeTypeAsync("%"))" />
+            <span>@Locale.T("emp.all")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="erfid-type" checked="@(type == "Teacher")" @onchange="@(() => ChangeTypeAsync("Teacher"))" />
+            <span>@Locale.T("emp.teacher")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="erfid-type" checked="@(type == "Staff")" @onchange="@(() => ChangeTypeAsync("Staff"))" />
+            <span>@Locale.T("emp.staff")</span>
+        </label>
+        <button type="button" class="btn-serial" disabled="@(busy || rows.Count == 0)" @onclick="SaveAsync">@Locale.T("si.update")</button>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act"><input type="checkbox" checked="@allAssigned" disabled="@busy" @onchange="ToggleAssign" /></th>
+                <th>@Locale.T("emp.id")</th>
+                <th>@Locale.T("si.name")</th>
+                <th>@Locale.T("emp.designation")</th>
+                <th>@Locale.T("att.deviceId")</th>
+                <th>@Locale.T("att.rfid")</th>
+                <th class="sms-col">
+                    <label>
+                        <span>@Locale.T("att.absSms")</span>
+                        <input type="checkbox" checked="@allAbs" disabled="@busy"
+                               @onchange="e => ToggleSms(e, (r, on) => r.AbsSms = on)" />
+                    </label>
+                </th>
+                <th class="sms-col">
+                    <label>
+                        <span>@Locale.T("att.lateSms")</span>
+                        <input type="checkbox" checked="@allLate" disabled="@busy"
+                               @onchange="e => ToggleSms(e, (r, on) => r.LateSms = on)" />
+                    </label>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="8" class="empty-row">@Locale.T("att.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr class="@(row.Assigned ? "is-assigned" : "is-unassigned")">
+                    <td class="act"><input type="checkbox" @bind="row.Assigned" disabled="@busy" /></td>
+                    <td>@row.ID</td>
+                    <td>@row.Name</td>
+                    <td>@row.Designation</td>
+                    <td>@row.DeviceID</td>
+                    <td><input type="text" @bind="row.RFID" disabled="@busy" /></td>
+                    <td class="act"><input type="checkbox" @bind="row.AbsSms" disabled="@busy" /></td>
+                    <td class="act"><input type="checkbox" @bind="row.LateSms" disabled="@busy" /></td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<AttendanceScheduleDto> schedules = [];
+    private readonly List<EmployeeRfidRowDto> rows = [];
+    private string scheduleInput = "0";
+    private string type = "%";
+    private bool busy;
+    private bool allAssigned;
+    private bool allAbs;
+    private bool allLate;
+    private string? error;
+    private string? message;
+    private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        schedules.Clear();
+        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+    }
+
+    private Task ChangeTypeAsync(string value)
+    {
+        type = value;
+        return LoadRowsAsync();
+    }
+
+    private void ToggleAssign(ChangeEventArgs e)
+    {
+        allAssigned = e.Value is true or "true";
+        foreach (var row in rows)
+            row.Assigned = allAssigned;
+    }
+
+    private void ToggleSms(ChangeEventArgs e, Action<EmployeeRfidRowDto, bool> set)
+    {
+        var on = e.Value is true or "true";
+        foreach (var row in rows)
+            set(row, on);
+        SyncHeaderFlags();
+    }
+
+    private void SyncHeaderFlags()
+    {
+        allAssigned = rows.Count > 0 && rows.All(x => x.Assigned);
+        allAbs = rows.Count > 0 && rows.All(x => x.AbsSms);
+        allLate = rows.Count > 0 && rows.All(x => x.LateSms);
+    }
+
+    private async Task LoadRowsAsync()
+    {
+        error = message = null;
+        if (ScheduleId <= 0)
+        {
+            rows.Clear();
+            allAssigned = false;
+            allAbs = false;
+            allLate = false;
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GetEmployeeRfidAsync(Session.AccessToken!, ScheduleId, type));
+            SyncHeaderFlags();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = message = null;
+        if (ScheduleId <= 0)
+        {
+            error = Locale.T("att.needSchedule");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveEmployeeRfidAsync(Session.AccessToken!, new SaveEmployeeRfidRequest
+            {
+                ScheduleID = ScheduleId,
+                Rows = rows.Select(x => new EmployeeRfidSaveRow
+                {
+                    EmployeeID = x.EmployeeID,
+                    RFID = x.RFID,
+                    Assigned = x.Assigned,
+                    AbsSms = x.AbsSms,
+                    LateSms = x.LateSms
+                }).ToList()
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            var ok = Locale.T("att.updated");
+            await LoadRowsAsync();
+            message = ok;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

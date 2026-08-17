@@ -1,0 +1,264 @@
+@page "/attendance/settings"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page att-page att-settings-page">
+    <div class="att-set-head">
+        <h1>@Locale.T("att.settings")</h1>
+        <div class="att-set-actions">
+            <button type="button" class="att-dl att-dl-app" disabled="@Busy" @onclick='() => DownloadAsync("app")'>
+                @Locale.T("att.dlApp")
+            </button>
+            <button type="button" class="att-dl att-dl-photo" disabled="@Busy" @onclick='() => DownloadAsync("photo")'>
+                @Locale.T("att.dlPhoto")
+            </button>
+            <button type="button" class="att-dl att-dl-info" disabled="@Busy" @onclick='() => DownloadAsync("info")'>
+                @Locale.T("att.dlInfo")
+            </button>
+        </div>
+    </div>
+
+    <div class="att-set-alert">@Locale.T("att.settingsHint")</div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    @if (settings is not null && settings.AttendanceSettingID <= 0)
+    {
+        <div class="error">@Locale.T("att.inactive")</div>
+    }
+    else if (settings is not null)
+    {
+        <div class="att-set-layout">
+            <div>
+                <section class="att-set-card">
+                    <h2>@Locale.T("att.basic")</h2>
+                    @OnOff("set-device", "att.device", "att.hintDevice", settings.DeviceAttendance, v => settings.DeviceAttendance = v)
+                    @OnOff("set-allsms", "att.allSms", "att.hintAllSms", settings.AllSms, v => settings.AllSms = v)
+                    @OnOff("set-holiday", "att.holiday", "att.hintHoliday", settings.HolidayAsOffday, v => settings.HolidayAsOffday = v)
+                    <div class="att-set-row">
+                        <div class="att-set-copy">
+                            <strong>@Locale.T("att.settingKey")</strong>
+                            <small>@Locale.T("att.hintKey")</small>
+                        </div>
+                        <input type="text" @bind="settings.SettingKey" disabled="@Busy" />
+                    </div>
+                    <div class="att-set-row">
+                        <div class="att-set-copy">
+                            <strong>@Locale.T("att.smsLang")</strong>
+                            <small>@Locale.T("att.hintLang")</small>
+                        </div>
+                        <div class="att-switch">
+                            <label class="@(!settings.EnglishSms ? "is-pick" : null)">
+                                <input type="radio" name="set-lang" checked="@(!settings.EnglishSms)" disabled="@Busy"
+                                       @onchange="@(() => { settings.EnglishSms = false; StateHasChanged(); })" />
+                                <span>@Locale.T("att.bangla")</span>
+                            </label>
+                            <label class="@(settings.EnglishSms ? "is-pick" : null)">
+                                <input type="radio" name="set-lang" checked="@settings.EnglishSms" disabled="@Busy"
+                                       @onchange="@(() => { settings.EnglishSms = true; StateHasChanged(); })" />
+                                <span>@Locale.T("att.english")</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="att-set-row">
+                        <div class="att-set-copy">
+                            <strong>@Locale.T("att.smsTimeout")</strong>
+                            <small>@Locale.T("att.hintTimeout")</small>
+                        </div>
+                        <input type="number" min="0" @bind="settings.SmsTimeoutMinute" disabled="@Busy" />
+                    </div>
+                    <button type="button" class="btn-serial" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                </section>
+
+                <section class="att-set-card">
+                    <h2>@Locale.T("att.stuSet")</h2>
+                    @OnOff("set-stu-att", "att.stuAtt", "att.hintStuAtt", settings.StudentAttendance, v => settings.StudentAttendance = v)
+                    @OnOff("set-stu-sms", "att.stuSms", "att.hintStuSms", settings.StudentAllSms, v => settings.StudentAllSms = v)
+                    @OnOff("set-stu-entry", "att.entrySms", "att.hintEntry", settings.StudentEntrySms, v => settings.StudentEntrySms = v)
+                    @OnOff("set-stu-exit", "att.exitSms", "att.hintExit", settings.StudentExitSms, v => settings.StudentExitSms = v)
+                    @OnOff("set-stu-abs", "att.absSms", "att.hintStuAbs", settings.StudentAbsSms, v => settings.StudentAbsSms = v)
+                    @OnOff("set-stu-late", "att.lateSms", "att.hintStuLate", settings.StudentLateSms, v => settings.StudentLateSms = v)
+                    <button type="button" class="btn-serial" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                </section>
+            </div>
+
+            <div>
+                <section class="att-set-card">
+                    <h2>@Locale.T("att.empSet")</h2>
+                    @OnOff("set-emp-att", "att.empAtt", "att.hintEmpAtt", settings.EmployeeAttendance, v => settings.EmployeeAttendance = v)
+                    @OnOff("set-emp-sms", "att.empSms", "att.hintEmpSms", settings.EmployeeSms, v => settings.EmployeeSms = v)
+                    @OnOff("set-emp-abs", "att.absSms", "att.hintEmpAbs", settings.EmployeeAbsSms, v => settings.EmployeeAbsSms = v)
+                    @OnOff("set-emp-late", "att.lateSms", "att.hintEmpLate", settings.EmployeeLateSms, v => settings.EmployeeLateSms = v)
+                    <div class="att-set-row">
+                        <div class="att-set-copy">
+                            <strong>@Locale.T("att.receiver")</strong>
+                            <small>@Locale.T("att.hintReceiver")</small>
+                        </div>
+                        <div class="att-switch">
+                            <label class="@(!settings.EmployeeSmsOwnNumber ? "is-pick" : null)">
+                                <input type="radio" name="set-recv" checked="@(!settings.EmployeeSmsOwnNumber)" disabled="@Busy"
+                                       @onchange="@(() => { settings.EmployeeSmsOwnNumber = false; StateHasChanged(); })" />
+                                <span>@Locale.T("att.authority")</span>
+                            </label>
+                            <label class="@(settings.EmployeeSmsOwnNumber ? "is-pick" : null)">
+                                <input type="radio" name="set-recv" checked="@settings.EmployeeSmsOwnNumber" disabled="@Busy"
+                                       @onchange="@(() => { settings.EmployeeSmsOwnNumber = true; StateHasChanged(); })" />
+                                <span>@Locale.T("att.receiverEmp")</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="att-set-row">
+                        <div class="att-set-copy">
+                            <strong>@Locale.T("att.empSmsNo")</strong>
+                            <small>@Locale.T("att.hintEmpNo")</small>
+                        </div>
+                        <input type="text" @bind="settings.EmployeeSmsNumber" disabled="@Busy" />
+                    </div>
+                    <button type="button" class="btn-serial" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                </section>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private AttendanceSettingsDto? settings;
+    private bool busy;
+    private bool downloading;
+    private string? error;
+    private string? message;
+    private bool Busy => busy || downloading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            settings = await Api.GetAttendanceSettingsAsync(Session.AccessToken!);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (settings is null)
+            return;
+        message = error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveAttendanceSettingsAsync(Session.AccessToken!, settings);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            message = Locale.T("att.updated");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DownloadAsync(string kind)
+    {
+        message = error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        downloading = true;
+        try
+        {
+            var result = kind switch
+            {
+                "app" => await Api.DownloadAttendanceAppAsync(Session.AccessToken!),
+                "photo" => await Api.DownloadAttendancePhotosAsync(Session.AccessToken!),
+                _ => await Api.DownloadAttendanceUsersAsync(Session.AccessToken!)
+            };
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.dlFailed");
+                return;
+            }
+            using var stream = new MemoryStream(result.Content);
+            using var streamRef = new DotNetStreamReference(stream);
+            await JS.InvokeVoidAsync("sikkhaloyDownloadStream", result.FileName, result.ContentType, streamRef);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            downloading = false;
+        }
+    }
+
+    private RenderFragment OnOff(string name, string titleKey, string hintKey, bool value, Action<bool> set) => __builder =>
+    {
+        <div class="att-set-row">
+            <div class="att-set-copy">
+                <strong>@Locale.T(titleKey)</strong>
+                <small>@Locale.T(hintKey)</small>
+            </div>
+            <div class="att-switch">
+                <label class="@(!value ? "is-off" : null)">
+                    <input type="radio" name="@name" checked="@(!value)" disabled="@Busy"
+                           @onchange="@(() => { set(false); StateHasChanged(); })" />
+                    <span>@Locale.T("att.off")</span>
+                </label>
+                <label class="@(value ? "is-on" : null)">
+                    <input type="radio" name="@name" checked="@value" disabled="@Busy"
+                           @onchange="@(() => { set(true); StateHasChanged(); })" />
+                    <span>@Locale.T("att.on")</span>
+                </label>
+            </div>
+        </div>
+    };
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

@@ -1,0 +1,248 @@
+@page "/basic-settings/sub-admin-status"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page access-page subact-page">
+    <h1>@Locale.T("subact.title")</h1>
+
+    @if (!isAdmin)
+    {
+        <div class="error">@Locale.T("subact.adminOnly")</div>
+    }
+    else
+    {
+        <p class="muted access-hint">@Locale.T("subact.hint")</p>
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="error">@error</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <div class="ok">@message</div>
+        }
+
+        <div class="access-grid">
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("subact.name")</th>
+                        <th>@Locale.T("subact.designation")</th>
+                        <th>@Locale.T("subact.phone")</th>
+                        <th>@Locale.T("subact.email")</th>
+                        <th>@Locale.T("subact.user")</th>
+                        <th>@Locale.T("subact.validation")</th>
+                        <th>@Locale.T("subact.approved")</th>
+                        <th>@Locale.T("subact.locked")</th>
+                        <th>@Locale.T("subact.created")</th>
+                        <th>@Locale.T("subact.lastLogin")</th>
+                        <th>@Locale.T("subact.lastPassword")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (rows.Count == 0 && !busy && string.IsNullOrWhiteSpace(error))
+                {
+                    <tr><td colspan="11" class="empty-row">@Locale.T("subact.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in rows)
+                    {
+                        <tr class="@(row.IsApproved ? "is-allowed" : "is-off")">
+                            <td>@row.Name</td>
+                            <td>@row.Designation</td>
+                            <td>@row.Phone</td>
+                            <td>@row.Email</td>
+                            <td>@row.UserName</td>
+                            <td>@row.Validation</td>
+                            <td class="act">
+                                <label class="access-check">
+                                    <input type="checkbox"
+                                           checked="@row.IsApproved"
+                                           disabled="@busy"
+                                           @onchange="e => OnApprovedAsync(row, e)" />
+                                </label>
+                            </td>
+                            <td class="act">
+                                <label class="access-check">
+                                    <input type="checkbox"
+                                           checked="@row.IsLockedOut"
+                                           disabled="@(busy || !row.IsLockedOut)"
+                                           title="@Locale.T("subact.unlockHint")"
+                                           @onchange="e => OnLockedAsync(row, e)" />
+                                </label>
+                            </td>
+                            <td>@FormatDate(row.CreateDate)</td>
+                            <td>@FormatDate(row.LastLoginDate)</td>
+                            <td>@FormatDate(row.LastPasswordChangedDate)</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<SubAdminAccountDto> rows = [];
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    private bool isAdmin =>
+        string.Equals(Session.Current?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subact.needOnline");
+            return;
+        }
+
+        if (!isAdmin)
+            return;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("subact.needOnline");
+                return;
+            }
+
+            rows.Clear();
+            rows.AddRange(await Api.GetSubAdminAccountsAsync(Session.AccessToken));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subact.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnApprovedAsync(SubAdminAccountDto row, ChangeEventArgs e)
+    {
+        var approved = e.Value is true or "true";
+        message = null;
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subact.needOnline");
+            row.IsApproved = !approved;
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Api.SetSubAdminApprovedAsync(Session.AccessToken, new SetSubAdminApprovedRequest
+            {
+                UserName = row.UserName,
+                IsApproved = approved
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                await LoadAsync();
+                return;
+            }
+
+            row.IsApproved = result.IsApproved;
+            row.IsLockedOut = result.IsLockedOut;
+            message = approved ? Locale.T("subact.activated") : Locale.T("subact.deactivated");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subact.needOnline");
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            await LoadAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnLockedAsync(SubAdminAccountDto row, ChangeEventArgs e)
+    {
+        var locked = e.Value is true or "true";
+        message = null;
+        error = null;
+        if (locked)
+        {
+            row.IsLockedOut = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subact.needOnline");
+            row.IsLockedOut = true;
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Api.UnlockSubAdminAsync(Session.AccessToken, new UnlockSubAdminRequest
+            {
+                UserName = row.UserName
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                await LoadAsync();
+                return;
+            }
+
+            row.IsApproved = result.IsApproved;
+            row.IsLockedOut = result.IsLockedOut;
+            message = Locale.T("subact.unlocked");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subact.needOnline");
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            await LoadAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private string Translate(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return Locale.T("subact.failed");
+        return Locale.T(key);
+    }
+
+    private static string FormatDate(DateTime? value) =>
+        value is null ? "" : value.Value.ToLocalTime().ToString("dd-MMM-yyyy HH:mm");
+}

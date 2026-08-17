@@ -1,0 +1,483 @@
+@page "/accounts/remove-pay-order"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page po-page">
+    <h1>@Locale.T("acc.removeTitle")</h1>
+    <p class="acc-hint">@Locale.T("acc.removeHint")</p>
+
+    <div class="po-filters">
+        <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("acc.selectClassOrAll")</option>
+            <option value="-1">@Locale.T("acc.allStudents")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        <input type="text" placeholder="@Locale.T("acc.idsHint")" @bind="idText" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindIds">@Locale.T("acc.findStudent")</button>
+    </div>
+
+    @if (students.Count > 0)
+    {
+        <section class="po-section is-assigned">
+            <div class="po-section-head">@Locale.T("acc.selectStudentsRoles") (@VisibleStudents.Count())</div>
+            <div class="po-students">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th class="act">
+                                <label class="acc-check">
+                                    <input type="checkbox" checked="@allStudents" @onchange="ToggleStudents" disabled="@busy" />
+                                    <span>@Locale.T("att.all")</span>
+                                </label>
+                            </th>
+                            <th>@Locale.T("si.class")</th>
+                            <th>@Locale.T("emp.id")</th>
+                            <th>@Locale.T("si.name")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in VisibleStudents)
+                    {
+                        <tr class="@(row.Selected ? "is-picked" : null)">
+                            <td class="act">
+                                <label class="acc-check acc-check-only">
+                                    <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetStudent(row, e)" />
+                                </label>
+                            </td>
+                            <td>@row.ClassName</td>
+                            <td>@row.ID</td>
+                            <td>@row.Name</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    @if (rolePicks.Count > 0)
+    {
+        <section class="po-section is-open">
+            <div class="po-section-head">@Locale.T("acc.selectRoleFind")</div>
+            <div class="po-check-grid">
+                <label class="acc-check po-check-all">
+                    <input type="checkbox" checked="@allRoles" @onchange="ToggleRoles" disabled="@busy" />
+                    <span>@Locale.T("att.all")</span>
+                </label>
+                @foreach (var item in rolePicks)
+                {
+                    <label class="acc-check acc-class-chip @(item.Selected ? "is-on" : null)">
+                        <input type="checkbox" checked="@item.Selected" disabled="@busy" @onchange="e => SetRole(item, e)" />
+                        <span>@item.Name</span>
+                    </label>
+                }
+            </div>
+        </section>
+    }
+
+    @if (payForPicks.Count > 0)
+    {
+        <section class="po-section">
+            <div class="po-section-head">@Locale.T("acc.selectPayFor")</div>
+            <div class="po-payfor-box">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th class="act">
+                                <label class="acc-check">
+                                    <input type="checkbox" checked="@allPayFors" @onchange="TogglePayFors" disabled="@busy" />
+                                    <span>@Locale.T("att.all")</span>
+                                </label>
+                            </th>
+                            <th>@Locale.T("acc.payFor")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in payForPicks)
+                    {
+                        <tr class="@(item.Selected ? "is-picked" : null)">
+                            <td class="act">
+                                <label class="acc-check acc-check-only">
+                                    <input type="checkbox" checked="@item.Selected" disabled="@busy" @onchange="e => SetPayFor(item, e)" />
+                                </label>
+                            </td>
+                            <td>@item.Name</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    @if (unpaid.Count > 0)
+    {
+        <div class="po-filters">
+            <input type="date" @bind="end" disabled="@busy" />
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindRows">@Locale.T("acc.findInRoles")</button>
+        </div>
+    }
+
+    @if (found)
+    {
+        <section class="po-section is-warn">
+            <div class="po-section-head">@Locale.T("acc.remove") (@rows.Count)</div>
+            <div class="po-students">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th class="act">
+                                <label class="acc-check">
+                                    <input type="checkbox" checked="@allRows" @onchange="ToggleRows" disabled="@busy" />
+                                    <span>@Locale.T("att.all")</span>
+                                </label>
+                            </th>
+                            <th>@Locale.T("emp.id")</th>
+                            <th>@Locale.T("si.class")</th>
+                            <th>@Locale.T("si.name")</th>
+                            <th>@Locale.T("acc.roleName")</th>
+                            <th>@Locale.T("acc.payFor")</th>
+                            <th>@Locale.T("acc.amount")</th>
+                            <th>@Locale.T("acc.start")</th>
+                            <th>@Locale.T("acc.end")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (rows.Count == 0)
+                    {
+                        <tr><td colspan="9" class="empty-row">@Locale.T("acc.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in rows)
+                        {
+                            <tr class="@(row.Selected ? "is-picked" : null)">
+                                <td class="act">
+                                    <label class="acc-check acc-check-only">
+                                        <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetRow(row, e)" />
+                                    </label>
+                                </td>
+                                <td>@row.ID</td>
+                                <td>@row.ClassName</td>
+                                <td>@row.Name</td>
+                                <td>@row.Role</td>
+                                <td>@row.PayFor</td>
+                                <td>@row.Amount.ToString("0.##")</td>
+                                <td>@row.StartDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@row.EndDate.ToString("dd-MMM-yyyy")</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        @if (rows.Count > 0)
+        {
+            <div class="po-action">
+                <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.removePayorder")</button>
+            </div>
+        }
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading acc-prog-box">
+            @if (progTotal > 0)
+            {
+                <div class="acc-spinner"></div>
+                <div class="acc-prog-stats">
+                    <span>@Locale.T("acc.progTotal"): <strong>@progTotal</strong></span>
+                    <span>@Locale.T("acc.progDone"): <strong>@progDone</strong></span>
+                    <span>@Locale.T("acc.progLeft"): <strong>@(Math.Max(0, progTotal - progDone))</strong></span>
+                </div>
+                <div class="acc-prog-track">
+                    <div class="acc-prog-fill is-run" style="@($"width:{Math.Max(ProgPct, 4)}%")"></div>
+                    <span>@ProgPct%</span>
+                </div>
+                <p>@progStatus</p>
+            }
+            else
+            {
+                <div class="acc-spinner"></div>
+                <p>@Locale.T("acc.loading")</p>
+            }
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<UnpaidPayOrderDto> unpaid = [];
+    private readonly List<StudentPick> students = [];
+    private readonly List<NamedPick> rolePicks = [];
+    private readonly List<NamedPick> payForPicks = [];
+    private readonly List<UnpaidPayOrderDto> rows = [];
+    private readonly HashSet<string> idFilter = new(StringComparer.OrdinalIgnoreCase);
+    private string classInput = "0";
+    private string idText = "";
+    private DateTime? end;
+    private bool busy, found, allStudents, allRoles, allPayFors, allRows, popupError;
+    private string? popupText, progStatus;
+    private int progTotal, progDone;
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int ProgPct => progTotal <= 0 ? 0 : (int)Math.Round(100.0 * progDone / progTotal);
+    private IEnumerable<StudentPick> VisibleStudents =>
+        idFilter.Count == 0 ? students : students.Where(x => idFilter.Contains(x.ID));
+
+    private sealed class StudentPick
+    {
+        public int StudentID { get; set; }
+        public string ID { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string? ClassName { get; set; }
+        public bool Selected { get; set; }
+    }
+
+    private sealed class NamedPick
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public bool Selected { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await OnlineAsync()) return;
+        var structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+    }
+
+    private void ClosePopup() => popupText = null;
+
+    private void ShowPopup(string text, bool isError)
+    {
+        popupText = text;
+        popupError = isError;
+    }
+
+    private static bool IsOn(ChangeEventArgs e) =>
+        e.Value is true or "true" or "True";
+
+    private void ToggleStudents(ChangeEventArgs e)
+    {
+        allStudents = IsOn(e);
+        foreach (var row in VisibleStudents)
+            row.Selected = allStudents;
+    }
+
+    private void SetStudent(StudentPick row, ChangeEventArgs e)
+    {
+        row.Selected = IsOn(e);
+        var list = VisibleStudents.ToList();
+        allStudents = list.Count > 0 && list.All(x => x.Selected);
+    }
+
+    private void ToggleRoles(ChangeEventArgs e)
+    {
+        allRoles = IsOn(e);
+        foreach (var item in rolePicks)
+            item.Selected = allRoles;
+    }
+
+    private void SetRole(NamedPick item, ChangeEventArgs e)
+    {
+        item.Selected = IsOn(e);
+        allRoles = rolePicks.Count > 0 && rolePicks.All(x => x.Selected);
+    }
+
+    private void TogglePayFors(ChangeEventArgs e)
+    {
+        allPayFors = IsOn(e);
+        foreach (var item in payForPicks)
+            item.Selected = allPayFors;
+    }
+
+    private void SetPayFor(NamedPick item, ChangeEventArgs e)
+    {
+        item.Selected = IsOn(e);
+        allPayFors = payForPicks.Count > 0 && payForPicks.All(x => x.Selected);
+    }
+
+    private void ToggleRows(ChangeEventArgs e)
+    {
+        allRows = IsOn(e);
+        foreach (var row in rows)
+            row.Selected = allRows;
+    }
+
+    private void SetRow(UnpaidPayOrderDto row, ChangeEventArgs e)
+    {
+        row.Selected = IsOn(e);
+        allRows = rows.Count > 0 && rows.All(x => x.Selected);
+    }
+
+    private void FindIds()
+    {
+        idFilter.Clear();
+        foreach (var part in idText.Split([',', ' ', ';', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            idFilter.Add(part);
+        if (idFilter.Count == 0) return;
+        foreach (var row in VisibleStudents)
+            row.Selected = true;
+        allStudents = VisibleStudents.Any() && VisibleStudents.All(x => x.Selected);
+    }
+
+    private async Task LoadAsync()
+    {
+        ClearLists();
+        if (classInput is "0") return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var classId = ClassId < 0 ? 0 : ClassId;
+            unpaid.AddRange(await Api.GetUnpaidPayOrdersAsync(Session.AccessToken!, classId, 0, null));
+            students.AddRange(unpaid
+                .GroupBy(x => x.StudentID)
+                .Select(g =>
+                {
+                    var first = g.First();
+                    return new StudentPick
+                    {
+                        StudentID = first.StudentID,
+                        ID = first.ID,
+                        Name = first.Name,
+                        ClassName = first.ClassName
+                    };
+                })
+                .OrderBy(x => x.ID));
+            rolePicks.AddRange(unpaid
+                .GroupBy(x => x.RoleID)
+                .Select(g => new NamedPick { Id = g.Key, Name = g.First().Role })
+                .OrderBy(x => x.Name));
+            payForPicks.AddRange(unpaid
+                .Select(x => x.PayFor.Trim())
+                .Where(x => x.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .Select(x => new NamedPick { Name = x }));
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClearLists()
+    {
+        unpaid.Clear();
+        students.Clear();
+        rolePicks.Clear();
+        payForPicks.Clear();
+        rows.Clear();
+        found = allStudents = allRoles = allPayFors = allRows = false;
+        idFilter.Clear();
+    }
+
+    private void FindRows()
+    {
+        rows.Clear();
+        found = true;
+        allRows = false;
+        var studentIds = VisibleStudents.Where(x => x.Selected).Select(x => x.StudentID).ToHashSet();
+        var roleIds = rolePicks.Where(x => x.Selected).Select(x => x.Id).ToHashSet();
+        var payFors = payForPicks.Where(x => x.Selected).Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (studentIds.Count == 0) { ShowPopup(Locale.T("acc.needStudents"), true); return; }
+        if (roleIds.Count == 0) { ShowPopup(Locale.T("acc.needRoles"), true); return; }
+        rows.AddRange(unpaid.Where(x =>
+            studentIds.Contains(x.StudentID)
+            && roleIds.Contains(x.RoleID)
+            && (payFors.Count == 0 || payFors.Contains(x.PayFor))
+            && (end is null || x.EndDate <= end.Value.Date)));
+        foreach (var row in rows)
+            row.Selected = true;
+        allRows = rows.Count > 0;
+        if (rows.Count == 0)
+            ShowPopup(Locale.T("acc.empty"), true);
+    }
+
+    private async Task SaveAsync()
+    {
+        var ids = rows.Where(x => x.Selected).Select(x => x.PayOrderID).Distinct().ToList();
+        if (ids.Count == 0) { ShowPopup(Locale.T("acc.needRows"), true); return; }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("acc.removeConfirm", ids.Count)))
+            return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        progTotal = ids.Count;
+        progDone = 0;
+        progStatus = Locale.T("acc.removeStarting", ids.Count);
+        await PaintAsync();
+        var deleted = 0;
+        const int batch = 8;
+        try
+        {
+            for (var i = 0; i < ids.Count; i += batch)
+            {
+                var chunk = ids.Skip(i).Take(batch).ToList();
+                progStatus = Locale.T("acc.removeProgress", i, ids.Count);
+                await PaintAsync();
+                var result = await Api.RemovePayOrdersAsync(Session.AccessToken!, new RemovePayOrderRequest { PayOrderIDs = chunk });
+                if (!result.Succeeded && deleted == 0 && i == 0)
+                {
+                    ShowPopup(Locale.T(result.Error ?? "acc.failed"), true);
+                    return;
+                }
+                deleted += result.Saved > 0 ? result.Saved : (result.Succeeded ? chunk.Count : 0);
+                progDone = Math.Min(i + chunk.Count, ids.Count);
+                progStatus = Locale.T("acc.removeProgress", progDone, ids.Count);
+                var gone = chunk.ToHashSet();
+                rows.RemoveAll(x => gone.Contains(x.PayOrderID));
+                unpaid.RemoveAll(x => gone.Contains(x.PayOrderID));
+                await PaintAsync();
+            }
+            busy = false;
+            ShowPopup(Locale.T("acc.removedCount", deleted), false);
+            allRows = false;
+        }
+        catch (Exception ex)
+        {
+            ShowPopup(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+            progTotal = 0;
+            progDone = 0;
+        }
+    }
+
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            ShowPopup(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task PaintAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(50);
+    }
+}

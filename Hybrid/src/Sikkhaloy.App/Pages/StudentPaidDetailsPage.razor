@@ -1,0 +1,177 @@
+@page "/accounts/reports/paid"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt paid-rpt">
+    <h1 class="no-print">@Locale.T("rpt.paidTitle")</h1>
+    <div class="rpt-filters no-print">
+        <select @bind="yearId">
+            <option value="%">@Locale.T("rpt.allSession")</option>
+            @foreach (var year in years)
+            {
+                <option value="@year.EducationYearID">@year.Name</option>
+            }
+        </select>
+        <select @bind="classId" @bind:after="OnClassAsync">
+            <option value="0">@Locale.T("rpt.allClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        <select @bind="groupId">
+            <option value="%">@Locale.T("rpt.allGroup")</option>
+            @foreach (var item in groups)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionId">
+                <option value="%">@Locale.T("rpt.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (data is not null)
+    {
+        <div class="rpt-banner">@RangeText @Locale.T("rpt.income"): @Tk(data.Total) @Locale.T("acc.tk")</div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("rpt.receipt")</th>
+                    <th>ID</th>
+                    <th>@Locale.T("rpt.name")</th>
+                    <th>@Locale.T("rpt.rollNo")</th>
+                    <th>@Locale.T("rpt.class")</th>
+                    <th>@Locale.T("students.section")</th>
+                    <th>@Locale.T("rpt.paidDetails")</th>
+                    <th class="num">@Locale.T("rpt.total")</th>
+                    <th>@Locale.T("rpt.pDate")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (data.Receipts.Count == 0)
+            {
+                <tr><td colspan="9">@Locale.T("rpt.empty")</td></tr>
+            }
+            @foreach (var rec in data.Receipts)
+            {
+                <tr>
+                    <td>@rec.ReceiptNo</td>
+                    <td>@rec.ID</td>
+                    <td>@rec.Name</td>
+                    <td>@rec.RollNo</td>
+                    <td>@rec.ClassName</td>
+                    <td>@rec.Section</td>
+                    <td class="paid-lines">
+                        @foreach (var line in rec.Details)
+                        {
+                            <p>@line</p>
+                        }
+                    </td>
+                    <td class="num">@Tk(rec.TotalAmount)</td>
+                    <td>@rec.PaidDate.ToString("d-MM-yy")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private PaidDetailsDto? data;
+    private List<EducationYearDto> years = [];
+    private List<SchoolClassDto> classes = [];
+    private List<NameAmountDto> groups = [];
+    private List<NameAmountDto> sections = [];
+    private string yearId = "%", groupId = "%", sectionId = "%", fromText = "", toText = "", error = "";
+    private int classId;
+    private bool busy;
+
+    private string RangeText
+    {
+        get
+        {
+            var from = Parse(fromText);
+            var to = Parse(toText);
+            if (from is null || to is null) return "";
+            var a = from.Value.ToString("d MMM yyyy");
+            var b = to.Value.ToString("d MMM yyyy");
+            return from.Value == to.Value ? $"{a} " : $"({a} To {b}) ";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        var today = DateTime.Today;
+        fromText = Iso(today);
+        toText = Iso(today);
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            years.AddRange(await Api.GetYearsAsync(Session.AccessToken));
+            classes.AddRange(await Api.GetClassesAsync(Session.AccessToken));
+            await LoadCoreAsync();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task OnClassAsync()
+    {
+        groups.Clear();
+        sections.Clear();
+        groupId = "%";
+        sectionId = "%";
+        if (classId <= 0) return;
+        groups.AddRange(await Api.GetReportGroupsAsync(Session.AccessToken, classId));
+        sections.AddRange(await Api.GetReportSectionsAsync(Session.AccessToken, classId));
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { await LoadCoreAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadCoreAsync() =>
+        data = await Api.GetPaidDetailsAsync(Session.AccessToken, yearId, classId, groupId, sectionId, Parse(fromText), Parse(toText));
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");
+    private static string Tk(decimal n) => n.ToString("N0");
+}

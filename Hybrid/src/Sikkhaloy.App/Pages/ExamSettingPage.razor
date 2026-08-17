@@ -1,0 +1,17 @@
+@page "/exam/setting"
+@inherits LocaleAwareComponent
+
+<div class="card structure-page emp-page acc-page exam-page">
+    <h1>@Locale.T("exam.setting")</h1>
+    <div class="exam-hub">
+        <a href="exam/grading"><h3>@Locale.Menu("Grading System")</h3><p>@Locale.T("exam.grading")</p></a>
+        <a href="exam/names"><h3>@Locale.Menu("Exam Name")</h3><p>@Locale.T("exam.addExam")</p></a>
+        <a href="exam/sub-exams"><h3>@Locale.Menu("Sub-Exam Name")</h3><p>@Locale.T("exam.addSub")</p></a>
+        <a href="exam/pass-marks"><h3>@Locale.Menu("Change Pass Marks")</h3><p>@Locale.T("exam.passTitle")</p></a>
+        <a href="exam/distribution"><h3>@Locale.Menu("Marks Distribution")</h3><p>@Locale.T("exam.distTitle")</p></a>
+        <a href="exam/collect-paper"><h3>@Locale.Menu("Marks Collect Paper")</h3><p>@Locale.T("exam.collectTitle")</p></a>
+        <a href="exam/input"><h3>@Locale.Menu("Input Exam Marks")</h3><p>@Locale.T("exam.inputTitle")</p></a>
+        <a href="exam/marks-check"><h3>@Locale.Menu("Inputted Marks Check")</h3><p>@Locale.T("exam.checkTitle")</p></a>
+        <a href="exam/control"><h3>@Locale.Menu("Exam Control")</h3><p>@Locale.T("exam.control")</p></a>
+    </div>
+</div>

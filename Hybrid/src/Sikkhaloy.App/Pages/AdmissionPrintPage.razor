@@ -1,0 +1,158 @@
+@page "/admission/print-form"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="blank-form-page">
+    <div class="report-nav no-print">
+        <button type="button" class="btn-print" @onclick="PrintAsync">@Locale.T("blank.print")</button>
+        <a class="btn-find" href="students/details">@Locale.T("blank.filled")</a>
+    </div>
+
+    <div class="adm-print blank-form">
+        <div class="adm-school">
+            @if (!string.IsNullOrWhiteSpace(logoUrl))
+            {
+                <img src="@logoUrl" alt="" />
+            }
+            else
+            {
+                <span class="adm-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
+            }
+            <div>
+                <h1>@schoolName</h1>
+                <p>@schoolAddress @schoolPhone</p>
+            </div>
+        </div>
+
+        <div class="adm-top">
+            <div class="adm-date">
+                @Locale.T("blank.date")
+                <strong>___/___/___</strong>
+            </div>
+            <div class="adm-title">
+                <span>@Locale.T("blank.title")</span>
+            </div>
+            <div class="adm-photo blank">@Locale.T("blank.photo")</div>
+        </div>
+
+        <fieldset>
+            <legend>@Locale.T("form.student")</legend>
+            <table class="adm-table">
+                <tr>
+                    <td style="width:25%"><span class="blank-field"><span class="lbl">@Locale.T("blank.id"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:45%"><span class="blank-field"><span class="lbl">@Locale.T("form.studentName"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:30%"><span class="blank-field"><span class="lbl">@Locale.T("form.mobile"):</span><span class="blank-line"></span></span></td>
+                </tr>
+                <tr>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("students.gender"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("students.dob"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("students.blood"):</span><span class="blank-line"></span></span></td>
+                </tr>
+                <tr>
+                    <td colspan="3"><span class="blank-field"><span class="lbl">@Locale.T("students.religion"):</span><span class="blank-line"></span></span></td>
+                </tr>
+                <tr>
+                    <td colspan="3"><span class="blank-field"><span class="lbl">@Locale.T("form.permanent"):</span><span class="blank-line"></span></span></td>
+                </tr>
+                <tr>
+                    <td colspan="3"><span class="blank-field"><span class="lbl">@Locale.T("form.present"):</span><span class="blank-line"></span></span></td>
+                </tr>
+            </table>
+        </fieldset>
+
+        <fieldset>
+            <legend>@Locale.T("form.parents")</legend>
+            <table class="adm-table">
+                <tr>
+                    <td style="width:40%"><span class="blank-field"><span class="lbl">@Locale.T("form.father"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:30%"><span class="blank-field"><span class="lbl">@Locale.T("form.mobile"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:30%"><span class="blank-field"><span class="lbl">@Locale.T("form.occupation"):</span><span class="blank-line"></span></span></td>
+                </tr>
+                <tr>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("form.mother"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("form.mobile"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("form.occupation"):</span><span class="blank-line"></span></span></td>
+                </tr>
+            </table>
+        </fieldset>
+
+        <fieldset>
+            <legend>@Locale.T("form.guardian")</legend>
+            <table class="adm-table">
+                <tr>
+                    <td style="width:40%"><span class="blank-field"><span class="lbl">@Locale.T("form.guardianName"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:30%"><span class="blank-field"><span class="lbl">@Locale.T("form.relationship"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:30%"><span class="blank-field"><span class="lbl">@Locale.T("form.mobile"):</span><span class="blank-line"></span></span></td>
+                </tr>
+            </table>
+        </fieldset>
+
+        <fieldset>
+            <legend>@Locale.T("form.prev")</legend>
+            <table class="adm-table">
+                <tr>
+                    <td style="width:40%"><span class="blank-field"><span class="lbl">@Locale.T("form.institution"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:20%"><span class="blank-field"><span class="lbl">@Locale.T("students.class"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:20%"><span class="blank-field"><span class="lbl">@Locale.T("form.year"):</span><span class="blank-line"></span></span></td>
+                    <td style="width:20%"><span class="blank-field"><span class="lbl">@Locale.T("form.grade"):</span><span class="blank-line"></span></span></td>
+                </tr>
+            </table>
+        </fieldset>
+
+        <fieldset>
+            <legend>@Locale.T("form.academic")</legend>
+            <table class="adm-table">
+                <tr>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("students.class"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("form.roll"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("students.section"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("students.shift"):</span><span class="blank-line"></span></span></td>
+                    <td><span class="blank-field"><span class="lbl">@Locale.T("students.group"):</span><span class="blank-line"></span></span></td>
+                </tr>
+            </table>
+        </fieldset>
+
+        <div class="adm-signs">
+            <div>
+                <span class="adm-line">@Locale.T("form.signStudent")</span>
+                <small>@Locale.T("form.dateLine")</small>
+            </div>
+            <div>
+                <span class="adm-line">@Locale.T("form.signGuardian")</span>
+                <small>@Locale.T("form.dateLine")</small>
+            </div>
+            <div>
+                <span class="adm-line">@Locale.T("form.signPrincipal")</span>
+                <small>@Locale.T("form.dateLine")</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string schoolName = "";
+    private string schoolAddress = "";
+    private string schoolPhone = "";
+    private string? logoUrl;
+
+    protected override void OnInitialized()
+    {
+        if (!Session.IsAuthenticated || Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+        schoolName = string.IsNullOrWhiteSpace(header.SchoolName) ? Session.Current.SchoolName : header.SchoolName;
+        schoolAddress = header.Address ?? "";
+        schoolPhone = header.Phone ?? "";
+        logoUrl = Sync.GetSchoolLogoDataUrl(Session.Current.SchoolID);
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", true);
+}

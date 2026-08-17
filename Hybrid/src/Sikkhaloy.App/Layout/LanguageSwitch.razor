@@ -1,0 +1,6 @@
+@inject AppLocale Locale
+
+<div class="lang-switch" title="Language">
+    <button type="button" class="@(Locale.Code == "en" ? "active" : null)" @onclick='() => Locale.Set("en")'>EN</button>
+    <button type="button" class="@(Locale.Code == "bn" ? "active" : null)" @onclick='() => Locale.Set("bn")'>বাং</button>
+</div>

@@ -1,0 +1,271 @@
+@page "/basic-settings/page-access"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page access-page">
+    <h1>@Locale.T("access.title")</h1>
+
+    @if (!isAdmin)
+    {
+        <div class="error">@Locale.T("access.adminOnly")</div>
+    }
+    else
+    {
+        <p class="muted access-hint">@Locale.T("access.hint")</p>
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="error">@error</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <div class="ok">@message</div>
+        }
+
+        <div class="access-bar">
+            <select class="access-select" @bind="userName" @bind:after="OnUserChanged" disabled="@busy">
+                <option value="">@Locale.T("access.select")</option>
+                @foreach (var item in subAdmins)
+                {
+                    <option value="@item.UserName">@item.Name</option>
+                }
+            </select>
+            @if (pages.Count > 0)
+            {
+                <span class="access-count">@Locale.T("access.picked", selectedCount, pages.Count)</span>
+            }
+            <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("access.update")</button>
+        </div>
+        @if (subAdmins.Count == 0 && !busy && string.IsNullOrWhiteSpace(error))
+        {
+            <p class="muted">@Locale.T("access.noSubAdmins")</p>
+        }
+
+        <div class="access-grid">
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("access.category")</th>
+                        <th>@Locale.T("access.subCategory")</th>
+                        <th class="access-all">
+                            <label>
+                                <input type="checkbox" checked="@allChecked" disabled="@(pages.Count == 0 || busy)" @onchange="ToggleAll" />
+                                @Locale.T("access.pageTitle")
+                            </label>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (pages.Count == 0)
+                {
+                    <tr><td colspan="3" class="empty-row">@Locale.T("access.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in pages)
+                    {
+                        <tr class="@(row.Allowed ? "is-allowed" : null)">
+                            @if (row.ShowGroup)
+                            {
+                                <td class="access-cat" rowspan="@row.Span">@Locale.Menu(row.Category)</td>
+                                <td class="access-sub" rowspan="@row.Span">@Locale.Menu(row.SubCategory)</td>
+                            }
+                            <td>
+                                <label class="access-check">
+                                    <input type="checkbox" checked="@row.Allowed" disabled="@busy" @onchange="e => ToggleRow(row, e)" />
+                                    <span>@Locale.Menu(row.PageTitle)</span>
+                                </label>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<SubAdminDto> subAdmins = [];
+    private List<PageRow> pages = [];
+    private string userName = "";
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    private bool isAdmin =>
+        string.Equals(Session.Current?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+    private bool allChecked => pages.Count > 0 && pages.All(x => x.Allowed);
+    private int selectedCount => pages.Count(x => x.Allowed);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("access.needOnline");
+            return;
+        }
+
+        if (!isAdmin)
+            return;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = null;
+        message = null;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("access.needOnline");
+                return;
+            }
+
+            subAdmins.Clear();
+            subAdmins.AddRange(await Api.GetSubAdminsAsync(Session.AccessToken));
+            await LoadPagesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("access.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnUserChanged()
+    {
+        message = null;
+        await LoadPagesAsync();
+    }
+
+    private async Task LoadPagesAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+
+        try
+        {
+            var data = await Api.GetPageAccessAsync(Session.AccessToken, userName);
+            pages = BuildRows(data.Pages);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("access.needOnline");
+        }
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        var on = e.Value is true or "true";
+        foreach (var row in pages)
+            row.Allowed = on;
+    }
+
+    private static void ToggleRow(PageRow row, ChangeEventArgs e)
+    {
+        row.Allowed = e.Value is true or "true";
+    }
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        message = null;
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            error = Locale.T("access.needUser");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("access.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await Api.SavePageAccessAsync(Session.AccessToken, new SavePageAccessRequest
+            {
+                UserName = userName,
+                LinkIDs = pages.Where(x => x.Allowed).Select(x => x.LinkID).ToList()
+            });
+            if (!result.Succeeded)
+            {
+                error = string.IsNullOrWhiteSpace(result.Error) ? Locale.T("access.needUser") : result.Error;
+                return;
+            }
+
+            message = Locale.T("access.saved");
+            await LoadPagesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("access.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static List<PageRow> BuildRows(IReadOnlyList<PageAccessRowDto> source)
+    {
+        var rows = source.Select(x => new PageRow
+        {
+            LinkID = x.LinkID,
+            Category = x.Category,
+            SubCategory = x.SubCategory,
+            PageTitle = x.PageTitle,
+            Allowed = x.Allowed
+        }).ToList();
+
+        var i = 0;
+        while (i < rows.Count)
+        {
+            var span = 1;
+            while (i + span < rows.Count
+                   && string.Equals(rows[i].Category, rows[i + span].Category, StringComparison.Ordinal)
+                   && string.Equals(rows[i].SubCategory, rows[i + span].SubCategory, StringComparison.Ordinal))
+            {
+                span++;
+            }
+
+            rows[i].ShowGroup = true;
+            rows[i].Span = span;
+            for (var j = 1; j < span; j++)
+                rows[i + j].ShowGroup = false;
+            i += span;
+        }
+
+        return rows;
+    }
+
+    private sealed class PageRow
+    {
+        public int LinkID { get; set; }
+        public string Category { get; set; } = "";
+        public string SubCategory { get; set; } = "";
+        public string PageTitle { get; set; } = "";
+        public bool Allowed { get; set; }
+        public bool ShowGroup { get; set; }
+        public int Span { get; set; } = 1;
+    }
+}

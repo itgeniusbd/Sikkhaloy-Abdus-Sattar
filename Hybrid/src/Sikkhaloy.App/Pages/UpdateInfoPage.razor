@@ -1,0 +1,154 @@
+@page "/profile/update-info"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="card structure-page inst-page">
+    <h1>@Locale.T("profile.updateInfo")</h1>
+    <p class="muted">@Locale.T("profile.crumb")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    @if (form is null && !busy)
+    {
+        <p class="muted">@Locale.T("profile.noAdmin")</p>
+    }
+    else if (form is not null)
+    {
+        <div class="profile-photo-row">
+            <label class="sm-photo">
+                @if (!string.IsNullOrWhiteSpace(form.PhotoDataUrl))
+                {
+                    <img src="@form.PhotoDataUrl" alt="" />
+                }
+                else
+                {
+                    <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
+                }
+                <span class="sm-photo-edit">✎</span>
+                <InputFile class="sm-photo-file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                           OnChange="OnPhotoAsync" disabled="@busy" />
+            </label>
+        </div>
+
+        <div class="inst-grid">
+            <label>@Locale.T("emp.firstName")<input @bind="form.FirstName" disabled="@busy" /></label>
+            <label>@Locale.T("emp.lastName")<input @bind="form.LastName" disabled="@busy" /></label>
+            <label>@Locale.T("emp.father")<input @bind="form.FatherName" disabled="@busy" /></label>
+            <label>@Locale.T("emp.gender")
+                <select @bind="form.Gender" disabled="@busy">
+                    <option value="">-</option>
+                    <option value="Male">@Locale.T("emp.male")</option>
+                    <option value="Female">@Locale.T("emp.female")</option>
+                </select>
+            </label>
+            <label>@Locale.T("emp.designation")<input @bind="form.Designation" disabled="@busy" /></label>
+            <label>@Locale.T("emp.phone")<input @bind="form.Phone" disabled="@busy" /></label>
+            <label>@Locale.T("emp.email")<input @bind="form.Email" disabled="@busy" /></label>
+            <label>@Locale.T("inst.city")<input @bind="form.City" disabled="@busy" /></label>
+            <label>@Locale.T("inst.postal")<input @bind="form.PostalCode" disabled="@busy" /></label>
+            <label class="span-2">@Locale.T("emp.address")<input @bind="form.Address" disabled="@busy" /></label>
+        </div>
+
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("inst.update")</button>
+    }
+</div>
+
+@code {
+    private AdminInfoDto? form;
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated || Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("profile.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            form = await Api.GetAdminInfoAsync(Session.AccessToken);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("profile.needOnline");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnPhotoAsync(InputFileChangeEventArgs e)
+    {
+        if (form is null || e.FileCount == 0)
+            return;
+        try
+        {
+            var file = e.File;
+            await using var stream = file.OpenReadStream(2_000_000);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            var dataUrl = $"data:{mime};base64,{Convert.ToBase64String(ms.ToArray())}";
+            form.PhotoDataUrl = await JS.InvokeAsync<string>("sikkhaloyCompressImage", dataUrl, 250, 0.7, 40_960);
+        }
+        catch
+        {
+            error = Locale.T("sm.badPhoto");
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (form is null || Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        error = null;
+        message = null;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveAdminInfoAsync(Session.AccessToken, form);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "profile.needOnline");
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.DisplayName))
+                Session.Current.DisplayName = result.DisplayName;
+            if (!string.IsNullOrWhiteSpace(form.PhotoDataUrl))
+                Sync.SaveProfilePhoto(Session.Current.RegistrationID, form.PhotoDataUrl);
+            Session.NotifyChanged();
+            message = Locale.T("profile.saved");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("profile.needOnline");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

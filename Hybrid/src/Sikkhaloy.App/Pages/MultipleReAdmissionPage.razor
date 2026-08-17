@@ -1,0 +1,621 @@
+@page "/admission/multiple-re-admission"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+
+<div class="card students-card readm-page">
+    <div class="toolbar">
+        <h1>@Locale.T("mreadm.title")</h1>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+
+    <h2 class="section-title">@Locale.T("mreadm.old")</h2>
+    <div class="filter-row">
+        <select @bind="fromYearId" @bind:after="OnOldYearChanged">
+            <option value="0">@Locale.T("mreadm.oldSession")</option>
+            @foreach (var year in years)
+            {
+                <option value="@year.EducationYearID">@year.Name</option>
+            }
+        </select>
+        <select @bind="fromClassId" @bind:after="OnOldClassChanged">
+            <option value="0">@Locale.T("readm.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (fromGroups.Count > 0)
+        {
+            <select @bind="fromGroupId" @bind:after="LoadStudentsAsync">
+                <option value="0">@Locale.T("readm.allGroup")</option>
+                @foreach (var item in fromGroups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (fromSections.Count > 0)
+        {
+            <select @bind="fromSectionId" @bind:after="LoadStudentsAsync">
+                <option value="0">@Locale.T("readm.allSection")</option>
+                @foreach (var item in fromSections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (fromShifts.Count > 0)
+        {
+            <select @bind="fromShiftId" @bind:after="LoadStudentsAsync">
+                <option value="0">@Locale.T("readm.allShift")</option>
+                @foreach (var item in fromShifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+    </div>
+
+    <div class="readm-radios">
+        <label class="choice-inline">
+            <input type="radio" name="examMode" checked="@(cumulative)" @onchange="() => SetExamMode(true)" />
+            <span>@Locale.T("mreadm.cumulative")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="examMode" checked="@(!cumulative)" @onchange="() => SetExamMode(false)" />
+            <span>@Locale.T("mreadm.individual")</span>
+        </label>
+        <span class="readm-radio-sep"></span>
+        <label class="choice-inline">
+            <input type="radio" name="posMode" checked="@(!sectionWise)" @onchange="() => sectionWise = false" />
+            <span>@Locale.T("mreadm.classWise")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="posMode" checked="@(sectionWise)" @onchange="() => sectionWise = true" />
+            <span>@Locale.T("mreadm.sectionWise")</span>
+        </label>
+    </div>
+
+    <div class="filter-row">
+        <select @bind="examId">
+            <option value="0">@Locale.T("mreadm.selectExam")</option>
+            @foreach (var exam in exams)
+            {
+                <option value="@exam.ExamID">@exam.Name</option>
+            }
+        </select>
+        <button type="button" class="btn-find" disabled="@busy" @onclick="SetNewRollAsync">@Locale.T("mreadm.setRoll")</button>
+        <button type="button" class="btn-brown" disabled="@busy" @onclick="KeepRoll">@Locale.T("mreadm.keepRoll")</button>
+    </div>
+
+    <div class="total-bar">
+        <span>@Locale.T("students.total", rows.Count)</span>
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <span class="total-sep">|</span>
+            <span class="total-ok">@message</span>
+        }
+    </div>
+
+    <div class="records-wrap">
+        <table class="records-table">
+            <thead>
+                <tr>
+                    <th class="check">
+                        <label class="choice-inline">
+                            <input type="checkbox" checked="@allSelected" @onchange="ToggleAll" />
+                            <span>@Locale.T("mreadm.all")</span>
+                        </label>
+                    </th>
+                    <th>@Locale.T("students.name")</th>
+                    <th>@Locale.T("students.id")</th>
+                    <th>@Locale.T("students.gender")</th>
+                    <th>@Locale.T("readm.sms")</th>
+                    <th>@Locale.T("students.roll")</th>
+                    <th>@Locale.T("mreadm.merit")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0)
+            {
+                <tr>
+                    <td colspan="7" class="empty-row">@Locale.T("readm.empty")</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr class="@(row.Selected ? "is-selected" : null)">
+                        <td class="check">
+                            <input type="checkbox" @bind="row.Selected" />
+                        </td>
+                        <td>@row.Name</td>
+                        <td>@row.StudentCode</td>
+                        <td>@row.Gender</td>
+                        <td>@row.SmsPhone</td>
+                        <td>@row.RollNo</td>
+                        <td>
+                            <input class="readm-newroll" type="text" @bind="row.NewRoll" />
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (rows.Count > 0)
+    {
+        <h2 class="section-title">@Locale.T("mreadm.new")</h2>
+        <div class="filter-row">
+            <select class="@(needTarget ? "is-invalid" : null)" @bind="toYearId">
+                <option value="0">@Locale.T("mreadm.newSession")</option>
+                @foreach (var year in targetYears)
+                {
+                    <option value="@year.EducationYearID">@year.Name</option>
+                }
+            </select>
+            <select class="@(needClass ? "is-invalid" : null)" @bind="toClassId" @bind:after="OnNewClassChanged">
+                <option value="0">@Locale.T("readm.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+            @if (toGroups.Count > 0)
+            {
+                <select class="@(needGroup ? "is-invalid" : null)" @bind="toGroupId" @bind:after="LoadSubjectsAsync">
+                    <option value="0">@Locale.T("readm.selectGroup")</option>
+                    @foreach (var item in toGroups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (toSections.Count > 0)
+            {
+                <select class="@(needSection ? "is-invalid" : null)" @bind="toSectionId">
+                    <option value="0">@Locale.T("readm.selectSection")</option>
+                    @foreach (var item in toSections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (toShifts.Count > 0)
+            {
+                <select class="@(needShift ? "is-invalid" : null)" @bind="toShiftId">
+                    <option value="0">@Locale.T("readm.selectShift")</option>
+                    @foreach (var item in toShifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+        </div>
+
+        @if (toClassId > 0)
+        {
+            @if (subjects.Count > 0)
+            {
+                <div class="readm-subjects records-wrap">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("readm.subjects")</th>
+                                <th>@Locale.T("readm.select")</th>
+                                <th>@Locale.T("readm.subjectType")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var subject in subjects)
+                        {
+                            <tr>
+                                <td>@subject.SubjectName</td>
+                                <td class="check"><input type="checkbox" @bind="subject.Selected" /></td>
+                                <td>
+                                    <span class="readm-type">
+                                        <label class="choice-inline">
+                                            <input type="radio" name="type-@subject.SubjectID" checked="@(subject.SubjectType == "Compulsory")"
+                                                   @onchange="@(() => subject.SubjectType = "Compulsory")" />
+                                            <span>@Locale.T("readm.compulsory")</span>
+                                        </label>
+                                        <label class="choice-inline">
+                                            <input type="radio" name="type-@subject.SubjectID" checked="@(subject.SubjectType == "Optional")"
+                                                   @onchange="@(() => subject.SubjectType = "Optional")" />
+                                            <span>@Locale.T("readm.optional")</span>
+                                        </label>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="readm-actions">
+                <button type="button" class="btn-primary" disabled="@busy" @onclick="SubmitAsync">@Locale.T("mreadm.submit")</button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private sealed class Row
+    {
+        public int StudentID { get; set; }
+        public int StudentClassID { get; set; }
+        public string Name { get; set; } = "";
+        public string StudentCode { get; set; } = "";
+        public string? Gender { get; set; }
+        public string? SmsPhone { get; set; }
+        public string? RollNo { get; set; }
+        public string NewRoll { get; set; } = "";
+        public bool Selected { get; set; }
+    }
+
+    private IReadOnlyList<EducationYearDto> years = [];
+    private IReadOnlyList<SchoolClassDto> classes = [];
+    private IReadOnlyList<ClassPartDto> fromGroups = [];
+    private IReadOnlyList<ClassPartDto> fromSections = [];
+    private IReadOnlyList<ClassPartDto> fromShifts = [];
+    private IReadOnlyList<ClassPartDto> toGroups = [];
+    private IReadOnlyList<ClassPartDto> toSections = [];
+    private IReadOnlyList<ClassPartDto> toShifts = [];
+    private List<ReAdmissionExamDto> exams = [];
+    private List<ReAdmissionSubjectDto> subjects = [];
+    private List<Row> rows = [];
+    private int fromYearId;
+    private int fromClassId;
+    private int fromGroupId;
+    private int fromSectionId;
+    private int fromShiftId;
+    private int toYearId;
+    private int toClassId;
+    private int toGroupId;
+    private int toSectionId;
+    private int toShiftId;
+    private int examId;
+    private bool cumulative = true;
+    private bool sectionWise;
+    private string? error;
+    private string? message;
+    private bool busy;
+    private bool needTarget;
+    private bool needClass;
+    private bool needGroup;
+    private bool needSection;
+    private bool needShift;
+    private bool yearPicked;
+
+    private IReadOnlyList<EducationYearDto> targetYears
+    {
+        get
+        {
+            var old = years.FirstOrDefault(x => x.EducationYearID == fromYearId);
+            if (old is null)
+                return [];
+            return years.Where(x => x.SortOrder > old.SortOrder).ToList();
+        }
+    }
+
+    private bool allSelected => rows.Count > 0 && rows.All(x => x.Selected);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            await Sync.RefreshClassesAsync(Session.Current, Session.AccessToken);
+
+        years = await Sync.ListYearsAsync(Session.Current.SchoolID);
+        classes = await Sync.ListClassesAsync(Session.Current.SchoolID);
+        var current = years.FirstOrDefault(x => x.EducationYearID == Session.Current.EducationYearID);
+        fromYearId = years
+            .Where(x => x.SortOrder < (current?.SortOrder ?? int.MaxValue))
+            .OrderByDescending(x => x.SortOrder)
+            .FirstOrDefault()?.EducationYearID ?? 0;
+        yearPicked = true;
+        PickDefaultTarget();
+    }
+
+    private void PickDefaultTarget()
+    {
+        toYearId = targetYears.FirstOrDefault(x => x.EducationYearID == Session.Current?.EducationYearID)?.EducationYearID
+                   ?? targetYears.FirstOrDefault()?.EducationYearID
+                   ?? 0;
+    }
+
+    private async Task OnOldYearChanged()
+    {
+        PickDefaultTarget();
+        await LoadExamsAsync();
+        await LoadStudentsAsync();
+    }
+
+    private async Task OnOldClassChanged()
+    {
+        fromGroupId = 0;
+        fromSectionId = 0;
+        fromShiftId = 0;
+        if (Session.Current is null || fromClassId <= 0)
+        {
+            fromGroups = [];
+            fromSections = [];
+            fromShifts = [];
+            rows = [];
+            exams = [];
+            examId = 0;
+            return;
+        }
+
+        fromGroups = await Sync.ListGroupsAsync(Session.Current.SchoolID, fromClassId);
+        fromSections = await Sync.ListSectionsAsync(Session.Current.SchoolID, fromClassId);
+        fromShifts = await Sync.ListShiftsAsync(Session.Current.SchoolID, fromClassId);
+        await LoadExamsAsync();
+        await LoadStudentsAsync();
+    }
+
+    private async Task OnNewClassChanged()
+    {
+        toGroupId = 0;
+        toSectionId = 0;
+        toShiftId = 0;
+        needClass = false;
+        if (Session.Current is null || toClassId <= 0)
+        {
+            toGroups = [];
+            toSections = [];
+            toShifts = [];
+            subjects = [];
+            return;
+        }
+
+        toGroups = await Sync.ListGroupsAsync(Session.Current.SchoolID, toClassId);
+        toSections = await Sync.ListSectionsAsync(Session.Current.SchoolID, toClassId);
+        toShifts = await Sync.ListShiftsAsync(Session.Current.SchoolID, toClassId);
+        await LoadSubjectsAsync();
+    }
+
+    private async Task SetExamMode(bool value)
+    {
+        cumulative = value;
+        examId = 0;
+        await LoadExamsAsync();
+    }
+
+    private async Task LoadExamsAsync()
+    {
+        exams = [];
+        examId = 0;
+        if (fromYearId <= 0 || fromClassId <= 0)
+            return;
+        try
+        {
+            exams = (await Sync.ListReAdmissionExamsAsync(Session.AccessToken, fromYearId, fromClassId, cumulative)).ToList();
+        }
+        catch (InvalidOperationException ex)
+        {
+            error = Locale.T(ex.Message);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("readm.offline");
+        }
+    }
+
+    private async Task LoadStudentsAsync()
+    {
+        if (!yearPicked || Session.Current is null)
+            return;
+
+        error = null;
+        if (fromYearId <= 0 || fromClassId <= 0)
+        {
+            rows = [];
+            return;
+        }
+
+        try
+        {
+            var list = await Sync.ListReAdmissionCandidatesAsync(
+                Session.AccessToken, fromYearId, fromClassId, fromSectionId, fromGroupId, fromShiftId);
+            rows = list.Select(x => new Row
+            {
+                StudentID = x.StudentID,
+                StudentClassID = x.StudentClassID,
+                Name = x.StudentsName,
+                StudentCode = x.StudentCode,
+                Gender = x.Gender,
+                SmsPhone = x.SMSPhoneNo,
+                RollNo = x.RollNo
+            }).ToList();
+        }
+        catch (InvalidOperationException ex)
+        {
+            rows = [];
+            error = Locale.T(ex.Message);
+        }
+        catch (HttpRequestException)
+        {
+            rows = [];
+            error = Locale.T("readm.offline");
+        }
+        catch (Exception ex)
+        {
+            rows = [];
+            error = ex.Message;
+        }
+    }
+
+    private void ResetNewClass()
+    {
+        toClassId = 0;
+        toGroupId = 0;
+        toSectionId = 0;
+        toShiftId = 0;
+        toGroups = [];
+        toSections = [];
+        toShifts = [];
+        subjects = [];
+        needClass = false;
+        needGroup = false;
+        needSection = false;
+        needShift = false;
+        PickDefaultTarget();
+    }
+
+    private async Task LoadSubjectsAsync()
+    {
+        subjects = [];
+        if (toClassId <= 0)
+            return;
+        try
+        {
+            subjects = (await Sync.ListReAdmissionSubjectsAsync(Session.AccessToken, toClassId, toGroupId)).ToList();
+        }
+        catch (InvalidOperationException ex)
+        {
+            error = Locale.T(ex.Message);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("readm.offline");
+        }
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        var on = e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        foreach (var row in rows)
+            row.Selected = on;
+    }
+
+    private void KeepRoll()
+    {
+        foreach (var row in rows)
+            row.NewRoll = row.RollNo ?? "";
+    }
+
+    private async Task SetNewRollAsync()
+    {
+        error = null;
+        if (examId <= 0)
+        {
+            error = Locale.T("mreadm.needExam");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var positions = await Sync.ListReAdmissionPositionsAsync(
+                Session.AccessToken, fromYearId, fromClassId, examId, cumulative, sectionWise);
+            foreach (var row in rows)
+            {
+                var match = positions.FirstOrDefault(x =>
+                    x.StudentID == row.StudentID && x.StudentClassID == row.StudentClassID)
+                    ?? positions.FirstOrDefault(x => x.StudentID == row.StudentID);
+                row.NewRoll = match?.Position ?? "";
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            error = Locale.T(ex.Message);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("readm.offline");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        error = null;
+        message = null;
+        needTarget = toYearId <= 0;
+        needClass = toClassId <= 0;
+        needGroup = toGroups.Count > 0 && toGroupId <= 0;
+        needSection = toSections.Count > 0 && toSectionId <= 0;
+        needShift = toShifts.Count > 0 && toShiftId <= 0;
+        var selected = rows.Where(x => x.Selected).ToList();
+        if (selected.Count == 0)
+        {
+            error = Locale.T("mreadm.needStudents");
+            return;
+        }
+
+        if (needTarget || needClass || needGroup || needSection || needShift)
+        {
+            error = Locale.T(needTarget ? "readm.needTarget" : needClass ? "readm.needClass" : "readm.needPart");
+            return;
+        }
+
+        if (Session.Current is null)
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Sync.FinishBulkReAdmissionAsync(Session.Current, Session.AccessToken, new BulkReAdmissionRequest
+            {
+                ToEducationYearID = toYearId,
+                ClassID = toClassId,
+                SectionID = toSectionId,
+                ShiftID = toShiftId,
+                SubjectGroupID = toGroupId,
+                Subjects = subjects.Where(x => x.Selected).Select(x => new ReAdmissionSubjectChoice
+                {
+                    SubjectID = x.SubjectID,
+                    SubjectType = x.SubjectType
+                }).ToList(),
+                Students = selected.Select(x => new BulkReAdmissionStudent
+                {
+                    StudentID = x.StudentID,
+                    FromStudentClassID = x.StudentClassID,
+                    RollNo = x.NewRoll
+                }).ToList()
+            });
+
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "readm.failed");
+                return;
+            }
+
+            message = result.Skipped > 0
+                ? Locale.T("mreadm.doneSkip", result.Admitted, result.Skipped)
+                : Locale.T("mreadm.done", result.Admitted);
+            ResetNewClass();
+            await LoadStudentsAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("readm.offline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

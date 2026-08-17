@@ -1,0 +1,75 @@
+-- Run against EduHybrid to catalog tables, keys, and procedures for Hybrid SQLite mapping.
+-- Does not change data. Save the result sets as Hybrid/Database/Schema_Inventory_Result.txt
+
+SET NOCOUNT ON;
+
+SELECT TABLE_SCHEMA, TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = N'BASE TABLE'
+ORDER BY TABLE_SCHEMA, TABLE_NAME;
+
+SELECT
+    c.TABLE_SCHEMA,
+    c.TABLE_NAME,
+    c.COLUMN_NAME,
+    c.ORDINAL_POSITION,
+    c.DATA_TYPE,
+    c.CHARACTER_MAXIMUM_LENGTH,
+    c.IS_NULLABLE,
+    c.COLUMN_DEFAULT
+FROM INFORMATION_SCHEMA.COLUMNS AS c
+INNER JOIN INFORMATION_SCHEMA.TABLES AS t
+    ON t.TABLE_SCHEMA = c.TABLE_SCHEMA
+   AND t.TABLE_NAME = c.TABLE_NAME
+WHERE t.TABLE_TYPE = N'BASE TABLE'
+ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.ORDINAL_POSITION;
+
+SELECT
+    tc.TABLE_SCHEMA,
+    tc.TABLE_NAME,
+    kc.COLUMN_NAME,
+    tc.CONSTRAINT_NAME
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
+INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kc
+    ON kc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+   AND kc.TABLE_SCHEMA = tc.TABLE_SCHEMA
+WHERE tc.CONSTRAINT_TYPE = N'PRIMARY KEY'
+ORDER BY tc.TABLE_SCHEMA, tc.TABLE_NAME, kc.ORDINAL_POSITION;
+
+SELECT
+    fk.TABLE_SCHEMA AS FromSchema,
+    fk.TABLE_NAME AS FromTable,
+    fk.COLUMN_NAME AS FromColumn,
+    pk.TABLE_SCHEMA AS ToSchema,
+    pk.TABLE_NAME AS ToTable,
+    pk.COLUMN_NAME AS ToColumn,
+    rc.CONSTRAINT_NAME,
+    rc.UPDATE_RULE,
+    rc.DELETE_RULE
+FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc
+INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS fk
+    ON fk.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
+INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS pk
+    ON pk.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME
+   AND pk.ORDINAL_POSITION = fk.ORDINAL_POSITION
+ORDER BY fk.TABLE_NAME, fk.COLUMN_NAME;
+
+SELECT
+    ROUTINE_SCHEMA,
+    ROUTINE_NAME,
+    ROUTINE_TYPE,
+    CREATED,
+    LAST_ALTERED
+FROM INFORMATION_SCHEMA.ROUTINES
+ORDER BY ROUTINE_TYPE, ROUTINE_NAME;
+
+-- Hybrid-critical tables (expected in EduHybrid)
+SELECT t.name AS TableName
+FROM sys.tables AS t
+WHERE t.name IN (
+    N'Student', N'StudentsClass', N'StudentRecord', N'SchoolInfo', N'Registration',
+    N'Education_Year', N'Education_Year_User', N'CreateClass', N'CreateSection',
+    N'CreateShift', N'CreateSubjectGroup', N'Income_PayOrder', N'Income_PaymentRecord',
+    N'Attendance_Record', N'Employee_Info', N'SMS', N'aspnet_Users', N'aspnet_Membership',
+    N'Hybrid_EntityMap', N'Hybrid_ChangeLog')
+ORDER BY t.name;

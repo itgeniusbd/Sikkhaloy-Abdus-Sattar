@@ -1,0 +1,335 @@
+@page "/staff/teachers/new"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("emp.addTeacher")</h1>
+    <p class="muted">@Locale.T("emp.crumb")</p>
+
+    <div class="wizard-steps">
+        <span class="@(step == 1 ? "on" : null)">1. @Locale.T("emp.step1")</span>
+        <span class="@(step == 2 ? "on" : null)">2. @Locale.T("emp.step2")</span>
+        <span class="@(step == 3 ? "on" : null)">3. @Locale.T("emp.step3")</span>
+        <span class="@(step == 4 ? "on" : null)">4. @Locale.T("emp.step4")</span>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+
+    @if (step == 1)
+    {
+        <div class="form-grid">
+            <label>@Locale.T("emp.firstName")
+                <input @bind="form.FirstName" placeholder="@Locale.T("sub.ph.first")" />
+            </label>
+            <label>@Locale.T("emp.lastName")
+                <input @bind="form.LastName" placeholder="@Locale.T("sub.ph.last")" />
+            </label>
+            <label>@Locale.T("emp.father")
+                <input @bind="form.FatherName" />
+            </label>
+            <label>@Locale.T("emp.designation")
+                <input @bind="form.Designation" placeholder="@Locale.T("sub.ph.designation")" />
+            </label>
+            <label>@Locale.T("emp.phone")
+                <input @bind="form.Phone" />
+            </label>
+            <label>@Locale.T("emp.gender")
+                <span class="readm-type">
+                    <label class="choice-inline">
+                        <input type="radio" name="gender" checked="@(form.Gender == "Male")" @onchange="@(() => form.Gender = "Male")" />
+                        <span>@Locale.T("emp.male")</span>
+                    </label>
+                    <label class="choice-inline">
+                        <input type="radio" name="gender" checked="@(form.Gender == "Female")" @onchange="@(() => form.Gender = "Female")" />
+                        <span>@Locale.T("emp.female")</span>
+                    </label>
+                </span>
+            </label>
+            <label>@Locale.T("emp.age")
+                <input @bind="form.Age" />
+            </label>
+            <label>@Locale.T("emp.dob")
+                <input type="date" @bind="dob" />
+            </label>
+            <label>@Locale.T("emp.religion")
+                <select @bind="form.Religion">
+                    <option>Islam</option>
+                    <option>Hinduism</option>
+                    <option>Buddhism</option>
+                    <option>Christianity</option>
+                </select>
+            </label>
+            <label>@Locale.T("emp.nationality")
+                <input @bind="form.Nationality" />
+            </label>
+            <label class="span-2">@Locale.T("emp.address")
+                <textarea @bind="form.Address"></textarea>
+            </label>
+            <label>@Locale.T("emp.city")
+                <input @bind="form.City" />
+            </label>
+            <label>@Locale.T("emp.state")
+                <input @bind="form.State" />
+            </label>
+            <label>@Locale.T("emp.postal")
+                <input @bind="form.PostalCode" />
+            </label>
+        </div>
+        <div class="access-bar" style="margin-top: 0.7rem;">
+            <button type="button" class="btn-primary access-save" @onclick="GoJob">@Locale.T("emp.next")</button>
+        </div>
+    }
+    else if (step == 2)
+    {
+        <div class="form-grid">
+            <label>@Locale.T("emp.jobType")
+                <span class="readm-type">
+                    <label class="choice-inline">
+                        <input type="radio" name="job" checked="@(form.PermanentTemporary == "Permanent")" @onchange="@(() => form.PermanentTemporary = "Permanent")" />
+                        <span>@Locale.T("emp.permanent")</span>
+                    </label>
+                    <label class="choice-inline">
+                        <input type="radio" name="job" checked="@(form.PermanentTemporary == "Temporary")" @onchange="@(() => form.PermanentTemporary = "Temporary")" />
+                        <span>@Locale.T("emp.temporary")</span>
+                    </label>
+                </span>
+            </label>
+            <label>@Locale.T("emp.salary")
+                <input type="number" min="0" step="0.01" @bind="form.Salary" />
+            </label>
+            <label>@Locale.T("emp.absDeduct")
+                <span class="readm-type">
+                    <label class="choice-inline">
+                        <input type="radio" name="abs" checked="@form.AbsDeducted" @onchange="@(() => form.AbsDeducted = true)" />
+                        <span>@Locale.T("emp.yes")</span>
+                    </label>
+                    <label class="choice-inline">
+                        <input type="radio" name="abs" checked="@(!form.AbsDeducted)" @onchange="@(() => form.AbsDeducted = false)" />
+                        <span>@Locale.T("emp.no")</span>
+                    </label>
+                </span>
+            </label>
+            @if (form.AbsDeducted)
+            {
+                <label>@Locale.T("emp.absAmount")
+                    <input type="number" min="0" step="0.01" @bind="form.AbsDeduction" />
+                </label>
+            }
+            <label>@Locale.T("emp.lateAbs")
+                <span class="readm-type">
+                    <label class="choice-inline">
+                        <input type="radio" name="late" checked="@form.LateCountAsAbs" @onchange="@(() => form.LateCountAsAbs = true)" />
+                        <span>@Locale.T("emp.yes")</span>
+                    </label>
+                    <label class="choice-inline">
+                        <input type="radio" name="late" checked="@(!form.LateCountAsAbs)" @onchange="@(() => form.LateCountAsAbs = false)" />
+                        <span>@Locale.T("emp.no")</span>
+                    </label>
+                </span>
+            </label>
+            @if (form.LateCountAsAbs)
+            {
+                <label>@Locale.T("emp.lateDays")
+                    <input type="number" min="1" @bind="lateDays" />
+                </label>
+            }
+        </div>
+        <div class="access-bar" style="margin-top: 0.7rem;">
+            <button type="button" class="link-btn" @onclick="@(() => step = 1)">@Locale.T("emp.back")</button>
+            <button type="button" class="btn-primary access-save" @onclick="GoLogin">@Locale.T("emp.next")</button>
+        </div>
+    }
+    else if (step == 3)
+    {
+        <div class="form-grid">
+            <label>@Locale.T("sub.user")
+                <input value="@form.UserName" @oninput="OnUserInput" placeholder="@Locale.T("sub.ph.user")" autocomplete="off" />
+            </label>
+            <label>@Locale.T("sub.email")
+                <input @bind="form.Email" placeholder="@Locale.T("sub.ph.email")" autocomplete="off" />
+            </label>
+            <label>@Locale.T("sub.password")
+                <input type="password" @bind="form.Password" placeholder="@Locale.T("sub.ph.password")" autocomplete="new-password" />
+            </label>
+            <label>@Locale.T("sub.confirm")
+                <input type="password" @bind="form.ConfirmPassword" placeholder="@Locale.T("sub.ph.confirm")" autocomplete="new-password" />
+            </label>
+            <label class="span-2">@Locale.T("sub.question")
+                <select @bind="form.Question">
+                    <option value="">@Locale.T("sub.questionSelect")</option>
+                    @foreach (var q in questions)
+                    {
+                        <option value="@q">@Locale.T(q)</option>
+                    }
+                </select>
+            </label>
+            <label class="span-2">@Locale.T("sub.answer")
+                <input @bind="form.Answer" placeholder="@Locale.T("sub.ph.answer")" />
+            </label>
+        </div>
+        <div class="access-bar" style="margin-top: 0.7rem;">
+            <button type="button" class="link-btn" @onclick="@(() => step = 2)">@Locale.T("emp.back")</button>
+            <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("emp.submit")</button>
+        </div>
+    }
+    else
+    {
+        <div class="success-box">
+            <h2>@Locale.T("sub.successTitle")</h2>
+            <p>@Locale.T("emp.okTeacher")</p>
+            <div class="success-actions">
+                <button type="button" class="btn-primary" @onclick="Reset">@Locale.T("sub.another")</button>
+                <a class="btn-primary" href="/staff/employees">@Locale.T("emp.list")</a>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly string[] questions =
+    [
+        "sub.q1", "sub.q2", "sub.q3", "sub.q4", "sub.q5", "sub.q6",
+        "sub.q7", "sub.q8", "sub.q9", "sub.q10", "sub.q11", "sub.q12"
+    ];
+
+    private readonly CreateTeacherRequest form = new()
+    {
+        Religion = "Islam",
+        Nationality = "BANGLADESHI",
+        PermanentTemporary = "Permanent",
+        Gender = "Male"
+    };
+    private DateTime? dob;
+    private int lateDays = 3;
+    private int step = 1;
+    private bool busy;
+    private string? error;
+
+    private void OnUserInput(ChangeEventArgs e) =>
+        form.UserName = (e.Value?.ToString() ?? "").Replace(" ", "");
+
+    private void GoJob()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(form.FirstName) || string.IsNullOrWhiteSpace(form.LastName)
+            || string.IsNullOrWhiteSpace(form.Designation) || string.IsNullOrWhiteSpace(form.Phone)
+            || string.IsNullOrWhiteSpace(form.Gender))
+        {
+            error = Locale.T("emp.needInfo");
+            return;
+        }
+        step = 2;
+    }
+
+    private void GoLogin()
+    {
+        error = null;
+        if (form.AbsDeducted && form.AbsDeduction <= 0)
+        {
+            error = Locale.T("emp.needAbsAmount");
+            return;
+        }
+        step = 3;
+    }
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            form.DateOfBirth = dob;
+            form.LateDays = form.LateCountAsAbs ? lateDays : null;
+            var request = new CreateTeacherRequest
+            {
+                FirstName = form.FirstName,
+                LastName = form.LastName,
+                FatherName = form.FatherName,
+                Designation = form.Designation,
+                Phone = form.Phone,
+                Gender = form.Gender,
+                Age = form.Age,
+                DateOfBirth = form.DateOfBirth,
+                Religion = form.Religion,
+                Nationality = form.Nationality,
+                Address = form.Address,
+                City = form.City,
+                State = form.State,
+                PostalCode = form.PostalCode,
+                PermanentTemporary = form.PermanentTemporary,
+                Salary = form.Salary,
+                AbsDeducted = form.AbsDeducted,
+                AbsDeduction = form.AbsDeduction,
+                LateCountAsAbs = form.LateCountAsAbs,
+                LateDays = form.LateDays,
+                UserName = form.UserName,
+                Password = form.Password,
+                ConfirmPassword = form.ConfirmPassword,
+                Email = form.Email,
+                Question = string.IsNullOrWhiteSpace(form.Question) ? "" : Locale.T(form.Question),
+                Answer = form.Answer
+            };
+            var result = await Api.CreateTeacherAsync(Session.AccessToken, request);
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            step = 4;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void Reset()
+    {
+        form.FirstName = form.LastName = form.FatherName = form.Designation = form.Phone = "";
+        form.Age = form.Address = form.City = form.State = form.PostalCode = "";
+        form.UserName = form.Password = form.ConfirmPassword = form.Email = form.Question = form.Answer = "";
+        form.Gender = "Male";
+        form.Religion = "Islam";
+        form.Nationality = "BANGLADESHI";
+        form.PermanentTemporary = "Permanent";
+        form.Salary = 0;
+        form.AbsDeducted = form.LateCountAsAbs = false;
+        form.AbsDeduction = 0;
+        dob = null;
+        lateDays = 3;
+        error = null;
+        step = 1;
+    }
+
+    private string Translate(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return Locale.T("emp.failed");
+        return Locale.T(key);
+    }
+}

@@ -1,0 +1,123 @@
+@page "/accounts/reports/payorder"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt po-rpt">
+    <div class="rpt-filters no-print">
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => LoadAsync(0)">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+    <h1>@Locale.T("rpt.payorderTitle") @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }</h1>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (data is not null)
+    {
+        <div class="rpt-fees">
+            <div class="rpt-card po-card"><small>@Locale.T("rpt.payorder")</small><strong>@Tk(data.Payorder) @Locale.T("acc.tk")</strong></div>
+            <div class="rpt-card late-card"><small>@Locale.T("rpt.lateFee")</small><strong>@Tk(data.LateFee) @Locale.T("acc.tk")</strong></div>
+            <div class="rpt-card con-card"><small>@Locale.T("rpt.concession")</small><strong>@Tk(data.Concession) @Locale.T("acc.tk")</strong></div>
+            <div class="rpt-card paid-card"><small>@Locale.T("rpt.paid")</small><strong>@Tk(data.Paid) @Locale.T("acc.tk")</strong></div>
+            <div class="rpt-card unpaid-card"><small>@Locale.T("rpt.unpaid")</small><strong>@Tk(data.Unpaid) @Locale.T("acc.tk")</strong></div>
+        </div>
+        <table class="mgrid">
+            <thead><tr><th>@Locale.T("acc.role")</th><th class="num">@Locale.T("rpt.fee")</th><th class="num">@Locale.T("rpt.lateFee")</th><th class="num">@Locale.T("rpt.concession")</th><th class="num">@Locale.T("rpt.paid")</th><th class="num">@Locale.T("rpt.unpaid")</th></tr></thead>
+            <tbody>
+            @foreach (var role in data.Roles)
+            {
+                <tr class="@(role.RoleID == selectedRoleId ? "is-sel" : null)">
+                    <td><button type="button" class="link-btn" @onclick="() => LoadAsync(role.RoleID)">@role.Role</button></td>
+                    <td class="num">@Tk(role.Fee)</td>
+                    <td class="num">@Tk(role.LateFee)</td>
+                    <td class="num">@Tk(role.Concession)</td>
+                    <td class="num">@Tk(role.Paid)</td>
+                    <td class="num">@Tk(role.Unpaid)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        var selected = data.Roles.FirstOrDefault(x => x.PayFors.Count > 0);
+        if (selected is not null)
+        {
+            <div class="rpt-box pay">@Locale.T("rpt.paySummary"): @selected.Role</div>
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("rpt.payFor")</th><th class="num">@Locale.T("rpt.fee")</th><th class="num">@Locale.T("rpt.lateFee")</th><th class="num">@Locale.T("rpt.concession")</th><th class="num">@Locale.T("rpt.paid")</th><th class="num">@Locale.T("rpt.unpaid")</th></tr></thead>
+                <tbody>
+                @foreach (var row in selected.PayFors)
+                {
+                    <tr>
+                        <td>@row.Role</td>
+                        <td class="num">@Tk(row.Fee)</td>
+                        <td class="num">@Tk(row.LateFee)</td>
+                        <td class="num">@Tk(row.Concession)</td>
+                        <td class="num">@Tk(row.Paid)</td>
+                        <td class="num">@Tk(row.Unpaid)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private PayorderReportDto? data;
+    private string fromText = "", toText = "", error = "";
+    private bool busy;
+    private int selectedRoleId;
+
+    private string DateLabel => RangeLabel(fromText, toText);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        await LoadAsync(0);
+    }
+
+    private async Task LoadAsync(int roleId)
+    {
+        busy = true;
+        error = "";
+        selectedRoleId = roleId;
+        await PaintAsync();
+        try { data = await Api.GetPayorderReportAsync(Session.AccessToken, Parse(fromText), Parse(toText), roleId); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Tk(decimal n) => n.ToString("N0");
+
+    private static string RangeLabel(string fromRaw, string toRaw)
+    {
+        var from = Parse(fromRaw);
+        var to = Parse(toRaw);
+        if (from is null && to is null) return "";
+        if (from is not null && to is not null)
+        {
+            var a = from.Value.ToString("d MMM yyyy");
+            var b = to.Value.ToString("d MMM yyyy");
+            return from.Value == to.Value ? a : $"({a} To {b})";
+        }
+        if (from is not null) return $"After {from.Value:d MMM yyyy}";
+        return $"Before {to!.Value:d MMM yyyy}";
+    }
+}

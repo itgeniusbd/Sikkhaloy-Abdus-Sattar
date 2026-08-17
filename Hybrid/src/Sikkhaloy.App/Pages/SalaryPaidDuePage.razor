@@ -1,0 +1,166 @@
+@page "/staff/salary/paid-due"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page sal-page">
+    <PrintHeader Subtitle="@Locale.T("sal.paidDue")" />
+    <h1 class="no-print">@Locale.T("sal.paidDue")</h1>
+    <p class="muted no-print">@Locale.T("sal.crumb")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="structure-card no-print">
+        <div class="sal-checks">
+            @foreach (var name in names)
+            {
+                <label>
+                    <input type="checkbox" checked="@selected.Contains(name.Id)" disabled="@busy"
+                           @onchange="e => ToggleName(name.Id, e)" />
+                    <span>@name.Name</span>
+                </label>
+            }
+        </div>
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadReportAsync">@Locale.T("sal.find")</button>
+        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("sal.print")</button>
+    </div>
+
+    <div class="sal-scroll">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("emp.name")</th>
+                    <th>@Locale.T("sal.month")</th>
+                    <th class="num">@Locale.T("sal.paid")</th>
+                    <th class="num">@Locale.T("sal.due")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="5" class="empty-row">@Locale.T("sal.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.MonthName</td>
+                        <td class="num">@Money(row.Paid)</td>
+                        <td class="num">@Money(row.Due)</td>
+                    </tr>
+                }
+            }
+            </tbody>
+            @if (rows.Count > 0)
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="3">@Locale.T("sal.total")</td>
+                        <td class="num">@Money(rows.Sum(x => x.Paid))</td>
+                        <td class="num">@Money(rows.Sum(x => x.Due))</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@code {
+    private readonly List<SalaryNameDto> names = [];
+    private readonly HashSet<int> selected = [];
+    private readonly List<PaidDueRowDto> rows = [];
+    private bool busy;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await LoadNamesAsync();
+
+    private async Task LoadNamesAsync()
+    {
+        error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            names.Clear();
+            names.AddRange(await Api.GetSalaryNamesAsync(Session.AccessToken, "payorder"));
+            foreach (var name in names)
+                selected.Add(name.Id);
+            await LoadReportCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void ToggleName(int id, ChangeEventArgs e)
+    {
+        var on = e.Value is true || e.Value?.ToString() == "True";
+        if (on)
+            selected.Add(id);
+        else
+            selected.Remove(id);
+    }
+
+    private async Task LoadReportAsync()
+    {
+        error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            await LoadReportCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadReportCoreAsync()
+    {
+        rows.Clear();
+        rows.AddRange(await Api.GetPaidDueAsync(Session.AccessToken, selected.ToList()));
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false);
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private static string Money(decimal value) => value.ToString("0.##");
+}

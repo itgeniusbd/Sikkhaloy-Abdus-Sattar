@@ -1,0 +1,36 @@
+@inherits LocaleAwareComponent
+
+<div class="rpt-cat-head"><span>@Group.Category</span><span>@Group.Total.ToString("N0") Tk</span></div>
+<table class="mgrid">
+    <thead>
+        <tr>
+            <th>@Locale.T("rpt.sn")</th>
+            <th>@Locale.T("rpt.category")</th>
+            <th class="num">@Locale.T("rpt.amount")</th>
+            <th>@Locale.T("rpt.details")</th>
+            <th>@Locale.T("rpt.userName")</th>
+            <th>@Locale.T("rpt.insertDate")</th>
+            <th>@Locale.T("rpt.date")</th>
+            <th>@Locale.T("rpt.time")</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var line in Group.Lines)
+    {
+        <tr>
+            <td>@line.Sn</td>
+            <td>@line.SubCategory</td>
+            <td class="num">@line.Amount.ToString("N0")</td>
+            <td>@line.Details</td>
+            <td>@line.UserName</td>
+            <td>@line.Date.ToString("d MMM yyyy")</td>
+            <td>@(line.ActivityDate?.ToString("d MMM yyyy"))</td>
+            <td>@line.Time</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public ReportGroupDto Group { get; set; } = new();
+}

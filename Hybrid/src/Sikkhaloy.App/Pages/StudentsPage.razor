@@ -1,0 +1,709 @@
+@page "/students"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card students-card">
+    <div class="toolbar no-print">
+        <h1>@Locale.T("students.title")</h1>
+        <div class="toolbar-actions">
+            <span class="id-find-wrap @(idInvalid ? "invalid" : null)">
+                <input type="text"
+                       class="id-find"
+                       placeholder="@(idInvalid ? Locale.T(idErrorKey) : Locale.T("report.enterId"))"
+                       @bind="idInput"
+                       @bind:event="oninput"
+                       @bind:after="ClearIdError"
+                       @onkeydown="OnIdKey" />
+            </span>
+            <button type="button" class="btn-find btn-find-search" @onclick="FindByIdAsync" disabled="@busy">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                @Locale.T("report.findDetails")
+            </button>
+            <button class="btn-print" @onclick='() => PrintAsync("portrait")' disabled="@busy">@Locale.T("print.portrait")</button>
+            <button class="btn-print" @onclick='() => PrintAsync("landscape")' disabled="@busy">@Locale.T("print.landscape")</button>
+            <button class="primary" @onclick="SyncNow" disabled="@busy">@(busy ? Locale.T("students.syncing") : Locale.T("students.sync"))</button>
+            <a href="students/new">@Locale.T("students.admission")</a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="no-print @(Sync.LastError is { Length: > 0 } ? "error" : "ok")">@message</div>
+    }
+
+    <div class="filter-row no-print">
+        <select @bind="classInput" @bind:after="OnClassChanged">
+            <option value="0">@Locale.T("students.allClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupInput" @bind:after="OnGroupChanged">
+                <option value="0">@Locale.T("si.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionInput" @bind:after="OnSectionChanged">
+                <option value="0">@Locale.T("si.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftInput" @bind:after="OnShiftChanged">
+                <option value="0">@Locale.T("si.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="cohortInput" @bind:after="OnCohortChanged">
+            <option value="">@Locale.T("students.all")</option>
+            <option value="new">@Locale.T("students.new")</option>
+            <option value="old">@Locale.T("students.old")</option>
+        </select>
+        <input type="search"
+               placeholder="@Locale.T("students.search")"
+               value="@searchInput"
+               @oninput="OnSearchInput"
+               @onkeydown="OnSearchKey" />
+        <button type="button" class="btn-find" @onclick="Find" disabled="@busy">@Locale.T("students.find")</button>
+        <button type="button" class="btn-clear" @onclick="Clear" disabled="@busy">@Locale.T("students.clear")</button>
+    </div>
+
+    <div class="column-row no-print">
+        <span>@Locale.T("students.columns")</span>
+        @foreach (var column in columns)
+        {
+            <label>
+                <input type="checkbox" @bind="column.Visible" />
+                @Locale.T(column.LabelKey)
+            </label>
+        }
+    </div>
+
+    <PrintHeader Subtitle="@ListTitle" />
+
+    <div class="total-bar">
+        <span>@Locale.T("students.total", filtered.Count)</span>
+        <span class="total-sep">|</span>
+        <span class="boys">@Locale.T("students.boys", maleCount)</span>
+        <span class="total-sep">|</span>
+        <span class="girls">@Locale.T("students.girls", femaleCount)</span>
+    </div>
+
+    <div class="records-wrap">
+        <table class="records-table">
+            <thead>
+                <tr>
+                    <th class="@ColClass("photo")">@Locale.T("students.photo")</th>
+                    <th class="@ColClass("id") sortable" @onclick='() => SortBy("ID")'>@Locale.T("students.id")</th>
+                    <th class="@ColClass("name") sortable" @onclick='() => SortBy("Name")'>@Locale.T("students.name")</th>
+                    <th class="@ColClass("father") sortable" @onclick='() => SortBy("Father")'>@Locale.T("students.father")</th>
+                    <th class="@ColClass("mother") sortable" @onclick='() => SortBy("Mother")'>@Locale.T("students.mother")</th>
+                    <th class="@ColClass("blood") sortable" @onclick='() => SortBy("Blood")'>@Locale.T("students.blood")</th>
+                    <th class="@ColClass("roll") sortable" @onclick='() => SortBy("Roll")'>@Locale.T("students.roll")</th>
+                    <th class="@ColClass("gender") sortable" @onclick='() => SortBy("Gender")'>@Locale.T("students.gender")</th>
+                    <th class="@ColClass("phone") sortable" @onclick='() => SortBy("Phone")'>@Locale.T("students.phone")</th>
+                    <th class="@ColClass("religion") sortable" @onclick='() => SortBy("Religion")'>@Locale.T("students.religion")</th>
+                    <th class="@ColClass("class") sortable" @onclick='() => SortBy("Class")'>@Locale.T("students.class")</th>
+                    <th class="@ColClass("group") sortable" @onclick='() => SortBy("Group")'>@Locale.T("students.group")</th>
+                    <th class="@ColClass("section") sortable" @onclick='() => SortBy("Section")'>@Locale.T("students.section")</th>
+                    <th class="@ColClass("shift") sortable" @onclick='() => SortBy("Shift")'>@Locale.T("students.shift")</th>
+                    <th class="@ColClass("dob") sortable" @onclick='() => SortBy("DOB")'>@Locale.T("students.dob")</th>
+                    <th class="@ColClass("admission") sortable" @onclick='() => SortBy("Admission")'>@Locale.T("students.admissionDate")</th>
+                    <th class="@ColClass("sync")">@Locale.T("students.syncCol")</th>
+                    <th class="no-print"></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (visibleRows.Count == 0)
+            {
+                <tr>
+                    <td colspan="18" class="empty-row">@Locale.T("students.empty")</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var student in visibleRows)
+                {
+                    <tr>
+                        <td class="@ColClass("photo")">
+                            @if (!string.IsNullOrWhiteSpace(student.PhotoDataUrl))
+                            {
+                                <img class="list-photo" src="@student.PhotoDataUrl" alt="" />
+                            }
+                            else
+                            {
+                                <span class="list-photo empty"></span>
+                            }
+                        </td>
+                        <td class="@ColClass("id")"><a class="name-link" href="@DetailsHref(student)">@student.StudentCode</a></td>
+                        <td class="@ColClass("name")"><a class="name-link" href="@DetailsHref(student)">@student.StudentsName</a></td>
+                        <td class="@ColClass("father")">@student.FathersName</td>
+                        <td class="@ColClass("mother")">@student.MothersName</td>
+                        <td class="@ColClass("blood")">@student.BloodGroup</td>
+                        <td class="@ColClass("roll")">@student.RollNo</td>
+                        <td class="@ColClass("gender")">@GenderLabel(student.Gender)</td>
+                        <td class="@ColClass("phone")">@student.SMSPhoneNo</td>
+                        <td class="@ColClass("religion")">@student.Religion</td>
+                        <td class="@ColClass("class")">@ClassOf(student)</td>
+                        <td class="@ColClass("group")">@student.GroupName</td>
+                        <td class="@ColClass("section")">@student.SectionName</td>
+                        <td class="@ColClass("shift")">@student.ShiftName</td>
+                        <td class="@ColClass("dob")">@(student.DateofBirth?.ToString("dd MMM yyyy"))</td>
+                        <td class="@ColClass("admission")">@(student.AdmissionDate?.ToString("d MMM yyyy"))</td>
+                        <td class="@ColClass("sync")">@student.SyncStatus</td>
+                        <td class="no-print"><a href="@($"students/{student.LocalId}")">@Locale.T("students.edit")</a></td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (!printing && pageCount > 1)
+    {
+        <div class="pager no-print">
+            <button type="button" disabled="@(currentPage <= 1)" @onclick="PrevPage">@Locale.T("students.prev")</button>
+            <span>@Locale.T("students.page", currentPage, pageCount)</span>
+            <button type="button" disabled="@(currentPage >= pageCount)" @onclick="NextPage">@Locale.T("students.next")</button>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<StudentDto> students = [];
+    private IReadOnlyList<SchoolClassDto> classes = [];
+    private IReadOnlyList<ClassPartDto> groups = [];
+    private IReadOnlyList<ClassPartDto> sections = [];
+    private IReadOnlyList<ClassPartDto> shifts = [];
+    private ClassStructureDto? structure;
+    private List<StudentDto> filtered = [];
+    private bool busy;
+    private bool printing;
+    private string? message;
+    private string classInput = "0";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private string cohortInput = "";
+    private string searchInput = "";
+    private string idInput = "";
+    private bool idInvalid;
+    private string idErrorKey = "report.needId";
+    private string appliedClass = "0";
+    private string appliedGroup = "0";
+    private string appliedSection = "0";
+    private string appliedShift = "0";
+    private string appliedCohort = "";
+    private string appliedSearch = "";
+    private string sortColumn = "Name";
+    private bool sortAsc = true;
+    private int currentPage = 1;
+    private const int PageSize = 70;
+    private readonly List<ColumnOption> columns =
+    [
+        new("photo", "students.photo"),
+        new("id", "students.id"),
+        new("name", "students.name"),
+        new("father", "students.father"),
+        new("mother", "students.mother"),
+        new("blood", "students.blood"),
+        new("roll", "students.roll"),
+        new("gender", "students.gender"),
+        new("phone", "students.phone"),
+        new("religion", "students.religion"),
+        new("class", "students.class"),
+        new("group", "students.group"),
+        new("section", "students.section"),
+        new("shift", "students.shift"),
+        new("dob", "students.dob"),
+        new("admission", "students.admissionDate"),
+        new("sync", "students.syncCol") { Visible = false }
+    ];
+
+    private int pageCount => Math.Max(1, (int)Math.Ceiling(filtered.Count / (double)PageSize));
+    private List<StudentDto> visibleRows => printing
+        ? filtered
+        : filtered.Skip((currentPage - 1) * PageSize).Take(PageSize).ToList();
+    private int maleCount => filtered.Count(IsMale);
+    private int femaleCount => filtered.Count(IsFemale);
+    private string ListTitle
+    {
+        get
+        {
+            if (int.TryParse(appliedClass, out var classId) && classId > 0)
+            {
+                var name = classes.FirstOrDefault(x => x.ClassID == classId)?.Name;
+                if (!string.IsNullOrWhiteSpace(name))
+                    return Locale.T("students.titleClass", name);
+            }
+            return Locale.T("students.title");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        Session.Changed += OnSessionChanged;
+        await LoadAsync();
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(LoadAsync);
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        base.Dispose();
+    }
+
+    private async Task LoadAsync()
+    {
+        var current = Session.Current;
+        if (current is null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            await Sync.RefreshClassesAsync(current, Session.AccessToken);
+        classes = await Sync.ListClassesAsync(current.SchoolID);
+        structure = await Sync.GetClassStructureAsync(current.SchoolID);
+        students = await Sync.ListStudentsAsync(current.SchoolID, current.EducationYearID);
+        Sync.ApplyCachedStudentPhotos(current.SchoolID, students);
+        await LoadClassPartsAsync();
+        ApplyFilter();
+        StateHasChanged();
+        await RefreshPhotosAsync(current);
+    }
+
+    private async Task RefreshPhotosAsync(SessionSnapshot current)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || students.Count == 0)
+            return;
+        try
+        {
+            if (!await Api.PingAsync())
+                return;
+            var photos = await Api.GetStudentPhotosAsync(Session.AccessToken);
+            if (photos.Count == 0)
+                return;
+
+            var byId = students.Where(x => x.ServerId is > 0)
+                .GroupBy(x => x.ServerId!.Value)
+                .ToDictionary(g => g.Key, g => g.First());
+            foreach (var photo in photos)
+            {
+                if (string.IsNullOrWhiteSpace(photo.PhotoDataUrl))
+                    continue;
+                Sync.SaveStudentPhoto(current.SchoolID, photo.StudentID, photo.PhotoDataUrl);
+                if (byId.TryGetValue(photo.StudentID, out var student))
+                    student.PhotoDataUrl = photo.PhotoDataUrl;
+            }
+
+            StateHasChanged();
+        }
+        catch (HttpRequestException)
+        {
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private async Task OnClassChanged()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        appliedClass = classInput;
+        appliedGroup = appliedSection = appliedShift = "0";
+        currentPage = 1;
+        await LoadClassPartsAsync();
+        if (Session.Current is not null)
+            await RefreshPlacementsAsync(Session.Current, ParseId(classInput));
+        ApplyFilter();
+    }
+
+    private void OnGroupChanged()
+    {
+        appliedGroup = groupInput;
+        currentPage = 1;
+        ApplyFilter();
+    }
+
+    private void OnSectionChanged()
+    {
+        appliedSection = sectionInput;
+        currentPage = 1;
+        ApplyFilter();
+    }
+
+    private void OnShiftChanged()
+    {
+        appliedShift = shiftInput;
+        currentPage = 1;
+        ApplyFilter();
+    }
+
+    private void OnCohortChanged()
+    {
+        appliedCohort = cohortInput;
+        currentPage = 1;
+        ApplyFilter();
+    }
+
+    private void Find()
+    {
+        appliedClass = classInput;
+        appliedGroup = groupInput;
+        appliedSection = sectionInput;
+        appliedShift = shiftInput;
+        appliedCohort = cohortInput;
+        appliedSearch = searchInput ?? "";
+        currentPage = 1;
+        ApplyFilter();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchInput = e.Value?.ToString() ?? "";
+        appliedSearch = searchInput;
+        currentPage = 1;
+        ApplyFilter();
+    }
+
+    private void Clear()
+    {
+        classInput = "0";
+        groupInput = "0";
+        sectionInput = "0";
+        shiftInput = "0";
+        cohortInput = "";
+        searchInput = "";
+        idInput = "";
+        idInvalid = false;
+        appliedClass = "0";
+        appliedGroup = "0";
+        appliedSection = "0";
+        appliedShift = "0";
+        appliedCohort = "";
+        appliedSearch = "";
+        groups = [];
+        sections = [];
+        shifts = [];
+        sortColumn = "Name";
+        sortAsc = true;
+        currentPage = 1;
+        message = null;
+        ApplyFilter();
+    }
+
+    private async Task LoadClassPartsAsync()
+    {
+        groups = [];
+        sections = [];
+        shifts = [];
+        if (!int.TryParse(classInput, out var classId) || classId <= 0)
+            return;
+
+        structure ??= Session.Current is null ? null : await Sync.GetClassStructureAsync(Session.Current.SchoolID);
+        var parts = (structure ?? new ClassStructureDto()).AssignedParts(classId);
+        groups = parts.Groups;
+        sections = parts.Sections;
+        shifts = parts.Shifts;
+    }
+
+    private async Task RefreshPlacementsAsync(SessionSnapshot current, int? classId = null)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            if (!await Api.PingAsync())
+                return;
+
+            var ids = classId is > 0
+                ? [classId.Value]
+                : classes.Select(x => x.ClassID).Where(x => x > 0).Distinct().ToList();
+            if (ids.Count == 0)
+                return;
+
+            foreach (var id in ids)
+            {
+                var rows = await Api.GetSmStudentsAsync(Session.AccessToken, id, 0, 0, 0, "", null);
+                await Sync.MergeStudentPlacementsAsync(current.SchoolID, current.EducationYearID, rows);
+            }
+
+            students = await Sync.ListStudentsAsync(current.SchoolID, current.EducationYearID);
+            Sync.ApplyCachedStudentPhotos(current.SchoolID, students);
+            ApplyFilter();
+            StateHasChanged();
+        }
+        catch (HttpRequestException)
+        {
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private static int ParseId(string value) => int.TryParse(value, out var n) ? n : 0;
+
+    private void OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Find();
+        }
+    }
+
+    private async Task OnIdKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await FindByIdAsync();
+    }
+
+    private void ClearIdError() => idInvalid = false;
+
+    private async Task FindByIdAsync()
+    {
+        if (Session.Current is null)
+            return;
+
+        var code = idInput.Trim();
+        if (code.Length == 0)
+        {
+            idErrorKey = "report.needId";
+            idInvalid = true;
+            return;
+        }
+
+        idInvalid = false;
+        var found = await Sync.FindStudentByCodeAsync(
+            Session.Current.SchoolID, Session.Current.EducationYearID, code);
+        if (found is null)
+        {
+            idErrorKey = "report.notFound";
+            idInvalid = true;
+            idInput = "";
+            return;
+        }
+
+        Nav.NavigateTo($"students/details/{found.LocalId}");
+    }
+
+    private async Task PrintAsync(string orientation)
+    {
+        printing = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(50);
+        await JS.InvokeVoidAsync("sikkhaloyPrint", orientation);
+        printing = false;
+    }
+
+    private void ApplyFilter()
+    {
+        IEnumerable<StudentDto> query = students.Where(x =>
+            string.IsNullOrWhiteSpace(x.Status)
+            || string.Equals(x.Status, "Active", StringComparison.OrdinalIgnoreCase));
+        if (int.TryParse(appliedClass, out var classId) && classId > 0)
+            query = query.Where(x => x.ClassID == classId);
+
+        if (int.TryParse(appliedGroup, out var groupId) && groupId > 0)
+        {
+            var groupName = groups.FirstOrDefault(x => x.ServerId == groupId)?.Name;
+            query = query.Where(x => x.SubjectGroupID == groupId
+                || NamesMatch(x.GroupName, groupName));
+        }
+
+        if (int.TryParse(appliedSection, out var sectionId) && sectionId > 0)
+        {
+            var sectionName = sections.FirstOrDefault(x => x.ServerId == sectionId)?.Name;
+            query = query.Where(x => x.SectionID == sectionId
+                || NamesMatch(x.SectionName, sectionName));
+        }
+
+        if (int.TryParse(appliedShift, out var shiftId) && shiftId > 0)
+        {
+            var shiftName = shifts.FirstOrDefault(x => x.ServerId == shiftId)?.Name;
+            query = query.Where(x => x.ShiftID == shiftId
+                || NamesMatch(x.ShiftName, shiftName));
+        }
+
+        if (appliedCohort == "new")
+            query = query.Where(x => x.IsNew == true);
+        else if (appliedCohort == "old")
+            query = query.Where(x => x.IsNew == false);
+
+        var keyword = appliedSearch.Trim();
+        if (keyword.Length > 0)
+        {
+            query = query.Where(x => Contains(x.StudentCode, keyword)
+                || Contains(x.StudentsName, keyword)
+                || Contains(x.FathersName, keyword)
+                || Contains(x.MothersName, keyword)
+                || Contains(x.BloodGroup, keyword)
+                || Contains(x.SMSPhoneNo, keyword)
+                || Contains(x.Gender, keyword)
+                || Contains(GenderLabel(x.Gender), keyword)
+                || Contains(x.Religion, keyword)
+                || Contains(x.RollNo, keyword)
+                || Contains(ClassOf(x), keyword)
+                || Contains(x.GroupName, keyword)
+                || Contains(x.SectionName, keyword)
+                || Contains(x.ShiftName, keyword));
+        }
+
+        filtered = Sort(query).ToList();
+        if (currentPage > pageCount)
+            currentPage = pageCount;
+    }
+
+    private IEnumerable<StudentDto> Sort(IEnumerable<StudentDto> query)
+    {
+        Func<StudentDto, string> key = sortColumn switch
+        {
+            "ID" => x => x.StudentCode ?? "",
+            "Father" => x => x.FathersName ?? "",
+            "Mother" => x => x.MothersName ?? "",
+            "Blood" => x => x.BloodGroup ?? "",
+            "Roll" => x => x.RollNo ?? "",
+            "Gender" => x => x.Gender ?? "",
+            "Phone" => x => x.SMSPhoneNo ?? "",
+            "Religion" => x => x.Religion ?? "",
+            "Class" => ClassOf,
+            "Group" => x => x.GroupName ?? "",
+            "Section" => x => x.SectionName ?? "",
+            "Shift" => x => x.ShiftName ?? "",
+            "DOB" => x => x.DateofBirth?.ToString("yyyyMMdd") ?? "",
+            "Admission" => x => x.AdmissionDate?.ToString("yyyyMMdd") ?? "",
+            _ => x => x.StudentsName ?? ""
+        };
+
+        return sortAsc ? query.OrderBy(key) : query.OrderByDescending(key);
+    }
+
+    private void SortBy(string column)
+    {
+        if (sortColumn == column)
+            sortAsc = !sortAsc;
+        else
+        {
+            sortColumn = column;
+            sortAsc = true;
+        }
+
+        ApplyFilter();
+    }
+
+    private void PrevPage()
+    {
+        if (currentPage > 1)
+            currentPage--;
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < pageCount)
+            currentPage++;
+    }
+
+    private string ClassOf(StudentDto student)
+    {
+        if (!string.IsNullOrWhiteSpace(student.ClassName))
+            return student.ClassName;
+        return classes.FirstOrDefault(x => x.ClassID == student.ClassID)?.Name ?? "";
+    }
+
+    private string GenderLabel(string? gender)
+    {
+        if (IsMale(gender))
+            return Locale.T("male");
+        if (IsFemale(gender))
+            return Locale.T("female");
+        return gender ?? "";
+    }
+
+    private string ColClass(string key) => columns.First(x => x.Key == key).Visible ? "" : "col-off";
+    private static string DetailsHref(StudentDto student) => $"students/details/{student.LocalId}";
+    private static bool IsMale(StudentDto student) => IsMale(student.Gender);
+    private static bool IsFemale(StudentDto student) => IsFemale(student.Gender);
+
+    private static bool IsMale(string? gender) =>
+        string.Equals(gender, "Male", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(gender, "Boy", StringComparison.OrdinalIgnoreCase)
+        || gender == "ছেলে";
+
+    private static bool IsFemale(string? gender) =>
+        string.Equals(gender, "Female", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(gender, "Girl", StringComparison.OrdinalIgnoreCase)
+        || gender == "মেয়ে";
+
+    private static bool Contains(string? value, string keyword) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+
+    private static bool NamesMatch(string? value, string? expected) =>
+        !string.IsNullOrWhiteSpace(expected)
+        && string.Equals(value, expected, StringComparison.OrdinalIgnoreCase);
+
+    private async Task SyncNow()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            message = Locale.T("dash.needLogin");
+            return;
+        }
+
+        busy = true;
+        message = null;
+        try
+        {
+            await Sync.RunOnceAsync(Session.Current, Session.AccessToken, force: true);
+            await RefreshPlacementsAsync(Session.Current);
+            await LoadAsync();
+            message = !string.IsNullOrWhiteSpace(Sync.LastError)
+                ? (Sync.LastError.StartsWith("login.", StringComparison.OrdinalIgnoreCase)
+                    || Sync.LastError.StartsWith("sync.", StringComparison.OrdinalIgnoreCase)
+                        ? Locale.T(Sync.LastError)
+                        : Sync.LastError)
+                : Sync.IsOnline ? Locale.T("students.synced") : Locale.T("students.offlineQueued");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private sealed class ColumnOption
+    {
+        public ColumnOption(string key, string labelKey)
+        {
+            Key = key;
+            LabelKey = labelKey;
+        }
+
+        public string Key { get; }
+        public string LabelKey { get; }
+        public bool Visible { get; set; } = true;
+    }
+}

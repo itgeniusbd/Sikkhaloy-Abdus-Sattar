@@ -1,0 +1,176 @@
+@page "/accounts/reports/summary"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page as-page">
+    <h1>@Locale.T("menu.Accounts Summary")</h1>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+
+    @if (data is not null)
+    {
+        <div class="rpt-grid rpt-summary">
+            <div class="rpt-side">
+                <div class="rpt-box user">@Locale.T("rpt.userAccounts")</div>
+                <table class="mgrid">
+                    <thead><tr><th>@Locale.T("rpt.name")</th><th class="num">@Locale.T("rpt.income")</th><th class="num">@Locale.T("rpt.expense")</th></tr></thead>
+                    <tbody>
+                    @if (data.Users.Count == 0) { <tr><td colspan="3">@Locale.T("rpt.empty")</td></tr> }
+                    @foreach (var user in data.Users)
+                    {
+                        <tr>
+                            <td><a href="accounts/reports/my-accounts?reg=@user.Id">@user.Name</a></td>
+                            <td class="num">@Tk(user.Amount)</td>
+                            <td class="num">@Tk(user.Amount2)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+
+                <div class="rpt-box acc">@Locale.T("rpt.accountList")</div>
+                <table class="mgrid">
+                    <thead><tr><th>@Locale.T("rpt.account")</th><th class="num">@Locale.T("rpt.currentBal")</th></tr></thead>
+                    <tbody>
+                    @if (data.Accounts.Count == 0) { <tr><td colspan="2">@Locale.T("rpt.empty")</td></tr> }
+                    @foreach (var acc in data.Accounts)
+                    {
+                        <tr>
+                            <td><a href="accounts/reports/account-details?acc=@acc.Id">@acc.Name</a></td>
+                            <td class="num">@Tk(acc.Amount)</td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot class="as-acc-total"><tr><th>@Locale.T("rpt.total")</th><th class="num">@Tk(data.AccountTotal) @Locale.T("acc.tk")</th></tr></tfoot>
+                </table>
+
+                <div class="rpt-box in">@Locale.T("rpt.incomeCat")</div>
+                <table class="mgrid">
+                    <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.income")</th></tr></thead>
+                    <tbody>
+                    @if (data.IncomeCategories.Count == 0) { <tr><td colspan="2">@Locale.T("rpt.empty")</td></tr> }
+                    @foreach (var cat in data.IncomeCategories)
+                    {
+                        <tr>
+                            <td><a href="accounts/reports/income?category=@Uri.EscapeDataString(cat.Name)">@cat.Name</a></td>
+                            <td class="num">@Tk(cat.Amount)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+
+                <div class="rpt-box ex">@Locale.T("rpt.expenseCat")</div>
+                <table class="mgrid">
+                    <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.expense")</th></tr></thead>
+                    <tbody>
+                    @if (data.ExpenseCategories.Count == 0) { <tr><td colspan="2">@Locale.T("rpt.empty")</td></tr> }
+                    @foreach (var cat in data.ExpenseCategories)
+                    {
+                        <tr>
+                            <td><a href="accounts/reports/expense-report?category=@Uri.EscapeDataString(cat.Name)">@cat.Name</a></td>
+                            <td class="num">@Tk(cat.Amount)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="as-main">
+                <div class="as-panel">
+                    <div class="as-title">@Locale.T("rpt.allSessionPay")</div>
+                    <div class="as-row as-big">
+                        <ReportWidget Css="in" Icon="line" Label="@Locale.T("rpt.income")" Amount="@Money(data.TotalIncome)" Href="accounts/reports/income" />
+                        <ReportWidget Css="ex" Icon="area" Label="@Locale.T("rpt.expense")" Amount="@Money(data.TotalExpense)" Href="accounts/reports/expense-report" />
+                        <ReportWidget Css="net" Icon="bar" Label="@Locale.T("rpt.net")" Amount="@Money(data.Net)" Href="accounts/reports/net" />
+                    </div>
+
+                    <div class="as-sub">@Locale.T("rpt.studentPay")</div>
+                    <div class="as-fees">
+                        <ReportWidget Css="po" Label="@Locale.T("rpt.payorder")" Amount="@Money(data.Payorder)" Href="accounts/reports/payorder" Footer="@Locale.T("rpt.details")" />
+                        <ReportWidget Css="late" Label="@Locale.T("rpt.lateFee")" Amount="@Money(data.LateFee)" Href="accounts/reports/payorder" Footer="@Locale.T("rpt.details")" />
+                        <ReportWidget Css="con" Label="@Locale.T("rpt.concession")" Amount="@Money(data.Concession)" Href="accounts/reports/payorder" Footer="@Locale.T("rpt.details")" />
+                        <ReportWidget Css="paid" Label="@Locale.T("rpt.paid")" Amount="@Money(data.Paid)" Href="accounts/reports/paid" Footer="@($"{Locale.T("rpt.advance")} {Tk(data.Advance)} {Locale.T("acc.tk")}")" />
+                        <ReportWidget Css="unpaid" Label="@Locale.T("rpt.unpaid")" Amount="@Money(data.Unpaid)" Href="accounts/reports/current-due" Footer="@($"{Locale.T("rpt.currDue")} {Tk(data.PresentDue)} {Locale.T("acc.tk")}")" />
+                    </div>
+                </div>
+
+                @foreach (var year in data.Sessions)
+                {
+                    var f = year.StartDate.ToString("yyyy-MM-dd");
+                    var t = year.EndDate.ToString("yyyy-MM-dd");
+                    <div class="as-panel as-session">
+                        <div class="as-title">
+                            <span>@Locale.T("rpt.session") @year.YearName</span>
+                            <small>@year.StartDate.ToString("d MMM yyyy") - @year.EndDate.ToString("d MMM yyyy")</small>
+                        </div>
+                        <div class="as-row as-sess">
+                            <ReportWidget Css="sess" Icon="line" Label="@Locale.T("rpt.income")" Amount="@Money(year.Income)" Href="@($"accounts/reports/income?from={f}&to={t}")" />
+                            <ReportWidget Css="sess" Icon="area" Label="@Locale.T("rpt.expense")" Amount="@Money(year.Expense)" Href="@($"accounts/reports/expense-report?from={f}&to={t}")" />
+                            <ReportWidget Css="sess" Icon="bar" Label="@Locale.T("rpt.net")" Amount="@Money(year.Net)" Href="@($"accounts/reports/net?from={f}&to={t}")" />
+                        </div>
+                        <div class="as-sub">@Locale.T("rpt.studentPay")</div>
+                        <div class="as-fees as-fees-soft">
+                            <ReportWidget Css="po" Label="@Locale.T("rpt.payorder")" Amount="@Money(year.Payorder)" Href="@($"accounts/reports/session/class?year={year.EducationYearID}")" Footer="@Locale.T("rpt.details")" />
+                            <ReportWidget Css="late" Label="@Locale.T("rpt.lateFee")" Amount="@Money(year.LateFee)" Href="@($"accounts/reports/session/class?year={year.EducationYearID}")" Footer="@Locale.T("rpt.details")" />
+                            <ReportWidget Css="con" Label="@Locale.T("rpt.concession")" Amount="@Money(year.Concession)" Href="@($"accounts/reports/session/concession?year={year.EducationYearID}")" Footer="@Locale.T("rpt.details")" />
+                            <ReportWidget Css="paid" Label="@Locale.T("rpt.paid")" Amount="@Money(year.Paid)" Href="@($"accounts/reports/session/paid?year={year.EducationYearID}")" Footer="@Locale.T("rpt.details")" />
+                            <ReportWidget Css="unpaid" Label="@Locale.T("rpt.unpaid")" Amount="@Money(year.Unpaid)" Href="@($"accounts/reports/session/due?year={year.EducationYearID}")" Footer="@Locale.T("rpt.details")" />
+                        </div>
+                        <div class="as-sub">@Locale.T("rpt.monthly")</div>
+                        <table class="mgrid">
+                            <thead><tr><th>@Locale.T("rpt.months")</th><th class="num">@Locale.T("rpt.income")</th><th class="num">@Locale.T("rpt.expense")</th><th class="num">NET</th></tr></thead>
+                            <tbody>
+                            @if (year.Months.Count == 0) { <tr><td colspan="4">@Locale.T("rpt.empty")</td></tr> }
+                            @foreach (var month in year.Months)
+                            {
+                                <tr>
+                                    <td>@month.Name</td>
+                                    <td class="num">@Tk(month.Amount)</td>
+                                    <td class="num">@Tk(month.Amount2)</td>
+                                    <td class="num">@Tk(month.Amount - month.Amount2)</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private AccountsSummaryDto? data;
+    private bool busy;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        busy = true;
+        await PaintAsync();
+        try { data = await Api.GetAccountsSummaryAsync(Session.AccessToken); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task PaintAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private static string Tk(decimal n) => n.ToString("N0");
+    private string Money(decimal n) => $"{Tk(n)} {Locale.T("acc.tk")}";
+}

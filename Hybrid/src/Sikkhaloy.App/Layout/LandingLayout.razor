@@ -1,0 +1,80 @@
+@inherits LayoutComponentBase
+@inject AppLocale Locale
+@inject AppSession Session
+@implements IDisposable
+
+<div class="land-shell">
+    <header class="land-nav">
+        <a class="land-brand" href="/">
+            <img class="land-logo" src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="Sikkhaloy.com" />
+        </a>
+        <nav class="land-links">
+            <a href="/">@Locale.T("home.nav.home")</a>
+            <a href="#features">@Locale.T("home.nav.features")</a>
+            <a href="#why">@Locale.T("home.nav.solutions")</a>
+            <a href="#contact">@Locale.T("home.nav.contact")</a>
+        </nav>
+        <div class="land-nav-actions">
+            <a class="land-nav-phone" href="tel:09638669966">09638 66 99 66</a>
+            <LanguageSwitch />
+            @if (Session.IsAuthenticated)
+            {
+                <a class="land-btn land-btn-solid" href="dashboard">@Locale.T("home.goDashboard")</a>
+            }
+            else
+            {
+                <a class="land-btn land-btn-solid" href="login">@Locale.T("home.login")</a>
+            }
+        </div>
+    </header>
+    <main>
+        <CascadingValue Name="AppLang" Value="@Locale.Code">
+            @Body
+        </CascadingValue>
+    </main>
+    <footer class="land-foot" id="contact">
+        <div class="land-foot-grid">
+            <div>
+                <a class="land-brand land-brand-foot" href="/">
+                    <img class="land-logo" src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="Sikkhaloy.com" />
+                </a>
+                <p>@Locale.T("home.tag")</p>
+                <div class="land-social">
+                    <a href="https://www.facebook.com/Sikkhaloy24" target="_blank" rel="noopener">Facebook</a>
+                    <a href="https://www.youtube.com/channel/UCjyS7P3JSdXwD51IpXGqXAQ" target="_blank" rel="noopener">YouTube</a>
+                </div>
+            </div>
+            <div>
+                <b>@Locale.T("home.foot.quick")</b>
+                <a href="/">@Locale.T("home.nav.home")</a>
+                <a href="#features">@Locale.T("home.nav.features")</a>
+                <a href="#why">@Locale.T("home.nav.solutions")</a>
+                <a href="login">@Locale.T("home.login")</a>
+            </div>
+            <div>
+                <b>@Locale.T("home.feat.title")</b>
+                <a href="#features">@Locale.T("home.att.title")</a>
+                <a href="#features">@Locale.T("home.exam.title")</a>
+                <a href="#features">@Locale.T("home.acc.title")</a>
+                <a href="#features">@Locale.T("home.report.title")</a>
+            </div>
+            <div>
+                <b>@Locale.T("home.contact.title")</b>
+                <img class="land-foot-logo" src="_content/Sikkhaloy.App/img/it-genius-logo.png" alt="IT Genius" />
+                <p>@Locale.T("home.contact.org")</p>
+                <p>@Locale.T("home.contact.addr")</p>
+                <p>09638 66 99 66</p>
+                <p>+88 01739 144 141</p>
+                <a href="https://itgenius.com.bd/" target="_blank" rel="noopener">itgenius.com.bd</a>
+            </div>
+        </div>
+        <div class="land-foot-copy">@Locale.T("home.foot.copy")</div>
+    </footer>
+    <GoToTop />
+</div>
+
+@code {
+    protected override void OnInitialized() => Locale.Changed += OnLocale;
+    private void OnLocale() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Locale.Changed -= OnLocale;
+}

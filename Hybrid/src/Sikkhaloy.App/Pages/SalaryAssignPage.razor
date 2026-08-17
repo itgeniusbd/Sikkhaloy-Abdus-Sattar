@@ -1,0 +1,439 @@
+@page "/staff/salary/allowance"
+@page "/staff/salary/deduction"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page sal-page">
+    <h1>@Locale.T(IsDeduction ? "sal.deduction" : "sal.allowance")</h1>
+    <p class="muted no-print">@Locale.T("sal.crumb")</p>
+    <p class="muted no-print">@Locale.T("sal.assignHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok no-print">@message</div>
+    }
+
+    <div class="structure-card no-print">
+        <div class="inline-add">
+            <input type="text" placeholder="@Locale.T(IsDeduction ? "sal.deductionName" : "sal.allowanceName")"
+                   @bind="newName" disabled="@busy" />
+            <button type="button" class="primary" disabled="@busy" @onclick="AddNameAsync">@Locale.T("sal.addName")</button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th class="act">@Locale.T("sal.delete")</th>
+                    <th class="act">@Locale.T("sal.edit")</th>
+                    <th>@Locale.T("sal.name")</th>
+                    <th>@Locale.T("sal.created")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (names.Count == 0 && !busy)
+            {
+                <tr><td colspan="4" class="empty-row">@Locale.T("sal.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in names)
+                {
+                    <tr class="@(row.Id == selectedId ? "is-allowed" : null)">
+                        <td class="act">
+                            <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteNameAsync(row)">@Locale.T("sal.delete")</button>
+                        </td>
+                        <td class="act">
+                            @if (editingId == row.Id)
+                            {
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveNameAsync(row)">@Locale.T("sal.update")</button>
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="CancelEdit">@Locale.T("sal.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("sal.edit")</button>
+                            }
+                        </td>
+                        <td>
+                            @if (editingId == row.Id)
+                            {
+                                <input type="text" @bind="editName" disabled="@busy" />
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => SelectNameAsync(row.Id)">@row.Name</button>
+                            }
+                        </td>
+                        <td>@(row.Created?.ToString("d MMM yyyy") ?? "—")</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="filter-row no-print">
+        <select @bind="selectedId" @bind:after="LoadAssignAsync" disabled="@busy">
+            <option value="0">@Locale.T("sal.select")</option>
+            @foreach (var row in names)
+            {
+                <option value="@row.Id">@row.Name</option>
+            }
+        </select>
+        <label class="choice-inline">
+            <input type="radio" name="sal-type" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
+            <span>@Locale.T("emp.all")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="sal-type" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
+            <span>@Locale.T("emp.teacher")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="sal-type" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
+            <span>@Locale.T("emp.staff")</span>
+        </label>
+    </div>
+
+    <div class="sal-scroll">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th class="act no-print">
+                        <input type="checkbox" checked="@AllAssigned" disabled="@(busy || rows.Count == 0)"
+                               @onchange="ToggleAll" />
+                    </th>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("emp.name")</th>
+                    <th>@Locale.T("emp.designation")</th>
+                    <th>@Locale.T("emp.type")</th>
+                    <th>@Locale.T("emp.phone")</th>
+                    <th class="num">@Locale.T("emp.salary")</th>
+                    <th>
+                        @Locale.T("sal.amount")
+                        <input class="no-print sal-amt" type="number" step="0.01" placeholder="@Locale.T("sal.setAll")"
+                               @bind="setAllAmount" @bind:after="ApplyAllAmount" />
+                    </th>
+                    <th class="no-print">@Locale.T("sal.fixed")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (selectedId == 0)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("sal.needItem")</td></tr>
+            }
+            else if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("sal.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td class="act no-print"><input type="checkbox" @bind="row.Assigned" disabled="@busy" /></td>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.Designation</td>
+                        <td>@row.EmployeeType</td>
+                        <td>@row.Phone</td>
+                        <td class="num">@Money(row.Salary)</td>
+                        <td><input class="sal-amt" type="number" step="0.01" @bind="row.Amount" disabled="@busy" /></td>
+                        <td class="no-print">
+                            <select @bind="row.FixedOrPercentage" disabled="@busy">
+                                <option value="Fixed">@Locale.T("sal.fixed")</option>
+                                <option value="Percentage">@Locale.T("sal.percent")</option>
+                            </select>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (selectedId > 0)
+    {
+        <button type="button" class="btn-serial no-print" disabled="@busy" @onclick="SaveAssignAsync">@Locale.T("sal.update")</button>
+    }
+</div>
+
+@code {
+    private readonly List<SalaryNameDto> names = [];
+    private readonly List<SalaryAssignRowDto> rows = [];
+    private string type = "%";
+    private string newName = "";
+    private string editName = "";
+    private int selectedId;
+    private int editingId;
+    private decimal setAllAmount;
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    private bool IsDeduction => Nav.ToBaseRelativePath(Nav.Uri).Contains("deduction", StringComparison.OrdinalIgnoreCase);
+    private string Kind => IsDeduction ? "deduction" : "allowance";
+    private bool AllAssigned => rows.Count > 0 && rows.All(x => x.Assigned);
+
+    protected override async Task OnInitializedAsync() => await LoadNamesAsync();
+
+    private async Task LoadNamesAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            names.Clear();
+            names.AddRange(await Api.GetSalaryNamesAsync(Session.AccessToken, Kind));
+            if (selectedId == 0 && names.Count > 0)
+                selectedId = names[0].Id;
+            if (selectedId > 0 && names.All(x => x.Id != selectedId))
+                selectedId = names.FirstOrDefault()?.Id ?? 0;
+            await LoadAssignCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadAssignAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            await LoadAssignCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadAssignCoreAsync()
+    {
+        rows.Clear();
+        if (selectedId <= 0)
+            return;
+        rows.AddRange(await Api.GetSalaryAssignAsync(Session.AccessToken, Kind, selectedId, type));
+    }
+
+    private async Task SelectNameAsync(int id)
+    {
+        selectedId = id;
+        await LoadAssignAsync();
+    }
+
+    private async Task SetType(string value)
+    {
+        type = value;
+        await LoadAssignAsync();
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        var on = e.Value is true || e.Value?.ToString() == "True";
+        foreach (var row in rows)
+            row.Assigned = on;
+    }
+
+    private void ApplyAllAmount()
+    {
+        foreach (var row in rows)
+            row.Amount = setAllAmount;
+    }
+
+    private void StartEdit(SalaryNameDto row)
+    {
+        editingId = row.Id;
+        editName = row.Name;
+    }
+
+    private void CancelEdit()
+    {
+        editingId = 0;
+        editName = "";
+    }
+
+    private async Task AddNameAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.CreateSalaryNameAsync(Session.AccessToken, Kind, new SaveSalaryNameRequest { Name = newName });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+            newName = "";
+            selectedId = result.Id;
+            message = Locale.T("sal.okName");
+            await LoadNamesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveNameAsync(SalaryNameDto row)
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.UpdateSalaryNameAsync(Session.AccessToken, Kind, row.Id, new SaveSalaryNameRequest { Name = editName });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+            CancelEdit();
+            message = Locale.T("sal.okName");
+            await LoadNamesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteNameAsync(SalaryNameDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sal.confirmDelete")))
+            return;
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteSalaryNameAsync(Session.AccessToken, Kind, row.Id);
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+            if (selectedId == row.Id)
+                selectedId = 0;
+            message = Locale.T("sal.okDelete");
+            await LoadNamesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAssignAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveSalaryAssignAsync(Session.AccessToken, Kind, new SaveSalaryAssignRequest
+            {
+                NameId = selectedId,
+                Items = rows.Select(x => new SaveSalaryAssignItem
+                {
+                    EmployeeID = x.EmployeeID,
+                    Assigned = x.Assigned,
+                    Amount = x.Amount,
+                    FixedOrPercentage = x.FixedOrPercentage
+                }).ToList()
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+            message = Locale.T("sal.okAssign");
+            await LoadAssignCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("sal.failed") : Locale.T(key);
+
+    private static string Money(decimal value) => value.ToString("0.##");
+}

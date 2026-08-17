@@ -1,0 +1,227 @@
+@page "/staff/salary/sheet"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page sal-page">
+    <PrintHeader Subtitle="@PrintTitle" />
+    <h1 class="no-print">@Locale.T("sal.sheet")</h1>
+    <p class="muted no-print">@Locale.T("sal.crumb")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="filter-row no-print">
+        <select @bind="payorderId" @bind:after="LoadMonthlyAsync" disabled="@busy">
+            <option value="0">@Locale.T("sal.selectPayorder")</option>
+            @foreach (var row in names)
+            {
+                <option value="@row.Id">@row.Name</option>
+            }
+        </select>
+        <select @bind="monthName" @bind:after="LoadMonthlyAsync" disabled="@busy">
+            <option value="">@Locale.T("sal.selectMonth")</option>
+            @foreach (var month in months)
+            {
+                <option value="@month.Name">@month.Name</option>
+            }
+        </select>
+        <label class="choice-inline">
+            <input type="radio" name="sheet-type" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
+            <span>@Locale.T("emp.all")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="sheet-type" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
+            <span>@Locale.T("emp.teacher")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="sheet-type" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
+            <span>@Locale.T("emp.staff")</span>
+        </label>
+        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("sal.print")</button>
+    </div>
+
+    <div class="sal-scroll">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("emp.name")</th>
+                    <th class="num">@Locale.T("sal.basic")</th>
+                    <th>@Locale.T("emp.bank")</th>
+                    <th>@Locale.T("sal.wd")</th>
+                    <th>@Locale.T("sal.fineCount")</th>
+                    <th>@Locale.T("sal.allowance")</th>
+                    <th>@Locale.T("sal.addBonus")</th>
+                    <th class="num">@Locale.T("sal.gross")</th>
+                    <th class="num">@Locale.T("sal.deduction")</th>
+                    <th class="num">@Locale.T("sal.addFine")</th>
+                    <th class="num">@Locale.T("sal.net")</th>
+                    <th>@Locale.T("sal.sign")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="13" class="empty-row">@Locale.T("sal.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td class="num">@Money(row.PayorderAmount)</td>
+                        <td>@(row.BankAccNo ?? "—")</td>
+                        <td>@row.WorkingDays</td>
+                        <td>@row.FineCountDays</td>
+                        <td class="sal-lines">
+                            @foreach (var line in row.Allowances)
+                            {
+                                <div>@line.Name: @Money(line.Amount)</div>
+                            }
+                        </td>
+                        <td class="sal-lines">
+                            @foreach (var line in row.Bonuses.Where(x => x.Amount > 0))
+                            {
+                                <div>@line.Name: @Money(line.Amount)</div>
+                            }
+                        </td>
+                        <td class="num">@Money(row.GrossSalary)</td>
+                        <td class="num">@Money(row.Deduction)</td>
+                        <td class="num">@Money(row.Fine + row.AttendanceFine)</td>
+                        <td class="num">@Money(row.NetSalary)</td>
+                        <td class="sal-sign"></td>
+                    </tr>
+                }
+            }
+            </tbody>
+            @if (rows.Count > 0)
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="2">@Locale.T("sal.total")</td>
+                        <td class="num">@Money(rows.Sum(x => x.PayorderAmount))</td>
+                        <td colspan="3"></td>
+                        <td class="num">@Money(rows.Sum(x => x.Allowance))</td>
+                        <td class="num">@Money(rows.Sum(x => x.Bonus))</td>
+                        <td class="num">@Money(rows.Sum(x => x.GrossSalary))</td>
+                        <td class="num">@Money(rows.Sum(x => x.Deduction))</td>
+                        <td class="num">@Money(rows.Sum(x => x.Fine + x.AttendanceFine))</td>
+                        <td class="num">@Money(rows.Sum(x => x.NetSalary))</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@code {
+    private readonly List<SalaryNameDto> names = [];
+    private readonly List<SalaryMonthDto> months = [];
+    private readonly List<MonthlyPayorderDto> rows = [];
+    private string type = "%";
+    private string monthName = "";
+    private int payorderId;
+    private bool busy;
+    private string? error;
+
+    private string PrintTitle =>
+        string.IsNullOrWhiteSpace(monthName) ? Locale.T("sal.sheet") : $"{Locale.T("sal.sheet")} — {monthName}";
+
+    protected override async Task OnInitializedAsync() => await LoadFiltersAsync();
+
+    private async Task LoadFiltersAsync()
+    {
+        error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            names.Clear();
+            months.Clear();
+            names.AddRange(await Api.GetSalaryNamesAsync(Session.AccessToken, "payorder"));
+            months.AddRange(await Api.GetSalaryMonthsAsync(Session.AccessToken));
+            if (payorderId == 0 && names.Count > 0)
+                payorderId = names[0].Id;
+            if (string.IsNullOrWhiteSpace(monthName) && months.Count > 0)
+            {
+                var now = DateTime.Today;
+                monthName = months.FirstOrDefault(x => x.Date.Year == now.Year && x.Date.Month == now.Month)?.Name
+                            ?? months[0].Name;
+            }
+            await LoadMonthlyCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SetType(string value)
+    {
+        type = value;
+        await LoadMonthlyAsync();
+    }
+
+    private async Task LoadMonthlyAsync()
+    {
+        error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            await LoadMonthlyCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadMonthlyCoreAsync()
+    {
+        rows.Clear();
+        if (payorderId <= 0 || string.IsNullOrWhiteSpace(monthName))
+            return;
+        rows.AddRange(await Api.GetMonthlyPayordersAsync(Session.AccessToken, payorderId, monthName, type));
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false);
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private static string Money(decimal value) => value.ToString("0.##");
+}

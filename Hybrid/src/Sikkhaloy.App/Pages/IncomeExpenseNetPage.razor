@@ -1,0 +1,202 @@
+@page "/accounts/reports/net"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt net-rpt">
+    <div class="rpt-filters no-print">
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.submit")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+
+    <div class="net-links no-print">
+        <a class="rpt-back" href="accounts/reports/summary">@Locale.T("rpt.backSummary")</a>
+        <span>.....</span>
+        <a class="rpt-back" href="accounts/reports/my-accounts">@Locale.T("rpt.byUser")</a>
+    </div>
+    <h1>@TitleText</h1>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (data is not null)
+    {
+        <div class="net-widgets">
+            <ReportWidget Css="in" Icon="line" Label="@Locale.T("rpt.income")" Amount="@($"{Tk(data.Income)} {Locale.T("acc.tk")}")" />
+            <ReportWidget Css="ex" Icon="area" Label="@Locale.T("rpt.expense")" Amount="@($"{Tk(data.Expense)} {Locale.T("acc.tk")}")" />
+            <ReportWidget Css="po" Icon="card" Label="@Locale.T("rpt.online")" Amount="@($"{Tk(data.Online)} {Locale.T("acc.tk")}")" />
+            <ReportWidget Css="net" Icon="bar" Label="@Locale.T("rpt.cashHand")" Amount="@($"{Tk(data.CashInHand)} {Locale.T("acc.tk")}")" />
+        </div>
+        <div class="rpt-tabs no-print">
+            <button type="button" class="@(tab == 0 ? "active" : null)" @onclick="() => tab = 0">@Locale.T("rpt.catTab")</button>
+            <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => tab = 1">@Locale.T("rpt.income")</button>
+            <button type="button" class="@(tab == 2 ? "active" : null)" @onclick="() => tab = 2">@Locale.T("rpt.expense")</button>
+        </div>
+        @if (tab == 0)
+        {
+            <div class="net-split">
+                <div>
+                    @if (data.IncomeCategories.Count > 0)
+                    {
+                        <div class="rpt-box in">@Locale.T("rpt.catIncome")</div>
+                        <table class="mgrid">
+                            <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.income")</th></tr></thead>
+                            <tbody>
+                            @foreach (var row in data.IncomeCategories)
+                            {
+                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                    @if (data.ClassIncome.Count > 0)
+                    {
+                        <div class="rpt-box in">@Locale.T("rpt.classIncome")</div>
+                        <table class="mgrid">
+                            <thead><tr><th>@Locale.T("rpt.class")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
+                            <tbody>
+                            @foreach (var row in data.ClassIncome)
+                            {
+                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                    @if (data.Donations.Count > 0)
+                    {
+                        <div class="rpt-box in">@Locale.T("rpt.donation")</div>
+                        <table class="mgrid">
+                            <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
+                            <tbody>
+                            @foreach (var row in data.Donations)
+                            {
+                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+                <div>
+                    @if (data.ExpenseCategories.Count > 0)
+                    {
+                        <div class="rpt-box ex">@Locale.T("rpt.expense")</div>
+                        <table class="mgrid">
+                            <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.expense")</th></tr></thead>
+                            <tbody>
+                            @foreach (var row in data.ExpenseCategories)
+                            {
+                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        }
+        else if (tab == 1)
+        {
+            <div class="rpt-box in">@Locale.T("rpt.income")</div>
+            @if (data.IncomeDetails.Count == 0)
+            {
+                <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
+            }
+            @foreach (var group in data.IncomeDetails)
+            {
+                <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total)</span></div>
+                <table class="mgrid">
+                    <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
+                    <tbody>
+                    @foreach (var line in group.Lines)
+                    {
+                        <tr><td>@line.UserName</td><td>@line.AccountName</td><td>@line.Details</td><td class="num">@Tk(line.Amount)</td><td>@line.Date.ToString("d MMM yyyy")</td></tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        }
+        else
+        {
+            <div class="rpt-box ex">@Locale.T("rpt.expense")</div>
+            @if (data.ExpenseDetails.Count == 0)
+            {
+                <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
+            }
+            @foreach (var group in data.ExpenseDetails)
+            {
+                <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total)</span></div>
+                <table class="mgrid">
+                    <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
+                    <tbody>
+                    @foreach (var line in group.Lines)
+                    {
+                        <tr><td>@line.UserName</td><td>@line.AccountName</td><td>@line.Details</td><td class="num">@Tk(line.Amount)</td><td>@line.Date.ToString("d MMM yyyy")</td></tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        }
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? From { get; set; }
+    [SupplyParameterFromQuery] public string? To { get; set; }
+
+    private NetReportDto? data;
+    private string fromText = "", toText = "", error = "";
+    private bool busy;
+    private int tab;
+
+    private string TitleText
+    {
+        get
+        {
+            var from = Parse(fromText);
+            var to = Parse(toText);
+            var label = Locale.T("rpt.incomeExpense");
+            if (from is null || to is null) return label;
+            var a = from.Value.ToString("d MMM yyyy").ToUpperInvariant();
+            var b = to.Value.ToString("d MMM yyyy").ToUpperInvariant();
+            return from.Value == to.Value ? $"{a} {label}" : $"({a} TO {b}) {label}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        var today = DateTime.Today;
+        fromText = Iso(Parse(From) ?? today);
+        toText = Iso(Parse(To) ?? today);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { data = await Api.GetNetReportAsync(Session.AccessToken, Parse(fromText), Parse(toText)); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");
+    private static string Tk(decimal n) => n.ToString("N0");
+}

@@ -1,0 +1,357 @@
+@page "/exam/collect-paper"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page exam-collect-page">
+    <h1 class="no-print">@Locale.T("exam.collectTitle")</h1>
+    <div class="filter-row no-print">
+        <select @bind="examId" @bind:after="OnExamAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectExam")</option>
+            @foreach (var item in filters.Exams)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <select @bind="classId" @bind:after="OnClassAsync" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in filters.Classes)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (filters.Groups.Count > 0)
+        {
+            <select @bind="groupId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.selectGroup")</option>
+                @foreach (var item in filters.Groups)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (filters.Sections.Count > 0)
+        {
+            <select @bind="sectionId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allSection")</option>
+                @foreach (var item in filters.Sections)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (filters.Shifts.Count > 0)
+        {
+            <select @bind="shiftId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allShift")</option>
+                @foreach (var item in filters.Shifts)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="subjectId" @bind:after="LoadPaperAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectSubject")</option>
+            @foreach (var item in filters.Subjects)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (paper.HasMarks && paper.Students.Count > 0)
+        {
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="ExportWordAsync">@Locale.T("rpt.exportWord")</button>
+        }
+    </div>
+
+    @if (loaded && !paper.HasMarks)
+    {
+        <div class="exam-warn no-print">
+            <strong>@Locale.T("exam.noDistHead")</strong>
+            @Locale.T("exam.noDistBody", ExamName, ClassName, SubjectName)
+            <a href="/exam/distribution">@Locale.T("exam.toDist")</a>@Locale.T("exam.noDistTail")
+        </div>
+    }
+
+    @if (paper.HasMarks && paper.Students.Count > 0)
+    {
+        <div class="exam-col-panel no-print">
+            <strong>@Locale.T("exam.hideCols")</strong>
+            @foreach (var col in cols)
+            {
+                <label>
+                    <input type="checkbox" checked="@col.On" @onchange="e => ToggleCol(col, e)" />
+                    @ColLabel(col)
+                </label>
+            }
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+        </div>
+    }
+
+    @if (paper.HasMarks)
+    {
+        <div id="exam-collect-word">
+            <PrintHeader Subtitle="@Locale.T("exam.collectTitle")" Centered="true" ShowDate="false" />
+            <div class="exam-ex-cls print-only exam-print-line">
+                <div>@ExamName</div>
+                <div>@ClassGssLine</div>
+            </div>
+            <div class="exam-class-gss print-only exam-print-line">
+                <span>@Locale.T("exam.subjectLine", SubjectName)</span>
+                <span>@Locale.T("exam.totalStuLine", paper.Students.Count)</span>
+            </div>
+            <table class="mgrid exam-collect-table">
+                <thead>
+                    <tr>
+                        <th class="@Off("id")">@Locale.T("exam.id")</th>
+                        <th class="@Off("name")">@Locale.T("exam.name")</th>
+                        <th class="@Off("father")">@Locale.T("exam.father")</th>
+                        <th class="@Off("roll")">@Locale.T("exam.roll")</th>
+                        @for (var i = 0; i < paper.Columns.Count; i++)
+                        {
+                            <th class="@Off("m" + i)">@MarkHeader(paper.Columns[i])</th>
+                        }
+                        <th class="@Off("sign")">@Locale.T("exam.signature")</th>
+                        <th class="@Off("code")">@Locale.T("exam.code")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in paper.Students)
+                {
+                    <tr>
+                        <td class="@Off("id")">@row.ID</td>
+                        <td class="is-name @Off("name")">@row.Name</td>
+                        <td class="is-name @Off("father")">@row.FathersName</td>
+                        <td class="@Off("roll")">@row.RollNo</td>
+                        @for (var i = 0; i < paper.Columns.Count; i++)
+                        {
+                            <td class="blank @Off("m" + i)"></td>
+                        }
+                        <td class="blank @Off("sign")"></td>
+                        <td class="blank @Off("code")"></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            @if (paper.Students.Count > 0)
+            {
+                <div class="exam-sign">@Locale.T("exam.teacherSign")</div>
+            }
+        </div>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ExamFilterDto filters = new();
+    private CollectPaperDto paper = new();
+    private readonly List<ColOpt> cols = [];
+    private int examId, classId, subjectId, groupId, sectionId, shiftId;
+    private bool busy, popupError, loaded;
+    private string? popupText;
+    private string ExamName => filters.Exams.FirstOrDefault(x => x.Id == examId)?.Name ?? "";
+    private string ClassName => filters.Classes.FirstOrDefault(x => x.Id == classId)?.Name ?? "";
+    private string SubjectName => filters.Subjects.FirstOrDefault(x => x.Id == subjectId)?.Name ?? "";
+    private string GroupName => filters.Groups.FirstOrDefault(x => x.Id == groupId)?.Name ?? "";
+    private string SectionName => filters.Sections.FirstOrDefault(x => x.Id == sectionId)?.Name ?? "";
+    private string ShiftName => filters.Shifts.FirstOrDefault(x => x.Id == shiftId)?.Name ?? "";
+    private string ClassGssLine
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (classId > 0) parts.Add(Locale.T("exam.classLine", ClassName));
+            if (groupId > 0) parts.Add(Locale.T("exam.groupLine", GroupName));
+            if (sectionId > 0) parts.Add(Locale.T("exam.sectionLine", SectionName));
+            if (shiftId > 0) parts.Add(Locale.T("exam.shiftLine", ShiftName));
+            return string.Join(". ", parts);
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadFiltersAsync();
+
+    private async Task LoadFiltersAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "collect", classId, examId, G(groupId), G(sectionId), G(shiftId));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnExamAsync()
+    {
+        classId = subjectId = groupId = sectionId = shiftId = 0;
+        ResetPaper();
+        await LoadFiltersAsync();
+    }
+
+    private async Task OnClassAsync()
+    {
+        subjectId = groupId = sectionId = shiftId = 0;
+        ResetPaper();
+        await LoadFiltersAsync();
+    }
+
+    private async Task LoadJoinAsync()
+    {
+        ResetPaper();
+        await LoadFiltersAsync();
+        await LoadPaperAsync();
+    }
+
+    private async Task LoadPaperAsync()
+    {
+        ResetPaper();
+        if (examId <= 0 || classId <= 0 || subjectId <= 0) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            paper = await Api.GetExamCollectPaperAsync(Session.AccessToken!, examId, classId, subjectId, G(groupId), G(sectionId), G(shiftId));
+            loaded = true;
+            BuildCols();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ResetPaper()
+    {
+        paper = new();
+        cols.Clear();
+        loaded = false;
+    }
+
+    private void BuildCols()
+    {
+        var prev = cols.ToDictionary(x => x.Key, x => x.On);
+        cols.Clear();
+        if (!paper.HasMarks) return;
+        AddCol("id", Locale.T("exam.id"), prev);
+        AddCol("name", Locale.T("exam.name"), prev);
+        AddCol("father", Locale.T("exam.father"), prev);
+        AddCol("roll", Locale.T("exam.roll"), prev);
+        for (var i = 0; i < paper.Columns.Count; i++)
+            AddCol("m" + i, MarkHeader(paper.Columns[i]), prev);
+        AddCol("sign", Locale.T("exam.signature"), prev);
+        AddCol("code", Locale.T("exam.code"), prev);
+    }
+
+    private void AddCol(string key, string label, Dictionary<string, bool> prev)
+    {
+        cols.Add(new ColOpt { Key = key, Label = label, On = !prev.TryGetValue(key, out var on) || on });
+    }
+
+    private string ColLabel(ColOpt col)
+    {
+        if (col.Key.StartsWith("m") && int.TryParse(col.Key.AsSpan(1), out var i) && i >= 0 && i < paper.Columns.Count)
+            return MarkHeader(paper.Columns[i]);
+        return col.Key switch
+        {
+            "id" => Locale.T("exam.id"),
+            "name" => Locale.T("exam.name"),
+            "father" => Locale.T("exam.father"),
+            "roll" => Locale.T("exam.roll"),
+            "sign" => Locale.T("exam.signature"),
+            "code" => Locale.T("exam.code"),
+            _ => col.Label
+        };
+    }
+
+    private string MarkHeader(string col)
+    {
+        var name = (col ?? "").Trim();
+        if (name.StartsWith("Marks (", StringComparison.OrdinalIgnoreCase) && name.EndsWith(')'))
+            name = name[7..^1].Trim();
+        else if (name.StartsWith("নম্বর (", StringComparison.Ordinal) && name.EndsWith(')'))
+            name = name[7..^1].Trim();
+
+        name = LocalizeSubExam(name);
+
+        if (string.IsNullOrWhiteSpace(name)
+            || name.Equals("Marks", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("নম্বর", StringComparison.Ordinal))
+            return Locale.T("exam.marks");
+
+        return Locale.T("exam.marksParen", name);
+    }
+
+    private string LocalizeSubExam(string name)
+    {
+        if (!Locale.IsBengali || string.IsNullOrWhiteSpace(name))
+            return name;
+        return name.Trim().ToUpperInvariant() switch
+        {
+            "SUB" or "SUBJECTIVE" => Locale.T("exam.sub"),
+            "OBJ" or "OBJECTIVE" => Locale.T("exam.obj"),
+            "CQ" => Locale.T("exam.cq"),
+            "MCQ" => Locale.T("exam.mcq"),
+            "WRITTEN" => Locale.T("exam.written"),
+            "PRACTICAL" => Locale.T("exam.practical"),
+            "ORAL" => Locale.T("exam.oral"),
+            "THEORY" => Locale.T("exam.theory"),
+            _ => name
+        };
+    }
+
+    private string Off(string key) => ColOn(key) ? "" : "exam-col-off";
+    private bool ColOn(string key) => cols.FirstOrDefault(x => x.Key == key)?.On != false;
+    private static void ToggleCol(ColOpt col, ChangeEventArgs e)
+    {
+        col.On = e.Value is bool flag
+            ? flag
+            : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "2mm 8mm 8mm 8mm").AsTask();
+    private Task ExportWordAsync()
+    {
+        var file = "CLASS-" + (string.IsNullOrWhiteSpace(ClassName) ? "Collect" : ClassName) + ".doc";
+        return JS.InvokeVoidAsync("sikkhaloyExportCollectPaper", file).AsTask();
+    }
+
+    private static string? G(int id) => id <= 0 ? null : id.ToString();
+    private void Show(string text, bool err = false) { popupText = text; popupError = err; }
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private sealed class ColOpt
+    {
+        public string Key { get; set; } = "";
+        public string Label { get; set; } = "";
+        public bool On { get; set; } = true;
+    }
+}

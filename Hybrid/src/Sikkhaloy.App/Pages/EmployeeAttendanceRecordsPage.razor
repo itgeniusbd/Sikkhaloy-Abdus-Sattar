@@ -1,0 +1,229 @@
+@page "/attendance/employee/records"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page att-page att-records-page">
+    <PrintHeader Subtitle="@Locale.T("att.recordsEmp")" />
+    <h1 class="no-print">@Locale.T("att.recordsEmp")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="filter-row no-print">
+        <select @bind="scheduleInput" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("att.selectSchedule")</option>
+            @foreach (var item in schedules)
+            {
+                <option value="@item.ScheduleID">@item.ScheduleName</option>
+            }
+        </select>
+        <label class="choice-inline">
+            <input type="radio" name="erec-type" checked="@(type == "%")" @onchange="@(() => ChangeTypeAsync("%"))" />
+            <span>@Locale.T("emp.all")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="erec-type" checked="@(type == "Teacher")" @onchange="@(() => ChangeTypeAsync("Teacher"))" />
+            <span>@Locale.T("emp.teacher")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="erec-type" checked="@(type == "Staff")" @onchange="@(() => ChangeTypeAsync("Staff"))" />
+            <span>@Locale.T("emp.staff")</span>
+        </label>
+        <select @bind="status" @bind:after="LoadAsync" disabled="@busy">
+            <option value="%">@Locale.T("att.all")</option>
+            @foreach (var item in Statuses)
+            {
+                <option value="@item">@StatusLabel(item)</option>
+            }
+        </select>
+        <input type="date" @bind="from" @bind:after="LoadAsync" disabled="@busy" />
+        <input type="date" @bind="to" @bind:after="LoadAsync" disabled="@busy" />
+        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    </div>
+
+    <div class="att-tabs no-print">
+        <button type="button" class="@(tab == "records" ? "active" : null)" @onclick='() => tab = "records"'>
+            @Locale.T("att.tabRecord")
+        </button>
+        <button type="button" class="@(tab == "summary" ? "active" : null)" @onclick='() => tab = "summary"'>
+            @Locale.T("att.tabSummary")
+        </button>
+    </div>
+
+    <div class="att-table-wrap">
+    @if (tab == "records")
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("att.date")</th>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("emp.designation")</th>
+                    <th>@Locale.T("att.status")</th>
+                    <th>@Locale.T("att.entry")</th>
+                    <th>@Locale.T("att.exit")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (records.Count == 0 && !busy)
+            {
+                <tr><td colspan="7" class="empty-row">@Locale.T("att.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in records)
+                {
+                    <tr>
+                        <td>@row.AttendanceDate.ToString("dd MMM yyyy")</td>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.Designation</td>
+                        <td><span class="att-pill @Pill(row.Attendance)">@StatusLabel(row.Attendance)</span></td>
+                        <td>@row.EntryTime</td>
+                        <td>@row.ExitTime</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("emp.designation")</th>
+                    <th>@Locale.T("att.pre")</th>
+                    <th>@Locale.T("att.abs")</th>
+                    <th>@Locale.T("att.lateStatus")</th>
+                    <th>@Locale.T("att.lateAbs")</th>
+                    <th>@Locale.T("att.leave")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (summary.Count == 0 && !busy)
+            {
+                <tr><td colspan="8" class="empty-row">@Locale.T("att.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in summary)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.Designation</td>
+                        <td>@row.Present</td>
+                        <td>@row.Absent</td>
+                        <td>@row.Late</td>
+                        <td>@row.LateAbs</td>
+                        <td>@row.Leave</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Statuses = ["Pre", "Abs", "Late", "Late Abs", "Leave", "Bunk"];
+    private readonly List<AttendanceScheduleDto> schedules = [];
+    private readonly List<EmployeeAttendanceRecordDto> records = [];
+    private readonly List<EmployeeAttendanceSummaryDto> summary = [];
+    private string scheduleInput = "0";
+    private string type = "%";
+    private string status = "%";
+    private string tab = "records";
+    private DateTime from = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime to = DateTime.Today;
+    private bool busy;
+    private string? error;
+    private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        schedules.Clear();
+        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+        await LoadAsync();
+    }
+
+    private Task ChangeTypeAsync(string value)
+    {
+        type = value;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            records.Clear();
+            summary.Clear();
+            records.AddRange(await Api.GetEmployeeAttendanceRecordsAsync(
+                Session.AccessToken!, type, status, ScheduleId, 0, from, to));
+            summary.AddRange(await Api.GetEmployeeAttendanceSummaryAsync(
+                Session.AccessToken!, type, ScheduleId, 0, from, to));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
+
+    private string StatusLabel(string value) => value switch
+    {
+        "Pre" => Locale.T("att.pre"),
+        "Abs" => Locale.T("att.abs"),
+        "Late" => Locale.T("att.lateStatus"),
+        "Late Abs" => Locale.T("att.lateAbs"),
+        "Leave" => Locale.T("att.leave"),
+        "Bunk" => Locale.T("att.bunk"),
+        _ => value
+    };
+
+    private static string Pill(string value) => value switch
+    {
+        "Pre" => "pre",
+        "Abs" => "abs",
+        "Late" => "late",
+        "Late Abs" => "lateabs",
+        "Leave" => "leave",
+        "Bunk" => "bunk",
+        _ => ""
+    };
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

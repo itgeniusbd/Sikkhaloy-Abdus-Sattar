@@ -1,0 +1,152 @@
+@page "/exam/control"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page">
+    <h1>@Locale.T("exam.control")</h1>
+    <div class="exam-tabs no-print">
+        <button type="button" class="@(cumulative ? null : "is-on")" disabled="@busy" @onclick="() => SwitchTab(false)">@Locale.T("exam.individual")</button>
+        <button type="button" class="@(cumulative ? "is-on" : null)" disabled="@busy" @onclick="() => SwitchTab(true)">@Locale.T("exam.cumulative")</button>
+    </div>
+
+    <label>@(cumulative ? Locale.T("exam.cumulative") : Locale.T("exam.individual"))</label>
+    <div class="filter-row no-print">
+        <select @bind="examId" @bind:after="LoadRowsAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectExam")</option>
+            @foreach (var item in ExamList)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("exam.class")</th>
+                <th>@Locale.T("exam.lastCreate")</th>
+                @if (!cumulative)
+                {
+                    <th>@Locale.T("exam.locked")</th>
+                }
+                <th>@Locale.T("exam.published")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="@(cumulative ? 3 : 4)" class="empty-row">@Locale.T("exam.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td>@row.ClassName</td>
+                    <td>@(row.LastPublished is null ? "" : row.LastPublished.Value.ToString("d MMM yyyy"))</td>
+                    @if (!cumulative)
+                    {
+                        <td class="act"><input type="checkbox" @bind="row.MarksLocked" disabled="@busy" /></td>
+                    }
+                    <td class="act"><input type="checkbox" @bind="row.Published" disabled="@busy" /></td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+    @if (rows.Count > 0)
+    {
+        <button type="button" class="acc-btn acc-btn-primary no-print" disabled="@busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ExamFilterDto filters = new();
+    private readonly List<ExamControlRowDto> rows = [];
+    private int examId;
+    private bool cumulative, busy, popupError;
+    private string? popupText;
+    private IEnumerable<ExamOptionDto> ExamList => cumulative ? filters.CumulativeExams : filters.Exams;
+
+    protected override Task OnInitializedAsync() => LoadFiltersAsync();
+
+    private async Task LoadFiltersAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "control"); }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private Task SwitchTab(bool value)
+    {
+        cumulative = value;
+        examId = 0;
+        rows.Clear();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadRowsAsync()
+    {
+        rows.Clear();
+        if (examId <= 0) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { rows.AddRange(await Api.GetExamControlAsync(Session.AccessToken!, examId, cumulative)); }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveExamControlAsync(Session.AccessToken!, new SaveExamControlRequest
+            {
+                ExamID = examId, Cumulative = cumulative, Rows = rows.ToList()
+            });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            Show(Locale.T("exam.updateOk"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string text, bool err = false) { popupText = text; popupError = err; }
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

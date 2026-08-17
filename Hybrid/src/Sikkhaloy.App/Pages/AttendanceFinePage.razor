@@ -1,0 +1,158 @@
+@page "/attendance/student/fine"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page att-page">
+    <PrintHeader Subtitle="@Locale.T("att.fine")" />
+    <h1 class="no-print">@Locale.T("att.fine")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok no-print">@message</div>
+    }
+
+    <div class="filter-row no-print">
+        <select @bind="classInput" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        <select @bind="monthInput" disabled="@busy">
+            <option value="">@Locale.T("att.selectMonth")</option>
+            @foreach (var item in months)
+            {
+                <option value="@item.Name">@item.Name</option>
+            }
+        </select>
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="GenerateAsync">@Locale.T("att.generate")</button>
+        <button type="button" class="link-btn" disabled="@(busy || rows.Count == 0)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("si.id")</th>
+                <th>@Locale.T("si.name")</th>
+                <th>@Locale.T("att.selectMonth")</th>
+                <th>@Locale.T("att.working")</th>
+                <th>@Locale.T("att.pre")</th>
+                <th>@Locale.T("att.abs")</th>
+                <th>@Locale.T("att.lateAbs")</th>
+                <th>@Locale.T("att.lateStatus")</th>
+                <th>@Locale.T("att.leave")</th>
+                <th>@Locale.T("att.bunk")</th>
+                <th>@Locale.T("att.fineAmt")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="11" class="empty-row">@Locale.T("att.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td>@row.ID</td>
+                    <td>@row.Name</td>
+                    <td>@row.MonthName</td>
+                    <td>@row.WorkingDays</td>
+                    <td>@row.Present</td>
+                    <td>@row.Absent</td>
+                    <td>@row.LateAbs</td>
+                    <td>@row.Late</td>
+                    <td>@row.Leave</td>
+                    <td>@row.Bunk</td>
+                    <td>@row.FineAmount.ToString("0.##")</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<AttendanceMonthDto> months = [];
+    private readonly List<AttendanceFineRowDto> rows = [];
+    private string classInput = "0";
+    private string monthInput = "";
+    private bool busy;
+    private string? error;
+    private string? message;
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        var structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        months.Clear();
+        months.AddRange(await Api.GetAttendanceFineMonthsAsync(Session.AccessToken!));
+    }
+
+    private async Task GenerateAsync()
+    {
+        error = message = null;
+        if (ClassId <= 0)
+        {
+            error = Locale.T("att.needClass");
+            return;
+        }
+        var month = months.FirstOrDefault(x => x.Name == monthInput);
+        if (month is null)
+        {
+            error = Locale.T("att.needMonth");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GenerateAttendanceFineAsync(Session.AccessToken!, new GenerateFineRequest
+            {
+                ClassID = ClassId,
+                MonthDate = month.Date,
+                MonthName = month.Name
+            }));
+            message = Locale.T("att.updated");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

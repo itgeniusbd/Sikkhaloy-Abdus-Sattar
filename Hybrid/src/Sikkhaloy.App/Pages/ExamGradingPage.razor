@@ -1,0 +1,246 @@
+@page "/exam/grading"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page">
+    <h1>@Locale.T("exam.grading")</h1>
+    <button type="button" class="acc-btn acc-btn-primary no-print" disabled="@busy" @onclick="() => showAdd = true">@Locale.T("exam.addGrade")</button>
+
+    @foreach (var item in items)
+    {
+        <div class="exam-grade-card">
+            <div class="exam-grade-head">
+                @if (editId == item.GradeNameID)
+                {
+                    <input type="text" @bind="editName" disabled="@busy" />
+                    <button type="button" class="link-btn" disabled="@busy" @onclick="() => RenameAsync(item)">@Locale.T("si.update")</button>
+                    <button type="button" class="link-btn" disabled="@busy" @onclick="() => editId = 0">@Locale.T("sal.cancel")</button>
+                }
+                else
+                {
+                    <h3>@item.GradeName</h3>
+                    <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartRename(item)">@Locale.T("sal.edit")</button>
+                    <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(item.GradeNameID)">@Locale.T("sal.delete")</button>
+                }
+            </div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("exam.maxPct")</th>
+                        <th>@Locale.T("exam.minPct")</th>
+                        <th>@Locale.T("exam.grade")</th>
+                        <th>@Locale.T("exam.point")</th>
+                        <th>@Locale.T("exam.comment")</th>
+                        <th class="act">@Locale.T("sal.edit")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var band in item.Bands)
+                {
+                    <tr>
+                        <td>@band.MaxPercentage</td>
+                        <td>@band.MinPercentage</td>
+                        <td>@band.Grades</td>
+                        <td>@band.Point</td>
+                        <td>
+                            @if (commentId == band.GradingID) { <input type="text" @bind="commentText" disabled="@busy" /> }
+                            else { @band.Comments }
+                        </td>
+                        <td class="act">
+                            @if (commentId == band.GradingID)
+                            {
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveCommentAsync(band)">@Locale.T("si.update")</button>
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => commentId = 0">@Locale.T("sal.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartComment(band)">@Locale.T("sal.edit")</button>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    @if (items.Count == 0 && !busy)
+    {
+        <p class="muted">@Locale.T("exam.empty")</p>
+    }
+</div>
+
+@if (showAdd)
+{
+    <div class="acc-result-back" @onclick="() => showAdd = false">
+        <div class="acc-result is-ok" style="max-width: 640px; text-align: left;" @onclick:stopPropagation="true">
+            <h3>@Locale.T("exam.addGrade")</h3>
+            <div class="inline-add" style="display:grid; gap:0.55rem;">
+                <label>@Locale.T("exam.gradingFor")<input type="text" @bind="gradeName" disabled="@busy" /></label>
+                <label>@Locale.T("exam.maxPct")<input type="number" step="0.01" @bind="maxPct" disabled="@busy" /></label>
+                <label>@Locale.T("exam.minPct")<input type="number" step="0.01" @bind="minPct" disabled="@busy" /></label>
+                <label>@Locale.T("exam.grade")<input type="text" @bind="grade" disabled="@busy" /></label>
+                <label>@Locale.T("exam.point")<input type="number" step="0.01" @bind="point" disabled="@busy" /></label>
+                <label>@Locale.T("exam.comment")<input type="text" @bind="comment" disabled="@busy" /></label>
+                <button type="button" class="acc-btn" disabled="@busy" @onclick="AddBand">@Locale.T("exam.addBand")</button>
+            </div>
+            @if (bands.Count > 0)
+            {
+                <table class="mgrid" style="margin-top:0.7rem;">
+                    <thead><tr><th>@Locale.T("exam.maxPct")</th><th>@Locale.T("exam.minPct")</th><th>@Locale.T("exam.grade")</th><th>@Locale.T("exam.point")</th><th>@Locale.T("exam.comment")</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var band in bands)
+                    {
+                        <tr>
+                            <td>@band.MaxPercentage</td>
+                            <td>@band.MinPercentage</td>
+                            <td>@band.Grades</td>
+                            <td>@band.Point</td>
+                            <td>@band.Comments</td>
+                            <td><button type="button" class="link-btn danger" @onclick="() => bands.Remove(band)">@Locale.T("sal.delete")</button></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                <button type="button" class="acc-btn acc-btn-primary" style="margin-top:0.7rem;" disabled="@busy" @onclick="SaveGradeAsync">@Locale.T("exam.saveGrade")</button>
+            }
+        </div>
+    </div>
+}
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<GradeSystemDto> items = [];
+    private readonly List<GradeBandDto> bands = [];
+    private string gradeName = "", grade = "", comment = "", editName = "", commentText = "";
+    private double maxPct, minPct, point;
+    private int editId, commentId;
+    private bool busy, popupError, showAdd;
+    private string? popupText;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            items.Clear();
+            items.AddRange(await Api.GetExamGradingAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void AddBand()
+    {
+        if (string.IsNullOrWhiteSpace(grade)) return;
+        bands.Add(new GradeBandDto { MaxPercentage = maxPct, MinPercentage = minPct, Grades = grade.Trim(), Point = point, Comments = comment });
+        maxPct = minPct = point = 0;
+        grade = comment = "";
+    }
+
+    private async Task SaveGradeAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.CreateExamGradingAsync(Session.AccessToken!, new SaveGradeSystemRequest { GradeName = gradeName, Bands = bands.ToList() });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            showAdd = false;
+            gradeName = "";
+            bands.Clear();
+            Show(Locale.T("exam.saved"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void StartRename(GradeSystemDto item) { editId = item.GradeNameID; editName = item.GradeName; }
+    private void StartComment(GradeBandDto band) { commentId = band.GradingID; commentText = band.Comments ?? ""; }
+
+    private async Task RenameAsync(GradeSystemDto item)
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.RenameExamGradingAsync(Session.AccessToken!, item.GradeNameID, new SaveGradeSystemRequest { GradeName = editName });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            editId = 0;
+            Show(Locale.T("exam.saved"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveCommentAsync(GradeBandDto band)
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.UpdateExamGradeCommentAsync(Session.AccessToken!, band.GradingID, new SaveGradeCommentRequest { Comments = commentText });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            commentId = 0;
+            Show(Locale.T("exam.saved"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("exam.confirmDel"))) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteExamGradingAsync(Session.AccessToken!, id);
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            Show(Locale.T("exam.deleted"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string text, bool err = false) { popupText = text; popupError = err; }
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

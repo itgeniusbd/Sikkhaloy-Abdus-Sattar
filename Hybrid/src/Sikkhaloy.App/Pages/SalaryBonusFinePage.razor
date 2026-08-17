@@ -1,0 +1,331 @@
+@page "/staff/salary/bonus-fine"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page sal-page">
+    <h1>@Locale.T("sal.bonusFine")</h1>
+    <p class="muted">@Locale.T("sal.crumb")</p>
+    <p class="muted">@Locale.T("sal.bonusFineHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="sal-split">
+        <div class="structure-card">
+            <h2 class="emp-list-title">@Locale.T("sal.addFine")</h2>
+            <div class="inline-add">
+                <input type="text" placeholder="@Locale.T("sal.fineName")" @bind="fineName" disabled="@busy" />
+                <button type="button" class="primary" disabled="@busy" @onclick="AddFineAsync">@Locale.T("sal.addFine")</button>
+            </div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th class="act">@Locale.T("sal.delete")</th>
+                        <th class="act">@Locale.T("sal.edit")</th>
+                        <th>@Locale.T("sal.name")</th>
+                        <th>@Locale.T("sal.created")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (fines.Count == 0 && !busy)
+                {
+                    <tr><td colspan="4" class="empty-row">@Locale.T("sal.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in fines)
+                    {
+                        <tr>
+                            <td class="act">
+                                <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteFineAsync(row)">@Locale.T("sal.delete")</button>
+                            </td>
+                            <td class="act">
+                                @if (editingFineId == row.Id)
+                                {
+                                    <button type="button" class="link-btn" disabled="@busy" @onclick="SaveFineAsync">@Locale.T("sal.update")</button>
+                                    <button type="button" class="link-btn" disabled="@busy" @onclick="CancelFine">@Locale.T("sal.cancel")</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartFineEdit(row)">@Locale.T("sal.edit")</button>
+                                }
+                            </td>
+                            <td>
+                                @if (editingFineId == row.Id)
+                                {
+                                    <input type="text" @bind="editFineName" disabled="@busy" />
+                                }
+                                else
+                                {
+                                    @row.Name
+                                }
+                            </td>
+                            <td>@(row.Created?.ToString("d MMM yyyy") ?? "—")</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="structure-card">
+            <h2 class="emp-list-title">@Locale.T("sal.addBonus")</h2>
+            <div class="inline-add">
+                <input type="text" placeholder="@Locale.T("sal.bonusName")" @bind="bonusName" disabled="@busy" />
+                <button type="button" class="primary" disabled="@busy" @onclick="AddBonusAsync">@Locale.T("sal.addBonus")</button>
+            </div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th class="act">@Locale.T("sal.delete")</th>
+                        <th class="act">@Locale.T("sal.edit")</th>
+                        <th>@Locale.T("sal.name")</th>
+                        <th>@Locale.T("sal.created")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (bonuses.Count == 0 && !busy)
+                {
+                    <tr><td colspan="4" class="empty-row">@Locale.T("sal.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in bonuses)
+                    {
+                        <tr>
+                            <td class="act">
+                                <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteBonusAsync(row)">@Locale.T("sal.delete")</button>
+                            </td>
+                            <td class="act">
+                                @if (editingBonusId == row.Id)
+                                {
+                                    <button type="button" class="link-btn" disabled="@busy" @onclick="SaveBonusAsync">@Locale.T("sal.update")</button>
+                                    <button type="button" class="link-btn" disabled="@busy" @onclick="CancelBonus">@Locale.T("sal.cancel")</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartBonusEdit(row)">@Locale.T("sal.edit")</button>
+                                }
+                            </td>
+                            <td>
+                                @if (editingBonusId == row.Id)
+                                {
+                                    <input type="text" @bind="editBonusName" disabled="@busy" />
+                                }
+                                else
+                                {
+                                    @row.Name
+                                }
+                            </td>
+                            <td>@(row.Created?.ToString("d MMM yyyy") ?? "—")</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly List<SalaryNameDto> fines = [];
+    private readonly List<SalaryNameDto> bonuses = [];
+    private string fineName = "";
+    private string bonusName = "";
+    private string editFineName = "";
+    private string editBonusName = "";
+    private int editingFineId;
+    private int editingBonusId;
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            fines.Clear();
+            bonuses.Clear();
+            fines.AddRange(await Api.GetSalaryNamesAsync(Session.AccessToken, "fine"));
+            bonuses.AddRange(await Api.GetSalaryNamesAsync(Session.AccessToken, "bonus"));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void StartFineEdit(SalaryNameDto row)
+    {
+        editingFineId = row.Id;
+        editFineName = row.Name;
+        editingBonusId = 0;
+    }
+
+    private void StartBonusEdit(SalaryNameDto row)
+    {
+        editingBonusId = row.Id;
+        editBonusName = row.Name;
+        editingFineId = 0;
+    }
+
+    private void CancelFine()
+    {
+        editingFineId = 0;
+        editFineName = "";
+    }
+
+    private void CancelBonus()
+    {
+        editingBonusId = 0;
+        editBonusName = "";
+    }
+
+    private Task AddFineAsync() => AddAsync("fine");
+    private Task AddBonusAsync() => AddAsync("bonus");
+    private Task SaveFineAsync() => SaveAsync("fine");
+    private Task SaveBonusAsync() => SaveAsync("bonus");
+    private Task DeleteFineAsync(SalaryNameDto row) => DeleteAsync("fine", row);
+    private Task DeleteBonusAsync(SalaryNameDto row) => DeleteAsync("bonus", row);
+
+    private async Task AddAsync(string kind)
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        var name = kind == "fine" ? fineName : bonusName;
+        busy = true;
+        try
+        {
+            var result = await Api.CreateSalaryNameAsync(Session.AccessToken, kind, new SaveSalaryNameRequest { Name = name });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+            if (kind == "fine")
+                fineName = "";
+            else
+                bonusName = "";
+            message = Locale.T("sal.okName");
+            await LoadAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync(string kind)
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        var id = kind == "fine" ? editingFineId : editingBonusId;
+        var name = kind == "fine" ? editFineName : editBonusName;
+        busy = true;
+        try
+        {
+            var result = await Api.UpdateSalaryNameAsync(Session.AccessToken, kind, id, new SaveSalaryNameRequest { Name = name });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+            if (kind == "fine")
+                CancelFine();
+            else
+                CancelBonus();
+            message = Locale.T("sal.okName");
+            await LoadAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(string kind, SalaryNameDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sal.confirmDelete")))
+            return;
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteSalaryNameAsync(Session.AccessToken, kind, row.Id);
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+            message = Locale.T("sal.okDelete");
+            await LoadAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("sal.failed") : Locale.T(key);
+}

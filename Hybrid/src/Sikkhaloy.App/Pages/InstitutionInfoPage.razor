@@ -1,0 +1,231 @@
+@page "/basic-settings/institution"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject ISyncApiClient Api
+
+<div class="card structure-page inst-page">
+    <h1>@Locale.T("inst.title")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="inst-logos">
+        <div>
+            <h3>@Locale.T("inst.currentLogo")</h3>
+            @if (!string.IsNullOrWhiteSpace(logoPreview))
+            {
+                <img src="@logoPreview" alt="" />
+            }
+            else
+            {
+                <em class="muted">@Locale.T("inst.noLogo")</em>
+            }
+        </div>
+        <div>
+            <h3>@Locale.T("inst.currentNameLogo")</h3>
+            @if (!string.IsNullOrWhiteSpace(nameLogoPreview))
+            {
+                <img class="name-logo" src="@nameLogoPreview" alt="" />
+                <button type="button" class="link-btn danger" disabled="@busy" @onclick="ClearNameLogoAsync">@Locale.T("inst.deleteNameLogo")</button>
+            }
+            else
+            {
+                <em class="muted">@Locale.T("inst.noNameLogo")</em>
+            }
+        </div>
+    </div>
+
+    <div class="inst-grid">
+        <label>@Locale.T("inst.name")<input @bind="form.SchoolName" disabled="@busy" /></label>
+        <label>@Locale.T("inst.dialog")<input @bind="form.InstitutionDialog" disabled="@busy" /></label>
+        <label>@Locale.T("inst.established")<input @bind="form.Established" disabled="@busy" /></label>
+        <label>@Locale.T("inst.principal")<input @bind="form.Principal" disabled="@busy" /></label>
+        <label>@Locale.T("inst.staff")<input @bind="form.AcadamicStaff" disabled="@busy" /></label>
+        <label>@Locale.T("inst.students")<input @bind="form.Students" disabled="@busy" /></label>
+        <label class="span-2">@Locale.T("inst.address")<input @bind="form.Address" disabled="@busy" /></label>
+        <label>@Locale.T("inst.city")<input @bind="form.City" disabled="@busy" /></label>
+        <label>@Locale.T("inst.state")<input @bind="form.State" disabled="@busy" /></label>
+        <label>@Locale.T("inst.local")<input @bind="form.LocalArea" disabled="@busy" /></label>
+        <label>@Locale.T("inst.postal")<input @bind="form.PostalCode" disabled="@busy" /></label>
+        <label>@Locale.T("inst.phone")<input @bind="form.Phone" disabled="@busy" /></label>
+        <label>@Locale.T("inst.email")<input @bind="form.Email" disabled="@busy" /></label>
+        <label class="span-2">@Locale.T("inst.website")<input @bind="form.Website" disabled="@busy" /></label>
+        <label>@Locale.T("inst.logo")
+            <InputFile OnChange="OnLogo" accept=".png,.jpg,.jpeg" disabled="@busy" />
+            <small class="muted">@Locale.T("inst.logoHint")</small>
+        </label>
+        <label>@Locale.T("inst.nameLogo")
+            <InputFile OnChange="OnNameLogo" accept=".png,.jpg,.jpeg" disabled="@busy" />
+            <small class="muted">@Locale.T("inst.nameLogoHint")</small>
+        </label>
+    </div>
+
+    <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("inst.update")</button>
+</div>
+
+@code {
+    private InstitutionDto form = new();
+    private string? logoPreview;
+    private string? nameLogoPreview;
+    private string? newLogo;
+    private string? newNameLogo;
+    private bool clearNameLogo;
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            form = await Api.GetInstitutionAsync(Session.AccessToken);
+            logoPreview = form.LogoDataUrl;
+            nameLogoPreview = form.NameLogoDataUrl;
+            newLogo = null;
+            newNameLogo = null;
+            clearNameLogo = false;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnLogo(InputFileChangeEventArgs e) =>
+        (newLogo, logoPreview) = await ReadImageAsync(e);
+
+    private async Task OnNameLogo(InputFileChangeEventArgs e)
+    {
+        (newNameLogo, nameLogoPreview) = await ReadImageAsync(e);
+        clearNameLogo = false;
+    }
+
+    private async Task<(string? b64, string? preview)> ReadImageAsync(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null)
+            return (null, null);
+        try
+        {
+            await using var stream = file.OpenReadStream(1_500_000);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var b64 = Convert.ToBase64String(bytes);
+            var mime = file.ContentType is { Length: > 0 } t ? t : "image/jpeg";
+            return (b64, $"data:{mime};base64,{b64}");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return (null, null);
+        }
+    }
+
+    private async Task ClearNameLogoAsync()
+    {
+        clearNameLogo = true;
+        newNameLogo = null;
+        nameLogoPreview = null;
+        await SaveAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        message = null;
+        error = null;
+        if (string.IsNullOrWhiteSpace(form.SchoolName))
+        {
+            error = Locale.T("inst.needName");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            form.LogoBase64 = newLogo;
+            form.NameLogoBase64 = newNameLogo;
+            form.ClearNameLogo = clearNameLogo;
+            var result = await Api.SaveInstitutionAsync(Session.AccessToken, form);
+            if (!result.Succeeded || result.Data is null)
+            {
+                error = Locale.T(result.Error ?? "inst.failed");
+                return;
+            }
+
+            form = result.Data;
+            logoPreview = form.LogoDataUrl;
+            nameLogoPreview = form.NameLogoDataUrl;
+            newLogo = null;
+            newNameLogo = null;
+            clearNameLogo = false;
+            if (Session.Current is not null)
+                Session.Current.SchoolName = form.SchoolName;
+            Sync.RefreshSchoolHeader(new OfficeProfileDto
+            {
+                SchoolID = form.SchoolID,
+                SchoolName = form.SchoolName,
+                Address = form.Address ?? "",
+                Phone = form.Phone ?? "",
+                Email = form.Email ?? "",
+                LogoBase64 = form.LogoDataUrl,
+                NameLogoBase64 = form.NameLogoDataUrl,
+                ClearNameLogo = string.IsNullOrWhiteSpace(form.NameLogoDataUrl)
+            });
+            Session.NotifyChanged();
+            message = Locale.T("inst.ok");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

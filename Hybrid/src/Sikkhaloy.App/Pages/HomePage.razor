@@ -1,0 +1,460 @@
+@page "/"
+@layout LandingLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="land-page">
+    <section class="land-hero-band">
+        <div class="land-hero">
+            <div class="land-hero-copy">
+                <p class="land-kicker">@Locale.T("home.tag")</p>
+                <h1>@Locale.T("home.title")</h1>
+                <p class="land-lead">@Locale.T("home.lead")</p>
+                <div class="land-hero-actions">
+                    @if (Session.IsAuthenticated)
+                    {
+                        <a class="land-btn land-btn-light" href="dashboard">@Locale.T("home.goDashboard")</a>
+                    }
+                    else
+                    {
+                        <a class="land-btn land-btn-light" href="#features">@Locale.T("home.seeMore")</a>
+                    }
+                    <a class="land-btn land-btn-ghost" href="#contact">@Locale.T("home.nav.contact")</a>
+                </div>
+            </div>
+            <div class="land-hero-art">
+                <img src="_content/Sikkhaloy.App/img/land-intro.png?v=2" alt="" />
+            </div>
+        </div>
+    </section>
+
+    <section class="land-stats">
+        <article>
+            <span class="land-stat-ico is-teal">@SchoolIcon</span>
+            <div>
+                <strong class="land-stat-num">@_shownInst.ToString("N0")</strong>
+                <h3>@Locale.T("home.stat.inst")</h3>
+                <p>@Locale.T("home.stat.inst.desc")</p>
+            </div>
+        </article>
+        <article>
+            <span class="land-stat-ico is-blue">@StuIcon</span>
+            <div>
+                <strong class="land-stat-num">@_shownStu.ToString("N0")</strong>
+                <h3>@Locale.T("home.stat.stu")</h3>
+                <p>@Locale.T("home.stat.stu.desc")</p>
+            </div>
+        </article>
+        <article>
+            <span class="land-stat-ico is-amber">@StaffIcon</span>
+            <div>
+                <strong class="land-stat-num">@_shownTea.ToString("N0")</strong>
+                <h3>@Locale.T("home.stat.tea")</h3>
+                <p>@Locale.T("home.stat.tea.desc")</p>
+            </div>
+        </article>
+    </section>
+
+    <section class="land-why" id="why">
+        <div class="land-center-head">
+            <h2>@Locale.T("home.why.title")</h2>
+        </div>
+        <div class="land-why-row">
+            <article>
+                <span class="land-why-ico is-teal">@EasyIcon</span>
+                <h3>@Locale.T("home.why.1")</h3>
+                <p>@Locale.T("home.why.1.desc")</p>
+            </article>
+            <article>
+                <span class="land-why-ico is-blue">@TimeIcon</span>
+                <h3>@Locale.T("home.why.2")</h3>
+                <p>@Locale.T("home.why.2.desc")</p>
+            </article>
+            <article>
+                <span class="land-why-ico is-amber">@TeamIcon</span>
+                <h3>@Locale.T("home.why.3")</h3>
+                <p>@Locale.T("home.why.3.desc")</p>
+            </article>
+            <article>
+                <span class="land-why-ico is-rose">@UpdateIcon</span>
+                <h3>@Locale.T("home.why.4")</h3>
+                <p>@Locale.T("home.why.4.desc")</p>
+            </article>
+            <article>
+                <span class="land-why-ico is-teal">@HybridIcon</span>
+                <h3>@Locale.T("home.why.5")</h3>
+                <p>@Locale.T("home.why.5.desc")</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="land-block" id="features">
+        <div class="land-center-head">
+            <h2>@Locale.T("home.feat.title")</h2>
+            <p>@Locale.T("home.feat.intro")</p>
+        </div>
+        <div class="land-feats">
+            <article class="is-mint">
+                <img src="_content/Sikkhaloy.App/img/land-att.png" alt="" />
+                <h3>@Locale.T("home.att.title")</h3>
+                <ul>
+                    <li>@Locale.T("home.att.1")</li>
+                    <li>@Locale.T("home.att.2")</li>
+                    <li>@Locale.T("home.att.3")</li>
+                    <li>@Locale.T("home.att.4")</li>
+                </ul>
+                <button type="button" class="land-more" @onclick="@(() => OpenContact(Locale.T("home.att.title")))">@Locale.T("home.details")</button>
+            </article>
+            <article class="is-gold">
+                <img src="_content/Sikkhaloy.App/img/land-exam.png" alt="" />
+                <h3>@Locale.T("home.exam.title")</h3>
+                <ul>
+                    <li>@Locale.T("home.exam.1")</li>
+                    <li>@Locale.T("home.exam.2")</li>
+                    <li>@Locale.T("home.exam.3")</li>
+                    <li>@Locale.T("home.exam.4")</li>
+                </ul>
+                <button type="button" class="land-more" @onclick="@(() => OpenContact(Locale.T("home.exam.title")))">@Locale.T("home.details")</button>
+            </article>
+            <article class="is-sky">
+                <img src="_content/Sikkhaloy.App/img/land-acc.png" alt="" />
+                <h3>@Locale.T("home.acc.title")</h3>
+                <ul>
+                    <li>@Locale.T("home.acc.1")</li>
+                    <li>@Locale.T("home.acc.2")</li>
+                    <li>@Locale.T("home.acc.3")</li>
+                    <li>@Locale.T("home.acc.4")</li>
+                </ul>
+                <button type="button" class="land-more" @onclick="@(() => OpenContact(Locale.T("home.acc.title")))">@Locale.T("home.details")</button>
+            </article>
+            <article class="is-rose">
+                <img src="_content/Sikkhaloy.App/img/land-desk.png" alt="" />
+                <h3>@Locale.T("home.report.title")</h3>
+                <ul>
+                    <li>@Locale.T("home.report.1")</li>
+                    <li>@Locale.T("home.report.2")</li>
+                    <li>@Locale.T("home.report.3")</li>
+                    <li>@Locale.T("home.report.4")</li>
+                </ul>
+                <button type="button" class="land-more" @onclick="@(() => OpenContact(Locale.T("home.report.title")))">@Locale.T("home.details")</button>
+            </article>
+        </div>
+    </section>
+
+    <section class="land-quotes">
+        <div class="land-center-head">
+            <h2>@Locale.T("home.quote.title")</h2>
+        </div>
+        <div class="land-quote-grid">
+            <article>
+                <span class="land-quote-mark">“</span>
+                <p>@Locale.T("home.quote.1")</p>
+                <footer>
+                    <span class="land-quote-ico">@SchoolIcon</span>
+                    <b>@Locale.T("home.quote.1.who")</b>
+                </footer>
+            </article>
+            <article>
+                <span class="land-quote-mark">“</span>
+                <p>@Locale.T("home.quote.2")</p>
+                <footer>
+                    <span class="land-quote-ico">@SchoolIcon</span>
+                    <b>@Locale.T("home.quote.2.who")</b>
+                </footer>
+            </article>
+            <article>
+                <span class="land-quote-mark">“</span>
+                <p>@Locale.T("home.quote.3")</p>
+                <footer>
+                    <span class="land-quote-ico">@SchoolIcon</span>
+                    <b>@Locale.T("home.quote.3.who")</b>
+                </footer>
+            </article>
+        </div>
+    </section>
+
+    @if (_clients.Count > 0)
+    {
+        <section class="land-clients">
+            <div class="land-center-head">
+                <h2>@Locale.T("home.clients")</h2>
+                <p>@Locale.T("home.clients.sub")</p>
+            </div>
+            <div class="land-client-viewport">
+                <div class="land-client-track" style="animation-duration: @SlideSeconds">
+                    @foreach (var (item, index) in SlideItems.Select((x, i) => (x, i)))
+                    {
+                        <article @key="index">
+                            @if (item.HasLogo && !string.IsNullOrWhiteSpace(item.LogoUrl) && !_brokenLogos.Contains(item.SchoolID))
+                            {
+                                <img src="@item.LogoUrl" alt="" @onerror="() => MarkBroken(item.SchoolID)" />
+                            }
+                            else
+                            {
+                                <span class="land-client-fallback">@Initials(item.SchoolName)</span>
+                            }
+                            <b>@item.SchoolName</b>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+
+    <section class="land-cta">
+        <div>
+            <h2>@Locale.T("home.cta.title")</h2>
+            <p>@Locale.T("home.trusted")</p>
+            <button type="button" class="land-btn land-btn-light" @onclick="@(() => OpenContact(Locale.T("home.cta.title")))">@Locale.T("home.cta.details")</button>
+        </div>
+        <img src="_content/Sikkhaloy.App/img/land-desk.png" alt="" />
+    </section>
+</div>
+
+@if (_showContact)
+{
+    <div class="modal-back land-pop" @onclick="CloseContact">
+        <div class="modal-panel land-pop-panel" @onclick:stopPropagation="true">
+            <div class="land-pop-banner">
+                <button type="button" class="land-pop-x" @onclick="CloseContact" aria-label="@Locale.T("home.pop.close")">×</button>
+                <p class="land-pop-kicker">@Locale.T("home.contact.title")</p>
+                <p class="land-pop-hours"><span>@HeadIcon</span> @Locale.T("home.pop.hours")</p>
+                <div class="land-pop-cards">
+                    <article>
+                        <span class="land-pop-ico is-teal">@PhoneIcon</span>
+                        <small>@Locale.T("home.pop.office")</small>
+                        <b>09638 66 99 66</b>
+                        <a class="land-pop-act" href="tel:09638669966">@Locale.T("home.pop.call")</a>
+                    </article>
+                    <article>
+                        <span class="land-pop-ico is-blue">@MobileIcon</span>
+                        <small>@Locale.T("home.pop.mobile")</small>
+                        <b>01739 144 141</b>
+                        <a class="land-pop-act" href="tel:+8801739144141">@Locale.T("home.pop.callMobile")</a>
+                    </article>
+                    <article>
+                        <span class="land-pop-ico is-green">@ChatIcon</span>
+                        <small>@Locale.T("home.pop.whatsapp")</small>
+                        <b>01739 144 141</b>
+                        <a class="land-pop-act is-wa" href="https://wa.me/8801739144141" target="_blank" rel="noopener">@Locale.T("home.pop.chat")</a>
+                    </article>
+                </div>
+            </div>
+            <form class="land-pop-form" @onsubmit="SendContactAsync" @onsubmit:preventDefault="true">
+                <h3>@Locale.T("home.pop.form")</h3>
+                <div class="land-pop-grid">
+                    <label>
+                        @Locale.T("home.pop.name")
+                        <input type="text" maxlength="120" autocomplete="name" @bind="_popName" />
+                    </label>
+                    <label>
+                        @Locale.T("home.pop.phone")
+                        <input type="tel" maxlength="30" autocomplete="tel" @bind="_popMobile" />
+                    </label>
+                    <label>
+                        @Locale.T("home.pop.email")
+                        <input type="email" maxlength="120" autocomplete="email" @bind="_popEmail" />
+                    </label>
+                    <label>
+                        @Locale.T("home.pop.subject")
+                        <input type="text" maxlength="200" @bind="_popSubject" />
+                    </label>
+                    <label class="land-pop-full">
+                        @Locale.T("home.pop.msg")
+                        <textarea rows="4" maxlength="4000" @bind="_popMessage"></textarea>
+                    </label>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_popStatus))
+                {
+                    <div class="@(_popOk ? "ok" : "error")">@Locale.T(_popStatus)</div>
+                }
+                <button type="submit" class="primary land-pop-send" disabled="@_sending">
+                    @(_sending ? Locale.T("home.pop.sending") : Locale.T("home.pop.send"))
+                </button>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly MarkupString SchoolIcon = Icon("M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z");
+    private static readonly MarkupString StuIcon = Icon("M4 19h16M4 19V7l8-4 8 4v12M8 19v-6h8v6");
+    private static readonly MarkupString StaffIcon = Icon("M8 7V5h8v2M4 7h16v12H4V7Z");
+    private static readonly MarkupString TeamIcon = Icon("M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 20a6 6 0 0 1 12 0M20 20a5 5 0 0 0-4-4.9");
+    private static readonly MarkupString UpdateIcon = Icon("M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6");
+    private static readonly MarkupString HybridIcon = Icon("M5 12.6A8.5 8.5 0 0 1 12 5c3.4 0 6.3 2 7.7 4.8M8.6 16a5 5 0 0 1 6.8 0M12 20h.01");
+    private static readonly MarkupString EasyIcon = Icon("M5 12l4 4L19 6");
+    private static readonly MarkupString TimeIcon = Icon("M12 8v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z");
+    private static readonly MarkupString HeadIcon = Icon("M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1v-8h3zM3 19a2 2 0 0 0 2 2h1v-8H3z");
+    private static readonly MarkupString PhoneIcon = Icon("M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.5 2.8.7A2 2 0 0 1 22 16.9z");
+    private static readonly MarkupString MobileIcon = Icon("M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm5 18h.01");
+    private static readonly MarkupString ChatIcon = Icon("M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z");
+
+    private CancellationTokenSource? _loadCts;
+    private IReadOnlyList<PublicInstituteDto> _clients = [];
+    private readonly HashSet<int> _brokenLogos = [];
+    private int _shownInst;
+    private int _shownStu;
+    private int _shownTea;
+    private int _targetInst;
+    private int _targetStu;
+    private int _targetTea;
+    private bool _showContact;
+    private bool _sending;
+    private bool _popOk;
+    private string _popName = "";
+    private string _popEmail = "";
+    private string _popMobile = "";
+    private string _popSubject = "";
+    private string _popMessage = "";
+    private string? _popStatus;
+
+    private IEnumerable<PublicInstituteDto> SlideItems
+    {
+        get
+        {
+            if (_clients.Count == 0)
+                yield break;
+            var copies = _clients.Count >= 10 ? 2 : 4;
+            for (var i = 0; i < copies; i++)
+            {
+                foreach (var item in _clients)
+                    yield return item;
+            }
+        }
+    }
+
+    private string SlideSeconds => $"{Math.Max(18, _clients.Count * 3)}s";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loadCts = new CancellationTokenSource();
+        var token = _loadCts.Token;
+        var statsTask = Api.GetPublicStatsAsync(token);
+        var clientsTask = Api.GetPublicInstitutesAsync(token);
+        await Task.WhenAll(statsTask, clientsTask);
+        _clients = await clientsTask;
+        var stats = await statsTask;
+        _targetInst = stats.Institutions;
+        _targetStu = stats.Students;
+        _targetTea = stats.Teachers;
+        _ = AnimateCountsAsync(token);
+    }
+
+    private async Task AnimateCountsAsync(CancellationToken token)
+    {
+        var start = DateTime.UtcNow;
+        const int durationMs = 4000;
+        while (!token.IsCancellationRequested)
+        {
+            var t = Math.Clamp((DateTime.UtcNow - start).TotalMilliseconds / durationMs, 0, 1);
+            var ease = 1 - Math.Pow(1 - t, 3);
+            _shownInst = (int)Math.Round(_targetInst * ease);
+            _shownStu = (int)Math.Round(_targetStu * ease);
+            _shownTea = (int)Math.Round(_targetTea * ease);
+            await InvokeAsync(StateHasChanged);
+            if (t >= 1)
+                break;
+            try
+            {
+                await Task.Delay(20, token);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
+        }
+    }
+
+    private void MarkBroken(int schoolId)
+    {
+        if (_brokenLogos.Add(schoolId))
+            StateHasChanged();
+    }
+
+    private void OpenContact(string? subject = null)
+    {
+        _showContact = true;
+        _popOk = false;
+        _popStatus = null;
+        if (!string.IsNullOrWhiteSpace(subject))
+            _popSubject = subject;
+    }
+
+    private void CloseContact()
+    {
+        if (_sending)
+            return;
+        _showContact = false;
+    }
+
+    private async Task SendContactAsync()
+    {
+        if (_sending)
+            return;
+
+        var name = _popName.Trim();
+        var mobile = _popMobile.Trim();
+        var message = _popMessage.Trim();
+        if (name.Length == 0 || mobile.Length < 8 || message.Length == 0)
+        {
+            _popOk = false;
+            _popStatus = "home.pop.need";
+            return;
+        }
+
+        _sending = true;
+        _popStatus = null;
+        try
+        {
+            var result = await Api.SendPublicContactAsync(new PublicContactRequest
+            {
+                Name = name,
+                Email = _popEmail.Trim(),
+                MobileNo = mobile,
+                Subject = _popSubject.Trim(),
+                Message = message
+            });
+            if (result.Succeeded)
+            {
+                _popOk = true;
+                _popStatus = "home.pop.ok";
+                _popName = "";
+                _popEmail = "";
+                _popMobile = "";
+                _popSubject = "";
+                _popMessage = "";
+            }
+            else
+            {
+                _popOk = false;
+                _popStatus = string.IsNullOrWhiteSpace(result.Error) ? "home.pop.fail" : result.Error;
+            }
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+
+    private static string Initials(string name)
+    {
+        var parts = (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return "S";
+        if (parts.Length == 1)
+            return parts[0][..Math.Min(2, parts[0].Length)].ToUpperInvariant();
+        return string.Concat(parts[0].AsSpan(0, 1), parts[1].AsSpan(0, 1)).ToUpperInvariant();
+    }
+
+    public override void Dispose()
+    {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        base.Dispose();
+    }
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+}

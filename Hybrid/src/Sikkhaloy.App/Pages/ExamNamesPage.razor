@@ -1,0 +1,186 @@
+@page "/exam/names"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page">
+    <h1>@Locale.T("exam.addExam")</h1>
+    <div class="inline-add">
+        <input type="text" placeholder="@Locale.T("exam.examName")" @bind="name" disabled="@busy" />
+        <input type="date" @bind="start" disabled="@busy" title="@Locale.T("exam.start")" />
+        <input type="date" @bind="end" disabled="@busy" title="@Locale.T("exam.end")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AddAsync">@Locale.T("exam.addExamBtn")</button>
+    </div>
+    <a class="exam-link" href="exam/sub-exams">@Locale.T("exam.toSub")</a>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act">@Locale.T("sal.edit")</th>
+                <th>@Locale.T("exam.examName")</th>
+                <th>@Locale.T("exam.start")</th>
+                <th>@Locale.T("exam.end")</th>
+                <th class="act">@Locale.T("sal.delete")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="5" class="empty-row">@Locale.T("exam.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td class="act">
+                        @if (editId == row.ExamID)
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveAsync(row)">@Locale.T("si.update")</button>
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => editId = 0">@Locale.T("sal.cancel")</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("sal.edit")</button>
+                        }
+                    </td>
+                    <td>
+                        @if (editId == row.ExamID) { <input type="text" @bind="editName" disabled="@busy" /> }
+                        else { @row.ExamName }
+                    </td>
+                    <td>
+                        @if (editId == row.ExamID) { <input type="date" @bind="editStart" disabled="@busy" /> }
+                        else { @Fmt(row.Period_StartDate) }
+                    </td>
+                    <td>
+                        @if (editId == row.ExamID) { <input type="date" @bind="editEnd" disabled="@busy" /> }
+                        else { @Fmt(row.Period_EndDate) }
+                    </td>
+                    <td class="act">
+                        <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(row.ExamID)">@Locale.T("sal.delete")</button>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<ExamNameDto> rows = [];
+    private string name = "";
+    private DateTime start = DateTime.Today;
+    private DateTime end = DateTime.Today;
+    private int editId;
+    private string editName = "";
+    private DateTime editStart = DateTime.Today;
+    private DateTime editEnd = DateTime.Today;
+    private bool busy, popupError;
+    private string? popupText;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GetExamNamesAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task AddAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.CreateExamNameAsync(Session.AccessToken!, new SaveExamNameRequest { ExamName = name, StartDate = start, EndDate = end });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            name = "";
+            Show(Locale.T("exam.saved"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void StartEdit(ExamNameDto row)
+    {
+        editId = row.ExamID;
+        editName = row.ExamName;
+        editStart = row.Period_StartDate ?? DateTime.Today;
+        editEnd = row.Period_EndDate ?? DateTime.Today;
+    }
+
+    private async Task SaveAsync(ExamNameDto row)
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.UpdateExamNameAsync(Session.AccessToken!, row.ExamID, new SaveExamNameRequest { ExamName = editName, StartDate = editStart, EndDate = editEnd });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            editId = 0;
+            Show(Locale.T("exam.saved"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("exam.confirmDel"))) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteExamNameAsync(Session.AccessToken!, id);
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            Show(Locale.T("exam.deleted"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Fmt(DateTime? d) => d is null ? "" : d.Value.ToString("d MMM yyyy");
+    private void Show(string text, bool err = false) { popupText = text; popupError = err; }
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

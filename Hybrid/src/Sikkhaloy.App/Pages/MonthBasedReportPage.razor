@@ -1,0 +1,337 @@
+@page "/accounts/reports/month"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page month-rpt">
+    <section class="rpt-panel no-print">
+        <div class="rpt-panel-head">
+            <div>
+                <small>@Locale.T("rpt.filters")</small>
+                <h1>@Locale.T("rpt.accountsReport")</h1>
+            </div>
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+        </div>
+
+        <div class="rpt-tabs">
+            <button type="button" class="@(tab == 0 ? "active" : null)" @onclick="() => tab = 0">@Locale.T("rpt.monthIncome")</button>
+            <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => tab = 1">@Locale.T("rpt.incomeRep")</button>
+            <button type="button" class="@(tab == 2 ? "active" : null)" @onclick="() => tab = 2">@Locale.T("rpt.expenseRep")</button>
+        </div>
+
+        @if (tab == 0)
+        {
+            <div class="rpt-bar">
+                <select @bind="classId" @bind:after="OnClassAsync">
+                    <option value="0">@Locale.T("rpt.selectClass")</option>
+                    @foreach (var item in classes)
+                    {
+                        <option value="@item.ClassID">@item.Name</option>
+                    }
+                </select>
+                @if (sections.Count > 0)
+                {
+                    <select @bind="sectionId">
+                        <option value="%">@Locale.T("rpt.allSection")</option>
+                        @foreach (var item in sections)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                }
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SubmitAsync">@Locale.T("acc.submit")</button>
+            </div>
+            @if (roles.Count > 0)
+            {
+                <div class="rpt-role-box">
+                    <div class="rpt-role-tools">
+                        <input type="search" placeholder="@Locale.T("rpt.search")" @bind="roleSearch" @bind:event="oninput" />
+                        <label class="rpt-check">
+                            <input type="checkbox" checked="@AllPicked" @onchange="ToggleAll" />
+                            @Locale.T("rpt.selectAll")
+                        </label>
+                        <button type="button" class="link-btn" @onclick="ClearRoles">@Locale.T("rpt.clear")</button>
+                        <span class="rpt-hint">@(picked.Count == 0 ? Locale.T("rpt.allRole") : $"{picked.Count}")</span>
+                    </div>
+                    <div class="rpt-role-grid">
+                        @foreach (var role in VisibleRoles)
+                        {
+                            <label class="rpt-check">
+                                <input type="checkbox" checked="@picked.Contains(role.Id)" @onchange="e => Toggle(role.Id, e)" />
+                                <span>@role.Name</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="rpt-bar">
+                <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+                <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindAsync">@Locale.T("acc.find")</button>
+            </div>
+            <div class="rpt-tabs rpt-subtabs">
+                <button type="button" class="@(subTab == 0 ? "active" : null)" @onclick="() => subTab = 0">@Locale.T("rpt.daily")</button>
+                <button type="button" class="@(subTab == 1 ? "active" : null)" @onclick="() => subTab = 1">@Locale.T("rpt.byMonth")</button>
+            </div>
+        }
+    </section>
+
+    <section class="rpt-panel rpt-result">
+        <div class="rpt-panel-head">
+            <small>@Locale.T("rpt.result")</small>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+
+        @if (tab == 0)
+        {
+            @if (students is not null)
+            {
+                <div class="rpt-sheet">
+                    <div class="rpt-print-head">
+                        <strong>@(string.IsNullOrWhiteSpace(students.SchoolName) ? Session.Current?.SchoolName : students.SchoolName)</strong>
+                        <div>@Locale.T("rpt.class"): @students.ClassName</div>
+                    </div>
+                    <div class="rpt-table-wrap">
+                        <table class="mgrid">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("students.id")</th>
+                                    <th>@Locale.T("rpt.name")</th>
+                                    <th>@Locale.T("rpt.roll")</th>
+                                    @foreach (var month in students.Months) { <th class="num">@month</th> }
+                                    <th class="num">@Locale.T("rpt.total")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @if (students.Students.Count == 0)
+                            {
+                                <tr><td colspan="@(students.Months.Count + 4)">@Locale.T("rpt.empty")</td></tr>
+                            }
+                            @foreach (var row in students.Students)
+                            {
+                                <tr>
+                                    <td>@row.ID</td>
+                                    <td>@row.Name</td>
+                                    <td>@row.RollNo</td>
+                                    @foreach (var month in students.Months)
+                                    {
+                                        @if (row.Months.TryGetValue(month, out var paid))
+                                        {
+                                            <td class="num @(paid == 0 ? "unpaid-zero" : null)">@(paid == 0 ? "0" : paid.ToString("N0"))</td>
+                                        }
+                                        else
+                                        {
+                                            <td></td>
+                                        }
+                                    }
+                                    <td class="num">@Tk(row.Total)</td>
+                                </tr>
+                            }
+                            </tbody>
+                            @if (students.Students.Count > 0)
+                            {
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="3">@Locale.T("rpt.total")</th>
+                                        @foreach (var month in students.Months)
+                                        {
+                                            <th class="num">@Cell(students.MonthTotals, month)</th>
+                                        }
+                                        <th class="num">@Tk(students.GrandTotal)</th>
+                                    </tr>
+                                </tfoot>
+                            }
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <p class="rpt-empty-hint">@Locale.T("rpt.needClass")</p>
+            }
+        }
+        else if (money is not null)
+        {
+            <div class="rpt-table-wrap">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("rpt.category")</th>
+                            @foreach (var column in CurrentMatrix.Columns) { <th class="num">@column</th> }
+                            <th class="num">@Locale.T("rpt.total")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (CurrentMatrix.Rows.Count == 0)
+                    {
+                        <tr><td colspan="@(CurrentMatrix.Columns.Count + 2)">@Locale.T("rpt.empty")</td></tr>
+                    }
+                    @foreach (var row in CurrentMatrix.Rows)
+                    {
+                        <tr>
+                            <td>@row.Role</td>
+                            @foreach (var column in CurrentMatrix.Columns)
+                            {
+                                <td class="num">@Cell(row.Months, column)</td>
+                            }
+                            <td class="num">@Tk(row.Total)</td>
+                        </tr>
+                    }
+                    </tbody>
+                    @if (CurrentMatrix.Rows.Count > 0)
+                    {
+                        <tfoot>
+                            <tr>
+                                <th>@Locale.T("rpt.total")</th>
+                                @foreach (var column in CurrentMatrix.Columns)
+                                {
+                                    <th class="num">@Cell(CurrentMatrix.ColumnTotals, column)</th>
+                                }
+                                <th class="num">@Tk(CurrentMatrix.GrandTotal)</th>
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private MonthBasedDto? students;
+    private MonthBasedDto? money;
+    private List<SchoolClassDto> classes = [];
+    private List<NameAmountDto> sections = [];
+    private List<NameAmountDto> roles = [];
+    private HashSet<int> picked = [];
+    private int classId;
+    private string sectionId = "%";
+    private int tab, subTab;
+    private string fromText = "", toText = "", roleSearch = "", error = "";
+    private bool busy;
+
+    private IEnumerable<NameAmountDto> VisibleRoles =>
+        string.IsNullOrWhiteSpace(roleSearch)
+            ? roles
+            : roles.Where(r => r.Name.Contains(roleSearch, StringComparison.OrdinalIgnoreCase));
+
+    private bool AllPicked => roles.Count > 0 && roles.All(r => picked.Contains(r.Id));
+
+    private MonthMatrixDto CurrentMatrix
+    {
+        get
+        {
+            if (money is null) return new MonthMatrixDto();
+            if (tab == 1) return subTab == 0 ? money.IncomeDaily : money.IncomeMonthly;
+            return subTab == 0 ? money.ExpenseDaily : money.ExpenseMonthly;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        var today = DateTime.Today;
+        fromText = Iso(new DateTime(today.Year, today.Month, 1));
+        toText = Iso(today);
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            classes.AddRange(await Api.GetClassesAsync(Session.AccessToken));
+            await LoadMoneyAsync();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task OnClassAsync()
+    {
+        sections = [];
+        roles = [];
+        picked.Clear();
+        sectionId = "%";
+        students = null;
+        if (classId <= 0) return;
+        try
+        {
+            sections = (await Api.GetReportSectionsAsync(Session.AccessToken, classId)).ToList();
+            roles = (await Api.GetMonthBasedRolesAsync(Session.AccessToken, classId)).ToList();
+        }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private void Toggle(int id, ChangeEventArgs e)
+    {
+        if (e.Value is true or "true" or "True") picked.Add(id);
+        else picked.Remove(id);
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        if (e.Value is true or "true" or "True")
+        {
+            foreach (var role in roles) picked.Add(role.Id);
+        }
+        else picked.Clear();
+    }
+
+    private void ClearRoles() => picked.Clear();
+
+    private async Task FindAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { await LoadMoneyAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (classId <= 0) { error = Locale.T("rpt.needClass"); return; }
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try
+        {
+            var ids = picked.Count == 0 || AllPicked ? null : string.Join(",", picked);
+            students = await Api.GetMonthBasedReportAsync(
+                Session.AccessToken, null, null, classId, ids, sectionId, students: true, money: false);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadMoneyAsync()
+    {
+        money = await Api.GetMonthBasedReportAsync(
+            Session.AccessToken, Parse(fromText), Parse(toText), 0, null, null, students: false, money: true);
+    }
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("window.print").AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");
+    private static string Tk(decimal n) => n == 0 ? "" : n.ToString("N0");
+    private static string Cell(Dictionary<string, decimal> values, string key) =>
+        values.TryGetValue(key, out var amt) && amt != 0 ? amt.ToString("N0") : "";
+}

@@ -1,0 +1,354 @@
+@page "/student-mgmt/group-section-shift"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject SyncEngine Sync
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("sm.groupShift")</h1>
+    <p class="muted">@Locale.T("sm.crumb")</p>
+    <p class="muted">@Locale.T("sm.groupShiftHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindByIdAsync">@Locale.T("si.find")</button>
+    </div>
+
+    @if (ClassId > 0 || rows.Count > 0)
+    {
+        <div class="filter-row sm-to-row">
+            <span>@Locale.T("sm.changeTo")</span>
+            @if (groups.Count > 0)
+            {
+                <select @bind="toGroupInput" disabled="@busy">
+                    <option value="0">@Locale.T("si.selectGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (sections.Count > 0)
+            {
+                <select @bind="toSectionInput" disabled="@busy">
+                    <option value="0">@Locale.T("si.selectSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (shifts.Count > 0)
+            {
+                <select @bind="toShiftInput" disabled="@busy">
+                    <option value="0">@Locale.T("si.selectShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+        </div>
+    }
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act"><input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" /></th>
+                <th>@Locale.T("si.id")</th>
+                <th>@Locale.T("si.roll")</th>
+                <th>@Locale.T("si.name")</th>
+                @if (groups.Count > 0)
+                {
+                    <th>@Locale.T("students.group")</th>
+                }
+                @if (sections.Count > 0)
+                {
+                    <th>@Locale.T("students.section")</th>
+                }
+                @if (shifts.Count > 0)
+                {
+                    <th>@Locale.T("students.shift")</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="@TableCols" class="empty-row">@Locale.T("si.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                    <td>@row.ID</td>
+                    <td>@row.RollNo</td>
+                    <td>@row.StudentsName</td>
+                    @if (groups.Count > 0)
+                    {
+                        <td>@row.GroupName</td>
+                    }
+                    @if (sections.Count > 0)
+                    {
+                        <td>@row.SectionName</td>
+                    }
+                    @if (shifts.Count > 0)
+                    {
+                        <td>@row.ShiftName</td>
+                    }
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<SmStudentRowDto> rows = [];
+    private ClassStructureDto? structure;
+    private string classInput = "0";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private string toGroupInput = "0";
+    private string toSectionInput = "0";
+    private string toShiftInput = "0";
+    private string findId = "";
+    private bool busy;
+    private bool allSelected;
+    private string? error;
+    private string? message;
+
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+    private int ToGroupId => int.TryParse(toGroupInput, out var n) ? n : 0;
+    private int ToSectionId => int.TryParse(toSectionInput, out var n) ? n : 0;
+    private int ToShiftId => int.TryParse(toShiftInput, out var n) ? n : 0;
+    private int TableCols => 4
+        + (groups.Count > 0 ? 1 : 0)
+        + (sections.Count > 0 ? 1 : 0)
+        + (shifts.Count > 0 ? 1 : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        structure = await Api.GetClassStructureAsync(Session.AccessToken);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+    }
+
+    private async Task OnClassChanged()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        toGroupInput = toSectionInput = toShiftInput = "0";
+        findId = "";
+        ApplyParts();
+        await LoadAsync();
+    }
+
+    private void ApplyParts()
+    {
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        if (structure is null || ClassId <= 0)
+            return;
+        var parts = structure.AssignedParts(ClassId);
+        groups.AddRange(parts.Groups);
+        sections.AddRange(parts.Sections);
+        shifts.AddRange(parts.Shifts);
+    }
+
+    private async Task FindByIdAsync()
+    {
+        classInput = "0";
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        await LoadAsync();
+        if (rows.Count == 1)
+        {
+            classInput = rows[0].ClassID.ToString();
+            ApplyParts();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        if (string.IsNullOrWhiteSpace(findId) && ClassId <= 0)
+        {
+            rows.Clear();
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var data = await Api.GetSmStudentsAsync(Session.AccessToken, ClassId, GroupId, SectionId, ShiftId, findId, null);
+            rows.Clear();
+            rows.AddRange(data);
+            allSelected = false;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        allSelected = e.Value is true or "true";
+        foreach (var row in rows)
+            row.Selected = allSelected;
+    }
+
+    private async Task SaveAsync()
+    {
+        error = message = null;
+        var ids = rows.Where(x => x.Selected).Select(x => x.StudentClassID).ToList();
+        if (ids.Count == 0)
+        {
+            error = Locale.T("sm.needStudents");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.SaveSmPlacementAsync(Session.AccessToken, new BulkPlacementRequest
+            {
+                StudentClassIDs = ids,
+                SubjectGroupID = ToGroupId,
+                SectionID = ToSectionId,
+                ShiftID = ToShiftId,
+                UpdateGroup = groups.Count > 0,
+                UpdateSection = sections.Count > 0,
+                UpdateShift = shifts.Count > 0
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            if (Session.Current is not null)
+            {
+                var groupName = groups.FirstOrDefault(x => x.ServerId == ToGroupId)?.Name;
+                var sectionName = sections.FirstOrDefault(x => x.ServerId == ToSectionId)?.Name;
+                var shiftName = shifts.FirstOrDefault(x => x.ServerId == ToShiftId)?.Name;
+                var patches = rows.Where(x => x.Selected).Select(x => new SmStudentRowDto
+                {
+                    StudentID = x.StudentID,
+                    StudentClassID = x.StudentClassID,
+                    SubjectGroupID = groups.Count > 0 ? ToGroupId : x.SubjectGroupID,
+                    SectionID = sections.Count > 0 ? ToSectionId : x.SectionID,
+                    ShiftID = shifts.Count > 0 ? ToShiftId : x.ShiftID,
+                    GroupName = groups.Count > 0 ? groupName : x.GroupName,
+                    SectionName = sections.Count > 0 ? sectionName : x.SectionName,
+                    ShiftName = shifts.Count > 0 ? shiftName : x.ShiftName
+                }).ToList();
+                await Sync.MergeStudentPlacementsAsync(
+                    Session.Current.SchoolID, Session.Current.EducationYearID, patches);
+            }
+
+            var ok = Locale.T("sm.okPlacement", result.Count);
+            await LoadAsync();
+            message = ok;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+}

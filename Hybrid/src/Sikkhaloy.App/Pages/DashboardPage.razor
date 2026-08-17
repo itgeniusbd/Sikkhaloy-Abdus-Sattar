@@ -1,0 +1,536 @@
+@page "/dashboard"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="dash-page">
+    <div class="dash-hero">
+        <div>
+            <h1>@Locale.T("dash.hello")</h1>
+            <p>@Locale.T("dash.today", Session.Current?.SchoolName ?? "", DateTime.Now.ToString("dd MMMM yyyy"))</p>
+        </div>
+        <div class="dash-hero-actions">
+            <span class="dash-pending-pill">@Locale.T("dash.pending"): @stats.PendingSync</span>
+            <button class="btn-primary" @onclick="SyncNow" disabled="@busy">@(busy ? Locale.T("students.syncing") : Locale.T("students.sync"))</button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="@(messageError ? "error" : "ok")">@message</div>
+    }
+
+    @if (stats.TotalStudents == 0)
+    {
+        <div class="notice">@Locale.T("dash.needFirstSync")</div>
+    }
+
+    <section class="dash-quick">
+        <h2>@Locale.T("dash.quick")</h2>
+        <div class="dash-quick-grid">
+            <a class="dash-quick-card is-teal" href="students/new">
+                <span class="dash-quick-ico">@NewIcon</span>
+                <h3>@Locale.T("dash.admission")</h3>
+                <p>@Locale.T("dash.admission.desc")</p>
+            </a>
+            <a class="dash-quick-card is-pink" href="students">
+                <span class="dash-quick-ico">@SearchIcon</span>
+                <h3>@Locale.T("dash.find")</h3>
+                <p>@Locale.T("dash.find.desc")</p>
+            </a>
+            <a class="dash-quick-card is-blue" href="accounts/collect">
+                <span class="dash-quick-ico">@MoneyIcon</span>
+                <h3>@Locale.T("dash.fees")</h3>
+                <p>@Locale.T("dash.fees.desc")</p>
+            </a>
+            <a class="dash-quick-card is-amber" href="attendance/student/manual">
+                <span class="dash-quick-ico">@AttIcon</span>
+                <h3>@Locale.T("dash.attendance")</h3>
+                <p>@Locale.T("dash.attendance.desc")</p>
+            </a>
+            <a class="dash-quick-card is-violet" href="exam/input">
+                <span class="dash-quick-ico">@ExamIcon</span>
+                <h3>@Locale.T("dash.exam")</h3>
+                <p>@Locale.T("dash.exam.desc")</p>
+            </a>
+            <a class="dash-quick-card is-green" href="exam/collect-paper">
+                <span class="dash-quick-ico">@PaperIcon</span>
+                <h3>@Locale.T("dash.collectPaper")</h3>
+                <p>@Locale.T("dash.collectPaper.desc")</p>
+            </a>
+        </div>
+    </section>
+
+    <div class="dash-main">
+        <div class="dash-left">
+        <section class="card dash-panel">
+            <div class="toolbar">
+                <h2>@Locale.T("dash.classTitle")</h2>
+                <a href="students">@Locale.T("dash.totalCol"): @stats.TotalStudents.ToString("N0")</a>
+            </div>
+            @if (stats.Classes.Count == 0)
+            {
+                <p class="muted">@Locale.T(stats.PendingSync > 0 ? "dash.emptyQueued" : "dash.empty")</p>
+            }
+            else
+            {
+                <table class="data-table dash-class-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("dash.classCol")</th>
+                            <th>@Locale.T("dash.newCol")</th>
+                            <th>@Locale.T("dash.oldCol")</th>
+                            <th>@Locale.T("dash.totalCol")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in stats.Classes)
+                    {
+                        <tr>
+                            <td>@row.ClassName</td>
+                            <td>@row.NewCount.ToString("N0")</td>
+                            <td>@row.OldCount.ToString("N0")</td>
+                            <td><b>@row.Total.ToString("N0")</b></td>
+                            <td>
+                                <div class="dash-stack">
+                                    <span class="is-new" style="width:@Pct(row.NewCount, row.Total)%"></span>
+                                    <span class="is-old" style="width:@Pct(row.OldCount, row.Total)%"></span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>@Locale.T("dash.totalCol")</th>
+                            <th>@stats.NewCount.ToString("N0")</th>
+                            <th>@stats.OldCount.ToString("N0")</th>
+                            <th>@stats.TotalStudents.ToString("N0")</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            }
+        </section>
+
+        @if (online.Sessions.Count > 0)
+        {
+            <section class="card dash-panel dash-session">
+                <h2>@Locale.T("dash.yearStudents")</h2>
+                <div class="dash-years">
+                    @foreach (var year in online.Sessions)
+                    {
+                        <div class="dash-year">
+                            <div class="dash-year-col" style="height:@Pct(year.Count, SessionMax)%"></div>
+                            <b>@year.Count.ToString("N0")</b>
+                            <span>@year.Name</span>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+        </div>
+
+        <aside class="dash-side">
+            <section class="card dash-panel">
+                <h2>@Locale.T("dash.gender")</h2>
+                <div class="dash-gender">
+                    <div class="dash-donut" style="--male:@MalePct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;">
+                        <div class="dash-donut-hole">
+                            <strong>@stats.TotalStudents.ToString("N0")</strong>
+                            <small>@Locale.T("dash.total")</small>
+                        </div>
+                    </div>
+                    <ul class="dash-legend">
+                        <li><i class="is-male"></i> @Locale.T("dash.boys") <b>@stats.MaleCount.ToString("N0")</b> <em>@MalePct.ToString("0")%</em></li>
+                        <li><i class="is-female"></i> @Locale.T("dash.girls") <b>@stats.FemaleCount.ToString("N0")</b> <em>@FemalePct.ToString("0")%</em></li>
+                    </ul>
+                </div>
+            </section>
+
+            @if (online.SmsRemaining > 0 || online.SmsSent > 0 || online.SmsByYear.Count > 0)
+            {
+                <section class="card dash-panel">
+                    <h2>@Locale.T("dash.sms")</h2>
+                    <div class="dash-sms">
+                        <div>
+                            <strong>@online.SmsRemaining.ToString("N0")</strong>
+                            <span>@Locale.T("dash.smsRemain")</span>
+                        </div>
+                        <div>
+                            <strong>@online.SmsSent.ToString("N0")</strong>
+                            <span>@Locale.T("dash.smsSent")</span>
+                        </div>
+                    </div>
+                    @if (online.SmsByYear.Count > 0)
+                    {
+                        <div class="dash-bars">
+                            @foreach (var year in online.SmsByYear)
+                            {
+                                <div class="dash-bar-row">
+                                    <span>@year.Name</span>
+                                    <div class="dash-bar"><i style="width:@Pct(year.Count, SmsYearMax)%"></i></div>
+                                    <b>@year.Count.ToString("N0")</b>
+                                </div>
+                            }
+                        </div>
+                    }
+                </section>
+            }
+
+            @if (online.AttendanceToday.Count > 0)
+            {
+                <section class="card dash-panel">
+                    <h2>@Locale.T("dash.todayAtt")</h2>
+                    <ul class="dash-att">
+                        @foreach (var item in online.AttendanceToday)
+                        {
+                            <li class="@AttClass(item.Name)">
+                                <span>@AttLabel(item.Name)</span>
+                                <b>@item.Count.ToString("N0")</b>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+
+            @if (online.Employees.Count > 0)
+            {
+                <section class="card dash-panel">
+                    <h2>@Locale.T("dash.employees")</h2>
+                    <div class="dash-bars">
+                        @foreach (var item in online.Employees)
+                        {
+                            <div class="dash-bar-row">
+                                <span>@EmpLabel(item.Name)</span>
+                                <div class="dash-bar is-emp"><i style="width:@Pct(item.Count, EmpMax)%"></i></div>
+                                <b>@item.Count.ToString("N0")</b>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+
+            @if (stats.BloodGroups.Count > 0)
+            {
+                <section class="card dash-panel">
+                    <h2>@Locale.T("dash.blood")</h2>
+                    <div class="dash-bars">
+                        @foreach (var item in stats.BloodGroups)
+                        {
+                            <div class="dash-bar-row">
+                                <span>@item.Name</span>
+                                <div class="dash-bar is-blood"><i style="width:@Pct(item.Count, BloodMax)%"></i></div>
+                                <b>@item.Count.ToString("N0")</b>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        </aside>
+    </div>
+
+    <div class="dash-lists">
+        <section class="card dash-panel">
+            <h2>@Locale.T("dash.birthday")</h2>
+            @if (stats.BirthdaysToday.Count == 0)
+            {
+                <p class="muted">@Locale.T("dash.noBirthday")</p>
+            }
+            else
+            {
+                <ul class="dash-people">
+                    @foreach (var student in stats.BirthdaysToday)
+                    {
+                        <li>
+                            <a href="@($"students/details/{student.LocalId}")">
+                                <strong>@student.StudentsName</strong>
+                                <span>ID @student.StudentCode · @student.ClassName</span>
+                            </a>
+                            <em>@Locale.T("dash.age", Age(student.DateofBirth).ToString())</em>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+        <section class="card dash-panel">
+            <h2>@Locale.T("dash.upcoming")</h2>
+            @if (stats.BirthdaysUpcoming.Count == 0)
+            {
+                <p class="muted">@Locale.T("dash.noBirthday")</p>
+            }
+            else
+            {
+                <ul class="dash-people">
+                    @foreach (var student in stats.BirthdaysUpcoming)
+                    {
+                        <li>
+                            <a href="@($"students/details/{student.LocalId}")">
+                                <strong>@student.StudentsName</strong>
+                                <span>ID @student.StudentCode · @student.ClassName</span>
+                            </a>
+                            <em>@(student.DateofBirth?.ToString("d MMM")) · @Locale.T("dash.ageWill", AgeWillBe(student.DateofBirth).ToString())</em>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+
+    <section class="card students-card">
+        <div class="toolbar">
+            <h2>@Locale.T("dash.recent")</h2>
+            <a href="students">@Locale.T("dash.viewAll")</a>
+        </div>
+        @if (stats.Recent.Count == 0)
+        {
+            <p class="muted">@Locale.T(stats.PendingSync > 0 ? "dash.emptyQueued" : "dash.empty")</p>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>@Locale.T("students.name")</th>
+                        <th>@Locale.T("dash.classCol")</th>
+                        <th>@Locale.T("dash.type")</th>
+                        <th>@Locale.T("dash.mobile")</th>
+                        <th>@Locale.T("students.syncCol")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var student in stats.Recent)
+                {
+                    <tr>
+                        <td><a class="name-link" href="@($"students/details/{student.LocalId}")">@student.StudentCode</a></td>
+                        <td><a class="name-link" href="@($"students/details/{student.LocalId}")">@student.StudentsName</a></td>
+                        <td>@(student.ClassName ?? "—")</td>
+                        <td><span class="@TypePillClass(student.IsNew)">@TypeLabel(student.IsNew)</span></td>
+                        <td>@student.SMSPhoneNo</td>
+                        <td><span class="pill">@student.SyncStatus</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("students.syncing")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardStats stats = new();
+    private DashboardOverviewDto online = new();
+    private bool busy;
+    private bool autoTried;
+    private bool messageError;
+    private string? message;
+
+    private double MalePct => stats.TotalStudents == 0 ? 0 : 100.0 * stats.MaleCount / stats.TotalStudents;
+    private double FemalePct => stats.TotalStudents == 0 ? 0 : 100.0 * stats.FemaleCount / stats.TotalStudents;
+    private int SmsYearMax => Math.Max(1, online.SmsByYear.Select(x => x.Count).DefaultIfEmpty(0).Max());
+    private int EmpMax => Math.Max(1, online.Employees.Select(x => x.Count).DefaultIfEmpty(0).Max());
+    private int BloodMax => Math.Max(1, stats.BloodGroups.Select(x => x.Count).DefaultIfEmpty(0).Max());
+    private int SessionMax => Math.Max(1, online.Sessions.Select(x => x.Count).DefaultIfEmpty(0).Max());
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        Session.Changed += OnSessionChanged;
+        Sync.StateChanged += OnSyncChanged;
+        await LoadAsync();
+        if (!autoTried && stats.TotalStudents == 0 && !string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            autoTried = true;
+            await SyncNow();
+        }
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(LoadAsync);
+    private void OnSyncChanged() => _ = InvokeAsync(RefreshLocalAsync);
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Sync.StateChanged -= OnSyncChanged;
+        base.Dispose();
+    }
+
+    private async Task LoadAsync()
+    {
+        var current = Session.Current;
+        if (current is null)
+            return;
+
+        var localTask = Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
+        var onlineTask = LoadOnlineAsync();
+        stats = await localTask;
+        if (!busy && !string.IsNullOrWhiteSpace(Sync.LastError) && stats.TotalStudents == 0)
+        {
+            message = TranslateSyncError(Sync.LastError);
+            messageError = true;
+        }
+        StateHasChanged();
+        await onlineTask;
+    }
+
+    private async Task RefreshLocalAsync()
+    {
+        var current = Session.Current;
+        if (current is null)
+            return;
+        stats = await Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
+        StateHasChanged();
+    }
+
+    private async Task LoadOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            if (!await Api.PingAsync())
+                return;
+            online = await Api.GetDashboardOverviewAsync(Session.AccessToken);
+            StateHasChanged();
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SyncNow()
+    {
+        if (Session.Current is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            message = Locale.T("dash.needLogin");
+            messageError = true;
+            return;
+        }
+
+        busy = true;
+        message = null;
+        messageError = false;
+        await PaintAsync();
+        try
+        {
+            await Sync.RunOnceAsync(Session.Current, Session.AccessToken, force: true);
+            await LoadAsync();
+            if (!string.IsNullOrWhiteSpace(Sync.LastError))
+            {
+                message = TranslateSyncError(Sync.LastError);
+                messageError = true;
+            }
+            else
+            {
+                message = Sync.IsOnline ? Locale.T("students.synced") : Locale.T("students.offlineQueued");
+                messageError = !Sync.IsOnline;
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task PaintAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private static int Pct(int part, int total) => total <= 0 ? 0 : (int)Math.Round(100.0 * part / total);
+
+    private string TypeLabel(bool? isNew) =>
+        isNew == true ? Locale.T("dash.typeNew")
+        : isNew == false ? Locale.T("dash.typeReadmit")
+        : "—";
+
+    private static string TypePillClass(bool? isNew) =>
+        isNew == true ? "pill pill-new"
+        : isNew == false ? "pill pill-old"
+        : "pill";
+
+    private string AttLabel(string name)
+    {
+        var key = name.Trim().ToLowerInvariant() switch
+        {
+            "pre" or "present" => "dash.present",
+            "abs" or "absent" => "dash.absent",
+            "late" => "dash.late",
+            "leave" or "early leave" => "dash.leave",
+            _ => ""
+        };
+        return key.Length == 0 ? name : Locale.T(key);
+    }
+
+    private static string AttClass(string name) =>
+        name.Trim().ToLowerInvariant() switch
+        {
+            "pre" or "present" => "is-ok",
+            "abs" or "absent" => "is-bad",
+            "late" => "is-warn",
+            _ => "is-info"
+        };
+
+    private string EmpLabel(string name) =>
+        name.Trim().ToLowerInvariant() switch
+        {
+            "teacher" => Locale.T("dash.teacher"),
+            "staff" => Locale.T("dash.staff"),
+            _ => name
+        };
+
+    private static int Age(DateTime? dob)
+    {
+        if (dob is null) return 0;
+        var today = DateTime.Today;
+        var age = today.Year - dob.Value.Year;
+        if (dob.Value.Date > today.AddYears(-age)) age--;
+        return Math.Max(age, 0);
+    }
+
+    private static int AgeWillBe(DateTime? dob) => Age(dob) + 1;
+
+    private string TranslateSyncError(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return Locale.T("sync.failed");
+        if (error.StartsWith("login.", StringComparison.OrdinalIgnoreCase)
+            || error.StartsWith("sync.", StringComparison.OrdinalIgnoreCase)
+            || error.StartsWith("dash.", StringComparison.OrdinalIgnoreCase))
+            return Locale.T(error);
+        return error;
+    }
+
+    private static readonly MarkupString NewIcon = Icon("M12 5v14M5 12h14");
+    private static readonly MarkupString MoneyIcon = Icon("M4 7h16v10H4V7Zm0 4h16M12 9v6");
+    private static readonly MarkupString SearchIcon = Icon("M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10-1-4.35-4.35");
+    private static readonly MarkupString AttIcon = Icon("M9 11l3 3 8-8M5 19h14V5H5v14Z");
+    private static readonly MarkupString ExamIcon = Icon("M8 4h8v2H8V4Zm-2 4h12v12H6V8Zm4 4h4M10 16h4");
+    private static readonly MarkupString PaperIcon = Icon("M7 3h8l4 4v14H7V3Zm8 0v4h4M9 12h6M9 16h6");
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+}

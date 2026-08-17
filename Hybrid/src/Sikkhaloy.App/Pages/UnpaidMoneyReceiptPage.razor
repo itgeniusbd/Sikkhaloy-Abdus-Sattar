@@ -1,0 +1,97 @@
+@page "/accounts/unpaid-receipt"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page">
+    <h1>@Locale.T("acc.unpaid")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (!string.IsNullOrWhiteSpace(message)) { <div class="ok">@message</div> }
+
+    <div class="filter-row">
+        <input type="text" placeholder="@Locale.T("acc.receiptNo")" @bind="query" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+    </div>
+
+    @if (detail is not null)
+    {
+        @if (detail.Student is not null)
+        {
+            <div class="acc-person">
+                <strong>@detail.Student.Name</strong> (@detail.Student.ID)<br />
+                @detail.Student.ClassName · @Locale.T("att.rollNo") @detail.Student.RollNo
+            </div>
+        }
+        <p>@Locale.T("acc.receiptNo"): <strong>@detail.ReceiptNo</strong> · @detail.PaidDate.ToString("dd-MMM-yyyy")</p>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("acc.roleName")</th>
+                    <th>@Locale.T("acc.payFor")</th>
+                    <th>@Locale.T("acc.paid")</th>
+                    <th>@Locale.T("acc.due")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var line in detail.Lines)
+            {
+                <tr>
+                    <td>@line.Role</td>
+                    <td>@line.PayFor</td>
+                    <td>@line.PaidAmount.ToString("0.##")</td>
+                    <td class="acc-due">@line.Due.ToString("0.##")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        <p class="acc-total">@Locale.T("acc.total"): @detail.TotalAmount.ToString("0.##")</p>
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="UnpaidAsync">@Locale.T("acc.unpaidBtn")</button>
+    }
+</div>
+
+@code {
+    private string query = "";
+    private ReceiptDetailDto? detail;
+    private bool busy;
+    private string? error, message;
+
+    private async Task LoadAsync()
+    {
+        error = message = null;
+        detail = null;
+        if (string.IsNullOrWhiteSpace(query)) { error = Locale.T("acc.needReceipt"); return; }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            detail = await Api.GetMoneyReceiptAsync(Session.AccessToken!, query.Trim());
+            if (detail is null) error = Locale.T("acc.empty");
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task UnpaidAsync()
+    {
+        if (detail is null) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.UnpaidMoneyReceiptAsync(Session.AccessToken!, detail.MoneyReceiptID);
+            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
+            message = Locale.T("acc.unpaidOk");
+            detail = null;
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        { error = Locale.T("subj.needOnline"); return false; }
+        return true;
+    }
+}

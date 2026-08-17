@@ -1,0 +1,162 @@
+@page "/accounts/reports/account-details"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt adet-rpt">
+    <div class="rpt-filters no-print">
+        <select @bind="accountId">
+            <option value="%">@Locale.T("rpt.allAccount")</option>
+            @foreach (var acc in accounts)
+            {
+                <option value="@acc.AccountID">@acc.AccountName</option>
+            }
+        </select>
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+    <h1>@Locale.T("rpt.accSummary") @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }</h1>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @foreach (var acc in items)
+    {
+        <div class="acc-det">
+            <div class="adet-row">
+                <div class="adet-card adet-acc">
+                    <div class="adet-name">@acc.AccountName</div>
+                    <div class="adet-half">
+                        <small>@Locale.T("rpt.currentBal")</small>
+                        <strong>@Tk(acc.Balance) @Locale.T("acc.tk")</strong>
+                    </div>
+                </div>
+                <div class="adet-card adet-io">
+                    <div class="adet-half">
+                        <small>@Locale.T("rpt.totalAdd")</small>
+                        <strong>@Tk(acc.TotalAdd) @Locale.T("acc.tk")</strong>
+                    </div>
+                    <div class="adet-half">
+                        <small>@Locale.T("rpt.totalSub")</small>
+                        <strong>@Tk(acc.TotalSub) @Locale.T("acc.tk")</strong>
+                    </div>
+                </div>
+                <div class="adet-card adet-oc">
+                    <div class="adet-half">
+                        <small>@Locale.T("rpt.opening")</small>
+                        <span class="adet-day">@FromDay</span>
+                        <strong>@Tk(acc.Opening) @Locale.T("acc.tk")</strong>
+                    </div>
+                    <div class="adet-half">
+                        <small>@Locale.T("rpt.closing")</small>
+                        <span class="adet-day">@ToDay</span>
+                        <strong>@Tk(acc.Closing) @Locale.T("acc.tk")</strong>
+                    </div>
+                </div>
+            </div>
+            @if (acc.Adds.Count > 0)
+            {
+                <div class="rpt-box in">@Locale.T("rpt.addBal")</div>
+                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
+                <tbody>@foreach (var row in acc.Adds) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
+            }
+            @if (acc.AddAdjust.Count > 0)
+            {
+                <div class="rpt-box acc">@Locale.T("rpt.addAdj")</div>
+                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
+                <tbody>@foreach (var row in acc.AddAdjust) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
+            }
+            @if (acc.Subs.Count > 0)
+            {
+                <div class="rpt-box ex">@Locale.T("rpt.subBal")</div>
+                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
+                <tbody>@foreach (var row in acc.Subs) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
+            }
+            @if (acc.SubAdjust.Count > 0)
+            {
+                <div class="rpt-box user">@Locale.T("rpt.subAdj")</div>
+                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
+                <tbody>@foreach (var row in acc.SubAdjust) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
+            }
+        </div>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Acc { get; set; }
+
+    private List<CashAccountDto> accounts = [];
+    private List<AccountDetailDto> items = [];
+    private string accountId = "%", fromText = "", toText = "", error = "";
+    private bool busy;
+
+    private string DateLabel => RangeLabel(fromText, toText);
+    private string FromDay => Parse(fromText)?.ToString("d MMM yyyy") ?? "";
+    private string ToDay => Parse(toText)?.ToString("d MMM yyyy") ?? "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!string.IsNullOrWhiteSpace(Acc)) accountId = Acc;
+        var today = DateTime.Today;
+        fromText = Iso(new DateTime(today.Year, today.Month, 1));
+        toText = Iso(today);
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            accounts.AddRange(await Api.GetCashAccountsAsync(Session.AccessToken));
+            await LoadCoreAsync();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { await LoadCoreAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadCoreAsync() =>
+        items = (await Api.GetAccountDetailsAsync(Session.AccessToken, accountId, Parse(fromText), Parse(toText))).ToList();
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");
+    private static string Tk(decimal n) => n.ToString("N0");
+
+    private static string RangeLabel(string fromRaw, string toRaw)
+    {
+        var from = Parse(fromRaw);
+        var to = Parse(toRaw);
+        if (from is null && to is null) return "";
+        if (from is not null && to is not null)
+        {
+            var a = from.Value.ToString("d MMM yyyy");
+            var b = to.Value.ToString("d MMM yyyy");
+            return from.Value == to.Value ? a : $"({a} To {b})";
+        }
+        if (from is not null) return $"After {from.Value:d MMM yyyy}";
+        return $"Before {to!.Value:d MMM yyyy}";
+    }
+}

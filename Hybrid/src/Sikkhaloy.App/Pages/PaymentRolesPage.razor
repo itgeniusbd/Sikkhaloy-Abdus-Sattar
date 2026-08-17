@@ -1,0 +1,189 @@
+@page "/accounts/roles"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page">
+    <h1>@Locale.T("acc.roles")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (!string.IsNullOrWhiteSpace(message)) { <div class="ok">@message</div> }
+
+    <div class="inline-add">
+        <input type="text" placeholder="@Locale.T("acc.roleName")" @bind="name" disabled="@busy" />
+        <input type="number" min="1" placeholder="@Locale.T("acc.numberOfPay")" @bind="pays" disabled="@busy" />
+        <input type="text" placeholder="@Locale.T("acc.desc")" @bind="desc" disabled="@busy" />
+        <button type="button" class="primary" disabled="@busy" @onclick="AddAsync">@Locale.T("acc.add")</button>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act">@Locale.T("sal.edit")</th>
+                <th>@Locale.T("acc.roleName")</th>
+                <th>@Locale.T("acc.pays")</th>
+                <th>@Locale.T("acc.desc")</th>
+                <th class="act">@Locale.T("sal.delete")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="5" class="empty-row">@Locale.T("acc.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td class="act">
+                        @if (editId == row.RoleID)
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveAsync(row)">@Locale.T("si.update")</button>
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => editId = 0">@Locale.T("sal.cancel")</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("sal.edit")</button>
+                        }
+                    </td>
+                    <td>
+                        @if (editId == row.RoleID)
+                        {
+                            <input type="text" @bind="editName" disabled="@busy" />
+                        }
+                        else { @row.Role }
+                    </td>
+                    <td>
+                        @if (editId == row.RoleID)
+                        {
+                            <input type="number" min="1" @bind="editPays" disabled="@busy" />
+                        }
+                        else { @row.NumberOfPay }
+                    </td>
+                    <td>
+                        @if (editId == row.RoleID)
+                        {
+                            <input type="text" @bind="editDesc" disabled="@busy" />
+                        }
+                        else { @row.Description }
+                    </td>
+                    <td class="act">
+                        <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(row.RoleID)">@Locale.T("sal.delete")</button>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<PaymentRoleDto> rows = [];
+    private string name = "";
+    private int pays = 1;
+    private string desc = "";
+    private int editId;
+    private string editName = "";
+    private int editPays = 1;
+    private string? editDesc;
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync(bool keepStatus = false)
+    {
+        if (!keepStatus)
+            error = message = null;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GetPaymentRolesAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task AddAsync()
+    {
+        error = message = null;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.CreatePaymentRoleAsync(Session.AccessToken!, new SavePaymentRoleRequest
+            {
+                Role = name, NumberOfPay = pays, Description = desc
+            });
+            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
+            name = desc = "";
+            pays = 1;
+            message = Locale.T("acc.saved");
+            await LoadAsync(keepStatus: true);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void StartEdit(PaymentRoleDto row)
+    {
+        editId = row.RoleID;
+        editName = row.Role;
+        editPays = row.NumberOfPay;
+        editDesc = row.Description;
+    }
+
+    private async Task SaveAsync(PaymentRoleDto row)
+    {
+        error = message = null;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.UpdatePaymentRoleAsync(Session.AccessToken!, row.RoleID, new SavePaymentRoleRequest
+            {
+                Role = editName, NumberOfPay = editPays, Description = editDesc
+            });
+            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
+            editId = 0;
+            message = Locale.T("acc.saved");
+            await LoadAsync(keepStatus: true);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        error = message = null;
+        if (id <= 0) { error = Locale.T("acc.failed"); return; }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("acc.confirmDelete")))
+            return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeletePaymentRoleAsync(Session.AccessToken!, id);
+            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
+            message = Locale.T("acc.saved");
+            await LoadAsync(keepStatus: true);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

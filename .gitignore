@@ -338,3 +338,8 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# Hybrid local SQLite and device id
+Hybrid/**/*.db
+Hybrid/**/*.db-shm
+Hybrid/**/*.db-wal

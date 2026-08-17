@@ -1,0 +1,477 @@
+@page "/student-mgmt/tc"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject SyncEngine Sync
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page">
+    <h1 class="no-print">@Locale.T("sm.tc")</h1>
+    <p class="muted no-print">@Locale.T("sm.crumb")</p>
+    <p class="muted no-print">@Locale.T("sm.tcHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok no-print">@message</div>
+    }
+
+    <div class="si-tabs no-print">
+        <button type="button" class="@(tab == "find" ? "active" : null)" @onclick="@(() => tab = "find")">@Locale.T("sm.findTab")</button>
+        <button type="button" class="@(tab == "list" ? "active" : null)" @onclick="ShowListAsync">@Locale.T("sm.listTab")</button>
+    </div>
+
+    @if (tab == "find")
+    {
+        <div class="filter-row no-print">
+            <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
+            <button type="button" class="link-btn" disabled="@(busy || student is null)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </div>
+
+        @if (student is not null)
+        {
+            <div class="si-info no-print">
+                <ul>
+                    <li><b>(@student.ID) @student.StudentsName</b></li>
+                    <li><b>@Locale.T("si.father"):</b> @student.FathersName</li>
+                    <li><b>@Locale.T("si.class"):</b> @student.ClassName, @Locale.T("si.roll"): @student.RollNo</li>
+                    <li><b>@Locale.T("sm.status"):</b> @(student.Status == "Rejected" ? Locale.T("sm.rejected") : Locale.T("sm.active"))</li>
+                </ul>
+            </div>
+
+            @if (!string.Equals(student.Status, "Rejected", StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="filter-row no-print tc-pay-opts">
+                    <label class="choice-inline">
+                        <input type="radio" name="tc-pay" checked="@deletePay" @onchange="@(() => deletePay = true)" />
+                        <span>@Locale.T("sm.deleteAllPay")</span>
+                    </label>
+                    <label class="choice-inline">
+                        <input type="radio" name="tc-pay" checked="@(!deletePay)" @onchange="@(() => deletePay = false)" />
+                        <span>@Locale.T("sm.keepDues")</span>
+                    </label>
+                    <button type="button" class="btn-serial" disabled="@busy" @onclick="GiveAsync">@Locale.T("sm.giveTc")</button>
+                </div>
+            }
+            else
+            {
+                <div class="filter-row no-print">
+                    <select @bind="yearInput" disabled="@busy">
+                        <option value="0">@Locale.T("sm.selectSession")</option>
+                        @foreach (var year in years)
+                        {
+                            <option value="@year.EducationYearID">@year.Name</option>
+                        }
+                    </select>
+                    <select @bind="classInput" @bind:after="ApplyParts" disabled="@busy">
+                        <option value="0">@Locale.T("si.selectClass")</option>
+                        @foreach (var item in classes)
+                        {
+                            <option value="@item.ClassID">@item.Name</option>
+                        }
+                    </select>
+                    @if (groups.Count > 0)
+                    {
+                        <select @bind="groupInput" disabled="@busy">
+                            <option value="0">@Locale.T("si.selectGroup")</option>
+                            @foreach (var item in groups)
+                            {
+                                <option value="@item.ServerId">@item.Name</option>
+                            }
+                        </select>
+                    }
+                    @if (sections.Count > 0)
+                    {
+                        <select @bind="sectionInput" disabled="@busy">
+                            <option value="0">@Locale.T("si.selectSection")</option>
+                            @foreach (var item in sections)
+                            {
+                                <option value="@item.ServerId">@item.Name</option>
+                            }
+                        </select>
+                    }
+                    @if (shifts.Count > 0)
+                    {
+                        <select @bind="shiftInput" disabled="@busy">
+                            <option value="0">@Locale.T("si.selectShift")</option>
+                            @foreach (var item in shifts)
+                            {
+                                <option value="@item.ServerId">@item.Name</option>
+                            }
+                        </select>
+                    }
+                    <button type="button" class="btn-serial" disabled="@busy" @onclick="ActivateAsync">@Locale.T("sm.activate")</button>
+                </div>
+            }
+
+            <article class="cert-sheet tc-sheet">
+                <header class="tc-school">
+                    @if (!string.IsNullOrWhiteSpace(logoUrl))
+                    {
+                        <img src="@logoUrl" alt="" />
+                    }
+                    else
+                    {
+                        <span class="tc-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
+                    }
+                    <div>
+                        <h1>@schoolName</h1>
+                        <p>
+                            @if (!string.IsNullOrWhiteSpace(schoolAddress))
+                            {
+                                <span>@schoolAddress</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(schoolPhone))
+                            {
+                                <span>@schoolPhone</span>
+                            }
+                        </p>
+                    </div>
+                </header>
+                <h2>TRANSFER CERTIFICATE</h2>
+                <div class="cert-body">
+                    <p>
+                        It is hereby gladly declared that <strong>@student.StudentsName</strong>
+                        Student ID: <strong>@student.ID</strong>,
+                        @(IsMale ? "son of" : "daughter of") <strong>@student.FathersName</strong>
+                        @if (!string.IsNullOrWhiteSpace(student.Address))
+                        {
+                            <text> of residence- <strong>@student.Address</strong></text>
+                        }
+                        had been reading in this institution in class <strong>@student.ClassName</strong>
+                        Roll No. <strong>@student.RollNo</strong>
+                        upto <strong>@(student.RejectedDate?.ToString("d MMM yyyy") ?? "—")</strong>.
+                        According to the admission register of the institution,
+                        @(IsMale ? "his" : "her") date of birth is:
+                        <strong>@(student.DateofBirth?.ToString("d MMM yyyy") ?? "—")</strong>.
+                        @(IsMale ? "He" : "She") has been full paid in this institution fee on session:
+                        <strong>@student.EducationYear</strong>.
+                    </p>
+                </div>
+                <div class="tc-causes">
+                    <b>CAUSES OF TRANSFER OF THE INSTITUTION:</b>
+                    <ul class="tc-cause-list">
+                        <li><label class="choice-inline"><input type="checkbox" /><span>Urgent transfer of resident</span></label></li>
+                        <li><label class="choice-inline"><input type="checkbox" /><span>Guardian's wish</span></label></li>
+                        <li><label class="choice-inline"><input type="checkbox" /><span>Has been completion of the session</span></label></li>
+                        <li><label class="choice-inline"><input type="checkbox" /><span>Reason for leaving institution</span></label></li>
+                        <li><label class="choice-inline"><input type="checkbox" /><span>Cause of personal</span></label></li>
+                    </ul>
+                    <ul class="tc-remarks">
+                        <li>Remarks on character and conduct of student : Good</li>
+                        <li>Remarks on caliber and mental aptitude of student : Wishing success</li>
+                    </ul>
+                </div>
+                <div class="cert-signs">
+                    <span></span>
+                    <span>Signature of Authority</span>
+                </div>
+            </article>
+        }
+    }
+    else
+    {
+        <div class="filter-row no-print">
+            <select @bind="listClassInput" @bind:after="LoadListAsync" disabled="@busy">
+                <option value="0">@Locale.T("students.allClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </div>
+        <table class="mgrid no-print">
+            <thead>
+                <tr>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("si.class")</th>
+                    <th>@Locale.T("si.roll")</th>
+                    <th>@Locale.T("sm.date")</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (list.Count == 0 && !busy)
+            {
+                <tr><td colspan="6" class="empty-row">@Locale.T("si.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in list)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td>@row.StudentsName</td>
+                        <td>@row.ClassName</td>
+                        <td>@row.RollNo</td>
+                        <td>@(row.RejectedDate?.ToString("d") ?? "—")</td>
+                        <td><button type="button" class="link-btn" @onclick="() => OpenFromList(row)">@Locale.T("si.print")</button></td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<EducationYearDto> years = [];
+    private readonly List<TcStudentDto> list = [];
+    private ClassStructureDto? structure;
+    private TcStudentDto? student;
+    private string tab = "find";
+    private string findId = "";
+    private string classInput = "0";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private string yearInput = "0";
+    private string listClassInput = "0";
+    private bool deletePay = true;
+    private bool busy;
+    private string? error;
+    private string? message;
+    private string schoolName = "";
+    private string schoolAddress = "";
+    private string schoolPhone = "";
+    private string? logoUrl;
+    private int schoolId;
+
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+    private int YearId => int.TryParse(yearInput, out var n) ? n : 0;
+    private int ListClassId => int.TryParse(listClassInput, out var n) ? n : 0;
+    private bool IsMale => string.Equals(student?.Gender, "Male", StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is not null)
+        {
+            schoolId = Session.Current.SchoolID;
+            var header = Sync.GetSchoolHeader(schoolId);
+            schoolName = string.IsNullOrWhiteSpace(header.SchoolName) ? Session.Current.SchoolName : header.SchoolName;
+            schoolAddress = header.Address ?? "";
+            schoolPhone = header.Phone ?? "";
+            logoUrl = Sync.GetSchoolLogoDataUrl(schoolId);
+        }
+
+        if (!await EnsureOnlineAsync())
+            return;
+        structure = await Api.GetClassStructureAsync(Session.AccessToken);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        years.Clear();
+        years.AddRange(await Api.GetYearsAsync(Session.AccessToken));
+        yearInput = (Session.Current?.EducationYearID ?? 0).ToString();
+    }
+
+    private void ApplyParts()
+    {
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        groupInput = sectionInput = shiftInput = "0";
+        if (structure is null || ClassId <= 0)
+            return;
+        groups.AddRange(structure.Groups.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
+        sections.AddRange(structure.Sections.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
+        shifts.AddRange(structure.Shifts.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
+    }
+
+    private async Task FindAsync()
+    {
+        error = message = null;
+        student = null;
+        if (string.IsNullOrWhiteSpace(findId))
+        {
+            error = Locale.T("si.needId");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            student = await Api.FindTcStudentAsync(Session.AccessToken, findId.Trim());
+            if (student is null)
+                error = Locale.T("sm.needStudent");
+            else
+            {
+                classInput = student.ClassID.ToString();
+                ApplyParts();
+            }
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task GiveAsync()
+    {
+        if (student is null)
+            return;
+        error = message = null;
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sm.confirmTc")))
+            return;
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.GiveTcAsync(Session.AccessToken, new GiveTcRequest
+            {
+                StudentID = student.StudentID,
+                StudentClassID = student.StudentClassID,
+                ID = student.ID,
+                DeleteAllPayorder = deletePay
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            student = await Api.FindTcStudentAsync(Session.AccessToken, student.ID);
+            message = Locale.T("sm.okTc");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ActivateAsync()
+    {
+        if (student is null)
+            return;
+        error = message = null;
+        if (ClassId <= 0 || YearId <= 0)
+        {
+            error = Locale.T("sm.needClass");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.ActivateTcAsync(Session.AccessToken, new ActivateTcRequest
+            {
+                StudentID = student.StudentID,
+                ClassID = ClassId,
+                EducationYearID = YearId,
+                SubjectGroupID = GroupId,
+                SectionID = SectionId,
+                ShiftID = ShiftId
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            student = await Api.FindTcStudentAsync(Session.AccessToken, student.ID);
+            message = Locale.T("sm.okActivate");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ShowListAsync()
+    {
+        tab = "list";
+        await LoadListAsync();
+    }
+
+    private async Task LoadListAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var data = await Api.ListTcStudentsAsync(Session.AccessToken, ListClassId);
+            list.Clear();
+            list.AddRange(data);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void OpenFromList(TcStudentDto row)
+    {
+        findId = row.ID;
+        student = row;
+        tab = "find";
+        classInput = row.ClassID.ToString();
+        ApplyParts();
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false);
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+}

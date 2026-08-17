@@ -1,0 +1,205 @@
+@page "/admission/re-admission"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+
+<div class="card students-card">
+    <div class="toolbar">
+        <div>
+            <h1>@Locale.T("readm.heading")</h1>
+            <p class="muted">@Locale.T("readm.crumb")</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="fromYearId" @bind:after="LoadCandidatesAsync">
+            <option value="0">@Locale.T("readm.selectSession")</option>
+            @foreach (var year in years)
+            {
+                <option value="@year.EducationYearID">@year.Name</option>
+            }
+        </select>
+        <select @bind="classId" @bind:after="OnClassChanged">
+            <option value="0">@Locale.T("readm.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupId" @bind:after="LoadCandidatesAsync">
+                <option value="0">@Locale.T("readm.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionId" @bind:after="LoadCandidatesAsync">
+                <option value="0">@Locale.T("readm.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftId" @bind:after="LoadCandidatesAsync">
+                <option value="0">@Locale.T("readm.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+    </div>
+
+    <div class="total-bar">
+        <span>@Locale.T("students.total", rows.Count)</span>
+    </div>
+
+    <div class="records-wrap">
+        <table class="records-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("readm.selectName")</th>
+                    <th>@Locale.T("students.id")</th>
+                    <th>@Locale.T("students.roll")</th>
+                    <th>@Locale.T("readm.sms")</th>
+                    <th>@Locale.T("readm.fMobile")</th>
+                    <th>@Locale.T("readm.mMobile")</th>
+                    <th>@Locale.T("readm.gMobile")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0)
+            {
+                <tr>
+                    <td colspan="7" class="empty-row">@Locale.T("readm.empty")</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>
+                            <a class="name-link" href="@AssignHref(row)">@row.StudentsName</a>
+                        </td>
+                        <td>@row.StudentCode</td>
+                        <td>@row.RollNo</td>
+                        <td>@row.SMSPhoneNo</td>
+                        <td>@row.FatherPhoneNumber</td>
+                        <td>@row.MotherPhoneNumber</td>
+                        <td>@row.GuardianPhoneNumber</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<EducationYearDto> years = [];
+    private IReadOnlyList<SchoolClassDto> classes = [];
+    private IReadOnlyList<ClassPartDto> groups = [];
+    private IReadOnlyList<ClassPartDto> sections = [];
+    private IReadOnlyList<ClassPartDto> shifts = [];
+    private List<ReAdmissionCandidateDto> rows = [];
+    private int fromYearId;
+    private int classId;
+    private int groupId;
+    private int sectionId;
+    private int shiftId;
+    private string? error;
+    private bool yearPicked;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            await Sync.RefreshClassesAsync(Session.Current, Session.AccessToken);
+
+        years = await Sync.ListYearsAsync(Session.Current.SchoolID);
+        classes = await Sync.ListClassesAsync(Session.Current.SchoolID);
+        var current = years.FirstOrDefault(x => x.EducationYearID == Session.Current.EducationYearID);
+        fromYearId = years
+            .Where(x => x.SortOrder < (current?.SortOrder ?? int.MaxValue))
+            .OrderByDescending(x => x.SortOrder)
+            .FirstOrDefault()?.EducationYearID ?? 0;
+        yearPicked = true;
+    }
+
+    private async Task OnClassChanged()
+    {
+        groupId = 0;
+        sectionId = 0;
+        shiftId = 0;
+        if (Session.Current is null || classId <= 0)
+        {
+            groups = [];
+            sections = [];
+            shifts = [];
+            rows = [];
+            return;
+        }
+
+        groups = await Sync.ListGroupsAsync(Session.Current.SchoolID, classId);
+        sections = await Sync.ListSectionsAsync(Session.Current.SchoolID, classId);
+        shifts = await Sync.ListShiftsAsync(Session.Current.SchoolID, classId);
+        await LoadCandidatesAsync();
+    }
+
+    private async Task LoadCandidatesAsync()
+    {
+        if (!yearPicked || Session.Current is null)
+            return;
+
+        error = null;
+        if (fromYearId <= 0 || classId <= 0)
+        {
+            rows = [];
+            return;
+        }
+
+        try
+        {
+            rows = (await Sync.ListReAdmissionCandidatesAsync(
+                Session.AccessToken, fromYearId, classId, sectionId, groupId, shiftId)).ToList();
+        }
+        catch (InvalidOperationException ex)
+        {
+            rows = [];
+            error = Locale.T(ex.Message);
+        }
+        catch (HttpRequestException)
+        {
+            rows = [];
+            error = Locale.T("readm.offline");
+        }
+        catch (Exception ex)
+        {
+            rows = [];
+            error = ex.Message;
+        }
+    }
+
+    private static string AssignHref(ReAdmissionCandidateDto row) =>
+        $"admission/re-admission/assign/{row.StudentID}?year={row.EducationYearID}&studentClass={row.StudentClassID}";
+}

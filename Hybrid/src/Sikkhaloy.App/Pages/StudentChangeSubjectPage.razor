@@ -1,0 +1,202 @@
+@page "/student-info/subjects"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("si.subjects")</h1>
+    <p class="muted">@Locale.T("si.crumb")</p>
+    <p class="muted">@Locale.T("si.subjectsHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
+    </div>
+
+    @if (student is not null)
+    {
+        <div class="si-info">
+            <ul>
+                <li><b>(@student.ID) @student.StudentsName</b></li>
+                <li><b>@Locale.T("si.father"):</b> @student.FathersName</li>
+                <li>
+                    <b>@Locale.T("si.class"):</b> @student.ClassName
+                    @if (!string.IsNullOrWhiteSpace(student.GroupName))
+                    {
+                        <text>, @Locale.T("students.group"): @student.GroupName</text>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(student.SectionName))
+                    {
+                        <text>, @Locale.T("students.section"): @student.SectionName</text>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(student.ShiftName))
+                    {
+                        <text>, @Locale.T("students.shift"): @student.ShiftName</text>
+                    }
+                </li>
+                <li><b>@Locale.T("si.roll"):</b> @student.RollNo</li>
+            </ul>
+        </div>
+
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("si.subject")</th>
+                    <th class="act">@Locale.T("si.select")</th>
+                    <th>@Locale.T("si.subjectType")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (subjects.Count == 0 && !busy)
+            {
+                <tr><td colspan="3" class="empty-row">@Locale.T("si.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var subject in subjects)
+                {
+                    <tr class="@(subject.Selected ? "is-allowed" : null)">
+                        <td>@subject.SubjectName</td>
+                        <td class="act"><input type="checkbox" @bind="subject.Selected" disabled="@busy" /></td>
+                        <td>
+                            <span class="readm-type">
+                                <label class="choice-inline">
+                                    <input type="radio" name="type-@subject.SubjectID" checked="@(subject.SubjectType == "Compulsory")"
+                                           @onchange="@(() => subject.SubjectType = "Compulsory")" />
+                                    <span>@Locale.T("si.compulsory")</span>
+                                </label>
+                                <label class="choice-inline">
+                                    <input type="radio" name="type-@subject.SubjectID" checked="@(subject.SubjectType == "Optional")"
+                                           @onchange="@(() => subject.SubjectType = "Optional")" />
+                                    <span>@Locale.T("si.optional")</span>
+                                </label>
+                            </span>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("si.save")</button>
+    }
+</div>
+
+@code {
+    private readonly List<StudentSubjectRowDto> subjects = [];
+    private StudentPlacementDto? student;
+    private string findId = "";
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    private async Task FindAsync()
+    {
+        error = message = null;
+        student = null;
+        subjects.Clear();
+        if (string.IsNullOrWhiteSpace(findId))
+        {
+            error = Locale.T("si.needId");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var data = await Api.GetStudentSubjectsAsync(Session.AccessToken, findId.Trim());
+            if (data.Student is null)
+            {
+                error = Locale.T("si.needStudent");
+                return;
+            }
+
+            student = data.Student;
+            subjects.AddRange(data.Subjects);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (student is null)
+            return;
+        error = message = null;
+        var picked = subjects.Where(x => x.Selected).Select(x => new SaveStudentSubjectItem
+        {
+            SubjectID = x.SubjectID,
+            SubjectType = x.SubjectType
+        }).ToList();
+        if (picked.Count == 0)
+        {
+            error = Locale.T("si.needSubject");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.SaveStudentSubjectsAsync(Session.AccessToken, new SaveStudentSubjectsRequest
+            {
+                StudentID = student.StudentID,
+                StudentClassID = student.StudentClassID,
+                Items = picked
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            message = Locale.T("si.okSubjects");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+}

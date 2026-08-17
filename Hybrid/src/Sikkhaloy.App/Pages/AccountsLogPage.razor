@@ -1,0 +1,108 @@
+@page "/accounts/reports/log"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt alog-rpt">
+    <div class="rpt-filters no-print">
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="ExportWordAsync">@Locale.T("rpt.exportWord")</button>
+    </div>
+    <h1>@Locale.T("rpt.logTitle") @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> } <span class="rpt-hint no-print">@Locale.T("rpt.logToday")</span></h1>
+    <div class="rpt-tabs no-print">
+        <button type="button" class="@(tab == 0 ? "active" : null)" @onclick="() => tab = 0">@Locale.T("rpt.incomeLog")</button>
+        <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => tab = 1">@Locale.T("rpt.expenseLog")</button>
+        <button type="button" class="@(tab == 2 ? "active" : null)" @onclick="() => tab = 2">@Locale.T("rpt.adjust")</button>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (data is not null)
+    {
+        <div id="log-export">
+            @if (tab == 0)
+            {
+                <div class="log-in">@Locale.T("rpt.incomeLog") : (@Locale.T("rpt.total") @Tk(data.IncomeTotal) /- )</div>
+                @foreach (var group in data.Income) { <LogGroup Group="group" /> }
+            }
+            else if (tab == 1)
+            {
+                <div class="log-out">@Locale.T("rpt.expenseLog"): (@Locale.T("rpt.total") @Tk(data.ExpenseTotal) /-)</div>
+                @foreach (var group in data.Expense) { <LogGroup Group="group" /> }
+            }
+            else
+            {
+                <div class="log-adj">@Locale.T("rpt.adjust"): (@Locale.T("rpt.total") @Tk(data.AdjustTotal) /-)</div>
+                @foreach (var group in data.Adjust) { <LogGroup Group="group" /> }
+            }
+        </div>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private AccountsLogDto? data;
+    private string fromText = DateTime.Today.ToString("yyyy-MM-dd");
+    private string toText = DateTime.Today.ToString("yyyy-MM-dd");
+    private string error = "";
+    private bool busy;
+    private int tab;
+
+    private string DateLabel => RangeLabel(fromText, toText);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { data = await Api.GetAccountsLogAsync(Session.AccessToken, Parse(fromText), Parse(toText)); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task ExportWordAsync()
+    {
+        var school = Session.Current?.SchoolName ?? "";
+        return JS.InvokeVoidAsync("sikkhaloyExportWord", "Accounts_Log.doc", "log-export", school, DateLabel).AsTask();
+    }
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Tk(decimal n) => n.ToString("N0");
+
+    private static string RangeLabel(string fromRaw, string toRaw)
+    {
+        var from = Parse(fromRaw);
+        var to = Parse(toRaw);
+        if (from is null && to is null) return "";
+        if (from is not null && to is not null)
+        {
+            var a = from.Value.ToString("d MMM yyyy");
+            var b = to.Value.ToString("d MMM yyyy");
+            return from.Value == to.Value ? a : $"({a} To {b})";
+        }
+        if (from is not null) return $"After {from.Value:d MMM yyyy}";
+        return $"Before {to!.Value:d MMM yyyy}";
+    }
+}

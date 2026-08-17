@@ -1,0 +1,339 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject AppLocale Locale
+@inject OfflineAuthService OfflineAuth
+@inject ISyncApiClient Api
+
+<div class="app-shell">
+    @if (menuOpen)
+    {
+        <div class="nav-back" @onclick="CloseMenu"></div>
+    }
+    <aside class="app-sidebar @(menuOpen ? "is-open" : null)">
+        <div class="sidebar-profile">
+            <div class="sidebar-photo">
+                @if (!string.IsNullOrWhiteSpace(photoUrl))
+                {
+                    <img src="@photoUrl" alt="@displayName" />
+                }
+                else
+                {
+                    <span>@Initials</span>
+                }
+            </div>
+            <p class="sidebar-name-row">
+                <button type="button" class="sidebar-name-btn" @onclick="ToggleProfileMenu">
+                    <span>@displayName</span>
+                    <span class="sidebar-caret" aria-hidden="true"></span>
+                </button>
+                @if (profileMenuOpen)
+                {
+                    <div class="sidebar-user-menu">
+                        <a href="profile/update-info" @onclick="CloseProfileMenu">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+                            @Locale.T("profile.updateInfo")
+                        </a>
+                        <a href="profile/password" @onclick="CloseProfileMenu">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.7 1.4-3.1 3.1-3.1S15.1 4.3 15.1 6v2z"/></svg>
+                            @Locale.T("profile.changePassword")
+                        </a>
+                    </div>
+                }
+            </p>
+            <p class="sidebar-role">@role</p>
+            <select class="session-ddl" @bind="selectedYearId" @bind:after="OnYearChanged" disabled="@yearBusy">
+                @if (years.Count == 0)
+                {
+                    <option value="0">@Locale.T("sidebar.session", "—")</option>
+                }
+                @foreach (var year in years)
+                {
+                    <option value="@year.EducationYearID">@Locale.T("sidebar.session", year.Name)</option>
+                }
+            </select>
+        </div>
+        <div class="sidebar-scroll" @onclick="CloseProfileMenu">
+            <SidebarMenu Menu="menu" />
+        </div>
+    </aside>
+    <div class="app-main">
+        <header class="app-header">
+            <button type="button" class="menu-toggle" aria-label="@Locale.T("nav.menu")" @onclick="ToggleMenu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="header-brand">
+                @if (!string.IsNullOrWhiteSpace(logoUrl))
+                {
+                    <img class="header-logo" src="@logoUrl" alt="" />
+                }
+                else
+                {
+                    <span class="header-logo header-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
+                }
+                <div class="header-ins">
+                    <a class="header-name" href="dashboard">
+                        @schoolName
+                        @if (!string.IsNullOrWhiteSpace(yearName))
+                        {
+                            <span>(@yearName)</span>
+                        }
+                    </a>
+                    <p class="header-meta">
+                        @if (!string.IsNullOrWhiteSpace(schoolAddress))
+                        {
+                            <span>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+                                @schoolAddress
+                            </span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(schoolPhone))
+                        {
+                            <span>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.2 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z"/></svg>
+                                @schoolPhone
+                            </span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(schoolEmail))
+                        {
+                            <span>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5L4 8V6l8 5 8-5v2z"/></svg>
+                                @schoolEmail
+                            </span>
+                        }
+                    </p>
+                </div>
+            </div>
+            <div class="header-actions">
+                @if (Session.Current is not null)
+                {
+                    <div class="header-id">
+                        <span>@Locale.T("header.institutionId")</span>
+                        <strong>@Session.Current.SchoolID</strong>
+                    </div>
+                }
+                <LanguageSwitch />
+                <span class="badge @(online ? "on" : "off")" title="@StatusHint">@(online ? Locale.T("online") : Locale.T("offline"))</span>
+                <span class="badge queue">@Locale.T("sync.queue", pending)</span>
+                <button type="button" class="header-logout" title="@Locale.T("logout")" @onclick="Logout">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M10 17v-3H3v-4h7V7l5 5-5 5zm9-14H9c-1.1 0-2 .9-2 2v3h2V5h10v14H9v-3H7v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+        <main class="app-content">
+            @if (yearBusy)
+            {
+                <div class="year-loading">@Locale.T("sidebar.yearLoading")</div>
+            }
+            <CascadingValue Name="AppLang" Value="@Locale.Code">
+                @Body
+            </CascadingValue>
+        </main>
+    </div>
+    <GoToTop />
+</div>
+
+@code {
+    private bool online;
+    private int pending;
+    private bool yearBusy;
+    private bool profileMenuOpen;
+    private bool menuOpen;
+    private string selectedYearId = "0";
+    private string? photoUrl;
+    private string? logoUrl;
+    private string schoolName = "";
+    private string schoolAddress = "";
+    private string schoolPhone = "";
+    private string schoolEmail = "";
+    private IReadOnlyList<EducationYearDto> years = [];
+    private MenuTreeDto menu = new();
+
+    private string displayName =>
+        string.IsNullOrWhiteSpace(Session.Current?.DisplayName)
+            ? Session.Current?.UserName ?? ""
+            : Session.Current!.DisplayName;
+
+    private string yearName =>
+        years.FirstOrDefault(x => x.EducationYearID.ToString() == selectedYearId)?.Name
+        ?? years.FirstOrDefault(x => x.EducationYearID == Session.Current?.EducationYearID)?.Name
+        ?? "";
+
+    private string role => Session.Current?.Role ?? "";
+
+    private string StatusHint
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Sync.LastError))
+                return "";
+            var error = Sync.LastError;
+            if (error.StartsWith("login.", StringComparison.OrdinalIgnoreCase)
+                || error.StartsWith("sync.", StringComparison.OrdinalIgnoreCase))
+                return Locale.T(error);
+            return error;
+        }
+    }
+
+    private string Initials
+    {
+        get
+        {
+            var name = displayName.Trim();
+            if (name.Length == 0)
+                return "A";
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+                return parts[0][..1].ToUpperInvariant();
+            return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        Sync.StateChanged += OnSyncState;
+        Locale.Changed += OnLocale;
+        Session.Changed += OnSession;
+        Nav.LocationChanged += OnLocation;
+        RefreshStatus();
+        await LoadOfficeAsync();
+    }
+
+    private void OnSyncState() => _ = InvokeAsync(() =>
+    {
+        RefreshStatus();
+        return LoadOfficeAsync();
+    });
+
+    private void OnLocale() => _ = InvokeAsync(StateHasChanged);
+    private void OnSession() => _ = InvokeAsync(LoadOfficeAsync);
+    private void OnLocation(object? sender, LocationChangedEventArgs e)
+    {
+        if (!menuOpen)
+            return;
+        _ = InvokeAsync(() =>
+        {
+            menuOpen = false;
+            StateHasChanged();
+        });
+    }
+
+    private void ToggleMenu() => menuOpen = !menuOpen;
+    private void CloseMenu() => menuOpen = false;
+
+    private void RefreshStatus()
+    {
+        online = Sync.IsOnline;
+        pending = Sync.PendingCount;
+        StateHasChanged();
+    }
+
+    private async Task LoadOfficeAsync()
+    {
+        if (Session.Current is null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            await Sync.RefreshOfficeAsync(Session.Current, Session.AccessToken);
+
+        years = await Sync.ListYearsAsync(Session.Current.SchoolID);
+        menu = await Sync.GetMenuAsync(Session.Current.UserName);
+        selectedYearId = Session.Current.EducationYearID.ToString();
+        photoUrl = Sync.GetProfilePhotoDataUrl(Session.Current.RegistrationID);
+        LoadSchoolHeader();
+        StateHasChanged();
+    }
+
+    private void LoadSchoolHeader()
+    {
+        if (Session.Current is null)
+            return;
+
+        var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+        schoolName = string.IsNullOrWhiteSpace(header.SchoolName)
+            ? Session.Current.SchoolName
+            : header.SchoolName;
+        schoolAddress = header.Address ?? "";
+        schoolPhone = header.Phone ?? "";
+        schoolEmail = header.Email ?? "";
+        logoUrl = Sync.GetSchoolLogoDataUrl(Session.Current.SchoolID);
+    }
+
+    private async Task OnYearChanged()
+    {
+        if (Session.Current is null || yearBusy)
+            return;
+        if (!int.TryParse(selectedYearId, out var yearId) || yearId <= 0)
+            return;
+        if (yearId == Session.Current.EducationYearID)
+            return;
+
+        yearBusy = true;
+        StateHasChanged();
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken) && await Api.PingAsync())
+            {
+                var result = await Api.SwitchYearAsync(Session.AccessToken, yearId);
+                if (result.Succeeded && result.Session is not null)
+                {
+                    result.Session.DeviceId = Session.Current.DeviceId;
+                    Session.Set(result, notify: false);
+                    await OfflineAuth.UpdateCachedSessionAsync(result);
+                }
+                else
+                {
+                    selectedYearId = Session.Current.EducationYearID.ToString();
+                    return;
+                }
+            }
+            else
+            {
+                Session.UpdateYear(yearId, notify: false);
+                await Sync.SwitchYearLocalAsync(Session.Current, yearId);
+            }
+
+            if (Session.Current is not null && !string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                await Sync.ResetYearPullAsync(Session.Current);
+                await Sync.RunOnceAsync(Session.Current, Session.AccessToken, force: true);
+            }
+
+            selectedYearId = Session.Current!.EducationYearID.ToString();
+            Session.NotifyChanged();
+        }
+        finally
+        {
+            yearBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleProfileMenu() => profileMenuOpen = !profileMenuOpen;
+
+    private void CloseProfileMenu() => profileMenuOpen = false;
+
+    private void Logout()
+    {
+        Session.Clear();
+        Nav.NavigateTo("/", replace: true);
+    }
+
+    public void Dispose()
+    {
+        Sync.StateChanged -= OnSyncState;
+        Locale.Changed -= OnLocale;
+        Session.Changed -= OnSession;
+        Nav.LocationChanged -= OnLocation;
+    }
+}

@@ -145,3 +145,6 @@ Your OTP for referral commission payment is: 232288. Valid for 5 minutes. - SIKK
 [2026-07-05 16:13:17] To:01911943839 | Purpose:Referral Commission Payment OTP
 Your OTP for referral commission payment is: 338277. Valid for 5 minutes. - SIKKHALOY
 ---
+[2026-07-16 06:21:42] To:01911943839 | Purpose:Attendance
+Respected Guardian, Rana Shikder ID:15009, Today(16 Jul 2026) bunked from নাইট schedule. Sikkhaloy School & Madrasha
+---

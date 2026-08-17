@@ -1,0 +1,322 @@
+@page "/basic-settings/create-sub-admin"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page access-page subadmin-page">
+    <h1>@Locale.T("sub.title")</h1>
+    <div class="wizard-steps">
+        <span class="@(step == 1 ? "on" : null)">1. @Locale.T("sub.step1")</span>
+        <span class="@(step == 2 ? "on" : null)">2. @Locale.T("sub.step2")</span>
+        <span class="@(step == 3 ? "on" : null)">3. @Locale.T("sub.step3")</span>
+    </div>
+
+    @if (!isAdmin)
+    {
+        <div class="error">@Locale.T("sub.adminOnly")</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="error">@error</div>
+        }
+
+        @if (step == 1)
+        {
+            <div class="form-grid">
+                <label>@Locale.T("sub.firstName")
+                    <input @bind="form.FirstName" placeholder="@Locale.T("sub.ph.first")" />
+                </label>
+                <label>@Locale.T("sub.lastName")
+                    <input @bind="form.LastName" placeholder="@Locale.T("sub.ph.last")" />
+                </label>
+                <label class="span-2">@Locale.T("sub.designation")
+                    <input @bind="form.Designation" placeholder="@Locale.T("sub.ph.designation")" />
+                </label>
+                <label>@Locale.T("sub.user")
+                    <input value="@form.UserName" @oninput="OnUserInput" placeholder="@Locale.T("sub.ph.user")" autocomplete="off" />
+                </label>
+                <label>@Locale.T("sub.email")
+                    <input @bind="form.Email" placeholder="@Locale.T("sub.ph.email")" autocomplete="off" />
+                </label>
+                <label>@Locale.T("sub.password")
+                    <input type="password" @bind="form.Password" placeholder="@Locale.T("sub.ph.password")" autocomplete="new-password" />
+                </label>
+                <label>@Locale.T("sub.confirm")
+                    <input type="password" @bind="form.ConfirmPassword" placeholder="@Locale.T("sub.ph.confirm")" autocomplete="new-password" />
+                </label>
+                <label class="span-2">@Locale.T("sub.question")
+                    <select @bind="form.Question">
+                        <option value="">@Locale.T("sub.questionSelect")</option>
+                        @foreach (var q in questions)
+                        {
+                            <option value="@q">@Locale.T(q)</option>
+                        }
+                    </select>
+                </label>
+                <label class="span-2">@Locale.T("sub.answer")
+                    <input @bind="form.Answer" placeholder="@Locale.T("sub.ph.answer")" />
+                </label>
+            </div>
+            <div class="access-bar" style="margin-top: 0.7rem;">
+                <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="CreateAsync">@Locale.T("sub.saveContinue")</button>
+            </div>
+        }
+        else if (step == 2)
+        {
+            <p class="muted access-hint">@Locale.T("sub.assignTitle") · @createdUser</p>
+            <div class="access-bar">
+                @if (pages.Count > 0)
+                {
+                    <span class="access-count">@Locale.T("access.picked", selectedCount, pages.Count)</span>
+                }
+                <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="AssignAsync">@Locale.T("sub.submit")</button>
+            </div>
+            <div class="access-grid">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("access.category")</th>
+                            <th>@Locale.T("access.subCategory")</th>
+                            <th class="access-all">
+                                <label>
+                                    <input type="checkbox" checked="@allChecked" disabled="@(pages.Count == 0 || busy)" @onchange="ToggleAll" />
+                                    @Locale.T("access.pageTitle")
+                                </label>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (pages.Count == 0)
+                    {
+                        <tr><td colspan="3" class="empty-row">@Locale.T("access.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in pages)
+                        {
+                            <tr class="@(row.Allowed ? "is-allowed" : null)">
+                                @if (row.ShowGroup)
+                                {
+                                    <td class="access-cat" rowspan="@row.Span">@Locale.Menu(row.Category)</td>
+                                    <td class="access-sub" rowspan="@row.Span">@Locale.Menu(row.SubCategory)</td>
+                                }
+                                <td>
+                                    <label class="access-check">
+                                        <input type="checkbox" checked="@row.Allowed" disabled="@busy" @onchange="e => ToggleRow(row, e)" />
+                                        <span>@Locale.Menu(row.PageTitle)</span>
+                                    </label>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="success-box">
+                <h2>@Locale.T("sub.successTitle")</h2>
+                <p>@Locale.T("sub.success")</p>
+                <div class="success-actions">
+                    <button type="button" class="btn-primary" @onclick="Reset">@Locale.T("sub.another")</button>
+                    <a class="btn-primary" href="/basic-settings/page-access">@Locale.T("sub.manageAccess")</a>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private static readonly string[] questions =
+    [
+        "sub.q1", "sub.q2", "sub.q3", "sub.q4", "sub.q5", "sub.q6",
+        "sub.q7", "sub.q8", "sub.q9", "sub.q10", "sub.q11", "sub.q12"
+    ];
+
+    private readonly CreateSubAdminRequest form = new();
+    private List<PageRow> pages = [];
+    private int step = 1;
+    private bool busy;
+    private string? error;
+    private string createdUser = "";
+
+    private bool isAdmin =>
+        string.Equals(Session.Current?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+    private bool allChecked => pages.Count > 0 && pages.All(x => x.Allowed);
+    private int selectedCount => pages.Count(x => x.Allowed);
+
+    private void OnUserInput(ChangeEventArgs e)
+    {
+        form.UserName = (e.Value?.ToString() ?? "").Replace(" ", "");
+    }
+
+    private async Task CreateAsync()
+    {
+        error = null;
+        if (!isAdmin || Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("sub.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("sub.needOnline");
+                return;
+            }
+
+            var request = new CreateSubAdminRequest
+            {
+                FirstName = form.FirstName,
+                LastName = form.LastName,
+                Designation = form.Designation,
+                UserName = form.UserName,
+                Password = form.Password,
+                ConfirmPassword = form.ConfirmPassword,
+                Email = form.Email,
+                Question = string.IsNullOrWhiteSpace(form.Question) ? "" : Locale.T(form.Question),
+                Answer = form.Answer
+            };
+            var result = await Api.CreateSubAdminAsync(Session.AccessToken, request);
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            createdUser = result.UserName;
+            var data = await Api.GetPageAccessAsync(Session.AccessToken, createdUser);
+            pages = BuildRows(data.Pages);
+            step = 2;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("sub.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task AssignAsync()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || string.IsNullOrWhiteSpace(createdUser))
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.SavePageAccessAsync(Session.AccessToken, new SavePageAccessRequest
+            {
+                UserName = createdUser,
+                LinkIDs = pages.Where(x => x.Allowed).Select(x => x.LinkID).ToList()
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            step = 3;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("sub.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void Reset()
+    {
+        form.FirstName = form.LastName = form.Designation = "";
+        form.UserName = form.Password = form.ConfirmPassword = "";
+        form.Email = form.Question = form.Answer = "";
+        pages = [];
+        createdUser = "";
+        error = null;
+        step = 1;
+    }
+
+    private string Translate(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return Locale.T("sub.failed");
+        var text = Locale.T(key);
+        return text;
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        var on = e.Value is true or "true";
+        foreach (var row in pages)
+            row.Allowed = on;
+    }
+
+    private static void ToggleRow(PageRow row, ChangeEventArgs e)
+    {
+        row.Allowed = e.Value is true or "true";
+    }
+
+    private static List<PageRow> BuildRows(IReadOnlyList<PageAccessRowDto> source)
+    {
+        var rows = source.Select(x => new PageRow
+        {
+            LinkID = x.LinkID,
+            Category = x.Category,
+            SubCategory = x.SubCategory,
+            PageTitle = x.PageTitle,
+            Allowed = x.Allowed
+        }).ToList();
+
+        var i = 0;
+        while (i < rows.Count)
+        {
+            var span = 1;
+            while (i + span < rows.Count
+                   && string.Equals(rows[i].Category, rows[i + span].Category, StringComparison.Ordinal)
+                   && string.Equals(rows[i].SubCategory, rows[i + span].SubCategory, StringComparison.Ordinal))
+            {
+                span++;
+            }
+
+            rows[i].ShowGroup = true;
+            rows[i].Span = span;
+            for (var j = 1; j < span; j++)
+                rows[i + j].ShowGroup = false;
+            i += span;
+        }
+
+        return rows;
+    }
+
+    private sealed class PageRow
+    {
+        public int LinkID { get; set; }
+        public string Category { get; set; } = "";
+        public string SubCategory { get; set; } = "";
+        public string PageTitle { get; set; } = "";
+        public bool Allowed { get; set; }
+        public bool ShowGroup { get; set; }
+        public int Span { get; set; } = 1;
+    }
+}

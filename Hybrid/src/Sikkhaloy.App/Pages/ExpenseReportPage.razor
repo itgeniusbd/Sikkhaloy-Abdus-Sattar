@@ -1,0 +1,117 @@
+@page "/accounts/reports/expense-report"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt">
+    <div class="rpt-filters no-print">
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <select @bind="category">
+            <option value="%">@Locale.T("rpt.allCategory")</option>
+            @foreach (var cat in categories)
+            {
+                <option value="@cat.Name">@cat.Name</option>
+            }
+        </select>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.submit")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+
+    <a class="rpt-back no-print" href="accounts/reports/summary">@Locale.T("rpt.backSummary")</a>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (report is not null)
+    {
+        <div class="rpt-banner">@RangeText @Locale.T("rpt.expense"): @Tk(report.Total) @Locale.T("acc.tk")</div>
+        @foreach (var group in report.Groups)
+        {
+            <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total) @Locale.T("acc.tk")</span></div>
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
+                <tbody>
+                @foreach (var line in group.Lines)
+                {
+                    <tr>
+                        <td>@line.UserName</td>
+                        <td>@line.AccountName</td>
+                        <td>@line.Details</td>
+                        <td class="num">@Tk(line.Amount)</td>
+                        <td>@line.Date.ToString("d MMM yyyy")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Category { get; set; }
+    [SupplyParameterFromQuery] public string? From { get; set; }
+    [SupplyParameterFromQuery] public string? To { get; set; }
+
+    private IncomeExpenseReportDto? report;
+    private List<NameAmountDto> categories = [];
+    private string category = "%", fromText = "", toText = "", error = "";
+    private bool busy;
+
+    private string RangeText
+    {
+        get
+        {
+            var from = Parse(fromText);
+            var to = Parse(toText);
+            if (from is null || to is null) return "";
+            return $"({from.Value.ToString("d MMM yyyy").ToUpperInvariant()} TO {to.Value.ToString("d MMM yyyy").ToUpperInvariant()})";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!string.IsNullOrWhiteSpace(Category)) category = Category;
+        var today = DateTime.Today;
+        fromText = Iso(Parse(From) ?? new DateTime(today.Year, today.Month, 1));
+        toText = Iso(Parse(To) ?? today);
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            categories.AddRange(await Api.GetReportExpenseCategoriesAsync(Session.AccessToken));
+            report = await Api.GetExpenseReportAsync(Session.AccessToken, Parse(fromText), Parse(toText), category);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { report = await Api.GetExpenseReportAsync(Session.AccessToken, Parse(fromText), Parse(toText), category); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("window.print").AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");
+    private static string Tk(decimal n) => n.ToString("N0");
+}

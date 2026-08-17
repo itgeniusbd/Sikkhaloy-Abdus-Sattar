@@ -1,0 +1,171 @@
+@page "/accounts/cash"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page">
+    <h1>@Locale.T("acc.cash")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (!string.IsNullOrWhiteSpace(message)) { <div class="ok">@message</div> }
+
+    <div class="inline-add">
+        <input type="text" placeholder="@Locale.T("acc.account")" @bind="newName" disabled="@busy" />
+        <button type="button" class="primary" disabled="@busy" @onclick="AddAccountAsync">@Locale.T("acc.add")</button>
+    </div>
+
+    <div class="filter-row">
+        <select @bind="accountInput" @bind:after="LoadMovesAsync" disabled="@busy">
+            <option value="0">@Locale.T("acc.account")</option>
+            @foreach (var item in accounts)
+            {
+                <option value="@item.AccountID">@item.AccountName (@item.Balance.ToString("0.##"))</option>
+            }
+        </select>
+        @if (AccountId > 0)
+        {
+            <button type="button" class="link-btn" disabled="@busy" @onclick="SetDefaultAsync">@Locale.T("acc.setDefault")</button>
+        }
+    </div>
+
+    @if (AccountId > 0)
+    {
+        <div class="acc-tabs">
+            <button type="button" class="@(tab == "in" ? "active" : null)" @onclick='() => tab = "in"'>@Locale.T("acc.deposit")</button>
+            <button type="button" class="@(tab == "out" ? "active" : null)" @onclick='() => tab = "out"'>@Locale.T("acc.withdraw")</button>
+        </div>
+        <div class="inline-add">
+            <input type="number" min="0" step="0.01" placeholder="@Locale.T("acc.amount")" @bind="amount" disabled="@busy" />
+            <input type="date" @bind="date" disabled="@busy" />
+            <input type="text" placeholder="@Locale.T("acc.details")" @bind="details" disabled="@busy" />
+            <button type="button" class="primary" disabled="@busy" @onclick="MoveAsync">@(tab == "in" ? Locale.T("acc.deposit") : Locale.T("acc.withdraw"))</button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("att.date")</th>
+                    <th>@Locale.T("acc.amount")</th>
+                    <th>@Locale.T("acc.details")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @{
+                var list = tab == "in" ? deposits : withdraws;
+            }
+            @if (list.Count == 0 && !busy)
+            {
+                <tr><td colspan="3" class="empty-row">@Locale.T("acc.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in list)
+                {
+                    <tr>
+                        <td>@row.Date.ToString("dd-MMM-yyyy")</td>
+                        <td>@row.Amount.ToString("0.##")</td>
+                        <td>@row.Details</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private readonly List<CashAccountDto> accounts = [];
+    private readonly List<AccountMoveDto> deposits = [];
+    private readonly List<AccountMoveDto> withdraws = [];
+    private string accountInput = "0";
+    private string newName = "";
+    private string tab = "in";
+    private decimal amount;
+    private DateTime date = DateTime.Today;
+    private string? details;
+    private bool busy;
+    private string? error, message;
+    private int AccountId => int.TryParse(accountInput, out var n) ? n : 0;
+
+    protected override Task OnInitializedAsync() => LoadAccountsAsync();
+
+    private async Task LoadAccountsAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            accounts.Clear();
+            accounts.AddRange(await Api.GetCashAccountsAsync(Session.AccessToken!));
+            if (AccountId == 0)
+            {
+                var def = accounts.FirstOrDefault(x => x.IsDefault) ?? accounts.FirstOrDefault();
+                if (def is not null) accountInput = def.AccountID.ToString();
+            }
+            await LoadMovesAsync();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadMovesAsync()
+    {
+        deposits.Clear();
+        withdraws.Clear();
+        if (AccountId <= 0) return;
+        deposits.AddRange(await Api.GetCashDepositsAsync(Session.AccessToken!, AccountId));
+        withdraws.AddRange(await Api.GetCashWithdrawsAsync(Session.AccessToken!, AccountId));
+    }
+
+    private async Task AddAccountAsync()
+    {
+        error = message = null;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.CreateCashAccountAsync(Session.AccessToken!, new SaveCashAccountRequest { AccountName = newName });
+            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
+            newName = "";
+            message = Locale.T("acc.saved");
+            await LoadAccountsAsync();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task SetDefaultAsync()
+    {
+        if (!await OnlineAsync()) return;
+        var result = await Api.SetDefaultCashAccountAsync(Session.AccessToken!, AccountId);
+        message = result.Succeeded ? Locale.T("acc.saved") : Locale.T(result.Error ?? "acc.failed");
+        await LoadAccountsAsync();
+    }
+
+    private async Task MoveAsync()
+    {
+        error = message = null;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var req = new AccountMoveRequest { AccountID = AccountId, Amount = amount, Date = date, Details = details };
+            var result = tab == "in"
+                ? await Api.DepositCashAsync(Session.AccessToken!, req)
+                : await Api.WithdrawCashAsync(Session.AccessToken!, req);
+            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
+            amount = 0;
+            details = null;
+            message = Locale.T("acc.saved");
+            await LoadAccountsAsync();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        { error = Locale.T("subj.needOnline"); return false; }
+        return true;
+    }
+}

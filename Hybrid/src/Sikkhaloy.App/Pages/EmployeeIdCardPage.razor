@@ -1,0 +1,406 @@
+@page "/staff/id-cards"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject SyncEngine Sync
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page emp-id-page">
+    <h1>@Locale.T("emp.idCard")</h1>
+    <p class="muted no-print">@Locale.T("emp.crumb")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="filter-row no-print">
+        <label class="choice-inline">
+            <input type="radio" name="idtype" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
+            <span>@Locale.T("emp.all")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="idtype" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
+            <span>@Locale.T("emp.teacher")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="idtype" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
+            <span>@Locale.T("emp.staff")</span>
+        </label>
+        <input type="search"
+               placeholder="@Locale.T("emp.search")"
+               value="@query"
+               @oninput="OnSearchInput"
+               @onkeydown="OnSearchKey" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="Find">@Locale.T("emp.find")</button>
+        <button type="button" class="link-btn" disabled="@(busy || cards.Count == 0)" @onclick="PrintAsync">@Locale.T("emp.print")</button>
+        <div class="sid-color-wrap">
+            <button type="button" class="btn-serial" @onclick="() => colorOpen = !colorOpen">@Locale.T("si.chooseColor")</button>
+            @if (colorOpen)
+            {
+                <div class="sid-color-menu">
+                    <p>@Locale.T("si.colorBg")</p>
+                    <label>@Locale.T("si.colorHead") <input type="color" value="@primary" @oninput="e => SetColor(c => primary = c, e)" /></label>
+                    <label>@Locale.T("emp.colorAccent") <input type="color" value="@accent" @oninput="e => SetColor(c => accent = c, e)" /></label>
+                    <p>@Locale.T("si.colorFont")</p>
+                    <label>@Locale.T("si.colorHead") <input type="color" value="@headFg" @oninput="e => SetColor(c => headFg = c, e)" /></label>
+                    <label>@Locale.T("si.colorName") <input type="color" value="@nameFg" @oninput="e => SetColor(c => nameFg = c, e)" /></label>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (cards.Count == 0 && !busy)
+    {
+        <p class="muted">@Locale.T("emp.empty")</p>
+    }
+    else
+    {
+        <div class="tid-grid" style="@ColorStyle">
+            @foreach (var card in cards)
+            {
+                var name = SplitName(card.Name);
+                <article class="tid-card">
+                    <div class="tid-slash" aria-hidden="true">
+                        <span class="tid-slash-green"></span>
+                        <span class="tid-slash-accent"></span>
+                        <span class="tid-slash-shade"></span>
+                    </div>
+                    <header class="tid-head">
+                        @if (!string.IsNullOrWhiteSpace(card.LogoDataUrl))
+                        {
+                            <img class="tid-logo" src="@card.LogoDataUrl" alt="" />
+                        }
+                        else
+                        {
+                            <span class="tid-logo empty">@Locale.T("emp.idTitle")</span>
+                        }
+                        <div>
+                            <strong>@card.SchoolName</strong>
+                            @if (!string.IsNullOrWhiteSpace(card.InstitutionDialog))
+                            {
+                                <small>@card.InstitutionDialog</small>
+                            }
+                        </div>
+                    </header>
+                    <div class="tid-photo-wrap">
+                        @if (!string.IsNullOrWhiteSpace(card.PhotoDataUrl))
+                        {
+                            <img class="tid-photo" src="@card.PhotoDataUrl" alt="" />
+                        }
+                        else
+                        {
+                            <span class="tid-photo empty">@Locale.T("emp.noPhoto")</span>
+                        }
+                    </div>
+                    <div class="tid-body">
+                        <h2 class="tid-name">
+                            <span>@name.First</span>
+                            @if (name.Last.Length > 0)
+                            {
+                                <text> @name.Last</text>
+                            }
+                        </h2>
+                        <p class="tid-job">@Dash(card.Designation)</p>
+                        <dl>
+                            <div>
+                                <dt>@Locale.T("emp.id")</dt>
+                                <dd>@Dash(card.ID)</dd>
+                            </div>
+                            <div>
+                                <dt>@Locale.T("emp.dobShort")</dt>
+                                <dd>@(card.DateofBirth?.ToString("dd/MM/yyyy") ?? "-")</dd>
+                            </div>
+                            <div class="tid-phone">
+                                <dt>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.5 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .7-.3 1L6.6 10.8z" />
+                                    </svg>
+                                </dt>
+                                <dd>@Dash(card.Phone)</dd>
+                            </div>
+                        </dl>
+                        @if (!string.IsNullOrWhiteSpace(card.Email))
+                        {
+                            <p class="tid-email">@card.Email</p>
+                        }
+                    </div>
+                    <div class="tid-barcode" aria-hidden="true" title="@sessionYear">
+                        @foreach (var module in sessionBarcode)
+                        {
+                            <i class="@(module == 1 ? "on" : "off")"></i>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private const string PrefKey = "sikkhaloy.tid";
+    private readonly List<EmployeeIdCardDto> allCards = [];
+    private readonly List<EmployeeIdCardDto> cards = [];
+    private string type = "%";
+    private string query = "";
+    private string primary = "#1b5e20";
+    private string accent = "#d4c000";
+    private string headFg = "#ffffff";
+    private string nameFg = "#1b5e20";
+    private string sessionYear = DateTime.Now.Year.ToString();
+    private int[] sessionBarcode = [];
+    private bool colorOpen;
+    private bool busy;
+    private bool prefsLoaded;
+    private string? error;
+
+    private string ColorStyle =>
+        $"--tid-primary:{primary};--tid-accent:{accent};--tid-head-fg:{headFg};--tid-name:{nameFg};";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSessionYearAsync();
+        await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || prefsLoaded)
+            return;
+        prefsLoaded = true;
+        try
+        {
+            var json = await JS.InvokeAsync<string>("localStorage.getItem", PrefKey);
+            if (string.IsNullOrWhiteSpace(json))
+                return;
+            var prefs = System.Text.Json.JsonSerializer.Deserialize<CardPrefs>(json);
+            if (prefs is null)
+                return;
+            if (IsColor(prefs.Primary))
+                primary = prefs.Primary!;
+            if (IsColor(prefs.Accent))
+                accent = prefs.Accent!;
+            if (IsColor(prefs.HeadFg))
+                headFg = prefs.HeadFg!;
+            if (IsColor(prefs.NameFg))
+                nameFg = prefs.NameFg!;
+            StateHasChanged();
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SetType(string value)
+    {
+        type = value;
+        await LoadAsync();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        query = e.Value?.ToString() ?? "";
+        ApplyFilter();
+    }
+
+    private void OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Find();
+    }
+
+    private void Find() => ApplyFilter();
+
+    private async Task LoadAsync()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            var data = await Api.GetEmployeeIdCardsAsync(Session.AccessToken, type, "");
+            allCards.Clear();
+            allCards.AddRange(data);
+            ApplyFilter();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        cards.Clear();
+        var q = query.Trim();
+        IEnumerable<EmployeeIdCardDto> source = allCards;
+        if (q.Length > 0)
+        {
+            source = allCards.Where(x =>
+                Contains(x.Name, q)
+                || Contains(x.ID, q)
+                || Contains(x.Designation, q)
+                || Contains(x.Phone, q)
+                || Contains(x.Email, q));
+        }
+        cards.AddRange(source);
+    }
+
+    private async Task SetColor(Action<string> set, ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? "";
+        if (!IsColor(value))
+            return;
+        set(value);
+        await SavePrefsAsync();
+    }
+
+    private async Task SavePrefsAsync()
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(new CardPrefs
+            {
+                Primary = primary,
+                Accent = accent,
+                HeadFg = headFg,
+                NameFg = nameFg
+            });
+            await JS.InvokeVoidAsync("localStorage.setItem", PrefKey, json);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", true);
+
+    private static string Dash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    private static bool Contains(string? source, string search) =>
+        !string.IsNullOrWhiteSpace(source)
+        && source.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+    private static (string First, string Last) SplitName(string? name)
+    {
+        var text = (name ?? "").Trim().ToUpperInvariant();
+        var i = text.IndexOf(' ');
+        if (i < 0)
+            return (text, "");
+        return (text[..i], text[(i + 1)..]);
+    }
+
+    private async Task LoadSessionYearAsync()
+    {
+        sessionYear = DateTime.Now.Year.ToString();
+        if (Session.Current is not null)
+        {
+            var years = await Sync.ListYearsAsync(Session.Current.SchoolID);
+            var name = years.FirstOrDefault(x => x.EducationYearID == Session.Current.EducationYearID)?.Name;
+            if (!string.IsNullOrWhiteSpace(name))
+                sessionYear = name.Trim();
+        }
+        sessionBarcode = EncodeCode39(sessionYear);
+    }
+
+    private static int[] EncodeCode39(string text)
+    {
+        var raw = new string((text ?? "").ToUpperInvariant().Where(c => Code39.ContainsKey(c)).ToArray());
+        if (raw.Length == 0)
+            raw = DateTime.Now.Year.ToString();
+        var payload = "*" + raw + "*";
+        var modules = new List<int>(payload.Length * 13 + 20);
+        for (var i = 0; i < 8; i++)
+            modules.Add(0);
+        for (var i = 0; i < payload.Length; i++)
+        {
+            if (i > 0)
+                modules.Add(0);
+            foreach (var bit in Code39[payload[i]])
+                modules.Add(bit == '1' ? 1 : 0);
+        }
+        for (var i = 0; i < 8; i++)
+            modules.Add(0);
+        return modules.ToArray();
+    }
+
+    private static readonly Dictionary<char, string> Code39 = new()
+    {
+        ['0'] = "101001101101",
+        ['1'] = "110100101011",
+        ['2'] = "101100101011",
+        ['3'] = "110110010101",
+        ['4'] = "101001101011",
+        ['5'] = "110100110101",
+        ['6'] = "101100110101",
+        ['7'] = "101001011011",
+        ['8'] = "110100101101",
+        ['9'] = "101100101101",
+        ['A'] = "110101001011",
+        ['B'] = "101101001011",
+        ['C'] = "110110100101",
+        ['D'] = "101011001011",
+        ['E'] = "110101100101",
+        ['F'] = "101101100101",
+        ['G'] = "101010011011",
+        ['H'] = "110101001101",
+        ['I'] = "101101001101",
+        ['J'] = "101011001101",
+        ['K'] = "110101010011",
+        ['L'] = "101101010011",
+        ['M'] = "110110101001",
+        ['N'] = "101011010011",
+        ['O'] = "110101101001",
+        ['P'] = "101101101001",
+        ['Q'] = "101010110011",
+        ['R'] = "110101011001",
+        ['S'] = "101101011001",
+        ['T'] = "101011011001",
+        ['U'] = "110010101011",
+        ['V'] = "100110101011",
+        ['W'] = "110011010101",
+        ['X'] = "100101101011",
+        ['Y'] = "110010110101",
+        ['Z'] = "100110110101",
+        ['-'] = "100101011011",
+        ['.'] = "110010101101",
+        [' '] = "100110101101",
+        ['*'] = "100101101101",
+        ['$'] = "100100100101",
+        ['/'] = "100100101001",
+        ['+'] = "100101001001",
+        ['%'] = "101001001001"
+    };
+
+    private static bool IsColor(string? value) =>
+        value is { Length: 7 } && value[0] == '#';
+
+    private sealed class CardPrefs
+    {
+        public string? Primary { get; set; }
+        public string? Accent { get; set; }
+        public string? HeadFg { get; set; }
+        public string? NameFg { get; set; }
+    }
+}

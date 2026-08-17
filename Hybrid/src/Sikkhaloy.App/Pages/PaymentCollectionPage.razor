@@ -1,0 +1,584 @@
+@page "/accounts/collect"
+@page "/accounts/collect-by-date"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject SyncEngine Sync
+
+<div class="card structure-page emp-page acc-page pc-page">
+    <h1>
+        @Locale.T("acc.collectFast")
+        <small>@Locale.T(ByDate ? "acc.byDateHint" : "acc.fastMode")</small>
+    </h1>
+
+    <div class="filter-row">
+        <div class="acc-find">
+            <input type="text" autocomplete="off" placeholder="@Locale.T("att.findId")"
+                   value="@findId" disabled="@busy"
+                   @oninput="OnFindInput" @onkeydown="OnFindKey" />
+            @if (showSuggest)
+            {
+                <div class="id-suggest">
+                    @foreach (var item in suggestions)
+                    {
+                        <button type="button" @onclick="() => PickAsync(item.ID)">@item.ID — @item.Name @item.ClassName</button>
+                    }
+                </div>
+            }
+        </div>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => LoadStudentAsync(findId)">@Locale.T("acc.find")</button>
+    </div>
+
+    @if (bundle?.Student is not null)
+    {
+        var stu = bundle.Student;
+        <div class="pc-top">
+            <div class="pc-card">
+                <div class="pc-photo">
+                    @if (!string.IsNullOrWhiteSpace(photoUrl))
+                    {
+                        <img src="@photoUrl" alt="" />
+                    }
+                    else
+                    {
+                        <span>@(stu.Name.Length == 0 ? "S" : stu.Name[..1])</span>
+                    }
+                    <em class="@(stu.Status == "Active" ? "is-on" : "is-off")">@StatusText(stu.Status)</em>
+                </div>
+                <ul>
+                    <li><strong>(@stu.ID) @stu.Name</strong></li>
+                    <li><b>@Locale.T("form.father"):</b> @(stu.FathersName ?? "")</li>
+                    <li><b>@Locale.T("students.class"):</b> @(stu.ClassName ?? "")</li>
+                    <li>
+                        @Locale.T("att.rollNo"): @(stu.RollNo ?? "")
+                        @if (!string.IsNullOrWhiteSpace(stu.Section)) { <text>, @stu.Section</text> }
+                        @if (!string.IsNullOrWhiteSpace(stu.Shift)) { <text>, @stu.Shift</text> }
+                    </li>
+                    <li><b>@Locale.T("students.phone"):</b> @(stu.Phone ?? "")</li>
+                    <li><b>@Locale.T("acc.session"):</b> @(stu.EducationYear ?? "")</li>
+                    <li>
+                        <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="() => showAdd = true">@Locale.T("acc.addMorePay")</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="pc-recent">
+                <button type="button" class="pc-prev" disabled="@busy" @onclick="() => showPrev = true">@Locale.T("acc.prevYear")</button>
+                @if (bundle.Receipts.Count == 0)
+                {
+                    <p class="muted">@Locale.T("acc.noPayment")</p>
+                }
+                else
+                {
+                    <table class="pc-receipt-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("acc.receiptNo")</th>
+                                <th>@Locale.T("acc.paymentDate")</th>
+                                <th>@Locale.T("acc.collectionDate")</th>
+                                <th>@Locale.T("acc.paid")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var rec in bundle.Receipts.Take(5))
+                        {
+                            <tr>
+                                <td><a href="@ReceiptUrl(rec.ReceiptNo)">@rec.ReceiptNo</a></td>
+                                <td>@rec.PaidDate.ToString("dd MMM yyyy")</td>
+                                <td class="pc-when">@CollectionStamp(rec.CollectionDate)</td>
+                                <td>
+                                    @rec.TotalAmount.ToString("0.##") @Locale.T("acc.tk")<br />
+                                    <a class="pc-print" href="@ReceiptUrl(rec.ReceiptNo)">@Locale.T("si.print")</a>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    <button type="button" class="link-btn" @onclick="() => showAll = true">@Locale.T("acc.viewAll")</button>
+                }
+            </div>
+        </div>
+
+        <div class="pc-due-banner">@Locale.T("acc.currentDueBanner", bundle.CurrentDue.ToString("0.##"), Locale.T("acc.tk"))</div>
+
+        @DueTable(bundle.CurrentDues)
+        @if (bundle.OtherDues.Count > 0)
+        {
+            <div class="pc-section-title">@Locale.T("acc.othersSession")</div>
+            @DueTable(bundle.OtherDues)
+        }
+
+        <div class="pc-total">@Locale.T("acc.totalPay"): @PayTotal.ToString("0.##") @Locale.T("acc.tk")</div>
+        <div class="pc-actions">
+            <label>
+                <span>@Locale.T("acc.account")</span>
+                <select @bind="accountInput" disabled="@busy">
+                    <option value="0">@Locale.T("acc.account")</option>
+                    @foreach (var item in accounts)
+                    {
+                        <option value="@item.AccountID">@item.AccountName (@item.Balance.ToString("0.##"))</option>
+                    }
+                </select>
+            </label>
+            <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="() => showAdd = true">@Locale.T("acc.addMorePay")</button>
+            @if (ByDate)
+            {
+                <label>
+                    <span>@Locale.T("acc.paidDate")</span>
+                    <input type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" @bind="paidDate" @bind:after="ClampPaidDate" disabled="@busy" />
+                </label>
+            }
+            <div class="pc-sms">
+                <label class="acc-check"><input type="radio" name="pc-sms" checked="@smsOn" @onchange="() => SetSmsAsync(true)" /><span>@Locale.T("acc.smsActive")</span></label>
+                <label class="acc-check"><input type="radio" name="pc-sms" checked="@(!smsOn)" @onchange="() => SetSmsAsync(false)" /><span>@Locale.T("acc.smsInactive")</span></label>
+                <small>@Locale.T("acc.smsRemain"): @smsBalance</small>
+            </div>
+            <button type="button" class="acc-btn acc-btn-primary pc-pay" disabled="@busy" @onclick="PayAsync">@Locale.T("acc.pay")</button>
+            <button type="button" class="acc-btn pc-conc" disabled="@busy" @onclick="ConcessionAsync">@Locale.T("acc.concessionUpdate")</button>
+        </div>
+    }
+</div>
+
+@if (showAdd && bundle?.Student is not null)
+{
+    <div class="acc-result-back" @onclick="() => showAdd = false">
+        <div class="acc-result is-ok pc-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("acc.addMoreTitle")</h3>
+            <label>@Locale.T("acc.roleName")
+                <select @bind="moreRole" disabled="@busy">
+                    <option value="0">@Locale.T("acc.roleName")</option>
+                    @foreach (var item in roles)
+                    {
+                        <option value="@item.RoleID">@item.Role</option>
+                    }
+                </select>
+            </label>
+            <label>@Locale.T("acc.payFor")
+                <input type="text" @bind="morePayFor" disabled="@busy" />
+            </label>
+            <label>@Locale.T("acc.amount")
+                <input type="number" min="0" step="0.01" @bind="moreAmount" disabled="@busy" />
+            </label>
+            <label>@Locale.T("acc.discount")
+                <input type="number" min="0" step="0.01" @bind="moreDiscount" disabled="@busy" />
+            </label>
+            <div class="pc-modal-btns">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AddMoreAsync">@Locale.T("acc.addPayment")</button>
+                <button type="button" class="acc-btn" @onclick="() => showAdd = false">@Locale.T("acc.close")</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showAll && bundle is not null)
+{
+    <div class="acc-result-back" @onclick="() => showAll = false">
+        <div class="acc-result is-ok pc-wide" @onclick:stopPropagation="true">
+            <h3>@Locale.T("acc.allPaid")</h3>
+            <p>@Locale.T("acc.totalRecords", bundle.Receipts.Count)</p>
+            <div class="pc-wide-body">
+                <table class="pc-receipt-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("acc.receiptNo")</th>
+                            <th>@Locale.T("acc.printedNo")</th>
+                            <th>@Locale.T("acc.paymentDate")</th>
+                            <th>@Locale.T("acc.collectionDate")</th>
+                            <th>@Locale.T("acc.amount")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var rec in bundle.Receipts)
+                    {
+                        <tr>
+                            <td><a href="@ReceiptUrl(rec.ReceiptNo)">@rec.ReceiptNo</a></td>
+                            <td>@(rec.PrintedReceiptNo ?? "—")</td>
+                            <td>@rec.PaidDate.ToString("dd MMM yyyy")</td>
+                            <td class="pc-when">@CollectionStamp(rec.CollectionDate)</td>
+                            <td>@rec.TotalAmount.ToString("0.##") @Locale.T("acc.tk")</td>
+                            <td><a href="@ReceiptUrl(rec.ReceiptNo)">@Locale.T("si.print")</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => showAll = false">@Locale.T("acc.close")</button>
+        </div>
+    </div>
+}
+
+@if (showPrev && bundle is not null)
+{
+    <div class="acc-result-back" @onclick="() => showPrev = false">
+        <div class="acc-result is-ok pc-wide" @onclick:stopPropagation="true">
+            <h3>@Locale.T("acc.prevYearTitle")</h3>
+            @if (bundle.PreviousReceipts.Count == 0)
+            {
+                <p>@Locale.T("acc.noPayment")</p>
+            }
+            else
+            {
+                <div class="pc-wide-body">
+                    <table class="pc-receipt-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("acc.receiptNo")</th>
+                                <th>@Locale.T("acc.session")</th>
+                                <th>@Locale.T("acc.paymentDate")</th>
+                                <th>@Locale.T("acc.collectionDate")</th>
+                                <th>@Locale.T("acc.amount")</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var rec in bundle.PreviousReceipts)
+                        {
+                            <tr>
+                                <td><a href="@ReceiptUrl(rec.ReceiptNo)">@rec.ReceiptNo</a></td>
+                                <td>@(rec.YearName ?? "")</td>
+                                <td>@rec.PaidDate.ToString("dd MMM yyyy")</td>
+                                <td class="pc-when">@CollectionStamp(rec.CollectionDate)</td>
+                                <td>@rec.TotalAmount.ToString("0.##") @Locale.T("acc.tk")</td>
+                                <td><a href="@ReceiptUrl(rec.ReceiptNo)">@Locale.T("si.print")</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => showPrev = false">@Locale.T("acc.close")</button>
+        </div>
+    </div>
+}
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool ByDate => Nav.Uri.Contains("collect-by-date", StringComparison.OrdinalIgnoreCase);
+    private readonly List<CashAccountDto> accounts = [];
+    private readonly List<PaymentRoleDto> roles = [];
+    private readonly List<FeeSuggestDto> suggestions = [];
+    private FeeStudentBundleDto? bundle;
+    private string findId = "";
+    private string accountInput = "0";
+    private string moreRole = "0";
+    private string morePayFor = "";
+    private decimal moreAmount;
+    private decimal moreDiscount;
+    private DateTime paidDate = DateTime.Today;
+    private bool busy, showSuggest, showAdd, showAll, showPrev, smsOn, popupError;
+    private int smsBalance;
+    private string? popupText, photoUrl;
+    private CancellationTokenSource? suggestCts;
+    private int AccountId => int.TryParse(accountInput, out var n) ? n : 0;
+    private decimal PayTotal => bundle is null ? 0 :
+        bundle.CurrentDues.Concat(bundle.OtherDues).Where(x => x.Selected).Sum(x => x.PayNow);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await OnlineAsync()) return;
+        accounts.AddRange(await Api.GetCashAccountsAsync(Session.AccessToken!));
+        roles.AddRange(await Api.GetPaymentRolesAsync(Session.AccessToken!));
+        var def = accounts.FirstOrDefault(x => x.IsDefault) ?? accounts.FirstOrDefault();
+        if (def is not null) accountInput = def.AccountID.ToString();
+        try
+        {
+            var sms = await Api.GetPaymentSmsSettingAsync(Session.AccessToken!);
+            smsOn = sms.Active;
+            smsBalance = sms.Balance;
+        }
+        catch
+        {
+        }
+    }
+
+    private RenderFragment DueTable(List<DueRowDto> rows) => __builder =>
+    {
+        <div class="pc-table-wrap">
+            <table class="pc-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@Locale.T("acc.session")</th>
+                        <th>@Locale.T("students.class")</th>
+                        <th>@Locale.T("acc.roleName")</th>
+                        <th>@Locale.T("acc.payFor")</th>
+                        <th>@Locale.T("acc.end")</th>
+                        <th>@Locale.T("acc.fee")</th>
+                        <th>@Locale.T("acc.discount")</th>
+                        <th>@Locale.T("acc.lateFee")</th>
+                        <th>@Locale.T("acc.lfDiscount")</th>
+                        <th>@Locale.T("acc.paid")</th>
+                        <th>@Locale.T("acc.due")</th>
+                        <th>@Locale.T("acc.pay")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (rows.Count == 0)
+                {
+                    <tr><td colspan="13">@Locale.T("acc.noDue")</td></tr>
+                }
+                else
+                {
+                    foreach (var row in rows)
+                    {
+                        var extra = row.StartDate.Date == row.EndDate.Date && row.StartDate.Date == DateTime.Today;
+                        <tr class="@(row.Selected ? "is-picked" : null) @(row.Overdue ? "is-overdue" : null) @(extra ? "is-extra" : null)">
+                            <td>
+                                <label class="acc-check acc-check-only">
+                                    <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetDue(row, e)" />
+                                </label>
+                            </td>
+                            <td>@(row.YearName ?? "")</td>
+                            <td>@(row.ClassName ?? "")</td>
+                            <td>@row.Role</td>
+                            <td>@row.PayFor</td>
+                            <td>@row.EndDate.ToString("dd-MMM-yyyy")</td>
+                            <td>@row.Amount.ToString("0.##")</td>
+                            <td><input type="number" min="0" step="0.01" @bind="row.Discount" disabled="@(busy || !row.Selected)" /></td>
+                            <td><input type="number" min="0" step="0.01" @bind="row.LateFee" disabled="@(busy || !row.Selected)" /></td>
+                            <td>@row.LateFeeDiscount.ToString("0.##")</td>
+                            <td>@row.PaidAmount.ToString("0.##")</td>
+                            <td class="acc-due">@row.Due.ToString("0.##")</td>
+                            <td><input type="number" min="0" step="0.01" @bind="row.PayNow" disabled="@(busy || !row.Selected)" /></td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private void SetDue(DueRowDto row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true or "true" or "True";
+        if (row.Selected && row.PayNow <= 0)
+            row.PayNow = row.Due;
+    }
+
+    private string ReceiptUrl(string no) =>
+        ByDate ? $"accounts/receipt-by-date/{Uri.EscapeDataString(no)}" : $"accounts/receipt/{Uri.EscapeDataString(no)}";
+
+    private string StatusText(string? status) => status switch
+    {
+        "Active" => Locale.T("emp.active"),
+        "Inactive" => Locale.T("acc.inactive"),
+        _ => status ?? ""
+    };
+
+    private static string CollectionStamp(DateTime value) =>
+        $"{value:dd MMM yy hh:mm}\u00A0{value:tt}";
+
+    private void ClampPaidDate()
+    {
+        if (paidDate.Date > DateTime.Today)
+            paidDate = DateTime.Today;
+    }
+
+    private async Task SetSmsAsync(bool on)
+    {
+        smsOn = on;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                await Api.SavePaymentSmsSettingAsync(Session.AccessToken, on);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task OnFindInput(ChangeEventArgs e)
+    {
+        findId = e.Value?.ToString() ?? "";
+        suggestCts?.Cancel();
+        suggestCts = new CancellationTokenSource();
+        var token = suggestCts.Token;
+        if (findId.Trim().Length < 1) { showSuggest = false; return; }
+        try
+        {
+            await Task.Delay(180, token);
+            suggestions.Clear();
+            suggestions.AddRange(await Api.SuggestFeeStudentsAsync(Session.AccessToken!, findId.Trim(), token));
+            showSuggest = suggestions.Count > 0;
+        }
+        catch (TaskCanceledException) { }
+        catch { showSuggest = false; }
+    }
+
+    private Task OnFindKey(KeyboardEventArgs e) =>
+        e.Key == "Enter" ? LoadStudentAsync(findId) : Task.CompletedTask;
+
+    private Task PickAsync(string id)
+    {
+        findId = id;
+        showSuggest = false;
+        return LoadStudentAsync(id);
+    }
+
+    private async Task LoadStudentAsync(string id)
+    {
+        popupText = null;
+        showSuggest = false;
+        if (string.IsNullOrWhiteSpace(id)) { ShowPopup(Locale.T("acc.needStudentId"), true); return; }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            bundle = await Api.GetFeeStudentBundleAsync(Session.AccessToken!, id.Trim());
+            if (bundle.Student is null)
+            {
+                photoUrl = null;
+                ShowPopup(Locale.T("acc.empty"), true);
+                return;
+            }
+            photoUrl = Session.Current is null ? null : Sync.GetStudentPhotoDataUrl(Session.Current.SchoolID, bundle.Student.StudentID);
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task AddMoreAsync()
+    {
+        if (bundle?.Student is null) return;
+        if (!int.TryParse(moreRole, out var roleId) || roleId <= 0) { ShowPopup(Locale.T("acc.needRole"), true); return; }
+        if (string.IsNullOrWhiteSpace(morePayFor) || moreAmount <= 0) { ShowPopup(Locale.T("acc.needPayForAmt"), true); return; }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            var result = await Api.AddMorePayOrderAsync(Session.AccessToken!, new AddMorePayOrderRequest
+            {
+                StudentID = bundle.Student.StudentID,
+                StudentClassID = bundle.Student.StudentClassID,
+                ClassID = bundle.Student.ClassID,
+                RoleID = roleId,
+                PayFor = morePayFor,
+                Amount = moreAmount,
+                Discount = moreDiscount
+            });
+            if (!result.Succeeded) { ShowPopup(Locale.T(result.Error ?? "acc.failed"), true); return; }
+            moreAmount = 0;
+            moreDiscount = 0;
+            morePayFor = "";
+            showAdd = false;
+            await LoadStudentAsync(bundle.Student.ID);
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ConcessionAsync()
+    {
+        if (bundle?.Student is null) return;
+        var items = bundle.CurrentDues.Concat(bundle.OtherDues)
+            .Where(x => x.Selected)
+            .Select(x => new ConcessionItem
+            {
+                PayOrderID = x.PayOrderID,
+                Discount = x.Discount,
+                LateFee = x.Overdue ? x.LateFee : x.StoredLateFee,
+                LateFeeDiscount = x.LateFeeDiscount,
+                SetLateFee = true
+            })
+            .ToList();
+        if (items.Count == 0) { ShowPopup(Locale.T("acc.needRows"), true); return; }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            var result = await Api.SaveConcessionAsync(Session.AccessToken!, new SaveConcessionRequest { Items = items, Reason = "Concession" });
+            if (!result.Succeeded) { ShowPopup(Locale.T(result.Error ?? "acc.failed"), true); return; }
+            ShowPopup(Locale.T("acc.saved"), false);
+            await LoadStudentAsync(bundle.Student.ID);
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task PayAsync()
+    {
+        if (bundle?.Student is null) return;
+        var items = bundle.CurrentDues.Concat(bundle.OtherDues)
+            .Where(x => x.Selected && x.PayNow > 0)
+            .Select(x => new CollectPaymentItem { PayOrderID = x.PayOrderID, PaidAmount = x.PayNow })
+            .ToList();
+        if (items.Count == 0) { ShowPopup(Locale.T("acc.selectToPay"), true); return; }
+        if (AccountId <= 0) { ShowPopup(Locale.T("acc.needPay"), true); return; }
+        if (ByDate && paidDate.Date > DateTime.Today)
+        {
+            paidDate = DateTime.Today;
+            ShowPopup(Locale.T("acc.futureDate"), true);
+            return;
+        }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            var result = await Api.CollectPaymentAsync(Session.AccessToken!, new CollectPaymentRequest
+            {
+                StudentID = bundle.Student.StudentID,
+                StudentClassID = bundle.Student.StudentClassID,
+                EducationYearID = bundle.Student.EducationYearID,
+                AccountID = AccountId,
+                PaidDate = ByDate ? paidDate : null,
+                SendSms = smsOn,
+                Items = items
+            });
+            if (!result.Succeeded) { ShowPopup(Locale.T(result.Error ?? "acc.failed"), true); return; }
+            if (!string.IsNullOrWhiteSpace(result.ReceiptNo))
+                Nav.NavigateTo(ReceiptUrl(result.ReceiptNo));
+            else
+                ShowPopup(Locale.T("acc.paidOk", result.ReceiptNo ?? ""), false);
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task PaintAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void ShowPopup(string text, bool error)
+    {
+        popupText = text;
+        popupError = error;
+    }
+
+    private void ClosePopup() => popupText = null;
+
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        { ShowPopup(Locale.T("subj.needOnline"), true); return false; }
+        return true;
+    }
+}

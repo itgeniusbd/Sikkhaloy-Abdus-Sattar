@@ -1,0 +1,297 @@
+@page "/attendance/student/rfid"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page att-page">
+    <h1>@Locale.T("att.rfidStu")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="scheduleInput" @bind:after="LoadRowsAsync" disabled="@busy">
+            <option value="0">@Locale.T("att.selectSchedule")</option>
+            @foreach (var item in schedules)
+            {
+                <option value="@item.ScheduleID">@item.ScheduleName</option>
+            }
+        </select>
+        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupInput" @bind:after="LoadRowsAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionInput" @bind:after="LoadRowsAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftInput" @bind:after="LoadRowsAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        <button type="button" class="btn-serial" disabled="@(busy || rows.Count == 0)" @onclick="SaveAsync">@Locale.T("si.update")</button>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act"><input type="checkbox" checked="@allAssigned" disabled="@busy" @onchange="ToggleAssign" /></th>
+                <th>@Locale.T("si.id")</th>
+                <th>@Locale.T("si.roll")</th>
+                <th>@Locale.T("si.name")</th>
+                <th>@Locale.T("att.deviceId")</th>
+                <th>@Locale.T("att.rfid")</th>
+                <th class="sms-col">
+                    <label>
+                        <span>@Locale.T("att.pre")</span>
+                        <input type="checkbox" checked="@allPre" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.PreSms = on)" />
+                    </label>
+                </th>
+                <th class="sms-col">
+                    <label>
+                        <span>@Locale.T("att.lateStatus")</span>
+                        <input type="checkbox" checked="@allLate" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.LateSms = on)" />
+                    </label>
+                </th>
+                <th class="sms-col">
+                    <label>
+                        <span>@Locale.T("att.abs")</span>
+                        <input type="checkbox" checked="@allAbs" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.AbsSms = on)" />
+                    </label>
+                </th>
+                <th class="sms-col">
+                    <label>
+                        <span>@Locale.T("att.exit")</span>
+                        <input type="checkbox" checked="@allExit" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.ExitSms = on)" />
+                    </label>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="10" class="empty-row">@Locale.T("att.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr class="@(row.Assigned ? "is-assigned" : "is-unassigned")">
+                    <td class="act"><input type="checkbox" @bind="row.Assigned" disabled="@busy" /></td>
+                    <td>@row.ID</td>
+                    <td>@row.RollNo</td>
+                    <td>@row.Name</td>
+                    <td>@row.DeviceID</td>
+                    <td><input type="text" @bind="row.RFID" disabled="@busy" /></td>
+                    <td class="act"><input type="checkbox" @bind="row.PreSms" disabled="@busy" /></td>
+                    <td class="act"><input type="checkbox" @bind="row.LateSms" disabled="@busy" /></td>
+                    <td class="act"><input type="checkbox" @bind="row.AbsSms" disabled="@busy" /></td>
+                    <td class="act"><input type="checkbox" @bind="row.ExitSms" disabled="@busy" /></td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<AttendanceScheduleDto> schedules = [];
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<StudentRfidRowDto> rows = [];
+    private ClassStructureDto? structure;
+    private string scheduleInput = "0";
+    private string classInput = "0";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private bool busy;
+    private bool allAssigned;
+    private bool allPre;
+    private bool allLate;
+    private bool allAbs;
+    private bool allExit;
+    private string? error;
+    private string? message;
+
+    private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        schedules.Clear();
+        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+    }
+
+    private async Task OnClassChanged()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        if (structure is not null && ClassId > 0)
+        {
+            var parts = structure.AssignedParts(ClassId);
+            groups.AddRange(parts.Groups);
+            sections.AddRange(parts.Sections);
+            shifts.AddRange(parts.Shifts);
+        }
+        await LoadRowsAsync();
+    }
+
+    private void ToggleAssign(ChangeEventArgs e)
+    {
+        allAssigned = e.Value is true or "true";
+        foreach (var row in rows)
+            row.Assigned = allAssigned;
+    }
+
+    private void ToggleSms(ChangeEventArgs e, Action<StudentRfidRowDto, bool> set)
+    {
+        var on = e.Value is true or "true";
+        foreach (var row in rows)
+            set(row, on);
+        SyncHeaderFlags();
+    }
+
+    private async Task LoadRowsAsync()
+    {
+        error = message = null;
+        if (ScheduleId <= 0 || ClassId <= 0)
+        {
+            rows.Clear();
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GetStudentRfidAsync(Session.AccessToken!, ScheduleId, ClassId, GroupId, SectionId, ShiftId));
+            SyncHeaderFlags();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = message = null;
+        if (ScheduleId <= 0)
+        {
+            error = Locale.T("att.needSchedule");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveStudentRfidAsync(Session.AccessToken!, new SaveStudentRfidRequest
+            {
+                ScheduleID = ScheduleId,
+                Rows = rows.Select(x => new StudentRfidSaveRow
+                {
+                    StudentID = x.StudentID,
+                    RFID = x.RFID,
+                    Assigned = x.Assigned,
+                    PreSms = x.PreSms,
+                    LateSms = x.LateSms,
+                    AbsSms = x.AbsSms,
+                    ExitSms = x.ExitSms
+                }).ToList()
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            var ok = Locale.T("att.updated");
+            await LoadRowsAsync();
+            message = ok;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void SyncHeaderFlags()
+    {
+        allAssigned = rows.Count > 0 && rows.All(x => x.Assigned);
+        allPre = rows.Count > 0 && rows.All(x => x.PreSms);
+        allLate = rows.Count > 0 && rows.All(x => x.LateSms);
+        allAbs = rows.Count > 0 && rows.All(x => x.AbsSms);
+        allExit = rows.Count > 0 && rows.All(x => x.ExitSms);
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

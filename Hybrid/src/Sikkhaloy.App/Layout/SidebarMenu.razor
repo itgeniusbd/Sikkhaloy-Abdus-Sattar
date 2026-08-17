@@ -1,0 +1,115 @@
+@inject NavigationManager Nav
+@inject AppLocale Locale
+
+<nav class="sidebar-nav">
+    <NavLink href="dashboard" Match="NavLinkMatch.All" class="menu-top">
+        @Icon("dashboard")
+        <span>@Locale.T("nav.dashboard")</span>
+    </NavLink>
+
+    @if (Menu.Categories.Count == 0)
+    {
+        <p class="menu-empty">@Locale.T("menu.syncHint")</p>
+    }
+
+    @foreach (var category in Menu.Categories)
+    {
+        <details class="menu-group" open="@ContainsPath(category)">
+            <summary>
+                <span class="menu-left">
+                    @Icon(category.Name)
+                    <span>@Locale.Menu(category.Name)</span>
+                </span>
+            </summary>
+            <div class="menu-tree">
+                @foreach (var sub in category.Subs)
+                {
+                    <details class="menu-sub" open="@ContainsPath(sub.Links)">
+                        <summary>
+                            <span class="menu-left">
+                                <span class="menu-dot"></span>
+                                <span>@Locale.Menu(sub.Name)</span>
+                            </span>
+                        </summary>
+                        <div class="menu-leaves">
+                            @foreach (var link in sub.Links)
+                            {
+                                <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
+                                    <span class="menu-dot"></span>
+                                    <span>@Locale.Menu(link.Title)</span>
+                                </NavLink>
+                            }
+                        </div>
+                    </details>
+                }
+                @foreach (var link in category.Links)
+                {
+                    <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
+                        <span class="menu-dot"></span>
+                        <span>@Locale.Menu(link.Title)</span>
+                    </NavLink>
+                }
+            </div>
+        </details>
+    }
+</nav>
+
+@code {
+    [Parameter, EditorRequired]
+    public MenuTreeDto Menu { get; set; } = new();
+
+    private string CurrentPath => Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
+
+    private static string Href(MenuLinkDto link) => (link.Route ?? "").TrimStart('/');
+
+    private static string? LinkClass(MenuLinkDto link) => link.Ready ? null : "soon-link";
+
+    private bool ContainsPath(MenuCategoryDto category) =>
+        ContainsPath(category.Links) || category.Subs.Any(sub => ContainsPath(sub.Links));
+
+    private bool ContainsPath(IEnumerable<MenuLinkDto> links)
+    {
+        var path = CurrentPath;
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+        return links.Any(link => Href(link).Equals(path, StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(Href(link) + "/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static MarkupString Icon(string name)
+    {
+        var key = (name ?? "").Trim().ToLowerInvariant();
+        var path = key switch
+        {
+            "dashboard" =>
+                "<rect x='3' y='3' width='7' height='7' rx='1.4'/><rect x='14' y='3' width='7' height='7' rx='1.4'/><rect x='3' y='14' width='7' height='7' rx='1.4'/><rect x='14' y='14' width='7' height='7' rx='1.4'/>",
+            "basic settings" or "settings" or "sub-admin management" =>
+                "<circle cx='12' cy='12' r='3'/><path d='M12 1.8v2.4M12 19.8v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M1.8 12h2.4M19.8 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7'/>",
+            "teacher & staff" or "employee salary" or "employee" =>
+                "<circle cx='12' cy='8' r='3.2'/><path d='M5.5 19.5c.6-3.2 3.3-5 6.5-5s5.9 1.8 6.5 5'/><circle cx='18' cy='10' r='2'/><path d='M18 12.2v2.2M16.9 13.3h2.2'/>",
+            "admission" =>
+                "<path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='3.2'/><path d='M19 8v6M16 11h6'/>",
+            "student information" or "student user id" or "student" =>
+                "<path d='M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2'/><circle cx='10' cy='7' r='3.2'/><path d='M21 21v-2a3.5 3.5 0 0 0-2.6-3.4'/><path d='M16.2 3.8a3.2 3.2 0 0 1 0 6.2'/>",
+            "student management" or "class management" =>
+                "<path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/>",
+            "attendances" =>
+                "<rect x='3' y='4.5' width='18' height='16' rx='2'/><path d='M8 2.8v3.4M16 2.8v3.4M3 9.5h18'/><path d='M8.5 13.5l2.2 2.2 4.8-4.8'/>",
+            "accounts" or "income" or "expense" or "sikkhaloy invoice" =>
+                "<rect x='2.5' y='6' width='19' height='13' rx='2'/><path d='M2.5 10h19'/><circle cx='16.5' cy='15.2' r='1.4'/>",
+            "exam" =>
+                "<path d='M22 10.5l-10-5-10 5 10 5 10-5z'/><path d='M6 12.4v4.2c0 .7 2.7 2.6 6 2.6s6-1.9 6-2.6v-4.2'/>",
+            "sms" =>
+                "<path d='M21 14.5a2 2 0 0 1-2 2H8l-5 3.2V5.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/>",
+            "routines" =>
+                "<circle cx='12' cy='12' r='8.5'/><path d='M12 7.2V12l3.2 1.8'/>",
+            "committee" =>
+                "<path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='3'/><path d='M22 21v-2a3.5 3.5 0 0 0-2.5-3.4'/><circle cx='17.5' cy='7.2' r='2.4'/>",
+            _ =>
+                "<path d='M4 5.5h16v14H4z'/><path d='M4 9h16'/>"
+        };
+        return new MarkupString(
+            "<svg class=\"menu-ico\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">"
+            + path + "</svg>");
+    }
+}

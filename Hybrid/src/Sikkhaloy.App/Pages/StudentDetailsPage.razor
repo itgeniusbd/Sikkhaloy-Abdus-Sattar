@@ -1,0 +1,804 @@
+﻿@page "/students/details"
+@page "/students/details/{LocalId:guid}"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="report-page">
+    <div class="report-nav no-print">
+        <a href="students">&lt;&lt; @Locale.T("report.back")</a>
+        <input type="text"
+               placeholder="@Locale.T("report.enterId")"
+               @bind="idInput"
+               @onkeydown="OnIdKey" />
+        <button class="btn-find" @onclick="FindAsync">@Locale.T("report.find")</button>
+        <a href="admission/print-form">@Locale.T("blank.link")</a>
+        @if (student is not null)
+        {
+            <button class="btn-print" @onclick='() => PrintAsync("portrait")'>@Locale.T("print.portrait")</button>
+            <button class="btn-print" @onclick='() => PrintAsync("landscape")'>@Locale.T("print.landscape")</button>
+            <a href="@($"students/{student.LocalId}")">@Locale.T("students.edit")</a>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    @if (student is null)
+    {
+        <p class="muted no-print">@Locale.T("report.hint")</p>
+    }
+    else
+    {
+        <section class="report-card no-print">
+            <div class="report-photo">
+                @if (!string.IsNullOrWhiteSpace(student.PhotoDataUrl))
+                {
+                    <img src="@student.PhotoDataUrl" alt="" />
+                }
+                else
+                {
+                    @Initial
+                }
+            </div>
+            <div class="report-info">
+                <h1>@student.StudentsName <span>(ID: @student.StudentCode)</span></h1>
+                <p><strong>@Locale.T("edit.father"):</strong> @OrDash(student.FathersName) &nbsp; <strong>@Locale.T("students.phone"):</strong> @OrDash(student.SMSPhoneNo)</p>
+                <p class="report-class">
+                    <strong>@Locale.T("students.class"):</strong> @ClassOf(student)
+                    &nbsp; <strong>@Locale.T("students.roll"):</strong> @OrDash(student.RollNo)
+                </p>
+            </div>
+        </section>
+
+        <div class="report-tabs no-print">
+            <button type="button" class="@(tab == "profile" ? "active" : null)" @onclick='() => tab = "profile"'>@Locale.T("report.profile")</button>
+            <button type="button" class="@(tab == "result" ? "active" : null)" @onclick='() => tab = "result"'>@Locale.T("report.result")</button>
+            <button type="button" class="@(tab == "attendance" ? "active" : null)" @onclick='() => tab = "attendance"'>@Locale.T("report.attendance")</button>
+            <button type="button" class="@(tab == "subjects" ? "active" : null)" @onclick='() => tab = "subjects"'>@Locale.T("report.subjects")</button>
+            <button type="button" class="@(tab == "accounts" ? "active" : null)" @onclick='() => tab = "accounts"'>@Locale.T("report.accounts")</button>
+        </div>
+
+        @if (tab != "profile")
+        {
+            <PrintHeader Subtitle="@TabTitle" />
+            <div class="print-only report-print-who">
+                <div class="report-photo">
+                    @if (!string.IsNullOrWhiteSpace(student.PhotoDataUrl))
+                    {
+                        <img src="@student.PhotoDataUrl" alt="" />
+                    }
+                    else
+                    {
+                        @Initial
+                    }
+                </div>
+                <div>
+                    <strong>@student.StudentsName</strong>
+                    <span>(ID: @student.StudentCode)</span>
+                    <p>
+                        @Locale.T("edit.father"): @OrDash(student.FathersName)
+                        &nbsp; @Locale.T("students.class"): @ClassOf(student)
+                        &nbsp; @Locale.T("students.roll"): @OrDash(student.RollNo)
+                    </p>
+                </div>
+            </div>
+        }
+
+        @if (tab == "profile")
+        {
+            <div class="adm-print adm-screen">
+                <div class="adm-school">
+                    @if (!string.IsNullOrWhiteSpace(logoUrl))
+                    {
+                        <img src="@logoUrl" alt="" />
+                    }
+                    else
+                    {
+                        <span class="adm-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
+                    }
+                    <div>
+                        <h1>@schoolName</h1>
+                        <p>@schoolAddress @schoolPhone</p>
+                    </div>
+                </div>
+
+                <div class="adm-top">
+                    <div class="adm-date">
+                        @Locale.T("form.admission")
+                        <strong>@(student.AdmissionDate?.ToString("dd/MM/yyyy") ?? "-")</strong>
+                    </div>
+                    <div class="adm-title">
+                        <span>ADMISSION FORM</span>
+                        <small>@Locale.T("form.titleBn")</small>
+                    </div>
+                    <div class="adm-photo">
+                        @if (!string.IsNullOrWhiteSpace(student.PhotoDataUrl))
+                        {
+                            <img src="@student.PhotoDataUrl" alt="" />
+                        }
+                        else
+                        {
+                            @Initial
+                        }
+                    </div>
+                </div>
+
+                <fieldset>
+                    <legend>@Locale.T("form.student")</legend>
+                    <table class="adm-table">
+                        <tr>
+                            <td style="width:25%"><span class="lbl">ID:</span> <span class="val">@student.StudentCode</span></td>
+                            <td style="width:45%"><span class="lbl">@Locale.T("form.studentName"):</span> <span class="val">@student.StudentsName</span></td>
+                            <td style="width:30%"><span class="lbl">@Locale.T("form.mobile"):</span> <span class="val">@OrDash(student.SMSPhoneNo)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="lbl">@Locale.T("students.gender"):</span> <span class="val">@GenderLabel(student.Gender)</span></td>
+                            <td><span class="lbl">@Locale.T("students.dob"):</span> <span class="val">@(student.DateofBirth?.ToString("dd/MM/yyyy") ?? "-")</span></td>
+                            <td><span class="lbl">@Locale.T("students.blood"):</span> <span class="val">@OrDash(student.BloodGroup)</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><span class="lbl">@Locale.T("students.religion"):</span> <span class="val">@OrDash(student.Religion)</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><span class="lbl">@Locale.T("form.permanent"):</span> <span class="val">@OrDash(student.StudentPermanentAddress)</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><span class="lbl">@Locale.T("form.present"):</span> <span class="val">@OrDash(student.StudentsLocalAddress)</span></td>
+                        </tr>
+                    </table>
+                </fieldset>
+
+                <fieldset>
+                    <legend>@Locale.T("form.parents")</legend>
+                    <table class="adm-table">
+                        <tr>
+                            <td style="width:40%"><span class="lbl">@Locale.T("form.father"):</span> <span class="val">@OrDash(student.FathersName)</span></td>
+                            <td style="width:30%"><span class="lbl">@Locale.T("form.mobile"):</span> <span class="val">@OrDash(student.FatherPhoneNumber)</span></td>
+                            <td style="width:30%"><span class="lbl">@Locale.T("form.occupation"):</span> <span class="val">@OrDash(student.FatherOccupation)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="lbl">@Locale.T("form.mother"):</span> <span class="val">@OrDash(student.MothersName)</span></td>
+                            <td><span class="lbl">@Locale.T("form.mobile"):</span> <span class="val">@OrDash(student.MotherPhoneNumber)</span></td>
+                            <td><span class="lbl">@Locale.T("form.occupation"):</span> <span class="val">@OrDash(student.MotherOccupation)</span></td>
+                        </tr>
+                    </table>
+                </fieldset>
+
+                <fieldset>
+                    <legend>@Locale.T("form.guardian")</legend>
+                    <table class="adm-table">
+                        <tr>
+                            <td style="width:40%"><span class="lbl">@Locale.T("form.guardianName"):</span> <span class="val">@OrDash(student.GuardianName)</span></td>
+                            <td style="width:30%"><span class="lbl">@Locale.T("form.relationship"):</span> <span class="val">@OrDash(student.GuardianRelationshipwithStudent)</span></td>
+                            <td style="width:30%"><span class="lbl">@Locale.T("form.mobile"):</span> <span class="val">@OrDash(student.GuardianPhoneNumber)</span></td>
+                        </tr>
+                    </table>
+                </fieldset>
+
+                <fieldset>
+                    <legend>@Locale.T("form.prev")</legend>
+                    <table class="adm-table">
+                        <tr>
+                            <td style="width:40%"><span class="lbl">@Locale.T("form.institution"):</span> <span class="val">@OrDash(student.PrevSchoolName)</span></td>
+                            <td style="width:20%"><span class="lbl">@Locale.T("students.class"):</span> <span class="val">@OrDash(student.PrevClass)</span></td>
+                            <td style="width:20%"><span class="lbl">@Locale.T("form.year"):</span> <span class="val">@OrDash(student.PrevExamYear)</span></td>
+                            <td style="width:20%"><span class="lbl">@Locale.T("form.grade"):</span> <span class="val">@OrDash(student.PrevExamGrade)</span></td>
+                        </tr>
+                    </table>
+                </fieldset>
+
+                <fieldset>
+                    <legend>@Locale.T("form.academic")</legend>
+                    <table class="adm-table">
+                        <tr>
+                            <td><span class="lbl">@Locale.T("students.class"):</span> <span class="val">@ClassOf(student)</span></td>
+                            <td><span class="lbl">@Locale.T("form.roll"):</span> <span class="val">@OrDash(student.RollNo)</span></td>
+                            <td><span class="lbl">@Locale.T("students.section"):</span> <span class="val">@OrDash(student.SectionName)</span></td>
+                            <td><span class="lbl">@Locale.T("students.shift"):</span> <span class="val">@OrDash(student.ShiftName)</span></td>
+                            <td><span class="lbl">@Locale.T("students.group"):</span> <span class="val">@OrDash(student.GroupName)</span></td>
+                        </tr>
+                    </table>
+                </fieldset>
+
+                <div class="adm-signs">
+                    <div>
+                        <span class="adm-line">@Locale.T("form.signStudent")</span>
+                        <small>@Locale.T("form.dateLine")</small>
+                    </div>
+                    <div>
+                        <span class="adm-line">@Locale.T("form.signGuardian")</span>
+                        <small>@Locale.T("form.dateLine")</small>
+                    </div>
+                    <div>
+                        <span class="adm-line">@Locale.T("form.signPrincipal")</span>
+                        <small>@Locale.T("form.dateLine")</small>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (reportBusy)
+        {
+            <p class="muted no-print">@Locale.T("report.loading")</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(reportError))
+        {
+            <p class="muted no-print">@reportError</p>
+        }
+        else if (tab == "result")
+        {
+            <div class="ra-wrap">
+                <div class="ra-side">
+                    <h3>@Locale.T("report.subjectAvg")</h3>
+                    <div class="ra-best">
+                        <strong>@Locale.T("report.best")</strong>
+                        <span>@(report?.Result.BestSubject ?? "-")</span>
+                        <small>@Pct(report?.Result.BestAvg)</small>
+                    </div>
+                    <div class="ra-worst">
+                        <strong>@Locale.T("report.worst")</strong>
+                        <span>@(report?.Result.WorstSubject ?? "-")</span>
+                        <small>@Pct(report?.Result.WorstAvg)</small>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="mgrid">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("report.subject")</th>
+                                    <th>@Locale.T("report.avgMark")</th>
+                                    <th>@Locale.T("report.position")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (report?.Result.SubjectAvgs.Count > 0)
+                                {
+                                    @foreach (var row in report.Result.SubjectAvgs)
+                                    {
+                                        <tr>
+                                            <td>@row.SubjectName</td>
+                                            <td>@Pct(row.AvgMark)</td>
+                                            <td>@Num(row.Position)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="3">@Locale.T("report.empty")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="ra-main">
+                    <div class="ra-stats">
+                        <div class="ra-stat pos"><strong>@Num(report?.Result.AvgPosition)</strong><small>@Locale.T("report.avgPosition")</small></div>
+                        <div class="ra-stat point"><strong>@Num(report?.Result.AvgPoint)</strong><small>@Locale.T("report.avgPoint")</small></div>
+                        <div class="ra-stat mark"><strong>@Pct(report?.Result.AvgMark)</strong><small>@Locale.T("report.avgMark")</small></div>
+                        <div class="ra-stat pass"><strong>@Pct(report?.Result.PassPercent)</strong><small>@Locale.T("report.passPct")</small></div>
+                    </div>
+                    <h3>@Locale.T("report.sessionReport")</h3>
+                    <div class="table-wrap">
+                        <table class="mgrid">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("report.session")</th>
+                                    <th>@Locale.T("report.avgPosition")</th>
+                                    <th>@Locale.T("report.avgPoint")</th>
+                                    <th>@Locale.T("report.passPct")</th>
+                                    <th>@Locale.T("report.avgMark")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (report?.Result.Sessions.Count > 0)
+                                {
+                                    @foreach (var row in report.Result.Sessions)
+                                    {
+                                        <tr>
+                                            <td>@row.EducationYear</td>
+                                            <td>@Num(row.AvgPosition)</td>
+                                            <td>@Num(row.AvgPoint)</td>
+                                            <td>@Pct(row.PassPercent)</td>
+                                            <td>@Pct(row.AvgMark)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="5">@Locale.T("report.empty")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <h3>@Locale.T("report.exams")</h3>
+                    <div class="table-wrap">
+                        <table class="mgrid">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("report.exam")</th>
+                                    <th>@Locale.T("report.grade")</th>
+                                    <th>@Locale.T("report.point")</th>
+                                    <th>@Locale.T("report.position")</th>
+                                    <th>@Locale.T("report.obtained")</th>
+                                    <th>@Locale.T("report.total")</th>
+                                    <th>%</th>
+                                    <th>@Locale.T("report.pass")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (report?.Result.Exams.Count > 0)
+                                {
+                                    @foreach (var row in report.Result.Exams)
+                                    {
+                                        <tr>
+                                            <td>@row.ExamName</td>
+                                            <td>@OrDash(row.Grade)</td>
+                                            <td>@Num(row.Point)</td>
+                                            <td>@(row.Position?.ToString() ?? "-")</td>
+                                            <td>@Num(row.Obtained)</td>
+                                            <td>@Num(row.Total)</td>
+                                            <td>@Pct(row.Percent)</td>
+                                            <td>@OrDash(row.PassStatus)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="8">@Locale.T("report.empty")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (tab == "attendance")
+        {
+            <div class="report-panel">
+                <div class="report-subtabs no-print">
+                    <button type="button" class="@(attTab == "summary" ? "active" : null)" @onclick='() => attTab = "summary"'>@Locale.T("report.attSummary")</button>
+                    <button type="button" class="@(attTab == "details" ? "active" : null)" @onclick='() => attTab = "details"'>@Locale.T("report.attDetails")</button>
+                </div>
+                @if (attTab == "summary")
+                {
+                    <div class="att-grid">
+                        <div class="att-box wd"><h5>@Locale.T("report.working")</h5><strong>@(report?.Attendance.WorkingDays ?? 0)</strong></div>
+                        <div class="att-box pre"><h5>@Locale.T("report.present") (@PctOf(report?.Attendance.Present ?? 0, report?.Attendance.WorkingDays ?? 0))</h5><strong>@(report?.Attendance.Present ?? 0)</strong></div>
+                        <div class="att-box abs"><h5>@Locale.T("report.absent") (@PctOf(report?.Attendance.Absent ?? 0, report?.Attendance.WorkingDays ?? 0))</h5><strong>@(report?.Attendance.Absent ?? 0)</strong></div>
+                        <div class="att-box late"><h5>@Locale.T("report.late") (@PctOf(report?.Attendance.Late ?? 0, report?.Attendance.WorkingDays ?? 0))</h5><strong>@(report?.Attendance.Late ?? 0)</strong></div>
+                        <div class="att-box lateabs"><h5>@Locale.T("report.lateAbs") (@PctOf(report?.Attendance.LateAbsent ?? 0, report?.Attendance.WorkingDays ?? 0))</h5><strong>@(report?.Attendance.LateAbsent ?? 0)</strong></div>
+                        <div class="att-box leave"><h5>@Locale.T("report.leave") (@PctOf(report?.Attendance.Leave ?? 0, report?.Attendance.WorkingDays ?? 0))</h5><strong>@(report?.Attendance.Leave ?? 0)</strong></div>
+                        <div class="att-box bunk"><h5>@Locale.T("report.bunk") (@PctOf(report?.Attendance.Bunk ?? 0, report?.Attendance.WorkingDays ?? 0))</h5><strong>@(report?.Attendance.Bunk ?? 0)</strong></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="att-legend">
+                        <span class="att-pill pre">@Locale.T("report.present")</span>
+                        <span class="att-pill abs">@Locale.T("report.absent")</span>
+                        <span class="att-pill late">@Locale.T("report.late")</span>
+                        <span class="att-pill lateabs">@Locale.T("report.lateAbs")</span>
+                        <span class="att-pill leave">@Locale.T("report.leave")</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="mgrid">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("report.date")</th>
+                                    <th>@Locale.T("report.status")</th>
+                                    <th>@Locale.T("report.entry")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (report?.Attendance.Days.Count > 0)
+                                {
+                                    @foreach (var day in report.Attendance.Days)
+                                    {
+                                        <tr>
+                                            <td>@day.Date.ToString("dd MMM yyyy")</td>
+                                            <td><span class="att-pill @AttClass(day.Attendance)">@OrDash(day.Attendance)</span></td>
+                                            <td>@OrDash(day.EntryTime)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="3">@Locale.T("report.empty")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+        else if (tab == "subjects")
+        {
+            <div class="report-panel">
+                <ol class="subj-list">
+                    @if (report?.Subjects.Count > 0)
+                    {
+                        @foreach (var sub in report.Subjects)
+                        {
+                            <li>
+                                @sub.SubjectName
+                                @if (!string.Equals(sub.SubjectType, "Compulsory", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="muted"> *</span>
+                                }
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="muted">@Locale.T("report.empty")</li>
+                    }
+                </ol>
+                <p class="muted no-print">* @Locale.T("report.optional")</p>
+                <a class="btn-find no-print" href="@($"student-info/subjects")">@Locale.T("report.changeSubject")</a>
+            </div>
+        }
+        else if (tab == "accounts")
+        {
+            <div class="report-panel">
+                <div class="report-subtabs no-print">
+                    <button type="button" class="@(accTab == "due" ? "active" : null)" @onclick='() => accTab = "due"'>@Locale.T("report.due")</button>
+                    <button type="button" class="@(accTab == "current" ? "active" : null)" @onclick='() => accTab = "current"'>@Locale.T("report.currentDue")</button>
+                    <button type="button" class="@(accTab == "paid" ? "active" : null)" @onclick='() => accTab = "paid"'>@Locale.T("report.paid")</button>
+                    <button type="button" class="@(accTab == "receipts" ? "active" : null)" @onclick='() => accTab = "receipts"'>@Locale.T("report.paidRecord")</button>
+                    <button type="button" class="@(accTab == "concession" ? "active" : null)" @onclick='() => accTab = "concession"'>@Locale.T("report.concession")</button>
+                    <button type="button" class="@(accTab == "payorder" ? "active" : null)" @onclick='() => accTab = "payorder"'>@Locale.T("report.payorder")</button>
+                </div>
+                @if (accTab != "payorder")
+                {
+                    <div class="no-print">
+                        @if (accTab == "due")
+                        {
+                            <div class="acc-total">@Locale.T("report.totalDue"): @Money(report?.Accounts.TotalDue)</div>
+                            @PayTable(report?.Accounts.Due, true)
+                        }
+                        else if (accTab == "current")
+                        {
+                            <div class="acc-total">@Locale.T("report.currentDue"): @Money(report?.Accounts.CurrentDueTotal)</div>
+                            @PayTable(report?.Accounts.CurrentDue, true)
+                        }
+                        else if (accTab == "paid")
+                        {
+                            <div class="acc-total">@Locale.T("report.totalPaid"): @Money(report?.Accounts.TotalPaid)</div>
+                            @PayTable(report?.Accounts.Paid, false)
+                        }
+                        else if (accTab == "receipts")
+                        {
+                            <div class="acc-total">@Locale.T("report.totalPaid"): @Money(report?.Accounts.Receipts.Sum(x => x.Amount) ?? 0)</div>
+                            <div class="table-wrap">
+                                <table class="mgrid">
+                                    <thead>
+                                        <tr>
+                                            <th>@Locale.T("report.receipt")</th>
+                                            <th>@Locale.T("report.paidDate")</th>
+                                            <th>@Locale.T("report.paid")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (report?.Accounts.Receipts.Count > 0)
+                                        {
+                                            @foreach (var row in report.Accounts.Receipts)
+                                            {
+                                                <tr>
+                                                    <td>@OrDash(row.ReceiptNo)</td>
+                                                    <td>@D(row.PaidDate)</td>
+                                                    <td>@Money(row.Amount)</td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr><td colspan="3">@Locale.T("report.empty")</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else if (accTab == "concession")
+                        {
+                            <div class="acc-total">@Locale.T("report.totalConc"): @Money(report?.Accounts.Concession.Sum(x => x.Discount) ?? 0)</div>
+                            <div class="table-wrap">
+                                <table class="mgrid">
+                                    <thead>
+                                        <tr>
+                                            <th>@Locale.T("report.role")</th>
+                                            <th>@Locale.T("report.payFor")</th>
+                                            <th>@Locale.T("report.start")</th>
+                                            <th>@Locale.T("report.end")</th>
+                                            <th>@Locale.T("report.fee")</th>
+                                            <th>@Locale.T("report.lateFee")</th>
+                                            <th>@Locale.T("report.concession")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (report?.Accounts.Concession.Count > 0)
+                                        {
+                                            @foreach (var row in report.Accounts.Concession)
+                                            {
+                                                <tr>
+                                                    <td>@row.Role</td>
+                                                    <td>@row.PayFor</td>
+                                                    <td>@D(row.StartDate)</td>
+                                                    <td>@D(row.EndDate)</td>
+                                                    <td>@Money(row.Amount)</td>
+                                                    <td>@Money(row.LateFee)</td>
+                                                    <td>@Money(row.Discount)</td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr><td colspan="7">@Locale.T("report.empty")</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+                <div class="@(accTab == "payorder" ? null : "print-only")">
+                    <div class="acc-sum">
+                        <span>@Locale.T("report.totalFee"): @Money(report?.Accounts.TotalFee)</span>
+                        <span>@Locale.T("report.totalConc"): @Money(report?.Accounts.TotalDiscount)</span>
+                        <span>@Locale.T("report.totalLate"): @Money(report?.Accounts.TotalLateFee)</span>
+                        <span>@Locale.T("report.totalPaid"): @Money(report?.Accounts.TotalPaid)</span>
+                        <span class="due">@Locale.T("report.totalDue"): @Money(report?.Accounts.TotalDue)</span>
+                    </div>
+                    @PayTable(report?.Accounts.AllPayOrders, false)
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid LocalId { get; set; }
+
+    private StudentDto? student;
+    private StudentReportDto? report;
+    private IReadOnlyList<SchoolClassDto> classes = [];
+    private string idInput = "";
+    private string? error;
+    private string? reportError;
+    private string tab = "profile";
+    private string attTab = "summary";
+    private string accTab = "due";
+    private bool reportBusy;
+    private string schoolName = "";
+    private string schoolAddress = "";
+    private string schoolPhone = "";
+    private string? logoUrl;
+
+    private string Initial =>
+        student is null || student.StudentsName.Length == 0 ? "S" : student.StudentsName[..1];
+
+    private string TabTitle => tab switch
+    {
+        "result" => Locale.T("report.result"),
+        "attendance" => Locale.T("report.attendance"),
+        "subjects" => Locale.T("report.subjects"),
+        "accounts" => Locale.T("report.payorder"),
+        _ => ""
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Session.IsAuthenticated || Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        LoadSchool();
+        classes = await Sync.ListClassesAsync(Session.Current.SchoolID);
+        if (LocalId == Guid.Empty)
+        {
+            student = null;
+            report = null;
+            return;
+        }
+
+        student = await Sync.GetStudentAsync(LocalId);
+        if (student is null)
+        {
+            error = Locale.T("report.notFound");
+            report = null;
+            return;
+        }
+
+        idInput = student.StudentCode;
+        error = null;
+        if (student.ServerId is int sid && sid > 0)
+            student.PhotoDataUrl ??= Sync.GetStudentPhotoDataUrl(Session.Current.SchoolID, sid);
+        await LoadReportAsync();
+    }
+
+    private async Task LoadReportAsync()
+    {
+        report = null;
+        reportError = null;
+        if (Session.Current is null || student is null || string.IsNullOrWhiteSpace(student.StudentCode))
+            return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            reportError = Locale.T("report.needOnline");
+            return;
+        }
+
+        reportBusy = true;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                reportError = Locale.T("report.needOnline");
+                return;
+            }
+
+            report = await Api.GetStudentReportAsync(Session.AccessToken, student.StudentCode);
+            if (!string.IsNullOrWhiteSpace(report.PhotoDataUrl) && student.ServerId is int id && id > 0)
+            {
+                Sync.SaveStudentPhoto(Session.Current.SchoolID, id, report.PhotoDataUrl);
+                student.PhotoDataUrl = report.PhotoDataUrl;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            reportError = Locale.T("report.needOnline");
+        }
+        catch (Exception)
+        {
+            reportError = Locale.T("report.needOnline");
+        }
+        finally
+        {
+            reportBusy = false;
+        }
+    }
+
+    private void LoadSchool()
+    {
+        if (Session.Current is null)
+            return;
+        var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+        schoolName = string.IsNullOrWhiteSpace(header.SchoolName) ? Session.Current.SchoolName : header.SchoolName;
+        schoolAddress = header.Address ?? "";
+        schoolPhone = header.Phone ?? "";
+        logoUrl = Sync.GetSchoolLogoDataUrl(Session.Current.SchoolID);
+    }
+
+    private async Task OnIdKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await FindAsync();
+    }
+
+    private async Task FindAsync()
+    {
+        if (Session.Current is null)
+            return;
+
+        var code = idInput.Trim();
+        if (code.Length == 0)
+        {
+            error = Locale.T("report.needId");
+            return;
+        }
+
+        var found = await Sync.FindStudentByCodeAsync(
+            Session.Current.SchoolID, Session.Current.EducationYearID, code);
+        if (found is null)
+        {
+            error = Locale.T("report.notFound");
+            return;
+        }
+
+        Nav.NavigateTo($"students/details/{found.LocalId}");
+    }
+
+    private async Task PrintAsync(string orientation) =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", orientation);
+
+    private string ClassOf(StudentDto row)
+    {
+        if (!string.IsNullOrWhiteSpace(row.ClassName))
+            return row.ClassName;
+        return classes.FirstOrDefault(x => x.ClassID == row.ClassID)?.Name ?? "-";
+    }
+
+    private string GenderLabel(string? gender)
+    {
+        if (string.Equals(gender, "Male", StringComparison.OrdinalIgnoreCase) || gender == "à¦›à§‡à¦²à§‡")
+            return Locale.T("male");
+        if (string.Equals(gender, "Female", StringComparison.OrdinalIgnoreCase) || gender == "à¦®à§‡à¦¯à¦¼à§‡")
+            return Locale.T("female");
+        return string.IsNullOrWhiteSpace(gender) ? "-" : gender;
+    }
+
+    private static string OrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static string Num(decimal? value) => value is null ? "-" : value.Value.ToString("0.##");
+
+    private static string Pct(decimal? value) => value is null ? "-" : value.Value.ToString("0.##") + "%";
+
+    private static string PctOf(int part, int total) =>
+        total <= 0 ? "0%" : (100.0 * part / total).ToString("0.#") + "%";
+
+    private static string Money(decimal? value) => (value ?? 0).ToString("N0");
+
+    private static string D(DateTime? value) => value?.ToString("dd MMM yyyy") ?? "-";
+
+    private static string AttClass(string? status)
+    {
+        var key = (status ?? "").Trim();
+        if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase)) return "pre";
+        if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase)) return "abs";
+        if (key.Equals("Late", StringComparison.OrdinalIgnoreCase)) return "late";
+        if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase)) return "leave";
+        if (key.Equals("Bunk", StringComparison.OrdinalIgnoreCase)) return "bunk";
+        if (key.Contains("Late", StringComparison.OrdinalIgnoreCase)) return "lateabs";
+        return "";
+    }
+
+    private RenderFragment PayTable(IReadOnlyList<StudentReportPayOrderDto>? rows, bool showSession) => @<div class="table-wrap">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    @if (showSession)
+                    {
+                        <th>@Locale.T("report.session")</th>
+                        <th>@Locale.T("students.class")</th>
+                    }
+                    <th>@Locale.T("report.role")</th>
+                    <th>@Locale.T("report.payFor")</th>
+                    <th>@Locale.T("report.start")</th>
+                    <th>@Locale.T("report.end")</th>
+                    <th>@Locale.T("report.fee")</th>
+                    <th>@Locale.T("report.concession")</th>
+                    <th>@Locale.T("report.paid")</th>
+                    <th>@Locale.T("report.due")</th>
+                    <th>@Locale.T("report.lateFee")</th>
+                    <th>@Locale.T("report.lfConc")</th>
+                    <th>@Locale.T("report.lastPaid")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if ((rows ?? []).Count > 0)
+                {
+                    @foreach (var row in rows!)
+                    {
+                        <tr>
+                            @if (showSession)
+                            {
+                                <td>@OrDash(row.Session)</td>
+                                <td>@OrDash(row.ClassName)</td>
+                            }
+                            <td>@row.Role</td>
+                            <td>@row.PayFor</td>
+                            <td>@D(row.StartDate)</td>
+                            <td>@D(row.EndDate)</td>
+                            <td>@Money(row.Amount)</td>
+                            <td>@Money(row.Discount)</td>
+                            <td>@Money(row.PaidAmount)</td>
+                            <td>@Money(row.Due)</td>
+                            <td>@Money(row.LateFee)</td>
+                            <td>@Money(row.LateFeeDiscount)</td>
+                            <td>@D(row.LastPaidDate)</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="@(showSession ? 13 : 11)">@Locale.T("report.empty")</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>;
+}

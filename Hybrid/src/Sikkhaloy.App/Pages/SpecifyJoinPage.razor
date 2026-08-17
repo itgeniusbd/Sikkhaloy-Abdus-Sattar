@@ -1,0 +1,433 @@
+@page "/basic-settings/specify-join"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="card structure-page">
+    <h1>@Locale.T("join.title")</h1>
+    <p class="muted">@Locale.T("join.lead")</p>
+
+    <div class="filter-row">
+        <select @bind="classInput" @bind:after="OnClassChanged">
+            <option value="0">@Locale.T("join.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (okLines.Count > 0)
+    {
+        <div class="ok">
+            @foreach (var line in okLines)
+            {
+                <div>@line</div>
+            }
+        </div>
+    }
+    @if (existLines.Count > 0)
+    {
+        <div class="error">
+            @foreach (var line in existLines)
+            {
+                <div>@line</div>
+            }
+        </div>
+    }
+
+    @if (classReady)
+    {
+        <div class="join-pick">
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("cls.group")</th><th></th></tr></thead>
+                <tbody>
+                @if (groups.Count == 0)
+                {
+                    <tr><td colspan="2" class="empty-row">@Locale.T("cls.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in groups)
+                    {
+                        <tr>
+                            <td>@row.Name</td>
+                            <td class="act"><input type="checkbox" checked="@groupChecks.Contains(row.ServerId)" @onchange="e => Toggle(groupChecks, row.ServerId, e)" /></td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("cls.section")</th><th></th></tr></thead>
+                <tbody>
+                @if (sections.Count == 0)
+                {
+                    <tr><td colspan="2" class="empty-row">@Locale.T("cls.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in sections)
+                    {
+                        <tr>
+                            <td>@row.Name</td>
+                            <td class="act"><input type="checkbox" checked="@sectionChecks.Contains(row.ServerId)" @onchange="e => Toggle(sectionChecks, row.ServerId, e)" /></td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("cls.shift")</th><th></th></tr></thead>
+                <tbody>
+                @if (shifts.Count == 0)
+                {
+                    <tr><td colspan="2" class="empty-row">@Locale.T("cls.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in shifts)
+                    {
+                        <tr>
+                            <td>@row.Name</td>
+                            <td class="act"><input type="checkbox" checked="@shiftChecks.Contains(row.ServerId)" @onchange="e => Toggle(shiftChecks, row.ServerId, e)" /></td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @if (groups.Count > 0 || sections.Count > 0 || shifts.Count > 0)
+        {
+            <button type="button" class="primary" disabled="@busy" @onclick="Submit">@Locale.T("join.submit")</button>
+        }
+
+        <div class="join-results">
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("cls.group")</th>
+                        <th>@Locale.T("cls.section")</th>
+                        <th>@Locale.T("cls.shift")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (tripleJoins.Count == 0)
+                {
+                    <tr><td colspan="4" class="empty-row">@Locale.T("cls.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in tripleJoins)
+                    {
+                        <tr>
+                            <td>@row.GroupName</td>
+                            <td>@row.SectionName</td>
+                            <td>@row.ShiftName</td>
+                            <td class="act"><button type="button" class="link-btn danger" @onclick="() => DeleteJoin(row)">@Locale.T("cls.delete")</button></td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+
+            @if (!allThreeExist)
+            {
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("cls.section")</th>
+                            <th>@Locale.T("cls.shift")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (sectionShiftJoins.Count == 0)
+                    {
+                        <tr><td colspan="3" class="empty-row">@Locale.T("cls.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in sectionShiftJoins)
+                        {
+                            <tr>
+                                <td>@row.SectionName</td>
+                                <td>@row.ShiftName</td>
+                                <td class="act"><button type="button" class="link-btn danger" @onclick="() => DeleteJoin(row)">@Locale.T("cls.delete")</button></td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("cls.group")</th>
+                            <th>@Locale.T("cls.shift")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (groupShiftJoins.Count == 0)
+                    {
+                        <tr><td colspan="3" class="empty-row">@Locale.T("cls.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in groupShiftJoins)
+                        {
+                            <tr>
+                                <td>@row.GroupName</td>
+                                <td>@row.ShiftName</td>
+                                <td class="act"><button type="button" class="link-btn danger" @onclick="() => DeleteJoin(row)">@Locale.T("cls.delete")</button></td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("cls.group")</th>
+                            <th>@Locale.T("cls.section")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (groupSectionJoins.Count == 0)
+                    {
+                        <tr><td colspan="3" class="empty-row">@Locale.T("cls.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in groupSectionJoins)
+                        {
+                            <tr>
+                                <td>@row.GroupName</td>
+                                <td>@row.SectionName</td>
+                                <td class="act"><button type="button" class="link-btn danger" @onclick="() => DeleteJoin(row)">@Locale.T("cls.delete")</button></td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<SchoolClassDto> classes = [];
+    private List<ClassPartDto> groups = [];
+    private List<ClassPartDto> sections = [];
+    private List<ClassPartDto> shifts = [];
+    private List<ClassJoinDto> joins = [];
+    private readonly HashSet<int> groupChecks = [];
+    private readonly HashSet<int> sectionChecks = [];
+    private readonly HashSet<int> shiftChecks = [];
+    private readonly List<string> okLines = [];
+    private readonly List<string> existLines = [];
+    private string classInput = "0";
+    private bool busy;
+    private string? error;
+
+    private bool classReady => selectedClass is not null;
+    private SchoolClassDto? selectedClass => classes.FirstOrDefault(x => x.ClassID.ToString() == classInput);
+    private bool allThreeExist => groups.Count > 0 && sections.Count > 0 && shifts.Count > 0;
+
+    private List<ClassJoinDto> classJoins => joins.Where(x => x.ClassID == (selectedClass?.ClassID ?? 0)).ToList();
+    private List<ClassJoinDto> tripleJoins => classJoins.Where(x => HasName(x.GroupName) && HasName(x.SectionName) && HasName(x.ShiftName)).ToList();
+    private List<ClassJoinDto> sectionShiftJoins => classJoins.Where(x => HasName(x.SectionName) && HasName(x.ShiftName)).ToList();
+    private List<ClassJoinDto> groupShiftJoins => classJoins.Where(x => HasName(x.GroupName) && HasName(x.ShiftName)).ToList();
+    private List<ClassJoinDto> groupSectionJoins => classJoins.Where(x => HasName(x.GroupName) && HasName(x.SectionName)).ToList();
+
+    private static bool HasName(string? value) => !string.IsNullOrWhiteSpace(value);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated || Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        if (Session.Current is null)
+            return;
+        var data = await Sync.GetClassStructureAsync(Session.Current.SchoolID);
+        classes = data.Classes.Where(x => x.ClassID > 0).ToList();
+        var classId = selectedClass?.ClassID ?? 0;
+        groups = data.Groups.Where(x => x.ClassID == classId).ToList();
+        sections = data.Sections.Where(x => x.ClassID == classId).ToList();
+        shifts = data.Shifts.Where(x => x.ClassID == classId).ToList();
+        joins = data.Joins;
+    }
+
+    private async Task OnClassChanged()
+    {
+        error = null;
+        okLines.Clear();
+        existLines.Clear();
+        groupChecks.Clear();
+        sectionChecks.Clear();
+        shiftChecks.Clear();
+        await Reload();
+    }
+
+    private void Toggle(HashSet<int> set, int id, ChangeEventArgs e)
+    {
+        var on = e.Value is true or "true" or "on";
+        if (on)
+            set.Add(id);
+        else
+            set.Remove(id);
+        error = null;
+        okLines.Clear();
+        existLines.Clear();
+    }
+
+    private async Task Submit()
+    {
+        if (Session.Current is null || selectedClass is null)
+        {
+            error = Locale.T("join.selectClassError");
+            return;
+        }
+
+        okLines.Clear();
+        existLines.Clear();
+        error = null;
+
+        var hasG = groups.Count > 0;
+        var hasS = sections.Count > 0;
+        var hasH = shifts.Count > 0;
+        if ((!hasG && !hasS) || (!hasG && !hasH) || (!hasS && !hasH) || (!hasG && !hasS && !hasH))
+        {
+            error = Locale.T("join.noNeed");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (!hasG)
+                await JoinPairs(null, sections, shifts);
+            else if (!hasS)
+                await JoinPairs(groups, null, shifts);
+            else if (!hasH)
+                await JoinPairs(groups, sections, null);
+            else
+                await JoinTriple();
+
+            await Flush();
+            await Reload();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task JoinPairs(List<ClassPartDto>? gList, List<ClassPartDto>? sList, List<ClassPartDto>? hList)
+    {
+        var gSel = gList is null ? [ZeroPart()] : Selected(gList, groupChecks);
+        var sSel = sList is null ? [ZeroPart()] : Selected(sList, sectionChecks);
+        var hSel = hList is null ? [ZeroPart()] : Selected(hList, shiftChecks);
+        if (gList is not null && gSel.Count == 0) { error = Locale.T("join.needGroup"); return; }
+        if (sList is not null && sSel.Count == 0) { error = Locale.T("join.needSection"); return; }
+        if (hList is not null && hSel.Count == 0) { error = Locale.T("join.needShift"); return; }
+
+        foreach (var g in gSel)
+        foreach (var s in sSel)
+        foreach (var h in hSel)
+            await AddOne(g, s, h);
+    }
+
+    private async Task JoinTriple()
+    {
+        var gSel = Selected(groups, groupChecks);
+        var sSel = Selected(sections, sectionChecks);
+        var hSel = Selected(shifts, shiftChecks);
+        if (gSel.Count == 0) { error = Locale.T("join.needGroup"); return; }
+        if (sSel.Count == 0) { error = Locale.T("join.needSection"); return; }
+        if (hSel.Count == 0) { error = Locale.T("join.needShift"); return; }
+
+        foreach (var g in gSel)
+        foreach (var s in sSel)
+        foreach (var h in hSel)
+            await AddOne(g, s, h);
+    }
+
+    private async Task AddOne(ClassPartDto g, ClassPartDto s, ClassPartDto h)
+    {
+        if (Session.Current is null || selectedClass is null)
+            return;
+
+        var created = await Sync.TryAddClassJoinAsync(new ClassJoinDto
+        {
+            ClassID = selectedClass.ClassID,
+            SubjectGroupID = g.ServerId,
+            SectionID = s.ServerId,
+            ShiftID = h.ServerId,
+            GroupName = g.Name,
+            SectionName = s.Name,
+            ShiftName = h.Name
+        }, Session.Current);
+
+        var label = JoinLabel(g.Name, s.Name, h.Name);
+        if (created)
+            okLines.Add(Locale.T("join.ok", label));
+        else
+            existLines.Add(Locale.T("join.exists", label));
+    }
+
+    private static string JoinLabel(string g, string s, string h)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(g)) parts.Add($"Group: {g}");
+        if (!string.IsNullOrWhiteSpace(s)) parts.Add($"Section: {s}");
+        if (!string.IsNullOrWhiteSpace(h)) parts.Add($"Shift: {h}");
+        return string.Join(" and ", parts);
+    }
+
+    private static List<ClassPartDto> Selected(List<ClassPartDto> source, HashSet<int> checks) =>
+        source.Where(x => checks.Contains(x.ServerId)).ToList();
+
+    private static ClassPartDto ZeroPart() => new();
+
+    private async Task DeleteJoin(ClassJoinDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("join.deleteConfirm")))
+            return;
+        await Sync.DeleteClassJoinAsync(row.LocalId);
+        await Flush();
+        await Reload();
+    }
+
+    private async Task Flush()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            await Sync.FlushClassStructureAsync(Session.Current, Session.AccessToken);
+        }
+        catch
+        {
+        }
+    }
+}

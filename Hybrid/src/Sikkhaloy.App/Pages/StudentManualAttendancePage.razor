@@ -1,0 +1,405 @@
+@page "/attendance/student/manual"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page att-page att-manual-page">
+    <h1>@Locale.T("att.manualStu")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupInput" @bind:after="LoadIfReadyAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionInput" @bind:after="LoadIfReadyAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftInput" @bind:after="LoadIfReadyAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="scheduleInput" @bind:after="LoadIfReadyAsync" disabled="@busy">
+            <option value="0">@Locale.T("att.selectSchedule")</option>
+            @foreach (var item in schedules)
+            {
+                <option value="@item.ScheduleID">@item.ScheduleName</option>
+            }
+        </select>
+        <input type="date" @bind="date" @bind:after="LoadIfReadyAsync" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadRowsAsync">@Locale.T("si.find")</button>
+        <label class="choice-inline">
+            <input type="radio" name="sms-lang" checked="@englishSms" disabled="@busy" @onchange="@(() => englishSms = true)" />
+            <span>@Locale.T("att.englishSms")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="sms-lang" checked="@(!englishSms)" disabled="@busy" @onchange="@(() => englishSms = false)" />
+            <span>@Locale.T("att.banglaSms")</span>
+        </label>
+    </div>
+
+    <div class="att-table-wrap">
+        <table class="mgrid">
+            <colgroup>
+                <col class="col-pick" />
+                <col class="col-id" />
+                <col class="col-name" />
+                <col class="col-roll" />
+                <col class="col-status" />
+                <col class="col-comment" />
+                <col class="col-taken" />
+                <col class="col-phone" />
+                <col class="col-sms" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="act">
+                        <label class="choice-inline">
+                            <input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" />
+                            <span>@Locale.T("att.all")</span>
+                        </label>
+                    </th>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("att.studentName")</th>
+                    <th>@Locale.T("att.rollNo")</th>
+                    <th>@Locale.T("att.status")</th>
+                    <th>@Locale.T("att.comment")</th>
+                    <th>@Locale.T("att.takenBy")</th>
+                    <th>@Locale.T("emp.phone")</th>
+                    <th>@Locale.T("att.sms")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("att.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr class="@RowClass(row)">
+                        <td class="act"><input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetSelected(row, e)" /></td>
+                        <td>@row.ID</td>
+                        <td class="col-name">@row.Name</td>
+                        <td>@row.RollNo</td>
+                        <td class="col-status">
+                            <div class="att-radios">
+                                @foreach (var status in Statuses)
+                                {
+                                    <label class="att-chip att-chip-@status.ToLowerInvariant().Replace(" ", "") @(row.Attendance == status ? "on" : null)">
+                                        <input type="radio" name="@($"att-{row.StudentClassID}")" checked="@(row.Attendance == status)"
+                                               disabled="@busy" @onchange="@(() => SetAttendance(row, status))" />
+                                        <span>@StatusLabel(status)</span>
+                                    </label>
+                                }
+                            </div>
+                        </td>
+                        <td class="col-comment">
+                            @if (!string.IsNullOrWhiteSpace(row.LeaveRange))
+                            {
+                                <span class="att-leave">@row.LeaveRange</span>
+                            }
+                            <textarea class="att-comment @(row.Attendance == "Pre" ? "is-off" : null)"
+                                      rows="3" @bind="row.Reason" disabled="@(busy || row.Attendance == "Pre")"></textarea>
+                        </td>
+                        <td class="col-taken"><span class="att-taken">@(row.TakenBy ?? "—")</span></td>
+                        <td class="col-phone">@(row.Phone ?? "—")</td>
+                        <td class="act">
+                            <input type="checkbox" @bind="row.SendSms" disabled="@(busy || row.Attendance == "Pre")" />
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (rows.Count > 0)
+    {
+        <div class="att-submit-bar">
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submit")</button>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly string[] Statuses = ["Pre", "Abs", "Late", "Leave", "Bunk"];
+    private readonly List<AttendanceScheduleDto> schedules = [];
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<StudentManualRowDto> rows = [];
+    private ClassStructureDto? structure;
+    private string scheduleInput = "0";
+    private string classInput = "0";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private DateTime date = DateTime.Today;
+    private bool englishSms = true;
+    private bool busy;
+    private bool allSelected;
+    private string? error;
+    private string? message;
+
+    private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+    private string ScheduleName =>
+        schedules.FirstOrDefault(x => x.ScheduleID == ScheduleId)?.ScheduleName ?? "class";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        schedules.Clear();
+        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+    }
+
+    private async Task OnClassChanged()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        if (structure is not null && ClassId > 0)
+        {
+            var parts = structure.AssignedParts(ClassId);
+            groups.AddRange(parts.Groups);
+            sections.AddRange(parts.Sections);
+            shifts.AddRange(parts.Shifts);
+        }
+        await LoadIfReadyAsync();
+    }
+
+    private Task LoadIfReadyAsync()
+    {
+        if (ScheduleId <= 0 || ClassId <= 0)
+        {
+            rows.Clear();
+            return Task.CompletedTask;
+        }
+        return LoadRowsAsync();
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        allSelected = e.Value is true or "true";
+        foreach (var row in rows)
+            row.Selected = allSelected;
+    }
+
+    private void SetSelected(StudentManualRowDto row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true or "true";
+        allSelected = rows.Count > 0 && rows.All(x => x.Selected);
+    }
+
+    private void SetAttendance(StudentManualRowDto row, string status)
+    {
+        row.Attendance = status;
+        if (status == "Pre")
+        {
+            if (!row.HasRecord)
+                row.Reason = "";
+            row.SendSms = false;
+            return;
+        }
+
+        if (status == "Leave")
+        {
+            if (IsGeneratedComment(row.Reason))
+                row.Reason = "";
+            row.SendSms = false;
+            return;
+        }
+
+        row.Reason = BuildComment(row, status);
+        row.SendSms = true;
+    }
+
+    private async Task LoadRowsAsync()
+    {
+        error = message = null;
+        if (ClassId <= 0)
+        {
+            error = Locale.T("att.needClass");
+            return;
+        }
+        if (ScheduleId <= 0)
+        {
+            error = Locale.T("att.needSchedule");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GetStudentManualAsync(
+                Session.AccessToken!, ScheduleId, ClassId, GroupId, SectionId, ShiftId, date));
+            allSelected = rows.Count > 0 && rows.All(x => x.Selected);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = message = null;
+        var selected = rows.Where(x => x.Selected).ToList();
+        if (selected.Count == 0)
+        {
+            error = Locale.T("att.needRows");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveStudentManualAsync(Session.AccessToken!, new SaveStudentManualRequest
+            {
+                ScheduleID = ScheduleId,
+                ClassID = ClassId,
+                AttendanceDate = date,
+                Rows = selected.Select(x => new StudentManualSaveRow
+                {
+                    StudentID = x.StudentID,
+                    StudentClassID = x.StudentClassID,
+                    Attendance = x.Attendance,
+                    Reason = x.Reason
+                }).ToList()
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            var ok = Locale.T("att.saved");
+            await LoadRowsAsync();
+            message = ok;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private string BuildComment(StudentManualRowDto row, string status)
+    {
+        var day = date.ToString("dd MMM yyyy");
+        var who = $"{row.Name} ID:{row.ID}";
+        var schedule = ScheduleName;
+        if (englishSms)
+        {
+            return status switch
+            {
+                "Abs" => $"Respected Guardian, {who}, Today({day}) was absent in {schedule} schedule. Please send to class regularly.",
+                "Late" => $"Respected Guardian, {who}, Today({day}) was late in {schedule} schedule.",
+                "Bunk" => $"Respected Guardian, {who}, Today({day}) bunked from {schedule} schedule.",
+                _ => row.Reason ?? ""
+            };
+        }
+
+        return status switch
+        {
+            "Abs" => $"সম্মানিত অভিভাবক, {who}, আজ({day}) {schedule} শিডিউলে অনুপস্থিত। অনুগ্রহ করে নিয়মিত ক্লাসে পাঠান।",
+            "Late" => $"সম্মানিত অভিভাবক, {who}, আজ({day}) {schedule} শিডিউলে যথাসময় আসেনি।",
+            "Bunk" => $"সম্মানিত অভিভাবক, {who}, আজ({day}) {schedule} শিডিউল থেকে পলায়ন করেছে।",
+            _ => row.Reason ?? ""
+        };
+    }
+
+    private static bool IsGeneratedComment(string? text) =>
+        !string.IsNullOrWhiteSpace(text)
+        && (text.StartsWith("Respected Guardian", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("সম্মানিত অভিভাবক", StringComparison.Ordinal));
+
+    private static string RowClass(StudentManualRowDto row)
+    {
+        if (row.Selected)
+            return "is-picked";
+        return row.HasRecord ? "is-saved" : "";
+    }
+
+    private string StatusLabel(string status) => status switch
+    {
+        "Pre" => Locale.T("att.pre"),
+        "Abs" => Locale.T("att.abs"),
+        "Late" => Locale.T("att.lateStatus"),
+        "Leave" => Locale.T("att.leave"),
+        "Bunk" => Locale.T("att.bunk"),
+        _ => status
+    };
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

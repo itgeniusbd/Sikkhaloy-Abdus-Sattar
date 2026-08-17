@@ -1,0 +1,249 @@
+@page "/login"
+@layout EmptyLayout
+@inherits LocaleAwareComponent
+@inject ISyncApiClient Api
+@inject OfflineAuthService OfflineAuth
+@inject AppSession Session
+@inject NavigationManager Nav
+@inject SyncEngine Sync
+@inject IJSRuntime JS
+
+<div class="login-split">
+    <aside class="login-pane">
+        <a class="login-logo" href="/">
+            <img src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="Sikkhaloy.com" />
+        </a>
+        <p class="login-sub">@Locale.T("login.sub")</p>
+        <h1>
+            @Locale.T("login.welcome")
+            <span>SIKKHALOY <em>Hybrid</em></span>
+        </h1>
+        <p class="login-lead">@Locale.T("login.lead")</p>
+        <ul class="login-feats">
+            <li>
+                <span class="login-feat-ico">@ShieldIcon</span>
+                <div>
+                    <b>@Locale.T("login.f1")</b>
+                    <p>@Locale.T("login.f1.desc")</p>
+                </div>
+            </li>
+            <li>
+                <span class="login-feat-ico">@SyncIcon</span>
+                <div>
+                    <b>@Locale.T("login.f2")</b>
+                    <p>@Locale.T("login.f2.desc")</p>
+                </div>
+            </li>
+            <li>
+                <span class="login-feat-ico">@FastIcon</span>
+                <div>
+                    <b>@Locale.T("login.f3")</b>
+                    <p>@Locale.T("login.f3.desc")</p>
+                </div>
+            </li>
+            <li>
+                <span class="login-feat-ico">@RoleIcon</span>
+                <div>
+                    <b>@Locale.T("login.f4")</b>
+                    <p>@Locale.T("login.f4.desc")</p>
+                </div>
+            </li>
+        </ul>
+        <div class="login-art">
+            <img src="_content/Sikkhaloy.App/img/land-intro.png?v=2" alt="" />
+        </div>
+    </aside>
+    <section class="login-stage">
+        <header class="login-top">
+            <a class="login-phone" href="tel:09638669966">@PhoneIcon 09638 66 99 66</a>
+            <LanguageSwitch />
+            <a class="login-help" href="/#contact">@HelpIcon @Locale.T("login.help")</a>
+        </header>
+        <div class="login-card">
+            <div class="login-lock">@LockIcon</div>
+            <h2>@Locale.T("login.signIn")</h2>
+            <p class="login-server">
+                <i class="@(apiChecked ? (apiUp ? "is-on" : "is-off") : null)"></i>
+                @Locale.T("login.server", apiChecked ? (apiUp ? Locale.T("online") : Locale.T("offline")) : Locale.T("login.checking"))
+            </p>
+            <EditForm Model="model" OnValidSubmit="LoginAsync">
+                <label class="auth-field">
+                    @Locale.T("login.user")
+                    <span class="auth-input">
+                        <span class="auth-ico">@UserIcon</span>
+                        <InputText @bind-Value="model.UserName" autocomplete="username" placeholder="@Locale.T("login.userPh")" />
+                    </span>
+                </label>
+                <label class="auth-field">
+                    @Locale.T("login.password")
+                    <span class="auth-input">
+                        <span class="auth-ico">@LockSmallIcon</span>
+                        <input type="@(_showPass ? "text" : "password")" @bind="model.Password" autocomplete="current-password" placeholder="@Locale.T("login.passPh")" />
+                        <button type="button" class="auth-eye" @onclick="() => _showPass = !_showPass" tabindex="-1">@(_showPass ? EyeOffIcon : EyeIcon)</button>
+                    </span>
+                </label>
+                <div class="auth-row">
+                    <label class="auth-check">
+                        <input type="checkbox" @bind="_remember" />
+                        @Locale.T("login.remember")
+                    </label>
+                    <a class="auth-forgot" href="/#contact">@Locale.T("login.forgot")</a>
+                </div>
+                <button class="login-go" type="submit" disabled="@busy">
+                    @(busy ? Locale.T("login.busy") : Locale.T("login.submit"))
+                    @ArrowIcon
+                </button>
+            </EditForm>
+            @if (!string.IsNullOrWhiteSpace(message))
+            {
+                <div class="error">@message</div>
+            }
+            <a class="back-link" href="/">@BackIcon @Locale.T("login.back")</a>
+        </div>
+        <footer class="login-copy">@Locale.T("login.copy")</footer>
+    </section>
+</div>
+
+@code {
+    private const string RememberKey = "sikkhaloy.rememberUser";
+    private readonly LoginRequest model = new();
+    private bool busy;
+    private bool apiChecked;
+    private bool apiUp;
+    private bool _remember;
+    private bool _showPass;
+    private string? message;
+
+    private static readonly MarkupString ShieldIcon = Icon("M12 3l8 4v5c0 5-3.4 8.4-8 9.5C7.4 20.4 4 17 4 12V7l8-4Z");
+    private static readonly MarkupString SyncIcon = Icon("M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6");
+    private static readonly MarkupString FastIcon = Icon("M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Zm-3-9h3l2-5");
+    private static readonly MarkupString RoleIcon = Icon("M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 20a6 6 0 0 1 12 0M20 20a5 5 0 0 0-4-4.9");
+    private static readonly MarkupString LockIcon = Icon("M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6V11Z");
+    private static readonly MarkupString UserIcon = Icon("M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z");
+    private static readonly MarkupString LockSmallIcon = Icon("M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6V11Z");
+    private static readonly MarkupString EyeIcon = Icon("M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z");
+    private static readonly MarkupString EyeOffIcon = Icon("M3 3l18 18M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-4.4M9.9 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3.2 3.9M6.1 6.1A18 18 0 0 0 2 12s3.5 7 10 7c1.5 0 2.9-.3 4.1-.8");
+    private static readonly MarkupString ArrowIcon = Icon("M5 12h14M13 6l6 6-6 6");
+    private static readonly MarkupString BackIcon = Icon("M19 12H5M11 18l-6-6 6-6");
+    private static readonly MarkupString PhoneIcon = Icon("M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.5 2.8.7A2 2 0 0 1 22 16.9z");
+    private static readonly MarkupString HelpIcon = Icon("M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm0-14v.01M12 10v6");
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/dashboard", replace: true);
+            return;
+        }
+
+        apiUp = await Api.PingAsync();
+        apiChecked = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        try
+        {
+            var saved = await JS.InvokeAsync<string>("localStorage.getItem", RememberKey);
+            if (!string.IsNullOrWhiteSpace(saved))
+            {
+                model.UserName = saved;
+                _remember = true;
+                StateHasChanged();
+            }
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        busy = true;
+        message = null;
+        model.DeviceId = OfflineAuthService.GetOrCreateDeviceId();
+        try
+        {
+            LoginResponse result;
+            try
+            {
+                result = await Api.LoginAsync(model);
+                apiUp = true;
+                if (result.Succeeded)
+                    await OfflineAuth.CacheOnlineLoginAsync(result, model.Password);
+            }
+            catch (Exception)
+            {
+                result = new LoginResponse { Succeeded = false };
+                apiUp = false;
+            }
+
+            if (!result.Succeeded || result.Session is null)
+            {
+                result = await OfflineAuth.TryOfflineLoginAsync(model.UserName.Trim(), model.Password);
+                if (!result.Succeeded && result.Error == "login.firstOnline")
+                    result.Error = "login.needOnline";
+            }
+
+            if (!result.Succeeded || result.Session is null)
+            {
+                message = TranslateError(result.Error);
+                return;
+            }
+
+            await SaveRememberAsync();
+            Session.Set(result);
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                await Sync.RunOnceAsync(result.Session, Session.AccessToken, force: true);
+
+            Nav.NavigateTo("/dashboard");
+        }
+        catch (Exception ex)
+        {
+            var offline = await OfflineAuth.TryOfflineLoginAsync(model.UserName.Trim(), model.Password);
+            if (offline.Succeeded && offline.Session is not null)
+            {
+                await SaveRememberAsync();
+                Session.Set(offline);
+                if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                    await Sync.RunOnceAsync(offline.Session, Session.AccessToken, force: true);
+                Nav.NavigateTo("/dashboard");
+                return;
+            }
+
+            message = TranslateError(ex.Message);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveRememberAsync()
+    {
+        try
+        {
+            if (_remember)
+                await JS.InvokeVoidAsync("localStorage.setItem", RememberKey, model.UserName.Trim());
+            else
+                await JS.InvokeVoidAsync("localStorage.removeItem", RememberKey);
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private string TranslateError(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return Locale.T("login.failed");
+        if (error.StartsWith("login.", StringComparison.OrdinalIgnoreCase))
+            return Locale.T(error);
+        return error;
+    }
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+}

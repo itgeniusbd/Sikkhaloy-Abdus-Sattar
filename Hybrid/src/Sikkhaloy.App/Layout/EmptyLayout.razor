@@ -1,0 +1,8 @@
+@inherits LayoutComponentBase
+@inject AppLocale Locale
+
+<div class="auth-shell">
+    <CascadingValue Name="AppLang" Value="@Locale.Code">
+        @Body
+    </CascadingValue>
+</div>

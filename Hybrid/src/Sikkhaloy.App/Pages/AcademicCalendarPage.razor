@@ -1,0 +1,387 @@
+@page "/basic-settings/academic-calendar"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page cal-page">
+    <div class="cal-head no-print">
+        <h1>@Locale.T("cal.title")</h1>
+        <button type="button" class="btn-print" @onclick="PrintAsync">@Locale.T("cal.print")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok no-print">@message</div>
+    }
+
+    <div class="cal-forms no-print">
+        <div class="structure-card">
+            <h3>@Locale.T("cal.weekly")</h3>
+            <p class="muted">@Locale.T("cal.weeklyHint")</p>
+            <div class="filter-row">
+                <input type="date" @bind="weekStart" disabled="@busy" />
+                <input type="date" @bind="weekEnd" disabled="@busy" />
+            </div>
+            <div class="cal-days">
+                @foreach (var day in WeekOptions)
+                {
+                    <label class="choice-inline">
+                        <input type="checkbox" checked="@weekDays.Contains(day)" disabled="@busy"
+                               @onchange="e => ToggleDay(day, e)" />
+                        <span>@Locale.T($"cal.day.{day}")</span>
+                    </label>
+                }
+            </div>
+            <button type="button" class="primary" disabled="@busy" @onclick="AddWeeklyAsync">@Locale.T("cal.addWeekly")</button>
+        </div>
+        <div class="structure-card">
+            <h3>@Locale.T("cal.range")</h3>
+            <p class="muted">@Locale.T("cal.rangeHint")</p>
+            <div class="filter-row">
+                <input type="text" placeholder="@Locale.T("cal.name")" @bind="rangeName" disabled="@busy" />
+                <input type="date" @bind="rangeStart" disabled="@busy" />
+                <input type="date" @bind="rangeEnd" disabled="@busy" />
+                <button type="button" class="primary" disabled="@busy" @onclick="AddRangeAsync">@Locale.T("cal.save")</button>
+            </div>
+        </div>
+        <div class="structure-card">
+            <h3>@Locale.T("cal.single")</h3>
+            <p class="muted">@Locale.T("cal.singleHint")</p>
+            <div class="filter-row">
+                <input type="text" placeholder="@Locale.T("cal.name")" @bind="singleName" disabled="@busy" />
+                <input type="date" @bind="singleDate" disabled="@busy" />
+                <button type="button" class="primary" disabled="@busy" @onclick="AddSingleAsync">@Locale.T("cal.save")</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="cal-board">
+        <div class="cal-nav no-print">
+            <button type="button" class="link-btn" disabled="@busy" @onclick="PrevMonth">‹</button>
+            <strong>@viewMonth.ToString("MMMM yyyy")</strong>
+            <button type="button" class="link-btn" disabled="@busy" @onclick="NextMonth">›</button>
+        </div>
+        <div class="cal-grid">
+            @foreach (var day in WeekOptions)
+            {
+                <div class="cal-dow">@Locale.T($"cal.day.{day}")</div>
+            }
+            @foreach (var cell in MonthCells())
+            {
+                var names = NamesOn(cell.Date).ToList();
+                <div class="@CellClass(cell, names.Count > 0)">
+                    @if (cell.InMonth)
+                    {
+                        <span class="cal-num">@cell.Date.Day</span>
+                        @foreach (var name in names)
+                        {
+                            <span class="cal-event">@name</span>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="structure-card no-print">
+        <div class="report-tabs">
+            <button type="button" class="@(tab == "weekly" ? "active" : null)" @onclick='() => tab = "weekly"'>
+                @Locale.T("cal.tabWeekly") (@weekly.Count)
+            </button>
+            <button type="button" class="@(tab == "other" ? "active" : null)" @onclick='() => tab = "other"'>
+                @Locale.T("cal.tabOther") (@other.Count)
+            </button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>@Locale.T("cal.name")</th>
+                    <th>@Locale.T("cal.date")</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @{
+                var list = tab == "weekly" ? weekly : other;
+            }
+            @if (list.Count == 0)
+            {
+                <tr><td colspan="4" class="empty-row">@Locale.T("cal.empty")</td></tr>
+            }
+            else
+            {
+                var n = 0;
+                @foreach (var row in list)
+                {
+                    n++;
+                    <tr>
+                        <td>@n</td>
+                        <td>
+                            @if (editingId == row.HolidayID)
+                            {
+                                <input @bind="editName" disabled="@busy" />
+                            }
+                            else
+                            {
+                                <span class="@(row.IsWeekly ? "pill pill-old" : "pill pill-new")">@row.HolidayName</span>
+                            }
+                        </td>
+                        <td>
+                            @if (editingId == row.HolidayID)
+                            {
+                                <input type="date" @bind="editDate" disabled="@busy" />
+                            }
+                            else
+                            {
+                                @row.HolidayDate.ToString("dddd, d MMM yyyy")
+                            }
+                        </td>
+                        <td class="act">
+                            @if (editingId == row.HolidayID)
+                            {
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveEditAsync(row)">@Locale.T("subj.update")</button>
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="CancelEdit">@Locale.T("subj.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("subj.edit")</button>
+                                <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("subj.delete")</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] WeekOptions =
+        ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+    private readonly List<HolidayDto> holidays = [];
+    private readonly HashSet<string> weekDays = [];
+    private DateTime viewMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime weekStart = DateTime.Today;
+    private DateTime weekEnd = DateTime.Today.AddMonths(1);
+    private DateTime rangeStart = DateTime.Today;
+    private DateTime rangeEnd = DateTime.Today;
+    private DateTime singleDate = DateTime.Today;
+    private DateTime editDate = DateTime.Today;
+    private string rangeName = "";
+    private string singleName = "";
+    private string editName = "";
+    private string tab = "weekly";
+    private int editingId;
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    private List<HolidayDto> weekly => holidays.Where(x => x.IsWeekly).ToList();
+    private List<HolidayDto> other => holidays.Where(x => !x.IsWeekly).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            holidays.Clear();
+            holidays.AddRange(await Api.GetHolidaysAsync(Session.AccessToken));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void PrevMonth() => viewMonth = viewMonth.AddMonths(-1);
+    private void NextMonth() => viewMonth = viewMonth.AddMonths(1);
+
+    private void ToggleDay(string day, ChangeEventArgs e)
+    {
+        var on = e.Value is bool flag && flag || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        if (on) weekDays.Add(day);
+        else weekDays.Remove(day);
+    }
+
+    private async Task AddWeeklyAsync()
+    {
+        if (weekDays.Count == 0)
+        {
+            error = Locale.T("cal.needDay");
+            return;
+        }
+
+        await RunAsync(() => Api.AddWeeklyHolidaysAsync(Session.AccessToken!, new WeeklyHolidayRequest
+        {
+            StartDate = weekStart,
+            EndDate = weekEnd,
+            Days = weekDays.ToList()
+        }));
+    }
+
+    private async Task AddRangeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(rangeName))
+        {
+            error = Locale.T("cal.needName");
+            return;
+        }
+
+        await RunAsync(() => Api.AddRangeHolidaysAsync(Session.AccessToken!, new RangeHolidayRequest
+        {
+            HolidayName = rangeName.Trim(),
+            StartDate = rangeStart,
+            EndDate = rangeEnd
+        }));
+        if (string.IsNullOrWhiteSpace(error))
+            rangeName = "";
+    }
+
+    private async Task AddSingleAsync()
+    {
+        if (string.IsNullOrWhiteSpace(singleName))
+        {
+            error = Locale.T("cal.needName");
+            return;
+        }
+
+        await RunAsync(() => Api.AddHolidayAsync(Session.AccessToken!, new SaveHolidayRequest
+        {
+            HolidayName = singleName.Trim(),
+            HolidayDate = singleDate
+        }));
+        if (string.IsNullOrWhiteSpace(error))
+            singleName = "";
+    }
+
+    private void StartEdit(HolidayDto row)
+    {
+        editingId = row.HolidayID;
+        editName = row.HolidayName;
+        editDate = row.HolidayDate;
+        message = null;
+        error = null;
+    }
+
+    private void CancelEdit()
+    {
+        editingId = 0;
+        editName = "";
+    }
+
+    private async Task SaveEditAsync(HolidayDto row)
+    {
+        await RunAsync(() => Api.UpdateHolidayAsync(Session.AccessToken!, row.HolidayID, new SaveHolidayRequest
+        {
+            HolidayName = editName.Trim(),
+            HolidayDate = editDate
+        }));
+        if (string.IsNullOrWhiteSpace(error))
+            CancelEdit();
+    }
+
+    private async Task DeleteAsync(HolidayDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("cal.deleteConfirm")))
+            return;
+        await RunAsync(() => Api.DeleteHolidayAsync(Session.AccessToken!, row.HolidayID));
+    }
+
+    private async Task RunAsync(Func<Task<HolidayResult>> action)
+    {
+        message = null;
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await action();
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "cal.failed");
+                return;
+            }
+
+            message = Locale.T("cal.ok");
+            await LoadAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private IEnumerable<(DateTime Date, bool InMonth)> MonthCells()
+    {
+        var first = viewMonth;
+        var offset = ((int)first.DayOfWeek + 1) % 7;
+        var start = first.AddDays(-offset);
+        for (var i = 0; i < 42; i++)
+        {
+            var date = start.AddDays(i);
+            yield return (date, date.Month == viewMonth.Month);
+        }
+    }
+
+    private IEnumerable<string> NamesOn(DateTime date) =>
+        holidays.Where(x => x.HolidayDate.Date == date.Date).Select(x => x.HolidayName);
+
+    private static string CellClass((DateTime Date, bool InMonth) cell, bool holiday)
+    {
+        var cls = "cal-cell";
+        if (!cell.InMonth) cls += " is-out";
+        if (cell.Date.Date == DateTime.Today) cls += " is-today";
+        if (holiday) cls += " is-holiday";
+        return cls;
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "landscape");
+}

@@ -1,0 +1,237 @@
+@page "/student-info/placement"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject SyncEngine Sync
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("si.placement")</h1>
+    <p class="muted">@Locale.T("si.crumb")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
+    </div>
+
+    @if (student is not null)
+    {
+        <div class="si-info">
+            <ul>
+                <li><b>(@student.ID) @student.StudentsName</b></li>
+                <li><b>@Locale.T("si.father"):</b> @student.FathersName</li>
+                <li>
+                    <b>@Locale.T("si.class"):</b> @student.ClassName
+                    @if (!string.IsNullOrWhiteSpace(student.GroupName))
+                    {
+                        <text>, @Locale.T("students.group"): @student.GroupName</text>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(student.SectionName))
+                    {
+                        <text>, @Locale.T("students.section"): @student.SectionName</text>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(student.ShiftName))
+                    {
+                        <text>, @Locale.T("students.shift"): @student.ShiftName</text>
+                    }
+                </li>
+                <li><b>@Locale.T("si.roll"):</b> @student.RollNo</li>
+                <li><b>@Locale.T("si.phone"):</b> @student.Phone</li>
+            </ul>
+        </div>
+
+        <div class="filter-row">
+            <input type="text" placeholder="@Locale.T("si.rollNumber")" @bind="rollNo" disabled="@busy" />
+            @if (groups.Count > 0)
+            {
+                <select @bind="groupInput" disabled="@busy">
+                    <option value="0">@Locale.T("si.selectGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (sections.Count > 0)
+            {
+                <select @bind="sectionInput" disabled="@busy">
+                    <option value="0">@Locale.T("si.selectSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (shifts.Count > 0)
+            {
+                <select @bind="shiftInput" disabled="@busy">
+                    <option value="0">@Locale.T("si.selectShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private StudentPlacementDto? student;
+    private string findId = "";
+    private string rollNo = "";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+
+    private async Task FindAsync()
+    {
+        error = message = null;
+        student = null;
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        if (string.IsNullOrWhiteSpace(findId))
+        {
+            error = Locale.T("si.needId");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var found = await Api.GetStudentPlacementAsync(Session.AccessToken, findId.Trim());
+            if (found is null)
+            {
+                error = Locale.T("si.needStudent");
+                return;
+            }
+
+            student = found;
+            rollNo = found.RollNo ?? "";
+            var structure = await Api.GetClassStructureAsync(Session.AccessToken);
+            var parts = structure.AssignedParts(found.ClassID);
+            groups.AddRange(parts.Groups);
+            sections.AddRange(parts.Sections);
+            shifts.AddRange(parts.Shifts);
+            groupInput = found.SubjectGroupID > 0 ? found.SubjectGroupID.ToString() : "0";
+            sectionInput = found.SectionID > 0 ? found.SectionID.ToString() : "0";
+            shiftInput = found.ShiftID > 0 ? found.ShiftID.ToString() : "0";
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (student is null)
+            return;
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.SaveStudentPlacementAsync(Session.AccessToken, new SaveStudentPlacementRequest
+            {
+                StudentClassID = student.StudentClassID,
+                RollNo = rollNo,
+                SubjectGroupID = GroupId,
+                SectionID = SectionId,
+                ShiftID = ShiftId,
+                UpdateGroup = groups.Count > 0,
+                UpdateSection = sections.Count > 0,
+                UpdateShift = shifts.Count > 0
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            message = Locale.T("si.okUpdate");
+            if (Session.Current is not null)
+            {
+                await Sync.MergeStudentPlacementsAsync(Session.Current.SchoolID, Session.Current.EducationYearID,
+                [
+                    new SmStudentRowDto
+                    {
+                        StudentID = student.StudentID,
+                        StudentClassID = student.StudentClassID,
+                        SubjectGroupID = groups.Count > 0 ? GroupId : student.SubjectGroupID,
+                        SectionID = sections.Count > 0 ? SectionId : student.SectionID,
+                        ShiftID = shifts.Count > 0 ? ShiftId : student.ShiftID,
+                        GroupName = groups.Count > 0
+                            ? groups.FirstOrDefault(x => x.ServerId == GroupId)?.Name
+                            : student.GroupName,
+                        SectionName = sections.Count > 0
+                            ? sections.FirstOrDefault(x => x.ServerId == SectionId)?.Name
+                            : student.SectionName,
+                        ShiftName = shifts.Count > 0
+                            ? shifts.FirstOrDefault(x => x.ServerId == ShiftId)?.Name
+                            : student.ShiftName
+                    }
+                ]);
+            }
+            await FindAsync();
+            message = Locale.T("si.okUpdate");
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+}

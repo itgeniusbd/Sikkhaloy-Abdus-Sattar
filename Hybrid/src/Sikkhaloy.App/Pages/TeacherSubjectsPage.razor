@@ -1,0 +1,177 @@
+@page "/staff/teachers/subjects"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("emp.subjects")</h1>
+    <p class="muted">@Locale.T("emp.crumb")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="teacherInput" @bind:after="OnFilterChanged" disabled="@busy">
+            <option value="0">@Locale.T("emp.selectTeacher")</option>
+            @foreach (var item in teachers)
+            {
+                <option value="@item.TeacherID">@item.Name</option>
+            }
+        </select>
+        <select @bind="classInput" @bind:after="OnFilterChanged" disabled="@busy">
+            <option value="0">@Locale.T("emp.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (teacherId > 0 && classId > 0)
+    {
+        <p class="muted">@Locale.T("emp.subjectHint")</p>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("asgn.subjects")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td class="empty-row">@Locale.T("emp.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr class="@(row.Assigned ? "is-allowed" : null)">
+                        <td>
+                            <label class="choice-inline">
+                                <input type="checkbox" checked="@row.Assigned" disabled="@busy"
+                                       @onchange="e => ToggleAsync(row, e)" />
+                                <span>@row.SubjectName</span>
+                            </label>
+                            @if (row.Assigned)
+                            {
+                                <em class="emp-added">@Locale.T("emp.added")</em>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private readonly List<TeacherPickDto> teachers = [];
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<TeacherSubjectRowDto> rows = [];
+    private string teacherInput = "0";
+    private string classInput = "0";
+    private bool busy;
+    private string? error;
+
+    private int teacherId => int.TryParse(teacherInput, out var id) ? id : 0;
+    private int classId => int.TryParse(classInput, out var id) ? id : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            teachers.AddRange(await Api.GetActiveTeachersAsync(Session.AccessToken));
+            classes.AddRange(await Api.GetClassesAsync(Session.AccessToken));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnFilterChanged()
+    {
+        rows.Clear();
+        error = null;
+        if (teacherId <= 0 || classId <= 0 || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+
+        busy = true;
+        try
+        {
+            var data = await Api.GetTeacherSubjectsAsync(Session.AccessToken, teacherId, classId);
+            rows.AddRange(data);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ToggleAsync(TeacherSubjectRowDto row, ChangeEventArgs e)
+    {
+        var on = e.Value is true or "true";
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.ToggleTeacherSubjectAsync(Session.AccessToken, teacherId, new ToggleTeacherSubjectRequest
+            {
+                ClassID = classId,
+                SubjectID = row.SubjectID,
+                Assigned = on
+            });
+            if (!result.Succeeded)
+            {
+                error = string.IsNullOrWhiteSpace(result.Error) ? Locale.T("emp.failed") : Locale.T(result.Error);
+                return;
+            }
+
+            row.Assigned = on;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

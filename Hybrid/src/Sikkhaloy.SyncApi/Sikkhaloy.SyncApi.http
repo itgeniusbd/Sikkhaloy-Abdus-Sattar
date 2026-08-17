@@ -1,0 +1,16 @@
+@Sikkhaloy.SyncApi_HostAddress = http://localhost:5135
+
+GET {{Sikkhaloy.SyncApi_HostAddress}}/api/health
+
+###
+
+POST {{Sikkhaloy.SyncApi_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "admin",
+  "password": "",
+  "deviceId": "dev-local"
+}
+
+###

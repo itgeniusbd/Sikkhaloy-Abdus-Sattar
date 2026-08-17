@@ -1,0 +1,57 @@
+@page "/coming-soon/{LinkId:int}"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+
+<div class="card">
+    <p class="eyebrow" style="color: var(--teal);">@Locale.T("coming.title")</p>
+    <h1>@(link is null ? Locale.T("coming.title") : Locale.Menu(link.Title))</h1>
+    @if (!string.IsNullOrWhiteSpace(crumb))
+    {
+        <p class="muted">@crumb</p>
+    }
+    <p>@Locale.T("coming.body")</p>
+    <div class="toolbar" style="margin-top: 1rem;">
+        <a class="btn-primary" href="dashboard">@Locale.T("coming.back")</a>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int LinkId { get; set; }
+
+    private MenuLinkDto? link;
+    private string crumb = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Session.Current is null)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        var tree = await Sync.GetMenuAsync(Session.Current.UserName);
+        foreach (var category in tree.Categories)
+        {
+            var found = category.Links.FirstOrDefault(x => x.LinkID == LinkId);
+            if (found is not null)
+            {
+                link = found;
+                crumb = Locale.Menu(category.Name);
+                return;
+            }
+
+            foreach (var sub in category.Subs)
+            {
+                found = sub.Links.FirstOrDefault(x => x.LinkID == LinkId);
+                if (found is not null)
+                {
+                    link = found;
+                    crumb = $"{Locale.Menu(category.Name)} · {Locale.Menu(sub.Name)}";
+                    return;
+                }
+            }
+        }
+    }
+}

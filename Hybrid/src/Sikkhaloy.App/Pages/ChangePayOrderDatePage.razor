@@ -1,0 +1,231 @@
+@page "/accounts/change-date"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page po-page">
+    <h1>@Locale.T("acc.changeDate")</h1>
+
+    <div class="filter-row">
+        <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        <select @bind="roleInput" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("acc.roleName")</option>
+            @foreach (var item in roles)
+            {
+                <option value="@item.RoleID">@item.Role</option>
+            }
+        </select>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act">
+                    <label class="acc-check">
+                        <input type="checkbox" checked="@all" @onchange="Toggle" disabled="@busy" />
+                        <span>@Locale.T("att.all")</span>
+                    </label>
+                </th>
+                <th>@Locale.T("acc.payFor")</th>
+                <th>@Locale.T("acc.amount")</th>
+                <th>@Locale.T("acc.lateFee")</th>
+                <th>@Locale.T("acc.start")</th>
+                <th>@Locale.T("acc.end")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="6" class="empty-row">@Locale.T("acc.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr class="@(row.Selected ? "is-picked" : null)">
+                    <td class="act">
+                        <label class="acc-check acc-check-only">
+                            <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => Set(row, e)" />
+                        </label>
+                    </td>
+                    <td>@row.PayFor</td>
+                    <td>@row.Amount.ToString("0.##")</td>
+                    <td>@row.LateFee.ToString("0.##")</td>
+                    <td><input type="date" @bind="row.StartDate" disabled="@busy" /></td>
+                    <td><input type="date" @bind="row.EndDate" disabled="@busy" /></td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+    @if (rows.Count > 0)
+    {
+        <div class="po-action">
+            <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.changeDateBtn")</button>
+        </div>
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading acc-prog-box">
+            @if (progTotal > 0)
+            {
+                <div class="acc-spinner"></div>
+                <div class="acc-prog-stats">
+                    <span>@Locale.T("acc.progTotal"): <strong>@progTotal</strong></span>
+                    <span>@Locale.T("acc.progUpdated"): <strong>@progDone</strong></span>
+                    <span>@Locale.T("acc.progLeft"): <strong>@(Math.Max(0, progTotal - progDone))</strong></span>
+                </div>
+                <div class="acc-prog-track">
+                    <div class="acc-prog-fill is-run" style="@($"width:{Math.Max(ProgPct, 4)}%")"></div>
+                    <span>@ProgPct%</span>
+                </div>
+                <p>@progStatus</p>
+            }
+            else
+            {
+                <div class="acc-spinner"></div>
+                <p>@Locale.T("acc.loading")</p>
+            }
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<PaymentRoleDto> roles = [];
+    private readonly List<AssignedRoleDto> rows = [];
+    private string classInput = "0";
+    private string roleInput = "0";
+    private bool busy, all, popupError;
+    private string? popupText, progStatus;
+    private int progTotal, progDone;
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int RoleId => int.TryParse(roleInput, out var n) ? n : 0;
+    private int ProgPct => progTotal <= 0 ? 0 : (int)Math.Round(100.0 * progDone / progTotal);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await OnlineAsync()) return;
+        var structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        roles.AddRange(await Api.GetPaymentRolesAsync(Session.AccessToken!));
+    }
+
+    private void ClosePopup() => popupText = null;
+
+    private void ShowPopup(string text, bool isError)
+    {
+        popupText = text;
+        popupError = isError;
+    }
+
+    private static bool IsOn(ChangeEventArgs e) =>
+        e.Value is true or "true" or "True";
+
+    private void Toggle(ChangeEventArgs e)
+    {
+        all = IsOn(e);
+        foreach (var row in rows)
+            row.Selected = all;
+    }
+
+    private void Set(AssignedRoleDto row, ChangeEventArgs e)
+    {
+        row.Selected = IsOn(e);
+        all = rows.Count > 0 && rows.All(x => x.Selected);
+    }
+
+    private async Task LoadAsync()
+    {
+        rows.Clear();
+        all = false;
+        if (ClassId <= 0 || RoleId <= 0) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { rows.AddRange(await Api.GetAssignedRolesAsync(Session.AccessToken!, ClassId, RoleId)); }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        var picked = rows.Where(x => x.Selected).ToList();
+        if (picked.Count == 0) { ShowPopup(Locale.T("acc.needRows"), true); return; }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        progTotal = picked.Count;
+        progDone = 0;
+        progStatus = Locale.T("acc.updateProgress", 0, picked.Count);
+        await PaintAsync();
+        var saved = 0;
+        try
+        {
+            for (var i = 0; i < picked.Count; i++)
+            {
+                var row = picked[i];
+                progStatus = Locale.T("acc.updateProgress", i, picked.Count);
+                await PaintAsync();
+                var result = await Api.ChangePayOrderDateAsync(Session.AccessToken!, new ChangePayOrderDateRequest
+                {
+                    AssignRoleID = row.AssignRoleID,
+                    StartDate = row.StartDate,
+                    EndDate = row.EndDate
+                });
+                if (!result.Succeeded && saved == 0 && i == 0)
+                {
+                    ShowPopup(Locale.T(result.Error ?? "acc.failed"), true);
+                    return;
+                }
+                if (result.Succeeded) saved++;
+                progDone = i + 1;
+                progStatus = Locale.T("acc.updateProgress", progDone, picked.Count);
+                await PaintAsync();
+            }
+            ShowPopup(Locale.T("acc.updatedCount", saved), false);
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally
+        {
+            busy = false;
+            progTotal = 0;
+            progDone = 0;
+        }
+    }
+
+    private async Task PaintAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            ShowPopup(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

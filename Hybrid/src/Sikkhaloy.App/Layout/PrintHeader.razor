@@ -1,0 +1,73 @@
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject AppLocale Locale
+
+@if (useNameLogo)
+{
+    <div class="print-header print-header-banner print-only @(Centered ? "is-center" : null)">
+        <img class="print-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+    </div>
+}
+else
+{
+    <div class="print-header print-only @(Centered ? "is-center" : null)">
+        @if (!string.IsNullOrWhiteSpace(logoUrl))
+        {
+            <img class="print-logo" src="@logoUrl" alt="" />
+        }
+        else
+        {
+            <span class="print-logo print-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
+        }
+        <div class="print-ins">
+            <h1>@schoolName</h1>
+            <p>
+                @if (!string.IsNullOrWhiteSpace(address)) { <span>@address</span> }
+                @if (!string.IsNullOrWhiteSpace(phone)) { <span>@phone</span> }
+                @if (!string.IsNullOrWhiteSpace(email)) { <span>@email</span> }
+            </p>
+            <p class="print-id">@Locale.T("header.institutionId") @schoolId</p>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(Subtitle))
+{
+    <h2 class="print-only list-print-title @(Centered ? "is-center" : null)">@Subtitle</h2>
+}
+@if (ShowDate)
+{
+    <p class="print-only print-date @(Centered ? "is-center" : null)">@Locale.T("print.printed", DateTime.Now.ToString("dd MMM yyyy hh:mm tt"))</p>
+}
+
+@code {
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public bool ShowDate { get; set; } = true;
+    [Parameter] public bool Centered { get; set; }
+
+    private string schoolName = "";
+    private string address = "";
+    private string phone = "";
+    private string email = "";
+    private string? logoUrl;
+    private string? nameLogoUrl;
+    private int schoolId;
+    private bool useNameLogo;
+
+    protected override void OnParametersSet()
+    {
+        if (Session.Current is null)
+            return;
+
+        schoolId = Session.Current.SchoolID;
+        var header = Sync.GetSchoolHeader(schoolId);
+        schoolName = string.IsNullOrWhiteSpace(header.SchoolName)
+            ? Session.Current.SchoolName
+            : header.SchoolName;
+        address = header.Address ?? "";
+        phone = header.Phone ?? "";
+        email = header.Email ?? "";
+        logoUrl = Sync.GetSchoolLogoDataUrl(schoolId);
+        nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(schoolId);
+        useNameLogo = Centered && !string.IsNullOrWhiteSpace(nameLogoUrl);
+    }
+}

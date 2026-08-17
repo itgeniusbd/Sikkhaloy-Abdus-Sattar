@@ -1,0 +1,220 @@
+@page "/accounts/reports/session/paid-due"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page ie-rpt sess-rpt pd-rpt">
+    <h1>@Locale.T("rpt.paidDueTitle") @if (!string.IsNullOrWhiteSpace(ClassLine)) { <small>@ClassLine</small> }</h1>
+    <div class="rpt-filters no-print">
+        <div class="rpt-radios">
+            <label class="rpt-check"><input type="radio" name="pd" checked="@(status == "%")" @onchange="SetAll" /> @Locale.T("rpt.all")</label>
+            <label class="rpt-check"><input type="radio" name="pd" checked="@(status == "Paid")" @onchange="SetPaid" /> @Locale.T("rpt.paid")</label>
+            <label class="rpt-check"><input type="radio" name="pd" checked="@(status == "Due")" @onchange="SetDue" /> @Locale.T("rpt.due")</label>
+        </div>
+        <select @bind="classId" @bind:after="OnClassAsync">
+            <option value="%">@Locale.T("rpt.allClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionId">
+                <option value="%">@Locale.T("rpt.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="roleId" @bind:after="OnRoleAsync">
+            <option value="%">@Locale.T("rpt.allRoleOpt")</option>
+            @foreach (var item in roles)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <select @bind="payFor">
+            <option value="%">@Locale.T("rpt.allPayFor")</option>
+            @foreach (var item in payFors)
+            {
+                <option value="@item.Name">@item.Name</option>
+            }
+        </select>
+        <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
+        <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (data is not null)
+    {
+        <div class="sess-tiles six pd-boxes">
+            <div class="pd-box"><strong>@Tk(data.Fee)</strong><small>@Locale.T("rpt.fee")</small></div>
+            <div class="pd-box"><strong>@Tk(data.LateFee)</strong><small>@Locale.T("rpt.lateFee")</small></div>
+            <div class="pd-box"><strong>@Tk(data.Concession)</strong><small>@Locale.T("rpt.feeConc")</small></div>
+            <div class="pd-box"><strong>@Tk(data.Receivable)</strong><small>@Locale.T("rpt.receivable")</small></div>
+            <div class="pd-box"><strong>@Tk(data.Paid)</strong><small>@Locale.T("rpt.paid")</small></div>
+            <div class="pd-box"><strong>@Tk(data.Unpaid)</strong><small>@Locale.T("rpt.due")</small></div>
+        </div>
+        <div class="pd-alert">@Locale.T("rpt.totalStudent") @data.Students</div>
+        @if (data.Rows.Count == 0)
+        {
+            <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
+        }
+        @foreach (var row in data.Rows)
+        {
+            <div class="pd-stu">
+                <div class="pd-info">
+                    <span>[@row.ID] @row.Name. <b>@Locale.T("rpt.rollNo")</b> @row.RollNo. <b>@Locale.T("rpt.class"): </b>@row.ClassName</span>
+                    <span><b>@Locale.T("rpt.paid"):</b> @Tk(row.Paid) @Locale.T("acc.tk"). <b>@Locale.T("rpt.due"):</b> @Tk(row.Unpaid) @Locale.T("acc.tk")</span>
+                </div>
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("acc.role")</th>
+                            <th>@Locale.T("rpt.payFor")</th>
+                            <th class="num">@Locale.T("rpt.amount")</th>
+                            <th class="num">@Locale.T("rpt.concShort")</th>
+                            <th class="num">@Locale.T("rpt.lf")</th>
+                            <th class="num">@Locale.T("rpt.paid")</th>
+                            <th class="num">@Locale.T("rpt.due")</th>
+                            <th>@Locale.T("rpt.status")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var line in row.Lines)
+                    {
+                        <tr>
+                            <td>@line.Role</td>
+                            <td>@line.PayFor</td>
+                            <td class="num">@Tk(line.Amount)</td>
+                            <td class="num">@Tk(line.Concession)</td>
+                            <td class="num">@Tk(line.LateFee)</td>
+                            <td class="num">@Tk(line.Paid)</td>
+                            <td class="num">@Tk(line.Due)</td>
+                            <td>@line.Status</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private SessionPaidDueDto? data;
+    private List<SchoolClassDto> classes = [];
+    private List<NameAmountDto> sections = [], roles = [], payFors = [];
+    private string classId = "%", sectionId = "%", roleId = "%", payFor = "%", status = "Due", fromText = "", toText = "", error = "";
+    private bool busy;
+
+    private string ClassLine
+    {
+        get
+        {
+            if (!int.TryParse(classId, out var id) || id <= 0) return "";
+            var name = classes.FirstOrDefault(x => x.ClassID == id)?.Name;
+            return string.IsNullOrWhiteSpace(name) ? "" : name;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        Session.Changed += OnSessionChanged;
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            classes.AddRange(await Api.GetClassesAsync(Session.AccessToken));
+            await LoadFiltersAsync();
+            await LoadCoreAsync();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void OnSessionChanged()
+    {
+        classId = "%";
+        sectionId = "%";
+        roleId = "%";
+        payFor = "%";
+        _ = InvokeAsync(ReloadForSessionAsync);
+    }
+
+    private async Task ReloadForSessionAsync()
+    {
+        await LoadFiltersAsync();
+        await LoadAsync();
+    }
+
+    private async Task OnClassAsync()
+    {
+        sectionId = "%";
+        roleId = "%";
+        payFor = "%";
+        await LoadFiltersAsync();
+    }
+
+    private async Task OnRoleAsync()
+    {
+        payFor = "%";
+        await LoadFiltersAsync();
+    }
+
+    private async Task LoadFiltersAsync()
+    {
+        var year = Session.Current?.EducationYearID ?? 0;
+        var cls = int.TryParse(classId, out var id) ? id : 0;
+        var filters = await Api.GetSessionFiltersAsync(Session.AccessToken, year, cls, roleId, "paiddue", Parse(fromText), Parse(toText));
+        sections = filters.Sections;
+        roles = filters.Roles;
+        payFors = filters.PayFors;
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { await LoadCoreAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadCoreAsync() =>
+        data = await Api.GetSessionPaidDueAsync(Session.AccessToken, status, classId, sectionId, roleId, payFor, Parse(fromText), Parse(toText));
+
+    private void SetAll() => status = "%";
+    private void SetPaid() => status = "Paid";
+    private void SetDue() => status = "Due";
+    private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
+    private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Tk(decimal n) => n.ToString("N0");
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        base.Dispose();
+    }
+}

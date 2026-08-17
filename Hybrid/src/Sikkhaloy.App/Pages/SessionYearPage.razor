@@ -1,0 +1,331 @@
+@page "/basic-settings/session"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject SyncEngine Sync
+@inject ISyncApiClient Api
+@inject OfflineAuthService OfflineAuth
+@inject IJSRuntime JS
+
+<div class="card structure-page">
+    <h1>@Locale.T("sess.title")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="inline-add">
+        <input type="text" placeholder="@Locale.T("sess.placeholder")" @bind="newName" disabled="@busy" />
+        <input type="date" @bind="newStart" disabled="@busy" />
+        <input type="date" @bind="newEnd" disabled="@busy" />
+        <button type="button" class="primary" disabled="@busy" @onclick="AddAsync">@Locale.T("sess.submit")</button>
+    </div>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("sess.sn")</th>
+                <th>@Locale.T("sess.year")</th>
+                <th>@Locale.T("sess.start")</th>
+                <th>@Locale.T("sess.end")</th>
+                <th class="act">@Locale.T("sess.status")</th>
+                <th class="act">@Locale.T("subj.edit")</th>
+                <th class="act">@Locale.T("subj.delete")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy && string.IsNullOrWhiteSpace(error))
+        {
+            <tr><td colspan="7" class="empty-row">@Locale.T("sess.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr class="@(row.IsCurrent ? "is-allowed" : null)">
+                    <td>@row.SortOrder</td>
+                    <td>
+                        @if (editingId == row.EducationYearID)
+                        {
+                            <input @bind="editName" disabled="@busy" />
+                        }
+                        else
+                        {
+                            @row.Name
+                        }
+                    </td>
+                    <td>
+                        @if (editingId == row.EducationYearID)
+                        {
+                            <input type="date" @bind="editStart" disabled="@busy" />
+                        }
+                        else
+                        {
+                            @(row.StartDate?.ToString("d MMM yyyy") ?? "—")
+                        }
+                    </td>
+                    <td>
+                        @if (editingId == row.EducationYearID)
+                        {
+                            <input type="date" @bind="editEnd" disabled="@busy" />
+                        }
+                        else
+                        {
+                            @(row.EndDate?.ToString("d MMM yyyy") ?? "—")
+                        }
+                    </td>
+                    <td class="act">
+                        <input type="checkbox" checked="@row.IsCurrent" disabled="@(busy || row.IsCurrent)"
+                               @onchange="() => ActivateAsync(row)" />
+                    </td>
+                    <td class="act">
+                        @if (editingId == row.EducationYearID)
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveEditAsync(row)">@Locale.T("subj.update")</button>
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="CancelEdit">@Locale.T("subj.cancel")</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("subj.edit")</button>
+                        }
+                    </td>
+                    <td class="act">
+                        @if (!row.IsCurrent)
+                        {
+                            <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("subj.delete")</button>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<EducationYearDto> rows = [];
+    private string newName = "";
+    private DateTime newStart = new(DateTime.Today.Year, 1, 1);
+    private DateTime newEnd = new(DateTime.Today.Year, 12, 31);
+    private string editName = "";
+    private DateTime editStart = DateTime.Today;
+    private DateTime editEnd = DateTime.Today;
+    private int editingId;
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            rows.Clear();
+            rows.AddRange(await Api.GetYearsAsync(Session.AccessToken));
+            if (Session.Current is not null)
+                await Sync.RefreshOfficeAsync(Session.Current, Session.AccessToken);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        message = null;
+        error = null;
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            error = Locale.T("sess.needName");
+            return;
+        }
+
+        if (newEnd.Date < newStart.Date)
+        {
+            error = Locale.T("sess.needRange");
+            return;
+        }
+
+        var result = await MutateAsync(() => Api.CreateYearAsync(Session.AccessToken!, new SaveEducationYearRequest
+        {
+            Name = newName.Trim(),
+            StartDate = newStart,
+            EndDate = newEnd
+        }));
+        if (result)
+        {
+            newName = "";
+            message = Locale.T("sess.added");
+        }
+    }
+
+    private void StartEdit(EducationYearDto row)
+    {
+        editingId = row.EducationYearID;
+        editName = row.Name;
+        editStart = row.StartDate?.Date ?? DateTime.Today;
+        editEnd = row.EndDate?.Date ?? DateTime.Today;
+        message = null;
+        error = null;
+    }
+
+    private void CancelEdit()
+    {
+        editingId = 0;
+        editName = "";
+    }
+
+    private async Task SaveEditAsync(EducationYearDto row)
+    {
+        if (string.IsNullOrWhiteSpace(editName))
+        {
+            error = Locale.T("sess.needName");
+            return;
+        }
+
+        if (editEnd.Date < editStart.Date)
+        {
+            error = Locale.T("sess.needRange");
+            return;
+        }
+
+        var result = await MutateAsync(() => Api.UpdateYearAsync(Session.AccessToken!, row.EducationYearID, new SaveEducationYearRequest
+        {
+            Name = editName.Trim(),
+            StartDate = editStart,
+            EndDate = editEnd
+        }));
+        if (result)
+        {
+            CancelEdit();
+            message = Locale.T("sess.updated");
+        }
+    }
+
+    private async Task DeleteAsync(EducationYearDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sess.deleteConfirm")))
+            return;
+
+        var result = await MutateAsync(() => Api.DeleteYearAsync(Session.AccessToken!, row.EducationYearID));
+        if (result)
+            message = Locale.T("sess.deleted");
+    }
+
+    private async Task ActivateAsync(EducationYearDto row)
+    {
+        if (row.IsCurrent || Session.Current is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        message = null;
+        error = null;
+        try
+        {
+            var switched = await Api.SwitchYearAsync(Session.AccessToken, row.EducationYearID);
+            if (!switched.Succeeded || switched.Session is null)
+            {
+                error = Locale.T(switched.Error ?? "sess.failed");
+                return;
+            }
+
+            switched.Session.DeviceId = Session.Current.DeviceId;
+            Session.Set(switched, notify: false);
+            await OfflineAuth.UpdateCachedSessionAsync(switched);
+            await Sync.ResetYearPullAsync(Session.Current);
+            await Sync.RunOnceAsync(Session.Current, Session.AccessToken, force: true);
+            message = Locale.T("sess.activated");
+            await LoadAsync();
+            Session.NotifyChanged();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> MutateAsync(Func<Task<EducationYearResult>> action)
+    {
+        message = null;
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+
+        busy = true;
+        try
+        {
+            var result = await action();
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "sess.failed");
+                return false;
+            }
+
+            await LoadAsync();
+            Session.NotifyChanged();
+            return true;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

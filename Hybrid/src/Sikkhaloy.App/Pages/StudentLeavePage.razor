@@ -1,0 +1,623 @@
+@page "/attendance/student/leave"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page att-page leave-stu-page">
+    <div class="leave-title no-print">
+        <div>
+            <h1>@Locale.T("att.leaveStu")</h1>
+            <p>@Locale.T("att.leaveStuHint")</p>
+        </div>
+        <button type="button" class="link-btn" disabled="@busy" @onclick="OpenLeaveTypeModalAsync">@Locale.T("att.leaveTypeSettings")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="leave-search no-print">
+        <label>@Locale.T("att.searchStudent")</label>
+        <div class="leave-id-wrap">
+            <span class="leave-id-prefix">ID</span>
+            <input class="id-find" type="text" autocomplete="off" spellcheck="false"
+                   placeholder="@Locale.T("att.findId")"
+                   value="@findId"
+                   disabled="@busy"
+                   @oninput="OnFindInput"
+                   @onkeydown="OnFindKeyDown"
+                   @onblur="HideSuggestSoon" />
+            @if (showSuggest)
+            {
+                <div class="id-suggest">
+                    @foreach (var item in suggestions)
+                    {
+                        <button type="button" class="@(item.ID == highlightId ? "active" : null)"
+                                @onmousedown:preventDefault
+                                @onclick="() => PickSuggestAsync(item)">
+                            <strong>@item.ID</strong>
+                            <span>@item.Name</span>
+                            @if (!string.IsNullOrWhiteSpace(item.ClassName))
+                            {
+                                <em>@item.ClassName</em>
+                            }
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
+    </div>
+
+    @if (person is not null)
+    {
+        <div class="leave-card">
+            <div class="leave-card-head">@Locale.T("att.studentInfo")</div>
+            <div class="leave-profile">
+                <div class="leave-photo-col">
+                    @if (!string.IsNullOrWhiteSpace(person.PhotoDataUrl))
+                    {
+                        <img src="@person.PhotoDataUrl" alt="" />
+                    }
+                    else
+                    {
+                        <span class="leave-photo-fallback">@(person.Name.Length == 0 ? "S" : person.Name[..1])</span>
+                    }
+                    <strong>@person.Name</strong>
+                    <span>ID: @person.ID</span>
+                </div>
+                <div class="leave-info-grid">
+                    <div class="si-item">
+                        <div class="si-label">@Locale.T("si.father")</div>
+                        <div class="si-value">@(person.FathersName ?? "—")</div>
+                    </div>
+                    <div class="si-item">
+                        <div class="si-label">@Locale.T("edit.gender")</div>
+                        <div class="si-value">@(DisplayOrDash(person.Gender))</div>
+                    </div>
+                    <div class="si-item">
+                        <div class="si-label">@Locale.T("si.class")</div>
+                        <div class="si-value">@(person.ClassName ?? "—")</div>
+                    </div>
+                    <div class="si-item">
+                        <div class="si-label">@Locale.T("att.section")</div>
+                        <div class="si-value @(Muted(person.Section))">@(person.Section ?? Locale.T("att.noSection"))</div>
+                    </div>
+                    <div class="si-item">
+                        <div class="si-label">@Locale.T("att.group")</div>
+                        <div class="si-value @(Muted(person.GroupName))">@(person.GroupName ?? Locale.T("att.noGroup"))</div>
+                    </div>
+                    <div class="si-item">
+                        <div class="si-label">@Locale.T("att.shift")</div>
+                        <div class="si-value @(Muted(person.Shift))">@(person.Shift ?? "—")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="leave-form-section">
+                <div class="section-title">@Locale.T("att.leaveDetails")</div>
+                <div class="leave-form-row three">
+                    <label>@Locale.T("att.from")
+                        <input type="date" @bind="start" @bind:after="OnDatesChanged" disabled="@busy" />
+                    </label>
+                    <label>@Locale.T("att.to")
+                        <input type="date" @bind="end" @bind:after="OnDatesChanged" disabled="@busy" />
+                    </label>
+                    <div>
+                        <span class="lf-label">@Locale.T("att.totalDays")</span>
+                        <div class="duration-badge @(days <= 0 ? "empty" : null)">
+                            @(days > 0 ? Locale.T("att.daysValue", days) : Locale.T("att.pickDays"))
+                        </div>
+                    </div>
+                </div>
+                <div class="leave-form-row two">
+                    <label>@Locale.T("att.leaveType")
+                        <span class="leave-type-field">
+                            <select @bind="leaveType" disabled="@busy">
+                                @foreach (var item in leaveTypes)
+                                {
+                                    <option value="@item">@item</option>
+                                }
+                            </select>
+                            <button type="button" class="btn-serial leave-type-add" disabled="@busy"
+                                    @onclick="OpenLeaveTypeModalAsync">+</button>
+                        </span>
+                    </label>
+                    <label>@Locale.T("att.guardian")
+                        <input type="text" placeholder="@Locale.T("att.guardian")" @bind="guardian" disabled="@busy" />
+                    </label>
+                </div>
+                <label class="leave-reason">@Locale.T("att.reason")
+                    <textarea rows="3" placeholder="@Locale.T("att.reasonHint")" @bind="description" disabled="@busy"></textarea>
+                </label>
+                <div class="leave-submit-row">
+                    <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submitLeave")</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="att-table-wrap">
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("att.from")</th>
+                        <th>@Locale.T("att.to")</th>
+                        <th>@Locale.T("att.leaveType")</th>
+                        <th>@Locale.T("att.guardian")</th>
+                        <th>@Locale.T("att.reason")</th>
+                        <th class="no-print"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (leaves.Count == 0)
+                {
+                    <tr><td colspan="6" class="empty-row">@Locale.T("att.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in leaves)
+                    {
+                        <tr>
+                            <td>@row.StartDate.ToString("dd MMM yyyy")</td>
+                            <td>@row.EndDate.ToString("dd MMM yyyy")</td>
+                            <td>@row.LeaveType</td>
+                            <td>@row.GuardianName</td>
+                            <td>@row.Description</td>
+                            <td class="act no-print">
+                                <button type="button" class="link-btn" disabled="@busy"
+                                        @onclick="() => OpenPrint(row.StudentLeaveID)">@Locale.T("att.reprint")</button>
+                                <button type="button" class="link-btn danger" disabled="@busy"
+                                        @onclick="() => DeleteAsync(row)">@Locale.T("si.delete")</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (showTypeModal)
+{
+    <div class="modal-back" @onclick="CloseLeaveTypeModal">
+        <div class="modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <strong>@Locale.T("att.leaveTypeSettings")</strong>
+                <button type="button" class="link-btn" @onclick="CloseLeaveTypeModal">×</button>
+            </div>
+            <p class="leave-type-note">@Locale.T("att.leaveTypeHint")</p>
+            @if (!string.IsNullOrWhiteSpace(typeError))
+            {
+                <div class="error">@typeError</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(typeMessage))
+            {
+                <div class="ok">@typeMessage</div>
+            }
+            <div class="inline-add">
+                <input type="text" placeholder="@Locale.T("att.leaveTypePlaceholder")"
+                       @bind="newLeaveType" @bind:event="oninput" disabled="@busy" />
+                <button type="button" class="btn-serial" disabled="@busy" @onclick="AddLeaveTypeAsync">@Locale.T("att.leaveTypeAdd")</button>
+            </div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("att.leaveType")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (typeRows.Count == 0)
+                {
+                    <tr><td colspan="2" class="empty-row">@Locale.T("att.leaveTypeNone")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in typeRows)
+                    {
+                        <tr>
+                            <td>@row.Name</td>
+                            <td class="act">
+                                <button type="button" class="link-btn danger" disabled="@busy"
+                                        @onclick="() => DeleteLeaveTypeAsync(row)">@Locale.T("si.delete")</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<string> leaveTypes = [];
+    private readonly List<StudentLeaveRowDto> leaves = [];
+    private readonly List<StudentLeaveSuggestDto> suggestions = [];
+    private StudentLeavePersonDto? person;
+    private string findId = "";
+    private string highlightId = "";
+    private string leaveType = "";
+    private string guardian = "";
+    private string description = "";
+    private DateTime start = DateTime.Today;
+    private DateTime end = DateTime.Today;
+    private int days = 1;
+    private bool busy;
+    private bool suggestOpen;
+    private bool showTypeModal;
+    private string? error;
+    private string? message;
+    private string? typeError;
+    private string? typeMessage;
+    private string newLeaveType = "";
+    private readonly List<AttendanceLeaveTypeDto> typeRows = [];
+    private CancellationTokenSource? suggestCts;
+
+    private bool showSuggest => suggestOpen && suggestions.Count > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        await ReloadLeaveTypesAsync();
+        OnDatesChanged();
+    }
+
+    private async Task ReloadLeaveTypesAsync()
+    {
+        var previous = leaveType;
+        leaveTypes.Clear();
+        leaveTypes.AddRange(await Api.GetAttendanceLeaveTypesAsync(Session.AccessToken!));
+        if (leaveTypes.Contains(previous))
+            leaveType = previous;
+        else if (leaveTypes.Count > 0)
+            leaveType = leaveTypes[0];
+        else
+            leaveType = "";
+    }
+
+    private async Task OnFindInput(ChangeEventArgs e)
+    {
+        findId = e.Value?.ToString() ?? "";
+        suggestOpen = true;
+        highlightId = "";
+        suggestCts?.Cancel();
+        suggestCts = new CancellationTokenSource();
+        var token = suggestCts.Token;
+        try
+        {
+            await Task.Delay(200, token);
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || findId.Trim().Length == 0)
+            {
+                suggestions.Clear();
+                return;
+            }
+            var items = await Api.SuggestStudentLeaveAsync(Session.AccessToken!, findId.Trim(), token);
+            if (token.IsCancellationRequested)
+                return;
+            suggestions.Clear();
+            suggestions.AddRange(items);
+            if (suggestions.Count > 0)
+                highlightId = suggestions[0].ID;
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch
+        {
+            suggestions.Clear();
+        }
+    }
+
+    private async Task OnFindKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            if (showSuggest && !string.IsNullOrWhiteSpace(highlightId))
+            {
+                var pick = suggestions.FirstOrDefault(x => x.ID == highlightId);
+                if (pick is not null)
+                {
+                    await PickSuggestAsync(pick);
+                    return;
+                }
+            }
+            await FindAsync();
+            return;
+        }
+        if (!showSuggest)
+            return;
+        if (e.Key == "ArrowDown" || e.Key == "ArrowUp")
+        {
+            var index = suggestions.FindIndex(x => x.ID == highlightId);
+            if (e.Key == "ArrowDown")
+                index = Math.Min(suggestions.Count - 1, index + 1);
+            else
+                index = Math.Max(0, index <= 0 ? 0 : index - 1);
+            if (index >= 0 && index < suggestions.Count)
+                highlightId = suggestions[index].ID;
+        }
+        else if (e.Key == "Escape")
+        {
+            suggestOpen = false;
+        }
+    }
+
+    private async Task PickSuggestAsync(StudentLeaveSuggestDto item)
+    {
+        findId = item.ID;
+        suggestOpen = false;
+        suggestions.Clear();
+        await FindAsync();
+    }
+
+    private async Task HideSuggestSoon()
+    {
+        await Task.Delay(180);
+        suggestOpen = false;
+        StateHasChanged();
+    }
+
+    private void OnDatesChanged()
+    {
+        days = end < start ? 0 : (end.Date - start.Date).Days + 1;
+    }
+
+    private async Task FindAsync()
+    {
+        error = message = null;
+        person = null;
+        leaves.Clear();
+        suggestOpen = false;
+        if (string.IsNullOrWhiteSpace(findId))
+        {
+            error = Locale.T("att.needStudent");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            person = await Api.FindStudentLeaveAsync(Session.AccessToken!, findId.Trim());
+            if (person is null)
+            {
+                error = Locale.T("att.empty");
+                return;
+            }
+            findId = person.ID;
+            leaves.AddRange(await Api.GetStudentLeavesAsync(Session.AccessToken!, person.StudentID));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            error = Locale.T("att.empty");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        error = message = null;
+        if (person is null)
+        {
+            error = Locale.T("att.needStudent");
+            return;
+        }
+        if (days <= 0)
+        {
+            error = Locale.T("att.needDate");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.SaveStudentLeaveAsync(Session.AccessToken!, new SaveStudentLeaveRequest
+            {
+                StudentID = person.StudentID,
+                StartDate = start,
+                EndDate = end,
+                LeaveType = leaveType,
+                GuardianName = guardian,
+                Description = description
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            if (result.Id > 0)
+            {
+                Nav.NavigateTo($"/attendance/student/leave/print/{result.Id}?from=student");
+                return;
+            }
+            description = "";
+            message = Locale.T("att.leaveSaved");
+            leaves.Clear();
+            leaves.AddRange(await Api.GetStudentLeavesAsync(Session.AccessToken!, person.StudentID));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void OpenPrint(int leaveId) =>
+        Nav.NavigateTo($"/attendance/student/leave/print/{leaveId}?from=student");
+
+    private async Task DeleteAsync(StudentLeaveRowDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("att.deleteLeave")))
+            return;
+        if (!await EnsureOnlineAsync() || person is null)
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteStudentLeaveAsync(Session.AccessToken!, row.StudentLeaveID);
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            message = Locale.T("att.leaveDeleted");
+            leaves.Clear();
+            leaves.AddRange(await Api.GetStudentLeavesAsync(Session.AccessToken!, person.StudentID));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static string DisplayOrDash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+    private static string? Muted(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "muted" : null;
+
+    private async Task OpenLeaveTypeModalAsync()
+    {
+        typeError = typeMessage = null;
+        newLeaveType = "";
+        showTypeModal = true;
+        await LoadLeaveTypeRowsAsync();
+    }
+
+    private void CloseLeaveTypeModal()
+    {
+        showTypeModal = false;
+        typeError = typeMessage = null;
+    }
+
+    private async Task LoadLeaveTypeRowsAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        typeRows.Clear();
+        typeRows.AddRange(await Api.GetAttendanceLeaveTypeRowsAsync(Session.AccessToken!));
+    }
+
+    private async Task AddLeaveTypeAsync()
+    {
+        typeError = typeMessage = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var added = newLeaveType.Trim();
+            var result = await Api.AddAttendanceLeaveTypeAsync(Session.AccessToken!, new SaveLeaveTypeRequest
+            {
+                Name = added
+            });
+            if (!result.Succeeded)
+            {
+                typeError = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            newLeaveType = "";
+            typeMessage = Locale.T("att.leaveTypeAdded");
+            await LoadLeaveTypeRowsAsync();
+            await ReloadLeaveTypesAsync();
+            if (leaveTypes.Contains(added))
+                leaveType = added;
+        }
+        catch (HttpRequestException)
+        {
+            typeError = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            typeError = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteLeaveTypeAsync(AttendanceLeaveTypeDto row)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("att.leaveTypeDelete")))
+            return;
+        typeError = typeMessage = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteAttendanceLeaveTypeAsync(Session.AccessToken!, row.LeaveTypeID);
+            if (!result.Succeeded)
+            {
+                typeError = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            typeMessage = Locale.T("att.leaveDeleted");
+            await LoadLeaveTypeRowsAsync();
+            await ReloadLeaveTypesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            typeError = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            typeError = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

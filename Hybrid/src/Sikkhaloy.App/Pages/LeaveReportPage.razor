@@ -1,0 +1,162 @@
+@page "/attendance/leave-report"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page att-page att-records-page leave-report-page">
+    <PrintHeader Subtitle="@Locale.T("att.leaveReport")" />
+    <div class="leave-title no-print">
+        <h1>@Locale.T("att.leaveReport")</h1>
+        <p>@Locale.T("att.leaveReportHint")</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="filter-row no-print">
+        <label class="choice-inline">
+            <input type="radio" name="lr-type" checked="@(type == "Student")" @onchange='() => ChangeType("Student")' />
+            <span>@Locale.T("att.student")</span>
+        </label>
+        <label class="choice-inline">
+            <input type="radio" name="lr-type" checked="@(type == "Employee")" @onchange='() => ChangeType("Employee")' />
+            <span>@Locale.T("att.employee")</span>
+        </label>
+        <label>@Locale.T("att.from")
+            <input type="date" @bind="from" disabled="@busy" />
+        </label>
+        <label>@Locale.T("att.to")
+            <input type="date" @bind="to" disabled="@busy" />
+        </label>
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="FilterAsync">@Locale.T("si.find")</button>
+        <button type="button" class="link-btn" disabled="@busy" @onclick="LoadAllAsync">@Locale.T("att.all")</button>
+        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    </div>
+
+    <div class="summary-bar no-print">
+        <span class="badge-count">@Locale.T("att.recordsCount", rows.Count)</span>
+    </div>
+
+    <div class="att-table-wrap">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("att.type")</th>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("si.class") / @Locale.T("emp.designation")</th>
+                    <th>@Locale.T("att.leaveType")</th>
+                    <th>@Locale.T("att.from")</th>
+                    <th>@Locale.T("att.to")</th>
+                    <th>@Locale.T("att.daysCount")</th>
+                    <th>@Locale.T("att.reason")</th>
+                    <th class="no-print">@Locale.T("att.reprint")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="10" class="empty-row">@Locale.T("att.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>
+                            <span class="type-badge @(row.Type == "Employee" ? "type-emp" : "type-stu")">
+                                @(row.Type == "Employee" ? Locale.T("att.employee") : Locale.T("att.student"))
+                            </span>
+                        </td>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.ClassOrDesignation</td>
+                        <td>@row.LeaveType</td>
+                        <td>@row.StartDate.ToString("dd MMM yyyy")</td>
+                        <td>@row.EndDate.ToString("dd MMM yyyy")</td>
+                        <td>@row.Days</td>
+                        <td>@row.Description</td>
+                        <td class="act no-print">
+                            @if (row.Type != "Employee")
+                            {
+                                <button type="button" class="link-btn" disabled="@busy"
+                                        @onclick="() => Reprint(row)">@Locale.T("att.reprint")</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private readonly List<LeaveReportRowDto> rows = [];
+    private string type = "Student";
+    private DateTime? from;
+    private DateTime? to;
+    private bool busy;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync(null, null);
+
+    private Task ChangeType(string value)
+    {
+        type = value;
+        return LoadAsync(from, to);
+    }
+
+    private Task LoadAllAsync()
+    {
+        from = null;
+        to = null;
+        return LoadAsync(null, null);
+    }
+
+    private Task FilterAsync() => LoadAsync(from, to);
+
+    private async Task LoadAsync(DateTime? start, DateTime? end)
+    {
+        error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GetLeaveReportAsync(Session.AccessToken!, type, start, end));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void Reprint(LeaveReportRowDto row) =>
+        Nav.NavigateTo($"/attendance/student/leave/print/{row.LeaveID}?from=report");
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

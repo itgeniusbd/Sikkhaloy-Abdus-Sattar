@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sikkhaloy.App/Sikkhaloy.App.csproj" />
+    <Project Path="src/Sikkhaloy.Client/Sikkhaloy.Client.csproj" />
+    <Project Path="src/Sikkhaloy.LocalData/Sikkhaloy.LocalData.csproj" />
+    <Project Path="src/Sikkhaloy.Shared/Sikkhaloy.Shared.csproj" />
+    <Project Path="src/Sikkhaloy.SyncApi/Sikkhaloy.SyncApi.csproj" />
+    <Project Path="src/Sikkhaloy.Web/Sikkhaloy.Web.csproj" />
+  </Folder>
+</Solution>

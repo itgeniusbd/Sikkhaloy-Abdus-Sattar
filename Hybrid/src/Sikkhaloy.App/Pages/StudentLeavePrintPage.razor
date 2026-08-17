@@ -1,0 +1,267 @@
+@page "/attendance/student/leave/print/{LeaveId:int}"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="leave-print-page">
+    <div class="gp-actions no-print">
+        <button type="button" class="btn-serial" disabled="@(busy || slip is null)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        <button type="button" class="link-btn" @onclick="GoBack">@Locale.T("att.goBack")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="gp-settings no-print">
+        <div class="gp-settings-head">@Locale.T("att.printSettings")</div>
+        <div class="gp-settings-body">
+            <label class="choice-inline">
+                <input type="checkbox" @bind="hideSchool" />
+                <span>@Locale.T("att.hideSchool")</span>
+            </label>
+            <label>@Locale.T("att.topSpace")
+                <input type="number" min="0" @bind="topSpace" @bind:after="ApplyPrintOptionsAsync" />
+            </label>
+            <label>@Locale.T("att.fontSize")
+                <input type="number" min="8" max="20" @bind="fontSize" />
+            </label>
+            <label>@Locale.T("att.pageSize")
+                <select @bind="pageSize" @bind:after="ApplyPrintOptionsAsync">
+                    <option value="A4">A4</option>
+                    <option value="A5">A5</option>
+                    <option value="A6">A6</option>
+                    <option value="letter">Letter</option>
+                </select>
+            </label>
+            <button type="button" class="btn-serial" disabled="@(busy || slip is null)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </div>
+    </div>
+
+    @if (slip is not null)
+    {
+        <div class="gp-page-wrap" style="@WrapStyle">
+            <div class="gp-card">
+                @if (!hideSchool)
+                {
+                    <div class="gp-header">
+                        @if (!string.IsNullOrWhiteSpace(logoUrl))
+                        {
+                            <img class="logo" src="@logoUrl" alt="" />
+                        }
+                        <div class="school-info">
+                            <div class="school-name">@SchoolTitle</div>
+                            @if (!string.IsNullOrWhiteSpace(SchoolAddress))
+                            {
+                                <div class="school-addr">@SchoolAddress</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(SchoolPhone))
+                            {
+                                <div class="school-phone">@Locale.T("att.phoneLabel") @SchoolPhone</div>
+                            }
+                        </div>
+                    </div>
+                }
+                <div class="gp-title-band">
+                    <div class="band-left">@Locale.T("att.passNo") : @slip.StudentLeaveID</div>
+                    <div class="band-title">@Locale.T("att.gatePass")</div>
+                    <div class="band-right">@Locale.T("att.studentCopy")</div>
+                </div>
+                <div class="gp-info">
+                    <div class="gp-info-col">
+                        <div class="info-row"><span class="info-label">@Locale.T("si.name")</span><span class="info-sep">:</span><span class="info-value">@slip.Name</span></div>
+                        <div class="info-row"><span class="info-label">@Locale.T("si.father")</span><span class="info-sep">:</span><span class="info-value">@(slip.FathersName ?? "—")</span></div>
+                        <div class="info-row"><span class="info-label">@Locale.T("si.class")</span><span class="info-sep">:</span><span class="info-value">@(slip.ClassName ?? "—")</span></div>
+                    </div>
+                    <div class="gp-info-col">
+                        <div class="info-row"><span class="info-label">@Locale.T("si.id")</span><span class="info-sep">:</span><span class="info-value">@slip.ID</span></div>
+                        <div class="info-row"><span class="info-label">@Locale.T("att.date")</span><span class="info-sep">:</span><span class="info-value">@slip.ApprovedOn.ToString("dd/MM/yyyy")</span></div>
+                        <div class="info-row"><span class="info-label">@Locale.T("att.leaveType")</span><span class="info-sep">:</span><span class="info-value">@(slip.LeaveType ?? Locale.T("att.casualLeave"))</span></div>
+                    </div>
+                </div>
+                <table class="gp-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>@Locale.T("att.depart")</th>
+                            <th>@Locale.T("att.return")</th>
+                            <th>@Locale.T("att.duration")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="row-lbl">@Locale.T("att.date")</td>
+                            <td>@slip.StartDate.ToString("dd/MM/yyyy")</td>
+                            <td>@slip.EndDate.ToString("dd/MM/yyyy")</td>
+                            <td>@Locale.T("att.daysValue", slip.Days)</td>
+                        </tr>
+                        <tr>
+                            <td class="row-lbl">@Locale.T("att.time")</td>
+                            <td>@slip.ApprovedOn.ToString("h:mm:ss tt")</td>
+                            <td>--</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="gp-remarks">
+                    <span class="lbl">@Locale.T("att.reason") :</span>
+                    @(slip.Description ?? "")
+                </div>
+                <div class="gp-footer">
+                    <div class="guardian"><strong>@Locale.T("att.guardian")</strong> : @(slip.GuardianName ?? Locale.T("si.father"))</div>
+                    <div class="approval">✔ @Locale.T("att.permissionGranted")</div>
+                    <div class="issue-date">
+                        @if (!string.IsNullOrWhiteSpace(Approver))
+                        {
+                            <strong>@Locale.T("att.approver") :</strong> @Approver<br />
+                        }
+                        @slip.ApprovedOn.ToString("dd/MM/yyyy")
+                    </div>
+                </div>
+            </div>
+
+            <div class="scissor-divider">✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</div>
+
+            <div class="gp-office">
+                <div class="gp-office-header">@Locale.T("att.officeCopy")</div>
+                <div class="gp-office-body">
+                    <div class="gp-info">
+                        <div class="gp-info-col">
+                            <div class="info-row"><span class="info-label">@Locale.T("si.name")</span><span class="info-sep">:</span><span class="info-value">@slip.Name</span></div>
+                            <div class="info-row"><span class="info-label">@Locale.T("si.father")</span><span class="info-sep">:</span><span class="info-value">@(slip.FathersName ?? "—")</span></div>
+                            <div class="info-row"><span class="info-label">@Locale.T("si.class")</span><span class="info-sep">:</span><span class="info-value">@(slip.ClassName ?? "—")</span></div>
+                        </div>
+                        <div class="gp-info-col">
+                            <div class="info-row"><span class="info-label">@Locale.T("att.passNo")</span><span class="info-sep">:</span><span class="info-value">@slip.StudentLeaveID</span></div>
+                            <div class="info-row"><span class="info-label">@Locale.T("si.id")</span><span class="info-sep">:</span><span class="info-value">@slip.ID</span></div>
+                            <div class="info-row"><span class="info-label">@Locale.T("att.leaveType")</span><span class="info-sep">:</span><span class="info-value">@(slip.LeaveType ?? Locale.T("att.casualLeave"))</span></div>
+                        </div>
+                    </div>
+                    <table class="gp-office-table">
+                        <tbody>
+                            <tr>
+                                <td>@slip.StartDate.ToString("dd/MM/yyyy") @Locale.T("att.fromWord")</td>
+                                <td>@slip.EndDate.ToString("dd/MM/yyyy") @Locale.T("att.toWord")</td>
+                                <td>@Locale.T("att.daysValue", slip.Days)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="gp-sign-row">
+                        <span class="sign-left">@Locale.T("att.guardianSign") :</span>
+                        <span class="sign-right">
+                            @if (!string.IsNullOrWhiteSpace(Approver))
+                            {
+                                <strong>@Locale.T("att.approver") :</strong> @Approver
+                            }
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int LeaveId { get; set; }
+    [SupplyParameterFromQuery(Name = "from")] public string? From { get; set; }
+
+    private StudentLeavePrintDto? slip;
+    private string? logoUrl;
+    private string? error;
+    private bool busy;
+    private bool hideSchool;
+    private int topSpace;
+    private int fontSize = 12;
+    private string pageSize = "A4";
+
+    private string SchoolTitle =>
+        string.IsNullOrWhiteSpace(slip?.SchoolName) ? (Session.Current?.SchoolName ?? "") : slip!.SchoolName;
+    private string? SchoolAddress => slip?.SchoolAddress;
+    private string? SchoolPhone => slip?.SchoolPhone;
+    private string Approver =>
+        string.IsNullOrWhiteSpace(slip?.ApproverName) ? (Session.Current?.DisplayName ?? "") : slip!.ApproverName!;
+
+    private string WrapStyle
+    {
+        get
+        {
+            var width = pageSize switch
+            {
+                "A5" => "148mm",
+                "A6" => "105mm",
+                "letter" => "216mm",
+                _ => "190mm"
+            };
+            return $"padding-top:0;width:{width};font-size:{fontSize}px;";
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        error = null;
+        slip = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+        busy = true;
+        try
+        {
+            slip = await Api.GetStudentLeavePrintAsync(Session.AccessToken!, LeaveId);
+            if (slip is null)
+            {
+                error = Locale.T("att.leaveNotFound");
+                return;
+            }
+            if (Session.Current is not null)
+                logoUrl = Sync.GetSchoolLogoDataUrl(Session.Current.SchoolID);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        try
+        {
+            await ApplyPrintOptionsAsync();
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private Task ApplyPrintOptionsAsync() =>
+        JS.InvokeVoidAsync("sikkhaloyApplyLeavePrint", pageSize, topSpace).AsTask();
+
+    private async Task PrintAsync()
+    {
+        await ApplyPrintOptionsAsync();
+        await JS.InvokeVoidAsync("sikkhaloyPrintLeave", pageSize, topSpace);
+    }
+
+    private void GoBack()
+    {
+        if (string.Equals(From, "report", StringComparison.OrdinalIgnoreCase))
+            Nav.NavigateTo("/attendance/leave-report");
+        else
+            Nav.NavigateTo("/attendance/student/leave");
+    }
+}

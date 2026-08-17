@@ -1,0 +1,435 @@
+@page "/accounts/reports/current-due"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page rpt-page due-rpt @(details.Count > 0 ? "is-modal" : null)">
+    <h1>@Locale.T("rpt.totalDue"): @Tk(data?.InstitutionDue ?? 0) @Locale.T("acc.tk")</h1>
+
+    <div class="rpt-filters rpt-radios no-print">
+        <label class="rpt-check">
+            <input type="radio" name="dueMode" checked="@(!byId)" @onchange="() => SetMode(false)" />
+            @Locale.T("rpt.byClass")
+        </label>
+        <label class="rpt-check">
+            <input type="radio" name="dueMode" checked="@byId" @onchange="() => SetMode(true)" />
+            @Locale.T("rpt.byId")
+        </label>
+    </div>
+
+    @if (!byId)
+    {
+        <div class="rpt-filters no-print">
+            <select @bind="classId" @bind:after="OnClassAsync">
+                <option value="0">@Locale.T("rpt.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+            @if (sections.Count > 0)
+            {
+                <select @bind="sectionId">
+                    <option value="%">@Locale.T("rpt.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+            }
+            <select @bind="roleId">
+                <option value="%">@Locale.T("rpt.allRoleOpt")</option>
+                @foreach (var role in roles)
+                {
+                    <option value="@role.Id">@role.Name</option>
+                }
+            </select>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        </div>
+    }
+    else
+    {
+        <div class="rpt-filters no-print">
+            <input type="text" placeholder="@Locale.T("rpt.enterId")" @bind="studentId" @bind:event="oninput" @onkeydown="OnIdKey" />
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    @if (!string.IsNullOrWhiteSpace(ok)) { <div class="ok">@ok</div> }
+
+    @if (!byId && searched)
+    {
+        @if (data?.Students.Count > 0)
+        {
+            <div class="due-class-line">@ClassDueLine</div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th class="no-print due-check">
+                            <label class="rpt-check">
+                                <input type="checkbox" checked="@AllSelected" @onchange="e => ToggleAll((bool)e.Value!)" />
+                                @Locale.T("rpt.all")
+                            </label>
+                        </th>
+                        <th>@Locale.T("students.id")</th>
+                        <th>@Locale.T("rpt.roll")</th>
+                        <th>@Locale.T("rpt.name")</th>
+                        <th class="num">@Locale.T("rpt.due")</th>
+                        <th>@Locale.T("rpt.phone")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in data.Students)
+                {
+                    var on = selected.Contains(row.ID);
+                    <tr class="@(on ? "is-sel" : null)">
+                        <td class="no-print due-check">
+                            <input type="checkbox" checked="@on" @onchange="e => Toggle(row.ID, (bool)e.Value!)" />
+                        </td>
+                        <td>@row.ID</td>
+                        <td>@row.RollNo</td>
+                        <td>@row.Name</td>
+                        <td class="num due-amt">@Tk(row.Due)</td>
+                        <td>@row.Phone</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="due-actions no-print">
+                <div class="due-sms-box">@Locale.T("rpt.smsTemplate")</div>
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SendSmsAsync">@Locale.T("rpt.sendSms")</button>
+                <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="ViewAsync">@Locale.T("rpt.viewBtn")</button>
+                <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+            </div>
+        }
+        else
+        {
+            <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
+        }
+    }
+
+    @if (byId && searched && idStudent is null)
+    {
+        <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
+    }
+
+    @if (byId && searched && idStudent is not null)
+    {
+        <div class="due-card">
+            <ul>
+                <li><b>(@idStudent.ID) @idStudent.Name</b></li>
+                <li><b>@Locale.T("rpt.class"):</b> @idStudent.ClassName</li>
+                <li><b>@Locale.T("rpt.roll"):</b> @idStudent.RollNo</li>
+                <li><b>@Locale.T("rpt.phone"):</b> @idStudent.Phone</li>
+                <li class="due-total"><b>@Locale.T("rpt.due"):</b> @Tk(idStudent.Due) @Locale.T("acc.tk")</li>
+            </ul>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("acc.role")</th>
+                    <th>@Locale.T("rpt.payFor")</th>
+                    <th class="num">@Locale.T("rpt.fee")</th>
+                    <th class="num">@Locale.T("rpt.lateFee")</th>
+                    <th class="num">@Locale.T("rpt.paid")</th>
+                    <th class="num">@Locale.T("rpt.due")</th>
+                    <th>@Locale.T("rpt.endDate")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (idDetail?.Lines.Count is not > 0)
+            {
+                <tr><td colspan="7">@Locale.T("rpt.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var line in idDetail.Lines)
+                {
+                    <tr>
+                        <td>@line.Role</td>
+                        <td>@line.PayFor</td>
+                        <td class="num">@Tk(line.Amount)</td>
+                        <td class="num">@Tk(line.LateFee)</td>
+                        <td class="num">@Tk(line.Paid)</td>
+                        <td class="num due-amt">@Tk(line.Due)</td>
+                        <td>@line.EndDate.ToString("d MMM yyyy")</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+        <div class="due-actions no-print">
+            <div class="due-sms-box">@Locale.T("rpt.smsTemplate")</div>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SendSmsAsync">@Locale.T("rpt.sendSms")</button>
+            <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+        </div>
+    }
+</div>
+
+@if (details.Count > 0)
+{
+    <div class="modal-back due-modal" @onclick="CloseDetails">
+        <div class="modal-panel due-modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <strong>@Locale.T("rpt.dueDetails")</strong>
+                <button type="button" class="link-btn no-print" @onclick="CloseDetails">×</button>
+            </div>
+            <div class="due-modal-body" id="due-export">
+                @foreach (var item in details)
+                {
+                    <div class="due-print-block">
+                    <div class="due-head">@Locale.T("rpt.dueHead", item.Name, item.ClassName ?? "", item.RollNo ?? "", item.ID, item.Phone ?? "")</div>
+                    <table class="mgrid">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("acc.role")</th>
+                                <th>@Locale.T("rpt.payFor")</th>
+                                <th class="num">@Locale.T("rpt.fee")</th>
+                                <th class="num">@Locale.T("rpt.lateFee")</th>
+                                <th class="num">@Locale.T("rpt.concession")</th>
+                                <th class="num">@Locale.T("rpt.paid")</th>
+                                <th class="num">@Locale.T("rpt.due")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var line in item.Lines)
+                        {
+                            <tr>
+                                <td>@line.Role</td>
+                                <td>@line.PayFor</td>
+                                <td class="num">@Tk(line.Amount)</td>
+                                <td class="num">@Tk(line.LateFee)</td>
+                                <td class="num">@Tk(line.Discount)</td>
+                                <td class="num">@Tk(line.Paid)</td>
+                                <td class="num due-amt">@Tk(line.Due)</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="6">@Locale.T("rpt.due")</th>
+                                <th class="num due-amt">@Tk(item.Due)</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    </div>
+                }
+            </div>
+            <div class="due-modal-foot no-print">
+                <button type="button" class="acc-btn due-word-btn" @onclick="ExportWordAsync">@Locale.T("rpt.exportWord")</button>
+                <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+                <button type="button" class="acc-btn acc-btn-ghost" @onclick="CloseDetails">@Locale.T("acc.close")</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (busy)
+{
+    <div class="acc-loading-back">
+        <div class="acc-loading">
+            <div class="acc-spinner"></div>
+            <p>@Locale.T("acc.loading")</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private CurrentDueDto? data;
+    private CurrentDueRowDto? idStudent;
+    private CurrentDueStudentDetailDto? idDetail;
+    private List<SchoolClassDto> classes = [];
+    private List<NameAmountDto> sections = [];
+    private List<NameAmountDto> roles = [];
+    private List<CurrentDueStudentDetailDto> details = [];
+    private readonly HashSet<string> selected = new(StringComparer.OrdinalIgnoreCase);
+    private int classId;
+    private string sectionId = "%", roleId = "%", studentId = "", error = "", ok = "";
+    private bool busy, byId, searched;
+
+    private bool AllSelected => data?.Students.Count > 0 && data.Students.All(x => selected.Contains(x.ID));
+
+    private string ClassDueLine
+    {
+        get
+        {
+            var className = classes.FirstOrDefault(x => x.ClassID == classId)?.Name ?? "";
+            var roleName = roles.FirstOrDefault(x => x.Id.ToString() == roleId)?.Name;
+            var forRole = !string.IsNullOrWhiteSpace(roleId) && roleId != "%" && !string.IsNullOrWhiteSpace(roleName)
+                ? Locale.T("rpt.forRole", roleName)
+                : "";
+            return Locale.T("rpt.classDue", forRole, className, Tk(data?.Students.Sum(x => x.Due) ?? 0));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
+        busy = true;
+        await PaintAsync();
+        try
+        {
+            classes.AddRange(await Api.GetClassesAsync(Session.AccessToken));
+            data = await Api.GetCurrentDueAsync(Session.AccessToken, 0, null, null, null);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void SetMode(bool idMode)
+    {
+        byId = idMode;
+        searched = false;
+        selected.Clear();
+        details.Clear();
+        idStudent = null;
+        idDetail = null;
+        error = "";
+        ok = "";
+        if (data is not null)
+            data.Students = [];
+    }
+
+    private async Task OnClassAsync()
+    {
+        sections.Clear();
+        roles.Clear();
+        roleId = "%";
+        sectionId = "%";
+        searched = false;
+        selected.Clear();
+        if (data is not null)
+            data.Students = [];
+        if (classId <= 0)
+            return;
+        sections.AddRange(await Api.GetReportSectionsAsync(Session.AccessToken, classId));
+        roles.AddRange(await Api.GetDueRolesAsync(Session.AccessToken, classId));
+    }
+
+    private async Task OnIdKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!byId && classId <= 0) { error = Locale.T("rpt.needClass"); return; }
+        if (byId && string.IsNullOrWhiteSpace(studentId)) { error = Locale.T("acc.needStudentId"); return; }
+        busy = true;
+        error = "";
+        ok = "";
+        selected.Clear();
+        details.Clear();
+        idStudent = null;
+        idDetail = null;
+        await PaintAsync();
+        try
+        {
+            data = byId
+                ? await Api.GetCurrentDueAsync(Session.AccessToken, 0, null, null, studentId)
+                : await Api.GetCurrentDueAsync(Session.AccessToken, classId, sectionId, roleId, null);
+            searched = true;
+            if (byId)
+            {
+                idStudent = data.Students.FirstOrDefault();
+                if (idStudent is not null)
+                    idDetail = await Api.GetDueDetailsAsync(Session.AccessToken, idStudent.ID, "%");
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void Toggle(string id, bool on)
+    {
+        if (on) selected.Add(id);
+        else selected.Remove(id);
+    }
+
+    private void ToggleAll(bool on)
+    {
+        selected.Clear();
+        if (on && data is not null)
+        {
+            foreach (var row in data.Students)
+                selected.Add(row.ID);
+        }
+    }
+
+    private List<string> PickedIds()
+    {
+        if (byId)
+            return string.IsNullOrWhiteSpace(idStudent?.ID) ? [] : [idStudent.ID];
+        return selected.ToList();
+    }
+
+    private async Task ViewAsync()
+    {
+        var ids = PickedIds();
+        if (ids.Count == 0) { error = Locale.T("rpt.needSelect"); return; }
+        busy = true;
+        error = "";
+        ok = "";
+        details.Clear();
+        await PaintAsync();
+        try
+        {
+            foreach (var id in ids)
+            {
+                var item = await Api.GetDueDetailsAsync(Session.AccessToken, id, roleId);
+                var row = data?.Students.FirstOrDefault(x => string.Equals(x.ID, id, StringComparison.OrdinalIgnoreCase));
+                if (string.IsNullOrWhiteSpace(item.Name) && row is not null)
+                {
+                    item.Name = row.Name;
+                    item.ID = row.ID;
+                    item.RollNo = row.RollNo;
+                    item.Phone = row.Phone;
+                    item.ClassName = classes.FirstOrDefault(x => x.ClassID == classId)?.Name ?? item.ClassName;
+                }
+                details.Add(item);
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task SendSmsAsync()
+    {
+        var ids = PickedIds();
+        if (ids.Count == 0) { error = Locale.T("rpt.needSelect"); return; }
+        busy = true;
+        error = "";
+        ok = "";
+        await PaintAsync();
+        try
+        {
+            var result = await Api.SendDueSmsAsync(Session.AccessToken, new DueSmsRequest
+            {
+                Ids = ids,
+                RoleId = byId ? "%" : roleId
+            });
+            if (!string.IsNullOrWhiteSpace(result.Error))
+                error = Locale.T(result.Error);
+            else
+                ok = Locale.T("rpt.smsSent", result.Saved, result.Failed);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void CloseDetails() => details.Clear();
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task ExportWordAsync()
+    {
+        var school = Session.Current?.SchoolName ?? "";
+        var cls = classes.FirstOrDefault(x => x.ClassID == classId)?.Name ?? "";
+        return JS.InvokeVoidAsync("sikkhaloyExportWord", "Current_Due.doc", "due-export", school, cls).AsTask();
+    }
+    private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private static string Tk(decimal n) => n.ToString("N0");
+}

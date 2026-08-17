@@ -1,0 +1,303 @@
+@page "/student-info/signup"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("si.signup")</h1>
+    <p class="muted">@Locale.T("si.crumb")</p>
+    <p class="muted">@Locale.T("si.signupHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindByIdAsync">@Locale.T("si.find")</button>
+    </div>
+
+    <div class="si-tabs no-print">
+        <button type="button" class="@(tab == "created" ? "active" : null)" @onclick="@(() => tab = "created")">@Locale.T("si.createdTab")</button>
+        <button type="button" class="@(tab == "create" ? "active" : null)" @onclick="@(() => tab = "create")">@Locale.T("si.createTab")</button>
+    </div>
+
+    @if (tab == "create")
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th class="act"><input type="checkbox" checked="@allCreate" disabled="@busy" @onchange="ToggleAllCreate" /></th>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.roll")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("si.father")</th>
+                    <th>@Locale.T("si.phone")</th>
+                    <th>@Locale.T("si.address")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (withoutLogin.Count == 0 && !busy)
+            {
+                <tr><td colspan="7" class="empty-row">@Locale.T("si.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in withoutLogin)
+                {
+                    <tr>
+                        <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                        <td>@row.ID</td>
+                        <td>@row.RollNo</td>
+                        <td>@row.StudentsName</td>
+                        <td>@row.FathersName</td>
+                        <td>@row.Phone</td>
+                        <td>@row.Address</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="CreateAsync">@Locale.T("si.createUsers")</button>
+    }
+    else
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.roll")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("si.phone")</th>
+                    <th>@Locale.T("si.user")</th>
+                    <th>@Locale.T("si.password")</th>
+                    <th>@Locale.T("si.created")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (created.Count == 0 && !busy)
+            {
+                <tr><td colspan="7" class="empty-row">@Locale.T("si.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in created)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td>@row.RollNo</td>
+                        <td>@row.StudentsName</td>
+                        <td>@row.Phone</td>
+                        <td>@row.UserName</td>
+                        <td>@row.Password</td>
+                        <td>@(row.CreateDate?.ToString("d") ?? "—")</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<StudentSignupRowDto> withoutLogin = [];
+    private readonly List<StudentCreatedUserDto> created = [];
+    private ClassStructureDto? structure;
+    private string classInput = "0";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private string findId = "";
+    private string tab = "created";
+    private bool busy;
+    private string? error;
+    private string? message;
+    private bool allCreate;
+
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        structure = await Api.GetClassStructureAsync(Session.AccessToken);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+    }
+
+    private async Task OnClassChanged()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        findId = "";
+        ApplyParts();
+        await LoadAsync();
+    }
+
+    private void ApplyParts()
+    {
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        if (structure is null || ClassId <= 0)
+            return;
+        groups.AddRange(structure.Groups.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
+        sections.AddRange(structure.Sections.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
+        shifts.AddRange(structure.Shifts.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
+    }
+
+    private async Task FindByIdAsync()
+    {
+        classInput = "0";
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        error = message = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        if (string.IsNullOrWhiteSpace(findId) && ClassId <= 0)
+        {
+            withoutLogin.Clear();
+            created.Clear();
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var data = await Api.GetStudentSignupAsync(Session.AccessToken, ClassId, GroupId, SectionId, ShiftId, findId);
+            withoutLogin.Clear();
+            withoutLogin.AddRange(data.WithoutLogin);
+            created.Clear();
+            created.AddRange(data.Created);
+            allCreate = false;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void ToggleAllCreate(ChangeEventArgs e)
+    {
+        allCreate = e.Value is true or "true";
+        foreach (var row in withoutLogin)
+            row.Selected = allCreate;
+    }
+
+    private async Task CreateAsync()
+    {
+        error = message = null;
+        var ids = withoutLogin.Where(x => x.Selected).Select(x => x.StudentID).ToList();
+        if (ids.Count == 0)
+        {
+            error = Locale.T("si.needStudents");
+            return;
+        }
+        if (!await EnsureOnlineAsync())
+            return;
+
+        busy = true;
+        try
+        {
+            var result = await Api.CreateStudentUsersAsync(Session.AccessToken, new CreateStudentUsersRequest { StudentIDs = ids });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            var ok = Locale.T("si.okCreate", result.Count);
+            tab = "created";
+            await LoadAsync();
+            message = ok;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+}

@@ -1,0 +1,203 @@
+@page "/attendance/schedule"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page att-page">
+    <h1>@Locale.T("att.schedule")</h1>
+    <p class="muted">@Locale.T("att.scheduleHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="structure-card">
+        <div class="inline-add">
+            <input type="text" placeholder="@Locale.T("att.scheduleName")" @bind="newName" disabled="@busy" />
+            <input type="time" value="@newStart" disabled="@busy" title="@Locale.T("att.start")"
+                   @onchange="e => newStart = e.Value?.ToString() ?? newStart" />
+            <input type="time" value="@newLate" disabled="@busy" title="@Locale.T("att.late")"
+                   @onchange="e => newLate = e.Value?.ToString() ?? newLate" />
+            <input type="time" value="@newEnd" disabled="@busy" title="@Locale.T("att.end")"
+                   @onchange="e => newEnd = e.Value?.ToString() ?? newEnd" />
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="AddAsync">@Locale.T("att.addSchedule")</button>
+        </div>
+    </div>
+
+    @if (schedules.Count == 0 && !busy)
+    {
+        <p class="muted">@Locale.T("att.empty")</p>
+    }
+
+    @foreach (var item in schedules)
+    {
+        <div class="structure-card">
+            <div class="inline-add">
+                <input type="text" @bind="item.ScheduleName" disabled="@busy" />
+                <button type="button" class="link-btn" disabled="@busy" @onclick="() => RenameAsync(item)">@Locale.T("att.rename")</button>
+                <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(item)">@Locale.T("si.delete")</button>
+            </div>
+            <table class="mgrid att-day-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("att.days")</th>
+                        <th>@Locale.T("att.onDay")</th>
+                        <th>@Locale.T("att.start")</th>
+                        <th>@Locale.T("att.late")</th>
+                        <th>@Locale.T("att.end")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var day in item.Days)
+                {
+                    <tr>
+                        <td>@Locale.T($"cal.day.{day.Day}")</td>
+                        <td class="act"><input type="checkbox" @bind="day.IsOnDay" disabled="@busy" /></td>
+                        <td><input type="time" value="@day.StartTime" disabled="@busy" @onchange="e => day.StartTime = e.Value?.ToString() ?? day.StartTime" /></td>
+                        <td><input type="time" value="@day.LateEntryTime" disabled="@busy" @onchange="e => day.LateEntryTime = e.Value?.ToString() ?? day.LateEntryTime" /></td>
+                        <td><input type="time" value="@day.EndTime" disabled="@busy" @onchange="e => day.EndTime = e.Value?.ToString() ?? day.EndTime" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="() => SaveDaysAsync(item)">@Locale.T("att.saveDays")</button>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<AttendanceScheduleDto> schedules = [];
+    private string newName = "";
+    private string newStart = "08:00";
+    private string newLate = "08:15";
+    private string newEnd = "14:00";
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            schedules.Clear();
+            schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+            foreach (var item in schedules)
+            {
+                item.StartTime = Time(item.StartTime);
+                item.LateEntryTime = Time(item.LateEntryTime);
+                item.EndTime = Time(item.EndTime);
+                foreach (var day in item.Days)
+                {
+                    day.StartTime = Time(day.StartTime);
+                    day.LateEntryTime = Time(day.LateEntryTime);
+                    day.EndTime = Time(day.EndTime);
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private Task AddAsync() => RunAsync(() =>
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+            return Task.FromResult(new AttendanceResult { Succeeded = false, Error = "att.scheduleName" });
+        return Api.CreateAttendanceScheduleAsync(Session.AccessToken!, new SaveScheduleRequest
+        {
+            ScheduleName = newName.Trim(),
+            StartTime = newStart,
+            LateEntryTime = newLate,
+            EndTime = newEnd
+        });
+    }, () => newName = "");
+
+    private Task RenameAsync(AttendanceScheduleDto item) => RunAsync(() =>
+        Api.RenameAttendanceScheduleAsync(Session.AccessToken!, item.ScheduleID, new SaveScheduleRequest
+        {
+            ScheduleName = item.ScheduleName
+        }));
+
+    private async Task DeleteAsync(AttendanceScheduleDto item)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("att.deleteConfirm")))
+            return;
+        await RunAsync(() => Api.DeleteAttendanceScheduleAsync(Session.AccessToken!, item.ScheduleID));
+    }
+
+    private Task SaveDaysAsync(AttendanceScheduleDto item) => RunAsync(() =>
+        Api.SaveAttendanceScheduleDaysAsync(Session.AccessToken!, new SaveScheduleDaysRequest
+        {
+            ScheduleID = item.ScheduleID,
+            Days = item.Days
+        }));
+
+    private async Task RunAsync(Func<Task<AttendanceResult>> action, Action? onOk = null)
+    {
+        message = error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            var result = await action();
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "att.failed");
+                return;
+            }
+            onOk?.Invoke();
+            message = Locale.T("att.updated");
+            await LoadAsync();
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+
+    private static string Time(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "";
+        return value.Length >= 5 ? value[..5] : value;
+    }
+}

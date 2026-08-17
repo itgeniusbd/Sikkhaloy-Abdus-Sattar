@@ -1,0 +1,424 @@
+@page "/accounts/assign-roles-multi"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page acc-multi-page">
+    <h1>@Locale.T("acc.multiTitle")</h1>
+    <a class="acc-jump" href="accounts/assign-roles">@Locale.T("acc.backAssign")</a>
+    <p class="acc-hint">@Locale.T("acc.assignedHint")</p>
+
+    <section class="acc-pick-panel">
+        <div class="acc-pick-head">
+            <label class="acc-check acc-all">
+                <input type="checkbox" checked="@allClasses" disabled="@busy" @onchange="ToggleAll" />
+                <span>@Locale.T("acc.selectAllClasses")</span>
+            </label>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindAsync">@Locale.T("acc.find")</button>
+        </div>
+        <div class="acc-classes">
+            @foreach (var item in classes)
+            {
+                <label class="acc-check acc-class-chip @(item.Selected ? "is-on" : null)">
+                    <input type="checkbox" checked="@item.Selected" disabled="@busy" @onchange="e => SetClass(item, e)" />
+                    <span>@item.Name</span>
+                </label>
+            }
+        </div>
+    </section>
+
+    @if (oneTime.Count > 0)
+    {
+        <section class="acc-section">
+            <div class="acc-section-head">
+                <h2>@Locale.T("acc.oneInstallment")</h2>
+                <span class="muted">@oneTime.Count</span>
+            </div>
+            <table class="acc-role-table">
+                <tbody>
+                @foreach (var card in oneTime)
+                {
+                    <tr class="@(card.CanAssign ? null : "is-done") @(card.Selected ? "is-open" : null)">
+                        <td>
+                            <label class="acc-check">
+                                <input type="checkbox" checked="@card.Selected" disabled="@(busy || !card.CanAssign)" @onchange="e => SetCard(card, e)" />
+                                <span class="acc-role-name">@card.Role</span>
+                            </label>
+                        </td>
+                        <td class="acc-role-status">
+                            <span class="acc-badge @(card.CanAssign ? null : "is-done")">@Badge(card)</span>
+                            @if (card.CanAssign)
+                            {
+                                <span class="muted">@Locale.T("acc.needClassesCount", card.ClassesNeeding, card.SelectedClassCount)</span>
+                            }
+                        </td>
+                        <td>
+                            @if (card.Assigned.Count > 0)
+                            {
+                                <div class="acc-assigned-chips">
+                                    @foreach (var item in card.Assigned)
+                                    {
+                                        <span class="pill">@item.PayFor · @item.ClassCount/@card.SelectedClassCount</span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                    @if (card.Selected && card.CanAssign && card.Rows.Count > 0)
+                    {
+                        <tr class="acc-expand">
+                            <td colspan="3">
+                                <div class="acc-draft-grid">
+                                    <label>@Locale.T("acc.payFor")<input type="text" @bind="card.Primary.PayFor" disabled="@busy" /></label>
+                                    <label>@Locale.T("acc.amount")<input type="number" min="0" step="0.01" @bind="card.Primary.Amount" disabled="@busy" /></label>
+                                    <label>@Locale.T("acc.start")<input type="date" @bind="card.Primary.StartDate" disabled="@busy" /></label>
+                                    <label>@Locale.T("acc.end")<input type="date" @bind="card.Primary.EndDate" disabled="@busy" /></label>
+                                    <label>@Locale.T("acc.lateFee")<input type="number" min="0" step="0.01" @bind="card.Primary.LateFee" disabled="@busy" /></label>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </section>
+    }
+
+    @if (multi.Count > 0)
+    {
+        <section class="acc-section is-multi">
+            <div class="acc-section-head">
+                <h2>@Locale.T("acc.multiInstallment")</h2>
+                <span class="muted">@multi.Count</span>
+            </div>
+            <div class="acc-multi-list">
+                @foreach (var card in multi)
+                {
+                    <div class="acc-role-card @(card.CanAssign ? null : "is-done") @(card.Selected ? "is-open" : null)">
+                        <div class="acc-role-head">
+                            <label class="acc-check">
+                                <input type="checkbox" checked="@card.Selected" disabled="@(busy || !card.CanAssign)" @onchange="e => SetCard(card, e)" />
+                                <span class="acc-role-name">@card.Role</span>
+                            </label>
+                            <div class="acc-role-meta">
+                                <span class="acc-badge @(card.CanAssign ? null : "is-done")">@Badge(card)</span>
+                                @if (card.CanAssign)
+                                {
+                                    <span class="muted acc-role-need">@Locale.T("acc.needClassesCount", card.ClassesNeeding, card.SelectedClassCount)</span>
+                                    <button type="button" class="acc-btn acc-btn-ghost acc-mini" disabled="@busy" @onclick="() => AutoFill(card)">@Locale.T("acc.autoFill")</button>
+                                }
+                            </div>
+                        </div>
+                        @if (card.Assigned.Count > 0)
+                        {
+                            <div class="acc-assigned-chips">
+                                <span class="muted">@Locale.T("acc.assigned")</span>
+                                @foreach (var item in card.Assigned)
+                                {
+                                    <span class="pill">@item.PayFor · @item.ClassCount/@card.SelectedClassCount</span>
+                                }
+                            </div>
+                        }
+                        @if (card.Selected && card.CanAssign)
+                        {
+                            <div class="acc-role-fill">
+                                <input type="number" min="0" step="0.01" placeholder="@Locale.T("acc.amountAll")" @bind="card.AmountAll" @bind:event="oninput" @bind:after="() => CopyAmount(card)" disabled="@busy" />
+                                <input type="number" min="0" step="0.01" placeholder="@Locale.T("acc.lateAll")" @bind="card.LateAll" @bind:event="oninput" @bind:after="() => CopyLate(card)" disabled="@busy" />
+                            </div>
+                            <table class="mgrid">
+                                <thead>
+                                    <tr>
+                                        <th class="act"></th>
+                                        <th>@Locale.T("acc.payFor")</th>
+                                        <th>@Locale.T("acc.amount")</th>
+                                        <th>@Locale.T("acc.start")</th>
+                                        <th>@Locale.T("acc.end")</th>
+                                        <th>@Locale.T("acc.lateFee")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var row in card.Rows)
+                                {
+                                    <tr>
+                                        <td class="act">
+                                            <label class="acc-check acc-check-only">
+                                                <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetDraft(row, e)" />
+                                            </label>
+                                        </td>
+                                        <td><input type="text" @bind="row.PayFor" disabled="@busy" /></td>
+                                        <td><input type="number" min="0" step="0.01" @bind="row.Amount" disabled="@busy" /></td>
+                                        <td><input type="date" @bind="row.StartDate" disabled="@busy" /></td>
+                                        <td><input type="date" @bind="row.EndDate" disabled="@busy" /></td>
+                                        <td><input type="number" min="0" step="0.01" @bind="row.LateFee" disabled="@busy" /></td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    @if (oneTime.Count > 0 || multi.Count > 0)
+    {
+        <div class="acc-assign-bar">
+            <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.assign")</button>
+        </div>
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<ClassPick> classes = [];
+    private readonly List<RoleCard> oneTime = [];
+    private readonly List<RoleCard> multi = [];
+    private readonly List<FeeMonth> months = [];
+    private bool allClasses;
+    private bool busy;
+    private string? popupText;
+    private bool popupError;
+
+    private sealed class ClassPick
+    {
+        public int ClassID { get; set; }
+        public string Name { get; set; } = "";
+        public bool Selected { get; set; }
+    }
+
+    private sealed class Draft
+    {
+        public int RoleID { get; set; }
+        public bool Selected { get; set; }
+        public string PayFor { get; set; } = "";
+        public decimal Amount { get; set; }
+        public decimal LateFee { get; set; }
+        public DateTime StartDate { get; set; } = DateTime.Today;
+        public DateTime EndDate { get; set; } = DateTime.Today.AddDays(9);
+    }
+
+    private sealed class RoleCard
+    {
+        public int RoleID { get; set; }
+        public string Role { get; set; } = "";
+        public int NumberOfPay { get; set; }
+        public int MaxRemaining { get; set; }
+        public int ClassesNeeding { get; set; }
+        public int SelectedClassCount { get; set; }
+        public List<AssignedPayForDto> Assigned { get; set; } = [];
+        public bool Selected { get; set; }
+        public decimal? AmountAll { get; set; }
+        public decimal? LateAll { get; set; }
+        public List<Draft> Rows { get; set; } = [];
+        public bool CanAssign => MaxRemaining > 0;
+        public Draft Primary => Rows[0];
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await OnlineAsync()) return;
+        var structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
+            .Select(x => new ClassPick { ClassID = x.ClassID, Name = x.Name }));
+        var years = await Api.GetYearsAsync(Session.AccessToken!);
+        var year = years.FirstOrDefault(x => x.IsCurrent) ?? years.FirstOrDefault();
+        if (year?.StartDate is DateTime start && year.EndDate is DateTime end)
+            months.AddRange(FeeMonthHelper.FromSession(start, end));
+        if (months.Count == 0)
+            months.AddRange(FeeMonthHelper.FromSession(new DateTime(DateTime.Today.Year, 1, 1), new DateTime(DateTime.Today.Year, 12, 31)));
+    }
+
+    private string Badge(RoleCard card) =>
+        card.CanAssign
+            ? Locale.T("acc.remainingOf", card.MaxRemaining, card.NumberOfPay)
+            : Locale.T("acc.completeSelected");
+
+    private void ClosePopup() => popupText = null;
+
+    private void ShowPopup(string text, bool isError)
+    {
+        popupText = text;
+        popupError = isError;
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        allClasses = e.Value is true or "true";
+        foreach (var item in classes)
+            item.Selected = allClasses;
+    }
+
+    private void SetClass(ClassPick item, ChangeEventArgs e)
+    {
+        item.Selected = e.Value is true or "true";
+        allClasses = classes.Count > 0 && classes.All(x => x.Selected);
+    }
+
+    private static void SetDraft(Draft row, ChangeEventArgs e) =>
+        row.Selected = e.Value is true or "true";
+
+    private static void SetCard(RoleCard card, ChangeEventArgs e)
+    {
+        if (!card.CanAssign) return;
+        card.Selected = e.Value is true or "true";
+        foreach (var row in card.Rows)
+            row.Selected = card.Selected;
+    }
+
+    private static void CopyAmount(RoleCard card)
+    {
+        if (card.AmountAll is not decimal n) return;
+        foreach (var row in card.Rows)
+            row.Amount = n;
+    }
+
+    private static void CopyLate(RoleCard card)
+    {
+        if (card.LateAll is not decimal n) return;
+        foreach (var row in card.Rows)
+            row.LateFee = n;
+    }
+
+    private void AutoFill(RoleCard card)
+    {
+        if (!card.CanAssign) return;
+        card.Selected = true;
+        var skip = card.Assigned
+            .Where(x => x.ClassCount >= card.SelectedClassCount)
+            .Select(x => x.PayFor);
+        var picked = card.Assigned.Count == 0
+            ? FeeMonthHelper.Pick(months, card.Rows.Count)
+            : FeeMonthHelper.TakeNext(months, card.Rows.Count, skip);
+        for (var i = 0; i < card.Rows.Count && i < picked.Count; i++)
+        {
+            card.Rows[i].Selected = true;
+            card.Rows[i].PayFor = picked[i].Name;
+            card.Rows[i].StartDate = picked[i].Start;
+            card.Rows[i].EndDate = picked[i].End;
+            if (card.AmountAll is decimal amount) card.Rows[i].Amount = amount;
+            if (card.LateAll is decimal late) card.Rows[i].LateFee = late;
+        }
+    }
+
+    private async Task FindAsync()
+    {
+        oneTime.Clear();
+        multi.Clear();
+        var ids = classes.Where(x => x.Selected).Select(x => x.ClassID).ToList();
+        if (ids.Count == 0) { ShowPopup(Locale.T("acc.needClasses"), true); return; }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            await LoadRolesAsync(ids);
+            if (oneTime.Count == 0 && multi.Count == 0)
+                ShowPopup(Locale.T("acc.empty"), true);
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ReloadRolesAsync()
+    {
+        var ids = classes.Where(x => x.Selected).Select(x => x.ClassID).ToList();
+        if (ids.Count == 0) return;
+        try { await LoadRolesAsync(ids); }
+        catch { /* keep the success popup */ }
+    }
+
+    private async Task LoadRolesAsync(List<int> ids)
+    {
+        var data = await Api.GetAssignableRolesAsync(Session.AccessToken!, ids);
+        oneTime.Clear();
+        multi.Clear();
+        oneTime.AddRange(data.OneTime.Select(ToCard));
+        multi.AddRange(data.Multi.Select(ToCard));
+    }
+
+    private static RoleCard ToCard(RoleAssignStatusDto role)
+    {
+        var card = new RoleCard
+        {
+            RoleID = role.RoleID,
+            Role = role.Role,
+            NumberOfPay = Math.Max(1, role.NumberOfPay),
+            MaxRemaining = role.MaxRemaining,
+            ClassesNeeding = role.ClassesNeeding,
+            SelectedClassCount = role.SelectedClassCount,
+            Assigned = role.Assigned
+        };
+        var rows = Math.Max(0, role.MaxRemaining);
+        if (role.NumberOfPay <= 1)
+            rows = role.MaxRemaining > 0 ? 1 : 0;
+        for (var i = 0; i < rows; i++)
+        {
+            card.Rows.Add(new Draft
+            {
+                RoleID = role.RoleID,
+                PayFor = role.NumberOfPay <= 1 ? role.Assigned.FirstOrDefault()?.PayFor ?? "" : ""
+            });
+        }
+        return card;
+    }
+
+    private async Task SaveAsync()
+    {
+        var ids = classes.Where(x => x.Selected).Select(x => x.ClassID).ToList();
+        var items = oneTime.Concat(multi)
+            .Where(x => x.Selected && x.CanAssign)
+            .SelectMany(x => x.Rows.Where(r => r.Selected && !string.IsNullOrWhiteSpace(r.PayFor)).Select(ToItem))
+            .ToList();
+        if (ids.Count == 0) { ShowPopup(Locale.T("acc.needClasses"), true); return; }
+        if (items.Count == 0) { ShowPopup(Locale.T("acc.needRows"), true); return; }
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.BulkAssignRolesAsync(Session.AccessToken!, new BulkAssignRoleRequest
+            {
+                ClassIDs = ids,
+                Items = items
+            });
+            if (!result.Succeeded)
+            {
+                ShowPopup(Locale.T(result.Error ?? "acc.failed"), true);
+                return;
+            }
+            ShowPopup(result.Failed > 0
+                ? Locale.T("acc.savedPartial", result.Saved, result.Failed)
+                : Locale.T("acc.saved"), false);
+            await ReloadRolesAsync();
+        }
+        catch (Exception ex) { ShowPopup(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static BulkAssignItem ToItem(Draft row) => new()
+    {
+        RoleID = row.RoleID,
+        PayFor = row.PayFor,
+        Amount = row.Amount,
+        LateFee = row.LateFee,
+        StartDate = row.StartDate,
+        EndDate = row.EndDate
+    };
+
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        { ShowPopup(Locale.T("subj.needOnline"), true); return false; }
+        return true;
+    }
+}

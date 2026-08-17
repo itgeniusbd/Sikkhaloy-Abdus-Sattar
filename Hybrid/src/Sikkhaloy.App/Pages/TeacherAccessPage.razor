@@ -1,0 +1,190 @@
+@page "/staff/teachers/access"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page">
+    <h1>@Locale.T("emp.access")</h1>
+    <p class="muted">@Locale.T("emp.accessHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="ok">@message</div>
+    }
+
+    <div class="filter-row">
+        <input type="text" placeholder="@Locale.T("emp.search")" @bind="query" @bind:event="oninput" />
+        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadAsync">@Locale.T("emp.find")</button>
+    </div>
+    <p class="muted">@Locale.T("emp.teacherCount", rows.Count)</p>
+
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("emp.id")</th>
+                <th>@Locale.T("emp.name")</th>
+                <th>@Locale.T("emp.designation")</th>
+                <th>@Locale.T("emp.phone")</th>
+                <th>@Locale.T("emp.email")</th>
+                <th>@Locale.T("emp.user")</th>
+                <th>@Locale.T("emp.password")</th>
+                <th class="act">@Locale.T("emp.approved")</th>
+                <th class="act">@Locale.T("emp.locked")</th>
+                <th>@Locale.T("emp.lastLogin")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="10" class="empty-row">@Locale.T("emp.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr class="@(row.IsApproved ? "is-allowed" : "is-off")">
+                    <td>@row.ID</td>
+                    <td>@row.Name</td>
+                    <td>@row.Designation</td>
+                    <td>@row.Phone</td>
+                    <td>@row.Email</td>
+                    <td>@row.UserName</td>
+                    <td>@row.Password</td>
+                    <td class="act">
+                        <input type="checkbox" checked="@row.IsApproved" disabled="@busy"
+                               @onchange="e => OnApprovedAsync(row, e)" />
+                    </td>
+                    <td class="act">
+                        <input type="checkbox" checked="@row.IsLockedOut" disabled="@(busy || !row.IsLockedOut)"
+                               title="@Locale.T("emp.unlockHint")"
+                               @onchange="e => OnLockedAsync(row)" />
+                    </td>
+                    <td>@(row.LastLoginDate?.ToString("g") ?? "—")</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private readonly List<TeacherAccountDto> rows = [];
+    private string query = "";
+    private bool busy;
+    private string? error;
+    private string? message;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        error = message = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            var data = await Api.GetTeacherAccountsAsync(Session.AccessToken, query);
+            rows.Clear();
+            rows.AddRange(data);
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnApprovedAsync(TeacherAccountDto row, ChangeEventArgs e)
+    {
+        var on = e.Value is true or "true";
+        busy = true;
+        error = message = null;
+        try
+        {
+            var result = await Api.SetTeacherApprovedAsync(Session.AccessToken, new SetTeacherApprovedRequest
+            {
+                UserName = row.UserName,
+                IsApproved = on
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            row.IsApproved = result.IsApproved;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OnLockedAsync(TeacherAccountDto row)
+    {
+        if (!row.IsLockedOut)
+            return;
+
+        busy = true;
+        error = message = null;
+        try
+        {
+            var result = await Api.UnlockTeacherAsync(Session.AccessToken, new UnlockTeacherRequest
+            {
+                UserName = row.UserName
+            });
+            if (!result.Succeeded)
+            {
+                error = Translate(result.Error);
+                return;
+            }
+
+            row.IsLockedOut = result.IsLockedOut;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("emp.failed") : Locale.T(key);
+}

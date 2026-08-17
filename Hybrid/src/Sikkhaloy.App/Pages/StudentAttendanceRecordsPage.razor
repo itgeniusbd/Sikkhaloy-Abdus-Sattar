@@ -1,0 +1,286 @@
+@page "/attendance/student/records"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page att-page att-records-page">
+    <PrintHeader Subtitle="@Locale.T("att.recordsStu")" />
+    <h1 class="no-print">@Locale.T("att.recordsStu")</h1>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="error no-print">@error</div>
+    }
+
+    <div class="filter-row no-print">
+        <select @bind="scheduleInput" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("att.selectSchedule")</option>
+            @foreach (var item in schedules)
+            {
+                <option value="@item.ScheduleID">@item.ScheduleName</option>
+            }
+        </select>
+        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="status" @bind:after="LoadAsync" disabled="@busy">
+            <option value="%">@Locale.T("att.all")</option>
+            @foreach (var item in Statuses)
+            {
+                <option value="@item">@StatusLabel(item)</option>
+            }
+        </select>
+        <input type="date" @bind="from" @bind:after="LoadAsync" disabled="@busy" />
+        <input type="date" @bind="to" @bind:after="LoadAsync" disabled="@busy" />
+        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    </div>
+
+    <div class="att-tabs no-print">
+        <button type="button" class="@(tab == "records" ? "active" : null)" @onclick='() => tab = "records"'>
+            @Locale.T("att.tabRecord")
+        </button>
+        <button type="button" class="@(tab == "summary" ? "active" : null)" @onclick='() => tab = "summary"'>
+            @Locale.T("att.tabSummary")
+        </button>
+    </div>
+
+    <div class="att-table-wrap">
+    @if (tab == "records")
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("att.date")</th>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("si.class")</th>
+                    <th>@Locale.T("si.roll")</th>
+                    <th>@Locale.T("att.status")</th>
+                    <th>@Locale.T("att.entry")</th>
+                    <th>@Locale.T("att.exit")</th>
+                    <th>@Locale.T("att.comment")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (records.Count == 0 && !busy)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("att.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in records)
+                {
+                    <tr>
+                        <td>@row.AttendanceDate.ToString("dd MMM yyyy")</td>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.ClassName</td>
+                        <td>@row.RollNo</td>
+                        <td><span class="att-pill @Pill(row.Attendance)">@StatusLabel(row.Attendance)</span></td>
+                        <td>@row.EntryTime</td>
+                        <td>@row.ExitTime</td>
+                        <td>@row.Reason</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("si.roll")</th>
+                    <th>@Locale.T("att.pre")</th>
+                    <th>@Locale.T("att.abs")</th>
+                    <th>@Locale.T("att.lateStatus")</th>
+                    <th>@Locale.T("att.lateAbs")</th>
+                    <th>@Locale.T("att.leave")</th>
+                    <th>@Locale.T("att.bunk")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (summary.Count == 0 && !busy)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("att.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in summary)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.RollNo</td>
+                        <td>@row.Present</td>
+                        <td>@row.Absent</td>
+                        <td>@row.Late</td>
+                        <td>@row.LateAbs</td>
+                        <td>@row.Leave</td>
+                        <td>@row.Bunk</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Statuses = ["Pre", "Abs", "Late", "Late Abs", "Leave", "Bunk"];
+    private readonly List<AttendanceScheduleDto> schedules = [];
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<StudentAttendanceRecordDto> records = [];
+    private readonly List<StudentAttendanceSummaryDto> summary = [];
+    private ClassStructureDto? structure;
+    private string scheduleInput = "0";
+    private string classInput = "0";
+    private string groupInput = "0";
+    private string sectionInput = "0";
+    private string shiftInput = "0";
+    private string status = "%";
+    private string tab = "records";
+    private DateTime from = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime to = DateTime.Today;
+    private bool busy;
+    private string? error;
+
+    private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+        classes.Clear();
+        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        schedules.Clear();
+        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+        await LoadAsync();
+    }
+
+    private Task OnClassChanged()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear();
+        sections.Clear();
+        shifts.Clear();
+        if (structure is not null && ClassId > 0)
+        {
+            var parts = structure.AssignedParts(ClassId);
+            groups.AddRange(parts.Groups);
+            sections.AddRange(parts.Sections);
+            shifts.AddRange(parts.Shifts);
+        }
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        error = null;
+        if (!await EnsureOnlineAsync())
+            return;
+        busy = true;
+        try
+        {
+            records.Clear();
+            summary.Clear();
+            records.AddRange(await Api.GetStudentAttendanceRecordsAsync(
+                Session.AccessToken!, status, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
+            summary.AddRange(await Api.GetStudentAttendanceSummaryAsync(
+                Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
+
+    private string StatusLabel(string value) => value switch
+    {
+        "Pre" => Locale.T("att.pre"),
+        "Abs" => Locale.T("att.abs"),
+        "Late" => Locale.T("att.lateStatus"),
+        "Late Abs" => Locale.T("att.lateAbs"),
+        "Leave" => Locale.T("att.leave"),
+        "Bunk" => Locale.T("att.bunk"),
+        _ => value
+    };
+
+    private static string Pill(string value) => value switch
+    {
+        "Pre" => "pre",
+        "Abs" => "abs",
+        "Late" => "late",
+        "Late Abs" => "lateabs",
+        "Leave" => "leave",
+        "Bunk" => "bunk",
+        _ => ""
+    };
+
+    private async Task<bool> EnsureOnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}
