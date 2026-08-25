@@ -327,35 +327,32 @@ namespace EDUCATION.COM.Exam
                 SubjectNames = subjectNames;
                 MergeSubjectPassStatus(con, dt, subjectNames, examID, classID, pivotColumns.ToString());
 
-                // Step 5: Build GridView columns in desired order
+                // Step 5: Build GridView columns in desired order (widths come from CSS auto-fit)
                 StudentsGridView.Columns.Clear();
 
-                // ID
                 BoundField bfID = new BoundField { DataField = "ID", HeaderText = "আইডি" };
-                bfID.HeaderStyle.Width = Unit.Pixel(60); bfID.ItemStyle.Width = Unit.Pixel(60);
-                bfID.HeaderStyle.CssClass = "subject-col"; bfID.ItemStyle.CssClass = "subject-col";
+                bfID.HeaderStyle.CssClass = "col-id";
+                bfID.ItemStyle.CssClass = "col-id";
+                bfID.HeaderStyle.Wrap = true;
                 StudentsGridView.Columns.Add(bfID);
 
-                // Roll No with sorting
                 BoundField bfRoll = new BoundField { DataField = "RollNo", HeaderText = "রোল", SortExpression = "RollNo" };
-                bfRoll.HeaderStyle.Width = Unit.Pixel(60); bfRoll.ItemStyle.Width = Unit.Pixel(60);
-                bfRoll.HeaderStyle.CssClass = "subject-col"; bfRoll.ItemStyle.CssClass = "subject-col";
+                bfRoll.HeaderStyle.CssClass = "col-roll";
+                bfRoll.ItemStyle.CssClass = "col-roll";
+                bfRoll.HeaderStyle.Wrap = true;
                 StudentsGridView.Columns.Add(bfRoll);
 
-                // Student Name
                 BoundField bfName = new BoundField { DataField = "StudentsName", HeaderText = "নাম" };
-                bfName.ItemStyle.Width = new Unit(150, UnitType.Pixel);
-                bfName.HeaderStyle.Width = new Unit(150, UnitType.Pixel);
+                bfName.HeaderStyle.CssClass = "col-name";
+                bfName.ItemStyle.CssClass = "col-name";
+                bfName.HeaderStyle.Wrap = true;
                 bfName.ItemStyle.Wrap = true;
                 StudentsGridView.Columns.Add(bfName);
 
-                // Dynamic subject columns
                 foreach (DataRow row in subjectList.Rows)
                 {
                     string subject = row["SubjectName"].ToString();
                     BoundField bfSub = new BoundField { DataField = subject, HeaderText = subject };
-                    bfSub.HeaderStyle.Width = Unit.Pixel(60);
-                    bfSub.ItemStyle.Width = Unit.Pixel(60);
                     bfSub.HeaderStyle.Wrap = true;
                     bfSub.ItemStyle.Wrap = false;
                     bfSub.HeaderStyle.CssClass = "subject-col";
@@ -363,40 +360,40 @@ namespace EDUCATION.COM.Exam
                     StudentsGridView.Columns.Add(bfSub);
                 }
 
-                // Total
                 BoundField bfTotal = new BoundField { DataField = "Total", HeaderText = "মোট" };
-                bfTotal.HeaderStyle.Width = Unit.Pixel(60); bfTotal.ItemStyle.Width = Unit.Pixel(60);
-                bfTotal.HeaderStyle.CssClass = "subject-col"; bfTotal.ItemStyle.CssClass = "subject-col";
+                bfTotal.HeaderStyle.CssClass = "col-total";
+                bfTotal.ItemStyle.CssClass = "col-total";
+                bfTotal.HeaderStyle.Wrap = true;
                 StudentsGridView.Columns.Add(bfTotal);
 
-                // AVR
                 BoundField bfAVG = new BoundField { DataField = "Average", HeaderText = "গড়" };
-                bfAVG.HeaderStyle.Width = Unit.Pixel(60); bfAVG.ItemStyle.Width = Unit.Pixel(60);
-                bfAVG.HeaderStyle.CssClass = "subject-col"; bfAVG.ItemStyle.CssClass = "subject-col";
+                bfAVG.HeaderStyle.CssClass = "col-avg";
+                bfAVG.ItemStyle.CssClass = "col-avg";
+                bfAVG.HeaderStyle.Wrap = true;
                 StudentsGridView.Columns.Add(bfAVG);
 
-                // Grade
                 BoundField bfGrade = new BoundField { DataField = "Student_Grade", HeaderText = "গ্রেড" };
-                bfGrade.HeaderStyle.Width = Unit.Pixel(60); bfGrade.ItemStyle.Width = Unit.Pixel(60);
-                bfGrade.HeaderStyle.CssClass = "subject-col"; bfGrade.ItemStyle.CssClass = "subject-col";
+                bfGrade.HeaderStyle.CssClass = "col-grade";
+                bfGrade.ItemStyle.CssClass = "col-grade";
+                bfGrade.HeaderStyle.Wrap = true;
                 StudentsGridView.Columns.Add(bfGrade);
 
-                // Point
                 BoundField bfPoint = new BoundField { DataField = "Student_Point", HeaderText = "পয়েন্ট" };
-                bfPoint.HeaderStyle.Width = Unit.Pixel(60); bfPoint.ItemStyle.Width = Unit.Pixel(60);
-                bfPoint.HeaderStyle.CssClass = "subject-col"; bfPoint.ItemStyle.CssClass = "subject-col";
+                bfPoint.HeaderStyle.CssClass = "col-point";
+                bfPoint.ItemStyle.CssClass = "col-point";
+                bfPoint.HeaderStyle.Wrap = true;
                 StudentsGridView.Columns.Add(bfPoint);
 
-                // Class Position with sorting
                 BoundField bfClassPos = new BoundField { DataField = "Position_InExam_Class", HeaderText = "ক্লাশ মেধা", SortExpression = "Position_InExam_Class" };
-                bfClassPos.HeaderStyle.Width = Unit.Pixel(80); bfClassPos.ItemStyle.Width = Unit.Pixel(80);
-                bfClassPos.HeaderStyle.Wrap = true; bfClassPos.HeaderStyle.CssClass = "subject-col"; bfClassPos.ItemStyle.CssClass = "subject-col";
+                bfClassPos.HeaderStyle.Wrap = true;
+                bfClassPos.HeaderStyle.CssClass = "col-merit";
+                bfClassPos.ItemStyle.CssClass = "col-merit";
                 StudentsGridView.Columns.Add(bfClassPos);
 
-                // Section Position with sorting
                 BoundField bfSectionPos = new BoundField { DataField = "Position_InExam_Subsection", HeaderText = "শাখা মেধা", SortExpression = "Position_InExam_Subsection" };
-                bfSectionPos.HeaderStyle.Width = Unit.Pixel(80); bfSectionPos.ItemStyle.Width = Unit.Pixel(80);
-                bfSectionPos.HeaderStyle.Wrap = true; bfSectionPos.HeaderStyle.CssClass = "subject-col"; bfSectionPos.ItemStyle.CssClass = "subject-col";
+                bfSectionPos.HeaderStyle.Wrap = true;
+                bfSectionPos.HeaderStyle.CssClass = "col-merit";
+                bfSectionPos.ItemStyle.CssClass = "col-merit";
                 StudentsGridView.Columns.Add(bfSectionPos);
 
                 // Step 6: Bind data

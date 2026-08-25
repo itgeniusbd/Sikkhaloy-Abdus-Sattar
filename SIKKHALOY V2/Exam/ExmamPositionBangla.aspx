@@ -1,89 +1,166 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" MasterPageFile="~/BASIC.Master" CodeBehind="ExmamPositionBangla.aspx.cs" Inherits="EDUCATION.COM.Exam.ExmamPositionBangla" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="CSS/ExamPosition.css?v=1.0.5" rel="stylesheet" />
+    <link href="CSS/ExamPosition.css?v=1.0.6" rel="stylesheet" />
     <link href="https://fonts.maateen.me/kalpurush/font.css" rel="stylesheet">
     <style>
-        /* Subject columns: equal width, header wraps */
-        #<%= StudentsGridView.ClientID %> th.subject-col,
-        #<%= StudentsGridView.ClientID %> td.subject-col {
-            width: 70px !important;
-            min-width: 70px !important;
-            max-width: 70px !important;
+        body, .mGrid, .mGrid th, .mGrid td, h3 {
+            font-family: 'Kalpurush', 'SolaimanLipi', Arial, sans-serif;
+        }
+
+        .Exam_Position,
+        .Exam_Position .table-responsive {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        #<%= StudentsGridView.ClientID %> {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse;
+        }
+
+        #<%= StudentsGridView.ClientID %> th,
+        #<%= StudentsGridView.ClientID %> td {
+            min-width: 0 !important;
+            max-width: none !important;
+            box-sizing: border-box;
+            overflow: hidden;
             word-wrap: break-word;
-            white-space: normal;
+            overflow-wrap: break-word;
+            white-space: normal !important;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        #<%= StudentsGridView.ClientID %> th.col-id,
+        #<%= StudentsGridView.ClientID %> td.col-id { width: 5%; }
+        #<%= StudentsGridView.ClientID %> th.col-roll,
+        #<%= StudentsGridView.ClientID %> td.col-roll { width: 4%; }
+        #<%= StudentsGridView.ClientID %> th.col-name,
+        #<%= StudentsGridView.ClientID %> td.col-name {
+            width: 14%;
             text-align: center;
         }
-        /* Name column fixed width */
-        #<%= StudentsGridView.ClientID %> th:nth-child(3),
-        #<%= StudentsGridView.ClientID %> td:nth-child(3) {
-            width: 150px !important;
-            min-width: 150px !important;
-            max-width: 150px !important;
-            word-wrap: break-word;
-            white-space: normal;
-        }
-        #<%= StudentsGridView.ClientID %> th {
-            white-space: normal;
-            word-wrap: break-word;
-        }
+        #<%= StudentsGridView.ClientID %> th.col-total,
+        #<%= StudentsGridView.ClientID %> td.col-total,
+        #<%= StudentsGridView.ClientID %> th.col-avg,
+        #<%= StudentsGridView.ClientID %> td.col-avg,
+        #<%= StudentsGridView.ClientID %> th.col-grade,
+        #<%= StudentsGridView.ClientID %> td.col-grade,
+        #<%= StudentsGridView.ClientID %> th.col-point,
+        #<%= StudentsGridView.ClientID %> td.col-point { width: 5%; }
+        #<%= StudentsGridView.ClientID %> th.col-merit,
+        #<%= StudentsGridView.ClientID %> td.col-merit { width: 5.5%; }
+
         .mGrid th {
-    padding: 0.3rem 0.1rem ;
-    border: 1px solid #717783;
-    font-size: 11px;
-    font-weight: 400;
-    background-color: #4B515D;
-    color: #fff;
-}
+            padding: 3px 1px;
+            border: 1px solid #717783;
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1.15;
+            background-color: #4B515D;
+            color: #fff;
+        }
         .mGrid td {
-    padding: 0.3rem 0.1rem !important;
-    border: 1px solid #dee2e6;
-    color: #000;
-    font-size: 11px;
-    font-weight: 300;
-        font-weight: bold;
-}
+            padding: 3px 1px !important;
+            border: 1px solid #dee2e6;
+            color: #000;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.15;
+        }
+        .mGrid.cols-many th { font-size: 14px; }
+        .mGrid.cols-many td { font-size: 15px; }
+        .mGrid.cols-lots th { font-size: 13px; }
+        .mGrid.cols-lots td { font-size: 14px; }
+        #<%= StudentsGridView.ClientID %>.cols-lots th.col-name,
+        #<%= StudentsGridView.ClientID %>.cols-lots td.col-name { width: 11%; }
+        #<%= StudentsGridView.ClientID %>.cols-lots th.col-total,
+        #<%= StudentsGridView.ClientID %>.cols-lots td.col-total,
+        #<%= StudentsGridView.ClientID %>.cols-lots th.col-avg,
+        #<%= StudentsGridView.ClientID %>.cols-lots td.col-avg,
+        #<%= StudentsGridView.ClientID %>.cols-lots th.col-grade,
+        #<%= StudentsGridView.ClientID %>.cols-lots td.col-grade,
+        #<%= StudentsGridView.ClientID %>.cols-lots th.col-point,
+        #<%= StudentsGridView.ClientID %>.cols-lots td.col-point { width: 4.5%; }
+        #<%= StudentsGridView.ClientID %>.cols-lots th.col-merit,
+        #<%= StudentsGridView.ClientID %>.cols-lots td.col-merit { width: 5%; }
     </style>
     <style media="print">
+        @page {
+            size: A4 landscape;
+            margin: 5mm 4mm;
+        }
         .FthSub {
             color: #304ffe;
             font-size: 12px;
         }
-        body {
+        html, body {
             font-family: 'Kalpurush', serif;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        #content-wrapper,
+        #main-content,
+        .container-fluid,
+        .container,
+        .Exam_Position,
+        .Exam_Position .table-responsive {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            overflow-x: visible !important;
+        }
+        .table-responsive {
+            display: block !important;
+        }
+        #<%= StudentsGridView.ClientID %> {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
         }
         .mGrid td {
-            font-weight: bold !important;
-            font-size: 11px !important;
+            font-weight: 800 !important;
+            font-size: 16px !important;
             color: #000 !important;
+            padding: 2px 1px !important;
+            line-height: 1.1 !important;
         }
         .mGrid td.fail-mark {
             background-color: #c62828 !important;
             color: #fff !important;
         }
         .mGrid th {
-            font-weight: bold !important;
-            font-size: 11px !important;
+            font-weight: 800 !important;
+            font-size: 14px !important;
+            padding: 2px 1px !important;
+            line-height: 1.1 !important;
         }
+        .mGrid.cols-many th { font-size: 13px !important; }
+        .mGrid.cols-many td { font-size: 15px !important; }
+        .mGrid.cols-lots th { font-size: 12px !important; }
+        .mGrid.cols-lots td { font-size: 14px !important; }
         .First, .Second, .Third {
             font-weight: bold !important;
         }
-        /* GridView header repeated on each printed page */
-        #<%= StudentsGridView.ClientID %> thead { 
-            display: table-header-group; 
+        #<%= StudentsGridView.ClientID %> thead {
+            display: table-header-group;
         }
-        #<%= StudentsGridView.ClientID %> tfoot { 
-            display: table-footer-group; 
+        #<%= StudentsGridView.ClientID %> tfoot {
+            display: table-footer-group;
         }
-        .NoPrint { 
-            display: none !important; 
+        .NoPrint {
+            display: none !important;
         }
         .signature-section {
-            margin-top: 60px;
+            margin-top: 40px;
             page-break-inside: avoid;
-            font-size:16px;
+            font-size: 16px;
             font-weight: bold !important;
-            
         }
     </style>
     
@@ -92,21 +169,21 @@
         .First {
             background-color: #28a745 !important; /* Green for 1st position */
             color: white !important;
-            font-weight: bold !important;
+            font-weight: 800 !important;
             font-size: 16px !important;
         }
         
         .Second {
             background-color: #1e90ff !important; /* Blue for 2nd position */
             color: white !important;
-            font-weight: bold !important;
+            font-weight: 800 !important;
             font-size: 16px !important;
         }
         
         .Third {
             background-color: #ff8c00 !important; /* Orange for 3rd position */
             color: white !important;
-            font-weight: bold !important;
+            font-weight: 800 !important;
             font-size: 16px !important;
         }
         
@@ -125,7 +202,7 @@
         /* Merit position text styling */
         .merit-text {
             font-size: 16px !important;
-            font-weight: bold !important;
+            font-weight: 800 !important;
         }
         
         /* Enhanced print CSS for column hiding */
@@ -138,8 +215,8 @@
             .First {
                 background-color: #28a745 !important;
                 color: white !important;
-                font-weight: bold !important;
-                font-size: 16px !important;
+                font-weight: 800 !important;
+                font-size: 15px !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
@@ -147,8 +224,8 @@
             .Second {
                 background-color: #1e90ff !important;
                 color: white !important;
-                font-weight: bold !important;
-                font-size: 16px !important;
+                font-weight: 800 !important;
+                font-size: 15px !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
@@ -156,8 +233,8 @@
             .Third {
                 background-color: #ff8c00 !important;
                 color: white !important;
-                font-weight: bold !important;
-                font-size: 16px !important;
+                font-weight: 800 !important;
+                font-size: 15px !important;
                 -webkit-print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
@@ -184,8 +261,8 @@
             }
             
             .merit-text {
-                font-size: 16px !important;
-                font-weight: bold !important;
+                font-size: 15px !important;
+                font-weight: 800 !important;
             }
         }
     </style>
@@ -305,6 +382,7 @@
     PagerStyle-CssClass="pgr" 
     AllowSorting="True" 
     CssClass="mGrid"
+    Width="100%"
     OnRowCreated="StudentsGridView_RowCreated"
     OnSorting="StudentsGridView_Sorting"
     OnRowDataBound="StudentsGridView_RowDataBound">
@@ -365,6 +443,17 @@
     </asp:UpdateProgress>
 
     <script type="text/javascript">
+        function autoFitMeritTable() {
+            var table = $("[id*=StudentsGridView]");
+            if (!table.length) return;
+            table.removeClass("cols-many cols-lots");
+            var cols = table.find("tr:first th").filter(function () {
+                return $(this).css("display") !== "none";
+            }).length;
+            if (cols > 18) table.addClass("cols-lots");
+            else if (cols > 14) table.addClass("cols-many");
+        }
+
         function applyColToggleChange() {
             var table = $("[id*=StudentsGridView]");
             $(".col-toggle").each(function () {
@@ -379,17 +468,23 @@
                     $(this).find("th:nth-child(" + colNum + "), td:nth-child(" + colNum + ")").toggle(visible);
                 });
             });
+            autoFitMeritTable();
         }
 
         $(document).ready(function () {
+            autoFitMeritTable();
             $(document).on("change", ".col-toggle", function () {
                 applyColToggleChange();
             });
         });
 
-        Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
-            applyColToggleChange();
-        });
+        window.addEventListener("beforeprint", autoFitMeritTable);
+
+        if (typeof Sys !== "undefined" && Sys.WebForms) {
+            Sys.WebForms.PageRequestManager.getInstance().add_endRequest(function () {
+                applyColToggleChange();
+            });
+        }
     </script>
 
 
