@@ -1,0 +1,330 @@
+@page "/authority/print-invoice"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="pv-page">
+    <header class="ui-head mi-head">
+        <p class="ui-kicker">@Locale.T("auth.m.accounts")</p>
+        <h1>@Locale.T("auth.m.printInvoice")</h1>
+    </header>
+
+    <section class="card pv-bar no-print">
+        <div class="pv-combo @(comboOpen ? "is-open" : null)">
+            <div class="pv-field" @onclick="OpenComboAsync">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                @if (SelectedSchool is not null && !comboOpen && string.IsNullOrWhiteSpace(schoolQuery))
+                {
+                    <span class="pv-chip">
+                        <b>@SelectedSchool.Id</b>
+                        <em>@SchoolTitle(SelectedSchool)</em>
+                    </span>
+                    <button type="button" class="pv-x" disabled="@busy" @onclick="ClearSchool" @onclick:stopPropagation="true" title="@Locale.T("auth.clear")">×</button>
+                }
+                else
+                {
+                    <input @ref="searchBox" @bind="schoolQuery" @bind:event="oninput" @bind:after="OpenCombo"
+                           @onfocus="OpenCombo" @onkeydown="OnComboKey"
+                           placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+                    @if (SelectedSchool is not null)
+                    {
+                        <button type="button" class="pv-x" disabled="@busy" @onclick="ClearSchool" @onclick:stopPropagation="true" title="@Locale.T("auth.clear")">×</button>
+                    }
+                }
+            </div>
+            @if (comboOpen)
+            {
+                <div class="pv-drop">
+                    @foreach (var item in FilteredSchools)
+                    {
+                        <button type="button" class="@(item.Id == schoolId ? "is-on" : null)" disabled="@busy"
+                                @onmousedown:preventDefault @onclick="() => PickSchoolAsync(item.Id)">
+                            <b>@item.Id</b>
+                            <span>@SchoolTitle(item)</span>
+                        </button>
+                    }
+                    @if (!FilteredSchools.Any())
+                    {
+                        <p class="pv-empty">@Locale.T("ab.empty")</p>
+                    }
+                </div>
+            }
+        </div>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@(busy || data.Unpaid.Count == 0)" @onclick="PrintSelected">
+            @Locale.T("ai.printSelected")
+        </button>
+    </section>
+
+    @if (comboOpen)
+    {
+        <div class="pv-back no-print" @onclick="CloseCombo"></div>
+    }
+
+    @if (schoolId > 0)
+    {
+        <div class="pv-body">
+        <section class="card pv-grid">
+            <div class="ad-table-head">
+                <h3>@Locale.T("ai.unpaidInvoices")</h3>
+                <span>@Locale.T("auth.rows", data.Unpaid.Count)</span>
+            </div>
+            <div class="pv-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" checked="@AllOn" disabled="@busy" @onchange="ToggleAll" /></th>
+                            <th>@Locale.T("ai.sn")</th>
+                            <th>@Locale.T("ai.category")</th>
+                            <th>@Locale.T("ai.month")</th>
+                            <th>@Locale.T("ai.issue")</th>
+                            <th>@Locale.T("ai.invoiceFor")</th>
+                            <th>@Locale.T("ai.totalAmt")</th>
+                            <th>@Locale.T("ai.discount")</th>
+                            <th>@Locale.T("ai.paid")</th>
+                            <th>@Locale.T("ai.due")</th>
+                            <th>@Locale.T("ai.delete")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.Unpaid.Count == 0)
+                        {
+                            <tr><td colspan="11" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var row in data.Unpaid)
+                        {
+                            <tr class="@(row.Selected ? "is-on" : null)" @onclick="() => ToggleRow(row)">
+                                <td @onclick:stopPropagation="true">
+                                    <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetRow(row, e)" />
+                                </td>
+                                <td>@row.InvoiceSn</td>
+                                <td>@row.Category</td>
+                                <td>@row.MonthName?.ToString("MMM yyyy")</td>
+                                <td>@row.IssueDate?.ToString("d MMM yyyy")</td>
+                                <td>@row.InvoiceFor</td>
+                                <td class="pi-amt">@Tk(row.TotalAmount)</td>
+                                <td>@Tk(row.Discount)</td>
+                                <td>@Tk(row.PaidAmount)</td>
+                                <td>@Tk(row.Due)</td>
+                                <td @onclick:stopPropagation="true">
+                                    @if (row.PaidAmount == 0)
+                                    {
+                                        <button type="button" class="ab-link" disabled="@busy" @onclick="() => DeleteAsync(row.InvoiceID)">@Locale.T("ai.delete")</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        @if (data.Receipts.Count > 0)
+        {
+            <section class="card pv-grid">
+                <div class="ad-table-head">
+                    <h3>@Locale.T("ai.receipts")</h3>
+                    <span>@Locale.T("auth.rows", data.Receipts.Count)</span>
+                </div>
+                <div class="pv-wrap">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("ai.receipt")</th>
+                                <th>@Locale.T("ai.totalAmt")</th>
+                                <th>@Locale.T("ai.paidBy")</th>
+                                <th>@Locale.T("ai.collectedBy")</th>
+                                <th>@Locale.T("ai.method")</th>
+                                <th>@Locale.T("ai.paidDate")</th>
+                                <th>@Locale.T("ai.print")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rec in data.Receipts)
+                            {
+                                <tr>
+                                    <td>@rec.ReceiptSn</td>
+                                    <td class="pi-amt">@Tk(rec.TotalAmount)</td>
+                                    <td>@rec.PaymentBy</td>
+                                    <td>@rec.CollectedBy</td>
+                                    <td>@rec.Method</td>
+                                    <td>@rec.PaidDate?.ToString("d MMM yyyy")</td>
+                                    <td><a class="ab-link" href="@($"authority/print-receipt/{rec.ReceiptId}")">@Locale.T("ai.print")</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+        </div>
+    }
+    else
+    {
+        <section class="card pv-hint">
+            <p>@Locale.T("ai.printHint")</p>
+        </section>
+    }
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthPrintPageDto data = new();
+    private int schoolId;
+    private string schoolQuery = "";
+    private bool comboOpen, busy, popupError;
+    private string busyTitle = "", popupText = "";
+    private ElementReference searchBox;
+
+    private AuthorityOptionDto? SelectedSchool => data.Schools.FirstOrDefault(x => x.Id == schoolId);
+    private bool AllOn => data.Unpaid.Count > 0 && data.Unpaid.All(x => x.Selected);
+
+    private IEnumerable<AuthorityOptionDto> FilteredSchools
+    {
+        get
+        {
+            var q = schoolQuery.Trim();
+            IEnumerable<AuthorityOptionDto> list = data.Schools;
+            if (q.Length > 0)
+            {
+                list = data.Schools.Where(x =>
+                    x.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                    || x.Id.ToString().Contains(q, StringComparison.Ordinal));
+            }
+            return list.Take(40);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private void OpenCombo() => comboOpen = true;
+    private void CloseCombo() => comboOpen = false;
+    private async Task OpenComboAsync()
+    {
+        comboOpen = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(30);
+        try { await searchBox.FocusAsync(); } catch { /* input may not be rendered yet */ }
+    }
+
+    private async Task OnComboKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") { comboOpen = false; return; }
+        if (e.Key != "Enter") return;
+        var first = FilteredSchools.FirstOrDefault();
+        if (first is not null) await PickSchoolAsync(first.Id);
+    }
+
+    private async Task PickSchoolAsync(int id)
+    {
+        schoolId = id;
+        schoolQuery = "";
+        comboOpen = false;
+        await LoadAsync();
+    }
+
+    private async Task ClearSchool()
+    {
+        schoolId = 0;
+        schoolQuery = "";
+        comboOpen = true;
+        data.Unpaid.Clear();
+        data.Receipts.Clear();
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var page = await Api.GetAuthorityPrintInvoiceAsync(Session.AccessToken!, schoolId);
+            var schools = page.Schools.Count > 0 ? page.Schools : data.Schools;
+            data = page;
+            if (page.Schools.Count == 0)
+                data.Schools = schools;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        var on = IsOn(e);
+        foreach (var row in data.Unpaid)
+            row.Selected = on;
+    }
+
+    private void ToggleRow(AuthInvoiceLineDto row)
+    {
+        if (busy) return;
+        row.Selected = !row.Selected;
+    }
+
+    private void SetRow(AuthInvoiceLineDto row, ChangeEventArgs e) => row.Selected = IsOn(e);
+
+    private void PrintSelected()
+    {
+        var ids = string.Join(",", data.Unpaid.Where(x => x.Selected).Select(x => x.InvoiceID));
+        if (string.IsNullOrWhiteSpace(ids) || schoolId <= 0) { Show(Locale.T("ai.needInvoice"), true); return; }
+        Nav.NavigateTo($"authority/print-pay/{schoolId}?ids={Uri.EscapeDataString(ids)}");
+    }
+
+    private async Task DeleteAsync(int invoiceId)
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.DeleteAuthorityInvoiceAsync(Session.AccessToken!, invoiceId);
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T(result.Message ?? "ai.deleted"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ai.", StringComparison.OrdinalIgnoreCase) || error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static bool IsOn(ChangeEventArgs e) => e.Value is bool b && b || e.Value is string s && bool.TryParse(s, out var v) && v;
+    private static string Tk(decimal n) => n.ToString("N0");
+    private static string SchoolTitle(AuthorityOptionDto s)
+    {
+        var name = s.Name ?? "";
+        var prefix = s.Id + " - ";
+        return name.StartsWith(prefix, StringComparison.Ordinal) ? name[prefix.Length..] : name;
+    }
+}

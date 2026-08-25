@@ -1,0 +1,232 @@
+@page "/authority/attendance-signup"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ui-page as-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("ab.attTitle")</h1>
+        <p>@Locale.T("ab.attSub")</p>
+    </header>
+
+    <section class="card as-reg">
+        <h2>@Locale.T("ab.register")</h2>
+        <div class="as-reg-grid">
+            <label>
+                <span>@Locale.T("auth.colInst")</span>
+                <select @bind="userName" disabled="@busy">
+                    <option value="0">@Locale.T("ab.institution")</option>
+                    @foreach (var item in page.Available)
+                    {
+                        <option value="@item.Extra">@item.Name</option>
+                    }
+                </select>
+            </label>
+            <label>
+                <span>@Locale.T("ab.password")</span>
+                <input type="password" placeholder="@Locale.T("ab.password")" @bind="password" disabled="@busy" />
+            </label>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="RegisterAsync">@Locale.T("ab.register")</button>
+        </div>
+    </section>
+
+    <section class="card ad-table-card">
+        <div class="ad-table-head">
+            <h3>@Locale.T("ab.attTitle")</h3>
+            <span>@Locale.T("auth.rows", VisibleRows.Count())</span>
+        </div>
+        <div class="as-find">
+            <label>
+                <span>@Locale.T("ab.findReg")</span>
+                <input @bind="find" @bind:event="oninput" placeholder="@Locale.T("ab.findRegPh")" />
+            </label>
+            @if (!string.IsNullOrWhiteSpace(find))
+            {
+                <button type="button" class="ad-clear" @onclick="ClearFind">@Locale.T("auth.clear")</button>
+            }
+        </div>
+        <div class="as-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("auth.colInst")</th>
+                        <th>@Locale.T("ab.userName")</th>
+                        <th>@Locale.T("ab.password")</th>
+                        <th>@Locale.T("ab.changePass")</th>
+                        <th>@Locale.T("ab.active")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!VisibleRows.Any())
+                    {
+                        <tr><td colspan="5" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                    }
+                    @foreach (var row in VisibleRows)
+                    {
+                        <tr class="@(row.IsActive ? null : "is-off")">
+                            <td class="as-name">
+                                <span class="as-avatar" aria-hidden="true">@Initial(row.SchoolName)</span>
+                                <span>@row.SchoolName</span>
+                            </td>
+                            <td class="as-user">@row.UserName</td>
+                            <td class="as-pass">@row.Password</td>
+                            <td class="as-change">
+                                <input placeholder="@Locale.T("ab.newPass")" value="@GetPass(row.UserName)" @oninput="e => SetPass(row.UserName, e)" disabled="@busy" />
+                                <button type="button" class="acc-btn" disabled="@busy" @onclick="() => ChangePassAsync(row.UserName)">@Locale.T("ab.changePass")</button>
+                            </td>
+                            <td>
+                                <label class="ui-tog">
+                                    <input type="checkbox" checked="@row.IsActive" disabled="@busy" @onchange="e => SetActiveAsync(row, e)" />
+                                    <i></i>
+                                </label>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AttSignupPageDto page = new();
+    private readonly Dictionary<string, string> rowPass = new(StringComparer.OrdinalIgnoreCase);
+    private string userName = "0", password = "", find = "";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    private IEnumerable<AttDeviceRowDto> VisibleRows
+    {
+        get
+        {
+            var q = find.Trim();
+            if (q.Length == 0) return page.Registered;
+            return page.Registered.Where(r =>
+                r.SchoolName.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                || r.UserName.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                || r.SchoolID.ToString().Contains(q, StringComparison.Ordinal)
+                || r.Password.Contains(q, StringComparison.CurrentCultureIgnoreCase));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            page = await Api.GetAuthorityAttendanceAsync(Session.AccessToken!);
+            foreach (var row in page.Registered)
+                rowPass.TryAdd(row.UserName, "");
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task RegisterAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.RegisterAuthorityAttendanceAsync(Session.AccessToken!, new AttRegisterRequest
+            {
+                UserName = userName, Password = password
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            userName = "0";
+            password = "";
+            Show(Locale.T("ab.attOk"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ChangePassAsync(string name)
+    {
+        var next = rowPass.GetValueOrDefault(name) ?? "";
+        if (string.IsNullOrWhiteSpace(next)) { Show(Locale.T("ab.newPass"), true); return; }
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SetAuthorityAttendancePasswordAsync(Session.AccessToken!, new AttPasswordRequest
+            {
+                UserName = name, Password = next
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T("ab.saved"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SetActiveAsync(AttDeviceRowDto row, ChangeEventArgs e)
+    {
+        var active = e.Value is bool b && b;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SetAuthorityAttendanceActiveAsync(Session.AccessToken!, new AttActiveRequest
+            {
+                SchoolID = row.SchoolID, IsActive = active
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            row.IsActive = active;
+            Show(Locale.T("ab.saved"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private string GetPass(string name) => rowPass.GetValueOrDefault(name) ?? "";
+    private void SetPass(string name, ChangeEventArgs e) => rowPass[name] = e.Value?.ToString() ?? "";
+    private void ClearFind() => find = "";
+    private static string Initial(string name)
+    {
+        var t = (name ?? "").Trim();
+        return t.Length == 0 ? "#" : t[..1].ToUpperInvariant();
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

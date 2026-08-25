@@ -1,0 +1,338 @@
+@page "/authority/link-category"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.linkCategory")</h1>
+    <p class="muted">@Locale.T("al.linkHint")</p>
+    <div class="al-crumb">
+        <button type="button" class="ab-link" disabled="@busy" @onclick="() => OpenCatAsync(0)">@Locale.T("al.categories")</button>
+        @if (data.CategoryId > 0)
+        {
+            <span>/</span>
+            <button type="button" class="ab-link" disabled="@busy" @onclick="() => OpenCatAsync(data.CategoryId)">@data.CategoryName</button>
+        }
+        @if (data.SubCategoryId > 0)
+        {
+            <span>/</span>
+            <span>@data.SubCategoryName</span>
+        }
+    </div>
+
+    @if (data.CategoryId == 0)
+    {
+        <div class="ab-card">
+            <h2>@(catId == 0 ? Locale.T("al.addCat") : Locale.T("al.editCat"))</h2>
+            <div class="al-inline">
+                <input type="number" @bind="catAsc" placeholder="@Locale.T("al.ascending")" disabled="@busy" />
+                <input @bind="catName" placeholder="@Locale.T("al.category")" disabled="@busy" />
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveCatAsync">@Locale.T("ab.submit")</button>
+                @if (catId > 0)
+                {
+                    <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearCat">@Locale.T("auth.clear")</button>
+                }
+            </div>
+        </div>
+        <div class="ab-table-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("al.ascending")</th>
+                        <th>@Locale.T("al.category")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Categories.Count == 0)
+                    {
+                        <tr><td colspan="3">@Locale.T("al.empty")</td></tr>
+                    }
+                    @foreach (var row in data.Categories)
+                    {
+                        <tr>
+                            <td>@row.Ascending</td>
+                            <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => OpenCatAsync(row.LinkCategoryID)">@row.Category</button></td>
+                            <td>
+                                <button type="button" class="ab-link" disabled="@busy" @onclick="() => EditCat(row)">@Locale.T("ab.edit")</button>
+                                <button type="button" class="ab-link" disabled="@busy" @onclick="() => DeleteCatAsync(row.LinkCategoryID)">@Locale.T("ai.delete")</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        @if (data.SubCategoryId == 0)
+        {
+            <div class="ab-card">
+                <h2>@(subEditId == 0 ? Locale.T("al.addSub") : Locale.T("al.editSub"))</h2>
+                <div class="al-inline">
+                    <input type="number" @bind="subAsc" placeholder="@Locale.T("al.ascending")" disabled="@busy" />
+                    <input @bind="subName" placeholder="@Locale.T("al.subCategory")" disabled="@busy" />
+                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveSubAsync">@Locale.T("ab.submit")</button>
+                    @if (subEditId > 0)
+                    {
+                        <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearSub">@Locale.T("auth.clear")</button>
+                    }
+                </div>
+            </div>
+            <div class="ab-table-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("al.ascending")</th>
+                            <th>@Locale.T("al.subCategory")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.Subs.Count == 0)
+                        {
+                            <tr><td colspan="3">@Locale.T("al.noSub")</td></tr>
+                        }
+                        @foreach (var row in data.Subs)
+                        {
+                            <tr>
+                                <td>@row.Ascending</td>
+                                <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => OpenSubAsync(row.SubCategoryID)">@row.SubCategory</button></td>
+                                <td>
+                                    <button type="button" class="ab-link" disabled="@busy" @onclick="() => EditSub(row)">@Locale.T("ab.edit")</button>
+                                    <button type="button" class="ab-link" disabled="@busy" @onclick="() => DeleteSubAsync(row.SubCategoryID)">@Locale.T("ai.delete")</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <div class="ab-card">
+            <h2>@(pageId == 0 ? Locale.T("al.addUrl") : Locale.T("al.editUrl"))</h2>
+            <div class="al-inline al-wrap">
+                <input type="number" @bind="pageAsc" placeholder="@Locale.T("al.ascending")" disabled="@busy" />
+                <input @bind="pageTitle" placeholder="@Locale.T("al.pageTitle")" disabled="@busy" />
+                <input @bind="pageUrl" placeholder="@Locale.T("al.pageUrl")" disabled="@busy" />
+                <select @bind="pageRole" disabled="@busy">
+                    <option value="">@Locale.T("al.selectRole")</option>
+                    @foreach (var role in data.Roles)
+                    {
+                        <option value="@role.RoleId">@role.RoleName</option>
+                    }
+                </select>
+                @if (pageId > 0)
+                {
+                    <select @bind="pageCat" disabled="@busy">
+                        @foreach (var cat in data.Categories)
+                        {
+                            <option value="@cat.LinkCategoryID">@cat.Category</option>
+                        }
+                    </select>
+                    <select @bind="pageSub" disabled="@busy">
+                        <option value="0">@Locale.T("al.noSubOpt")</option>
+                        @foreach (var sub in data.Subs)
+                        {
+                            <option value="@sub.SubCategoryID">@sub.SubCategory</option>
+                        }
+                    </select>
+                }
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SavePageAsync">@Locale.T("ab.submit")</button>
+                @if (pageId > 0)
+                {
+                    <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearPage">@Locale.T("auth.clear")</button>
+                }
+            </div>
+        </div>
+        <div class="ab-table-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("al.ascending")</th>
+                        <th>@Locale.T("al.pageTitle")</th>
+                        <th>@Locale.T("al.pageUrl")</th>
+                        <th>@Locale.T("al.role")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Pages.Count == 0)
+                    {
+                        <tr><td colspan="5">@Locale.T("al.empty")</td></tr>
+                    }
+                    @foreach (var row in data.Pages)
+                    {
+                        <tr>
+                            <td>@row.Ascending</td>
+                            <td>@row.PageTitle</td>
+                            <td>@row.PageURL</td>
+                            <td>@row.RoleName</td>
+                            <td>
+                                <button type="button" class="ab-link" disabled="@busy" @onclick="() => EditPage(row)">@Locale.T("ab.edit")</button>
+                                <button type="button" class="ab-link" disabled="@busy" @onclick="() => DeletePageAsync(row.LinkID)">@Locale.T("ai.delete")</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthLinkTreeDto data = new();
+    private int catId, catAsc, subEditId, subAsc, pageId, pageAsc, pageCat, pageSub;
+    private string catName = "", subName = "", pageTitle = "", pageUrl = "", pageRole = "";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync(0, 0);
+    }
+
+    private async Task OpenCatAsync(int id)
+    {
+        ClearCat(); ClearSub(); ClearPage();
+        await LoadAsync(id, 0);
+    }
+
+    private async Task OpenSubAsync(int id)
+    {
+        ClearSub(); ClearPage();
+        await LoadAsync(data.CategoryId, id);
+    }
+
+    private void EditCat(AuthLinkCategoryRowDto row)
+    {
+        catId = row.LinkCategoryID;
+        catAsc = row.Ascending;
+        catName = row.Category;
+    }
+
+    private void ClearCat() { catId = 0; catAsc = 0; catName = ""; }
+    private void EditSub(AuthLinkSubRowDto row) { subEditId = row.SubCategoryID; subAsc = row.Ascending; subName = row.SubCategory; }
+    private void ClearSub() { subEditId = 0; subAsc = 0; subName = ""; }
+
+    private void EditPage(AuthLinkPageRowDto row)
+    {
+        pageId = row.LinkID;
+        pageAsc = row.Ascending;
+        pageTitle = row.PageTitle;
+        pageUrl = row.PageURL;
+        pageRole = row.RoleId;
+        pageCat = row.LinkCategoryID;
+        pageSub = row.SubCategoryID;
+    }
+
+    private void ClearPage()
+    {
+        pageId = 0; pageAsc = 0; pageTitle = ""; pageUrl = ""; pageRole = "";
+        pageCat = data.CategoryId; pageSub = data.SubCategoryId;
+    }
+
+    private async Task SaveCatAsync()
+    {
+        await RunAsync(Locale.T("ab.saving"), () => Api.SaveAuthorityLinkCategoryAsync(Session.AccessToken!, new AuthLinkNameSaveRequest
+        {
+            Id = catId, Ascending = catAsc, Name = catName
+        }), () => { ClearCat(); return LoadAsync(data.CategoryId, data.SubCategoryId); });
+    }
+
+    private async Task DeleteCatAsync(int id) =>
+        await RunAsync(Locale.T("ab.saving"), () => Api.DeleteAuthorityLinkCategoryAsync(Session.AccessToken!, id),
+            () => LoadAsync(data.CategoryId == id ? 0 : data.CategoryId, data.SubCategoryId));
+
+    private async Task SaveSubAsync()
+    {
+        await RunAsync(Locale.T("ab.saving"), () => Api.SaveAuthorityLinkSubAsync(Session.AccessToken!, new AuthLinkNameSaveRequest
+        {
+            Id = subEditId, ParentId = data.CategoryId, Ascending = subAsc, Name = subName
+        }), () => { ClearSub(); return LoadAsync(data.CategoryId, data.SubCategoryId); });
+    }
+
+    private async Task DeleteSubAsync(int id) =>
+        await RunAsync(Locale.T("ab.saving"), () => Api.DeleteAuthorityLinkSubAsync(Session.AccessToken!, id),
+            () => LoadAsync(data.CategoryId, data.SubCategoryId == id ? 0 : data.SubCategoryId));
+
+    private async Task SavePageAsync()
+    {
+        await RunAsync(Locale.T("ab.saving"), () => Api.SaveAuthorityLinkPageAsync(Session.AccessToken!, new AuthLinkPageSaveRequest
+        {
+            LinkID = pageId,
+            LinkCategoryID = pageId > 0 ? pageCat : data.CategoryId,
+            SubCategoryID = pageId > 0 ? pageSub : data.SubCategoryId,
+            Ascending = pageAsc,
+            PageTitle = pageTitle,
+            PageURL = pageUrl,
+            RoleId = pageRole
+        }), () => { ClearPage(); return LoadAsync(data.CategoryId, data.SubCategoryId); });
+    }
+
+    private async Task DeletePageAsync(int id) =>
+        await RunAsync(Locale.T("ab.saving"), () => Api.DeleteAuthorityLinkPageAsync(Session.AccessToken!, id),
+            () => LoadAsync(data.CategoryId, data.SubCategoryId));
+
+    private async Task LoadAsync(int categoryId, int subId)
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityLinksAsync(Session.AccessToken!, categoryId, subId);
+            pageCat = data.CategoryId;
+            pageSub = data.SubCategoryId;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task RunAsync(string title, Func<Task<AuthorityResult>> action, Func<Task> after)
+    {
+        await SetBusyAsync(title);
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await action();
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T(string.IsNullOrWhiteSpace(result.Message) ? "ab.saved" : result.Message), false);
+            await after();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.Contains('.') ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

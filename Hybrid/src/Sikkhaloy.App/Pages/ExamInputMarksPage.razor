@@ -14,7 +14,7 @@
             }
         </select>
         <select @bind="classId" @bind:after="OnClassAsync" disabled="@busy">
-            <option value="0">- Select -</option>
+            <option value="0">@Locale.T("si.selectClass")</option>
             @foreach (var item in filters.Classes)
             {
                 <option value="@item.Id">@item.Name</option>
@@ -23,7 +23,7 @@
         @if (filters.Groups.Count > 0)
         {
             <select @bind="groupId" @bind:after="LoadJoinAsync" disabled="@busy">
-                <option value="0">- Select -</option>
+                <option value="0">@Locale.T("exam.selectGroup")</option>
                 @foreach (var item in filters.Groups)
                 {
                     <option value="@item.Id">@item.Name</option>
@@ -33,7 +33,7 @@
         @if (filters.Sections.Count > 0)
         {
             <select @bind="sectionId" @bind:after="LoadJoinAsync" disabled="@busy">
-                <option value="0">- Select -</option>
+                <option value="0">@Locale.T("exam.allSection")</option>
                 @foreach (var item in filters.Sections)
                 {
                     <option value="@item.Id">@item.Name</option>
@@ -43,7 +43,7 @@
         @if (filters.Shifts.Count > 0)
         {
             <select @bind="shiftId" @bind:after="LoadJoinAsync" disabled="@busy">
-                <option value="0">- Select -</option>
+                <option value="0">@Locale.T("exam.allShift")</option>
                 @foreach (var item in filters.Shifts)
                 {
                     <option value="@item.Id">@item.Name</option>
@@ -51,7 +51,7 @@
             </select>
         }
         <select @bind="subjectId" @bind:after="OnSubjectAsync" disabled="@busy">
-            <option value="0">- Select -</option>
+            <option value="0">@Locale.T("exam.selectSubject")</option>
             @foreach (var item in filters.Subjects)
             {
                 <option value="@item.Id">@item.Name</option>
@@ -146,19 +146,14 @@
             </tbody>
         </table>
         <button type="button" class="acc-btn acc-btn-primary no-print" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.submit")</button>
+        @if (!string.IsNullOrWhiteSpace(toastText))
+        {
+            <label class="@(toastError ? "exam-input-err" : "exam-input-ok")">@toastText</label>
+        }
     }
 </div>
 
-@if (busy)
-{
-    <div class="acc-loading-back">
-        <div class="acc-loading">
-            <div class="acc-spinner"></div>
-            <p>@Locale.T("acc.loading")</p>
-            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
-        </div>
-    </div>
-}
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@busyMessage" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
     <div class="acc-result-back" @onclick="ClosePopup">
@@ -175,23 +170,24 @@
     private ExamFilterDto filters = new();
     private InputSheetDto sheet = new();
     private int examId, classId, subjectId, subExamId, groupId, sectionId, shiftId;
-    private bool busy, popupError, hideName, shown;
-    private string? popupText;
+    private bool busy, popupError, hideName, shown, toastError;
+    private string? popupText, toastText;
+    private string busyTitle = "";
+    private string? busyMessage;
     private bool AllSubs => sheet.HasSubExams && subExamId <= 0;
 
     protected override Task OnInitializedAsync() => LoadFiltersAsync();
 
     private async Task LoadFiltersAsync()
     {
-        busy = true;
-        await PaintAsync();
+        await SetBusyAsync(Locale.T("exam.loadingInput"));
         try
         {
             if (!await OnlineAsync()) return;
             filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "input", classId, examId, G(groupId), G(sectionId), G(shiftId), subjectId);
         }
         catch (Exception ex) { Show(ex.Message, true); }
-        finally { busy = false; }
+        finally { ClearBusy(); }
     }
 
     private async Task OnExamAsync()
@@ -229,9 +225,9 @@
     {
         shown = false;
         sheet = new();
-        if (examId <= 0 || classId <= 0 || subjectId <= 0) { Show(Locale.T("exam.select"), true); return; }
-        busy = true;
-        await PaintAsync();
+        toastText = null;
+        if (examId <= 0 || classId <= 0 || subjectId <= 0) { Show(Locale.T("exam.needExamClassSubject"), true); return; }
+        await SetBusyAsync(Locale.T("exam.loadingInput"));
         try
         {
             if (!await OnlineAsync()) return;
@@ -240,13 +236,12 @@
             shown = true;
         }
         catch (Exception ex) { Show(ex.Message, true); }
-        finally { busy = false; }
+        finally { ClearBusy(); }
     }
 
     private async Task SaveAsync()
     {
-        busy = true;
-        await PaintAsync();
+        await SetBusyAsync(Locale.T("exam.savingMarks"), Locale.T("exam.pleaseWait"));
         try
         {
             if (!await OnlineAsync()) return;
@@ -263,7 +258,7 @@
             Show(Locale.T("exam.inputOk"));
         }
         catch (Exception ex) { Show(ex.Message, true); }
-        finally { busy = false; }
+        finally { ClearBusy(); }
     }
 
     private static string? G(int id) => id <= 0 ? null : id.ToString();
@@ -314,12 +309,27 @@
             _ => name
         };
     }
-    private void Show(string text, bool err = false) { popupText = text; popupError = err; }
-    private void ClosePopup() => popupText = null;
-    private async Task PaintAsync()
+    private void Show(string text, bool err = false)
     {
+        popupText = text;
+        popupError = err;
+        toastText = text;
+        toastError = err;
+    }
+    private void ClosePopup() => popupText = null;
+    private async Task SetBusyAsync(string title, string? message = null)
+    {
+        busyTitle = title;
+        busyMessage = message;
+        busy = true;
         await InvokeAsync(StateHasChanged);
         await Task.Delay(40);
+    }
+    private void ClearBusy()
+    {
+        busy = false;
+        busyTitle = "";
+        busyMessage = null;
     }
     private async Task<bool> OnlineAsync()
     {

@@ -108,7 +108,7 @@ window.sikkhaloyPrintReceipt = function (opts) {
         ".mr-info p { font-size: " + infoPx + "px !important; white-space: nowrap !important;" +
         " overflow: visible !important; margin: " + (narrow ? "2px 0" : "5px 0") + " !important; }" +
         ".mr-page .mgrid th, .mr-page .mgrid td { font-size: " + tablePx + "px !important; padding: " + (narrow ? "2px 1px" : "3px") + " !important; white-space: nowrap !important; }" +
-        ".mr-words, .mr-recv, .mr-due-title, .oi-total { font-size: " + infoPx + "px !important; white-space: nowrap !important; }" +
+        ".mr-words, .mr-recv, .mr-due-title, .oi-total, .mr-blessing { font-size: " + infoPx + "px !important; white-space: nowrap !important; }" +
         "}";
     window.print();
 };
@@ -124,7 +124,15 @@ window.sikkhaloyPrint = function (orientation, compact, marginOverride) {
 
     var landscape = orientation === "landscape";
     var margin = marginOverride || (compact ? "6mm 8mm" : (landscape ? "8mm" : "10mm"));
-    el.textContent = "@page { size: A4 " + (landscape ? "landscape" : "portrait") + "; margin: " + margin + "; }";
+    el.textContent =
+        "@page { size: A4 " + (landscape ? "landscape" : "portrait") + "; margin: " + margin + "; }" +
+        "@media print {" +
+        "html, body, #app, .ad-shell, .ad-main, .ad-content, .app-shell, .app-main, .app-content, .card, .ai-print {" +
+        " background: #fff !important; height: auto !important; overflow: visible !important;" +
+        " box-shadow: none !important; padding: 0 !important; margin: 0 !important; border: 0 !important; }" +
+        ".ad-sidebar, .ad-header, .app-sidebar, .app-header, .go-top, .nav-back, .no-print { display: none !important; }" +
+        ".ad-shell, .app-shell { display: block !important; grid-template-columns: none !important; }" +
+        "}";
     document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
     document.body.classList.add(landscape ? "print-landscape" : "print-portrait");
     if (compact)
@@ -259,8 +267,11 @@ window.sikkhaloyExportCollectPaper = function (fileName) {
     clone.querySelectorAll(".no-print").forEach(function (el) { el.remove(); });
     clone.querySelectorAll(".exam-col-off").forEach(function (el) { el.remove(); });
     var css = "body{font-family:'Noto Sans Bengali','Nirmala UI','Segoe UI',sans-serif;font-size:11pt;color:#000;}"
-        + "h1,h2,.exam-print-line,.exam-ex-cls,.exam-class-gss{text-align:center;margin:2px 0;font-weight:bold;}"
-        + ".exam-ex-cls{font-size:18px;border-bottom:1px solid #000;margin-bottom:8px;}"
+        + "h1,h2,.exam-print-line,.exam-collect-meta,.exam-class-gss{text-align:center;margin:2px 0;font-weight:bold;}"
+        + ".exam-collect-meta{font-size:14pt;border-bottom:1px solid #000;margin-bottom:8px;display:flex;justify-content:center;gap:8px;}"
+        + ".exam-collect-meta span + span::before{content:' | ';}"
+        + "h1{font-size:22pt;}"
+        + ".print-id{display:none;}"
         + "table{border-collapse:collapse;width:100%;margin:8px 0;}"
         + "th,td{border:1px solid #000;padding:6px 8px;text-align:center;}"
         + "th{background:#333;color:#fff;}"
@@ -302,3 +313,32 @@ document.addEventListener("keydown", function (e) {
     next.focus();
     if (typeof next.select === "function") next.select();
 }, true);
+
+window.sikkhaloyPrintLandscape = function () {
+    var id = "sikkhaloy-print-landscape";
+    var style = document.getElementById(id);
+    if (!style) {
+        style = document.createElement("style");
+        style.id = id;
+        document.head.appendChild(style);
+    }
+    style.textContent = "@media print { @page { size: A4 landscape; margin: 4mm; } }";
+    window.print();
+};
+
+window.sikkhaloyPrintAdmit = function () {
+    var id = "sikkhaloy-print-landscape";
+    var style = document.getElementById(id);
+    if (!style) {
+        style = document.createElement("style");
+        style.id = id;
+        document.head.appendChild(style);
+    }
+    style.textContent = "@media print { @page { size: A4 landscape; margin: 3mm; } }";
+    window.print();
+};
+
+window.sikkhaloyOpenUrl = function (url) {
+    if (!url) return;
+    window.open(url, "_blank");
+};

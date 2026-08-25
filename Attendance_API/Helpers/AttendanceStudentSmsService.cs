@@ -260,11 +260,7 @@ namespace Attendance_API.Helpers
 
                 var classInfo = templateHelper.GetStudentClassInfo(record.StudentID);
 
-                var displayId = string.IsNullOrWhiteSpace(classInfo.displayId)
-
-                    ? record.StudentID.ToString()
-
-                    : classInfo.displayId;
+                var displayId = templateHelper.GetStudentDisplayId(record.StudentID);
 
                 var scheduleName = templateHelper.GetScheduleName(
 

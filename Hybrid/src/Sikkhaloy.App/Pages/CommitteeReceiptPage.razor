@@ -1,0 +1,349 @@
+@page "/committee/receipt/{Id:int}"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject SyncEngine Sync
+
+<div class="card structure-page emp-page acc-page mr-page @(hideIns ? "hide-ins" : null) @(hideDue ? "hide-due" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
+        <div class="no-print mr-top">
+        <div class="mr-back-row">
+            <a class="mr-back" href="committee/collect">@Locale.T("cm.backCollect")</a>
+            <a class="mr-back" href="committee/donations">@Locale.T("cm.backDonations")</a>
+        </div>
+        @if (dto is not null)
+        {
+            <button type="button" class="acc-btn acc-btn-primary mr-print-top" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        }
+    </div>
+
+    @if (dto is not null)
+    {
+        <div class="mr-sheet" style="@SheetStyle">
+            <div class="mr-ins">
+                @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+                {
+                    <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+                }
+                else
+                {
+                    <div class="mr-school">@schoolName</div>
+                    <div class="mr-addr">
+                        @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
+                        @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
+                        @if (!string.IsNullOrWhiteSpace(schoolEmail)) { <span>@schoolEmail</span> }
+                    </div>
+                }
+            </div>
+            <div class="mr-head">@Locale.T("cm.receipt")</div>
+            <div class="mr-info">
+                <div>
+                    <p><strong>@Locale.T("cm.donor"):</strong> @dto.MemberName (@dto.MemberType)</p>
+                    <p><strong>@Locale.T("cm.mobile"):</strong> @dto.SmsNumber</p>
+                    <p><strong>@Locale.T("cm.receiptNo"):</strong> @dto.CommitteeMoneyReceiptSn</p>
+                </div>
+                <div>
+                    <p><strong>@Locale.T("cm.paidDate"):</strong> @Stamp(dto.PaidDate)</p>
+                    <p><strong>@Locale.T("cm.payMethod"):</strong> @dto.AccountName</p>
+                    <p><strong>@Locale.T("cm.address"):</strong> @dto.Address</p>
+                </div>
+            </div>
+            <table class="mgrid mr-grid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("cm.donationCategory")</th>
+                        <th>@Locale.T("cm.desc")</th>
+                        <th>@Locale.T("cm.paidAmount")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var line in dto.Lines)
+                {
+                    <tr>
+                        <td>@line.DonationCategory</td>
+                        <td>@line.Description</td>
+                        <td>@Tk(line.PaidAmount) @Locale.T("acc.tk")</td>
+                    </tr>
+                }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td class="mr-fee">@Locale.T("cm.total"):</td>
+                        <td>@Tk(dto.TotalAmount) @Locale.T("acc.tk")</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <p class="mr-words">@AmountInWords(dto.TotalAmount)</p>
+            @if (dto.CurrentDues.Count > 0)
+            {
+                <div class="mr-dues">
+                    <div class="mr-due-title">@Locale.T("cm.currentDue")</div>
+                    <table class="mgrid">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("cm.donationCategory")</th>
+                                <th>@Locale.T("cm.desc")</th>
+                                <th>@Locale.T("cm.dueAmount")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var line in dto.CurrentDues)
+                        {
+                            <tr>
+                                <td>@line.DonationCategory</td>
+                                <td>@line.Description</td>
+                                <td>@Tk(line.Due) @Locale.T("acc.tk")</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td>@Locale.T("cm.total"): @Tk(dto.CurrentDues.Sum(x => x.Due)) @Locale.T("acc.tk")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            <p class="mr-blessing">@Locale.T("cm.blessing")</p>
+            <p class="mr-recv">@Locale.T("acc.recvByLine", dto.ReceivedBy)</p>
+        </div>
+
+        <div class="no-print mr-print-opt">
+            <div class="mr-print-head">
+                <div>
+                    <h4>@Locale.T("acc.printOptions")</h4>
+                    <p>@Locale.T("acc.printSizeHint")</p>
+                </div>
+                <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("si.print")</button>
+            </div>
+            <div class="mr-print-body">
+                <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
+                <label class="acc-check"><input type="checkbox" checked="@hideDue" @onchange="OnHideDue" /><span>@Locale.T("acc.hideDue")</span></label>
+                <label>@Locale.T("acc.printSize")
+                    <select @bind="printSize" @bind:after="PersistOptsAsync">
+                        <option value="3">@Locale.T("acc.inch", "3")</option>
+                        <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
+                        <option value="4">@Locale.T("acc.inch", "4")</option>
+                        <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
+                        <option value="5">@Locale.T("acc.inch", "5")</option>
+                        <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
+                        <option value="6">@Locale.T("acc.inch", "6")</option>
+                    </select>
+                </label>
+                <label>@Locale.T("acc.topSpace")
+                    <input type="number" min="0" @bind="topSpace" @bind:after="PersistOptsAsync" />
+                </label>
+                <label>@Locale.T("acc.fontSize")
+                    <input type="number" min="10" max="20" @bind="fontSize" @bind:after="PersistOptsAsync" />
+                </label>
+            </div>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("sms.errorTitle")</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private DonationReceiptDto? dto;
+    private string printSize = "4";
+    private int topSpace;
+    private int fontSize = 11;
+    private int loadedId;
+    private string schoolName = "";
+    private string schoolAddr = "";
+    private string schoolPhone = "";
+    private string schoolEmail = "";
+    private string? nameLogoUrl;
+    private bool busy, hideIns, hideDue, optionsLoaded;
+    private string busyTitle = "", popupText = "";
+    private string SheetStyle => $"width:{printSize}in;max-width:100%";
+    private bool IsNarrow => printSize is "3" or "3.5";
+    private static readonly string[] Widths = ["3", "3.5", "4", "4.5", "5", "5.5", "6"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Session.Current is null) return;
+        var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+        schoolName = string.IsNullOrWhiteSpace(header.SchoolName) ? Session.Current.SchoolName : header.SchoolName;
+        schoolAddr = header.Address ?? "";
+        schoolPhone = header.Phone ?? "";
+        schoolEmail = header.Email ?? "";
+        nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(Session.Current.SchoolID);
+        if (!string.IsNullOrWhiteSpace(nameLogoUrl) || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        try
+        {
+            var inst = await Api.GetInstitutionAsync(Session.AccessToken);
+            if (string.IsNullOrWhiteSpace(inst.NameLogoDataUrl))
+                return;
+            nameLogoUrl = inst.NameLogoDataUrl;
+            Sync.RefreshSchoolHeader(new OfficeProfileDto
+            {
+                SchoolID = Session.Current.SchoolID,
+                SchoolName = schoolName,
+                Address = schoolAddr,
+                Phone = schoolPhone,
+                Email = schoolEmail,
+                NameLogoBase64 = inst.NameLogoDataUrl
+            });
+        }
+        catch
+        {
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || optionsLoaded) return;
+        optionsLoaded = true;
+        try
+        {
+            var saved = await JS.InvokeAsync<ReceiptPrintOpts>("sikkhaloyReceiptPrintLoad");
+            if (saved is null) return;
+            printSize = NormalizeWidth(saved.Size);
+            if (saved.TopSpace >= 0) topSpace = saved.TopSpace;
+            if (saved.FontSize is >= 10 and <= 20) fontSize = saved.FontSize;
+            hideIns = saved.HideIns;
+            hideDue = saved.HideDue;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedId == Id && dto is not null) return;
+        loadedId = Id;
+        busyTitle = Locale.T("cm.loading");
+        busy = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                return;
+            }
+            dto = await Api.GetDonationReceiptAsync(Session.AccessToken!, Id);
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintReceipt", PrintOpts()).AsTask();
+
+    private Task OnHideIns(ChangeEventArgs e)
+    {
+        hideIns = IsOn(e);
+        return PersistOptsAsync();
+    }
+
+    private Task OnHideDue(ChangeEventArgs e)
+    {
+        hideDue = IsOn(e);
+        return PersistOptsAsync();
+    }
+
+    private static string NormalizeWidth(string? size) => size switch
+    {
+        "half" => "4",
+        "quarter" => "3",
+        "full" => "6",
+        _ when size is not null && Widths.Contains(size) => size,
+        _ => "4"
+    };
+
+    private Task PersistOptsAsync() => JS.InvokeVoidAsync("sikkhaloyReceiptPrintSave", PrintOpts()).AsTask();
+
+    private object PrintOpts() => new
+    {
+        size = printSize,
+        topSpace,
+        fontSize,
+        hideIns,
+        hideDue
+    };
+
+    private static bool IsOn(ChangeEventArgs e) => e.Value is true or "true" or "True";
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private static string Stamp(DateTime? value) =>
+        value is null ? "" : $"{value:d-MMM-yy}\u00A0{value:hh:mm}\u00A0{value:tt}";
+    private void ClosePopup() => popupText = "";
+
+    private string AmountInWords(decimal amount)
+    {
+        var fraction = (int)Math.Round((double)(amount % 1m) * 100d, MidpointRounding.AwayFromZero);
+        var text = ConvertNumber((double)amount);
+        if (Locale.IsBengali)
+        {
+            if (fraction > 0)
+                return $"{text} টাকা এবং {ConvertNumber(fraction)} পয়সা মাত্র";
+            return $"{text} টাকা মাত্র";
+        }
+        if (fraction > 0)
+            return text + " Tk And " + ConvertNumber(fraction) + " Paisa Only";
+        return text + " Tk Only";
+    }
+
+    private string ConvertNumber(double number)
+    {
+        if (number < 0 || number > 999999999) return Locale.IsBengali ? "সীমার বাইরে" : "NUMBER OUT OF RANGE!";
+        var bn = Locale.IsBengali;
+        var coreAmount = (long)Math.Floor(number / 10000000);
+        number -= coreAmount * 10000000;
+        var lakhAmount = (long)Math.Floor(number / 100000);
+        number -= lakhAmount * 100000;
+        var thousandAmount = (long)Math.Floor(number / 1000);
+        number -= thousandAmount * 1000;
+        var hundredAmount = (long)Math.Floor(number / 100);
+        number %= 100;
+        var tn = (int)Math.Floor(number / 10);
+        var one = (int)Math.Floor(number % 10);
+        var res = "";
+        var space = " ";
+        if (coreAmount > 0) res += ConvertNumber(coreAmount) + (bn ? " কোটি" : " Crore");
+        if (lakhAmount > 0) res += (res.Length == 0 ? "" : space) + ConvertNumber(lakhAmount) + (bn ? " লক্ষ" : " Lakh");
+        if (thousandAmount > 0) res += (res.Length == 0 ? "" : space) + ConvertNumber(thousandAmount) + (bn ? " হাজার" : " Thousand");
+        if (hundredAmount > 0) res += (res.Length == 0 ? "" : space) + ConvertNumber(hundredAmount) + (bn ? " শত" : " Hundred");
+        string[] onesEn = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+            "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+        string[] tensEn = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+        string[] onesBn = ["", "এক", "দুই", "তিন", "চার", "পাঁচ", "ছয়", "সাত", "আট", "নয়", "দশ",
+            "এগারো", "বারো", "তেরো", "চৌদ্দ", "পনেরো", "ষোলো", "সতেরো", "আঠারো", "উনিশ"];
+        string[] tensBn = ["", "", "বিশ", "ত্রিশ", "চল্লিশ", "পঞ্চাশ", "ষাট", "সত্তর", "আশি", "নব্বই"];
+        var ones = bn ? onesBn : onesEn;
+        var tens = bn ? tensBn : tensEn;
+        if (tn > 0 || one > 0)
+        {
+            if (res.Length > 0) res += bn ? " " : " And ";
+            if (tn < 2) res += ones[tn * 10 + one];
+            else res += tens[tn] + (one > 0 ? (bn ? " " : "-") + ones[one] : "");
+        }
+        return res.Length == 0 ? (bn ? "শূন্য" : "zero") : res;
+    }
+
+    private sealed class ReceiptPrintOpts
+    {
+        public string? Size { get; set; }
+        public int TopSpace { get; set; }
+        public int FontSize { get; set; }
+        public bool HideIns { get; set; }
+        public bool HideDue { get; set; }
+    }
+}

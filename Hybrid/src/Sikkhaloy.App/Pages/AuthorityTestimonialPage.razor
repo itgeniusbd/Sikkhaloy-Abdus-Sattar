@@ -1,0 +1,190 @@
+@page "/authority/testimonial"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ui-page tm-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("auth.m.testimonial")</h1>
+    </header>
+
+    <section class="card ad-table-card">
+        <div class="ad-table-head">
+            <h3>@Locale.T("auth.m.testimonial")</h3>
+            <span>@Locale.T("auth.rows", rows.Count)</span>
+        </div>
+        <div class="tm-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("ab.sn")</th>
+                        <th>@Locale.T("auth.colInst")</th>
+                        <th>@Locale.T("ab.testimonial")</th>
+                        <th>@Locale.T("ab.date")</th>
+                        <th>@Locale.T("ab.show")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (rows.Count == 0)
+                    {
+                        <tr><td colspan="6" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                    }
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <td class="tm-sn">
+                                @if (editId == row.TestimonialID)
+                                {
+                                    <input type="number" class="tm-sn-input" @bind="editSn" disabled="@busy" />
+                                }
+                                else
+                                {
+                                    @row.ShowSn
+                                }
+                            </td>
+                            <td class="tm-school">@row.SchoolName</td>
+                            <td class="tm-text">
+                                @if (editId == row.TestimonialID)
+                                {
+                                    <textarea rows="4" class="tm-edit" @bind="editText" disabled="@busy"></textarea>
+                                }
+                                else if (string.IsNullOrWhiteSpace(row.Text))
+                                {
+                                    <span class="tm-none">—</span>
+                                }
+                                else
+                                {
+                                    @row.Text
+                                }
+                            </td>
+                            <td class="tm-date">@(row.InsertDate?.ToString("d MMM yyyy"))</td>
+                            <td>
+                                <label class="ui-tog">
+                                    <input type="checkbox" checked="@row.IsShow" disabled="@busy" @onchange="e => ToggleShowAsync(row, e)" />
+                                    <i></i>
+                                </label>
+                            </td>
+                            <td class="tm-actions">
+                                @if (editId == row.TestimonialID)
+                                {
+                                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => SaveAsync(row)">@Locale.T("ab.update")</button>
+                                    <button type="button" class="acc-btn" disabled="@busy" @onclick="() => editId = 0">@Locale.T("ab.cancel")</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="acc-btn" disabled="@busy" @onclick="() => BeginEdit(row)">@Locale.T("ab.edit")</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<TestimonialRowDto> rows = [];
+    private int editId, editSn;
+    private string editText = "";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            rows.Clear();
+            rows.AddRange(await Api.GetAuthorityTestimonialsAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void BeginEdit(TestimonialRowDto row)
+    {
+        editId = row.TestimonialID;
+        editSn = row.ShowSn;
+        editText = row.Text;
+    }
+
+    private async Task SaveAsync(TestimonialRowDto row)
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveAuthorityTestimonialAsync(Session.AccessToken!, new SaveTestimonialRequest
+            {
+                TestimonialID = row.TestimonialID, Text = editText, ShowSn = editSn
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            editId = 0;
+            Show(Locale.T("ab.saved"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ToggleShowAsync(TestimonialRowDto row, ChangeEventArgs e)
+    {
+        var show = e.Value is bool b && b;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SetAuthorityTestimonialShowAsync(Session.AccessToken!, new SetTestimonialShowRequest
+            {
+                TestimonialID = row.TestimonialID, IsShow = show
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            row.IsShow = show;
+            Show(Locale.T("ab.saved"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

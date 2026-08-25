@@ -1,0 +1,211 @@
+@page "/committee/collect"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page exam-page committee-page">
+    <h1>@Locale.T("cm.collect")</h1>
+    <div class="filter-row no-print">
+        <div class="cm-suggest">
+            <input type="text" placeholder="@Locale.T("cm.findDonor")" @bind="donorQ" @bind:event="oninput" @bind:after="SuggestAsync" disabled="@busy" autocomplete="off" />
+            @if (suggests.Count > 0)
+            {
+                <ul>
+                    @foreach (var item in suggests)
+                    {
+                        <li @onclick="() => Pick(item)">@item.MemberName, @item.SmsNumber</li>
+                    }
+                </ul>
+            }
+        </div>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="LoadMemberAsync">@Locale.T("cm.find")</button>
+    </div>
+
+    @if (sheet.Member is not null)
+    {
+        <div class="cm-split">
+            <div class="cm-card">
+                <div class="cm-avatar">@Initial(sheet.Member.MemberName)</div>
+                <div>
+                    <strong>@sheet.Member.MemberName</strong>
+                    <div class="cm-sub">@sheet.Member.MemberType</div>
+                    <p><b>@Locale.T("cm.totalDonation"):</b> @Tk(sheet.Member.TotalDonation)</p>
+                    <p><b>@Locale.T("cm.paidDonation"):</b> @Tk(sheet.Member.PaidDonation)</p>
+                    <p><b>@Locale.T("cm.phone"):</b> @sheet.Member.SmsNumber</p>
+                    <p><b>@Locale.T("cm.address"):</b> @sheet.Member.Address</p>
+                </div>
+            </div>
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("cm.receiptNo")</th><th>@Locale.T("cm.paid")</th></tr></thead>
+                <tbody>
+                @if (sheet.Receipts.Count == 0)
+                {
+                    <tr><td colspan="2" class="empty-row">@Locale.T("cm.emptyPayments")</td></tr>
+                }
+                @foreach (var rec in sheet.Receipts)
+                {
+                    <tr>
+                        <td>
+                            <a href="@($"committee/receipt/{rec.CommitteeMoneyReceiptId}")">@rec.CommitteeMoneyReceiptSn</a>
+                            <small class="cm-sub">@(rec.PaidDate?.ToString("d MMM yyyy"))</small>
+                        </td>
+                        <td>@Tk(rec.TotalAmount) @Locale.T("cm.tk")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cm.select")</th>
+                    <th>@Locale.T("cm.donationCategory")</th>
+                    <th>@Locale.T("cm.desc")</th>
+                    <th>@Locale.T("cm.amount")</th>
+                    <th>@Locale.T("cm.paid")</th>
+                    <th>@Locale.T("cm.due")</th>
+                    <th>@Locale.T("cm.collectAmt")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (sheet.Dues.Count == 0)
+            {
+                <tr><td colspan="7" class="empty-row">@Locale.T("cm.emptyDues")</td></tr>
+            }
+            @foreach (var row in sheet.Dues)
+            {
+                <tr class="@(row.Selected ? "cm-row-on" : null)">
+                    <td><input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => row.Selected = IsOn(e)" /></td>
+                    <td>@row.DonationCategory</td>
+                    <td>@row.Description</td>
+                    <td>৳@Tk(row.Amount)</td>
+                    <td>৳@Tk(row.PaidAmount)</td>
+                    <td>৳@Tk(row.Due)</td>
+                    <td><input type="number" min="0" step="0.01" max="@row.Due" @bind="row.CollectAmount" disabled="@(busy || !row.Selected)" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        @if (sheet.Dues.Any(x => x.Selected))
+        {
+            <div class="cm-totals">@Locale.T("cm.total"): ৳@Tk(sheet.Dues.Where(x => x.Selected).Sum(x => x.CollectAmount))</div>
+            <div class="filter-row no-print">
+                <select @bind="accountId" disabled="@busy">
+                    @foreach (var item in lookups.Accounts)
+                    {
+                        <option value="@item.AccountID">@item.AccountName</option>
+                    }
+                </select>
+                <input type="date" @bind="paidDate" disabled="@busy" />
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="CollectAsync">@Locale.T("cm.submit")</button>
+            </div>
+        }
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private CommitteeLookupsDto lookups = new();
+    private CollectPageDto sheet = new();
+    private readonly List<DonorSuggestDto> suggests = [];
+    private int memberId, accountId;
+    private string donorQ = "", busyTitle = "", popupText = "";
+    private DateTime paidDate = DateTime.Today;
+    private bool busy, popupError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            lookups = await Api.GetCommitteeLookupsAsync(Session.AccessToken!);
+            accountId = lookups.Accounts.FirstOrDefault(x => x.IsDefault)?.AccountID ?? lookups.Accounts.FirstOrDefault()?.AccountID ?? 0;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SuggestAsync()
+    {
+        suggests.Clear();
+        if (donorQ.Trim().Length < 1) return;
+        try { suggests.AddRange(await Api.SuggestDonorsAsync(Session.AccessToken!, donorQ)); }
+        catch { }
+    }
+
+    private void Pick(DonorSuggestDto item)
+    {
+        memberId = item.CommitteeMemberId;
+        donorQ = item.MemberName;
+        suggests.Clear();
+    }
+
+    private async Task LoadMemberAsync()
+    {
+        if (memberId <= 0) { Show(Locale.T("cm.needDonor"), true); return; }
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            sheet = await Api.GetCollectDonationAsync(Session.AccessToken!, memberId);
+            if (sheet.Member is null) Show(Locale.T("cm.emptyMembers"), true);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task CollectAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.CollectDonationAsync(Session.AccessToken!, new CollectDonationRequest
+            {
+                CommitteeMemberId = memberId,
+                AccountId = accountId,
+                PaidDate = paidDate,
+                Lines = sheet.Dues.Where(x => x.Selected && x.CollectAmount > 0)
+                    .Select(x => new CollectLineRequest { CommitteeDonationId = x.CommitteeDonationId, PaidAmount = x.CollectAmount })
+                    .ToList()
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            Nav.NavigateTo($"/committee/receipt/{result.ReceiptId}");
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static bool IsOn(ChangeEventArgs e) => e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private static string Initial(string name) => string.IsNullOrWhiteSpace(name) ? "D" : name[..1];
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(CommitteeResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("cm.fail")
+        : result.Error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

@@ -171,9 +171,10 @@
         shifts.Clear();
         if (structure is null || ClassId <= 0)
             return;
-        groups.AddRange(structure.Groups.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
-        sections.AddRange(structure.Sections.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
-        shifts.AddRange(structure.Shifts.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
+        var parts = structure.AssignedParts(ClassId);
+        groups.AddRange(parts.Groups);
+        sections.AddRange(parts.Sections);
+        shifts.AddRange(parts.Shifts);
     }
 
     private async Task FindByIdAsync()

@@ -1,0 +1,374 @@
+@page "/exam/merit"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page exam-merit-page">
+    <h1 class="no-print">@Locale.T("exam.merit")</h1>
+    <div class="filter-row no-print">
+        <select @bind="classId" @bind:after="OnClassAsync" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in filters.Classes)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (filters.Groups.Count > 0)
+        {
+            <select @bind="groupId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.selectGroup")</option>
+                @foreach (var item in filters.Groups)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (filters.Sections.Count > 0)
+        {
+            <select @bind="sectionId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allSection")</option>
+                @foreach (var item in filters.Sections)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (filters.Shifts.Count > 0)
+        {
+            <select @bind="shiftId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allShift")</option>
+                @foreach (var item in filters.Shifts)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="examId" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectExam")</option>
+            @foreach (var item in filters.Exams)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <div class="exam-status">
+            <label><input type="radio" name="st" checked="@(passStatus == AllStatus)" @onchange="@(() => SetStatus(AllStatus))" disabled="@busy" /> @Locale.T("exam.all")</label>
+            <label><input type="radio" name="st" checked="@(passStatus == PassStatus)" @onchange="@(() => SetStatus(PassStatus))" disabled="@busy" /> @Locale.T("exam.passed")</label>
+            <label><input type="radio" name="st" checked="@(passStatus == FailStatus)" @onchange="@(() => SetStatus(FailStatus))" disabled="@busy" /> @Locale.T("exam.failedStu")</label>
+        </div>
+    </div>
+
+    @if (sheet.Rows.Count > 0)
+    {
+        <div class="exam-col-panel no-print">
+            <strong>@Locale.T("exam.hidePrintCols")</strong>
+            @foreach (var col in columns)
+            {
+                <label><input type="checkbox" checked="@(!hidden.Contains(col))" @onchange="() => Toggle(col)" /> @Locale.T(col)</label>
+            }
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+        </div>
+        <PrintHeader Centered="true" ShowDate="false" />
+        <h2 class="exam-merit-title">@ReportTitle</h2>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    @if (On("exam.id")) { <th class="is-sort" @onclick='() => SortBy("id")'>@Locale.T("exam.id")<span class="no-print">@SortMark("id")</span></th> }
+                    @if (On("exam.name")) { <th class="is-name is-sort" @onclick='() => SortBy("name")'>@Locale.T("exam.name")<span class="no-print">@SortMark("name")</span></th> }
+                    @if (On("exam.roll")) { <th class="is-sort" @onclick='() => SortBy("roll")'>@Locale.T("exam.roll")<span class="no-print">@SortMark("roll")</span></th> }
+                    @if (On("exam.subjectsMarks")) { <th class="subs-cell is-sort" @onclick='() => SortBy("subs")'>@Locale.T("exam.subjectsMarks")<span class="no-print">@SortMark("subs")</span></th> }
+                    @if (On("exam.total")) { <th class="is-sort" @onclick='() => SortBy("total")'>@Locale.T("exam.total")<span class="no-print">@SortMark("total")</span></th> }
+                    @if (On("exam.grade")) { <th class="is-sort" @onclick='() => SortBy("grade")'>@Locale.T("exam.grade")<span class="no-print">@SortMark("grade")</span></th> }
+                    @if (On("exam.point")) { <th class="is-sort" @onclick='() => SortBy("point")'>@Locale.T("exam.point")<span class="no-print">@SortMark("point")</span></th> }
+                    @if (On("exam.avg")) { <th class="is-sort" @onclick='() => SortBy("avg")'>@Locale.T("exam.avg")<span class="no-print">@SortMark("avg")</span></th> }
+                    @if (On("exam.pc")) { <th class="is-sort" @onclick='() => SortBy("pc")'>@Locale.T("exam.pc")<span class="no-print">@SortMark("pc")</span></th> }
+                    @if (On("exam.ps")) { <th class="is-sort" @onclick='() => SortBy("ps")'>@Locale.T("exam.ps")<span class="no-print">@SortMark("ps")</span></th> }
+                </tr>
+                <tr class="hdr-filter no-print">
+                    @if (On("exam.id")) { <th><input class="hdr-filter-in" value="@FilterOf("id")" @oninput='e => SetFilter("id", e.Value?.ToString())' /></th> }
+                    @if (On("exam.name")) { <th class="is-name"><input class="hdr-filter-in" value="@FilterOf("name")" @oninput='e => SetFilter("name", e.Value?.ToString())' /></th> }
+                    @if (On("exam.roll")) { <th><input class="hdr-filter-in" value="@FilterOf("roll")" @oninput='e => SetFilter("roll", e.Value?.ToString())' /></th> }
+                    @if (On("exam.subjectsMarks")) { <th class="subs-cell"><input class="hdr-filter-in" value="@FilterOf("subs")" @oninput='e => SetFilter("subs", e.Value?.ToString())' /></th> }
+                    @if (On("exam.total")) { <th><input class="hdr-filter-in" value="@FilterOf("total")" @oninput='e => SetFilter("total", e.Value?.ToString())' /></th> }
+                    @if (On("exam.grade")) { <th><input class="hdr-filter-in" value="@FilterOf("grade")" @oninput='e => SetFilter("grade", e.Value?.ToString())' /></th> }
+                    @if (On("exam.point")) { <th><input class="hdr-filter-in" value="@FilterOf("point")" @oninput='e => SetFilter("point", e.Value?.ToString())' /></th> }
+                    @if (On("exam.avg")) { <th><input class="hdr-filter-in" value="@FilterOf("avg")" @oninput='e => SetFilter("avg", e.Value?.ToString())' /></th> }
+                    @if (On("exam.pc")) { <th><input class="hdr-filter-in" value="@FilterOf("pc")" @oninput='e => SetFilter("pc", e.Value?.ToString())' /></th> }
+                    @if (On("exam.ps")) { <th><input class="hdr-filter-in" value="@FilterOf("ps")" @oninput='e => SetFilter("ps", e.Value?.ToString())' /></th> }
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in VisibleRows)
+            {
+                <tr>
+                    @if (On("exam.id")) { <td>@row.ID</td> }
+                    @if (On("exam.name")) { <td class="is-name">@row.Name</td> }
+                    @if (On("exam.roll")) { <td>@row.RollNo</td> }
+                    @if (On("exam.subjectsMarks"))
+                    {
+                        <td class="subs-cell">
+                            <div class="exam-merit-inner">
+                                @foreach (var mark in row.Marks)
+                                {
+                                    var fail = mark.PassStatus is "F" or "Fail";
+                                    <div class="exam-merit-sub @(fail ? "is-fail" : null) @(mark.SubjectType == "Optional" ? "is-opt" : null)">
+                                        <b>@mark.Name</b>
+                                        <b>@mark.Mark</b>
+                                    </div>
+                                }
+                            </div>
+                        </td>
+                    }
+                    @if (On("exam.total")) { <td>@row.Total.ToString("n2")</td> }
+                    @if (On("exam.grade")) { <td>@((MarkupString)row.Grade)</td> }
+                    @if (On("exam.point")) { <td>@row.Point.ToString("0.00")</td> }
+                    @if (On("exam.avg")) { <td>@row.Average</td> }
+                    @if (On("exam.pc")) { <td class="@MeritCss(row.PositionClass)">@MeritLabel(row.PositionClass)</td> }
+                    @if (On("exam.ps")) { <td class="@MeritCss(row.PositionSection)">@MeritLabel(row.PositionSection)</td> }
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else if (!busy && examId > 0)
+    {
+        <p class="empty-row">@Locale.T("exam.empty")</p>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingMerit")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("exam.failed")</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly string[] columns = ["exam.id", "exam.name", "exam.roll", "exam.subjectsMarks", "exam.total", "exam.grade", "exam.point", "exam.avg", "exam.pc", "exam.ps"];
+    private readonly HashSet<string> hidden = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> colFilters = new(StringComparer.OrdinalIgnoreCase);
+    private ExamFilterDto filters = new();
+    private ExamMeritListDto sheet = new();
+    private int classId, examId;
+    private string groupId = "0", sectionId = "0", shiftId = "0", passStatus = AllStatus;
+    private const string AllStatus = "%";
+    private const string PassStatus = "P";
+    private const string FailStatus = "F";
+    private string? sortCol;
+    private bool sortAsc = true;
+    private bool busy;
+    private string? popupText;
+
+    private IEnumerable<ExamMeritRowDto> VisibleRows
+    {
+        get
+        {
+            IEnumerable<ExamMeritRowDto> rows = sheet.Rows.Where(RowMatches);
+            if (string.IsNullOrEmpty(sortCol)) return rows;
+            return sortCol switch
+            {
+                "id" => Order(rows, r => r.ID),
+                "name" => Order(rows, r => r.Name),
+                "roll" => Order(rows, r => ParseNum(r.RollNo)),
+                "subs" => Order(rows, r => string.Join(" ", r.Marks.Select(m => m.Mark))),
+                "total" => Order(rows, r => r.Total),
+                "grade" => Order(rows, r => StripTags(r.Grade)),
+                "point" => Order(rows, r => r.Point),
+                "avg" => Order(rows, r => ParseNum(r.Average)),
+                "pc" => Order(rows, r => RankOf(r.PositionClass)),
+                "ps" => Order(rows, r => RankOf(r.PositionSection)),
+                _ => rows
+            };
+        }
+    }
+
+    private string ReportTitle
+    {
+        get
+        {
+            var className = filters.Classes.FirstOrDefault(item => item.Id == classId)?.Name ?? "";
+            var examName = filters.Exams.FirstOrDefault(item => item.Id == examId)?.Name ?? "";
+            if (string.IsNullOrWhiteSpace(className) || string.IsNullOrWhiteSpace(examName))
+            {
+                var parts = (sheet.Title ?? "").Split(" - ", 2);
+                if (parts.Length == 2)
+                {
+                    if (string.IsNullOrWhiteSpace(className)) className = parts[0];
+                    if (string.IsNullOrWhiteSpace(examName)) examName = parts[1];
+                }
+            }
+            return Locale.T("exam.meritListOf", examName, className);
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadFiltersAsync();
+
+    private async Task LoadFiltersAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "result", classId, examId, groupId, sectionId, shiftId); }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task OnClassAsync()
+    {
+        examId = 0; groupId = "0"; sectionId = "0"; shiftId = "0"; sheet = new(); colFilters.Clear(); sortCol = null;
+        await LoadFiltersAsync();
+    }
+
+    private async Task LoadJoinAsync()
+    {
+        await LoadFiltersAsync();
+        await LoadAsync();
+    }
+
+    private Task SetStatus(string value)
+    {
+        passStatus = value;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        sheet = new();
+        colFilters.Clear();
+        sortCol = null;
+        if (classId <= 0 || examId <= 0) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "result", classId, examId, groupId, sectionId, shiftId);
+            sheet = await Api.GetExamMeritAsync(Session.AccessToken!, classId, examId, groupId, sectionId, shiftId, passStatus);
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private bool On(string key) => !hidden.Contains(key);
+    private void Toggle(string key) { if (!hidden.Add(key)) hidden.Remove(key); }
+    private string FilterOf(string key) => colFilters.TryGetValue(key, out var value) ? value : "";
+    private void SetFilter(string key, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) colFilters.Remove(key);
+        else colFilters[key] = value.Trim();
+    }
+    private void SortBy(string key)
+    {
+        if (string.Equals(sortCol, key, StringComparison.OrdinalIgnoreCase)) sortAsc = !sortAsc;
+        else { sortCol = key; sortAsc = true; }
+    }
+    private string SortMark(string key) =>
+        string.Equals(sortCol, key, StringComparison.OrdinalIgnoreCase) ? (sortAsc ? " ▲" : " ▼") : "";
+    private IOrderedEnumerable<ExamMeritRowDto> Order<T>(IEnumerable<ExamMeritRowDto> rows, Func<ExamMeritRowDto, T> key) =>
+        sortAsc ? rows.OrderBy(key) : rows.OrderByDescending(key);
+    private bool RowMatches(ExamMeritRowDto row)
+    {
+        if (colFilters.Count == 0) return true;
+        foreach (var (key, query) in colFilters)
+        {
+            var hit = key switch
+            {
+                "id" => Hit(row.ID, query),
+                "roll" => Hit(row.RollNo, query),
+                "name" => Hit(row.Name, query),
+                "subs" => row.Marks.Any(m => Hit(m.Name, query) || Hit(m.Mark, query)),
+                "total" => Hit(row.Total.ToString("n2"), query) || Hit(row.Total.ToString("0.##"), query),
+                "avg" => Hit(row.Average, query),
+                "grade" => Hit(StripTags(row.Grade), query),
+                "point" => Hit(row.Point.ToString("0.00"), query),
+                "pc" => Hit(row.PositionClass, query) || Hit(MeritLabel(row.PositionClass), query),
+                "ps" => Hit(row.PositionSection, query) || Hit(MeritLabel(row.PositionSection), query),
+                _ => true
+            };
+            if (!hit) return false;
+        }
+        return true;
+    }
+    private static bool Hit(string? value, string query)
+    {
+        var text = value ?? "";
+        if (text.Contains(query, StringComparison.OrdinalIgnoreCase)) return true;
+        return Digits(text).Contains(Digits(query), StringComparison.OrdinalIgnoreCase);
+    }
+    private static string Digits(string text)
+    {
+        var chars = text.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] is >= '\u09E6' and <= '\u09EF')
+                chars[i] = (char)('0' + (chars[i] - '\u09E6'));
+        }
+        return new string(chars);
+    }
+    private static string StripTags(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return "";
+        var text = html;
+        while (true)
+        {
+            var start = text.IndexOf('<');
+            var end = text.IndexOf('>');
+            if (start < 0 || end <= start) break;
+            text = text.Remove(start, end - start + 1);
+        }
+        return text.Trim();
+    }
+    private static double ParseNum(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return 0;
+        var digits = Digits(text).Replace(",", "");
+        var buf = new System.Text.StringBuilder();
+        foreach (var c in digits)
+        {
+            if (c is >= '0' and <= '9' or '.' or '-') buf.Append(c);
+        }
+        return double.TryParse(buf.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : 0;
+    }
+    private string MeritLabel(string? raw)
+    {
+        var n = RankOf(raw);
+        var bn = Locale.IsBengali;
+        if (n == 1) return bn ? "১ম" : "1st";
+        if (n == 2) return bn ? "২য়" : "2nd";
+        if (n == 3) return bn ? "৩য়" : "3rd";
+        return string.IsNullOrWhiteSpace(raw) ? "-" : raw;
+    }
+    private static string? MeritCss(string? raw) => RankOf(raw) switch
+    {
+        1 => "is-first",
+        2 => "is-second",
+        3 => "is-third",
+        _ => null
+    };
+    private static int RankOf(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return 0;
+        var digits = new System.Text.StringBuilder();
+        foreach (var c in raw)
+        {
+            if (c is >= '0' and <= '9') digits.Append(c);
+            else if (c is >= '\u09E6' and <= '\u09EF') digits.Append((char)('0' + (c - '\u09E6')));
+        }
+        return int.TryParse(digits.ToString(), out var n) ? n : 0;
+    }
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintLandscape").AsTask();
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            popupText = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

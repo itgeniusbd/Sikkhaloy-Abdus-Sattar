@@ -11,6 +11,11 @@ using Sikkhaloy.Shared.Exam;
 using Sikkhaloy.Shared.Institution;
 using Sikkhaloy.Shared.Menu;
 using Sikkhaloy.Shared.Students;
+using Sikkhaloy.Shared.Routine;
+using Sikkhaloy.Shared.Committee;
+using Sikkhaloy.Shared.Invoice;
+using Sikkhaloy.Shared.Sms;
+using Sikkhaloy.Shared.Authority;
 using Sikkhaloy.Shared.Subjects;
 using Sikkhaloy.Shared.Sync;
 using Sikkhaloy.SyncApi.Services;
@@ -42,6 +47,14 @@ public sealed class SyncController : ControllerBase
     private readonly PaymentSmsService _sms;
     private readonly ExamService _exams;
     private readonly DashboardService _dashboard;
+    private readonly SmsOfficeService _officeSms;
+    private readonly RoutineService _routines;
+    private readonly CommitteeService _committee;
+    private readonly PlatformInvoiceService _invoice;
+    private readonly AuthorityService _authority;
+    private readonly AuthorityBasicService _authorityBasic;
+    private readonly AuthorityInvoiceService _authorityInvoice;
+    private readonly AuthorityAdminService _authorityAdmin;
 
     public SyncController(
         StudentSyncService students,
@@ -63,7 +76,15 @@ public sealed class SyncController : ControllerBase
         ReportsService reports,
         PaymentSmsService sms,
         ExamService exams,
-        DashboardService dashboard)
+        DashboardService dashboard,
+        SmsOfficeService officeSms,
+        RoutineService routines,
+        CommitteeService committee,
+        PlatformInvoiceService invoice,
+        AuthorityService authority,
+        AuthorityBasicService authorityBasic,
+        AuthorityInvoiceService authorityInvoice,
+        AuthorityAdminService authorityAdmin)
     {
         _students = students;
         _masters = masters;
@@ -85,6 +106,14 @@ public sealed class SyncController : ControllerBase
         _sms = sms;
         _exams = exams;
         _dashboard = dashboard;
+        _officeSms = officeSms;
+        _routines = routines;
+        _committee = committee;
+        _invoice = invoice;
+        _authority = authority;
+        _authorityBasic = authorityBasic;
+        _authorityInvoice = authorityInvoice;
+        _authorityAdmin = authorityAdmin;
     }
 
     [HttpPost("push")]
@@ -2025,5 +2054,1246 @@ public sealed class SyncController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _exams.SaveControlAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("exam/publish")]
+    public async Task<ActionResult<ExamPublishSettingDto>> ExamPublishSetting(int classId, int examId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetPublishSettingAsync(session, classId, examId, cancellationToken));
+    }
+
+    [HttpPost("exam/publish")]
+    public async Task<ActionResult<ExamResult>> ExamPublish([FromBody] ExamPublishRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.PublishResultAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("exam/delete-result")]
+    public async Task<ActionResult<ExamResult>> ExamDeleteResult([FromBody] ExamDeleteResultRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.DeletePublishedResultAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("exam/merit")]
+    public async Task<ActionResult<ExamMeritListDto>> ExamMerit(int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? passStatus, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetMeritListAsync(session, classId, examId, groupId, sectionId, shiftId, passStatus, cancellationToken));
+    }
+
+    [HttpGet("exam/merit-subject")]
+    public async Task<ActionResult<ExamMeritListDto>> ExamMeritSubject(int classId, int examId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetMeritSubjectAsync(session, classId, examId, subjectId, groupId, sectionId, shiftId, cancellationToken));
+    }
+
+    [HttpGet("exam/result-cards")]
+    public async Task<ActionResult<ExamResultCardSheetDto>> ExamResultCards(int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetResultCardsAsync(session, classId, examId, groupId, sectionId, shiftId, studentIds, cancellationToken));
+    }
+
+    [HttpGet("exam/analytical")]
+    public async Task<ActionResult<ExamAnalyticalDto>> ExamAnalytical(int classId, int examId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetAnalyticalAsync(session, classId, examId, cancellationToken));
+    }
+
+    [HttpGet("exam/cumulative/names")]
+    public async Task<ActionResult<IReadOnlyList<ExamOptionDto>>> ExamCumulativeNames(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.ListCumulativeNamesAsync(session, cancellationToken));
+    }
+
+    [HttpPost("exam/cumulative/names")]
+    public async Task<ActionResult<ExamResult>> ExamCreateCumulativeName([FromBody] SaveCumulativeNameRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.CreateCumulativeNameAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("exam/cumulative/names/{id:int}")]
+    public async Task<ActionResult<ExamResult>> ExamUpdateCumulativeName(int id, [FromBody] SaveCumulativeNameRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.UpdateCumulativeNameAsync(session, id, request, cancellationToken));
+    }
+
+    [HttpGet("exam/cumulative/publish")]
+    public async Task<ActionResult<CumulativePublishSettingDto>> ExamCumulativePublishSetting(int classId, int examId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetCumulativePublishSettingAsync(session, classId, examId, cancellationToken));
+    }
+
+    [HttpPost("exam/cumulative/publish")]
+    public async Task<ActionResult<ExamResult>> ExamCumulativePublish([FromBody] CumulativePublishRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.PublishCumulativeResultAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("exam/cumulative/merit")]
+    public async Task<ActionResult<ExamMeritListDto>> ExamCumulativeMerit(int classId, int examId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetCumulativeMeritAsync(session, classId, examId, groupId, sectionId, shiftId, cancellationToken));
+    }
+
+    [HttpGet("exam/cumulative/result-cards")]
+    public async Task<ActionResult<CumulativeResultCardSheetDto>> ExamCumulativeResultCards(int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetCumulativeResultCardsAsync(session, classId, examId, groupId, sectionId, shiftId, studentIds, cancellationToken));
+    }
+
+    [HttpGet("exam/seat-plan")]
+    public async Task<ActionResult<ExamSeatPlanSheetDto>> ExamSeatPlan(int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? classIds, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetSeatPlanAsync(session, classId, examId, groupId, sectionId, shiftId, studentIds, classIds, cancellationToken));
+    }
+
+    [HttpPost("exam/seat-plan/random")]
+    public async Task<ActionResult<ExamResult>> ExamSeatPlanRandom([FromBody] RandomSeatRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.RandomizeSeatNumbersAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("exam/admit-cards")]
+    public async Task<ActionResult<ExamAdmitCardSheetDto>> ExamAdmitCards(int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? paymentStatus, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.GetAdmitCardsAsync(session, classId, examId, groupId, sectionId, shiftId, studentIds, paymentStatus, cancellationToken));
+    }
+
+    [HttpPost("exam/admit-sign")]
+    public async Task<ActionResult<ExamResult>> ExamAdmitSign([FromBody] SaveExamSignRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _exams.SaveExamSignAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("sms/balance")]
+    public async Task<ActionResult<SmsBalanceDto>> SmsBalance(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.GetBalanceAsync(session, cancellationToken));
+    }
+
+    [HttpGet("sms/students")]
+    public async Task<ActionResult<IReadOnlyList<SmsStudentDto>>> SmsStudents(
+        int classId, int groupId, int sectionId, int shiftId, string? ids, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.GetStudentsAsync(session, classId, groupId, sectionId, shiftId, ids, cancellationToken));
+    }
+
+    [HttpGet("sms/teachers")]
+    public async Task<ActionResult<IReadOnlyList<SmsTeacherDto>>> SmsTeachers(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.GetTeachersAsync(session, cancellationToken));
+    }
+
+    [HttpPost("sms/send")]
+    public async Task<ActionResult<SmsResult>> SmsSend([FromBody] SendOfficeSmsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.SendAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("sms/groups")]
+    public async Task<ActionResult<IReadOnlyList<SmsGroupDto>>> SmsGroups(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.GetGroupsAsync(session, cancellationToken));
+    }
+
+    [HttpPost("sms/groups")]
+    public async Task<ActionResult<SmsResult>> SmsSaveGroup([FromBody] SaveSmsGroupRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.SaveGroupAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("sms/groups/{id:int}/delete")]
+    public async Task<ActionResult<SmsResult>> SmsDeleteGroup(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.DeleteGroupAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("sms/contacts")]
+    public async Task<ActionResult<IReadOnlyList<SmsContactDto>>> SmsContacts(int groupId, string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.GetContactsAsync(session, groupId, q, cancellationToken));
+    }
+
+    [HttpPost("sms/contacts")]
+    public async Task<ActionResult<SmsResult>> SmsSaveContact([FromBody] SaveSmsContactRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.SaveContactAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("sms/contacts/{id:int}/delete")]
+    public async Task<ActionResult<SmsResult>> SmsDeleteContact(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.DeleteContactAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("sms/records")]
+    public async Task<ActionResult<SmsRecordsDto>> SmsRecords(DateTime? from, DateTime? to, string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.GetRecordsAsync(session, from, to, q, cancellationToken));
+    }
+
+    [HttpGet("sms/recharge")]
+    public async Task<ActionResult<SmsRechargePageDto>> SmsRecharge(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.GetRechargeAsync(session, cancellationToken));
+    }
+
+    [HttpPost("sms/recharge")]
+    public async Task<ActionResult<SmsResult>> SmsStartRecharge([FromBody] SmsRechargeRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.StartRechargeAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("routine/names")]
+    public async Task<ActionResult<IReadOnlyList<RoutineNameDto>>> RoutineNames(bool unusedOnly, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.GetNamesAsync(session, unusedOnly, cancellationToken));
+    }
+
+    [HttpPost("routine/names")]
+    public async Task<ActionResult<RoutineResult>> RoutineSaveName([FromBody] SaveRoutineNameRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.SaveNameAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("routine/names/{id:int}/delete")]
+    public async Task<ActionResult<RoutineResult>> RoutineDeleteName(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.DeleteNameAsync(session, id, cancellationToken));
+    }
+
+    [HttpPost("routine/create")]
+    public async Task<ActionResult<RoutineResult>> RoutineCreate([FromBody] CreateClassRoutineRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.CreateAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("routine/assign")]
+    public async Task<ActionResult<ClassRoutineSheetDto>> RoutineAssign(
+        int classId, int groupId, int sectionId, int shiftId, int routineInfoId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.GetAssignSheetAsync(session, classId, groupId, sectionId, shiftId, routineInfoId, cancellationToken));
+    }
+
+    [HttpGet("routine/teachers")]
+    public async Task<ActionResult<IReadOnlyList<RoutineOptionDto>>> RoutineTeachers(
+        int classId, int subjectId, string day, string start, string end, int exceptRoutineInfoId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.GetTeachersAsync(session, classId, subjectId, day ?? "", start ?? "", end ?? "", exceptRoutineInfoId, cancellationToken));
+    }
+
+    [HttpPost("routine/assign")]
+    public async Task<ActionResult<RoutineResult>> RoutineAssignSave([FromBody] AssignRoutineRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.AssignAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("routine/view")]
+    public async Task<ActionResult<ClassRoutineSheetDto>> RoutineView(
+        int classId, int groupId, int sectionId, int shiftId, int routineInfoId, bool edit, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.GetViewSheetAsync(session, classId, groupId, sectionId, shiftId, routineInfoId, edit, cancellationToken));
+    }
+
+    [HttpPost("routine/update")]
+    public async Task<ActionResult<RoutineResult>> RoutineUpdate([FromBody] AssignRoutineRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.UpdateAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("routine/delete-class")]
+    public async Task<ActionResult<RoutineResult>> RoutineDeleteClass([FromBody] AssignRoutineRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.DeleteClassRoutineAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("routine/exam")]
+    public async Task<ActionResult<ExamRoutineSheetDto>> RoutineExam(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.GetExamAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("routine/exam/subjects")]
+    public async Task<ActionResult<IReadOnlyList<RoutineOptionDto>>> RoutineExamSubjects(int classId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.GetExamSubjectsAsync(session, classId, cancellationToken));
+    }
+
+    [HttpPost("routine/exam")]
+    public async Task<ActionResult<RoutineResult>> RoutineExamSave([FromBody] SaveExamRoutineRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.SaveExamAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("routine/exam/{id:int}/delete")]
+    public async Task<ActionResult<RoutineResult>> RoutineExamDelete(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _routines.DeleteExamAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("committee/lookups")]
+    public async Task<ActionResult<CommitteeLookupsDto>> CommitteeLookups(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetLookupsAsync(session, cancellationToken));
+    }
+
+    [HttpGet("committee/types")]
+    public async Task<ActionResult<IReadOnlyList<CommitteeMemberTypeDto>>> CommitteeTypes(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetMemberTypesAsync(session, cancellationToken));
+    }
+
+    [HttpPost("committee/types")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeSaveType([FromBody] SaveCommitteeMemberTypeRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SaveMemberTypeAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("committee/types/{id:int}/delete")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeDeleteType(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.DeleteMemberTypeAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("committee/members")]
+    public async Task<ActionResult<IReadOnlyList<CommitteeMemberDto>>> CommitteeMembers(int typeId, string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetMembersAsync(session, typeId, q, cancellationToken));
+    }
+
+    [HttpPost("committee/members")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeSaveMember([FromBody] SaveCommitteeMemberRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SaveMemberAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("committee/categories")]
+    public async Task<ActionResult<IReadOnlyList<DonationCategoryDto>>> CommitteeCategories(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetCategoriesAsync(session, cancellationToken));
+    }
+
+    [HttpPost("committee/categories")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeSaveCategory([FromBody] SaveDonationCategoryRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SaveCategoryAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("committee/categories/{id:int}/delete")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeDeleteCategory(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.DeleteCategoryAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("committee/donors")]
+    public async Task<ActionResult<IReadOnlyList<DonorSuggestDto>>> CommitteeDonors(string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SuggestDonorsAsync(session, q, cancellationToken));
+    }
+
+    [HttpPost("committee/donations")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeAddDonation([FromBody] AddDonationRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.AddDonationAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("committee/donations")]
+    public async Task<ActionResult<DonationListDto>> CommitteeDonations(int memberId, int categoryId, string? paid, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonationsAsync(session, memberId, categoryId, paid, cancellationToken));
+    }
+
+    [HttpPost("committee/donations/update")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeUpdateDonation([FromBody] UpdateDonationRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.UpdateDonationAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("committee/donations/{id:int}/delete")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeDeleteDonation(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.DeleteDonationAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("committee/collect")]
+    public async Task<ActionResult<CollectPageDto>> CommitteeCollect(int memberId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetCollectAsync(session, memberId, cancellationToken));
+    }
+
+    [HttpPost("committee/collect")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeCollectSave([FromBody] CollectDonationRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.CollectAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("committee/payments")]
+    public async Task<ActionResult<PaymentRecordListDto>> CommitteePayments(
+        int yearId, int categoryId, int memberId, DateTime? from, DateTime? to, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetPaymentsAsync(session, yearId, categoryId, memberId, from, to, cancellationToken));
+    }
+
+    [HttpGet("committee/unpaid")]
+    public async Task<ActionResult<UnpaidReceiptDto>> CommitteeUnpaid(string? sn, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetUnpaidAsync(session, sn, cancellationToken));
+    }
+
+    [HttpPost("committee/unpaid")]
+    public async Task<ActionResult<CommitteeResult>> CommitteeUnpaidSave([FromBody] UnpaidReceiptRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.UnpaidAsync(session, request?.Sn, cancellationToken));
+    }
+
+    [HttpGet("committee/receipt/{id:int}")]
+    public async Task<ActionResult<DonationReceiptDto>> CommitteeReceipt(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        var dto = await _committee.GetReceiptAsync(session, id, cancellationToken);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpGet("invoice/status")]
+    public async Task<ActionResult<SubscriptionStatusDto>> InvoiceStatus(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _invoice.GetStatusAsync(session, cancellationToken));
+    }
+
+    [HttpGet("invoice/due")]
+    public async Task<ActionResult<DueInvoiceDto>> InvoiceDue(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _invoice.GetDueAsync(session, cancellationToken));
+    }
+
+    [HttpPost("invoice/pay")]
+    public async Task<ActionResult<InvoiceResult>> InvoicePay(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _invoice.PayDueAsync(session, cancellationToken));
+    }
+
+    [HttpGet("invoice/paid")]
+    public async Task<ActionResult<PaidInvoiceListDto>> InvoicePaid(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _invoice.GetPaidAsync(session, cancellationToken));
+    }
+
+    [HttpGet("invoice/receipt/{id:int}")]
+    public async Task<ActionResult<PaidInvoiceReceiptDto>> InvoiceReceipt(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _invoice.GetReceiptAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("authority/dashboard")]
+    public async Task<ActionResult<AuthorityDashboardDto>> AuthorityDashboard(
+        [FromQuery] string? q,
+        [FromQuery] string? validation,
+        [FromQuery] string? live,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        if (!session.IsAuthority)
+            return Forbid();
+        return Ok(await _authority.GetDashboardAsync(session, cancellationToken));
+    }
+
+    [HttpGet("authority/institutions")]
+    public async Task<ActionResult<AuthorityDashboardDto>> AuthorityInstitutions(
+        [FromQuery] string? q,
+        [FromQuery] string? validation,
+        [FromQuery] string? live,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        if (!session.IsAuthority)
+            return Forbid();
+        return Ok(await _authority.GetInstitutionsAsync(session, q, validation, live, from, to, cancellationToken));
+    }
+
+    [HttpGet("authority/institutions/{id:int}")]
+    public async Task<ActionResult<InstitutionDetailsDto>> AuthorityInstitutionDetails(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        if (!session.IsAuthority)
+            return Forbid();
+        return Ok(await _authority.GetInstitutionDetailsAsync(session, id, cancellationToken));
+    }
+
+    [HttpPost("authority/institutions/years")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveYears([FromBody] SaveInstitutionYearsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        if (!session.IsAuthority)
+            return Forbid();
+        return Ok(await _authority.SaveInstitutionYearsAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/institutions/sms-recharge")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityInstSmsRecharge(
+        [FromBody] InstSmsRechargeRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.RechargeInstitutionSmsAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/institutions/due-notice")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityInstDueNotice(
+        [FromBody] InstDueNoticeRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.SaveDueNoticeAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/institutions/{id:int}/student")]
+    public async Task<ActionResult<InstStudentFindDto>> AuthorityInstStudent(int id, [FromQuery] string? q, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.FindStudentAsync(session, id, q, cancellationToken));
+    }
+
+    [HttpPost("authority/institutions/delete-student")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityInstDeleteStudent(
+        [FromBody] InstIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.DeleteStudentIdAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/institutions/change-student-id")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityInstChangeId(
+        [FromBody] InstChangeIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.ChangeStudentIdAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/institutions/{id:int}/receipt")]
+    public async Task<ActionResult<InstReceiptDto>> AuthorityInstReceipt(int id, [FromQuery] string? sn, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.FindReceiptAsync(session, id, sn, cancellationToken));
+    }
+
+    [HttpPost("authority/institutions/delete-receipt")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityInstDeleteReceipt(
+        [FromBody] InstReceiptRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.DeleteReceiptAsync(session, request, cancellationToken));
+    }
+
+    private ActionResult? AuthorityOrForbid(out SessionSnapshot session)
+    {
+        session = JwtTokenService.FromPrincipal(User);
+        return session.IsAuthority ? null : Forbid();
+    }
+
+    [HttpGet("authority/signup/lookups")]
+    public async Task<ActionResult<SignupLookupsDto>> AuthoritySignupLookups(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetSignupLookupsAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/signup/user")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySignupUser(
+        [FromBody] SignupUserRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.CreateSignupUserAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/signup/institution")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySignupInstitution(
+        [FromBody] SignupInstitutionRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.CreateInstitutionAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/user-info")]
+    public async Task<ActionResult<UserInfoListDto>> AuthorityUserInfo(
+        [FromQuery] string? q, [FromQuery] string? validation, [FromQuery] string? password, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetUserInfoAsync(session, q, validation, password, cancellationToken));
+    }
+
+    [HttpGet("authority/user-info/users")]
+    public async Task<ActionResult<IReadOnlyList<SchoolUserDto>>> AuthoritySchoolUsers(
+        [FromQuery] int schoolId, [FromQuery] string? category, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetSchoolUsersAsync(session, schoolId, category, cancellationToken));
+    }
+
+    [HttpPost("authority/user-info/approve")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityApprove(
+        [FromBody] SetApprovedRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SetApprovedAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/user-info/unlock")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityUnlock(
+        [FromBody] UnlockUserRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.UnlockUserAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/testimonials")]
+    public async Task<ActionResult<IReadOnlyList<TestimonialRowDto>>> AuthorityTestimonials(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetTestimonialsAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/testimonials")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveTestimonial(
+        [FromBody] SaveTestimonialRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SaveTestimonialAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/testimonials/show")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityShowTestimonial(
+        [FromBody] SetTestimonialShowRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SetTestimonialShowAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/reset/schools")]
+    public async Task<ActionResult<IReadOnlyList<ResetSchoolOptionDto>>> AuthorityResetSchools(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetResetSchoolsAsync(session, cancellationToken));
+    }
+
+    [HttpGet("authority/reset/years")]
+    public async Task<ActionResult<IReadOnlyList<ResetYearOptionDto>>> AuthorityResetYears(
+        [FromQuery] int schoolId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetResetYearsAsync(session, schoolId, cancellationToken));
+    }
+
+    [HttpGet("authority/reset/preview")]
+    public async Task<ActionResult<ResetPreviewDto>> AuthorityResetPreview(
+        [FromQuery] int schoolId, [FromQuery] string? mode, [FromQuery] int educationYearId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.PreviewResetAsync(session, schoolId, mode ?? "", educationYearId, cancellationToken));
+    }
+
+    [HttpGet("authority/reset/progress")]
+    public async Task<ActionResult<ResetProgressDto>> AuthorityResetProgress(
+        [FromQuery] int schoolId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetResetProgressAsync(session, schoolId, cancellationToken));
+    }
+
+    [HttpPost("authority/reset/execute")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityResetExecute(
+        [FromBody] ResetExecuteRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.StartResetAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/reset/image-preview")]
+    public async Task<ActionResult<ResetPreviewDto>> AuthorityResetImagePreview(
+        [FromQuery] int schoolId, [FromQuery] string? yearIds, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.PreviewResetImagesAsync(session, schoolId, ParseIds(yearIds), cancellationToken));
+    }
+
+    [HttpPost("authority/reset/delete-images")]
+    public async Task<ActionResult<ResetPreviewDto>> AuthorityResetDeleteImages(
+        [FromBody] ResetImageRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.DeleteResetImagesAsync(session, request, cancellationToken));
+    }
+
+    private static List<int> ParseIds(string? raw)
+    {
+        var ids = new List<int>();
+        if (string.IsNullOrWhiteSpace(raw))
+            return ids;
+        foreach (var part in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (int.TryParse(part, out var id) && id > 0)
+                ids.Add(id);
+        }
+        return ids;
+    }
+
+    [HttpGet("authority/attendance")]
+    public async Task<ActionResult<AttSignupPageDto>> AuthorityAttendance(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetAttendanceSignupAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/attendance/register")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityAttendanceRegister(
+        [FromBody] AttRegisterRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.RegisterAttendanceAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/attendance/password")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityAttendancePassword(
+        [FromBody] AttPasswordRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SetAttendancePasswordAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/attendance/active")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityAttendanceActive(
+        [FromBody] AttActiveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SetAttendanceActiveAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/sms-setting")]
+    public async Task<ActionResult<SmsSettingPageDto>> AuthoritySmsSetting(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetSmsSettingAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/sms-setting")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveSmsSetting(
+        [FromBody] SaveSmsSettingRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SaveSmsSettingAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/sms-setting/records")]
+    public async Task<ActionResult<IReadOnlyList<SmsSenderRowDto>>> AuthoritySmsRecords(
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetSmsSenderRecordsAsync(session, from, to, cancellationToken));
+    }
+
+    [HttpGet("authority/sms-setting/failed")]
+    public async Task<ActionResult<SmsFailedPageDto>> AuthoritySmsFailed(
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string? reason, [FromQuery] int schoolId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetFailedSmsAsync(session, from, to, reason, schoolId, cancellationToken));
+    }
+
+    [HttpGet("authority/client-sms")]
+    public async Task<ActionResult<ClientSmsPageDto>> AuthorityClientSms(
+        [FromQuery] string? q, [FromQuery] string? validation, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetClientSmsAsync(session, q, validation, cancellationToken));
+    }
+
+    [HttpPost("authority/client-sms")]
+    public async Task<ActionResult<SendClientSmsResult>> AuthoritySendClientSms(
+        [FromBody] SendClientSmsRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SendClientSmsAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/accounts")]
+    public async Task<ActionResult<AuthAccountsPageDto>> AuthorityAccounts(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetAccountsAsync(session, cancellationToken));
+    }
+
+    [HttpGet("authority/progress")]
+    public async Task<ActionResult<AuthProgressPageDto>> AuthorityProgress([FromQuery] string? filter, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetProgressAsync(session, filter, cancellationToken));
+    }
+
+    [HttpGet("authority/collection")]
+    public async Task<ActionResult<AuthCollectPageDto>> AuthorityCollection(
+        [FromQuery] int categoryId, [FromQuery] string? month, [FromQuery] string? detail, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetCollectAsync(session, categoryId, month, detail, cancellationToken));
+    }
+
+    [HttpGet("authority/manage")]
+    public async Task<ActionResult<AuthManagePageDto>> AuthorityManage(
+        [FromQuery] string? q, [FromQuery] string? validation, [FromQuery] string? payment, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetManageAsync(session, q, validation, payment, cancellationToken));
+    }
+
+    [HttpPost("authority/manage")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveManage(
+        [FromBody] AuthManageSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.SaveManageAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/invoice/create")]
+    public async Task<ActionResult<AuthCreatePageDto>> AuthorityCreatePage(
+        [FromQuery] string? month, [FromQuery] int otherSchoolId, [FromQuery] string? smsFrom, [FromQuery] string? smsTo, [FromQuery] string? smsQ, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetCreatePageAsync(session, month, otherSchoolId, smsFrom, smsTo, smsQ, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/generate-count")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityGenerateCount(
+        [FromBody] AuthGenerateCountRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GenerateStudentCountAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/auto-generate")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityAutoGenerate(
+        [FromBody] AuthGenerateCountRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.AutoGenerateAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/enable-job")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityEnableJob(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.EnableJobAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/service")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityCreateService(
+        [FromBody] AuthCreateServiceRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.CreateServiceInvoicesAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/category")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityAddCategory(
+        [FromBody] AuthAddCategoryRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.AddCategoryAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/other")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityCreateOther(
+        [FromBody] AuthCreateOtherRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.CreateOtherInvoiceAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/other/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeleteOther(
+        [FromBody] AuthIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.DeleteOtherInvoiceAsync(session, request?.Id ?? 0, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/grace")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySetGrace(
+        [FromBody] AuthGraceRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.SetGraceAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/grace/clear")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityClearGrace(
+        [FromBody] AuthGraceRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.ClearGraceAsync(session, request?.SchoolID ?? 0, cancellationToken));
+    }
+
+    [HttpGet("authority/invoice/paid")]
+    public async Task<ActionResult<AuthPaidPageDto>> AuthorityPaidPage([FromQuery] int schoolId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetPaidPageAsync(session, schoolId, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/pay")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityPay(
+        [FromBody] AuthPayInvoiceRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.PayInvoicesAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/invoice/print")]
+    public async Task<ActionResult<AuthPrintPageDto>> AuthorityPrintPage([FromQuery] int schoolId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetPrintPageAsync(session, schoolId, cancellationToken));
+    }
+
+    [HttpPost("authority/invoice/print/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeletePrintInvoice(
+        [FromBody] AuthIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.DeleteUnpaidInvoiceAsync(session, request?.Id ?? 0, cancellationToken));
+    }
+
+    [HttpGet("authority/invoice/print/pay")]
+    public async Task<ActionResult<AuthPayPrintDto>> AuthorityPayPrint(
+        [FromQuery] int schoolId, [FromQuery] string? ids, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetPayPrintAsync(session, schoolId, ids, cancellationToken));
+    }
+
+    [HttpGet("authority/invoice/print/receipt")]
+    public async Task<ActionResult<AuthReceiptPrintDto>> AuthorityReceiptPrint(
+        [FromQuery] int receiptId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetReceiptPrintAsync(session, receiptId, cancellationToken));
+    }
+
+    [HttpGet("authority/online-pay")]
+    public async Task<ActionResult<AuthOnlinePayPageDto>> AuthorityOnlinePay(
+        [FromQuery] string? type, [FromQuery] int schoolId, [FromQuery] string? method,
+        [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityInvoice.GetOnlinePayAsync(session, type, schoolId, method, from, to, cancellationToken));
+    }
+
+    [HttpGet("authority/links")]
+    public async Task<ActionResult<AuthLinkTreeDto>> AuthorityLinks(
+        [FromQuery] int categoryId, [FromQuery] int subId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.GetLinksAsync(session, categoryId, subId, cancellationToken));
+    }
+
+    [HttpPost("authority/links/category")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveCategory(
+        [FromBody] AuthLinkNameSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.SaveCategoryAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/links/category/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeleteCategory(
+        [FromBody] AuthIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.DeleteCategoryAsync(session, request?.Id ?? 0, cancellationToken));
+    }
+
+    [HttpPost("authority/links/sub")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveSub(
+        [FromBody] AuthLinkNameSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.SaveSubAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/links/sub/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeleteSub(
+        [FromBody] AuthIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.DeleteSubAsync(session, request?.Id ?? 0, cancellationToken));
+    }
+
+    [HttpPost("authority/links/page")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySavePage(
+        [FromBody] AuthLinkPageSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.SavePageAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/links/page/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeletePage(
+        [FromBody] AuthIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.DeletePageAsync(session, request?.Id ?? 0, cancellationToken));
+    }
+
+    [HttpGet("authority/roles")]
+    public async Task<ActionResult<AuthRoleListDto>> AuthorityRoles(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.GetRolesAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/roles")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityCreateRole(
+        [FromBody] AuthRoleSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.CreateRoleAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/roles/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeleteRole(
+        [FromBody] AuthRoleSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.DeleteRoleAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/reference")]
+    public async Task<ActionResult<AuthReferralPageDto>> AuthorityReference(
+        [FromQuery] int id, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.GetReferralAsync(session, id, cancellationToken));
+    }
+
+    [HttpPost("authority/reference")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveReferrer(
+        [FromBody] AuthReferrerSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.SaveReferrerAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/reference/schools")]
+    public async Task<ActionResult<AuthSchoolSearchPageDto>> AuthoritySearchSchools(
+        [FromQuery] string? q, [FromQuery] int refId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.SearchSchoolsAsync(session, q, refId, cancellationToken));
+    }
+
+    [HttpPost("authority/reference/assign")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityAssignSchool(
+        [FromBody] AuthAssignSchoolRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.AssignSchoolAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/reference/assign/update")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityUpdateAssign(
+        [FromBody] AuthAssignUpdateRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.UpdateAssignAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/reference/assign/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeleteAssign(
+        [FromBody] AuthIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.DeleteAssignAsync(session, request?.Id ?? 0, cancellationToken));
+    }
+
+    [HttpGet("authority/commission")]
+    public async Task<ActionResult<AuthCommissionPageDto>> AuthorityCommission(
+        [FromQuery] int refId, [FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] string? status, [FromQuery] int detailId, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.GetCommissionAsync(
+            session, refId, from ?? default, to ?? default, status, detailId, cancellationToken));
+    }
+
+    [HttpPost("authority/commission/pay")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityPayCommission(
+        [FromBody] AuthCommissionPayRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.PayCommissionAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/sub-authority")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySignupSub(
+        [FromBody] AuthSubSignupRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.CreateSubAuthorityAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/page-access")]
+    public async Task<ActionResult<AuthAccessPageDto>> AuthorityPageAccess(
+        [FromQuery] string? userName, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.GetPageAccessAsync(session, userName, cancellationToken));
+    }
+
+    [HttpPost("authority/page-access")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySavePageAccess(
+        [FromBody] AuthAccessSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityAdmin.SavePageAccessAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("authority/profile")]
+    public async Task<ActionResult<AuthProfileDto>> AuthorityProfile(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.GetProfileAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/profile")]
+    public async Task<ActionResult<ProfileResult>> AuthoritySaveProfile(
+        [FromBody] AuthProfileDto? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authorityBasic.SaveProfileAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("admin-notices")]
+    public async Task<ActionResult<List<AuthNoticeDto>>> AdminNotices(CancellationToken cancellationToken) =>
+        Ok(await _authority.ListActiveNoticesAsync(cancellationToken));
+
+    [HttpGet("authority/notices")]
+    public async Task<ActionResult<List<AuthNoticeDto>>> AuthorityNotices(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.ListNoticesAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/notices")]
+    public async Task<ActionResult<AuthorityResult>> AuthoritySaveNotice(
+        [FromBody] AuthNoticeSaveRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.SaveNoticeAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/notices/delete")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeleteNotice(
+        [FromBody] AuthNoticeIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.DeleteNoticeAsync(session, request?.Id ?? 0, cancellationToken));
+    }
+
+    [HttpGet("authority/messages/unread")]
+    public async Task<ActionResult<AuthUnreadDto>> AuthorityUnread(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.GetUnreadAsync(session, cancellationToken));
+    }
+
+    [HttpGet("authority/messages")]
+    public async Task<ActionResult<AuthMessagePageDto>> AuthorityMessages(CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.GetMessagesAsync(session, cancellationToken));
+    }
+
+    [HttpPost("authority/messages/read")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityReadMessage(
+        [FromBody] AuthMessageReadRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.MarkMessageReadAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("authority/messages/delete-contact")]
+    public async Task<ActionResult<AuthorityResult>> AuthorityDeleteContact(
+        [FromBody] AuthNoticeIdRequest? request, CancellationToken cancellationToken)
+    {
+        if (AuthorityOrForbid(out var session) is { } deny) return deny;
+        return Ok(await _authority.DeleteContactAsync(session, request?.Id ?? 0, cancellationToken));
     }
 }

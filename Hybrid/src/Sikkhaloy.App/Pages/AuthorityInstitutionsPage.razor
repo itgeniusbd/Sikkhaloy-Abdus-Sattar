@@ -1,0 +1,456 @@
+@page "/authority/institutions"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="ui-page is-inst-list">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.dash")</p>
+        <h1>@Locale.T("auth.m.instList")</h1>
+        <p>@Locale.T("auth.subtitle")</p>
+    </header>
+
+    <section class="ad-filters card">
+        <div class="ad-filter-grid is-inst">
+            <label class="ad-f-search">
+                <span>@Locale.T("auth.search")</span>
+                <input class="ad-search" @bind="search" @bind:event="oninput" @onkeydown="OnSearchKey" placeholder="@Locale.T("auth.searchPh")" />
+            </label>
+            <label class="ad-f-valid">
+                <span>@Locale.T("auth.validation")</span>
+                <select @bind="validation">
+                    <option value="">@Locale.T("auth.allStatus")</option>
+                    <option value="Valid">@Locale.T("auth.valid")</option>
+                    <option value="Invalid">@Locale.T("auth.invalid")</option>
+                </select>
+            </label>
+            <div class="ad-dates">
+                <label>
+                    <span>@Locale.T("auth.from")</span>
+                    <input type="date" @bind="fromText" @bind:format="yyyy-MM-dd" />
+                </label>
+                <label>
+                    <span>@Locale.T("auth.to")</span>
+                    <input type="date" @bind="toText" @bind:format="yyyy-MM-dd" />
+                </label>
+            </div>
+            <div class="ad-filter-actions">
+                <button type="button" class="btn-primary" @onclick="Reload" disabled="@busy">@Locale.T("auth.searchBtn")</button>
+                <button type="button" class="ad-clear" @onclick="ClearAsync" disabled="@busy">@Locale.T("auth.clear")</button>
+                <button type="button" class="an-add" @onclick="OpenNoticeAsync" disabled="@busy">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 10v4h3l7 4V6L7 10H4zm13.5-1.8v7.6A4.2 4.2 0 0 0 17.5 8.2z"/></svg>
+                    @Locale.T("an.add")
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="ad-stats">
+        <button type="button" class="ad-stat is-total @(live == "" && validation == "" ? "is-on" : null)" @onclick='() => FilterSummary("", "")'>
+            <span>@Locale.T("auth.totalFound")</span>
+            <strong>@data.Total.ToString("N0")</strong>
+        </button>
+        <button type="button" class="ad-stat is-valid @(validation == "Valid" ? "is-on" : null)" @onclick='() => FilterSummary("", "Valid")'>
+            <span>@Locale.T("auth.valid")</span>
+            <strong>@data.Valid.ToString("N0")</strong>
+        </button>
+        <button type="button" class="ad-stat is-invalid @(validation == "Invalid" ? "is-on" : null)" @onclick='() => FilterSummary("", "Invalid")'>
+            <span>@Locale.T("auth.invalid")</span>
+            <strong>@data.Invalid.ToString("N0")</strong>
+        </button>
+    </section>
+
+    <section class="ad-live">
+        <p>@Locale.T("auth.live")</p>
+        <div class="ad-chips">
+            <button type="button" class="ad-chip is-all @(live == "" ? "is-on" : null)" @onclick='() => SetLive("")'>
+                <b>@data.AllInstitutions.ToString("N0")</b>
+                <span>@Locale.T("auth.all")</span>
+            </button>
+            <button type="button" class="ad-chip is-active @(live == "LoggedIn" ? "is-on" : null)" @onclick='() => SetLive("LoggedIn")'>
+                <b>@data.Active15m.ToString("N0")</b>
+                <span>@Locale.T("auth.active15")</span>
+            </button>
+            <button type="button" class="ad-chip is-today @(live == "Today" ? "is-on" : null)" @onclick='() => SetLive("Today")'>
+                <b>@data.Today.ToString("N0")</b>
+                <span>@Locale.T("auth.todayChip")</span>
+            </button>
+            <button type="button" class="ad-chip is-hour @(live == "LastHour" ? "is-on" : null)" @onclick='() => SetLive("LastHour")'>
+                <b>@data.LastHour.ToString("N0")</b>
+                <span>@Locale.T("auth.lastHour")</span>
+            </button>
+            <button type="button" class="ad-chip is-now @(live == "LiveNow" ? "is-on" : null)" @onclick='() => SetLive("LiveNow")'>
+                <span class="ad-pulse"></span>
+                <b>@data.Online5m.ToString("N0")</b>
+                <span>@Locale.T("auth.online5")</span>
+            </button>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="error">@message</div>
+    }
+
+    <section class="card ad-table-card">
+        <div class="ad-table-head">
+            <h3>@Locale.T("auth.institutions")</h3>
+            <span>@Locale.T("auth.rows", data.Rows.Count)</span>
+        </div>
+        <div class="ad-table-wrap is-open">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th><button type="button" class="ad-sort @SortClass("id")" @onclick='() => SortBy("id")'>@Locale.T("auth.colId")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("name")" @onclick='() => SortBy("name")'>@Locale.T("auth.colInst")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("user")" @onclick='() => SortBy("user")'>@Locale.T("auth.colUser")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("phone")" @onclick='() => SortBy("phone")'>@Locale.T("auth.colPhone")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("valid")" @onclick='() => SortBy("valid")'>@Locale.T("auth.colValid")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("online")" @onclick='() => SortBy("online")'>@Locale.T("auth.colOnline")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("loginUser")" @onclick='() => SortBy("loginUser")'>@Locale.T("auth.colLoginUser")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("role")" @onclick='() => SortBy("role")'>@Locale.T("auth.colRole")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("login")" @onclick='() => SortBy("login")'>@Locale.T("auth.colLogin")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("act")" @onclick='() => SortBy("act")'>@Locale.T("auth.colAct")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("reg")" @onclick='() => SortBy("reg")'>@Locale.T("auth.colReg")</button></th>
+                        <th><button type="button" class="ad-sort @SortClass("session")" @onclick='() => SortBy("session")'>@Locale.T("auth.colSession")</button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Rows.Count == 0 && !busy)
+                    {
+                        <tr><td colspan="12" class="ad-empty">@Locale.T("auth.empty")</td></tr>
+                    }
+                    @foreach (var row in VisibleRows)
+                    {
+                        <tr class="@RowClass(row)">
+                            <td class="ad-id">@row.SchoolID</td>
+                            <td class="ad-name">
+                                <span class="ad-avatar" aria-hidden="true">@Initial(row.SchoolName)</span>
+                                <a class="ui-inst" href="authority/institutions/@row.SchoolID">@row.SchoolName</a>
+                            </td>
+                            <td>@row.UserName</td>
+                            <td>@row.Phone</td>
+                            <td><span class="ad-valid @(row.Validation == "Valid" ? "ok" : "no")">@row.Validation</span></td>
+                            <td>
+                                @if (row.OnlineStatus == "now")
+                                {
+                                    <span class="ad-on now"><i></i> @Locale.T("auth.onlineNow")</span>
+                                }
+                                else if (row.OnlineStatus == "active")
+                                {
+                                    <span class="ad-on active"><i></i> @Locale.T("auth.onlineActive")</span>
+                                }
+                            </td>
+                            <td>@row.LoggedInUser</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(row.LoginRole))
+                                {
+                                    <span class="ad-role">@row.LoginRole</span>
+                                }
+                            </td>
+                            <td>@Fmt(row.LoginTime)</td>
+                            <td>@Fmt(row.LastActivity)</td>
+                            <td>@FmtDate(row.Registered)</td>
+                            <td class="ui-sess">@row.SessionNames</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("auth.wait")" />
+@if (showNotice)
+{
+    <div class="acc-result-back" @onclick="CloseNotice">
+        <div class="acc-result is-ok sms-modal ab-modal ad-pop ad-pop-wide an-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("an.modal")</h3>
+            <div class="ab-form">
+                <label>@Locale.T("an.title")<input @bind="noticeTitle" disabled="@busy" /></label>
+                <div class="an-dates">
+                    <label>@Locale.T("an.from")<input type="date" @bind="noticeFrom" @bind:format="yyyy-MM-dd" disabled="@busy" /></label>
+                    <label>@Locale.T("an.to")<input type="date" @bind="noticeTo" @bind:format="yyyy-MM-dd" disabled="@busy" /></label>
+                </div>
+                <label>@Locale.T("an.text")<textarea rows="4" @bind="noticeText" disabled="@busy"></textarea></label>
+            </div>
+            <div class="al-inline">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveNoticeAsync">@Locale.T("an.submit")</button>
+                <button type="button" class="acc-btn" @onclick="CloseNotice">@Locale.T("ab.cancel")</button>
+            </div>
+            <h4 class="an-list-title">@Locale.T("an.list")</h4>
+            <div class="an-list">
+                @if (notices.Count == 0)
+                {
+                    <p class="muted">@Locale.T("an.empty")</p>
+                }
+                @foreach (var item in notices)
+                {
+                    <article class="an-item">
+                        <strong>@item.Title</strong>
+                        <p>@item.Notice</p>
+                        <span>@Locale.T("an.display"): @FmtDate(item.ShowDate) – @FmtDate(item.EndDate)</span>
+                        <span>@Locale.T("an.added"): @FmtDate(item.InsertDate)</span>
+                        <div>
+                            <button type="button" class="ab-link" disabled="@busy" @onclick="() => EditNotice(item)">@Locale.T("an.edit")</button>
+                            <button type="button" class="ab-link" disabled="@busy" @onclick="() => DeleteNoticeAsync(item.Id)">@Locale.T("ai.delete")</button>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthorityDashboardDto data = new();
+    private string search = "", validation = "", live = "", busyTitle = "", sortCol = "", popupText = "", noticeTitle = "", noticeText = "";
+    private DateTime? fromText, toText, noticeFrom, noticeTo;
+    private bool busy, sortAsc, showNotice, popupError;
+    private string? message;
+    private int noticeId;
+    private List<AuthNoticeDto> notices = [];
+    private CancellationTokenSource? liveCts;
+
+    private IEnumerable<AuthorityInstitutionRowDto> VisibleRows => sortCol switch
+    {
+        "id" => Sort(data.Rows, r => r.SchoolID),
+        "name" => Sort(data.Rows, r => r.SchoolName),
+        "user" => Sort(data.Rows, r => r.UserName),
+        "phone" => Sort(data.Rows, r => r.Phone),
+        "valid" => Sort(data.Rows, r => r.Validation),
+        "online" => Sort(data.Rows, r => r.OnlineStatus),
+        "loginUser" => Sort(data.Rows, r => r.LoggedInUser),
+        "role" => Sort(data.Rows, r => r.LoginRole),
+        "login" => Sort(data.Rows, r => r.LoginTime),
+        "act" => Sort(data.Rows, r => r.LastActivity),
+        "reg" => Sort(data.Rows, r => r.Registered),
+        "session" => Sort(data.Rows, r => r.SessionNames),
+        _ => data.Rows
+    };
+
+    private IEnumerable<AuthorityInstitutionRowDto> Sort<TKey>(IEnumerable<AuthorityInstitutionRowDto> rows, Func<AuthorityInstitutionRowDto, TKey> key) =>
+        sortAsc ? rows.OrderBy(key) : rows.OrderByDescending(key);
+
+    private void SortBy(string col)
+    {
+        if (sortCol == col) sortAsc = !sortAsc;
+        else
+        {
+            sortCol = col;
+            sortAsc = col is "name" or "user" or "phone" or "role" or "session";
+        }
+    }
+
+    private string SortClass(string col) => sortCol != col ? "" : sortAsc ? "is-asc" : "is-desc";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+        liveCts = new CancellationTokenSource();
+        _ = RefreshLoop(liveCts.Token);
+    }
+
+    public override void Dispose()
+    {
+        liveCts?.Cancel();
+        liveCts?.Dispose();
+        base.Dispose();
+    }
+
+    private async Task RefreshLoop(CancellationToken ct)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(45));
+            while (await timer.WaitForNextTickAsync(ct))
+                await InvokeAsync(() => LoadAsync(true));
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await LoadAsync();
+    }
+
+    private async Task FilterSummary(string liveKey, string validationKey)
+    {
+        live = liveKey;
+        validation = validationKey;
+        await LoadAsync();
+    }
+
+    private async Task SetLive(string key)
+    {
+        live = key;
+        await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        search = validation = live = "";
+        fromText = toText = null;
+        await LoadAsync();
+    }
+
+    private Task Reload() => LoadAsync();
+
+    private async Task LoadAsync(bool silent = false)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            message = Locale.T("login.needOnline");
+            return;
+        }
+        if (!silent)
+        {
+            busy = true;
+            busyTitle = Locale.T("auth.loading");
+            message = null;
+            StateHasChanged();
+        }
+        try
+        {
+            data = await Api.GetAuthorityInstitutionsAsync(Session.AccessToken, search, validation, live, fromText, toText);
+        }
+        catch (Exception ex)
+        {
+            message = string.IsNullOrWhiteSpace(ex.Message) ? Locale.T("auth.fail") : ex.Message;
+        }
+        finally { busy = false; StateHasChanged(); }
+    }
+
+    private static string RowClass(AuthorityInstitutionRowDto row) =>
+        row.OnlineStatus switch { "now" => "is-now", "active" => "is-active", _ => "" };
+
+    private async Task OpenNoticeAsync()
+    {
+        ResetNoticeForm();
+        showNotice = true;
+        await LoadNoticesAsync();
+    }
+
+    private void CloseNotice()
+    {
+        showNotice = false;
+        ResetNoticeForm();
+    }
+
+    private void ResetNoticeForm()
+    {
+        noticeId = 0;
+        noticeTitle = noticeText = "";
+        noticeFrom = DateTime.Today;
+        noticeTo = DateTime.Today.AddYears(1);
+    }
+
+    private void EditNotice(AuthNoticeDto item)
+    {
+        noticeId = item.Id;
+        noticeTitle = item.Title;
+        noticeText = item.Notice;
+        noticeFrom = item.ShowDate?.Date ?? DateTime.Today;
+        noticeTo = item.EndDate?.Date ?? DateTime.Today;
+    }
+
+    private async Task LoadNoticesAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return;
+        }
+        busyTitle = Locale.T("ab.loading");
+        busy = true;
+        try { notices = [.. await Api.GetAuthorityNoticesAsync(Session.AccessToken!)]; }
+        catch (Exception ex) { Show(string.IsNullOrWhiteSpace(ex.Message) ? Locale.T("auth.fail") : ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveNoticeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return;
+        }
+        busyTitle = Locale.T("ab.saving");
+        busy = true;
+        try
+        {
+            var result = await Api.SaveAuthorityNoticeAsync(Session.AccessToken!, new AuthNoticeSaveRequest
+            {
+                Id = noticeId,
+                Title = noticeTitle,
+                Notice = noticeText,
+                From = noticeFrom?.ToString("yyyy-MM-dd") ?? "",
+                To = noticeTo?.ToString("yyyy-MM-dd") ?? ""
+            });
+            if (!result.Succeeded)
+            {
+                Show(Locale.T(result.Error ?? "ab.failed"), true);
+                return;
+            }
+            ResetNoticeForm();
+            await LoadNoticesAsync();
+            Show(Locale.T(result.Message ?? "an.saved"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteNoticeAsync(int id)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("an.confirmDel")))
+            return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return;
+        }
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteAuthorityNoticeAsync(Session.AccessToken!, id);
+            if (!result.Succeeded)
+            {
+                Show(Locale.T(result.Error ?? "ab.failed"), true);
+                return;
+            }
+            if (noticeId == id)
+                ResetNoticeForm();
+            await LoadNoticesAsync();
+            Show(Locale.T(result.Message ?? "an.deleted"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private void ClosePopup() => popupText = "";
+
+    private static string Fmt(DateTime? value) => value is DateTime d ? d.ToString("dd MMM HH:mm") : "";
+    private static string FmtDate(DateTime? value) => value is DateTime d ? d.ToString("dd MMM yyyy") : "";
+    private static string Initial(string name)
+    {
+        var t = (name ?? "").Trim();
+        return t.Length == 0 ? "#" : t[..1].ToUpperInvariant();
+    }
+}

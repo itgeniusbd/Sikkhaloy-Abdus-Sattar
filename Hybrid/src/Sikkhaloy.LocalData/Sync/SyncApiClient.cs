@@ -10,6 +10,11 @@ using Sikkhaloy.Shared.Employees;
 using Sikkhaloy.Shared.Exam;
 using Sikkhaloy.Shared.Institution;
 using Sikkhaloy.Shared.Menu;
+using Sikkhaloy.Shared.Routine;
+using Sikkhaloy.Shared.Committee;
+using Sikkhaloy.Shared.Invoice;
+using Sikkhaloy.Shared.Authority;
+using Sikkhaloy.Shared.Sms;
 using Sikkhaloy.Shared.Students;
 using Sikkhaloy.Shared.Subjects;
 using Sikkhaloy.Shared.Sync;
@@ -370,6 +375,174 @@ public interface ISyncApiClient
     Task<IReadOnlyList<MarksCheckRowDto>> GetExamMarksCheckAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExamControlRowDto>> GetExamControlAsync(string accessToken, int examId, bool cumulative, CancellationToken cancellationToken = default);
     Task<ExamResult> SaveExamControlAsync(string accessToken, SaveExamControlRequest request, CancellationToken cancellationToken = default);
+    Task<ExamPublishSettingDto> GetExamPublishSettingAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default);
+    Task<ExamResult> PublishExamResultAsync(string accessToken, ExamPublishRequest request, CancellationToken cancellationToken = default);
+    Task<ExamResult> DeleteExamResultAsync(string accessToken, ExamDeleteResultRequest request, CancellationToken cancellationToken = default);
+    Task<ExamMeritListDto> GetExamMeritAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? passStatus, CancellationToken cancellationToken = default);
+    Task<ExamMeritListDto> GetExamMeritSubjectAsync(string accessToken, int classId, int examId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default);
+    Task<ExamResultCardSheetDto> GetExamResultCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken = default);
+    Task<ExamAnalyticalDto> GetExamAnalyticalAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ExamOptionDto>> GetCumulativeExamNamesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<ExamResult> CreateCumulativeExamNameAsync(string accessToken, SaveCumulativeNameRequest request, CancellationToken cancellationToken = default);
+    Task<ExamResult> UpdateCumulativeExamNameAsync(string accessToken, int id, SaveCumulativeNameRequest request, CancellationToken cancellationToken = default);
+    Task<CumulativePublishSettingDto> GetCumulativePublishSettingAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default);
+    Task<ExamResult> PublishCumulativeResultAsync(string accessToken, CumulativePublishRequest request, CancellationToken cancellationToken = default);
+    Task<ExamMeritListDto> GetCumulativeMeritAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default);
+    Task<CumulativeResultCardSheetDto> GetCumulativeResultCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken = default);
+    Task<ExamSeatPlanSheetDto> GetExamSeatPlanAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? classIds = null, CancellationToken cancellationToken = default);
+    Task<ExamResult> RandomizeExamSeatsAsync(string accessToken, RandomSeatRequest request, CancellationToken cancellationToken = default);
+    Task<ExamAdmitCardSheetDto> GetExamAdmitCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? paymentStatus, CancellationToken cancellationToken = default);
+    Task<ExamResult> SaveExamAdmitSignAsync(string accessToken, SaveExamSignRequest request, CancellationToken cancellationToken = default);
+
+    Task<SmsBalanceDto> GetSmsBalanceAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SmsStudentDto>> GetSmsStudentsAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, string? ids, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SmsTeacherDto>> GetSmsTeachersAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<SmsResult> SendOfficeSmsAsync(string accessToken, SendOfficeSmsRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SmsGroupDto>> GetSmsGroupsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<SmsResult> SaveSmsGroupAsync(string accessToken, SaveSmsGroupRequest request, CancellationToken cancellationToken = default);
+    Task<SmsResult> DeleteSmsGroupAsync(string accessToken, int groupId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SmsContactDto>> GetSmsContactsAsync(string accessToken, int groupId, string? search, CancellationToken cancellationToken = default);
+    Task<SmsResult> SaveSmsContactAsync(string accessToken, SaveSmsContactRequest request, CancellationToken cancellationToken = default);
+    Task<SmsResult> DeleteSmsContactAsync(string accessToken, int numberId, CancellationToken cancellationToken = default);
+    Task<SmsRecordsDto> GetSmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, string? search, CancellationToken cancellationToken = default);
+    Task<SmsRechargePageDto> GetSmsRechargeAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<SmsResult> StartSmsRechargeAsync(string accessToken, SmsRechargeRequest request, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RoutineNameDto>> GetRoutineNamesAsync(string accessToken, bool unusedOnly, CancellationToken cancellationToken = default);
+    Task<RoutineResult> SaveRoutineNameAsync(string accessToken, SaveRoutineNameRequest request, CancellationToken cancellationToken = default);
+    Task<RoutineResult> DeleteRoutineNameAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<RoutineResult> CreateClassRoutineAsync(string accessToken, CreateClassRoutineRequest request, CancellationToken cancellationToken = default);
+    Task<ClassRoutineSheetDto> GetRoutineAssignAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, int routineInfoId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<RoutineOptionDto>> GetRoutineTeachersAsync(string accessToken, int classId, int subjectId, string day, string start, string end, int exceptRoutineInfoId, CancellationToken cancellationToken = default);
+    Task<RoutineResult> AssignClassRoutineAsync(string accessToken, AssignRoutineRequest request, CancellationToken cancellationToken = default);
+    Task<ClassRoutineSheetDto> GetRoutineViewAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, int routineInfoId, bool edit, CancellationToken cancellationToken = default);
+    Task<RoutineResult> UpdateClassRoutineAsync(string accessToken, AssignRoutineRequest request, CancellationToken cancellationToken = default);
+    Task<RoutineResult> DeleteClassRoutineAsync(string accessToken, AssignRoutineRequest request, CancellationToken cancellationToken = default);
+    Task<ExamRoutineSheetDto> GetExamRoutineAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<RoutineOptionDto>> GetExamRoutineSubjectsAsync(string accessToken, int classId, CancellationToken cancellationToken = default);
+    Task<RoutineResult> SaveExamRoutineAsync(string accessToken, SaveExamRoutineRequest request, CancellationToken cancellationToken = default);
+    Task<RoutineResult> DeleteExamRoutineAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+
+    Task<CommitteeLookupsDto> GetCommitteeLookupsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CommitteeMemberTypeDto>> GetCommitteeTypesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> SaveCommitteeTypeAsync(string accessToken, SaveCommitteeMemberTypeRequest request, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> DeleteCommitteeTypeAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CommitteeMemberDto>> GetCommitteeMembersAsync(string accessToken, int typeId, string? q, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> SaveCommitteeMemberAsync(string accessToken, SaveCommitteeMemberRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DonationCategoryDto>> GetDonationCategoriesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> SaveDonationCategoryAsync(string accessToken, SaveDonationCategoryRequest request, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> DeleteDonationCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DonorSuggestDto>> SuggestDonorsAsync(string accessToken, string? q, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> AddDonationAsync(string accessToken, AddDonationRequest request, CancellationToken cancellationToken = default);
+    Task<DonationListDto> GetDonationsAsync(string accessToken, int memberId, int categoryId, string? paid, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> UpdateDonationAsync(string accessToken, UpdateDonationRequest request, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> DeleteDonationAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<CollectPageDto> GetCollectDonationAsync(string accessToken, int memberId, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> CollectDonationAsync(string accessToken, CollectDonationRequest request, CancellationToken cancellationToken = default);
+    Task<PaymentRecordListDto> GetCommitteePaymentsAsync(string accessToken, int yearId, int categoryId, int memberId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<UnpaidReceiptDto> GetUnpaidReceiptAsync(string accessToken, string? sn, CancellationToken cancellationToken = default);
+    Task<CommitteeResult> UnpaidReceiptAsync(string accessToken, string sn, CancellationToken cancellationToken = default);
+    Task<DonationReceiptDto> GetDonationReceiptAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+
+    Task<DueInvoiceDto> GetDueInvoiceAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<SubscriptionStatusDto> GetSubscriptionStatusAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<InvoiceResult> PayDueInvoiceAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<PaidInvoiceListDto> GetPaidInvoicesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<PaidInvoiceReceiptDto> GetPaidInvoiceReceiptAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+
+    Task<AuthorityDashboardDto> GetAuthorityDashboardAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityDashboardDto> GetAuthorityInstitutionsAsync(
+        string accessToken, string? q, string? validation, string? live, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<LoginResponse> EnterAuthoritySchoolAsync(string accessToken, int schoolId, int educationYearId = 0, CancellationToken cancellationToken = default);
+    Task<InstitutionDetailsDto> GetAuthorityInstitutionDetailsAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityInstitutionYearsAsync(string accessToken, SaveInstitutionYearsRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> RechargeAuthorityInstitutionSmsAsync(string accessToken, InstSmsRechargeRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityDueNoticeAsync(string accessToken, InstDueNoticeRequest request, CancellationToken cancellationToken = default);
+    Task<InstStudentFindDto> FindAuthorityInstitutionStudentAsync(string accessToken, int schoolId, string id, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityInstitutionStudentAsync(string accessToken, InstIdRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> ChangeAuthorityInstitutionStudentIdAsync(string accessToken, InstChangeIdRequest request, CancellationToken cancellationToken = default);
+    Task<InstReceiptDto> FindAuthorityInstitutionReceiptAsync(string accessToken, int schoolId, string sn, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityInstitutionReceiptAsync(string accessToken, InstReceiptRequest request, CancellationToken cancellationToken = default);
+
+    Task<SignupLookupsDto> GetAuthoritySignupLookupsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> CreateAuthorityUserAsync(string accessToken, SignupUserRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> CreateAuthorityInstitutionAsync(string accessToken, SignupInstitutionRequest request, CancellationToken cancellationToken = default);
+    Task<UserInfoListDto> GetAuthorityUserInfoAsync(string accessToken, string? q, string? validation, string? password, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SchoolUserDto>> GetAuthoritySchoolUsersAsync(string accessToken, int schoolId, string? category, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SetAuthorityApprovedAsync(string accessToken, SetApprovedRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> UnlockAuthorityUserAsync(string accessToken, UnlockUserRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TestimonialRowDto>> GetAuthorityTestimonialsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityTestimonialAsync(string accessToken, SaveTestimonialRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SetAuthorityTestimonialShowAsync(string accessToken, SetTestimonialShowRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ResetSchoolOptionDto>> GetAuthorityResetSchoolsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ResetYearOptionDto>> GetAuthorityResetYearsAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default);
+    Task<ResetPreviewDto> PreviewAuthorityResetAsync(string accessToken, int schoolId, string mode, int educationYearId, CancellationToken cancellationToken = default);
+    Task<ResetPreviewDto> PreviewAuthorityResetImagesAsync(string accessToken, int schoolId, IReadOnlyList<int> yearIds, CancellationToken cancellationToken = default);
+    Task<ResetProgressDto> GetAuthorityResetProgressAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> StartAuthorityResetAsync(string accessToken, ResetExecuteRequest request, CancellationToken cancellationToken = default);
+    Task<ResetPreviewDto> DeleteAuthorityResetImagesAsync(string accessToken, ResetImageRequest request, CancellationToken cancellationToken = default);
+    Task<AttSignupPageDto> GetAuthorityAttendanceAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> RegisterAuthorityAttendanceAsync(string accessToken, AttRegisterRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SetAuthorityAttendancePasswordAsync(string accessToken, AttPasswordRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SetAuthorityAttendanceActiveAsync(string accessToken, AttActiveRequest request, CancellationToken cancellationToken = default);
+    Task<SmsSettingPageDto> GetAuthoritySmsSettingAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthoritySmsSettingAsync(string accessToken, SaveSmsSettingRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SmsSenderRowDto>> GetAuthoritySmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<SmsFailedPageDto> GetAuthorityFailedSmsAsync(string accessToken, DateTime? from, DateTime? to, string? reason, int schoolId, CancellationToken cancellationToken = default);
+    Task<ClientSmsPageDto> GetAuthorityClientSmsAsync(string accessToken, string? q, string? validation, CancellationToken cancellationToken = default);
+    Task<SendClientSmsResult> SendAuthorityClientSmsAsync(string accessToken, SendClientSmsRequest request, CancellationToken cancellationToken = default);
+    Task<AuthAccountsPageDto> GetAuthorityAccountsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthProgressPageDto> GetAuthorityProgressAsync(string accessToken, string? filter, CancellationToken cancellationToken = default);
+    Task<AuthCollectPageDto> GetAuthorityCollectionAsync(string accessToken, int categoryId, string? month, CancellationToken cancellationToken = default);
+    Task<AuthManagePageDto> GetAuthorityManageAsync(string accessToken, string? q, string? validation, string? payment, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityManageAsync(string accessToken, AuthManageSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthCreatePageDto> GetAuthorityCreateInvoiceAsync(string accessToken, string? month, int otherSchoolId, string? smsFrom, string? smsTo, string? smsQ, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> GenerateAuthorityStudentCountAsync(string accessToken, AuthGenerateCountRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> AutoGenerateAuthorityInvoiceAsync(string accessToken, AuthGenerateCountRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> EnableAuthorityInvoiceJobAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> CreateAuthorityServiceInvoicesAsync(string accessToken, AuthCreateServiceRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> AddAuthorityInvoiceCategoryAsync(string accessToken, AuthAddCategoryRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> CreateAuthorityOtherInvoiceAsync(string accessToken, AuthCreateOtherRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityInvoiceAsync(string accessToken, int invoiceId, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SetAuthorityGraceAsync(string accessToken, AuthGraceRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> ClearAuthorityGraceAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default);
+    Task<AuthPaidPageDto> GetAuthorityPaidInvoiceAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> PayAuthorityInvoicesAsync(string accessToken, AuthPayInvoiceRequest request, CancellationToken cancellationToken = default);
+    Task<AuthPrintPageDto> GetAuthorityPrintInvoiceAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default);
+    Task<AuthPayPrintDto> GetAuthorityPayPrintAsync(string accessToken, int schoolId, string ids, CancellationToken cancellationToken = default);
+    Task<AuthReceiptPrintDto> GetAuthorityReceiptPrintAsync(string accessToken, int receiptId, CancellationToken cancellationToken = default);
+    Task<AuthOnlinePayPageDto> GetAuthorityOnlinePayAsync(string accessToken, string? type, int schoolId, string? method, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<AuthLinkTreeDto> GetAuthorityLinksAsync(string accessToken, int categoryId, int subId, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityLinkCategoryAsync(string accessToken, AuthLinkNameSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityLinkCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityLinkSubAsync(string accessToken, AuthLinkNameSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityLinkSubAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityLinkPageAsync(string accessToken, AuthLinkPageSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityLinkPageAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AuthRoleListDto> GetAuthorityRolesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> CreateAuthorityRoleAsync(string accessToken, AuthRoleSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityRoleAsync(string accessToken, AuthRoleSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthReferralPageDto> GetAuthorityReferralAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityReferrerAsync(string accessToken, AuthReferrerSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthSchoolSearchPageDto> SearchAuthorityReferralSchoolsAsync(string accessToken, string? q, int refId, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> AssignAuthoritySchoolAsync(string accessToken, AuthAssignSchoolRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> UpdateAuthorityAssignAsync(string accessToken, AuthAssignUpdateRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityAssignAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AuthCommissionPageDto> GetAuthorityCommissionAsync(string accessToken, int refId, DateTime? from, DateTime? to, string? status, int detailId, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> PayAuthorityCommissionAsync(string accessToken, AuthCommissionPayRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> CreateAuthoritySubAsync(string accessToken, AuthSubSignupRequest request, CancellationToken cancellationToken = default);
+    Task<AuthAccessPageDto> GetAuthorityPageAccessAsync(string accessToken, string? userName, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityPageAccessAsync(string accessToken, AuthAccessSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthProfileDto> GetAuthorityProfileAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<ProfileResult> SaveAuthorityProfileAsync(string accessToken, AuthProfileDto request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AuthNoticeDto>> GetAdminNoticesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AuthNoticeDto>> GetAuthorityNoticesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> SaveAuthorityNoticeAsync(string accessToken, AuthNoticeSaveRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityNoticeAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AuthUnreadDto> GetAuthorityUnreadAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthMessagePageDto> GetAuthorityMessagesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> ReadAuthorityMessageAsync(string accessToken, AuthMessageReadRequest request, CancellationToken cancellationToken = default);
+    Task<AuthorityResult> DeleteAuthorityContactAsync(string accessToken, int id, CancellationToken cancellationToken = default);
 }
 
 public sealed class SyncApiClient : ISyncApiClient
@@ -2250,6 +2423,717 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<ExamResult> SaveExamControlAsync(string accessToken, SaveExamControlRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/control", request, cancellationToken);
 
+    public Task<ExamPublishSettingDto> GetExamPublishSettingAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamPublishSettingDto>(accessToken, $"api/sync/exam/publish?classId={classId}&examId={examId}", cancellationToken);
+
+    public Task<ExamResult> PublishExamResultAsync(string accessToken, ExamPublishRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, "api/sync/exam/publish", request, cancellationToken);
+
+    public Task<ExamResult> DeleteExamResultAsync(string accessToken, ExamDeleteResultRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, "api/sync/exam/delete-result", request, cancellationToken);
+
+    public Task<ExamMeritListDto> GetExamMeritAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? passStatus, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamMeritListDto>(accessToken, $"api/sync/exam/merit?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("passStatus", passStatus)}", cancellationToken);
+
+    public Task<ExamMeritListDto> GetExamMeritSubjectAsync(string accessToken, int classId, int examId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamMeritListDto>(accessToken, $"api/sync/exam/merit-subject?classId={classId}&examId={examId}&subjectId={subjectId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}", cancellationToken);
+
+    public Task<ExamResultCardSheetDto> GetExamResultCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamResultCardSheetDto>(accessToken, $"api/sync/exam/result-cards?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}", cancellationToken);
+
+    public Task<ExamAnalyticalDto> GetExamAnalyticalAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamAnalyticalDto>(accessToken, $"api/sync/exam/analytical?classId={classId}&examId={examId}", cancellationToken);
+
+    public Task<IReadOnlyList<ExamOptionDto>> GetCumulativeExamNamesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<ExamOptionDto>(accessToken, "api/sync/exam/cumulative/names", cancellationToken);
+
+    public Task<ExamResult> CreateCumulativeExamNameAsync(string accessToken, SaveCumulativeNameRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, "api/sync/exam/cumulative/names", request, cancellationToken);
+
+    public Task<ExamResult> UpdateCumulativeExamNameAsync(string accessToken, int id, SaveCumulativeNameRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, $"api/sync/exam/cumulative/names/{id}", request, cancellationToken);
+
+    public Task<CumulativePublishSettingDto> GetCumulativePublishSettingAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<CumulativePublishSettingDto>(accessToken, $"api/sync/exam/cumulative/publish?classId={classId}&examId={examId}", cancellationToken);
+
+    public Task<ExamResult> PublishCumulativeResultAsync(string accessToken, CumulativePublishRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, "api/sync/exam/cumulative/publish", request, cancellationToken);
+
+    public Task<ExamMeritListDto> GetCumulativeMeritAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamMeritListDto>(accessToken, $"api/sync/exam/cumulative/merit?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}", cancellationToken);
+
+    public Task<CumulativeResultCardSheetDto> GetCumulativeResultCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken = default) =>
+        GetItemAsync<CumulativeResultCardSheetDto>(accessToken, $"api/sync/exam/cumulative/result-cards?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}", cancellationToken);
+
+    public Task<ExamSeatPlanSheetDto> GetExamSeatPlanAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? classIds = null, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamSeatPlanSheetDto>(accessToken, $"api/sync/exam/seat-plan?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}{Q("classIds", classIds)}", cancellationToken);
+
+    public Task<ExamResult> RandomizeExamSeatsAsync(string accessToken, RandomSeatRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, "api/sync/exam/seat-plan/random", request, cancellationToken);
+
+    public Task<ExamAdmitCardSheetDto> GetExamAdmitCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? paymentStatus, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamAdmitCardSheetDto>(accessToken, $"api/sync/exam/admit-cards?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}{Q("paymentStatus", paymentStatus)}", cancellationToken);
+
+    public Task<ExamResult> SaveExamAdmitSignAsync(string accessToken, SaveExamSignRequest request, CancellationToken cancellationToken = default) =>
+        PostExamAsync(accessToken, "api/sync/exam/admit-sign", request, cancellationToken);
+
+    public Task<SmsBalanceDto> GetSmsBalanceAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SmsBalanceDto>(accessToken, "api/sync/sms/balance", cancellationToken);
+
+    public Task<IReadOnlyList<SmsStudentDto>> GetSmsStudentsAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, string? ids, CancellationToken cancellationToken = default) =>
+        GetListAsync<SmsStudentDto>(accessToken, $"api/sync/sms/students?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}{Q("ids", ids)}", cancellationToken);
+
+    public Task<IReadOnlyList<SmsTeacherDto>> GetSmsTeachersAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<SmsTeacherDto>(accessToken, "api/sync/sms/teachers", cancellationToken);
+
+    public Task<SmsResult> SendOfficeSmsAsync(string accessToken, SendOfficeSmsRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/sms/send", request, cancellationToken);
+
+    public Task<IReadOnlyList<SmsGroupDto>> GetSmsGroupsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<SmsGroupDto>(accessToken, "api/sync/sms/groups", cancellationToken);
+
+    public Task<SmsResult> SaveSmsGroupAsync(string accessToken, SaveSmsGroupRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/sms/groups", request, cancellationToken);
+
+    public Task<SmsResult> DeleteSmsGroupAsync(string accessToken, int groupId, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, $"api/sync/sms/groups/{groupId}/delete", new { }, cancellationToken);
+
+    public Task<IReadOnlyList<SmsContactDto>> GetSmsContactsAsync(string accessToken, int groupId, string? search, CancellationToken cancellationToken = default) =>
+        GetListAsync<SmsContactDto>(accessToken, $"api/sync/sms/contacts?groupId={groupId}{Q("q", search)}", cancellationToken);
+
+    public Task<SmsResult> SaveSmsContactAsync(string accessToken, SaveSmsContactRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/sms/contacts", request, cancellationToken);
+
+    public Task<SmsResult> DeleteSmsContactAsync(string accessToken, int numberId, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, $"api/sync/sms/contacts/{numberId}/delete", new { }, cancellationToken);
+
+    public Task<SmsRecordsDto> GetSmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, string? search, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SmsRecordsDto>(accessToken, $"api/sync/sms/records?{(QDates(from, to) + Q("q", search)).TrimStart('&')}", cancellationToken);
+
+    public Task<SmsRechargePageDto> GetSmsRechargeAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SmsRechargePageDto>(accessToken, "api/sync/sms/recharge", cancellationToken);
+
+    public Task<SmsResult> StartSmsRechargeAsync(string accessToken, SmsRechargeRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/sms/recharge", request, cancellationToken);
+
+    public Task<IReadOnlyList<RoutineNameDto>> GetRoutineNamesAsync(string accessToken, bool unusedOnly, CancellationToken cancellationToken = default) =>
+        GetListAsync<RoutineNameDto>(accessToken, $"api/sync/routine/names?unusedOnly={unusedOnly}", cancellationToken);
+
+    public Task<RoutineResult> SaveRoutineNameAsync(string accessToken, SaveRoutineNameRequest request, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, "api/sync/routine/names", request, cancellationToken);
+
+    public Task<RoutineResult> DeleteRoutineNameAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, $"api/sync/routine/names/{id}/delete", new { }, cancellationToken);
+
+    public Task<RoutineResult> CreateClassRoutineAsync(string accessToken, CreateClassRoutineRequest request, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, "api/sync/routine/create", request, cancellationToken);
+
+    public Task<ClassRoutineSheetDto> GetRoutineAssignAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, int routineInfoId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ClassRoutineSheetDto>(accessToken, $"api/sync/routine/assign?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&routineInfoId={routineInfoId}", cancellationToken);
+
+    public Task<IReadOnlyList<RoutineOptionDto>> GetRoutineTeachersAsync(string accessToken, int classId, int subjectId, string day, string start, string end, int exceptRoutineInfoId, CancellationToken cancellationToken = default) =>
+        GetListAsync<RoutineOptionDto>(accessToken, $"api/sync/routine/teachers?classId={classId}&subjectId={subjectId}&day={Uri.EscapeDataString(day ?? "")}&start={Uri.EscapeDataString(start ?? "")}&end={Uri.EscapeDataString(end ?? "")}&exceptRoutineInfoId={exceptRoutineInfoId}", cancellationToken);
+
+    public Task<RoutineResult> AssignClassRoutineAsync(string accessToken, AssignRoutineRequest request, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, "api/sync/routine/assign", request, cancellationToken);
+
+    public Task<ClassRoutineSheetDto> GetRoutineViewAsync(string accessToken, int classId, int groupId, int sectionId, int shiftId, int routineInfoId, bool edit, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ClassRoutineSheetDto>(accessToken, $"api/sync/routine/view?classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&routineInfoId={routineInfoId}&edit={edit}", cancellationToken);
+
+    public Task<RoutineResult> UpdateClassRoutineAsync(string accessToken, AssignRoutineRequest request, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, "api/sync/routine/update", request, cancellationToken);
+
+    public Task<RoutineResult> DeleteClassRoutineAsync(string accessToken, AssignRoutineRequest request, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, "api/sync/routine/delete-class", request, cancellationToken);
+
+    public Task<ExamRoutineSheetDto> GetExamRoutineAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ExamRoutineSheetDto>(accessToken, $"api/sync/routine/exam?id={id}", cancellationToken);
+
+    public Task<IReadOnlyList<RoutineOptionDto>> GetExamRoutineSubjectsAsync(string accessToken, int classId, CancellationToken cancellationToken = default) =>
+        GetListAsync<RoutineOptionDto>(accessToken, $"api/sync/routine/exam/subjects?classId={classId}", cancellationToken);
+
+    public Task<RoutineResult> SaveExamRoutineAsync(string accessToken, SaveExamRoutineRequest request, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, "api/sync/routine/exam", request, cancellationToken);
+
+    public Task<RoutineResult> DeleteExamRoutineAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostRoutineAsync(accessToken, $"api/sync/routine/exam/{id}/delete", new { }, cancellationToken);
+
+    public Task<CommitteeLookupsDto> GetCommitteeLookupsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<CommitteeLookupsDto>(accessToken, "api/sync/committee/lookups", cancellationToken);
+
+    public Task<IReadOnlyList<CommitteeMemberTypeDto>> GetCommitteeTypesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<CommitteeMemberTypeDto>(accessToken, "api/sync/committee/types", cancellationToken);
+
+    public Task<CommitteeResult> SaveCommitteeTypeAsync(string accessToken, SaveCommitteeMemberTypeRequest request, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, "api/sync/committee/types", request, cancellationToken);
+
+    public Task<CommitteeResult> DeleteCommitteeTypeAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, $"api/sync/committee/types/{id}/delete", new { }, cancellationToken);
+
+    public Task<IReadOnlyList<CommitteeMemberDto>> GetCommitteeMembersAsync(string accessToken, int typeId, string? q, CancellationToken cancellationToken = default) =>
+        GetListAsync<CommitteeMemberDto>(accessToken, $"api/sync/committee/members?typeId={typeId}{Q("q", q)}", cancellationToken);
+
+    public Task<CommitteeResult> SaveCommitteeMemberAsync(string accessToken, SaveCommitteeMemberRequest request, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, "api/sync/committee/members", request, cancellationToken);
+
+    public Task<IReadOnlyList<DonationCategoryDto>> GetDonationCategoriesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<DonationCategoryDto>(accessToken, "api/sync/committee/categories", cancellationToken);
+
+    public Task<CommitteeResult> SaveDonationCategoryAsync(string accessToken, SaveDonationCategoryRequest request, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, "api/sync/committee/categories", request, cancellationToken);
+
+    public Task<CommitteeResult> DeleteDonationCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, $"api/sync/committee/categories/{id}/delete", new { }, cancellationToken);
+
+    public Task<IReadOnlyList<DonorSuggestDto>> SuggestDonorsAsync(string accessToken, string? q, CancellationToken cancellationToken = default) =>
+        GetListAsync<DonorSuggestDto>(accessToken, $"api/sync/committee/donors?q={Uri.EscapeDataString(q ?? "")}", cancellationToken);
+
+    public Task<CommitteeResult> AddDonationAsync(string accessToken, AddDonationRequest request, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, "api/sync/committee/donations", request, cancellationToken);
+
+    public Task<DonationListDto> GetDonationsAsync(string accessToken, int memberId, int categoryId, string? paid, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DonationListDto>(accessToken, $"api/sync/committee/donations?memberId={memberId}&categoryId={categoryId}{Q("paid", paid)}", cancellationToken);
+
+    public Task<CommitteeResult> UpdateDonationAsync(string accessToken, UpdateDonationRequest request, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, "api/sync/committee/donations/update", request, cancellationToken);
+
+    public Task<CommitteeResult> DeleteDonationAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, $"api/sync/committee/donations/{id}/delete", new { }, cancellationToken);
+
+    public Task<CollectPageDto> GetCollectDonationAsync(string accessToken, int memberId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<CollectPageDto>(accessToken, $"api/sync/committee/collect?memberId={memberId}", cancellationToken);
+
+    public Task<CommitteeResult> CollectDonationAsync(string accessToken, CollectDonationRequest request, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, "api/sync/committee/collect", request, cancellationToken);
+
+    public Task<PaymentRecordListDto> GetCommitteePaymentsAsync(string accessToken, int yearId, int categoryId, int memberId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
+        GetItemAsync<PaymentRecordListDto>(accessToken, $"api/sync/committee/payments?yearId={yearId}&categoryId={categoryId}&memberId={memberId}{QDates(from, to)}", cancellationToken);
+
+    public Task<UnpaidReceiptDto> GetUnpaidReceiptAsync(string accessToken, string? sn, CancellationToken cancellationToken = default) =>
+        GetItemAsync<UnpaidReceiptDto>(accessToken, $"api/sync/committee/unpaid?sn={Uri.EscapeDataString(sn ?? "")}", cancellationToken);
+
+    public Task<CommitteeResult> UnpaidReceiptAsync(string accessToken, string sn, CancellationToken cancellationToken = default) =>
+        PostCommitteeAsync(accessToken, "api/sync/committee/unpaid", new UnpaidReceiptRequest { Sn = sn }, cancellationToken);
+
+    public Task<DonationReceiptDto> GetDonationReceiptAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DonationReceiptDto>(accessToken, $"api/sync/committee/receipt/{id}", cancellationToken);
+
+    public Task<DueInvoiceDto> GetDueInvoiceAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DueInvoiceDto>(accessToken, "api/sync/invoice/due", cancellationToken);
+
+    public Task<SubscriptionStatusDto> GetSubscriptionStatusAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SubscriptionStatusDto>(accessToken, "api/sync/invoice/status", cancellationToken);
+
+    public Task<InvoiceResult> PayDueInvoiceAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        PostInvoiceAsync(accessToken, "api/sync/invoice/pay", new { }, cancellationToken);
+
+    public Task<PaidInvoiceListDto> GetPaidInvoicesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<PaidInvoiceListDto>(accessToken, "api/sync/invoice/paid", cancellationToken);
+
+    public Task<PaidInvoiceReceiptDto> GetPaidInvoiceReceiptAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<PaidInvoiceReceiptDto>(accessToken, $"api/sync/invoice/receipt/{id}", cancellationToken);
+
+    public Task<AuthorityDashboardDto> GetAuthorityDashboardAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthorityDashboardDto>(accessToken, "api/sync/authority/dashboard", cancellationToken);
+
+    public Task<AuthorityDashboardDto> GetAuthorityInstitutionsAsync(
+        string accessToken, string? q, string? validation, string? live, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthorityDashboardDto>(
+            accessToken,
+            $"api/sync/authority/institutions?q={Uri.EscapeDataString(q ?? "")}{Q("validation", validation)}{Q("live", live)}{QDates(from, to)}",
+            cancellationToken);
+
+    public async Task<LoginResponse> EnterAuthoritySchoolAsync(string accessToken, int schoolId, int educationYearId = 0, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/auth/enter-school")
+        {
+            Content = JsonContent.Create(new EnterSchoolRequest { SchoolID = schoolId, EducationYearID = educationYearId })
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var payload = await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, cancellationToken);
+        return payload ?? new LoginResponse { Succeeded = false, Error = "auth.fail" };
+    }
+
+    public Task<InstitutionDetailsDto> GetAuthorityInstitutionDetailsAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InstitutionDetailsDto>(accessToken, $"api/sync/authority/institutions/{schoolId}", cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityInstitutionYearsAsync(string accessToken, SaveInstitutionYearsRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/institutions/years", request, cancellationToken);
+
+    public Task<AuthorityResult> RechargeAuthorityInstitutionSmsAsync(string accessToken, InstSmsRechargeRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/institutions/sms-recharge", request, cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityDueNoticeAsync(string accessToken, InstDueNoticeRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/institutions/due-notice", request, cancellationToken);
+
+    public Task<InstStudentFindDto> FindAuthorityInstitutionStudentAsync(string accessToken, int schoolId, string id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InstStudentFindDto>(accessToken, $"api/sync/authority/institutions/{schoolId}/student?q={Uri.EscapeDataString(id ?? "")}", cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityInstitutionStudentAsync(string accessToken, InstIdRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/institutions/delete-student", request, cancellationToken);
+
+    public Task<AuthorityResult> ChangeAuthorityInstitutionStudentIdAsync(string accessToken, InstChangeIdRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/institutions/change-student-id", request, cancellationToken);
+
+    public Task<InstReceiptDto> FindAuthorityInstitutionReceiptAsync(string accessToken, int schoolId, string sn, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InstReceiptDto>(accessToken, $"api/sync/authority/institutions/{schoolId}/receipt?sn={Uri.EscapeDataString(sn ?? "")}", cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityInstitutionReceiptAsync(string accessToken, InstReceiptRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/institutions/delete-receipt", request, cancellationToken);
+
+    public Task<SignupLookupsDto> GetAuthoritySignupLookupsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SignupLookupsDto>(accessToken, "api/sync/authority/signup/lookups", cancellationToken);
+
+    public Task<AuthorityResult> CreateAuthorityUserAsync(string accessToken, SignupUserRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/signup/user", request, cancellationToken);
+
+    public Task<AuthorityResult> CreateAuthorityInstitutionAsync(string accessToken, SignupInstitutionRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/signup/institution", request, cancellationToken);
+
+    public Task<UserInfoListDto> GetAuthorityUserInfoAsync(string accessToken, string? q, string? validation, string? password, CancellationToken cancellationToken = default) =>
+        GetItemAsync<UserInfoListDto>(
+            accessToken,
+            $"api/sync/authority/user-info?q={Uri.EscapeDataString(q ?? "")}{Q("validation", validation)}{Q("password", password)}",
+            cancellationToken);
+
+    public Task<IReadOnlyList<SchoolUserDto>> GetAuthoritySchoolUsersAsync(string accessToken, int schoolId, string? category, CancellationToken cancellationToken = default) =>
+        GetListAsync<SchoolUserDto>(
+            accessToken,
+            $"api/sync/authority/user-info/users?schoolId={schoolId}{Q("category", category)}",
+            cancellationToken);
+
+    public Task<AuthorityResult> SetAuthorityApprovedAsync(string accessToken, SetApprovedRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/user-info/approve", request, cancellationToken);
+
+    public Task<AuthorityResult> UnlockAuthorityUserAsync(string accessToken, UnlockUserRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/user-info/unlock", request, cancellationToken);
+
+    public Task<IReadOnlyList<TestimonialRowDto>> GetAuthorityTestimonialsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<TestimonialRowDto>(accessToken, "api/sync/authority/testimonials", cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityTestimonialAsync(string accessToken, SaveTestimonialRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/testimonials", request, cancellationToken);
+
+    public Task<AuthorityResult> SetAuthorityTestimonialShowAsync(string accessToken, SetTestimonialShowRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/testimonials/show", request, cancellationToken);
+
+    public Task<IReadOnlyList<ResetSchoolOptionDto>> GetAuthorityResetSchoolsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<ResetSchoolOptionDto>(accessToken, "api/sync/authority/reset/schools", cancellationToken);
+
+    public Task<IReadOnlyList<ResetYearOptionDto>> GetAuthorityResetYearsAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default) =>
+        GetListAsync<ResetYearOptionDto>(accessToken, $"api/sync/authority/reset/years?schoolId={schoolId}", cancellationToken);
+
+    public Task<ResetPreviewDto> PreviewAuthorityResetAsync(string accessToken, int schoolId, string mode, int educationYearId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ResetPreviewDto>(
+            accessToken,
+            $"api/sync/authority/reset/preview?schoolId={schoolId}&mode={Uri.EscapeDataString(mode)}&educationYearId={educationYearId}",
+            cancellationToken);
+
+    public Task<ResetPreviewDto> PreviewAuthorityResetImagesAsync(string accessToken, int schoolId, IReadOnlyList<int> yearIds, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ResetPreviewDto>(
+            accessToken,
+            $"api/sync/authority/reset/image-preview?schoolId={schoolId}&yearIds={Uri.EscapeDataString(string.Join(",", yearIds ?? []))}",
+            cancellationToken);
+
+    public Task<ResetProgressDto> GetAuthorityResetProgressAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ResetProgressDto>(accessToken, $"api/sync/authority/reset/progress?schoolId={schoolId}", cancellationToken);
+
+    public Task<AuthorityResult> StartAuthorityResetAsync(string accessToken, ResetExecuteRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/reset/execute", request, cancellationToken);
+
+    public async Task<ResetPreviewDto> DeleteAuthorityResetImagesAsync(string accessToken, ResetImageRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/authority/reset/delete-images")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<ResetPreviewDto>(JsonOptions, cancellationToken)
+               ?? new ResetPreviewDto { Ok = false, Message = "ab.failed" };
+    }
+
+    public Task<AttSignupPageDto> GetAuthorityAttendanceAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AttSignupPageDto>(accessToken, "api/sync/authority/attendance", cancellationToken);
+
+    public Task<AuthorityResult> RegisterAuthorityAttendanceAsync(string accessToken, AttRegisterRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/attendance/register", request, cancellationToken);
+
+    public Task<AuthorityResult> SetAuthorityAttendancePasswordAsync(string accessToken, AttPasswordRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/attendance/password", request, cancellationToken);
+
+    public Task<AuthorityResult> SetAuthorityAttendanceActiveAsync(string accessToken, AttActiveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/attendance/active", request, cancellationToken);
+
+    public Task<SmsSettingPageDto> GetAuthoritySmsSettingAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SmsSettingPageDto>(accessToken, "api/sync/authority/sms-setting", cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthoritySmsSettingAsync(string accessToken, SaveSmsSettingRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/sms-setting", request, cancellationToken);
+
+    public Task<IReadOnlyList<SmsSenderRowDto>> GetAuthoritySmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
+        GetListAsync<SmsSenderRowDto>(
+            accessToken,
+            $"api/sync/authority/sms-setting/records?{(QDates(from, to).TrimStart('&'))}",
+            cancellationToken);
+
+    public Task<SmsFailedPageDto> GetAuthorityFailedSmsAsync(string accessToken, DateTime? from, DateTime? to, string? reason, int schoolId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SmsFailedPageDto>(
+            accessToken,
+            $"api/sync/authority/sms-setting/failed?{(QDates(from, to) + Q("reason", reason) + Q("schoolId", schoolId.ToString())).TrimStart('&')}",
+            cancellationToken);
+
+    public Task<ClientSmsPageDto> GetAuthorityClientSmsAsync(string accessToken, string? q, string? validation, CancellationToken cancellationToken = default) =>
+        GetItemAsync<ClientSmsPageDto>(
+            accessToken,
+            $"api/sync/authority/client-sms?q={Uri.EscapeDataString(q ?? "")}{Q("validation", validation)}",
+            cancellationToken);
+
+    public async Task<SendClientSmsResult> SendAuthorityClientSmsAsync(string accessToken, SendClientSmsRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/authority/client-sms")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<SendClientSmsResult>(body, JsonOptions);
+            if (parsed is not null)
+                return parsed;
+        }
+        catch (JsonException)
+        {
+        }
+        return new SendClientSmsResult { Error = response.IsSuccessStatusCode ? "ab.smsFail" : body };
+    }
+
+    public Task<AuthAccountsPageDto> GetAuthorityAccountsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthAccountsPageDto>(accessToken, "api/sync/authority/accounts", cancellationToken);
+
+    public Task<AuthProgressPageDto> GetAuthorityProgressAsync(string accessToken, string? filter, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthProgressPageDto>(accessToken, $"api/sync/authority/progress?filter={Uri.EscapeDataString(filter ?? "%")}", cancellationToken);
+
+    public Task<AuthCollectPageDto> GetAuthorityCollectionAsync(string accessToken, int categoryId, string? month, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthCollectPageDto>(accessToken, $"api/sync/authority/collection?categoryId={categoryId}{Q("month", month)}", cancellationToken);
+
+    public Task<AuthManagePageDto> GetAuthorityManageAsync(string accessToken, string? q, string? validation, string? payment, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthManagePageDto>(
+            accessToken,
+            $"api/sync/authority/manage?q={Uri.EscapeDataString(q ?? "")}{Q("validation", validation)}{Q("payment", payment)}",
+            cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityManageAsync(string accessToken, AuthManageSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/manage", request, cancellationToken);
+
+    public Task<AuthCreatePageDto> GetAuthorityCreateInvoiceAsync(
+        string accessToken, string? month, int otherSchoolId, string? smsFrom, string? smsTo, string? smsQ, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthCreatePageDto>(
+            accessToken,
+            $"api/sync/authority/invoice/create?month={Uri.EscapeDataString(month ?? "")}&otherSchoolId={otherSchoolId}{Q("smsFrom", smsFrom)}{Q("smsTo", smsTo)}{Q("smsQ", smsQ)}",
+            cancellationToken);
+
+    public Task<AuthorityResult> GenerateAuthorityStudentCountAsync(string accessToken, AuthGenerateCountRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/generate-count", request, cancellationToken);
+
+    public Task<AuthorityResult> AutoGenerateAuthorityInvoiceAsync(string accessToken, AuthGenerateCountRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/auto-generate", request, cancellationToken);
+
+    public Task<AuthorityResult> EnableAuthorityInvoiceJobAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/enable-job", new AuthIdRequest(), cancellationToken);
+
+    public Task<AuthorityResult> CreateAuthorityServiceInvoicesAsync(string accessToken, AuthCreateServiceRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/service", request, cancellationToken);
+
+    public Task<AuthorityResult> AddAuthorityInvoiceCategoryAsync(string accessToken, AuthAddCategoryRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/category", request, cancellationToken);
+
+    public Task<AuthorityResult> CreateAuthorityOtherInvoiceAsync(string accessToken, AuthCreateOtherRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/other", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityInvoiceAsync(string accessToken, int invoiceId, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/other/delete", new AuthIdRequest { Id = invoiceId }, cancellationToken);
+
+    public Task<AuthorityResult> SetAuthorityGraceAsync(string accessToken, AuthGraceRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/grace", request, cancellationToken);
+
+    public Task<AuthorityResult> ClearAuthorityGraceAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/grace/clear", new AuthGraceRequest { SchoolID = schoolId }, cancellationToken);
+
+    public Task<AuthPaidPageDto> GetAuthorityPaidInvoiceAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthPaidPageDto>(accessToken, $"api/sync/authority/invoice/paid?schoolId={schoolId}", cancellationToken);
+
+    public Task<AuthorityResult> PayAuthorityInvoicesAsync(string accessToken, AuthPayInvoiceRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/invoice/pay", request, cancellationToken);
+
+    public Task<AuthPrintPageDto> GetAuthorityPrintInvoiceAsync(string accessToken, int schoolId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthPrintPageDto>(accessToken, $"api/sync/authority/invoice/print?schoolId={schoolId}", cancellationToken);
+
+    public Task<AuthPayPrintDto> GetAuthorityPayPrintAsync(string accessToken, int schoolId, string ids, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthPayPrintDto>(accessToken, $"api/sync/authority/invoice/print/pay?schoolId={schoolId}&ids={Uri.EscapeDataString(ids)}", cancellationToken);
+
+    public Task<AuthReceiptPrintDto> GetAuthorityReceiptPrintAsync(string accessToken, int receiptId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthReceiptPrintDto>(accessToken, $"api/sync/authority/invoice/print/receipt?receiptId={receiptId}", cancellationToken);
+
+    public Task<AuthOnlinePayPageDto> GetAuthorityOnlinePayAsync(
+        string accessToken, string? type, int schoolId, string? method, DateTime? from, DateTime? to, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/authority/online-pay?type={Uri.EscapeDataString(type ?? "All")}&schoolId={schoolId}{Q("method", method)}";
+        if (from is not null) url += $"&from={from:yyyy-MM-dd}";
+        if (to is not null) url += $"&to={to:yyyy-MM-dd}";
+        return GetItemAsync<AuthOnlinePayPageDto>(accessToken, url, cancellationToken);
+    }
+
+    public Task<AuthLinkTreeDto> GetAuthorityLinksAsync(string accessToken, int categoryId, int subId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthLinkTreeDto>(accessToken, $"api/sync/authority/links?categoryId={categoryId}&subId={subId}", cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityLinkCategoryAsync(string accessToken, AuthLinkNameSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/links/category", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityLinkCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/links/category/delete", new AuthIdRequest { Id = id }, cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityLinkSubAsync(string accessToken, AuthLinkNameSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/links/sub", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityLinkSubAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/links/sub/delete", new AuthIdRequest { Id = id }, cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityLinkPageAsync(string accessToken, AuthLinkPageSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/links/page", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityLinkPageAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/links/page/delete", new AuthIdRequest { Id = id }, cancellationToken);
+
+    public Task<AuthRoleListDto> GetAuthorityRolesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthRoleListDto>(accessToken, "api/sync/authority/roles", cancellationToken);
+
+    public Task<AuthorityResult> CreateAuthorityRoleAsync(string accessToken, AuthRoleSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/roles", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityRoleAsync(string accessToken, AuthRoleSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/roles/delete", request, cancellationToken);
+
+    public Task<AuthReferralPageDto> GetAuthorityReferralAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthReferralPageDto>(accessToken, $"api/sync/authority/reference?id={id}", cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityReferrerAsync(string accessToken, AuthReferrerSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/reference", request, cancellationToken);
+
+    public Task<AuthSchoolSearchPageDto> SearchAuthorityReferralSchoolsAsync(string accessToken, string? q, int refId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthSchoolSearchPageDto>(accessToken, $"api/sync/authority/reference/schools?q={Uri.EscapeDataString(q ?? "")}&refId={refId}", cancellationToken);
+
+    public Task<AuthorityResult> AssignAuthoritySchoolAsync(string accessToken, AuthAssignSchoolRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/reference/assign", request, cancellationToken);
+
+    public Task<AuthorityResult> UpdateAuthorityAssignAsync(string accessToken, AuthAssignUpdateRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/reference/assign/update", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityAssignAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/reference/assign/delete", new AuthIdRequest { Id = id }, cancellationToken);
+
+    public Task<AuthCommissionPageDto> GetAuthorityCommissionAsync(
+        string accessToken, int refId, DateTime? from, DateTime? to, string? status, int detailId, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/authority/commission?refId={refId}&status={Uri.EscapeDataString(status ?? "")}&detailId={detailId}";
+        if (from is not null) url += $"&from={from:yyyy-MM-dd}";
+        if (to is not null) url += $"&to={to:yyyy-MM-dd}";
+        return GetItemAsync<AuthCommissionPageDto>(accessToken, url, cancellationToken);
+    }
+
+    public Task<AuthorityResult> PayAuthorityCommissionAsync(string accessToken, AuthCommissionPayRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/commission/pay", request, cancellationToken);
+
+    public Task<AuthorityResult> CreateAuthoritySubAsync(string accessToken, AuthSubSignupRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/sub-authority", request, cancellationToken);
+
+    public Task<AuthAccessPageDto> GetAuthorityPageAccessAsync(string accessToken, string? userName, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthAccessPageDto>(accessToken, $"api/sync/authority/page-access?userName={Uri.EscapeDataString(userName ?? "")}", cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityPageAccessAsync(string accessToken, AuthAccessSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/page-access", request, cancellationToken);
+
+    public Task<AuthProfileDto> GetAuthorityProfileAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthProfileDto>(accessToken, "api/sync/authority/profile", cancellationToken);
+
+    public async Task<ProfileResult> SaveAuthorityProfileAsync(string accessToken, AuthProfileDto request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/authority/profile")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<ProfileResult>(JsonOptions, cancellationToken)
+               ?? new ProfileResult { Error = "profile.needOnline" };
+    }
+
+    public Task<IReadOnlyList<AuthNoticeDto>> GetAdminNoticesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<AuthNoticeDto>(accessToken, "api/sync/admin-notices", cancellationToken);
+
+    public Task<IReadOnlyList<AuthNoticeDto>> GetAuthorityNoticesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<AuthNoticeDto>(accessToken, "api/sync/authority/notices", cancellationToken);
+
+    public Task<AuthorityResult> SaveAuthorityNoticeAsync(string accessToken, AuthNoticeSaveRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/notices", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityNoticeAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/notices/delete", new AuthNoticeIdRequest { Id = id }, cancellationToken);
+
+    public Task<AuthUnreadDto> GetAuthorityUnreadAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthUnreadDto>(accessToken, "api/sync/authority/messages/unread", cancellationToken);
+
+    public Task<AuthMessagePageDto> GetAuthorityMessagesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<AuthMessagePageDto>(accessToken, "api/sync/authority/messages", cancellationToken);
+
+    public Task<AuthorityResult> ReadAuthorityMessageAsync(string accessToken, AuthMessageReadRequest request, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/messages/read", request, cancellationToken);
+
+    public Task<AuthorityResult> DeleteAuthorityContactAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostAuthAsync(accessToken, "api/sync/authority/messages/delete-contact", new AuthNoticeIdRequest { Id = id }, cancellationToken);
+
+    private async Task<AuthorityResult> PostAuthAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<AuthorityResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return new AuthorityResult { Error = response.IsSuccessStatusCode ? "ab.failed" : body };
+    }
+
+    private async Task<InvoiceResult> PostInvoiceAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<InvoiceResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return new InvoiceResult { Error = response.IsSuccessStatusCode ? "inv.payFail" : body };
+    }
+
+    private async Task<CommitteeResult> PostCommitteeAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<CommitteeResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return new CommitteeResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
+    }
+
+    private async Task<RoutineResult> PostRoutineAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<RoutineResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return new RoutineResult { Error = response.IsSuccessStatusCode ? "rt.fail" : body };
+    }
+
+    private async Task<SmsResult> PostSmsAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        SmsResult? parsed = null;
+        try
+        {
+            parsed = JsonSerializer.Deserialize<SmsResult>(body, JsonOptions);
+        }
+        catch (JsonException)
+        {
+        }
+        if (parsed is not null)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                parsed.Succeeded = false;
+                if (string.IsNullOrWhiteSpace(parsed.Error))
+                    parsed.Error = string.IsNullOrWhiteSpace(parsed.Message) ? "sms.fail" : parsed.Message;
+            }
+            return parsed;
+        }
+        return new SmsResult
+        {
+            Succeeded = false,
+            Error = response.IsSuccessStatusCode || string.IsNullOrWhiteSpace(body) ? "sms.fail" : body.Trim()
+        };
+    }
+
     public async Task<ExpenseDto?> GetExpenseOneAsync(string accessToken, int id, CancellationToken cancellationToken = default)
     {
         using var message = new HttpRequestMessage(HttpMethod.Get, $"api/sync/accounts/expense/{id}");
@@ -2296,8 +3180,30 @@ public sealed class SyncApiClient : ISyncApiClient
         using var message = new HttpRequestMessage(HttpMethod.Get, url);
         message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(ExtractApiError(body) ?? $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).");
+        }
         return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken) ?? new T();
+    }
+
+    private static string? ExtractApiError(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.String)
+            {
+                var detail = err.GetString();
+                if (!string.IsNullOrWhiteSpace(detail)) return detail;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return null;
     }
 
     private async Task<IReadOnlyList<T>> GetListAsync<T>(

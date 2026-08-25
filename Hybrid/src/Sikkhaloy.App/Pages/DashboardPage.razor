@@ -17,6 +17,15 @@
         </div>
     </div>
 
+    @if (ShowBillWarn)
+    {
+        <div class="dash-bill-warn">
+            <strong>@BillDaysText()</strong>
+            <p>@Locale.T("dash.billHint")</p>
+            <a href="invoice/due">@Locale.T("dash.billPay")</a>
+        </div>
+    }
+
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="@(messageError ? "error" : "ok")">@message</div>
@@ -50,7 +59,7 @@
                 <h3>@Locale.T("dash.attendance")</h3>
                 <p>@Locale.T("dash.attendance.desc")</p>
             </a>
-            <a class="dash-quick-card is-violet" href="exam/input">
+            <a class="dash-quick-card is-violet" href="exam/setting">
                 <span class="dash-quick-ico">@ExamIcon</span>
                 <h3>@Locale.T("dash.exam")</h3>
                 <p>@Locale.T("dash.exam.desc")</p>
@@ -154,7 +163,7 @@
             @if (online.SmsRemaining > 0 || online.SmsSent > 0 || online.SmsByYear.Count > 0)
             {
                 <section class="card dash-panel">
-                    <h2>@Locale.T("dash.sms")</h2>
+                    <h2><a href="sms/send">@Locale.T("dash.sms")</a></h2>
                     <div class="dash-sms">
                         <div>
                             <strong>@online.SmsRemaining.ToString("N0")</strong>
@@ -334,6 +343,7 @@
 @code {
     private DashboardStats stats = new();
     private DashboardOverviewDto online = new();
+    private SubscriptionStatusDto access = new();
     private bool busy;
     private bool autoTried;
     private bool messageError;
@@ -345,12 +355,19 @@
     private int EmpMax => Math.Max(1, online.Employees.Select(x => x.Count).DefaultIfEmpty(0).Max());
     private int BloodMax => Math.Max(1, stats.BloodGroups.Select(x => x.Count).DefaultIfEmpty(0).Max());
     private int SessionMax => Math.Max(1, online.Sessions.Select(x => x.Count).DefaultIfEmpty(0).Max());
+    private bool ShowBillWarn => access.HasDue && !access.IsBlocked && access.DaysUntilExpiry >= 0;
 
     protected override async Task OnInitializedAsync()
     {
         if (!Session.IsAuthenticated)
         {
             Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (Session.IsAuthority)
+        {
+            Nav.NavigateTo("/authority", replace: true);
             return;
         }
 
@@ -410,6 +427,13 @@
             if (!await Api.PingAsync())
                 return;
             online = await Api.GetDashboardOverviewAsync(Session.AccessToken);
+            access = await Api.GetSubscriptionStatusAsync(Session.AccessToken);
+            Session.SetAccess(access);
+            if (access.IsBlocked)
+            {
+                Nav.NavigateTo("/invoice/due", replace: true);
+                return;
+            }
             StateHasChanged();
         }
         catch
@@ -512,6 +536,14 @@
     }
 
     private static int AgeWillBe(DateTime? dob) => Age(dob) + 1;
+
+    private string BillDaysText()
+    {
+        var days = access.DaysUntilExpiry;
+        if (days == 0) return Locale.T("dash.billDays0");
+        if (days == 1) return Locale.T("dash.billDays1");
+        return Locale.T("dash.billDaysN", days);
+    }
 
     private string TranslateSyncError(string? error)
     {

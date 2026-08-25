@@ -1,0 +1,785 @@
+@page "/authority/create-invoice"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@using System.Globalization
+
+<div class="ui-page ci-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.accounts")</p>
+        <h1>@Locale.T("auth.m.createInvoice")</h1>
+    </header>
+
+    <nav class="ci-tabs no-print">
+        <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("ai.tabService")</button>
+        <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("ai.tabSms")</button>
+        <button type="button" class="@(tab == 2 ? "is-on" : null)" @onclick="() => tab = 2">@Locale.T("ai.tabOther")</button>
+        <button type="button" class="is-access @(tab == 3 ? "is-on" : null)" @onclick="() => tab = 3">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5m0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3m0 10a2 2 0 0 1 1 3.7V19h-2v-2.3A2 2 0 0 1 12 13"/></svg>
+            @Locale.T("ai.tabAccess")
+        </button>
+    </nav>
+
+    @if (tab == 0)
+    {
+        <section class="card ci-bar">
+            <label>
+                <span>@Locale.T("ai.month")</span>
+                <select @bind="month" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="">@Locale.T("ai.month")</option>
+                    @foreach (var m in data.Months)
+                    {
+                        <option value="@m.Extra">@m.Name</option>
+                    }
+                </select>
+            </label>
+            <label>
+                <span>@Locale.T("ai.issue")</span>
+                <input type="date" @bind="issueDate" disabled="@busy" />
+            </label>
+            <label>
+                <span>@Locale.T("ai.generateCount")</span>
+                <input type="date" @bind="genMonth" disabled="@busy" />
+            </label>
+            <div class="ci-bar-actions">
+                <button type="button" class="acc-btn" disabled="@busy" @onclick="GenerateCountAsync">@Locale.T("ai.generateCount")</button>
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="CreateServiceAsync">@Locale.T("ai.submitInvoice")</button>
+            </div>
+        </section>
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("ai.tabService")</h3>
+                <span>@Locale.T("auth.rows", data.ServiceRows.Count)</span>
+            </div>
+            <div class="ci-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" checked="@AllServiceOn" disabled="@busy" @onchange="ToggleService" /></th>
+                            <th>@Locale.T("ab.schoolId")</th>
+                            <th>@Locale.T("ai.institution")</th>
+                            <th>@Locale.T("ai.students")</th>
+                            <th>@Locale.T("ai.committeeCount")</th>
+                            <th>@Locale.T("ai.billable")</th>
+                            <th>@Locale.T("ai.perStudent")</th>
+                            <th>@Locale.T("ai.rejtCount")</th>
+                            <th>@Locale.T("ai.payActive")</th>
+                            <th>@Locale.T("ai.discount")</th>
+                            <th>@Locale.T("ai.fixed")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.ServiceRows.Count == 0)
+                        {
+                            <tr><td colspan="11" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var row in data.ServiceRows)
+                        {
+                            <tr class="@(row.Selected ? "is-on" : null)" @onclick="() => ToggleServiceRow(row)">
+                                <td @onclick:stopPropagation="true">
+                                    <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetServiceRow(row, e)" />
+                                </td>
+                                <td>@row.SchoolID</td>
+                                <td>@row.SchoolName</td>
+                                <td>@Tk(row.StudentCount)</td>
+                                <td>@Tk(row.CommitteeCount)</td>
+                                <td><b>@Tk(row.StudentCount + row.CommitteeCount)</b></td>
+                                <td>@Tk(row.PerStudent)</td>
+                                <td>@row.RejectCountable / @row.RejectUncountable</td>
+                                <td>@(row.PaymentActive ? Locale.T("ai.active") : Locale.T("ai.inactive"))</td>
+                                <td @onclick:stopPropagation="true">
+                                    <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(row.Discount)" disabled="@busy"
+                                           @onchange="e => row.Discount = ParseAmt(e)" @onwheel:preventDefault />
+                                </td>
+                                <td>@Tk(row.Fixed)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    else if (tab == 1)
+    {
+        <p class="ci-note">@Locale.T("ai.smsNote")</p>
+        <section class="card ci-bar">
+            <label>
+                <span>@Locale.T("ai.from")</span>
+                <input type="date" @bind="smsFrom" disabled="@busy" />
+            </label>
+            <label>
+                <span>@Locale.T("ai.to")</span>
+                <input type="date" @bind="smsTo" disabled="@busy" />
+            </label>
+            <label class="ci-grow">
+                <span>@Locale.T("ai.institution")</span>
+                <input @bind="smsQ" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+            </label>
+            <div class="ci-bar-actions">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.searchBtn")</button>
+            </div>
+        </section>
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("ai.tabSms")</h3>
+                <span>@Locale.T("auth.rows", data.SmsRows.Count)</span>
+            </div>
+            <div class="ci-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("ab.schoolId")</th>
+                            <th>@Locale.T("ai.institution")</th>
+                            <th>SMS</th>
+                            <th>@Locale.T("ai.unitPrice")</th>
+                            <th>@Locale.T("ai.totalAmt")</th>
+                            <th>@Locale.T("ai.date")</th>
+                            <th>@Locale.T("ab.userName")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.SmsRows.Count == 0)
+                        {
+                            <tr><td colspan="7" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var row in data.SmsRows)
+                        {
+                            <tr>
+                                <td>@row.SchoolID</td>
+                                <td>@row.SchoolName</td>
+                                <td>@Tk(row.RechargeSms)</td>
+                                <td>@Tk(row.PerSms)</td>
+                                <td class="ci-amt-cell">@Tk(row.Total)</td>
+                                <td>@row.Date?.ToString("d MMM yyyy")</td>
+                                <td>@row.UserName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    else if (tab == 2)
+    {
+        <section class="card ci-form">
+            <div class="ci-form-top">
+                <label>
+                    <span>@Locale.T("ai.category")</span>
+                    <select @bind="other.CategoryId" disabled="@busy">
+                        <option value="0">@Locale.T("ai.selectCat")</option>
+                        @foreach (var cat in data.Categories)
+                        {
+                            <option value="@cat.Id">@cat.Name</option>
+                        }
+                    </select>
+                </label>
+                <button type="button" class="acc-btn ci-cat-btn" disabled="@busy" @onclick="OpenCat">@Locale.T("ai.addCategory")</button>
+            </div>
+
+            @if (OtherSchool is not null)
+            {
+                <div class="ci-selected">
+                    <span class="ci-avatar" aria-hidden="true">@Initial(SchoolTitle(OtherSchool))</span>
+                    <div>
+                        <b>@SchoolTitle(OtherSchool)</b>
+                        <span>@Locale.T("ab.selected", OtherSchool.Id)</span>
+                    </div>
+                    <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearOtherSchool">@Locale.T("auth.clear")</button>
+                </div>
+            }
+            <label class="ci-search">
+                <span>@Locale.T("ab.searchInst")</span>
+                <input @bind="schoolQuery" @bind:event="oninput" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+            </label>
+            @if (ShowOtherSchoolList)
+            {
+                <div class="ci-pick-list">
+                    @foreach (var item in FilteredSchools)
+                    {
+                        <button type="button" class="@(item.Id == other.SchoolID ? "is-on" : null)" disabled="@busy" @onclick="() => PickOtherSchoolAsync(item.Id)">
+                            <b>@item.Id</b>
+                            <span>@SchoolTitle(item)</span>
+                        </button>
+                    }
+                    @if (!FilteredSchools.Any())
+                    {
+                        <p class="muted">@Locale.T("ab.empty")</p>
+                    }
+                </div>
+            }
+
+            <div class="ci-dates">
+                <label>@Locale.T("ai.monthName") <input type="date" @bind="otherMonth" disabled="@busy" /></label>
+                <label>@Locale.T("ai.issue") <input type="date" @bind="otherIssue" disabled="@busy" /></label>
+                <label>@Locale.T("ai.endDate") <input type="date" @bind="otherEnd" disabled="@busy" /></label>
+            </div>
+            <label class="ci-for">
+                @Locale.T("ai.invoiceFor")
+                <textarea rows="3" @bind="other.InvoiceFor" disabled="@busy"></textarea>
+            </label>
+            <div class="ci-amts">
+                <label>
+                    @Locale.T("ai.unit")
+                    <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(other.Unit)" disabled="@busy"
+                           @onchange="e => other.Unit = ParseAmt(e)" @onwheel:preventDefault />
+                </label>
+                <label>
+                    @Locale.T("ai.unitPrice")
+                    <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(other.UnitPrice)" disabled="@busy"
+                           @onchange="e => other.UnitPrice = ParseAmt(e)" @onwheel:preventDefault />
+                </label>
+                <label>
+                    @Locale.T("ai.totalAmt")
+                    <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(other.TotalAmount)" disabled="@busy"
+                           @onchange="e => other.TotalAmount = ParseAmt(e)" @onwheel:preventDefault />
+                </label>
+                <label>
+                    @Locale.T("ai.discount")
+                    <input class="ci-amt" type="text" inputmode="decimal" autocomplete="off" value="@FmtAmt(other.Discount)" disabled="@busy"
+                           @onchange="e => other.Discount = ParseAmt(e)" @onwheel:preventDefault />
+                </label>
+            </div>
+            <button type="button" class="acc-btn acc-btn-primary ci-create" disabled="@busy" @onclick="CreateOtherAsync">@Locale.T("ai.create")</button>
+        </section>
+
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("ai.tabOther")</h3>
+                <span>@Locale.T("auth.rows", data.OtherInvoices.Count)</span>
+            </div>
+            <div class="ci-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("ai.sn")</th>
+                            <th>@Locale.T("ai.category")</th>
+                            <th>@Locale.T("ai.invoiceFor")</th>
+                            <th>@Locale.T("ai.totalAmt")</th>
+                            <th>@Locale.T("ai.paid")</th>
+                            <th>@Locale.T("ai.due")</th>
+                            <th>@Locale.T("ai.delete")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.OtherInvoices.Count == 0)
+                        {
+                            <tr><td colspan="7" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var row in data.OtherInvoices)
+                        {
+                            <tr>
+                                <td>@row.InvoiceSn</td>
+                                <td>@row.Category</td>
+                                <td>@row.InvoiceFor</td>
+                                <td class="ci-amt-cell">@Tk(row.TotalAmount)</td>
+                                <td>@Tk(row.PaidAmount)</td>
+                                <td>@Tk(row.Due)</td>
+                                <td>
+                                    @if (row.PaidAmount == 0)
+                                    {
+                                        <button type="button" class="ab-link" disabled="@busy" @onclick="() => DeleteOtherAsync(row.InvoiceID)">@Locale.T("ai.delete")</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="ci-job-card">
+            <header>
+                <div>
+                    <strong>@Locale.T("ai.job")</strong>
+                    <small>@data.Job.Name</small>
+                </div>
+                <button type="button" class="acc-btn ci-job-refresh" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.refresh")</button>
+            </header>
+            <div class="ci-job-body">
+                <div class="ci-job-actions">
+                    <button type="button" class="acc-btn ci-job-run" disabled="@busy" @onclick="AutoAsync">@Locale.T("ai.autoGen")</button>
+                    @if (!data.Job.Enabled)
+                    {
+                        <button type="button" class="acc-btn ci-job-enable" disabled="@busy" @onclick="EnableJobAsync">@Locale.T("ai.enableJob")</button>
+                    }
+                </div>
+                <p class="ci-job-hint">@Locale.T("ai.jobHint")</p>
+                @if (!string.IsNullOrWhiteSpace(data.Job.Error))
+                {
+                    <p class="ci-job-err">@data.Job.Error</p>
+                }
+                <div class="ci-wrap">
+                    <table class="ad-table ci-job-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("ai.jobName")</th>
+                                <th>@Locale.T("ai.jobEnabled")</th>
+                                <th>@Locale.T("ai.lastRun")</th>
+                                <th>@Locale.T("ai.status")</th>
+                                <th>@Locale.T("ai.nextRun")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>@data.Job.Name</b></td>
+                                <td>
+                                    <span class="ci-pill @(data.Job.Enabled ? "is-ok" : "is-bad")">
+                                        @(data.Job.Enabled ? Locale.T("ai.active") : Locale.T("ai.inactive"))
+                                    </span>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(data.Job.LastRun) ? "—" : data.Job.LastRun)</td>
+                                <td>@(string.IsNullOrWhiteSpace(data.Job.LastStatus) ? "—" : data.Job.LastStatus)</td>
+                                <td>@(string.IsNullOrWhiteSpace(data.Job.NextRun) ? "—" : data.Job.NextRun)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <div class="ci-access">
+            <section class="ci-grace-card">
+                <header>@Locale.T("ai.graceTitle")</header>
+                <div class="ci-grace-body">
+                    @if (GraceSchool is not null)
+                    {
+                        <div class="ci-selected">
+                            <span class="ci-avatar" aria-hidden="true">@Initial(SchoolTitle(GraceSchool))</span>
+                            <div>
+                                <b>@SchoolTitle(GraceSchool)</b>
+                                <span>@Locale.T("ab.selected", GraceSchool.Id)</span>
+                            </div>
+                            <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearGraceSchool">@Locale.T("auth.clear")</button>
+                        </div>
+                    }
+                    <label class="ci-search">
+                        <span>@Locale.T("ab.searchInst")</span>
+                        <input @bind="graceQuery" @bind:event="oninput" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+                    </label>
+                    @if (ShowGraceSchoolList)
+                    {
+                        <div class="ci-pick-list is-compact">
+                            @foreach (var item in FilteredGraceSchools)
+                            {
+                                <button type="button" class="@(item.Id == grace.SchoolID ? "is-on" : null)" disabled="@busy" @onclick="() => PickGraceSchool(item.Id)">
+                                    <b>@item.Id</b>
+                                    <span>@SchoolTitle(item)</span>
+                                </button>
+                            }
+                            @if (!FilteredGraceSchools.Any())
+                            {
+                                <p class="muted">@Locale.T("ab.empty")</p>
+                            }
+                        </div>
+                    }
+                    <label>@Locale.T("ai.graceUntil") <input type="date" @bind="graceUntil" disabled="@busy" /></label>
+                    <button type="button" class="acc-btn ci-grace-btn" disabled="@busy" @onclick="SetGraceAsync">@Locale.T("ai.setGrace")</button>
+                </div>
+            </section>
+            <section class="ci-grace-list">
+                <header>
+                    <strong>@Locale.T("ai.graceList")</strong>
+                    <span>@Locale.T("auth.rows", data.GraceRows.Count)</span>
+                </header>
+                <div class="ci-wrap">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>@Locale.T("ai.institution")</th>
+                                <th>@Locale.T("ai.graceUntil")</th>
+                                <th>@Locale.T("ai.status")</th>
+                                <th>@Locale.T("ai.cancelGrace")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (data.GraceRows.Count == 0)
+                            {
+                                <tr><td colspan="5" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                            }
+                            @foreach (var row in data.GraceRows)
+                            {
+                                <tr class="@(row.Active ? null : "is-off")">
+                                    <td class="ci-id">@row.SchoolID</td>
+                                    <td>
+                                        <span class="ci-name">
+                                            <span class="ci-avatar is-sm" aria-hidden="true">@Initial(row.SchoolName)</span>
+                                            <span>@row.SchoolName</span>
+                                        </span>
+                                    </td>
+                                    <td>@row.Until?.ToString("d MMM yyyy")</td>
+                                    <td>
+                                        <span class="ci-pill @(row.Active ? "is-ok" : "is-bad")">
+                                            @(row.Active ? Locale.T("ai.active") : Locale.T("ai.expired"))
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="ci-x" disabled="@busy" title="@Locale.T("ai.cancelGrace")" @onclick="() => AskCancelGrace(row.SchoolID)">×</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    }
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (showCat)
+{
+    <div class="acc-result-back" @onclick="CloseCat">
+        <div class="acc-result is-ok pc-modal oi-cat-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("ai.catModal")</h3>
+            <div class="oi-cat-add">
+                <input @bind="newCategory" placeholder="@Locale.T("ai.categoryName")" disabled="@busy" />
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AddCategoryAsync">@Locale.T("ai.addCategory")</button>
+            </div>
+            <div class="ci-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("ai.category")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.Categories.Count == 0)
+                        {
+                            <tr><td class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var cat in data.Categories)
+                        {
+                            <tr>
+                                <td>@cat.Name</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="pc-modal-btns">
+                <button type="button" class="acc-btn" @onclick="CloseCat">@Locale.T("acc.close")</button>
+            </div>
+        </div>
+    </div>
+}
+@if (cancelGraceId is int gid)
+{
+    <div class="acc-result-back" @onclick="() => cancelGraceId = null">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <h3>@Locale.T("ai.cancelGrace")</h3>
+            <p>@Locale.T("ai.cancelGraceAsk")</p>
+            <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick="() => ClearGraceAsync(gid)">@Locale.T("ai.cancelGrace")</button>
+            <button type="button" class="acc-btn" @onclick="() => cancelGraceId = null">@Locale.T("ab.cancel")</button>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p style="white-space:pre-wrap;">@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthCreatePageDto data = new();
+    private AuthCreateOtherRequest other = new();
+    private AuthGraceRequest grace = new();
+    private int tab;
+    private string month = "", newCategory = "", smsQ = "", schoolQuery = "", graceQuery = "";
+    private DateTime issueDate = DateTime.Today;
+    private DateTime genMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime smsFrom = DateTime.Today.AddMonths(-1);
+    private DateTime smsTo = DateTime.Today;
+    private DateTime otherMonth = DateTime.Today;
+    private DateTime otherIssue = DateTime.Today;
+    private DateTime otherEnd = DateTime.Today.AddDays(15);
+    private DateTime graceUntil = DateTime.Today.AddDays(7);
+    private bool busy, popupError, showCat;
+    private int? cancelGraceId;
+    private string busyTitle = "", popupText = "";
+
+    private bool AllServiceOn => data.ServiceRows.Count > 0 && data.ServiceRows.All(x => x.Selected);
+    private AuthorityOptionDto? OtherSchool => data.Schools.FirstOrDefault(x => x.Id == other.SchoolID);
+    private AuthorityOptionDto? GraceSchool => data.Schools.FirstOrDefault(x => x.Id == grace.SchoolID);
+    private bool ShowOtherSchoolList => other.SchoolID <= 0 || schoolQuery.Trim().Length > 0;
+    private bool ShowGraceSchoolList => grace.SchoolID <= 0 || graceQuery.Trim().Length > 0;
+
+    private IEnumerable<AuthorityOptionDto> FilteredSchools => FilterSchools(schoolQuery);
+    private IEnumerable<AuthorityOptionDto> FilteredGraceSchools => FilterSchools(graceQuery);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var page = await Api.GetAuthorityCreateInvoiceAsync(
+                Session.AccessToken!, month, other.SchoolID,
+                smsFrom.ToString("yyyy-MM-dd"), smsTo.ToString("yyyy-MM-dd"), smsQ);
+            var schools = page.Schools.Count > 0 ? page.Schools : data.Schools;
+            var cats = page.Categories.Count > 0 ? page.Categories : data.Categories;
+            data = page;
+            if (page.Schools.Count == 0) data.Schools = schools;
+            if (page.Categories.Count == 0) data.Categories = cats;
+            if (string.IsNullOrWhiteSpace(month) && !string.IsNullOrWhiteSpace(data.SelectedMonth))
+                month = data.SelectedMonth;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ToggleService(ChangeEventArgs e)
+    {
+        var on = IsOn(e);
+        foreach (var row in data.ServiceRows)
+            row.Selected = on;
+    }
+
+    private void ToggleServiceRow(AuthServiceChargeRowDto row)
+    {
+        if (busy) return;
+        row.Selected = !row.Selected;
+    }
+
+    private void SetServiceRow(AuthServiceChargeRowDto row, ChangeEventArgs e) => row.Selected = IsOn(e);
+
+    private async Task GenerateCountAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.GenerateAuthorityStudentCountAsync(Session.AccessToken!, new AuthGenerateCountRequest { Month = genMonth.ToString("yyyy-MM-dd") });
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task AutoAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.AutoGenerateAuthorityInvoiceAsync(Session.AccessToken!, new AuthGenerateCountRequest { Month = month });
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task EnableJobAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.EnableAuthorityInvoiceJobAsync(Session.AccessToken!);
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task CreateServiceAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateAuthorityServiceInvoicesAsync(Session.AccessToken!, new AuthCreateServiceRequest
+            {
+                Month = month,
+                IssueDate = issueDate.ToString("yyyy-MM-dd"),
+                Rows = data.ServiceRows
+            });
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void OpenCat() => showCat = true;
+    private void CloseCat() { showCat = false; newCategory = ""; }
+
+    private async Task AddCategoryAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var name = newCategory.Trim();
+            var result = await Api.AddAuthorityInvoiceCategoryAsync(Session.AccessToken!, new AuthAddCategoryRequest { Name = name });
+            if (!result.Succeeded) { Show(Msg(result), true); return; }
+            newCategory = "";
+            await LoadAsync();
+            var cat = data.Categories.FirstOrDefault(x => x.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase));
+            if (cat is not null) other.CategoryId = cat.Id;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task PickOtherSchoolAsync(int id)
+    {
+        other.SchoolID = id;
+        schoolQuery = "";
+        await LoadAsync();
+    }
+
+    private void ClearOtherSchool()
+    {
+        other.SchoolID = 0;
+        schoolQuery = "";
+        data.OtherInvoices.Clear();
+    }
+
+    private void PickGraceSchool(int id)
+    {
+        grace.SchoolID = id;
+        graceQuery = "";
+    }
+
+    private void ClearGraceSchool()
+    {
+        grace.SchoolID = 0;
+        graceQuery = "";
+    }
+
+    private void AskCancelGrace(int schoolId) => cancelGraceId = schoolId;
+
+    private async Task CreateOtherAsync()
+    {
+        other.MonthName = otherMonth.ToString("yyyy-MM-dd");
+        other.IssueDate = otherIssue.ToString("yyyy-MM-dd");
+        other.EndDate = otherEnd.ToString("yyyy-MM-dd");
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateAuthorityOtherInvoiceAsync(Session.AccessToken!, other);
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteOtherAsync(int id)
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.DeleteAuthorityInvoiceAsync(Session.AccessToken!, id);
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SetGraceAsync()
+    {
+        grace.Until = graceUntil.ToString("yyyy-MM-dd");
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SetAuthorityGraceAsync(Session.AccessToken!, grace);
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ClearGraceAsync(int schoolId)
+    {
+        cancelGraceId = null;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.ClearAuthorityGraceAsync(Session.AccessToken!, schoolId);
+            Show(Msg(result), !result.Succeeded);
+            if (result.Succeeded) await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private IEnumerable<AuthorityOptionDto> FilterSchools(string query)
+    {
+        var q = query.Trim();
+        IEnumerable<AuthorityOptionDto> list = data.Schools;
+        if (q.Length > 0)
+        {
+            list = data.Schools.Where(x =>
+                x.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                || x.Id.ToString().Contains(q, StringComparison.Ordinal));
+        }
+        return list.Take(40);
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Msg(AuthorityResult result)
+    {
+        var raw = result.Succeeded ? (result.Message ?? "ai.saved") : (result.Error ?? "ab.failed");
+        return raw.StartsWith("ai.", StringComparison.OrdinalIgnoreCase) || raw.StartsWith("ab.", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T(raw) : raw;
+    }
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static bool IsOn(ChangeEventArgs e) => e.Value is bool b && b || e.Value is string s && bool.TryParse(s, out var v) && v;
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private static string FmtAmt(decimal n) => n.ToString("0.##", CultureInfo.InvariantCulture);
+    private static decimal ParseAmt(ChangeEventArgs e)
+    {
+        var s = (e.Value?.ToString() ?? "").Trim().Replace(",", "");
+        if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var n)) return n;
+        if (decimal.TryParse(s, NumberStyles.Number, CultureInfo.CurrentCulture, out n)) return n;
+        return 0;
+    }
+    private static string SchoolTitle(AuthorityOptionDto s)
+    {
+        var name = s.Name ?? "";
+        var prefix = s.Id + " - ";
+        return name.StartsWith(prefix, StringComparison.Ordinal) ? name[prefix.Length..] : name;
+    }
+    private static string Initial(string? name)
+    {
+        var t = (name ?? "").Trim();
+        return t.Length == 0 ? "?" : t[..1].ToUpperInvariant();
+    }
+}

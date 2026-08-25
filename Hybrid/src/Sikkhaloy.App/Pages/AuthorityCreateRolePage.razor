@@ -1,0 +1,142 @@
+@page "/authority/create-role"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.createRole")</h1>
+    <div class="ab-card">
+        <div class="al-inline">
+            <input @bind="name" placeholder="@Locale.T("al.roleNamePh")" disabled="@busy" />
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="CreateAsync">@Locale.T("al.createRole")</button>
+        </div>
+    </div>
+    <div class="ab-table-wrap">
+        <table class="ad-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("al.role")</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (roles.Count == 0)
+                {
+                    <tr><td colspan="2">@Locale.T("al.empty")</td></tr>
+                }
+                @foreach (var role in roles)
+                {
+                    <tr>
+                        <td>@role</td>
+                        <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => AskDelete(role)">@Locale.T("ai.delete")</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(confirmRole))
+{
+    <div class="acc-result-back" @onclick="ClearConfirm">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <h3>@Locale.T("al.confirmDelete")</h3>
+            <p>@confirmRole</p>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="DeleteAsync">@Locale.T("ai.delete")</button>
+            <button type="button" class="acc-btn" @onclick="ClearConfirm">@Locale.T("ab.cancel")</button>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<string> roles = [];
+    private string name = "", confirmRole = "", busyTitle = "", popupText = "";
+    private bool busy, popupError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private void AskDelete(string role) => confirmRole = role;
+    private void ClearConfirm() => confirmRole = "";
+
+    private async Task CreateAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateAuthorityRoleAsync(Session.AccessToken!, new AuthRoleSaveRequest { Name = name });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            name = "";
+            Show(Locale.T(result.Message ?? "al.roleCreated"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var role = confirmRole;
+        confirmRole = "";
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.DeleteAuthorityRoleAsync(Session.AccessToken!, new AuthRoleSaveRequest { Name = role });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T(result.Message ?? "al.roleDeleted"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var data = await Api.GetAuthorityRolesAsync(Session.AccessToken!);
+            roles.Clear();
+            roles.AddRange(data.Roles);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.Contains('.') ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

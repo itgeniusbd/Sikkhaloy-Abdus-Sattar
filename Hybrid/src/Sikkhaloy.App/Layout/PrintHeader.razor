@@ -26,7 +26,10 @@ else
                 @if (!string.IsNullOrWhiteSpace(phone)) { <span>@phone</span> }
                 @if (!string.IsNullOrWhiteSpace(email)) { <span>@email</span> }
             </p>
-            <p class="print-id">@Locale.T("header.institutionId") @schoolId</p>
+            @if (ShowInstitutionId)
+            {
+                <p class="print-id">@Locale.T("header.institutionId") @schoolId</p>
+            }
         </div>
     </div>
 }
@@ -43,6 +46,7 @@ else
     [Parameter] public string? Subtitle { get; set; }
     [Parameter] public bool ShowDate { get; set; } = true;
     [Parameter] public bool Centered { get; set; }
+    [Parameter] public bool ShowInstitutionId { get; set; } = true;
 
     private string schoolName = "";
     private string address = "";

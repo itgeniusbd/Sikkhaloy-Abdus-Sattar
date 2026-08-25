@@ -1,0 +1,174 @@
+@page "/invoice/receipt/{Id:int}"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page inv-page">
+    <div class="filter-row no-print">
+        <a class="acc-btn" href="invoice/paid">@Locale.T("inv.back")</a>
+        @if (dto.Found)
+        {
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("inv.print")</button>
+        }
+    </div>
+
+    @if (dto.Found)
+    {
+        <div class="inv-wraper">
+            <div class="inv-inst">
+                <img src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="SIKKHALOY" />
+                <div>
+                    <h2>SIKKHALOY</h2>
+                    <small>@Locale.T("inv.tagline")</small>
+                </div>
+            </div>
+            <div class="inv-title"><b>@Locale.T("inv.receipt")</b></div>
+            <div class="inv-two">
+                <div class="inv-to">
+                    <h2>@Locale.T("inv.receiptTo")</h2>
+                    <h5>@dto.SchoolName</h5>
+                    <p>@dto.Address</p>
+                    <p>@dto.Phone</p>
+                </div>
+                <div class="inv-to inv-to-right">
+                    <h2>@Locale.T("inv.receiptHash")@dto.InvoiceReceiptSn</h2>
+                    <h5>@Locale.T("inv.paidBy"): @dto.PaymentBy</h5>
+                    <p>@Locale.T("inv.collectedBy"): @dto.CollectedBy</p>
+                    <p>@Locale.T("inv.method"): @dto.PaymentMethod</p>
+                    <p>@Locale.T("inv.paidDate"): @(dto.PaidDate?.ToString("d MMM yyyy"))</p>
+                </div>
+            </div>
+            <table class="inv-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("inv.sn")</th>
+                        <th>@Locale.T("inv.desc")</th>
+                        <th class="text-right">@Locale.T("inv.unit")</th>
+                        <th class="text-right">@Locale.T("inv.unitPrice")</th>
+                        <th class="text-right">@Locale.T("inv.lineTotal")</th>
+                        @if (dto.ShowDiscount) { <th class="text-right">@Locale.T("inv.discount")</th> }
+                        <th class="text-right">@Locale.T("inv.paid")</th>
+                        @if (dto.ShowDue) { <th class="text-right">@Locale.T("inv.due")</th> }
+                    </tr>
+                </thead>
+                <tbody>
+                @{ var sn = 0; }
+                @foreach (var line in dto.Lines)
+                {
+                    sn++;
+                    <tr>
+                        <td>@sn</td>
+                        <td>@line.InvoiceCategory (@line.InvoiceFor)</td>
+                        <td class="text-right">@Tk(line.Unit)</td>
+                        <td class="text-right">@Tk(line.UnitPrice)</td>
+                        <td class="text-right">@Tk(line.TotalAmount)</td>
+                        @if (dto.ShowDiscount) { <td class="text-right">@Tk(line.Discount)</td> }
+                        <td class="text-right">@Tk(line.Paid)</td>
+                        @if (dto.ShowDue) { <td class="text-right">@Tk(line.Due)</td> }
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="inv-bottom">
+                <div class="inv-payinfo">
+                    <h4 class="inv-ok">@Locale.T("inv.thankYou")</h4>
+                    <p class="inv-pay-label">@Locale.T("inv.payMethod")</p>
+                    <table>
+                        <tr><td colspan="2" class="inv-sec">@Locale.T("inv.bankTransfer")</td></tr>
+                        <tr><td>Bank</td><td>Eastern Bank PLC</td></tr>
+                        <tr><td>@Locale.T("inv.accountName")</td><td>IT Genius</td></tr>
+                        <tr><td>Account No.</td><td>10510.7000.1333</td></tr>
+                        <tr><td>@Locale.T("inv.branch")</td><td>Sonargaon Branch</td></tr>
+                        <tr><td>Routing No.</td><td>095276586</td></tr>
+                        <tr><td colspan="2" class="inv-sec inv-rocket">@Locale.T("inv.rocket")</td></tr>
+                        <tr><td>Number</td><td class="inv-rocket">01739144141-6</td></tr>
+                        <tr><td colspan="2" class="inv-sec inv-bkash">@Locale.T("inv.bkash")</td></tr>
+                        <tr><td>Number</td><td class="inv-bkash">+880 1712-674118</td></tr>
+                    </table>
+                </div>
+                <div class="inv-summary">
+                    <table>
+                        <tr class="inv-sub"><td>@Locale.T("inv.total"):</td><td>@Tk(dto.TotalAmount) @Locale.T("inv.tk")</td></tr>
+                        @if (dto.ShowDiscount)
+                        {
+                            <tr class="inv-sub"><td>@Locale.T("inv.discount"):</td><td>− @Tk(dto.TotalDiscount) @Locale.T("inv.tk")</td></tr>
+                        }
+                        <tr class="inv-sub"><td>@Locale.T("inv.paid"):</td><td>@Tk(dto.TotalPaid) @Locale.T("inv.tk")</td></tr>
+                        @if (dto.HasGatewayCharge)
+                        {
+                            <tr class="inv-charge"><td>@Locale.T("inv.gateway"):</td><td>+ @Tk(dto.GatewayCharge) @Locale.T("inv.tk")</td></tr>
+                            <tr class="inv-paid-total"><td>@Locale.T("inv.totalPaid"):</td><td>@Tk(dto.CustomerPaid) @Locale.T("inv.tk")</td></tr>
+                        }
+                        else
+                        {
+                            <tr class="inv-paid-total"><td>@Locale.T("inv.totalPaid"):</td><td>@Tk(dto.TotalPaid) @Locale.T("inv.tk")</td></tr>
+                        }
+                        @if (dto.ShowDue)
+                        {
+                            <tr class="inv-due-row"><td>@Locale.T("inv.due"):</td><td>@Tk(dto.TotalDue) @Locale.T("inv.tk")</td></tr>
+                        }
+                    </table>
+                </div>
+            </div>
+            <div class="inv-auth">@Locale.T("inv.signAuth")</div>
+            <div class="inv-footer">
+                <div class="inv-footer-bar"></div>
+                <div class="inv-footer-row">
+                    <span>01739144141</span>
+                    <span>IT Genius, House # 6, Road # 9, Block # D, Bosila Garden City, Mohammadpur, Dhaka-1207</span>
+                    <span>www.itgenius.com.bd</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private PaidInvoiceReceiptDto dto = new();
+    private bool busy, popupError;
+    private string? popupText, busyTitle;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        busyTitle = Locale.T("inv.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                popupError = true;
+                return;
+            }
+            dto = await Api.GetPaidInvoiceReceiptAsync(Session.AccessToken!, Id);
+            if (!dto.Found)
+            {
+                popupText = Locale.T("inv.notFound");
+                popupError = true;
+            }
+        }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "8mm 5mm").AsTask();
+    private static string Tk(decimal n) => n.ToString("0.##");
+}

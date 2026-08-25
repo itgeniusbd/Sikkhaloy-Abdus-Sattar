@@ -1,0 +1,106 @@
+@page "/sms/records"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page sms-page sms-records-page">
+    <h1 class="no-print">@Locale.T("sms.recordsTitle") <small>@Locale.T("sms.remainSmall", sheet.Balance)</small></h1>
+    @if (sheet.LocalMode)
+    {
+        <div class="sms-local-note no-print">@Locale.T("sms.localNote")</div>
+    }
+    <div class="filter-row no-print">
+        <input type="date" @bind="fromDate" disabled="@busy" />
+        <input type="date" @bind="toDate" disabled="@busy" />
+        <input type="text" placeholder="@Locale.T("sms.phonePurpose")" @bind="search" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("sms.find")</button>
+        <button type="button" class="acc-btn no-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+    </div>
+    <div class="sms-total">@DateLabel @Locale.T("sms.totalSent", sheet.TotalSent)</div>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("sms.phoneNo")</th>
+                <th>@Locale.T("sms.textSms")</th>
+                <th>@Locale.T("sms.textCount")</th>
+                <th>@Locale.T("sms.smsCount")</th>
+                <th>@Locale.T("sms.purpose")</th>
+                <th>@Locale.T("sms.date")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (sheet.Rows.Count == 0)
+        {
+            <tr><td colspan="6" class="empty-row">@Locale.T("sms.noRecords")</td></tr>
+        }
+        @foreach (var row in sheet.Rows)
+        {
+            <tr>
+                <td>@row.PhoneNumber</td>
+                <td class="sms-text">@row.TextSMS</td>
+                <td>@row.TextCount</td>
+                <td>@row.SMSCount</td>
+                <td>@row.PurposeOfSMS</td>
+                <td>@row.Date.ToString("dd-MMM-yy (h:mm tt)")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@Locale.T("sms.loading")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("sms.errorTitle")</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private SmsRecordsDto sheet = new();
+    private DateTime? fromDate, toDate;
+    private string search = "";
+    private bool busy;
+    private string? popupText;
+
+    private string DateLabel
+    {
+        get
+        {
+            var from = fromDate?.ToString("dd MMM yyyy") ?? "";
+            var to = toDate?.ToString("dd MMM yyyy") ?? "";
+            if (from.Length == 0 && to.Length == 0) return "";
+            if (from.Length == 0) return "( Before " + to + ")";
+            if (to.Length == 0) return "( After " + from + ")";
+            if (from == to) return "(" + from + ")";
+            return "(" + from + " To " + to + ")";
+        }
+    }
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                return;
+            }
+            sheet = await Api.GetSmsRecordsAsync(Session.AccessToken!, fromDate, toDate, search);
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("print").AsTask();
+}

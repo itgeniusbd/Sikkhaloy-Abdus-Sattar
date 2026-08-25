@@ -1,0 +1,233 @@
+@page "/committee/donation-add"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page exam-page committee-page">
+    <h1>@Locale.T("cm.addDonation")</h1>
+    <div class="cm-form">
+        <label>@Locale.T("cm.findDonor") <button type="button" class="cm-link" disabled="@busy" @onclick="() => showAdd = true">@Locale.T("cm.addNew")</button></label>
+        <div class="cm-suggest">
+            <input type="text" @bind="donorQ" @bind:event="oninput" @bind:after="SuggestAsync" disabled="@busy" autocomplete="off" />
+            @if (suggests.Count > 0)
+            {
+                <ul>
+                    @foreach (var item in suggests)
+                    {
+                        <li @onclick="() => Pick(item)">@item.MemberName, @item.SmsNumber</li>
+                    }
+                </ul>
+            }
+        </div>
+        @if (memberId > 0)
+        {
+            <div class="cm-chip">
+                <span>@donorName</span>
+                <span>@donorPhone</span>
+                <button type="button" class="cm-chip-x" @onclick="ClearDonor">×</button>
+            </div>
+        }
+
+        <label>@Locale.T("cm.donationCategory") <a href="committee/categories">@Locale.T("cm.addNew")</a></label>
+        <select @bind="categoryId" disabled="@busy">
+            <option value="0">@Locale.T("cm.selectCategory")</option>
+            @foreach (var item in lookups.Categories)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+
+        <label>@Locale.T("cm.amount")</label>
+        <input type="number" min="0.01" step="0.01" @bind="amount" disabled="@busy" />
+
+        <label>@Locale.T("cm.desc")</label>
+        <input type="text" @bind="description" disabled="@busy" />
+
+        <label>@Locale.T("cm.promise")</label>
+        <input type="date" @bind="promiseDate" disabled="@busy" />
+
+        <label>@Locale.T("cm.paidAmount")</label>
+        <input type="number" min="0" step="0.01" @bind="paidAmount" disabled="@busy" />
+
+        <label>@Locale.T("cm.paidDate")</label>
+        <input type="date" @bind="paidDate" disabled="@(busy || paidAmount <= 0)" />
+
+        <label>@Locale.T("cm.account")</label>
+        <select @bind="accountId" disabled="@busy">
+            @foreach (var item in lookups.Accounts)
+            {
+                <option value="@item.AccountID">@item.AccountName</option>
+            }
+        </select>
+
+        <div class="filter-row">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("cm.submit")</button>
+        </div>
+    </div>
+</div>
+
+@if (showAdd)
+{
+    <div class="acc-result-back" @onclick="() => showAdd = false">
+        <div class="acc-result is-ok sms-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("cm.addMember")</h3>
+            <label>@Locale.T("cm.name")</label>
+            <input type="text" @bind="addName" disabled="@busy" />
+            <label>@Locale.T("cm.memberType")</label>
+            <select @bind="addTypeId" disabled="@busy">
+                <option value="0">@Locale.T("cm.selectType")</option>
+                @foreach (var item in lookups.Types)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+            <label>@Locale.T("cm.phone")</label>
+            <input type="text" @bind="addPhone" disabled="@busy" />
+            <label>@Locale.T("cm.address")</label>
+            <input type="text" @bind="addAddress" disabled="@busy" />
+            <div class="filter-row">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AddDonorAsync">@Locale.T("cm.addMember")</button>
+                <button type="button" class="acc-btn" @onclick="() => showAdd = false">@Locale.T("acc.ok")</button>
+            </div>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private CommitteeLookupsDto lookups = new();
+    private readonly List<DonorSuggestDto> suggests = [];
+    private int memberId, categoryId, accountId, addTypeId;
+    private string donorQ = "", donorName = "", donorPhone = "", description = "", addName = "", addPhone = "", addAddress = "";
+    private decimal amount, paidAmount;
+    private DateTime? promiseDate;
+    private DateTime paidDate = DateTime.Today;
+    private bool busy, showAdd, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            lookups = await Api.GetCommitteeLookupsAsync(Session.AccessToken!);
+            accountId = lookups.Accounts.FirstOrDefault(x => x.IsDefault)?.AccountID ?? lookups.Accounts.FirstOrDefault()?.AccountID ?? 0;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SuggestAsync()
+    {
+        suggests.Clear();
+        if (donorQ.Trim().Length < 1 || memberId > 0) return;
+        try
+        {
+            suggests.AddRange(await Api.SuggestDonorsAsync(Session.AccessToken!, donorQ));
+        }
+        catch { }
+    }
+
+    private void Pick(DonorSuggestDto item)
+    {
+        memberId = item.CommitteeMemberId;
+        donorName = item.MemberName;
+        donorPhone = item.SmsNumber;
+        donorQ = item.MemberName;
+        suggests.Clear();
+    }
+
+    private void ClearDonor()
+    {
+        memberId = 0;
+        donorName = donorPhone = donorQ = "";
+        suggests.Clear();
+    }
+
+    private async Task AddDonorAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.SaveCommitteeMemberAsync(Session.AccessToken!, new SaveCommitteeMemberRequest
+            {
+                CommitteeMemberTypeId = addTypeId,
+                MemberName = addName,
+                SmsNumber = addPhone,
+                Address = addAddress
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            memberId = result.Id;
+            donorName = addName;
+            donorPhone = addPhone;
+            donorQ = addName;
+            showAdd = false;
+            addName = addPhone = addAddress = "";
+            addTypeId = 0;
+            lookups = await Api.GetCommitteeLookupsAsync(Session.AccessToken!);
+            Show(Locale.T(result.Message ?? "cm.memberAdded"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.AddDonationAsync(Session.AccessToken!, new AddDonationRequest
+            {
+                CommitteeMemberId = memberId,
+                CommitteeDonationCategoryId = categoryId,
+                Amount = amount,
+                Description = description,
+                PromiseDate = promiseDate,
+                PaidAmount = paidAmount,
+                PaidDate = paidAmount > 0 ? paidDate : null,
+                AccountId = accountId
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            if (result.ReceiptId > 0)
+            {
+                Nav.NavigateTo($"/committee/receipt/{result.ReceiptId}");
+                return;
+            }
+            Show(Locale.T(result.Message ?? "cm.donationAdded"));
+            Nav.NavigateTo("/committee/donations");
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(CommitteeResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("cm.fail")
+        : result.Error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

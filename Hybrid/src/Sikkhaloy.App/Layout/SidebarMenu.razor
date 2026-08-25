@@ -1,5 +1,5 @@
+@inherits LocaleAwareComponent
 @inject NavigationManager Nav
-@inject AppLocale Locale
 
 <nav class="sidebar-nav">
     <NavLink href="dashboard" Match="NavLinkMatch.All" class="menu-top">
@@ -57,6 +57,7 @@
 @code {
     [Parameter, EditorRequired]
     public MenuTreeDto Menu { get; set; } = new();
+    [Parameter] public string Lang { get; set; } = "";
 
     private string CurrentPath => Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
 

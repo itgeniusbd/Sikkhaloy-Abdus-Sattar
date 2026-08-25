@@ -1,0 +1,191 @@
+@page "/authority/messages"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="ui-page msg-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("msg.inbox")</h1>
+    </header>
+
+    <div class="msg-tabs">
+        <button type="button" class="@(tab == "support" ? "is-on" : null)" @onclick='() => tab = "support"'>@Locale.T("msg.support")</button>
+        <button type="button" class="@(tab == "contact" ? "is-on" : null)" @onclick='() => tab = "contact"'>@Locale.T("msg.contact")</button>
+    </div>
+
+    @if (tab == "support")
+    {
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("msg.support")</h3>
+                <span>@Locale.T("auth.rows", data.Support.Count)</span>
+            </div>
+            <div class="ad-table-wrap is-open">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("msg.institution")</th>
+                            <th>@Locale.T("msg.name")</th>
+                            <th>@Locale.T("msg.subject")</th>
+                            <th>@Locale.T("msg.message")</th>
+                            <th>@Locale.T("msg.date")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.Support.Count == 0)
+                        {
+                            <tr><td colspan="5" class="ad-empty">@Locale.T("msg.empty")</td></tr>
+                        }
+                        @foreach (var row in data.Support)
+                        {
+                            <tr class="@(row.IsRead ? null : "is-unread")">
+                                <td>
+                                    @if (!row.IsRead)
+                                    {
+                                        <button type="button" class="ab-link" disabled="@busy" @onclick='() => ReadAsync("support", row.Id)'>@row.SchoolName</button>
+                                    }
+                                    else
+                                    {
+                                        @row.SchoolName
+                                    }
+                                </td>
+                                <td>@row.Name</td>
+                                <td>@row.Subject</td>
+                                <td class="msg-body">@row.Message</td>
+                                <td>@row.SentDate?.ToString("d MMM yy (hh:mm tt)")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("msg.contact")</h3>
+                <span>@Locale.T("auth.rows", data.Contact.Count)</span>
+            </div>
+            <div class="ad-table-wrap is-open">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("msg.subject")</th>
+                            <th>@Locale.T("msg.name")</th>
+                            <th>@Locale.T("msg.email")</th>
+                            <th>@Locale.T("msg.mobile")</th>
+                            <th>@Locale.T("msg.message")</th>
+                            <th>@Locale.T("msg.date")</th>
+                            <th>@Locale.T("ai.delete")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.Contact.Count == 0)
+                        {
+                            <tr><td colspan="7" class="ad-empty">@Locale.T("msg.empty")</td></tr>
+                        }
+                        @foreach (var row in data.Contact)
+                        {
+                            <tr class="@(row.IsRead ? null : "is-unread")">
+                                <td>
+                                    @if (!row.IsRead)
+                                    {
+                                        <button type="button" class="ab-link" disabled="@busy" @onclick='() => ReadAsync("contact", row.Id)'>@row.Subject</button>
+                                    }
+                                    else
+                                    {
+                                        @row.Subject
+                                    }
+                                </td>
+                                <td>@row.Name</td>
+                                <td>@row.Email</td>
+                                <td>@row.Mobile</td>
+                                <td class="msg-body">@row.Message</td>
+                                <td>@row.SentDate?.ToString("d MMM yyyy")</td>
+                                <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => DeleteAsync(row.Id)">@Locale.T("ai.delete")</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthMessagePageDto data = new();
+    private string tab = "support", busyTitle = "", popupText = "";
+    private bool busy, popupError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busyTitle = Locale.T("ab.loading");
+        busy = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                Show(Locale.T("subj.needOnline"), true);
+                return;
+            }
+            data = await Api.GetAuthorityMessagesAsync(Session.AccessToken!);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ReadAsync(string kind, int id)
+    {
+        busy = true;
+        try
+        {
+            var result = await Api.ReadAuthorityMessageAsync(Session.AccessToken!, new AuthMessageReadRequest { Kind = kind, Id = id });
+            if (!result.Succeeded) { Show(result.Error ?? Locale.T("ab.failed"), true); return; }
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("msg.confirmDel")))
+            return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteAuthorityContactAsync(Session.AccessToken!, id);
+            if (!result.Succeeded) { Show(result.Error ?? Locale.T("ab.failed"), true); return; }
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+}

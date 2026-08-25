@@ -11,6 +11,12 @@ public sealed class AuthService
         "Sub-Admin"
     };
 
+    private static readonly HashSet<string> AuthorityRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Authority",
+        "Sub-Authority"
+    };
+
     private readonly EduConnectionFactory _connections;
 
     public AuthService(EduConnectionFactory connections)
@@ -40,8 +46,37 @@ public sealed class AuthService
             return Fail("login.badPassword");
 
         var role = await ReadRoleAsync(con, userName, cancellationToken);
-        if (role is null || !OfficeRoles.Contains(role))
+        if (role is null || (!OfficeRoles.Contains(role) && !AuthorityRoles.Contains(role)))
             return Fail("login.role");
+
+        var deviceId = string.IsNullOrWhiteSpace(request.DeviceId)
+            ? Guid.NewGuid().ToString("N")
+            : request.DeviceId;
+
+        if (AuthorityRoles.Contains(role))
+        {
+            var authority = await ReadAuthorityProfileAsync(con, userName, cancellationToken);
+            if (authority is null)
+                return Fail("login.noAuthority");
+
+            return new LoginResponse
+            {
+                Succeeded = true,
+                Session = new SessionSnapshot
+                {
+                    UserName = userName,
+                    Role = role,
+                    SchoolID = 0,
+                    SchoolName = "Sikkhaloy.com",
+                    RegistrationID = authority.Value.RegistrationID,
+                    EducationYearID = 0,
+                    DeviceId = deviceId,
+                    DisplayName = string.IsNullOrWhiteSpace(authority.Value.DisplayName)
+                        ? userName
+                        : authority.Value.DisplayName
+                }
+            };
+        }
 
         var profile = await ReadProfileAsync(con, userName, cancellationToken);
         if (profile is null)
@@ -58,9 +93,7 @@ public sealed class AuthService
                 SchoolName = profile.Value.SchoolName,
                 RegistrationID = profile.Value.RegistrationID,
                 EducationYearID = profile.Value.EducationYearID,
-                DeviceId = string.IsNullOrWhiteSpace(request.DeviceId)
-                    ? Guid.NewGuid().ToString("N")
-                    : request.DeviceId,
+                DeviceId = deviceId,
                 DisplayName = string.IsNullOrWhiteSpace(profile.Value.DisplayName)
                     ? userName
                     : profile.Value.DisplayName
@@ -108,16 +141,29 @@ WHERE u.LoweredUserName = LOWER(@UserName)";
         cmd.Parameters.AddWithValue("@UserName", userName);
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
 
-        string? first = null;
+        string? best = null;
+        var bestRank = 99;
         while (await reader.ReadAsync(cancellationToken))
         {
             var name = reader.GetString(0);
-            if (OfficeRoles.Contains(name))
-                return name;
-            first ??= name;
+            var rank = RoleRank(name);
+            if (rank < bestRank)
+            {
+                best = name;
+                bestRank = rank;
+            }
         }
 
-        return first;
+        return best;
+    }
+
+    private static int RoleRank(string name)
+    {
+        if (string.Equals(name, "Authority", StringComparison.OrdinalIgnoreCase)) return 0;
+        if (string.Equals(name, "Sub-Authority", StringComparison.OrdinalIgnoreCase)) return 1;
+        if (string.Equals(name, "Admin", StringComparison.OrdinalIgnoreCase)) return 2;
+        if (string.Equals(name, "Sub-Admin", StringComparison.OrdinalIgnoreCase)) return 3;
+        return 99;
     }
 
     private static async Task<(int SchoolID, string SchoolName, int RegistrationID, int EducationYearID, string DisplayName)?> ReadProfileAsync(
@@ -145,6 +191,121 @@ WHERE Registration.UserName = @UserName
             Convert.ToInt32(reader["RegistrationID"]),
             Convert.ToInt32(reader["EducationYearID"]),
             (reader["DisplayName"]?.ToString() ?? "").Trim());
+    }
+
+    private static async Task<(int RegistrationID, string DisplayName)?> ReadAuthorityProfileAsync(
+        SqlConnection con, string userName, CancellationToken cancellationToken)
+    {
+        const string sql = @"
+SELECT TOP 1 Registration.RegistrationID,
+       LTRIM(RTRIM(ISNULL(Authority_Info.Name, N''))) AS DisplayName
+FROM dbo.Authority_Info
+INNER JOIN dbo.Registration ON Authority_Info.RegistrationID = Registration.RegistrationID
+WHERE Registration.UserName = @UserName
+  AND Registration.Validation = N'Valid'";
+
+        await using var cmd = new SqlCommand(sql, con);
+        cmd.Parameters.AddWithValue("@UserName", userName);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+            return null;
+
+        return (
+            Convert.ToInt32(reader["RegistrationID"]),
+            (reader["DisplayName"]?.ToString() ?? "").Trim());
+    }
+
+    public async Task<LoginResponse> EnterSchoolAsync(SessionSnapshot authority, int schoolId, int educationYearId, CancellationToken cancellationToken)
+    {
+        if (!authority.IsAuthority)
+            return Fail("auth.forbidden");
+        if (schoolId <= 0)
+            return Fail("auth.noSchool");
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+
+        string? userName = null;
+        await using (var find = new SqlCommand("""
+SELECT TOP 1 r.UserName
+FROM dbo.SchoolInfo s
+INNER JOIN dbo.Registration r ON r.SchoolID = s.SchoolID AND r.UserName = s.UserName
+WHERE s.SchoolID = @SchoolID
+  AND r.Validation = N'Valid'
+  AND r.Category IN (N'Admin', N'Sub-Admin')
+ORDER BY CASE WHEN r.Category = N'Admin' THEN 0 ELSE 1 END, r.RegistrationID
+""", con))
+        {
+            find.Parameters.AddWithValue("@SchoolID", schoolId);
+            var value = await find.ExecuteScalarAsync(cancellationToken);
+            userName = value is string s && !string.IsNullOrWhiteSpace(s) ? s : null;
+        }
+
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            await using var fallback = new SqlCommand("""
+SELECT TOP 1 r.UserName
+FROM dbo.Registration r
+WHERE r.SchoolID = @SchoolID
+  AND r.Validation = N'Valid'
+  AND r.Category = N'Admin'
+ORDER BY r.RegistrationID
+""", con);
+            fallback.Parameters.AddWithValue("@SchoolID", schoolId);
+            var value = await fallback.ExecuteScalarAsync(cancellationToken);
+            userName = value is string s && !string.IsNullOrWhiteSpace(s) ? s : null;
+        }
+
+        if (string.IsNullOrWhiteSpace(userName))
+            return Fail("auth.noAdmin");
+
+        var role = await ReadRoleAsync(con, userName, cancellationToken);
+        if (role is null || (!OfficeRoles.Contains(role) && !string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(role, "Sub-Admin", StringComparison.OrdinalIgnoreCase)))
+        {
+            role = "Admin";
+        }
+
+        var profile = await ReadProfileAsync(con, userName, cancellationToken);
+        if (profile is null || profile.Value.SchoolID != schoolId)
+            return Fail("login.noYear");
+
+        var yearId = profile.Value.EducationYearID;
+        if (educationYearId > 0)
+        {
+            await using var year = new SqlCommand("""
+SELECT EducationYearID FROM dbo.Education_Year
+WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
+""", con);
+            year.Parameters.AddWithValue("@SchoolID", schoolId);
+            year.Parameters.AddWithValue("@EducationYearID", educationYearId);
+            var found = await year.ExecuteScalarAsync(cancellationToken);
+            if (found is null or DBNull)
+                return Fail("login.noYear");
+            yearId = educationYearId;
+        }
+
+        var deviceId = string.IsNullOrWhiteSpace(authority.DeviceId)
+            ? Guid.NewGuid().ToString("N")
+            : authority.DeviceId;
+
+        return new LoginResponse
+        {
+            Succeeded = true,
+            Session = new SessionSnapshot
+            {
+                UserName = userName,
+                Role = OfficeRoles.Contains(role) ? role : "Admin",
+                SchoolID = profile.Value.SchoolID,
+                SchoolName = profile.Value.SchoolName,
+                RegistrationID = profile.Value.RegistrationID,
+                EducationYearID = yearId,
+                DeviceId = deviceId,
+                DisplayName = string.IsNullOrWhiteSpace(profile.Value.DisplayName)
+                    ? userName
+                    : profile.Value.DisplayName
+            }
+        };
     }
 
     public async Task<LoginResponse> SwitchYearAsync(SessionSnapshot session, int educationYearId, CancellationToken cancellationToken)

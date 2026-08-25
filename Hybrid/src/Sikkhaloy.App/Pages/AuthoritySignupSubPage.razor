@@ -1,0 +1,122 @@
+@page "/authority/signup-sub"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.signupSub")</h1>
+    @if (done)
+    {
+        <div class="ab-done">
+            <p>@Locale.T("al.subCreated")</p>
+            <a class="acc-btn acc-btn-primary" href="authority/page-access">@Locale.T("auth.m.pageAccess")</a>
+        </div>
+    }
+    else
+    {
+        <div class="ab-form">
+            <label>@Locale.T("al.name")<input @bind="name" disabled="@busy" /></label>
+            <label>@Locale.T("al.designation")<input @bind="designation" disabled="@busy" /></label>
+            <label>@Locale.T("ab.userName")<input @bind="userName" disabled="@busy" /></label>
+            <label>@Locale.T("ab.password")<input type="password" @bind="password" disabled="@busy" /></label>
+            <label>@Locale.T("ab.confirm")<input type="password" @bind="confirm" disabled="@busy" /></label>
+            <label>@Locale.T("ab.email")<input @bind="email" disabled="@busy" /></label>
+            <label>
+                @Locale.T("ab.question")
+                <select @bind="question" disabled="@busy">
+                    <option value="">@Locale.T("al.selectQuestion")</option>
+                    @foreach (var item in Questions)
+                    {
+                        <option value="@item">@item</option>
+                    }
+                </select>
+            </label>
+            <label>@Locale.T("ab.answer")<input @bind="answer" disabled="@busy" /></label>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("ab.submit")</button>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly string[] Questions =
+    [
+        "What is the first name of your favorite uncle?",
+        "What is your oldest child's nick name?",
+        "What is the first name of your oldest nephew?",
+        "What is the first name of your aunt?",
+        "Where did you spend your honeymoon?",
+        "What is your favorite game?",
+        "what is your favorite food?",
+        "What was your favorite sport in high school?",
+        "In what city were you born?",
+        "What is the country of your ultimate dream vacation?",
+        "What is the title and author of your favorite book?",
+        "What is your favorite TV program?"
+    ];
+
+    private string name = "", designation = "", userName = "", password = "", confirm = "", email = "", question = "", answer = "";
+    private bool busy, popupError, done;
+    private string busyTitle = "", popupText = "";
+
+    protected override void OnInitialized()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); }
+    }
+
+    private async Task SaveAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateAuthoritySubAsync(Session.AccessToken!, new AuthSubSignupRequest
+            {
+                Name = name,
+                Designation = designation,
+                UserName = userName,
+                Password = password,
+                ConfirmPassword = confirm,
+                Email = email,
+                Question = question,
+                Answer = answer
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            done = true;
+            Show(Locale.T(result.Message ?? "al.subCreated"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.Contains('.') ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

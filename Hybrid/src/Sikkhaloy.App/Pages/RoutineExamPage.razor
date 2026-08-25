@@ -1,0 +1,379 @@
+@page "/routine/exam"
+@page "/routine/exam-bn"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="card structure-page emp-page acc-page exam-page routine-page exam-routine-page">
+    <div class="rt-exam-head">
+        <h1>@(Bangla ? Locale.T("rt.examBn") : Locale.T("rt.examEn"))</h1>
+        <a class="rt-lang-btn @(Bangla ? "is-en" : "is-bn")" href="@(Bangla ? "routine/exam" : "routine/exam-bn")">
+            @(Bangla ? Locale.T("rt.switchEn") : Locale.T("rt.switchBn"))
+        </a>
+    </div>
+    <div class="filter-row no-print">
+        <span>@(Bangla ? Locale.T("rt.classCol") : Locale.T("rt.classCol"))</span>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="AddColumn">@Locale.T("rt.add")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="RemoveColumn">@Locale.T("rt.remove")</button>
+        <span>(@sheet.Columns.Count)</span>
+        <span>@Locale.T("rt.row")</span>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="AddRow">@Locale.T("rt.add")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="RemoveRow">@Locale.T("rt.remove")</button>
+        <span>(@sheet.Rows.Count)</span>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="RefreshSubjectsAsync">@Locale.T("rt.refresh")</button>
+    </div>
+    <div class="filter-row no-print">
+        <input type="text" @bind="sheet.RoutineName" disabled="@busy" placeholder="@Locale.T("rt.examNameHint")" />
+        <select @bind="loadId" disabled="@busy">
+            <option value="0">@Locale.T("rt.selectExam")</option>
+            @foreach (var item in sheet.Saved)
+            {
+                <option value="@item.RoutineID">@item.Name (@item.CreatedDate.ToString("dd MMM yyyy"))</option>
+            }
+        </select>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="LoadSavedAsync">@Locale.T("rt.load")</button>
+        <button type="button" class="acc-btn acc-btn-danger" disabled="@busy" @onclick="DeleteAsync">@Locale.T("sms.delete")</button>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("rt.save")</button>
+        <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+    </div>
+
+    <PrintHeader Subtitle="@(string.IsNullOrWhiteSpace(sheet.RoutineName) ? (Bangla ? Locale.T("rt.examBn") : Locale.T("rt.examEn")) : sheet.RoutineName)" />
+
+    <div class="rt-exam-wrap">
+        <table class="rt-exam-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("rt.date")</th>
+                    <th>@Locale.T("rt.day")</th>
+                    <th>@Locale.T("rt.time")</th>
+                    @foreach (var col in sheet.Columns)
+                    {
+                        <th>
+                            <select class="no-print" value="@col.ClassID" disabled="@busy" @onchange="e => OnClassColAsync(col, e)">
+                                <option value="0">@Locale.T("si.selectClass")</option>
+                                @foreach (var item in sheet.Classes)
+                                {
+                                    <option value="@item.Id">@item.Name</option>
+                                }
+                            </select>
+                            <span class="print-only">@(col.ClassName)</span>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in sheet.Rows)
+            {
+                <tr>
+                    <td>
+                        <input type="date" class="no-print" value="@ToIso(row.ExamDate)" disabled="@busy"
+                               @onchange="e => SetDate(row, e.Value?.ToString())" />
+                        <span class="print-only">@row.ExamDate</span>
+                    </td>
+                    <td>@row.DayName</td>
+                    <td>
+                        <div class="rt-exam-time no-print">
+                            <input type="time" value="@ToTime(row.StartTime)" disabled="@busy" @onchange="e => SetStart(row, e.Value?.ToString())" />
+                            <span>-</span>
+                            <input type="time" value="@ToTime(row.EndTime)" disabled="@busy" @onchange="e => SetEnd(row, e.Value?.ToString())" />
+                        </div>
+                        <div class="print-only">@row.StartTime - @row.EndTime</div>
+                        <div class="rt-exam-dur">@row.Duration</div>
+                    </td>
+                    @foreach (var col in sheet.Columns)
+                    {
+                        var cell = row.Cells.FirstOrDefault(x => x.ColumnIndex == col.ColumnIndex);
+                        <td>
+                            @if (cell is not null)
+                            {
+                                <select class="no-print" @bind="cell.SubjectID" @bind:after="() => SyncSubjectText(cell, col)" disabled="@busy">
+                                    <option value="0">@Locale.T("rt.selectSubject")</option>
+                                    @foreach (var item in col.Subjects)
+                                    {
+                                        <option value="@item.Id">@item.Name</option>
+                                    }
+                                </select>
+                                <span class="print-only">@cell.SubjectText</span>
+                            }
+                        </td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ExamRoutineSheetDto sheet = new();
+    private int loadId;
+    private bool busy, popupError;
+    private string? popupText, busyTitle;
+    private bool Bangla => Nav.Uri.Contains("exam-bn", StringComparison.OrdinalIgnoreCase);
+
+    protected override Task OnInitializedAsync() => BootAsync();
+
+    private async Task BootAsync()
+    {
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            sheet = await Api.GetExamRoutineAsync(Session.AccessToken!, 0);
+            EnsureCells();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void AddColumn()
+    {
+        var idx = sheet.Columns.Count;
+        sheet.Columns.Add(new ExamRoutineColumnDto { ColumnIndex = idx });
+        foreach (var row in sheet.Rows)
+            row.Cells.Add(new ExamRoutineCellDto { ColumnIndex = idx });
+    }
+
+    private void RemoveColumn()
+    {
+        if (sheet.Columns.Count <= 1) return;
+        var idx = sheet.Columns.Count - 1;
+        sheet.Columns.RemoveAt(idx);
+        foreach (var row in sheet.Rows)
+            row.Cells.RemoveAll(x => x.ColumnIndex == idx);
+    }
+
+    private void AddRow()
+    {
+        var row = new ExamRoutineRowDto { Duration = Bangla ? "৩ ঘন্টা" : "3 hours" };
+        foreach (var col in sheet.Columns)
+            row.Cells.Add(new ExamRoutineCellDto { ColumnIndex = col.ColumnIndex });
+        sheet.Rows.Add(row);
+    }
+
+    private void RemoveRow()
+    {
+        if (sheet.Rows.Count <= 1) return;
+        sheet.Rows.RemoveAt(sheet.Rows.Count - 1);
+    }
+
+    private async Task OnClassColAsync(ExamRoutineColumnDto col, ChangeEventArgs e)
+    {
+        col.ClassID = int.TryParse(e.Value?.ToString(), out var n) ? n : 0;
+        col.ClassName = sheet.Classes.FirstOrDefault(x => x.Id == col.ClassID)?.Name ?? "";
+        col.Subjects.Clear();
+        if (col.ClassID <= 0) return;
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            col.Subjects.AddRange(await Api.GetExamRoutineSubjectsAsync(Session.AccessToken!, col.ClassID));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task RefreshSubjectsAsync()
+    {
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            foreach (var col in sheet.Columns.Where(x => x.ClassID > 0))
+            {
+                col.Subjects.Clear();
+                col.Subjects.AddRange(await Api.GetExamRoutineSubjectsAsync(Session.AccessToken!, col.ClassID));
+            }
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadSavedAsync()
+    {
+        if (loadId <= 0) return;
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            sheet = await Api.GetExamRoutineAsync(Session.AccessToken!, loadId);
+            EnsureCells();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        await SetBusyAsync(Locale.T("rt.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            Reindex();
+            var result = await Api.SaveExamRoutineAsync(Session.AccessToken!, new SaveExamRoutineRequest
+            {
+                RoutineID = sheet.RoutineID,
+                RoutineName = sheet.RoutineName,
+                Columns = sheet.Columns,
+                Rows = sheet.Rows
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            sheet.RoutineID = result.Count;
+            Show(Locale.T(result.Message ?? "rt.examSaved"));
+            var saved = await Api.GetExamRoutineAsync(Session.AccessToken!, sheet.RoutineID);
+            sheet.Saved = saved.Saved;
+            loadId = sheet.RoutineID;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (sheet.RoutineID <= 0) { Show(Locale.T("rt.needExam"), true); return; }
+        await SetBusyAsync(Locale.T("rt.saving"));
+        try
+        {
+            var result = await Api.DeleteExamRoutineAsync(Session.AccessToken!, sheet.RoutineID);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            Show(Locale.T(result.Message ?? "rt.examDeleted"));
+            await BootAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void EnsureCells()
+    {
+        if (sheet.Columns.Count == 0)
+            sheet.Columns.Add(new ExamRoutineColumnDto { ColumnIndex = 0 });
+        if (sheet.Rows.Count == 0)
+            sheet.Rows.Add(new ExamRoutineRowDto { Duration = Bangla ? "৩ ঘন্টা" : "3 hours" });
+        foreach (var row in sheet.Rows)
+        {
+            foreach (var col in sheet.Columns)
+            {
+                if (row.Cells.All(x => x.ColumnIndex != col.ColumnIndex))
+                    row.Cells.Add(new ExamRoutineCellDto { ColumnIndex = col.ColumnIndex });
+            }
+        }
+    }
+
+    private void Reindex()
+    {
+        for (var i = 0; i < sheet.Columns.Count; i++)
+            sheet.Columns[i].ColumnIndex = i;
+        foreach (var row in sheet.Rows)
+        {
+            for (var i = 0; i < sheet.Columns.Count; i++)
+            {
+                var cell = row.Cells.FirstOrDefault(x => x.ColumnIndex == sheet.Columns[i].ColumnIndex)
+                           ?? row.Cells.ElementAtOrDefault(i);
+                if (cell is not null)
+                    cell.ColumnIndex = i;
+            }
+        }
+    }
+
+    private void SyncSubjectText(ExamRoutineCellDto cell, ExamRoutineColumnDto col)
+    {
+        cell.SubjectText = col.Subjects.FirstOrDefault(x => x.Id == cell.SubjectID)?.Name ?? "";
+    }
+
+    private void SetDate(ExamRoutineRowDto row, string? iso)
+    {
+        if (!DateTime.TryParse(iso, out var dt))
+        {
+            row.ExamDate = "";
+            row.DayName = "";
+            return;
+        }
+        row.ExamDate = dt.ToString("dd/MM/yyyy");
+        row.DayName = Bangla ? BnDay(dt.DayOfWeek) : dt.DayOfWeek.ToString();
+    }
+
+    private void SetStart(ExamRoutineRowDto row, string? value)
+    {
+        row.StartTime = FromTime(value);
+        row.Duration = DurationText(row.StartTime, row.EndTime);
+    }
+
+    private void SetEnd(ExamRoutineRowDto row, string? value)
+    {
+        row.EndTime = FromTime(value);
+        row.Duration = DurationText(row.StartTime, row.EndTime);
+    }
+
+    private string DurationText(string start, string end)
+    {
+        if (!DateTime.TryParse(start, out var a) || !DateTime.TryParse(end, out var b) || b <= a)
+            return Bangla ? "৩ ঘন্টা" : "3 hours";
+        var hours = (b - a).TotalHours;
+        return Bangla ? hours.ToString("0.##") + " ঘন্টা" : hours.ToString("0.##") + " hours";
+    }
+
+    private static string ToIso(string date)
+    {
+        if (DateTime.TryParseExact(date, ["dd/MM/yyyy", "d/M/yyyy"], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dt))
+            return dt.ToString("yyyy-MM-dd");
+        return DateTime.TryParse(date, out var any) ? any.ToString("yyyy-MM-dd") : "";
+    }
+
+    private static string ToTime(string text)
+    {
+        return DateTime.TryParse(text, out var dt) ? dt.ToString("HH:mm") : "";
+    }
+
+    private static string FromTime(string? value)
+    {
+        if (TimeSpan.TryParse(value, out var ts))
+            return DateTime.Today.Add(ts).ToString("h:mm tt");
+        return value ?? "";
+    }
+
+    private static string BnDay(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Saturday => "শনিবার",
+        DayOfWeek.Sunday => "রবিবার",
+        DayOfWeek.Monday => "সোমবার",
+        DayOfWeek.Tuesday => "মঙ্গলবার",
+        DayOfWeek.Wednesday => "বুধবার",
+        DayOfWeek.Thursday => "বৃহস্পতিবার",
+        _ => "শুক্রবার"
+    };
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("print").AsTask();
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private string FormatErr(RoutineResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("rt.fail")
+        : result.Error.StartsWith("rt.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title)
+    {
+        busyTitle = title;
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

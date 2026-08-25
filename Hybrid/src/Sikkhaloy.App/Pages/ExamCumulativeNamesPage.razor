@@ -1,0 +1,136 @@
+@page "/exam/cumulative"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page">
+    <h1>@Locale.T("exam.cuTitle")</h1>
+    <div class="inline-add">
+        <input type="text" placeholder="@Locale.T("exam.cuExamName")" @bind="name" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AddAsync">@Locale.T("acc.add")</button>
+    </div>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th class="act">@Locale.T("sal.edit")</th>
+                <th>@Locale.T("exam.cuExamName")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0 && !busy)
+        {
+            <tr><td colspan="2" class="empty-row">@Locale.T("exam.empty")</td></tr>
+        }
+        else
+        {
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td class="act">
+                        @if (editId == row.Id)
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveAsync(row)">@Locale.T("si.update")</button>
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => editId = 0">@Locale.T("sal.cancel")</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("sal.edit")</button>
+                        }
+                    </td>
+                    <td>
+                        @if (editId == row.Id) { <input type="text" @bind="editName" disabled="@busy" /> }
+                        else { @row.Name }
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingCuNames")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<ExamOptionDto> rows = [];
+    private string name = "";
+    private int editId;
+    private string editName = "";
+    private bool busy, popupError;
+    private string? popupText;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            rows.Clear();
+            rows.AddRange(await Api.GetCumulativeExamNamesAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task AddAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.CreateCumulativeExamNameAsync(Session.AccessToken!, new SaveCumulativeNameRequest { Name = name });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            name = "";
+            Show(Locale.T("exam.saved"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void StartEdit(ExamOptionDto row)
+    {
+        editId = row.Id;
+        editName = row.Name;
+    }
+
+    private async Task SaveAsync(ExamOptionDto row)
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.UpdateCumulativeExamNameAsync(Session.AccessToken!, row.Id, new SaveCumulativeNameRequest { Name = editName });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            editId = 0;
+            Show(Locale.T("exam.saved"));
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string text, bool err = false) { popupText = text; popupError = err; }
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

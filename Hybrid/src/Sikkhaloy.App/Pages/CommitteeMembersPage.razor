@@ -1,0 +1,330 @@
+@page "/committee/members"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page committee-page">
+    <h1 class="no-print">@Locale.T("cm.members")</h1>
+    <div class="filter-row no-print">
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="OpenAdd">@Locale.T("cm.addMember")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="() => showTypes = true">@Locale.T("cm.types")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("cm.print")</button>
+        <select @bind="typeId" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("cm.allType")</option>
+            @foreach (var item in types)
+            {
+                <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+            }
+        </select>
+        <input type="text" placeholder="@Locale.T("cm.searchHint")" @bind="search" disabled="@busy" />
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="LoadAsync">@Locale.T("cm.find")</button>
+    </div>
+    <PrintHeader Subtitle="@Locale.T("cm.members")" />
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("cm.name")</th>
+                <th>@Locale.T("cm.memberType")</th>
+                <th>@Locale.T("cm.refBy")</th>
+                <th>@Locale.T("cm.address")</th>
+                <th>@Locale.T("cm.phone")</th>
+                <th>@Locale.T("cm.email")</th>
+                <th>@Locale.T("cm.status")</th>
+                <th>@Locale.T("cm.totalDonation")</th>
+                <th>@Locale.T("cm.paidDonation")</th>
+                <th>@Locale.T("cm.dueDonation")</th>
+                <th class="no-print"></th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (members.Count == 0)
+        {
+            <tr><td colspan="11" class="empty-row">@Locale.T("cm.emptyMembers")</td></tr>
+        }
+        @foreach (var row in members)
+        {
+            <tr>
+                @if (editId == row.CommitteeMemberId)
+                {
+                    <td><input type="text" @bind="editName" disabled="@busy" /></td>
+                    <td>
+                        <select @bind="editTypeId" disabled="@busy">
+                            @foreach (var item in types)
+                            {
+                                <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+                            }
+                        </select>
+                    </td>
+                    <td><input type="text" @bind="editRef" disabled="@busy" /></td>
+                    <td><input type="text" @bind="editAddress" disabled="@busy" /></td>
+                    <td><input type="text" @bind="editPhone" disabled="@busy" /></td>
+                    <td><input type="text" @bind="editEmail" disabled="@busy" /></td>
+                    <td>
+                        <select @bind="editStatus" disabled="@busy">
+                            <option value="Active">@Locale.T("cm.active")</option>
+                            <option value="Inactive">@Locale.T("cm.inactive")</option>
+                        </select>
+                    </td>
+                    <td>@Tk(row.TotalDonation)</td>
+                    <td>@Tk(row.PaidDonation)</td>
+                    <td>@Tk(row.DueDonation)</td>
+                    <td class="no-print">
+                        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveEditAsync">@Locale.T("cm.update")</button>
+                        <button type="button" class="acc-btn" @onclick="() => editId = 0">@Locale.T("cm.cancel")</button>
+                    </td>
+                }
+                else
+                {
+                    <td>@row.MemberName</td>
+                    <td>@row.MemberType</td>
+                    <td>@row.ReferenceBy</td>
+                    <td>@row.Address</td>
+                    <td>@row.SmsNumber</td>
+                    <td>@row.Email</td>
+                    <td><span class="cm-status @(row.Status == "Active" ? "is-on" : "is-off")">@row.Status</span></td>
+                    <td>@Tk(row.TotalDonation)</td>
+                    <td>@Tk(row.PaidDonation)</td>
+                    <td>@Tk(row.DueDonation)</td>
+                    <td class="no-print"><button type="button" class="acc-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("cm.edit")</button></td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (showAdd)
+{
+    <div class="acc-result-back" @onclick="() => showAdd = false">
+        <div class="acc-result is-ok sms-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("cm.addMember")</h3>
+            <label>@Locale.T("cm.name")</label>
+            <input type="text" @bind="addName" disabled="@busy" />
+            <label>@Locale.T("cm.refBy")</label>
+            <input type="text" @bind="addRef" disabled="@busy" />
+            <label>@Locale.T("cm.memberType") <a href="committee/members" @onclick:preventDefault="true" @onclick="() => { showAdd = false; showTypes = true; }">@Locale.T("cm.addNew")</a></label>
+            <select @bind="addTypeId" disabled="@busy">
+                <option value="0">@Locale.T("cm.selectType")</option>
+                @foreach (var item in types)
+                {
+                    <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+                }
+            </select>
+            <label>@Locale.T("cm.phone")</label>
+            <input type="text" placeholder="01XXXXXXXXX" @bind="addPhone" disabled="@busy" />
+            <label>@Locale.T("cm.email")</label>
+            <input type="text" @bind="addEmail" disabled="@busy" />
+            <label>@Locale.T("cm.address")</label>
+            <input type="text" @bind="addAddress" disabled="@busy" />
+            <div class="filter-row">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAddAsync">@Locale.T("cm.addMember")</button>
+                <button type="button" class="acc-btn" @onclick="() => showAdd = false">@Locale.T("acc.ok")</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showTypes)
+{
+    <div class="acc-result-back" @onclick="() => showTypes = false">
+        <div class="acc-result is-ok sms-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("cm.types")</h3>
+            <label>@Locale.T("cm.typeName")</label>
+            <input type="text" @bind="newType" disabled="@busy" />
+            <div class="filter-row">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveTypeAsync">@Locale.T("cm.addType")</button>
+                <button type="button" class="acc-btn" @onclick="() => showTypes = false">@Locale.T("acc.ok")</button>
+            </div>
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("cm.memberType")</th><th>@Locale.T("cm.createDate")</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var item in types)
+                {
+                    <tr>
+                        <td>
+                            <input type="text" value="@item.CommitteeMemberType" disabled="@busy"
+                                   @onchange="e => RenameTypeAsync(item, e.Value?.ToString())" />
+                        </td>
+                        <td>@(item.InsertDate?.ToString("d MMM yyyy"))</td>
+                        <td>
+                            <button type="button" class="acc-btn acc-btn-danger" disabled="@busy"
+                                    @onclick="() => DeleteTypeAsync(item)">@Locale.T("cm.delete")</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<CommitteeMemberDto> members = [];
+    private readonly List<CommitteeMemberTypeDto> types = [];
+    private int typeId, addTypeId, editId, editTypeId;
+    private string search = "", addName = "", addRef = "", addPhone = "", addEmail = "", addAddress = "", newType = "";
+    private string editName = "", editRef = "", editPhone = "", editEmail = "", editAddress = "", editStatus = "Active";
+    private bool busy, showAdd, showTypes, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            types.Clear();
+            types.AddRange(await Api.GetCommitteeTypesAsync(Session.AccessToken!));
+            members.Clear();
+            members.AddRange(await Api.GetCommitteeMembersAsync(Session.AccessToken!, typeId, search));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void OpenAdd()
+    {
+        addName = addRef = addPhone = addEmail = addAddress = "";
+        addTypeId = 0;
+        showAdd = true;
+    }
+
+    private async Task SaveAddAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveCommitteeMemberAsync(Session.AccessToken!, new SaveCommitteeMemberRequest
+            {
+                CommitteeMemberTypeId = addTypeId,
+                MemberName = addName,
+                ReferenceBy = addRef,
+                SmsNumber = addPhone,
+                Email = addEmail,
+                Address = addAddress
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            showAdd = false;
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "cm.memberAdded"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void StartEdit(CommitteeMemberDto row)
+    {
+        editId = row.CommitteeMemberId;
+        editTypeId = row.CommitteeMemberTypeId;
+        editName = row.MemberName;
+        editRef = row.ReferenceBy;
+        editPhone = row.SmsNumber;
+        editEmail = row.Email;
+        editAddress = row.Address;
+        editStatus = row.Status;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.SaveCommitteeMemberAsync(Session.AccessToken!, new SaveCommitteeMemberRequest
+            {
+                CommitteeMemberId = editId,
+                CommitteeMemberTypeId = editTypeId,
+                MemberName = editName,
+                ReferenceBy = editRef,
+                SmsNumber = editPhone,
+                Email = editEmail,
+                Address = editAddress,
+                Status = editStatus
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            editId = 0;
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "cm.memberUpdated"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveTypeAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.SaveCommitteeTypeAsync(Session.AccessToken!, new SaveCommitteeMemberTypeRequest { Name = newType });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            newType = "";
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "cm.typeAdded"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task RenameTypeAsync(CommitteeMemberTypeDto item, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name == item.CommitteeMemberType) return;
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.SaveCommitteeTypeAsync(Session.AccessToken!, new SaveCommitteeMemberTypeRequest { CommitteeMemberTypeId = item.CommitteeMemberTypeId, Name = name });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "cm.typeUpdated"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteTypeAsync(CommitteeMemberTypeDto item)
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.DeleteCommitteeTypeAsync(Session.AccessToken!, item.CommitteeMemberTypeId);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "cm.typeDeleted"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint").AsTask();
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(CommitteeResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("cm.fail")
+        : result.Error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

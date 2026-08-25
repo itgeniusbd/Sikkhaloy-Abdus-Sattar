@@ -1,0 +1,234 @@
+@page "/authority/client-sms"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ui-page cs-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("auth.m.clientSms")</h1>
+    </header>
+
+    @if (data.LocalMode)
+    {
+        <p class="ab-warn">@Locale.T("ab.localNote")</p>
+    }
+
+    <section class="card cs-filter">
+        <label class="cs-q">
+            <span>@Locale.T("auth.search")</span>
+            <input @bind="search" @bind:event="oninput" @onkeydown="OnSearchKey" placeholder="@Locale.T("ab.searchPh")" disabled="@busy" />
+        </label>
+        <label class="cs-status">
+            <span>@Locale.T("auth.validation")</span>
+            <select @bind="validation" disabled="@busy">
+                <option value="">@Locale.T("auth.allStatus")</option>
+                <option value="Valid">@Locale.T("auth.valid")</option>
+                <option value="Invalid">@Locale.T("auth.invalid")</option>
+            </select>
+        </label>
+        <div class="cs-filter-actions">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.searchBtn")</button>
+            <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearAsync">@Locale.T("auth.clear")</button>
+        </div>
+    </section>
+
+    <section class="cs-kpis">
+        <article><span>@Locale.T("ab.totalFound")</span><b>@data.Total.ToString("N0")</b></article>
+        <article class="is-ok"><span>@Locale.T("ab.active")</span><b>@data.Active.ToString("N0")</b></article>
+        <article class="is-bad"><span>@Locale.T("ab.deactive")</span><b>@data.Deactive.ToString("N0")</b></article>
+        <article class="is-bal"><span>@Locale.T("ab.balance")</span><b>@data.Balance.ToString("N0")</b></article>
+        <article class="is-gw"><span>@Locale.T("ab.gateway")</span><b>@data.Gateway</b></article>
+    </section>
+
+    <section class="card cs-msg">
+        <label>
+            <span>@Locale.T("ab.message")</span>
+            <textarea rows="4" @bind="text" disabled="@busy"></textarea>
+        </label>
+        <div class="cs-msg-actions">
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="() => SetAll(true)">@Locale.T("ab.selectAll")</button>
+            <button type="button" class="ad-clear" disabled="@busy" @onclick="() => SetAll(false)">@Locale.T("ab.clearSel")</button>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AskSend">@Locale.T("ab.send")</button>
+            <span class="cs-picked">@selected.Count</span>
+        </div>
+    </section>
+
+    <section class="card ad-table-card">
+        <div class="ad-table-head">
+            <h3>@Locale.T("auth.institutions")</h3>
+            <span>@Locale.T("auth.rows", data.Rows.Count)</span>
+        </div>
+        <div class="cs-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@Locale.T("ab.schoolId")</th>
+                        <th>@Locale.T("auth.colInst")</th>
+                        <th>@Locale.T("ab.userId")</th>
+                        <th>@Locale.T("ab.phone")</th>
+                        <th>@Locale.T("ab.phones")</th>
+                        <th>@Locale.T("ab.status")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Rows.Count == 0)
+                    {
+                        <tr><td colspan="7" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                    }
+                    @foreach (var row in data.Rows)
+                    {
+                        <tr class="@(row.Validation == "Invalid" ? "is-invalid" : null)">
+                            <td>
+                                <input type="checkbox" checked="@selected.Contains(row.SchoolID)" disabled="@busy" @onchange="e => Toggle(row.SchoolID, e)" />
+                            </td>
+                            <td class="cs-id">@row.SchoolID</td>
+                            <td class="cs-name">
+                                <span class="cs-avatar">@Initial(row.SchoolName)</span>
+                                <span>@row.SchoolName</span>
+                            </td>
+                            <td>@row.UserName</td>
+                            <td>@row.Phone</td>
+                            <td>@row.PhoneCount</td>
+                            <td>
+                                <span class="ad-valid @(row.Validation == "Valid" ? "ok" : "no")">@row.StatusText</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (confirmSend)
+{
+    <div class="acc-result-back" @onclick="() => confirmSend = false">
+        <div class="acc-result is-ok" @onclick:stopPropagation="true">
+            <h3>@Locale.T("auth.m.clientSms")</h3>
+            <p>@Locale.T("ab.confirmSend")</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="SendAsync">@Locale.T("ab.send")</button>
+            <button type="button" class="acc-btn" @onclick="() => confirmSend = false">@Locale.T("ab.cancel")</button>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ClientSmsPageDto data = new();
+    private readonly HashSet<int> selected = [];
+    private string search = "", validation = "", text = "";
+    private bool busy, popupError, confirmSend;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        search = validation = "";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityClientSmsAsync(Session.AccessToken!, search, validation);
+            selected.RemoveWhere(id => data.Rows.All(x => x.SchoolID != id));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void SetAll(bool on)
+    {
+        selected.Clear();
+        if (on)
+        {
+            foreach (var row in data.Rows)
+                selected.Add(row.SchoolID);
+        }
+    }
+
+    private void Toggle(int id, ChangeEventArgs e)
+    {
+        if (e.Value is bool b && b) selected.Add(id);
+        else selected.Remove(id);
+    }
+
+    private void AskSend()
+    {
+        if (string.IsNullOrWhiteSpace(text)) { Show(Locale.T("ab.needText"), true); return; }
+        if (selected.Count == 0) { Show(Locale.T("ab.needSelect"), true); return; }
+        confirmSend = true;
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(text)) { Show(Locale.T("ab.needText"), true); return; }
+        if (selected.Count == 0) { Show(Locale.T("ab.needSelect"), true); return; }
+        confirmSend = false;
+        await SetBusyAsync(Locale.T("ab.sending"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SendAuthorityClientSmsAsync(Session.AccessToken!, new SendClientSmsRequest
+            {
+                Text = text, SchoolIds = selected.ToList()
+            });
+            var extra = result.Details.Count == 0 ? "" : " " + string.Join(" ", result.Details.Take(8));
+            Show((result.Message ?? Err(result.Error)) + extra, !result.Succeeded);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Initial(string name)
+    {
+        var t = (name ?? "").Trim();
+        return t.Length == 0 ? "#" : t[..1].ToUpperInvariant();
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string message, bool err) { popupText = message; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

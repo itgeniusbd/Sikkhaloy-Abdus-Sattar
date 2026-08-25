@@ -1,0 +1,190 @@
+@page "/authority/signup-institution"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.signupInst")</h1>
+    <p class="muted">@Locale.T("auth.m.basic")</p>
+
+    @if (step == 1)
+    {
+        <div class="ab-form">
+            <h2>@Locale.T("ab.stepUser")</h2>
+            <label>@Locale.T("ab.userName")<input @bind="userName" disabled="@busy" /></label>
+            <label>@Locale.T("ab.password")<input type="password" @bind="password" disabled="@busy" /></label>
+            <label>@Locale.T("ab.confirm")<input type="password" @bind="confirm" disabled="@busy" /></label>
+            <label>@Locale.T("ab.email")<input @bind="email" disabled="@busy" /></label>
+            <label>@Locale.T("ab.question")<input @bind="question" disabled="@busy" /></label>
+            <label>@Locale.T("ab.answer")<input @bind="answer" disabled="@busy" /></label>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="CreateUserAsync">@Locale.T("ab.createUser")</button>
+        </div>
+    }
+    else if (step == 2)
+    {
+        <div class="ab-form">
+            <h2>@Locale.T("ab.stepInst")</h2>
+            <label>@Locale.T("ab.perStudent")<input @bind="perStudent" disabled="@busy" /></label>
+            <label>@Locale.T("ab.instName")<input @bind="schoolName" disabled="@busy" /></label>
+            <label>@Locale.T("ab.established")<input @bind="established" disabled="@busy" /></label>
+            <label>@Locale.T("ab.principal")<input @bind="principal" disabled="@busy" /></label>
+            <label>@Locale.T("ab.staff")<input @bind="staff" disabled="@busy" /></label>
+            <label>@Locale.T("ab.students")<input @bind="students" disabled="@busy" /></label>
+            <label>@Locale.T("ab.city")<input @bind="city" disabled="@busy" /></label>
+            <label>@Locale.T("ab.state")<input @bind="state" disabled="@busy" /></label>
+            <label>@Locale.T("ab.localArea")<input @bind="localArea" disabled="@busy" /></label>
+            <label>@Locale.T("ab.postal")<input @bind="postal" disabled="@busy" /></label>
+            <label>@Locale.T("ab.phone")<input @bind="phone" disabled="@busy" /></label>
+            <label>@Locale.T("ab.email")<input @bind="instEmail" disabled="@busy" /></label>
+            <label>@Locale.T("ab.website")<input @bind="website" disabled="@busy" /></label>
+            <label>@Locale.T("ab.address")<input @bind="address" disabled="@busy" /></label>
+            <label>
+                @Locale.T("ab.referrer")
+                <select @bind="referrerId" disabled="@busy">
+                    <option value="0">@Locale.T("ab.noRef")</option>
+                    @foreach (var item in referrers)
+                    {
+                        <option value="@item.Id">@item.Name</option>
+                    }
+                </select>
+            </label>
+            <label>@Locale.T("ab.commission")<input @bind="commission" disabled="@busy" /></label>
+            <div class="ab-radios">
+                <span>@Locale.T("ab.duration")</span>
+                <label><input type="radio" name="dur" checked="@(years == 2)" @onchange="@(() => years = 2)" disabled="@busy" /> @Locale.T("ab.years2")</label>
+                <label><input type="radio" name="dur" checked="@(years == 3)" @onchange="@(() => years = 3)" disabled="@busy" /> @Locale.T("ab.years3")</label>
+                <label><input type="radio" name="dur" checked="@(years == 5)" @onchange="@(() => years = 5)" disabled="@busy" /> @Locale.T("ab.years5")</label>
+                <small>@Locale.T("ab.expiry", DateTime.Today.AddYears(years).ToString("dd MMM yyyy"), years)</small>
+            </div>
+            <label>
+                @Locale.T("ab.logo")
+                <InputFile OnChange="OnLogo" accept=".png,.jpg,.jpeg" />
+            </label>
+            @if (!string.IsNullOrWhiteSpace(logoPreview))
+            {
+                <img class="ab-logo" src="@logoPreview" alt="" />
+            }
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SubmitAsync">@Locale.T("ab.submit")</button>
+        </div>
+    }
+    else
+    {
+        <div class="ab-done">
+            <p>@Locale.T("ab.instCreated")</p>
+            <a class="acc-btn acc-btn-primary" href="authority">@Locale.T("ab.continue")</a>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private int step = 1, referrerId, years = 2;
+    private string userName = "", password = "", confirm = "", email = "", question = "", answer = "";
+    private string perStudent = "", schoolName = "", established = "", principal = "", staff = "", students = "";
+    private string city = "", state = "", localArea = "", postal = "", phone = "", instEmail = "", website = "", address = "";
+    private string commission = "10", logoBase64 = "", logoPreview = "";
+    private readonly List<AuthorityOptionDto> referrers = [];
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            referrers.Clear();
+            referrers.AddRange((await Api.GetAuthoritySignupLookupsAsync(Session.AccessToken!)).Referrers);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task CreateUserAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.creating"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateAuthorityUserAsync(Session.AccessToken!, new SignupUserRequest
+            {
+                UserName = userName, Password = password, ConfirmPassword = confirm,
+                Email = email, Question = question, Answer = answer
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            step = 2;
+            Show(Locale.T(result.Message ?? "ab.userCreated"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SubmitAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.submitting"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateAuthorityInstitutionAsync(Session.AccessToken!, new SignupInstitutionRequest
+            {
+                UserName = userName, Password = password, PasswordAnswer = answer,
+                PerStudentRate = perStudent, SchoolName = schoolName, Established = established,
+                Principal = principal, AcadamicStaff = staff, Students = students, City = city,
+                State = state, LocalArea = localArea, PostalCode = postal, Phone = phone,
+                Email = instEmail, Website = website, Address = address, LogoBase64 = logoBase64,
+                ReferrerId = referrerId, Commission = commission, DurationYears = years
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            step = 3;
+            Show(Locale.T("ab.instCreated"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnLogo(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        await using var stream = file.OpenReadStream(1_500_000);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        var bytes = ms.ToArray();
+        logoBase64 = Convert.ToBase64String(bytes);
+        var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+        logoPreview = $"data:{mime};base64,{logoBase64}";
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

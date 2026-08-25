@@ -84,6 +84,8 @@
                     @ColLabel(col)
                 </label>
             }
+            <button type="button" class="exam-mode-btn @(printLandscape ? null : "is-on")" @onclick="() => printLandscape = false">@Locale.T("exam.orientPortrait")</button>
+            <button type="button" class="exam-mode-btn @(printLandscape ? "is-on" : null)" @onclick="() => printLandscape = true">@Locale.T("exam.orientLandscape")</button>
             <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("exam.print")</button>
         </div>
     }
@@ -91,10 +93,17 @@
     @if (paper.HasMarks)
     {
         <div id="exam-collect-word">
-            <PrintHeader Subtitle="@Locale.T("exam.collectTitle")" Centered="true" ShowDate="false" />
-            <div class="exam-ex-cls print-only exam-print-line">
-                <div>@ExamName</div>
-                <div>@ClassGssLine</div>
+            <PrintHeader Centered="true" ShowDate="false" ShowInstitutionId="false" />
+            <div class="exam-collect-meta print-only exam-print-line">
+                <span>@Locale.T("exam.collectTitle")</span>
+                @if (!string.IsNullOrWhiteSpace(ExamName))
+                {
+                    <span>@ExamName</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(ClassGssLine))
+                {
+                    <span>@ClassGssLine</span>
+                }
             </div>
             <div class="exam-class-gss print-only exam-print-line">
                 <span>@Locale.T("exam.subjectLine", SubjectName)</span>
@@ -168,7 +177,7 @@
     private CollectPaperDto paper = new();
     private readonly List<ColOpt> cols = [];
     private int examId, classId, subjectId, groupId, sectionId, shiftId;
-    private bool busy, popupError, loaded;
+    private bool busy, popupError, loaded, printLandscape;
     private string? popupText;
     private string ExamName => filters.Exams.FirstOrDefault(x => x.Id == examId)?.Name ?? "";
     private string ClassName => filters.Classes.FirstOrDefault(x => x.Id == classId)?.Name ?? "";
@@ -328,7 +337,11 @@
             : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
     }
 
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "2mm 8mm 8mm 8mm").AsTask();
+    private Task PrintAsync() => JS.InvokeVoidAsync(
+        "sikkhaloyPrint",
+        printLandscape ? "landscape" : "portrait",
+        false,
+        printLandscape ? "8mm" : "8mm 8mm 10mm 8mm").AsTask();
     private Task ExportWordAsync()
     {
         var file = "CLASS-" + (string.IsNullOrWhiteSpace(ClassName) ? "Collect" : ClassName) + ".doc";

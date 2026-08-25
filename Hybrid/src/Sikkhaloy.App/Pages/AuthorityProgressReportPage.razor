@@ -1,0 +1,122 @@
+@page "/authority/progress-report"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.progress")</h1>
+    <div class="ab-radios no-print">
+        <label><input type="radio" name="pf" checked="@(filter == "%")" disabled="@busy" @onchange="FilterAll" /> @Locale.T("ai.all")</label>
+        <label><input type="radio" name="pf" checked="@(filter == "1")" disabled="@busy" @onchange="FilterActive" /> @Locale.T("ai.active")</label>
+        <label><input type="radio" name="pf" checked="@(filter == "0")" disabled="@busy" @onchange="FilterInactive" /> @Locale.T("ai.inactive")</label>
+    </div>
+    <div class="ai-cards">
+        <div class="ai-card is-red"><h5>@data.Institutions</h5><p>@Locale.T("ai.institution")</p></div>
+        <div class="ai-card is-green"><h5>@data.ActiveStudent</h5><p>@Locale.T("ai.activeStu")</p></div>
+        <div class="ai-card is-red"><h5>@data.RejectCountable</h5><p>@Locale.T("ai.rejtCount")</p></div>
+        <div class="ai-card is-green"><h5>@data.RejectUncountable</h5><p>@Locale.T("ai.rejtUncount")</p></div>
+        <div class="ai-card is-red"><h5>@data.TotalCountable</h5><p>@Locale.T("ai.totalCountable")</p></div>
+        <div class="ai-card is-green"><h5>@Tk(data.ServiceCharge)</h5><p>@Locale.T("ai.serviceCharge")</p></div>
+    </div>
+    <div class="ab-table-wrap">
+        <table class="ad-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("ab.schoolId")</th>
+                    <th>@Locale.T("ai.institution")</th>
+                    <th>@Locale.T("ai.activeStu")</th>
+                    <th>@Locale.T("ai.rejtCount")</th>
+                    <th>@Locale.T("ai.rejtUncount")</th>
+                    <th>@Locale.T("ai.freeSms")</th>
+                    <th>@Locale.T("ai.countStu")</th>
+                    <th>@Locale.T("ai.perStudent")</th>
+                    <th>@Locale.T("ai.fixed")</th>
+                    <th>@Locale.T("ai.discount")</th>
+                    <th>@Locale.T("ai.serviceCharge")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (data.Rows.Count == 0)
+                {
+                    <tr><td colspan="11">@Locale.T("ab.empty")</td></tr>
+                }
+                @foreach (var row in data.Rows)
+                {
+                    <tr>
+                        <td>@row.SchoolID</td>
+                        <td>@row.SchoolName</td>
+                        <td>@row.ActiveStudent</td>
+                        <td>@row.RejectCountable</td>
+                        <td>@row.RejectUncountable</td>
+                        <td>@row.FreeSms</td>
+                        <td><b>@row.Countable</b></td>
+                        <td>@Tk(row.PerStudent)</td>
+                        <td>@Tk(row.Fixed)</td>
+                        <td>@Tk(row.Discount)</td>
+                        <td><b>@Tk(row.ServiceCharge)</b></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthProgressPageDto data = new();
+    private string filter = "%";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private Task FilterAll() { filter = "%"; return LoadAsync(); }
+    private Task FilterActive() { filter = "1"; return LoadAsync(); }
+    private Task FilterInactive() { filter = "0"; return LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityProgressAsync(Session.AccessToken!, filter);
+            if (!string.IsNullOrWhiteSpace(data.Error))
+                Show(data.Error, true);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static string Tk(decimal n) => n.ToString("N0");
+}

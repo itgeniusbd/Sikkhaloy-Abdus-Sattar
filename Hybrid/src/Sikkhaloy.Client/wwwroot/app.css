@@ -292,7 +292,8 @@ th { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.04em; }
     text-align: left;
     font: inherit;
 }
-.sidebar-nav a.active, .sidebar-nav a:hover { background: rgba(255,255,255,.16); color: #fff; text-decoration: none; }
+.sidebar-nav a:hover { background: rgba(255,255,255,.16); color: #fff; text-decoration: none; }
+.sidebar-nav a.active { background: #fff; color: #0f172a; font-weight: 800; text-decoration: none; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; }
 .menu-empty { font-size: 0.78rem; opacity: 0.7; margin: 0.4rem 0.2rem; }
 .menu-group, .menu-sub { margin: 0; }

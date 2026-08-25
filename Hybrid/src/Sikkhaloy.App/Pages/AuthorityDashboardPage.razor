@@ -1,0 +1,470 @@
+@page "/authority"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ax-page">
+    <section class="ax-hero">
+        <div>
+            <p class="ax-kicker">@Locale.T("auth.hello"), @displayName</p>
+            <h1>@Locale.T("auth.title")</h1>
+            <p>@Locale.T("auth.dashSub")</p>
+        </div>
+        <div class="ax-hero-side">
+            <span>@DateTime.Now.ToString("dd MMMM yyyy, dddd")</span>
+            <button type="button" class="ad-refresh ax-refresh" @onclick="Reload" disabled="@busy">
+                @(busy ? Locale.T("auth.loading") : Locale.T("auth.refresh"))
+            </button>
+        </div>
+    </section>
+
+    <section class="ax-kpis">
+        <article class="ax-kpi is-total">
+            <div class="ax-kpi-copy">
+                <span>@Locale.T("auth.totalFound")</span>
+                <strong>@data.Total.ToString("N0")</strong>
+                <em>@Locale.T("auth.allTime")</em>
+            </div>
+            <span class="ax-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13M9 21v-7h6v7M2 21h20" /></svg>
+            </span>
+        </article>
+        <article class="ax-kpi is-valid">
+            <div class="ax-kpi-copy">
+                <span>@Locale.T("auth.valid")</span>
+                <strong>@data.Valid.ToString("N0")</strong>
+                <em>@Locale.T("auth.ofTotal", Pct(data.Valid, data.Total))</em>
+            </div>
+            <span class="ax-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.6 2.6L16.5 9" /></svg>
+            </span>
+        </article>
+        <article class="ax-kpi is-invalid">
+            <div class="ax-kpi-copy">
+                <span>@Locale.T("auth.invalid")</span>
+                <strong>@data.Invalid.ToString("N0")</strong>
+                <em>@Locale.T("auth.ofTotal", Pct(data.Invalid, data.Total))</em>
+            </div>
+            <span class="ax-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg>
+            </span>
+        </article>
+        <article class="ax-kpi is-new">
+            <div class="ax-kpi-copy">
+                <span>@Locale.T("auth.newYear")</span>
+                <strong>@data.NewThisYear.ToString("N0")</strong>
+                <em>@Locale.T("auth.ofTotal", Pct(data.NewThisYear, data.Total))</em>
+            </div>
+            <span class="ax-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16" /><path d="M8 15v4M12 9v10M16 12v7" /></svg>
+            </span>
+        </article>
+    </section>
+
+    <section class="ax-charts">
+        <article class="card ax-chart-card">
+            <header class="ax-chart-head">
+                <div>
+                    <span class="ax-chart-ico is-grow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16" /><path d="M6 14l5-5 3 3 6-7" /></svg>
+                    </span>
+                    <h3>@Locale.T("auth.yearGrowth")</h3>
+                </div>
+                <span class="ax-year-chip">@Locale.T("auth.allYears")</span>
+            </header>
+            @if (data.Yearly.Count == 0)
+            {
+                <p class="ax-empty">@Locale.T("auth.empty")</p>
+            }
+            else
+            {
+                <div class="ax-line-scroll">
+                    <div class="ax-line-inner" style="min-width: @(YearW)px">
+                        <svg class="ax-line" viewBox="@($"0 0 {YearW} 170")" aria-hidden="true">
+                            <defs>
+                                <linearGradient id="axGrowFill" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#0f766e" stop-opacity="0.32" />
+                                    <stop offset="100%" stop-color="#0f766e" stop-opacity="0.02" />
+                                </linearGradient>
+                            </defs>
+                            @foreach (var gy in new[] { 22, 55, 88, 121, 154 })
+                            {
+                                <line x1="0" y1="@gy" x2="@YearW" y2="@gy" class="ax-grid" />
+                            }
+                            <polygon fill="url(#axGrowFill)" points="@YearArea" />
+                            <polyline class="ax-line-stroke" points="@YearLine" />
+                            @foreach (var dot in YearCoords)
+                            {
+                                <circle class="ax-line-dot-halo" cx="@dot.X" cy="@dot.Y" r="5.2" />
+                                <circle class="ax-line-dot" cx="@dot.X" cy="@dot.Y" r="3.1" />
+                            }
+                        </svg>
+                        <div class="ax-line-labels">
+                            @foreach (var y in data.Yearly)
+                            {
+                                <span><b>@y.Count</b>@y.Year</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </article>
+        <article class="card ax-chart-card">
+            <header class="ax-chart-head">
+                <div>
+                    <span class="ax-chart-ico is-status" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18" /></svg>
+                    </span>
+                    <h3>@Locale.T("auth.statusOverview")</h3>
+                </div>
+            </header>
+            <div class="ax-donut-wrap">
+                <div class="ax-donut-ring">
+                    <svg class="ax-donut" viewBox="0 0 120 120" aria-hidden="true">
+                        <circle cx="60" cy="60" r="42" fill="none" stroke="#e2e8f0" stroke-width="16" />
+                        <circle cx="60" cy="60" r="42" fill="none" stroke="#059669" stroke-width="16"
+                                stroke-dasharray="@ValidArc" stroke-dashoffset="0" transform="rotate(-90 60 60)" />
+                        <circle cx="60" cy="60" r="42" fill="none" stroke="#e11d48" stroke-width="16"
+                                stroke-dasharray="@InvalidArc" stroke-dashoffset="@ValidLen" transform="rotate(-90 60 60)" />
+                        <text x="60" y="55" text-anchor="middle" class="ax-donut-n">@data.Total</text>
+                        <text x="60" y="72" text-anchor="middle" class="ax-donut-l">@Locale.T("auth.all")</text>
+                    </svg>
+                </div>
+                <ul>
+                    <li>
+                        <i class="ok"></i>
+                        <span>@Locale.T("auth.valid")</span>
+                        <b>@data.Valid</b>
+                        <em>@Pct(data.Valid, data.Total)%</em>
+                    </li>
+                    <li>
+                        <i class="no"></i>
+                        <span>@Locale.T("auth.invalid")</span>
+                        <b>@data.Invalid</b>
+                        <em>@Pct(data.Invalid, data.Total)%</em>
+                    </li>
+                    <li>
+                        <i class="due"></i>
+                        <span>@Locale.T("auth.dueInst")</span>
+                        <b>@data.DueInstitutions</b>
+                    </li>
+                </ul>
+            </div>
+        </article>
+    </section>
+
+    <section class="ax-money">
+        <article class="ax-money-card is-paid">
+            <div>
+                <span>@Locale.T("auth.monthPaid")</span>
+                <strong>৳ @data.MonthPaid.ToString("N0")</strong>
+                <em class="@(DeltaUp(data.MonthPaid, data.LastMonthPaid) ? "up" : "down")">@Locale.T("auth.vsLast", Delta(data.MonthPaid, data.LastMonthPaid))</em>
+            </div>
+            <span class="ax-money-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M3 10h18M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" /></svg>
+            </span>
+        </article>
+        <article class="ax-money-card is-due">
+            <div>
+                <span>@Locale.T("auth.monthDue")</span>
+                <strong>৳ @data.MonthDue.ToString("N0")</strong>
+                <em class="@(DeltaUp(data.MonthDue, data.LastMonthDue) ? "up" : "down")">@Locale.T("auth.vsLast", Delta(data.MonthDue, data.LastMonthDue))</em>
+            </div>
+            <span class="ax-money-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>
+            </span>
+        </article>
+        <article class="ax-money-card is-pay">
+            <div>
+                <span>@Locale.T("auth.monthPay")</span>
+                <strong>৳ @data.MonthPayable.ToString("N0")</strong>
+                <em class="@(DeltaUp(data.MonthPayable, data.LastMonthPayable) ? "up" : "down")">@Locale.T("auth.vsLast", Delta(data.MonthPayable, data.LastMonthPayable))</em>
+            </div>
+            <span class="ax-money-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2" /><path d="M2 10h20M16 15h2" /></svg>
+            </span>
+        </article>
+    </section>
+
+    <section class="ax-body">
+        <div class="ax-main">
+            <section class="card ad-table-card">
+                <div class="ad-table-head">
+                    <h3>@Locale.T("auth.latest")</h3>
+                    <a href="authority/institutions">@Locale.T("auth.viewAll")</a>
+                </div>
+                <div class="ad-table-wrap ax-latest">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("auth.colId")</th>
+                                <th>@Locale.T("auth.colInst")</th>
+                                <th>@Locale.T("auth.colUser")</th>
+                                <th>@Locale.T("auth.colPhone")</th>
+                                <th>@Locale.T("auth.colValid")</th>
+                                <th>@Locale.T("auth.colReg")</th>
+                                <th>@Locale.T("auth.colAct")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (data.Rows.Count == 0 && !busy)
+                            {
+                                <tr><td colspan="7" class="ad-empty">@Locale.T("auth.empty")</td></tr>
+                            }
+                            @foreach (var row in data.Rows)
+                            {
+                                <tr>
+                                    <td>@row.SchoolID</td>
+                                    <td class="ad-name">
+                                        <a class="ui-inst" href="authority/institutions/@row.SchoolID">@row.SchoolName</a>
+                                    </td>
+                                    <td>@row.UserName</td>
+                                    <td>@row.Phone</td>
+                                    <td><span class="ad-valid @(row.Validation == "Valid" ? "ok" : "no")">@row.Validation</span></td>
+                                    <td>@FmtDate(row.Registered)</td>
+                                    <td>@Fmt(row.LastActivity)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+        <aside class="ax-side">
+            <section class="card ax-quick">
+                <h3>@Locale.T("auth.quick")</h3>
+                <div class="ax-quick-grid">
+                    <a class="qa-search" href="authority/institutions">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                        @Locale.T("auth.q.search")
+                    </a>
+                    <a class="qa-paid" href="authority/paid-invoice">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18H7z" /><path d="M10 8h4M10 12h4M10 16h3" /></svg>
+                        @Locale.T("auth.q.paid")
+                    </a>
+                    <a class="qa-print" href="authority/print-invoice">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5h18v5a2 2 0 0 1-2 2h-2" /><rect x="7" y="13" width="10" height="8" /></svg>
+                        @Locale.T("auth.q.print")
+                    </a>
+                    <a class="qa-add" href="authority/signup-institution">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg>
+                        @Locale.T("auth.q.add")
+                    </a>
+                    <a class="qa-access" href="authority/page-access">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V7z" /><path d="M9 12l2 2 4-4" /></svg>
+                        @Locale.T("auth.q.access")
+                    </a>
+                    <a class="qa-users" href="authority/user-info">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 19c0-3 2.5-5 6-5s6 2 6 5M17 8a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM21 19c0-2-1.2-3.5-3-4.2" /></svg>
+                        @Locale.T("auth.q.users")
+                    </a>
+                </div>
+            </section>
+            <section class="card ax-bars">
+                <h3>@Locale.T("auth.payOverview")</h3>
+                <p>
+                    <span class="ax-bar-lab"><i class="ok"></i>@Locale.T("auth.monthPaid")</span>
+                    <b>৳ @data.MonthPaid.ToString("N0")</b>
+                </p>
+                <div class="ax-bar"><i style="width:@Bar(data.MonthPaid, PayMax)%" class="ok"></i></div>
+                <p>
+                    <span class="ax-bar-lab"><i class="no"></i>@Locale.T("auth.monthDue")</span>
+                    <b>৳ @data.MonthDue.ToString("N0")</b>
+                </p>
+                <div class="ax-bar"><i style="width:@Bar(data.MonthDue, PayMax)%" class="no"></i></div>
+                <p>
+                    <span class="ax-bar-lab"><i class="due"></i>@Locale.T("auth.outstanding")</span>
+                    <b>৳ @data.OutstandingDue.ToString("N0")</b>
+                </p>
+                <div class="ax-bar"><i style="width:@Bar(data.OutstandingDue, Math.Max(PayMax, data.OutstandingDue))%" class="due"></i></div>
+            </section>
+            <section class="card ax-top">
+                <h3>@Locale.T("auth.topPaid")</h3>
+                @if (data.TopPaid.Count == 0)
+                {
+                    <p class="ax-empty">@Locale.T("auth.empty")</p>
+                }
+                else
+                {
+                    <ol>
+                        @for (var i = 0; i < data.TopPaid.Count; i++)
+                        {
+                            var item = data.TopPaid[i];
+                            <li>
+                                <span class="ax-rank">@(i + 1)</span>
+                                <a class="ui-inst" href="authority/institutions/@item.SchoolID">@item.SchoolName</a>
+                                <b>৳ @item.Paid.ToString("N0")</b>
+                            </li>
+                        }
+                    </ol>
+                }
+            </section>
+            <section class="ad-live ax-live">
+                <p>@Locale.T("auth.live")</p>
+                <div class="ad-chips">
+                    <span class="ad-chip is-all is-on"><b>@data.AllInstitutions.ToString("N0")</b><span>@Locale.T("auth.all")</span></span>
+                    <span class="ad-chip is-now"><span class="ad-pulse"></span><b>@data.Online5m.ToString("N0")</b><span>@Locale.T("auth.online5")</span></span>
+                    <span class="ad-chip is-active"><b>@data.Active15m.ToString("N0")</b><span>@Locale.T("auth.active15")</span></span>
+                </div>
+            </section>
+            <section class="card ax-sys">
+                <h3>@Locale.T("auth.sysSummary")</h3>
+                <div class="ax-sys-grid">
+                    <div class="ax-sys-tile">
+                        <span class="ax-sys-ico is-users" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2" /><path d="M5 19c0-3.3 3-5.2 7-5.2s7 1.9 7 5.2" /></svg>
+                        </span>
+                        <b>@data.TotalUsers.ToString("N0")</b>
+                        <span>@Locale.T("auth.totalUsers")</span>
+                    </div>
+                    <div class="ax-sys-tile">
+                        <span class="ax-sys-ico is-active" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+                        </span>
+                        <b>@data.ActiveUsers.ToString("N0")</b>
+                        <span>@Locale.T("auth.activeUsers")</span>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </section>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="error">@message</div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("auth.wait")" />
+
+@code {
+    private AuthorityDashboardDto data = new();
+    private bool busy;
+    private string busyTitle = "";
+    private string? message;
+    private CancellationTokenSource? liveCts;
+    private const double Circ = 263.89;
+    private const double YearPlotBottom = 154;
+    private const double YearPlotTop = 22;
+
+    private string displayName =>
+        string.IsNullOrWhiteSpace(Session.Current?.DisplayName)
+            ? Session.Current?.UserName ?? ""
+            : Session.Current!.DisplayName;
+
+    private decimal PayMax => Math.Max(1, Math.Max(data.MonthPaid, Math.Max(data.MonthDue, data.MonthPayable)));
+    private double ValidLen => data.Total <= 0 ? 0 : Circ * data.Valid / data.Total;
+    private string ValidArc => $"{ValidLen:0.##} {Circ:0.##}";
+    private string InvalidArc => data.Total <= 0 ? $"0 {Circ:0.##}" : $"{Circ * data.Invalid / data.Total:0.##} {Circ:0.##}";
+    private int YearW => Math.Max(480, data.Yearly.Count * 56);
+
+    private IReadOnlyList<(double X, double Y)> YearCoords
+    {
+        get
+        {
+            var n = data.Yearly.Count;
+            if (n == 0) return [];
+            var max = Math.Max(1, data.Yearly.Max(x => x.Count));
+            const double pad = 22;
+            var span = Math.Max(1, YearW - pad * 2);
+            var step = n == 1 ? 0 : span / (n - 1);
+            var list = new (double X, double Y)[n];
+            for (var i = 0; i < n; i++)
+            {
+                var x = n == 1 ? YearW / 2.0 : pad + i * step;
+                var y = YearPlotBottom - data.Yearly[i].Count * (YearPlotBottom - YearPlotTop) / max;
+                list[i] = (x, y);
+            }
+            return list;
+        }
+    }
+
+    private string YearLine => string.Join(" ", YearCoords.Select(p => $"{p.X:0.##},{p.Y:0.##}"));
+
+    private string YearArea
+    {
+        get
+        {
+            var pts = YearCoords;
+            if (pts.Count == 0) return "";
+            if (pts.Count == 1)
+            {
+                var p = pts[0];
+                return $"{p.X - 12:0.##},{YearPlotBottom} {p.X - 12:0.##},{p.Y:0.##} {p.X + 12:0.##},{p.Y:0.##} {p.X + 12:0.##},{YearPlotBottom}";
+            }
+            return $"{pts[0].X:0.##},{YearPlotBottom} {YearLine} {pts[^1].X:0.##},{YearPlotBottom}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+        liveCts = new CancellationTokenSource();
+        _ = RefreshLoop(liveCts.Token);
+    }
+
+    public override void Dispose()
+    {
+        liveCts?.Cancel();
+        liveCts?.Dispose();
+        base.Dispose();
+    }
+
+    private async Task RefreshLoop(CancellationToken ct)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(45));
+            while (await timer.WaitForNextTickAsync(ct))
+                await InvokeAsync(() => LoadAsync(true));
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private Task Reload() => LoadAsync();
+
+    private async Task LoadAsync(bool silent = false)
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            message = Locale.T("login.needOnline");
+            return;
+        }
+        if (!silent)
+        {
+            busy = true;
+            busyTitle = Locale.T("auth.loading");
+            message = null;
+            StateHasChanged();
+        }
+        try { data = await Api.GetAuthorityDashboardAsync(Session.AccessToken); }
+        catch (Exception ex) { message = string.IsNullOrWhiteSpace(ex.Message) ? Locale.T("auth.fail") : ex.Message; }
+        finally { busy = false; StateHasChanged(); }
+    }
+
+    private static string Pct(int part, int total) =>
+        total <= 0 ? "0" : (part * 100.0 / total).ToString("0.##");
+
+    private static string Delta(decimal current, decimal last)
+    {
+        if (last == 0) return current == 0 ? "0%" : "+100%";
+        var p = Math.Round((double)((current - last) / last * 100m), 1);
+        return p >= 0 ? $"+{p}%" : $"{p}%";
+    }
+
+    private static bool DeltaUp(decimal current, decimal last) => current >= last;
+
+    private static int Bar(decimal value, decimal max)
+    {
+        if (max <= 0) return 0;
+        var n = (int)Math.Round((double)(value / max * 100m));
+        return Math.Clamp(n, 0, 100);
+    }
+
+    private static string Fmt(DateTime? value) => value is DateTime d ? d.ToString("dd MMM HH:mm") : "";
+    private static string FmtDate(DateTime? value) => value is DateTime d ? d.ToString("dd MMM yyyy") : "";
+}

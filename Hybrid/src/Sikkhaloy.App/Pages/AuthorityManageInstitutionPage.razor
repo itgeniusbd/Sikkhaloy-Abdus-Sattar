@@ -1,0 +1,205 @@
+@page "/authority/manage-institution"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="mi-page">
+    <div class="mi-top">
+        <header class="ui-head mi-head">
+            <p class="ui-kicker">@Locale.T("auth.m.accounts")</p>
+            <h1>@Locale.T("auth.m.manageInst")</h1>
+        </header>
+        <section class="mi-kpis">
+            <article><span>@Locale.T("ab.totalFound")</span><b>@data.Total.ToString("N0")</b></article>
+            <article class="is-ok"><span>@Locale.T("ai.valid")</span><b>@data.Valid.ToString("N0")</b></article>
+            <article class="is-bad"><span>@Locale.T("ai.invalid")</span><b>@data.Invalid.ToString("N0")</b></article>
+            <article class="is-pay"><span>@Locale.T("ai.payActive")</span><b>@data.PaymentActive.ToString("N0")</b></article>
+        </section>
+    </div>
+
+    <section class="card mi-bar">
+        <input @bind="search" @bind:event="oninput" @onkeydown="OnSearchKey" placeholder="@Locale.T("ab.searchPh")" disabled="@busy" />
+        <select @bind="validation" disabled="@busy">
+            <option value="">@Locale.T("auth.allStatus")</option>
+            <option value="Valid">@Locale.T("ai.valid")</option>
+            <option value="Invalid">@Locale.T("ai.invalid")</option>
+        </select>
+        <select @bind="payment" disabled="@busy">
+            <option value="">@Locale.T("ai.payActive")</option>
+            <option value="Active">@Locale.T("ai.active")</option>
+            <option value="Inactive">@Locale.T("ai.inactive")</option>
+        </select>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.searchBtn")</button>
+        <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearAsync">@Locale.T("auth.clear")</button>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("ai.saveAll")</button>
+    </section>
+
+    <section class="card mi-grid">
+        <div class="mi-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>SN</th>
+                        <th>@Locale.T("ab.schoolId")</th>
+                        <th>@Locale.T("ai.institution")</th>
+                        <th>@Locale.T("ab.phone")</th>
+                        <th>@Locale.T("ab.date")</th>
+                        <th>@Locale.T("ai.valid")</th>
+                        <th>@Locale.T("ai.payActive")</th>
+                        <th>@Locale.T("ai.perStudent")</th>
+                        <th>@Locale.T("ai.committee")</th>
+                        <th>@Locale.T("ai.freeSms")</th>
+                        <th>@Locale.T("ai.discount")</th>
+                        <th>@Locale.T("ai.fixed")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Rows.Count == 0)
+                    {
+                        <tr><td colspan="12" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                    }
+                    @foreach (var row in data.Rows)
+                    {
+                        <tr class="@(row.Valid ? null : "is-invalid")">
+                            <td class="mi-sn">@row.SchoolSn</td>
+                            <td class="mi-id">@row.SchoolID</td>
+                            <td class="mi-name" title="@(string.IsNullOrWhiteSpace(row.UserName) ? row.SchoolName : $"{row.SchoolName} ({row.UserName})")">@row.SchoolName</td>
+                            <td>@row.Phone</td>
+                            <td>@row.Date?.ToString("dd/MM/yyyy")</td>
+                            <td><input type="checkbox" @bind="row.Valid" disabled="@busy" /></td>
+                            <td><input type="checkbox" @bind="row.PaymentActive" disabled="@busy" /></td>
+                            <td>
+                                <input class="mi-amt" type="text" inputmode="decimal" value="@Fmt(row.PerStudent)" disabled="@busy"
+                                       @onchange="e => row.PerStudent = ParseDec(e)" @onwheel:preventDefault />
+                            </td>
+                            <td class="mi-com-cell">
+                                @if (row.Committee.Count == 0)
+                                {
+                                    <span class="mi-zero">0</span>
+                                }
+                                else
+                                {
+                                    <div class="mi-com">
+                                        @foreach (var cat in row.Committee)
+                                        {
+                                            <div class="mi-cat">
+                                                <label class="mi-cat-name" title="@Locale.T("ai.included")">
+                                                    <input type="checkbox" @bind="cat.Included" disabled="@busy" />
+                                                    <span>@cat.TypeName</span>
+                                                </label>
+                                                <span class="mi-cat-n @(cat.ActiveCount > 0 ? "is-ok" : null)">@cat.ActiveCount</span>
+                                                <label class="mi-cat-act @(cat.Active ? "is-on" : null)" title="@Locale.T("ai.active")">
+                                                    <input type="checkbox" @bind="cat.Active" disabled="@busy" />
+                                                    <span>@(cat.Active ? Locale.T("ai.active") : Locale.T("ai.inactive"))</span>
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <input class="mi-amt" type="text" inputmode="numeric" value="@row.FreeSms" disabled="@busy"
+                                       @onchange="e => row.FreeSms = ParseInt(e)" @onwheel:preventDefault />
+                            </td>
+                            <td>
+                                <input class="mi-amt" type="text" inputmode="decimal" value="@Fmt(row.Discount)" disabled="@busy"
+                                       @onchange="e => row.Discount = ParseDec(e)" @onwheel:preventDefault />
+                            </td>
+                            <td>
+                                <input class="mi-amt" type="text" inputmode="decimal" value="@Fmt(row.Fixed)" disabled="@busy"
+                                       @onchange="e => row.Fixed = ParseDec(e)" @onwheel:preventDefault />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthManagePageDto data = new();
+    private string search = "", validation = "", payment = "";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        search = validation = payment = "";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityManageAsync(Session.AccessToken!, search, validation, payment);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveAuthorityManageAsync(Session.AccessToken!, new AuthManageSaveRequest { Rows = data.Rows });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T(result.Message ?? "ai.manageSaved"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ai.", StringComparison.OrdinalIgnoreCase) || error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static string Fmt(decimal n) => n.ToString("0.##");
+    private static int ParseInt(ChangeEventArgs e) => int.TryParse(e.Value?.ToString(), out var n) ? n : 0;
+    private static decimal ParseDec(ChangeEventArgs e) =>
+        decimal.TryParse(e.Value?.ToString()?.Replace(",", ""), out var n) ? n : 0;
+}

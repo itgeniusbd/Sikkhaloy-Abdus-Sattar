@@ -115,6 +115,44 @@ namespace Attendance_API.Helpers
             }
         }
 
+        public string GetStudentDisplayId(int studentId)
+        {
+            var classInfo = GetStudentClassInfo(studentId);
+            if (!string.IsNullOrWhiteSpace(classInfo.displayId))
+                return classInfo.displayId.Trim();
+
+            return QueryStudentIdColumn(studentId);
+        }
+
+        private string QueryStudentIdColumn(int studentId)
+        {
+            if (studentId <= 0)
+                return string.Empty;
+
+            try
+            {
+                using (var con = new SqlConnection(_connectionString))
+                using (var cmd = new SqlCommand(@"
+                    SELECT TOP 1 ID
+                    FROM Student
+                    WHERE StudentID = @StudentID
+                      AND SchoolID = @SchoolID", con))
+                {
+                    cmd.Parameters.AddWithValue("@StudentID", studentId);
+                    cmd.Parameters.AddWithValue("@SchoolID", _schoolId);
+                    con.Open();
+                    var result = cmd.ExecuteScalar();
+                    return result == null || result == DBNull.Value
+                        ? string.Empty
+                        : result.ToString().Trim();
+                }
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
         public string BuildMessage(
             string attendanceType,
             string studentName,

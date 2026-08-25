@@ -1,0 +1,273 @@
+@page "/routine/create"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page routine-page">
+    <h1>@Locale.T("rt.createTitle")</h1>
+    <div class="filter-row no-print">
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="() => showNames = true">@Locale.T("rt.manageNames")</button>
+        <select @bind="routineInfoId" disabled="@busy">
+            <option value="0">@Locale.T("rt.selectName")</option>
+            @foreach (var item in unused)
+            {
+                <option value="@item.RoutineInfoID">@item.Name</option>
+            }
+        </select>
+    </div>
+    <div class="rt-days no-print">
+        @foreach (var day in days)
+        {
+            <label><input type="checkbox" checked="@day.On" disabled="@busy" @onchange="e => day.On = IsOn(e)" /> @day.Code</label>
+        }
+    </div>
+    <div class="filter-row no-print">
+        <input type="text" @bind="periodName" disabled="@busy" placeholder="@Locale.T("rt.periodName")" />
+        <input type="time" @bind="startTime" disabled="@busy" />
+        <input type="time" @bind="endTime" disabled="@busy" />
+        <label class="choice-inline"><input type="checkbox" @bind="offTime" disabled="@busy" /> @Locale.T("rt.offTime")</label>
+        <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="AddPeriod">@Locale.T("rt.addList")</button>
+    </div>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("rt.period")</th>
+                <th>@Locale.T("rt.start")</th>
+                <th>@Locale.T("rt.end")</th>
+                <th>@Locale.T("rt.duration")</th>
+                <th>@Locale.T("rt.offTime")</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (periods.Count == 0)
+        {
+            <tr><td colspan="6" class="empty-row">@Locale.T("rt.emptyPeriods")</td></tr>
+        }
+        @foreach (var row in periods)
+        {
+            <tr>
+                <td>@row.Period</td>
+                <td>@row.StartTime</td>
+                <td>@row.EndTime</td>
+                <td>@row.Duration</td>
+                <td>@(row.OffTime ? Locale.T("rt.yes") : "")</td>
+                <td><button type="button" class="acc-btn acc-btn-danger" disabled="@busy" @onclick="() => periods.Remove(row)">@Locale.T("sms.delete")</button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (periods.Count > 0)
+    {
+        <div class="filter-row no-print">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("rt.saveContinue")</button>
+        </div>
+    }
+</div>
+
+@if (showNames)
+{
+    <div class="acc-result-back" @onclick="() => showNames = false">
+        <div class="acc-result is-ok sms-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("rt.addName")</h3>
+            <label>@Locale.T("rt.routineName")</label>
+            <input type="text" @bind="newName" disabled="@busy" />
+            <div class="filter-row">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveNameAsync">@Locale.T("sms.addGroup")</button>
+                <button type="button" class="acc-btn" @onclick="() => showNames = false">@Locale.T("acc.ok")</button>
+            </div>
+            <table class="mgrid">
+                <thead><tr><th>@Locale.T("rt.routineName")</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var item in allNames)
+                {
+                    <tr>
+                        <td>
+                            <input type="text" value="@item.Name" disabled="@busy"
+                                   @onchange="e => RenameAsync(item, e.Value?.ToString())" />
+                        </td>
+                        <td>
+                            <button type="button" class="acc-btn acc-btn-danger" disabled="@busy"
+                                    @onclick="() => DeleteNameAsync(item)">@Locale.T("sms.delete")</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<DayPick> days = new[] { "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri" }.Select(x => new DayPick(x)).ToList();
+    private readonly List<RoutineNameDto> unused = [];
+    private readonly List<RoutineNameDto> allNames = [];
+    private readonly List<RoutinePeriodDraft> periods = [];
+    private int routineInfoId;
+    private string periodName = "", newName = "";
+    private TimeOnly? startTime, endTime;
+    private bool offTime, busy, popupError, showNames;
+    private string? popupText, busyTitle;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            unused.Clear();
+            unused.AddRange(await Api.GetRoutineNamesAsync(Session.AccessToken!, true));
+            allNames.Clear();
+            allNames.AddRange(await Api.GetRoutineNamesAsync(Session.AccessToken!, false));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void AddPeriod()
+    {
+        if (string.IsNullOrWhiteSpace(periodName) || startTime is null || endTime is null)
+        {
+            Show(Locale.T("rt.needPeriod"), true);
+            return;
+        }
+        if (endTime <= startTime)
+        {
+            Show(Locale.T("rt.badTime"), true);
+            return;
+        }
+        var start = DateTime.Today.Add(startTime.Value.ToTimeSpan());
+        var end = DateTime.Today.Add(endTime.Value.ToTimeSpan());
+        if (periods.Any(p => Overlaps(p, start, end)))
+        {
+            Show(Locale.T("rt.timeExists"), true);
+            return;
+        }
+        periods.Add(new RoutinePeriodDraft
+        {
+            Period = periodName.Trim(),
+            StartTime = start.ToString("h:mm tt"),
+            EndTime = end.ToString("h:mm tt"),
+            Duration = (int)(end - start).TotalMinutes + " min",
+            OffTime = offTime
+        });
+        periodName = "";
+        startTime = endTime = null;
+        offTime = false;
+    }
+
+    private static bool Overlaps(RoutinePeriodDraft row, DateTime start, DateTime end)
+    {
+        if (!DateTime.TryParse(row.StartTime, out var a) || !DateTime.TryParse(row.EndTime, out var b))
+            return false;
+        a = DateTime.Today.Add(a.TimeOfDay);
+        b = DateTime.Today.Add(b.TimeOfDay);
+        return start < b && a < end;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (routineInfoId <= 0) { Show(Locale.T("rt.needRoutine"), true); return; }
+        if (!days.Any(x => x.On)) { Show(Locale.T("rt.needDay"), true); return; }
+        await SetBusyAsync(Locale.T("rt.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateClassRoutineAsync(Session.AccessToken!, new CreateClassRoutineRequest
+            {
+                RoutineInfoID = routineInfoId,
+                Days = days.Where(x => x.On).Select(x => x.Code).ToList(),
+                Periods = periods
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            Show(Locale.T(result.Message ?? "rt.created"));
+            periods.Clear();
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveNameAsync()
+    {
+        await SetBusyAsync(Locale.T("rt.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveRoutineNameAsync(Session.AccessToken!, new SaveRoutineNameRequest { Name = newName });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            newName = "";
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "rt.nameAdded"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task RenameAsync(RoutineNameDto item, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name == item.Name) return;
+        await SetBusyAsync(Locale.T("rt.saving"));
+        try
+        {
+            var result = await Api.SaveRoutineNameAsync(Session.AccessToken!, new SaveRoutineNameRequest { RoutineInfoID = item.RoutineInfoID, Name = name });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            item.Name = name;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteNameAsync(RoutineNameDto item)
+    {
+        await SetBusyAsync(Locale.T("rt.saving"));
+        try
+        {
+            var result = await Api.DeleteRoutineNameAsync(Session.AccessToken!, item.RoutineInfoID);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "rt.nameDeleted"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static bool IsOn(ChangeEventArgs e) => e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = null;
+    private string FormatErr(RoutineResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("rt.fail")
+        : result.Error.StartsWith("rt.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title)
+    {
+        busyTitle = title;
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private sealed class DayPick(string code) { public string Code { get; } = code; public bool On { get; set; } }
+}

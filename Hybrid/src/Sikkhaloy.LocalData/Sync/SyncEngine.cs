@@ -55,6 +55,14 @@ public sealed partial class SyncEngine
     private async Task RunOnceCoreAsync(SessionSnapshot session, string accessToken, CancellationToken cancellationToken)
     {
         LastError = null;
+        if (session.IsAuthority || session.SchoolID <= 0)
+        {
+            _online = await _api.PingAsync(cancellationToken);
+            await RefreshPendingAsync(cancellationToken);
+            StateChanged?.Invoke();
+            return;
+        }
+
         _online = await _api.PingAsync(cancellationToken);
         if (!_online)
         {

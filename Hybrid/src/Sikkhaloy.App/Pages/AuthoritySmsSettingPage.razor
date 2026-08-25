@@ -1,0 +1,316 @@
+@page "/authority/sms-setting"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ui-page ss-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("auth.m.smsSetting")</h1>
+    </header>
+
+    <div class="ss-tabs">
+        <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+            @Locale.T("ab.tabSetting")
+        </button>
+        <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="LoadRecordsAsync">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z" /><path d="M8 9h8M8 13h8M8 17h5" /></svg>
+            @Locale.T("ab.tabRecords")
+        </button>
+        <button type="button" class="@(tab == 2 ? "is-on" : null)" @onclick="LoadFailedAsync">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>
+            @Locale.T("ab.tabFailed")
+        </button>
+    </div>
+
+    @if (tab == 0)
+    {
+        <section class="ss-kpis">
+            <article class="ss-kpi @(setting.PendingSms > 0 ? "is-warn" : "is-ok")">
+                <span>@Locale.T("ab.pending", setting.PendingSms)</span>
+            </article>
+        </section>
+        <div class="ss-grid">
+            <section class="card ss-card">
+                <h2>@Locale.T("ab.single")</h2>
+                <div class="ss-chips">
+                    @foreach (var item in setting.Providers)
+                    {
+                        <label class="@(setting.SmsProvider == item ? "is-on" : null)">
+                            <input type="radio" name="p1" checked="@(setting.SmsProvider == item)" @onchange="@(() => setting.SmsProvider = item)" disabled="@busy" />
+                            @item
+                        </label>
+                    }
+                </div>
+            </section>
+            <section class="card ss-card">
+                <h2>@Locale.T("ab.multiple")</h2>
+                <div class="ss-chips">
+                    @foreach (var item in setting.Providers)
+                    {
+                        <label class="@(setting.SmsProviderMultiple == item ? "is-on" : null)">
+                            <input type="radio" name="p2" checked="@(setting.SmsProviderMultiple == item)" @onchange="@(() => setting.SmsProviderMultiple = item)" disabled="@busy" />
+                            @item
+                        </label>
+                    }
+                </div>
+            </section>
+            <section class="card ss-card">
+                <label>
+                    <span>@Locale.T("ab.interval")</span>
+                    <small>@Locale.T("ab.intervalHint")</small>
+                    <input type="number" @bind="setting.SmsSendInterval" disabled="@busy" />
+                </label>
+            </section>
+            <section class="card ss-card">
+                <label>
+                    <span>@Locale.T("ab.unit")</span>
+                    <small>@Locale.T("ab.unitHint")</small>
+                    <input type="number" @bind="setting.SmsProcessingUnit" disabled="@busy" />
+                </label>
+            </section>
+        </div>
+        <div class="ss-actions">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("ab.updateSms")</button>
+        </div>
+    }
+    else if (tab == 1)
+    {
+        <section class="card ss-filter">
+            <label>@Locale.T("ab.startDate")<input type="date" @bind="recFrom" @bind:format="yyyy-MM-dd" /></label>
+            <label>@Locale.T("ab.endDate")<input type="date" @bind="recTo" @bind:format="yyyy-MM-dd" /></label>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadRecordsAsync">@Locale.T("ab.searchRecords")</button>
+            <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearRecordsAsync">@Locale.T("ab.clearFilter")</button>
+        </section>
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("ab.tabRecords")</h3>
+                <span>@Locale.T("auth.rows", records.Count)</span>
+            </div>
+            <div class="ss-table">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>@Locale.T("ab.appStart")</th>
+                            <th>@Locale.T("ab.appClose")</th>
+                            <th>@Locale.T("ab.eventCall")</th>
+                            <th>@Locale.T("ab.smsSent")</th>
+                            <th>@Locale.T("ab.smsFailed")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (records.Count == 0)
+                        {
+                            <tr><td colspan="6" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var row in records)
+                        {
+                            <tr>
+                                <td>@row.Id</td>
+                                <td>@Fmt(row.AppStartTime)</td>
+                                <td>@Fmt(row.AppCloseTime)</td>
+                                <td>@row.TotalEventCall.ToString("N0")</td>
+                                <td class="ss-ok">@row.TotalSmsSend.ToString("N0")</td>
+                                <td class="ss-bad">@row.TotalSmsFailed.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="ss-fail-kpis">
+            <article class="ss-fail is-total"><span>@Locale.T("ab.totalFailed")</span><b>@failed.TotalFailed.ToString("N0")</b></article>
+            <article class="ss-fail is-today"><span>@Locale.T("ab.todayFailed")</span><b>@failed.TodayFailed.ToString("N0")</b></article>
+            <article class="ss-fail is-week"><span>@Locale.T("ab.weekFailed")</span><b>@failed.ThisWeekFailed.ToString("N0")</b></article>
+        </section>
+        <section class="card ss-filter">
+            <label>@Locale.T("ab.startDate")<input type="date" @bind="failFrom" @bind:format="yyyy-MM-dd" /></label>
+            <label>@Locale.T("ab.endDate")<input type="date" @bind="failTo" @bind:format="yyyy-MM-dd" /></label>
+            <select @bind="failReason" disabled="@busy">
+                <option value="">@Locale.T("ab.allReasons")</option>
+                <option value="Not current date">Not current date</option>
+                <option value="SMS sending time up">SMS sending time up</option>
+                <option value="Insufficient SMS Balance">Insufficient SMS Balance</option>
+                <option value="SMS Send Failed">SMS Send Failed</option>
+            </select>
+            <select @bind="failSchoolId" disabled="@busy">
+                <option value="0">@Locale.T("ab.allInst")</option>
+                @foreach (var item in failed.Schools)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadFailedAsync">@Locale.T("ab.searchFailed")</button>
+            <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearFailedAsync">@Locale.T("ab.clearFilter")</button>
+        </section>
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("ab.tabFailed")</h3>
+                <span>@Locale.T("auth.rows", failed.Rows.Count)</span>
+            </div>
+            <div class="ss-table">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("auth.colInst")</th>
+                            <th>@Locale.T("ab.message")</th>
+                            <th>@Locale.T("ab.phone")</th>
+                            <th>@Locale.T("ab.status")</th>
+                            <th>@Locale.T("ab.failedReason")</th>
+                            <th>@Locale.T("ab.date")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (failed.Rows.Count == 0)
+                        {
+                            <tr><td colspan="6" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var row in failed.Rows)
+                        {
+                            <tr>
+                                <td class="ss-inst">@row.SchoolName</td>
+                                <td class="ss-msg">@row.SmsText</td>
+                                <td>@row.MobileNo</td>
+                                <td>@row.AttendanceStatus</td>
+                                <td><span class="ss-reason">@row.FailedReason</span></td>
+                                <td>@Fmt(row.InsertDate)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private int tab, failSchoolId;
+    private SmsSettingPageDto setting = new();
+    private readonly List<SmsSenderRowDto> records = [];
+    private SmsFailedPageDto failed = new();
+    private DateTime? recFrom = DateTime.Today.AddMonths(-1), recTo = DateTime.Today;
+    private DateTime? failFrom = DateTime.Today.AddDays(-7), failTo = DateTime.Today;
+    private string failReason = "";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadSettingAsync();
+    }
+
+    private async Task LoadSettingAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            setting = await Api.GetAuthoritySmsSettingAsync(Session.AccessToken!);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveAuthoritySmsSettingAsync(Session.AccessToken!, new SaveSmsSettingRequest
+            {
+                SmsProvider = setting.SmsProvider,
+                SmsProviderMultiple = setting.SmsProviderMultiple,
+                SmsSendInterval = setting.SmsSendInterval,
+                SmsProcessingUnit = setting.SmsProcessingUnit
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T("ab.smsSaved"), false);
+            await LoadSettingAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadRecordsAsync()
+    {
+        tab = 1;
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            records.Clear();
+            records.AddRange(await Api.GetAuthoritySmsRecordsAsync(Session.AccessToken!, recFrom, recTo));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ClearRecordsAsync()
+    {
+        recFrom = DateTime.Today.AddMonths(-1);
+        recTo = DateTime.Today;
+        await LoadRecordsAsync();
+    }
+
+    private async Task LoadFailedAsync()
+    {
+        tab = 2;
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            failed = await Api.GetAuthorityFailedSmsAsync(Session.AccessToken!, failFrom, failTo, failReason, failSchoolId);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ClearFailedAsync()
+    {
+        failFrom = DateTime.Today.AddDays(-7);
+        failTo = DateTime.Today;
+        failReason = "";
+        failSchoolId = 0;
+        await LoadFailedAsync();
+    }
+
+    private static string Fmt(DateTime? value) => value is DateTime d ? d.ToString("d MMM yyyy hh:mm tt") : "";
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

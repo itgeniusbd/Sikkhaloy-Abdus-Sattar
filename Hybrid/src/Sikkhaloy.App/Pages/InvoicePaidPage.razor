@@ -1,0 +1,99 @@
+@page "/invoice/paid"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page inv-page">
+    <div class="filter-row no-print">
+        <h1>@Locale.T("inv.paidTitle")</h1>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("inv.print")</button>
+    </div>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("inv.receiptSn")</th>
+                <th>@Locale.T("inv.totalAmt")</th>
+                <th>@Locale.T("inv.gateway")</th>
+                <th>@Locale.T("inv.paymentBy")</th>
+                <th>@Locale.T("inv.paidByUser")</th>
+                <th>@Locale.T("inv.collectedBy")</th>
+                <th>@Locale.T("inv.method")</th>
+                <th>@Locale.T("inv.paidDate")</th>
+                <th class="no-print">@Locale.T("inv.print")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (list.Rows.Count == 0)
+        {
+            <tr><td colspan="9" class="empty-row">@Locale.T("inv.emptyPaid")</td></tr>
+        }
+        @foreach (var row in list.Rows)
+        {
+            <tr>
+                <td>@row.InvoiceReceiptSn</td>
+                <td>@Tk(row.TotalAmount)</td>
+                <td>
+                    @if (row.GatewayCharge > 0)
+                    {
+                        <span class="inv-gw">@Tk(row.TotalAmount) + @Tk(row.GatewayCharge) = <b>@Tk(row.CustomerPaid) @Locale.T("inv.tk")</b></span>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </td>
+                <td>@row.PaymentBy</td>
+                <td>@row.PaidByUser</td>
+                <td>@row.CollectedBy</td>
+                <td>@row.PaymentMethod</td>
+                <td>@(row.PaidDate?.ToString("d MMM yyyy"))</td>
+                <td class="no-print"><a href="@($"invoice/receipt/{row.InvoiceReceiptId}")">@Locale.T("inv.print")</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private PaidInvoiceListDto list = new();
+    private bool busy, popupError;
+    private string? popupText, busyTitle;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        busyTitle = Locale.T("inv.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                popupError = true;
+                return;
+            }
+            list = await Api.GetPaidInvoicesAsync(Session.AccessToken!);
+        }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private static string Tk(decimal n) => n.ToString("0.##");
+}

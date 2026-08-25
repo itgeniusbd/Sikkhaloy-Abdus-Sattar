@@ -1,0 +1,327 @@
+@page "/authority/add-reference"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.addReference")</h1>
+    <div class="ab-card">
+        <h2>@(editId == 0 ? Locale.T("al.addRef") : Locale.T("al.editRef"))</h2>
+        <div class="al-inline al-wrap">
+            <input @bind="refName" placeholder="@Locale.T("al.name")" disabled="@busy" />
+            <input @bind="refPhone" placeholder="@Locale.T("ab.phone")" disabled="@busy" />
+            <input @bind="refAddress" placeholder="@Locale.T("ab.address")" disabled="@busy" />
+            <input type="date" @bind="refStart" disabled="@busy" />
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveRefAsync">@Locale.T(editId == 0 ? "al.saveRef" : "ab.edit")</button>
+            @if (editId > 0)
+            {
+                <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearRef">@Locale.T("auth.clear")</button>
+            }
+        </div>
+    </div>
+
+    <div class="ab-table-wrap">
+        <table class="ad-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("al.sn")</th>
+                    <th>@Locale.T("al.name")</th>
+                    <th>@Locale.T("ab.phone")</th>
+                    <th>@Locale.T("al.schools")</th>
+                    <th>@Locale.T("al.commission")</th>
+                    <th>@Locale.T("al.paid")</th>
+                    <th>@Locale.T("al.due")</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (data.Referrers.Count == 0)
+                {
+                    <tr><td colspan="8">@Locale.T("al.empty")</td></tr>
+                }
+                @foreach (var row in data.Referrers)
+                {
+                    <tr class="@(row.ReferenceID == data.ReferenceID ? "is-active" : null)">
+                        <td>@row.ReferenceSN</td>
+                        <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => OpenRefAsync(row.ReferenceID)">@row.Name</button></td>
+                        <td>@row.Phone</td>
+                        <td>@row.TotalSchools</td>
+                        <td>@row.TotalCommission.ToString("N0")</td>
+                        <td>@row.PaidAmount.ToString("N0")</td>
+                        <td>@row.DueAmount.ToString("N0")</td>
+                        <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => EditRef(row)">@Locale.T("ab.edit")</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (data.ReferenceID > 0)
+    {
+        <div class="ab-card">
+            <h2>@Locale.T("al.assignTo", data.ReferenceName)</h2>
+            <div class="al-inline al-wrap">
+                <input @bind="search" @bind:event="oninput" placeholder="@Locale.T("al.searchInst")" disabled="@busy" />
+                <button type="button" class="acc-btn" disabled="@busy" @onclick="SearchAsync">@Locale.T("auth.searchBtn")</button>
+            </div>
+            @if (found.Count > 0)
+            {
+                <div class="al-pick">
+                    @foreach (var item in found)
+                    {
+                        <button type="button" class="@(item.SchoolID == schoolId ? "is-on" : null)" disabled="@busy" @onclick="() => Pick(item)">
+                            @item.SchoolID — @item.SchoolName
+                            @if (!string.IsNullOrWhiteSpace(item.Phone))
+                            {
+                                <small>@item.Phone</small>
+                            }
+                        </button>
+                    }
+                </div>
+            }
+            @if (schoolId > 0)
+            {
+                <p class="muted">@schoolId — @schoolName</p>
+            }
+            <div class="al-inline al-wrap">
+                <input type="number" step="0.01" @bind="pct" placeholder="@Locale.T("al.pct")" disabled="@busy" />
+                <label>@Locale.T("al.signupDate")<input type="date" @bind="signup" disabled="@busy" /></label>
+                <label>@Locale.T("al.expireDate")<input type="date" @bind="expire" disabled="@busy" /></label>
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AssignAsync">@Locale.T("al.assign")</button>
+            </div>
+        </div>
+
+        <div class="ab-table-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("auth.colInst")</th>
+                        <th>@Locale.T("ab.phone")</th>
+                        <th>%</th>
+                        <th>@Locale.T("al.signupDate")</th>
+                        <th>@Locale.T("al.expireDate")</th>
+                        <th>@Locale.T("al.commission")</th>
+                        <th>@Locale.T("al.paid")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Assigned.Count == 0)
+                    {
+                        <tr><td colspan="8">@Locale.T("al.empty")</td></tr>
+                    }
+                    @foreach (var row in data.Assigned)
+                    {
+                        <tr class="@(row.Expired ? "is-invalid" : null)">
+                            <td>@row.SchoolName</td>
+                            <td>@row.Phone</td>
+                            <td>
+                                @if (editAssign == row.ReferenceSchoolID)
+                                {
+                                    <input type="number" step="0.01" @bind="editPct" disabled="@busy" />
+                                }
+                                else
+                                {
+                                    @row.Percentage.ToString("N2")
+                                }
+                            </td>
+                            <td>
+                                @if (editAssign == row.ReferenceSchoolID)
+                                {
+                                    <input type="date" @bind="editSignup" disabled="@busy" />
+                                }
+                                else
+                                {
+                                    @Fmt(row.SignupDate)
+                                }
+                            </td>
+                            <td>
+                                @if (editAssign == row.ReferenceSchoolID)
+                                {
+                                    <input type="date" @bind="editExpire" disabled="@busy" />
+                                }
+                                else
+                                {
+                                    @Fmt(row.ExpireDate)
+                                }
+                            </td>
+                            <td>@row.TotalCommission.ToString("N0")</td>
+                            <td>@row.PaidCommission.ToString("N0")</td>
+                            <td>
+                                @if (editAssign == row.ReferenceSchoolID)
+                                {
+                                    <button type="button" class="ab-link" disabled="@busy" @onclick="SaveAssignAsync">@Locale.T("ab.submit")</button>
+                                    <button type="button" class="ab-link" disabled="@busy" @onclick="() => editAssign = 0">@Locale.T("ab.cancel")</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="ab-link" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("ab.edit")</button>
+                                    <button type="button" class="ab-link" disabled="@busy" @onclick="() => DeleteAssignAsync(row.ReferenceSchoolID)">@Locale.T("ai.delete")</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthReferralPageDto data = new();
+    private readonly List<AuthSchoolSearchDto> found = [];
+    private int editId, schoolId, editAssign;
+    private decimal pct, editPct;
+    private string refName = "", refPhone = "", refAddress = "", search = "", schoolName = "", busyTitle = "", popupText = "";
+    private DateTime? refStart, signup, expire, editSignup, editExpire;
+    private bool busy, popupError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync(0);
+    }
+
+    private void EditRef(AuthReferrerRowDto row)
+    {
+        editId = row.ReferenceID;
+        refName = row.Name;
+        refPhone = row.Phone;
+        refAddress = row.Address;
+        refStart = row.StartDate;
+    }
+
+    private void ClearRef()
+    {
+        editId = 0; refName = ""; refPhone = ""; refAddress = ""; refStart = null;
+    }
+
+    private void Pick(AuthSchoolSearchDto item)
+    {
+        schoolId = item.SchoolID;
+        schoolName = item.SchoolName;
+        found.Clear();
+    }
+
+    private void StartEdit(AuthAssignedSchoolDto row)
+    {
+        editAssign = row.ReferenceSchoolID;
+        editPct = row.Percentage;
+        editSignup = row.SignupDate;
+        editExpire = row.ExpireDate;
+    }
+
+    private async Task OpenRefAsync(int id)
+    {
+        schoolId = 0; schoolName = ""; search = ""; found.Clear();
+        await LoadAsync(id);
+    }
+
+    private async Task SaveRefAsync()
+    {
+        await RunAsync(() => Api.SaveAuthorityReferrerAsync(Session.AccessToken!, new AuthReferrerSaveRequest
+        {
+            ReferenceID = editId, Name = refName, Phone = refPhone, Address = refAddress, StartDate = refStart
+        }), () => { ClearRef(); return LoadAsync(data.ReferenceID); });
+    }
+
+    private async Task SearchAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var page = await Api.SearchAuthorityReferralSchoolsAsync(Session.AccessToken!, search, data.ReferenceID);
+            found.Clear();
+            found.AddRange(page.Items);
+            if (found.Count == 0)
+                Show(Locale.T("al.noSchool"), true);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task AssignAsync()
+    {
+        await RunAsync(() => Api.AssignAuthoritySchoolAsync(Session.AccessToken!, new AuthAssignSchoolRequest
+        {
+            ReferenceID = data.ReferenceID, SchoolID = schoolId, Percentage = pct, SignupDate = signup, ExpireDate = expire
+        }), () =>
+        {
+            schoolId = 0; schoolName = ""; pct = 0; signup = null; expire = null; search = "";
+            return LoadAsync(data.ReferenceID);
+        });
+    }
+
+    private async Task SaveAssignAsync()
+    {
+        var id = editAssign;
+        await RunAsync(() => Api.UpdateAuthorityAssignAsync(Session.AccessToken!, new AuthAssignUpdateRequest
+        {
+            ReferenceSchoolID = id, Percentage = editPct, SignupDate = editSignup, ExpireDate = editExpire
+        }), () => { editAssign = 0; return LoadAsync(data.ReferenceID); });
+    }
+
+    private async Task DeleteAssignAsync(int id) =>
+        await RunAsync(() => Api.DeleteAuthorityAssignAsync(Session.AccessToken!, id), () => LoadAsync(data.ReferenceID));
+
+    private async Task LoadAsync(int id)
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityReferralAsync(Session.AccessToken!, id);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task RunAsync(Func<Task<AuthorityResult>> action, Func<Task> after)
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await action();
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T(string.IsNullOrWhiteSpace(result.Message) ? "ab.saved" : result.Message), false);
+            await after();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Fmt(DateTime? d) => d is null ? "" : d.Value.ToString("dd MMM yyyy");
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.Contains('.') ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

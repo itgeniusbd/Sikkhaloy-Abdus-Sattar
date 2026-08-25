@@ -1,0 +1,418 @@
+@page "/authority/reset-data"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ui-page rd-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("auth.m.resetData")</h1>
+        <p>@Locale.T("ab.resetSub")</p>
+    </header>
+
+    <section class="card rd-pick-card">
+        <h2>@Locale.T("auth.colInst")</h2>
+        @if (schoolId > 0)
+        {
+            <div class="rd-selected">
+                <div>
+                    <b>@SelectedSchool?.Name</b>
+                    <span>@Locale.T("ab.selected", schoolId)</span>
+                </div>
+                <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearSchool">@Locale.T("auth.clear")</button>
+            </div>
+        }
+        <label class="rd-search">
+            <span>@Locale.T("ab.searchInst")</span>
+            <input @bind="schoolQuery" @bind:event="oninput" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+        </label>
+        <div class="rd-pick-list">
+            @foreach (var item in FilteredSchools)
+            {
+                <button type="button" class="@(item.SchoolID == schoolId ? "is-on" : null)" disabled="@busy" @onclick="() => PickSchoolAsync(item.SchoolID)">
+                    <b>@item.SchoolID</b>
+                    <span>@item.Name</span>
+                </button>
+            }
+            @if (!FilteredSchools.Any())
+            {
+                <p class="muted">@Locale.T("ab.empty")</p>
+            }
+        </div>
+    </section>
+
+    @if (schoolId > 0)
+    {
+        <div class="ab-reset-grid">
+            <section class="ab-card is-warn">
+                <h2>@Locale.T("ab.fullTitle")</h2>
+                <p>@Locale.T("ab.fullWarn")</p>
+                <p><strong>@Locale.T("ab.willKeep")</strong></p>
+                <ul>
+                    <li>@Locale.T("ab.keep1")</li>
+                    <li>@Locale.T("ab.keep2")</li>
+                    <li>@Locale.T("ab.keep3")</li>
+                    <li>@Locale.T("ab.keep4")</li>
+                    <li>@Locale.T("ab.keep5")</li>
+                </ul>
+                <label>@Locale.T("ab.typeId")<input @bind="fullConfirm" disabled="@busy" /></label>
+                <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick='() => PreviewAsync("FULL")'>@Locale.T("ab.fullBtn")</button>
+            </section>
+            <section class="ab-card is-warn">
+                <h2>@Locale.T("ab.sessionTitle")</h2>
+                <p>@Locale.T("ab.sessionWarn")</p>
+                <select @bind="yearId" disabled="@busy">
+                    <option value="0">@Locale.T("ab.selectSession")</option>
+                    @foreach (var item in years)
+                    {
+                        <option value="@item.EducationYearID">@item.Name</option>
+                    }
+                </select>
+                <label>@Locale.T("ab.typeId")<input @bind="sessionConfirm" disabled="@busy" /></label>
+                <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick='() => PreviewAsync("SESSION")'>@Locale.T("ab.sessionBtn")</button>
+            </section>
+            <section class="ab-card is-img">
+                <h2>@Locale.T("ab.imgTitle")</h2>
+                <p>@Locale.T("ab.imgWarn")</p>
+                <p class="muted">@Locale.T("ab.imgKeep")</p>
+                <div class="rd-year-bar">
+                    <button type="button" class="acc-btn" disabled="@busy" @onclick="SelectAllYears">@Locale.T("ab.selectAll")</button>
+                    <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearYears">@Locale.T("ab.clearSel")</button>
+                </div>
+                <div class="rd-years">
+                    @foreach (var item in years)
+                    {
+                        <label class="@(selectedYears.Contains(item.EducationYearID) ? "is-on" : null)">
+                            <input type="checkbox" checked="@selectedYears.Contains(item.EducationYearID)" disabled="@busy"
+                                   @onchange="e => ToggleYear(item.EducationYearID, e)" />
+                            @item.Name
+                        </label>
+                    }
+                </div>
+                <label>@Locale.T("ab.typeId")<input @bind="imageConfirm" disabled="@busy" /></label>
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick='() => PreviewAsync("IMAGES")'>@Locale.T("ab.imgBtn")</button>
+            </section>
+            <section class="ab-card is-purge">
+                <h2>@Locale.T("ab.purgeTitle")</h2>
+                <p>@Locale.T("ab.purgeWarn")</p>
+                <label>@Locale.T("ab.typeId")<input @bind="purgeConfirm" disabled="@busy" /></label>
+                <label>@Locale.T("ab.typeDelete")<input @bind="purgeWord" disabled="@busy" /></label>
+                <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick='() => PreviewAsync("PURGE")'>@Locale.T("ab.purgeBtn")</button>
+            </section>
+        </div>
+    }
+</div>
+
+@if (phase is "preview" or "running" or "done")
+{
+    <div class="acc-result-back">
+        <div class="acc-result is-ok sms-modal ab-modal" @onclick:stopPropagation="true">
+            <h3>@(phase == "running" ? Locale.T("ab.runTitle") : Locale.T("ab.preview"))</h3>
+            @if (phase == "preview")
+            {
+                @if (previewBusy)
+                {
+                    <p>@Locale.T("ab.previewLoad")</p>
+                }
+                else if (preview is not null)
+                {
+                    <p>@preview.SchoolName · @preview.Mode · @preview.TotalRows.ToString("N0")</p>
+                    @if (preview.Bytes > 0)
+                    {
+                        <p><strong>@Locale.T("ab.imgSize", FmtBytes(preview.Bytes))</strong></p>
+                    }
+                    @if (preview.SkippedStudents > 0)
+                    {
+                        <p class="ab-warn">@Locale.T("ab.imgSkip", preview.SkippedStudents)</p>
+                    }
+                    @if (preview.ActiveUsers > 0)
+                    {
+                        <p class="ab-warn">@Locale.T("ab.activeWarn", preview.ActiveUsers)</p>
+                    }
+                    <div class="ab-table-wrap">
+                        <table class="ad-table">
+                            <tbody>
+                                @foreach (var table in preview.Tables)
+                                {
+                                    <tr>
+                                        <td>@table.TableName</td>
+                                        <td>@(table.TableName == "Bytes" ? FmtBytes(table.RowCnt) : table.RowCnt.ToString("N0"))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick="RunAsync">@(mode == "IMAGES" ? Locale.T("ab.imgRun") : Locale.T("ab.runBtn"))</button>
+                    <button type="button" class="acc-btn" @onclick="CloseModal">@Locale.T("ab.close")</button>
+                }
+            }
+            else if (phase == "running")
+            {
+                <p class="ab-timer">@elapsedText</p>
+                <p>@Locale.T("ab.runHint")</p>
+                <div class="ab-prog"><div style="width: @(progress.Percent)%"></div></div>
+                <p>@Locale.T("ab.rowsDeleted", progress.DeletedRows.ToString("N0"), progress.TotalRows.ToString("N0"))</p>
+            }
+            else
+            {
+                <p>@doneMessage</p>
+                <button type="button" class="acc-btn acc-btn-primary" @onclick="CloseModal">@Locale.T("ab.close")</button>
+            }
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="@(busy && phase != "running")" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<ResetSchoolOptionDto> schools = [];
+    private readonly List<ResetYearOptionDto> years = [];
+    private readonly HashSet<int> selectedYears = [];
+    private int schoolId, yearId, confirmId;
+    private string schoolQuery = "", fullConfirm = "", sessionConfirm = "", imageConfirm = "", purgeConfirm = "", purgeWord = "", mode = "";
+    private string phase = "", elapsedText = "0s", doneMessage = "";
+    private bool busy, popupError, previewBusy;
+    private string busyTitle = "", popupText = "";
+    private ResetPreviewDto? preview;
+    private ResetProgressDto progress = new();
+    private DateTime runStarted;
+    private CancellationTokenSource? pollCts;
+
+    private ResetSchoolOptionDto? SelectedSchool => schools.FirstOrDefault(x => x.SchoolID == schoolId);
+
+    private IEnumerable<ResetSchoolOptionDto> FilteredSchools
+    {
+        get
+        {
+            var q = schoolQuery.Trim();
+            IEnumerable<ResetSchoolOptionDto> list = schools;
+            if (q.Length > 0)
+                list = schools.Where(x => x.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                    || x.SchoolID.ToString().Contains(q, StringComparison.Ordinal));
+            return list.Take(40);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            schools.Clear();
+            schools.AddRange(await Api.GetAuthorityResetSchoolsAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task PickSchoolAsync(int id)
+    {
+        schoolId = id;
+        await OnSchoolAsync();
+    }
+
+    private async Task ClearSchool()
+    {
+        schoolId = 0;
+        yearId = 0;
+        years.Clear();
+        selectedYears.Clear();
+        schoolQuery = "";
+        await Task.CompletedTask;
+    }
+
+    private async Task OnSchoolAsync()
+    {
+        years.Clear();
+        selectedYears.Clear();
+        yearId = 0;
+        if (schoolId <= 0) return;
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            years.AddRange(await Api.GetAuthorityResetYearsAsync(Session.AccessToken!, schoolId));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ToggleYear(int id, ChangeEventArgs e)
+    {
+        if (e.Value is bool on && on) selectedYears.Add(id);
+        else selectedYears.Remove(id);
+    }
+
+    private void SelectAllYears()
+    {
+        selectedYears.Clear();
+        foreach (var item in years)
+            selectedYears.Add(item.EducationYearID);
+    }
+
+    private void ClearYears() => selectedYears.Clear();
+
+    private async Task PreviewAsync(string selectedMode)
+    {
+        mode = selectedMode;
+        confirmId = schoolId;
+        if (mode == "FULL" && !int.TryParse(fullConfirm, out confirmId)) { Show(Locale.T("ab.typeId"), true); return; }
+        if (mode == "SESSION" && !int.TryParse(sessionConfirm, out confirmId)) { Show(Locale.T("ab.typeId"), true); return; }
+        if (mode == "IMAGES" && !int.TryParse(imageConfirm, out confirmId)) { Show(Locale.T("ab.typeId"), true); return; }
+        if (mode == "PURGE" && !int.TryParse(purgeConfirm, out confirmId)) { Show(Locale.T("ab.typeId"), true); return; }
+        if (confirmId != schoolId) { Show("Confirmation failed. Type the exact School ID (" + schoolId + ").", true); return; }
+        if (mode == "SESSION" && yearId <= 0) { Show(Locale.T("ab.selectSession"), true); return; }
+        if (mode == "IMAGES" && selectedYears.Count == 0) { Show(Locale.T("ab.selectSession"), true); return; }
+        if (mode == "PURGE" && purgeWord.Trim() != "DELETE") { Show(Locale.T("ab.typeDelete"), true); return; }
+
+        phase = "preview";
+        previewBusy = true;
+        preview = null;
+        await SetBusyAsync(Locale.T("ab.previewLoad"));
+        try
+        {
+            if (!await OnlineAsync()) { phase = ""; return; }
+            preview = mode == "IMAGES"
+                ? await Api.PreviewAuthorityResetImagesAsync(Session.AccessToken!, schoolId, selectedYears.ToList())
+                : await Api.PreviewAuthorityResetAsync(Session.AccessToken!, schoolId, mode, yearId);
+            if (preview is null || !preview.Ok)
+            {
+                Show(Err(preview?.Message) ?? Locale.T("ab.failed"), true);
+                phase = "";
+            }
+        }
+        catch (Exception ex) { Show(ex.Message, true); phase = ""; }
+        finally { previewBusy = false; busy = false; }
+    }
+
+    private async Task RunAsync()
+    {
+        if (mode == "IMAGES")
+        {
+            await SetBusyAsync(Locale.T("ab.saving"));
+            try
+            {
+                if (!await OnlineAsync()) return;
+                var result = await Api.DeleteAuthorityResetImagesAsync(Session.AccessToken!, new ResetImageRequest
+                {
+                    SchoolId = schoolId,
+                    ConfirmSchoolId = confirmId,
+                    EducationYearIds = selectedYears.ToList()
+                });
+                if (result is null || !result.Ok)
+                {
+                    Show(Err(result?.Message) ?? Locale.T("ab.failed"), true);
+                    return;
+                }
+                phase = "done";
+                doneMessage = result.Message ?? Locale.T("ab.saved");
+                Show(doneMessage, false);
+            }
+            catch (Exception ex) { Show(ex.Message, true); }
+            finally { busy = false; }
+            return;
+        }
+
+        phase = "running";
+        runStarted = DateTime.Now;
+        pollCts?.Cancel();
+        pollCts = new CancellationTokenSource();
+        var token = pollCts.Token;
+        try
+        {
+            var result = await Api.StartAuthorityResetAsync(Session.AccessToken!, new ResetExecuteRequest
+            {
+                SchoolId = schoolId,
+                ConfirmSchoolId = confirmId,
+                Mode = mode,
+                EducationYearId = yearId,
+                ConfirmWord = purgeWord,
+                TotalRows = preview?.TotalRows ?? 0
+            });
+            if (!result.Succeeded)
+            {
+                phase = "";
+                Show(Err(result.Error) + result.Error, true);
+                return;
+            }
+            _ = PollAsync(token);
+        }
+        catch (Exception ex) { phase = ""; Show(ex.Message, true); }
+    }
+
+    private async Task PollAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            try
+            {
+                progress = await Api.GetAuthorityResetProgressAsync(Session.AccessToken!, schoolId);
+                elapsedText = FormatElapsed(DateTime.Now - runStarted);
+                await InvokeAsync(StateHasChanged);
+                if (progress.Status is "Done" or "Error")
+                {
+                    phase = "done";
+                    doneMessage = progress.Message ?? progress.Status;
+                    if (progress.Status == "Error")
+                        Show(doneMessage, true);
+                    else
+                        Show(doneMessage, false);
+                    return;
+                }
+            }
+            catch
+            {
+            }
+            await Task.Delay(1500, token);
+        }
+    }
+
+    private void CloseModal()
+    {
+        pollCts?.Cancel();
+        phase = "";
+    }
+
+    private static string FormatElapsed(TimeSpan ts) =>
+        ts.TotalMinutes >= 1 ? $"{(int)ts.TotalMinutes}m {ts.Seconds}s" : $"{ts.Seconds}s";
+
+    private static string FmtBytes(long n)
+    {
+        if (n >= 1_073_741_824) return $"{n / 1_073_741_824.0:0.##} GB";
+        if (n >= 1_048_576) return $"{n / 1_048_576.0:0.##} MB";
+        if (n >= 1024) return $"{n / 1024.0:0.##} KB";
+        return n + " B";
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

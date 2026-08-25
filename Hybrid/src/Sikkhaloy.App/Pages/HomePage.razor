@@ -14,7 +14,7 @@
                 <div class="land-hero-actions">
                     @if (Session.IsAuthenticated)
                     {
-                        <a class="land-btn land-btn-light" href="dashboard">@Locale.T("home.goDashboard")</a>
+                        <a class="land-btn land-btn-light" href="@Session.HomeHref">@Locale.T("home.goDashboard")</a>
                     }
                     else
                     {

@@ -1,0 +1,19 @@
+@inject AppLocale Locale
+
+@if (Busy)
+{
+    <div class="acc-loading-back no-print">
+        <div class="acc-loading exam-busy">
+            <div class="acc-spinner"></div>
+            <p class="exam-busy-title">@(string.IsNullOrWhiteSpace(Title) ? Locale.T("acc.loading") : Title)</p>
+            <div class="acc-prog-track"><div class="acc-prog-fill is-run"></div></div>
+            <p class="exam-busy-msg">@(string.IsNullOrWhiteSpace(Message) ? Locale.T("exam.pleaseWait") : Message)</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Message { get; set; }
+}

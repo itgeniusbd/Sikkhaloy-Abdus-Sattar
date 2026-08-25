@@ -1,0 +1,259 @@
+@page "/authority/referral-commission"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.referralReport")</h1>
+    <div class="filter-row no-print">
+        <select @bind="refId" disabled="@busy">
+            <option value="0">@Locale.T("al.allRef")</option>
+            @foreach (var item in data.Referrers)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <input type="date" @bind="from" disabled="@busy" />
+        <input type="date" @bind="to" disabled="@busy" />
+        <select @bind="status" disabled="@busy">
+            <option value="">@Locale.T("auth.allStatus")</option>
+            <option value="due">@Locale.T("al.due")</option>
+            <option value="paid">@Locale.T("al.paid")</option>
+        </select>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => LoadAsync(0)">@Locale.T("auth.searchBtn")</button>
+    </div>
+
+    <div class="ai-cards">
+        <div class="ai-card is-blue"><h5>@data.TotalRef</h5><p>@Locale.T("al.referrers")</p></div>
+        <div class="ai-card is-purple"><h5>@data.TotalCommission.ToString("N0")</h5><p>@Locale.T("al.commission")</p></div>
+        <div class="ai-card is-green"><h5>@data.TotalPaid.ToString("N0")</h5><p>@Locale.T("al.paid")</p></div>
+        <div class="ai-card is-red"><h5>@data.TotalDue.ToString("N0")</h5><p>@Locale.T("al.due")</p></div>
+    </div>
+
+    <div class="ab-table-wrap">
+        <table class="ad-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("al.name")</th>
+                    <th>@Locale.T("ab.phone")</th>
+                    <th>@Locale.T("al.schools")</th>
+                    <th>@Locale.T("al.commission")</th>
+                    <th>@Locale.T("al.paid")</th>
+                    <th>@Locale.T("al.due")</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (data.Rows.Count == 0)
+                {
+                    <tr><td colspan="7">@Locale.T("al.empty")</td></tr>
+                }
+                @foreach (var row in data.Rows)
+                {
+                    <tr class="@(row.ReferenceID == data.DetailRefId ? "is-active" : null)">
+                        <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => LoadAsync(row.ReferenceID)">@row.Name</button></td>
+                        <td>@row.Phone</td>
+                        <td>@row.TotalSchools</td>
+                        <td>@row.TotalCommission.ToString("N0")</td>
+                        <td>@row.PaidAmount.ToString("N0")</td>
+                        <td>@row.DueAmount.ToString("N0")</td>
+                        <td><button type="button" class="ab-link" disabled="@busy" @onclick="() => OpenPay(row)">@Locale.T("al.pay")</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (data.DetailRefId > 0)
+    {
+        <h2>@Locale.T("al.detailOf", data.DetailRefName)</h2>
+        <div class="ab-table-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("auth.colInst")</th>
+                        <th>%</th>
+                        <th>@Locale.T("al.signupDate")</th>
+                        <th>@Locale.T("al.expireDate")</th>
+                        <th>@Locale.T("al.service")</th>
+                        <th>@Locale.T("al.commission")</th>
+                        <th>@Locale.T("al.paid")</th>
+                        <th>@Locale.T("al.due")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in data.Schools)
+                    {
+                        <tr>
+                            <td>@row.SchoolName</td>
+                            <td>@row.Percentage.ToString("N2")</td>
+                            <td>@Fmt(row.SignupDate)</td>
+                            <td>@Fmt(row.ExpireDate)</td>
+                            <td>@row.TotalServiceCharge.ToString("N0")</td>
+                            <td>@row.CommissionAmount.ToString("N0")</td>
+                            <td>@row.PaidAmount.ToString("N0")</td>
+                            <td>@row.DueAmount.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (data.History.Count > 0)
+        {
+            <h2>@Locale.T("al.payHistory")</h2>
+            <div class="ab-table-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("al.payDate")</th>
+                            <th>@Locale.T("al.amount")</th>
+                            <th>@Locale.T("al.paidBy")</th>
+                            <th>@Locale.T("al.method")</th>
+                            <th>@Locale.T("al.note")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in data.History)
+                        {
+                            <tr>
+                                <td>@Fmt(row.PaidDate)</td>
+                                <td>@row.Amount.ToString("N0")</td>
+                                <td>@row.PaidBy</td>
+                                <td>@row.Method</td>
+                                <td>@row.Note</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@if (payId > 0)
+{
+    <div class="acc-result-back" @onclick="ClosePay">
+        <div class="acc-result is-ok sms-modal ab-modal" @onclick:stopPropagation="true">
+            <h3>@Locale.T("al.payTo", payName)</h3>
+            <div class="ab-form">
+                <label>@Locale.T("al.amount")<input type="number" step="0.01" @bind="payAmount" disabled="@busy" /></label>
+                <label>@Locale.T("al.payDate")<input type="date" @bind="payDate" disabled="@busy" /></label>
+                <label>@Locale.T("al.paidBy")<input @bind="payBy" disabled="@busy" /></label>
+                <label>
+                    @Locale.T("al.method")
+                    <select @bind="payMethod" disabled="@busy">
+                        <option>Cash</option>
+                        <option>Bank Transfer</option>
+                        <option>bKash</option>
+                        <option>Nagad</option>
+                        <option>Cheque</option>
+                        <option>Others</option>
+                    </select>
+                </label>
+                <label>@Locale.T("al.note")<input @bind="payNote" disabled="@busy" /></label>
+            </div>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PayAsync">@Locale.T("al.confirmPay")</button>
+            <button type="button" class="acc-btn" @onclick="ClosePay">@Locale.T("ab.cancel")</button>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthCommissionPageDto data = new();
+    private int refId, payId;
+    private DateTime from = new(DateTime.Today.Year, 1, 1);
+    private DateTime to = DateTime.Today;
+    private DateTime payDate = DateTime.Today;
+    private decimal payAmount;
+    private string status = "", payName = "", payBy = "", payMethod = "Cash", payNote = "", busyTitle = "", popupText = "";
+    private bool busy, popupError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        payBy = Session.Current?.DisplayName ?? Session.Current?.UserName ?? "";
+        await LoadAsync(0);
+    }
+
+    private void OpenPay(AuthCommissionRowDto row)
+    {
+        payId = row.ReferenceID;
+        payName = row.Name;
+        payAmount = row.DueAmount > 0 ? row.DueAmount : 0;
+        payDate = DateTime.Today;
+        payMethod = "Cash";
+        payNote = "";
+    }
+
+    private void ClosePay() => payId = 0;
+
+    private async Task PayAsync()
+    {
+        var id = payId;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.PayAuthorityCommissionAsync(Session.AccessToken!, new AuthCommissionPayRequest
+            {
+                ReferenceID = id,
+                Amount = payAmount,
+                PaidDate = payDate,
+                PaidBy = payBy,
+                Method = payMethod,
+                Note = payNote
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            payId = 0;
+            Show(Locale.T(result.Message ?? "al.paySaved"), false);
+            await LoadAsync(id);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadAsync(int detailId)
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityCommissionAsync(Session.AccessToken!, refId, from, to, status, detailId);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Fmt(DateTime? d) => d is null ? "" : d.Value.ToString("dd MMM yyyy");
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.Contains('.') ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

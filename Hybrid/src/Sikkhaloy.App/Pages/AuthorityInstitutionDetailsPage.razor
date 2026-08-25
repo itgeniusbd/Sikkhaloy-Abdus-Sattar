@@ -1,0 +1,605 @@
+@page "/authority/institutions/{SchoolId:int}"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@using System.Globalization
+
+<div class="id-page">
+    <a class="id-back" href="authority/institutions">← @Locale.T("auth.m.instList")</a>
+
+    @if (string.IsNullOrWhiteSpace(data.SchoolName) && !busy)
+    {
+        <p class="ax-empty">@Locale.T("id.notFound")</p>
+    }
+    else
+    {
+        <header class="id-head">
+            <p class="ui-kicker">ID @data.SchoolID</p>
+            <h1>@data.SchoolName</h1>
+            <ul class="id-meta">
+                @if (!string.IsNullOrWhiteSpace(data.Principal)) { <li>@data.Principal</li> }
+                @if (!string.IsNullOrWhiteSpace(data.Phone)) { <li>@data.Phone</li> }
+                @if (!string.IsNullOrWhiteSpace(data.Email)) { <li>@data.Email</li> }
+                @if (!string.IsNullOrWhiteSpace(data.Address)) { <li>@data.Address</li> }
+            </ul>
+        </header>
+
+        <nav class="id-tabs no-print">
+            <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("id.totalStudent")</button>
+            <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("id.smsRecharge")</button>
+            <button type="button" class="@(tab == 2 ? "is-on" : null)" @onclick="() => tab = 2">@Locale.T("id.dueSettings")</button>
+            <button type="button" class="@(tab == 3 ? "is-on" : null)" @onclick="OpenUsers">@Locale.T("id.manageUser")</button>
+            <button type="button" class="@(tab == 4 ? "is-on" : null)" @onclick="() => tab = 4">@Locale.T("id.deleteId")</button>
+            <button type="button" class="@(tab == 5 ? "is-on" : null)" @onclick="() => tab = 5">@Locale.T("id.changeId")</button>
+            <button type="button" class="@(tab == 6 ? "is-on" : null)" @onclick="() => tab = 6">@Locale.T("id.receiptDelete")</button>
+        </nav>
+
+        @if (tab == 0)
+        {
+            <section class="card id-card">
+                <table class="ad-table id-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("id.sessionSn")</th>
+                            <th>@Locale.T("ai.payActive")</th>
+                            <th>@Locale.T("id.eduYear")</th>
+                            <th>@Locale.T("id.students")</th>
+                            <th>@Locale.T("auth.loginInst")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.Years.Count == 0)
+                        {
+                            <tr><td colspan="5" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var year in data.Years)
+                        {
+                            <tr>
+                                <td class="id-sn">
+                                    <input class="ci-amt" type="text" inputmode="numeric" value="@year.SN" disabled="@busy"
+                                           @onchange="e => year.SN = ParseInt(e)" @onwheel:preventDefault />
+                                </td>
+                                <td>
+                                    <label class="id-check">
+                                        <input type="checkbox" @bind="year.IsActive" disabled="@busy" />
+                                    </label>
+                                </td>
+                                <td>@year.EducationYear</td>
+                                <td>@year.TotalStudent.ToString("N0")</td>
+                                <td>
+                                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => LoginAsync(year)">@Locale.T("auth.loginInst")</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (data.Years.Count > 0)
+                {
+                    <div class="id-actions">
+                        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("ab.update")</button>
+                    </div>
+                }
+            </section>
+        }
+        else if (tab == 1)
+        {
+            <section class="card id-pane">
+                <div class="id-inline">
+                    <input class="ci-amt" type="text" inputmode="decimal" placeholder="@Locale.T("id.smsQty")" @bind="smsQty" disabled="@busy" @onwheel:preventDefault />
+                    <input class="ci-amt" type="text" inputmode="decimal" placeholder="@Locale.T("id.perSms")" @bind="smsPrice" disabled="@busy" @onwheel:preventDefault />
+                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="RechargeSmsAsync">@Locale.T("id.recharge")</button>
+                </div>
+                <p class="id-balance">@Locale.T("id.smsBalance", data.SmsBalance.ToString("N0"))</p>
+                <div class="ci-wrap">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("id.rechargeSms")</th>
+                                <th>@Locale.T("id.perSms")</th>
+                                <th>@Locale.T("ai.totalAmt")</th>
+                                <th>@Locale.T("ai.date")</th>
+                                <th>@Locale.T("id.rechargedBy")</th>
+                                <th>@Locale.T("id.payStatus")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (data.SmsHistory.Count == 0)
+                            {
+                                <tr><td colspan="6" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                            }
+                            @foreach (var row in data.SmsHistory)
+                            {
+                                <tr>
+                                    <td>@row.RechargeSms.ToString("0.##")</td>
+                                    <td>@row.PerSms.ToString("0.##")</td>
+                                    <td class="ci-amt-cell">@row.Total.ToString("0.##")</td>
+                                    <td>@row.Date?.ToString("d MMM yyyy")</td>
+                                    <td>@row.UserName</td>
+                                    <td>
+                                        <span class="ci-pill @(row.IsPaid ? "is-ok" : "is-warn")">
+                                            @(row.IsPaid ? Locale.T("ai.paid") : Locale.T("id.unpaid"))
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+        else if (tab == 2)
+        {
+            <section class="card id-pane">
+                <h3>@Locale.T("id.dueTitle")</h3>
+                <p class="id-note">@Locale.T("id.dueInfo")</p>
+                <label class="id-tog">
+                    <input type="checkbox" checked="@dueOn" disabled="@busy" @onchange="ToggleDueAsync" />
+                    <span>@Locale.T("id.dueEnable")</span>
+                </label>
+                <p class="muted">@Locale.T("id.dueHelp")</p>
+                @if (dueOn)
+                {
+                    <div class="id-due-on">
+                        <p class="id-ok">@Locale.T("id.dueActive")</p>
+                        @if (data.DueNotice.CreatedDate is { } created)
+                        {
+                            <p class="muted">@Locale.T("id.dueSince", created.ToString("d MMM yyyy hh:mm tt"))</p>
+                        }
+                        <label>
+                            @Locale.T("id.dueHide")
+                            <input type="date" @bind="dueHide" disabled="@busy" />
+                        </label>
+                        <p class="muted">@Locale.T("id.dueHideHelp")</p>
+                        <label>
+                            @Locale.T("id.dueNote")
+                            <textarea rows="3" @bind="dueReason" disabled="@busy"></textarea>
+                        </label>
+                        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveDueAsync">@Locale.T("id.saveDue")</button>
+                    </div>
+                }
+            </section>
+        }
+        else if (tab == 3)
+        {
+            <section class="card id-pane">
+                <label class="id-role">
+                    <span>@Locale.T("id.role")</span>
+                    <select @bind="userRole" @bind:after="LoadUsersAsync" disabled="@busy">
+                        <option value="">@Locale.T("id.selectRole")</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Sub-Admin">Sub-Admin</option>
+                        <option value="Teacher">Teacher</option>
+                        <option value="Student">Student</option>
+                    </select>
+                </label>
+                <div class="ci-wrap">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>@Locale.T("ab.userName")</th>
+                                <th>@Locale.T("auth.colValid")</th>
+                                <th>@Locale.T("ab.approved")</th>
+                                <th>@Locale.T("ab.locked")</th>
+                                <th>@Locale.T("ab.email")</th>
+                                <th>@Locale.T("ab.date")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (users.Count == 0)
+                            {
+                                <tr><td colspan="6" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                            }
+                            @foreach (var user in users)
+                            {
+                                <tr>
+                                    <td>@user.UserName</td>
+                                    <td>@user.Validation</td>
+                                    <td>
+                                        <input type="checkbox" checked="@user.IsApproved" disabled="@busy" @onchange="e => ApproveAsync(user, e)" />
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" checked="@user.IsLockedOut" disabled="@(busy || !user.IsLockedOut)" @onchange="() => UnlockAsync(user)" />
+                                    </td>
+                                    <td>@user.Email</td>
+                                    <td>@user.CreateDate?.ToString("d MMM yyyy")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+        else if (tab == 4)
+        {
+            <section class="card id-pane">
+                <div class="id-inline">
+                    <input placeholder="@Locale.T("id.enterId")" @bind="deleteId" disabled="@busy" />
+                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => confirmDeleteId = true">@Locale.T("id.deleteStudent")</button>
+                </div>
+            </section>
+        }
+        else if (tab == 5)
+        {
+            <section class="card id-pane">
+                <div class="id-inline">
+                    <input placeholder="@Locale.T("id.oldId")" @bind="oldId" disabled="@busy" />
+                    <button type="button" class="acc-btn" disabled="@busy" @onclick="FindStudentAsync">@Locale.T("auth.searchBtn")</button>
+                </div>
+                @if (foundStudent.Found)
+                {
+                    <ul class="id-find">
+                        <li>@foundStudent.StudentsName</li>
+                        <li>@Locale.T("id.class"): @foundStudent.Class</li>
+                        <li>@Locale.T("id.roll"): @foundStudent.RollNo</li>
+                        <li>@Locale.T("id.status"): @foundStudent.Status</li>
+                    </ul>
+                    <div class="id-inline">
+                        <input placeholder="@Locale.T("id.newId")" @bind="newId" disabled="@busy" />
+                        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="ChangeIdAsync">@Locale.T("ab.update")</button>
+                    </div>
+                }
+            </section>
+        }
+        else
+        {
+            <section class="card id-pane">
+                <div class="id-inline">
+                    <input placeholder="@Locale.T("id.receiptNo")" @bind="receiptSn" disabled="@busy" />
+                    <button type="button" class="acc-btn" disabled="@busy" @onclick="FindReceiptAsync">@Locale.T("auth.searchBtn")</button>
+                </div>
+                @if (receipt.Found)
+                {
+                    <div class="id-chips">
+                        <span>ID: @receipt.StudentId</span>
+                        <span>@receipt.StudentsName</span>
+                        <span>@receipt.Class</span>
+                    </div>
+                    <div class="id-chips">
+                        <span>@Locale.T("id.receiptNo"): @receipt.ReceiptSn</span>
+                        <span class="is-amt">@receipt.TotalAmount.ToString("N0") Tk</span>
+                        <span>@receipt.PaidDate?.ToString("d MMM yyyy")</span>
+                    </div>
+                    <div class="ci-wrap">
+                        <table class="ad-table">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("id.payFor")</th>
+                                    <th>@Locale.T("id.fee")</th>
+                                    <th>@Locale.T("ai.paid")</th>
+                                    <th>@Locale.T("ai.due")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in receipt.Lines)
+                                {
+                                    <tr>
+                                        <td>@line.PayFor</td>
+                                        <td>@line.Role : @line.Amount.ToString("0.##")</td>
+                                        <td>@line.PaidAmount.ToString("0.##")</td>
+                                        <td>@line.Due.ToString("0.##")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick="() => confirmReceipt = true">@Locale.T("id.deleteReceipt")</button>
+                }
+            </section>
+        }
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (confirmDeleteId)
+{
+    <div class="acc-result-back" @onclick="() => confirmDeleteId = false">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <h3>@Locale.T("id.deleteId")</h3>
+            <p>@Locale.T("id.deleteIdAsk")</p>
+            <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick="DeleteStudentAsync">@Locale.T("id.deleteStudent")</button>
+            <button type="button" class="acc-btn" @onclick="() => confirmDeleteId = false">@Locale.T("ab.cancel")</button>
+        </div>
+    </div>
+}
+@if (confirmReceipt)
+{
+    <div class="acc-result-back" @onclick="() => confirmReceipt = false">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <h3>@Locale.T("id.receiptDelete")</h3>
+            <p>@Locale.T("id.deleteReceiptAsk")</p>
+            <button type="button" class="acc-btn is-danger" disabled="@busy" @onclick="DeleteReceiptAsync">@Locale.T("id.deleteReceipt")</button>
+            <button type="button" class="acc-btn" @onclick="() => confirmReceipt = false">@Locale.T("ab.cancel")</button>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int SchoolId { get; set; }
+    private InstitutionDetailsDto data = new();
+    private readonly List<SchoolUserDto> users = [];
+    private InstStudentFindDto foundStudent = new();
+    private InstReceiptDto receipt = new();
+    private int tab;
+    private string smsQty = "", smsPrice = "", userRole = "", deleteId = "", oldId = "", newId = "", receiptSn = "", dueReason = "";
+    private DateTime? dueHide;
+    private bool dueOn, busy, popupError, confirmDeleteId, confirmReceipt;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("auth.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityInstitutionDetailsAsync(Session.AccessToken!, SchoolId);
+            dueOn = data.DueNotice.Enabled;
+            dueHide = data.DueNotice.HideUntil;
+            dueReason = data.DueNotice.Reason;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void OpenUsers()
+    {
+        tab = 3;
+        if (userRole.Length > 0)
+            _ = LoadUsersAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveAuthorityInstitutionYearsAsync(Session.AccessToken!, new SaveInstitutionYearsRequest
+            {
+                SchoolID = SchoolId,
+                Years = data.Years
+            });
+            if (!result.Succeeded) { Show(Translate(result.Error), true); return; }
+            Show(Locale.T("ab.saved"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoginAsync(InstitutionYearRowDto year)
+    {
+        await SetBusyAsync(Locale.T("auth.loginInst"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.EnterAuthoritySchoolAsync(Session.AccessToken!, SchoolId, year.EducationYearID);
+            if (!result.Succeeded || result.Session is null) { Show(Translate(result.Error), true); return; }
+            Session.EnterSchool(result);
+            Nav.NavigateTo("/dashboard");
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task RechargeSmsAsync()
+    {
+        if (!int.TryParse(smsQty.Trim(), out var qty) || qty <= 0 || !decimal.TryParse(smsPrice.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var price))
+        {
+            Show(Locale.T("id.needSms"), true);
+            return;
+        }
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.RechargeAuthorityInstitutionSmsAsync(Session.AccessToken!, new InstSmsRechargeRequest
+            {
+                SchoolID = SchoolId,
+                Quantity = qty,
+                PerSms = price
+            });
+            if (!result.Succeeded) { Show(Translate(result.Error), true); return; }
+            smsQty = ""; smsPrice = "";
+            Show(Locale.T(result.Message ?? "id.smsOk"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ToggleDueAsync(ChangeEventArgs e)
+    {
+        dueOn = e.Value is bool b && b;
+        if (dueOn) return;
+        await SaveDueAsync();
+    }
+
+    private async Task SaveDueAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveAuthorityDueNoticeAsync(Session.AccessToken!, new InstDueNoticeRequest
+            {
+                SchoolID = SchoolId,
+                Enabled = dueOn,
+                HideUntil = dueHide?.ToString("yyyy-MM-dd"),
+                Reason = dueReason
+            });
+            if (!result.Succeeded) { Show(Translate(result.Error), true); return; }
+            Show(Locale.T(result.Message ?? "ab.saved"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        users.Clear();
+        if (string.IsNullOrWhiteSpace(userRole)) return;
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            users.AddRange(await Api.GetAuthoritySchoolUsersAsync(Session.AccessToken!, SchoolId, userRole));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ApproveAsync(SchoolUserDto user, ChangeEventArgs e)
+    {
+        var on = e.Value is bool b && b;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) { user.IsApproved = !on; return; }
+            var result = await Api.SetAuthorityApprovedAsync(Session.AccessToken!, new SetApprovedRequest { UserName = user.UserName, IsApproved = on });
+            if (!result.Succeeded) { Show(Translate(result.Error), true); return; }
+            user.IsApproved = on;
+            user.Validation = on ? "Valid" : "Invalid";
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task UnlockAsync(SchoolUserDto user)
+    {
+        if (!user.IsLockedOut) return;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.UnlockAuthorityUserAsync(Session.AccessToken!, new UnlockUserRequest { UserName = user.UserName });
+            if (!result.Succeeded) { Show(Translate(result.Error), true); return; }
+            user.IsLockedOut = false;
+            Show(Locale.T("ab.unlocked"), false);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteStudentAsync()
+    {
+        confirmDeleteId = false;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.DeleteAuthorityInstitutionStudentAsync(Session.AccessToken!, new InstIdRequest { SchoolID = SchoolId, Id = deleteId });
+            Show(Translate(result.Succeeded ? result.Message : result.Error), !result.Succeeded);
+            if (result.Succeeded) deleteId = "";
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task FindStudentAsync()
+    {
+        foundStudent = new();
+        newId = "";
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            foundStudent = await Api.FindAuthorityInstitutionStudentAsync(Session.AccessToken!, SchoolId, oldId);
+            if (!foundStudent.Found) Show(Locale.T("id.noStudent"), true);
+            else newId = foundStudent.Id;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ChangeIdAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.ChangeAuthorityInstitutionStudentIdAsync(Session.AccessToken!, new InstChangeIdRequest
+            {
+                SchoolID = SchoolId,
+                OldId = oldId,
+                NewId = newId
+            });
+            Show(Translate(result.Succeeded ? result.Message : result.Error), !result.Succeeded);
+            if (result.Succeeded) { foundStudent = new(); oldId = ""; newId = ""; }
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task FindReceiptAsync()
+    {
+        receipt = new();
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            receipt = await Api.FindAuthorityInstitutionReceiptAsync(Session.AccessToken!, SchoolId, receiptSn);
+            if (!receipt.Found) Show(Locale.T("id.noReceipt"), true);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteReceiptAsync()
+    {
+        confirmReceipt = false;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.DeleteAuthorityInstitutionReceiptAsync(Session.AccessToken!, new InstReceiptRequest
+            {
+                SchoolID = SchoolId,
+                ReceiptSn = receiptSn
+            });
+            Show(Translate(result.Succeeded ? result.Message : result.Error), !result.Succeeded);
+            if (result.Succeeded) { receipt = new(); receiptSn = ""; }
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Translate(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("auth.", StringComparison.OrdinalIgnoreCase) || error.StartsWith("login.", StringComparison.OrdinalIgnoreCase)
+            || error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) || error.StartsWith("id.", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("login.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static int ParseInt(ChangeEventArgs e) => int.TryParse(e.Value?.ToString(), out var n) ? n : 0;
+}

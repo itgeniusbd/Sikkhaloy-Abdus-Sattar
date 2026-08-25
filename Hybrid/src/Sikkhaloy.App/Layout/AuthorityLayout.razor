@@ -1,0 +1,451 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppSession Session
+@inject NavigationManager Nav
+@inject AppLocale Locale
+@inject SyncEngine Sync
+@inject ISyncApiClient Api
+@inject OfflineAuthService OfflineAuth
+@inject IJSRuntime JS
+@using Sikkhaloy.App.Pages
+
+<CascadingValue Name="AppLang" Value="@Locale.Code" IsFixed="false">
+<div class="ad-shell">
+    @if (menuOpen)
+    {
+        <div class="nav-back" @onclick="CloseMenu"></div>
+    }
+    <aside class="ad-sidebar @(menuOpen ? "is-open" : null)">
+        <div class="ad-user" @onclick:stopPropagation="true">
+            <div class="ad-avatar">
+                @if (!string.IsNullOrWhiteSpace(photoUrl))
+                {
+                    <img src="@photoUrl" alt="@displayName" />
+                }
+                else
+                {
+                    <span>@Initials</span>
+                }
+            </div>
+            <button type="button" class="ad-name-btn" @onclick="ToggleProfile">
+                <span>@displayName</span>
+                <em>@role</em>
+            </button>
+            @if (profileOpen)
+            {
+                <div class="ad-user-menu">
+                    <button type="button" @onclick="OpenPassword">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.7 1.4-3.1 3.1-3.1S15.1 4.3 15.1 6v2z"/></svg>
+                        @Locale.T("profile.changePassword")
+                    </button>
+                    <button type="button" @onclick="OpenInfo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+                        @Locale.T("profile.updateInfo")
+                    </button>
+                </div>
+            }
+        </div>
+        <div class="sidebar-scroll" @onclick="CloseProfile">
+            <AuthorityMenu Lang="@Locale.Code" />
+        </div>
+    </aside>
+    <div class="ad-main">
+        <header class="ad-header">
+            <button type="button" class="menu-toggle" aria-label="@Locale.T("nav.menu")" @onclick="ToggleMenu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="ad-header-spacer"></div>
+            <div class="header-actions">
+                <a class="ad-mail" href="authority/messages" title="@Locale.T("msg.inbox")">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5L4 8V6l8 5 8-5v2z"/>
+                    </svg>
+                    @if (unread > 0)
+                    {
+                        <span class="ad-mail-badge">@(unread > 99 ? "99+" : unread.ToString())</span>
+                    }
+                </a>
+                <LanguageSwitch />
+                <span class="badge @(online ? "on" : "off")">@(online ? Locale.T("online") : Locale.T("offline"))</span>
+                <button type="button" class="ad-header-logout" @onclick="Logout">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M10 17v-3H3v-4h7V7l5 5-5 5zm9-14H9c-1.1 0-2 .9-2 2v3h2V5h10v14H9v-3H7v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                    <span>@Locale.T("logout")</span>
+                </button>
+            </div>
+        </header>
+        <main class="ad-content" @onclick="CloseProfile">
+            @Body
+        </main>
+    </div>
+    <GoToTop />
+</div>
+
+@if (showPassword)
+{
+    <div class="acc-result-back" @onclick="ClosePassword">
+        <div class="acc-result is-ok sms-modal ab-modal ad-pop" @onclick:stopPropagation="true">
+            <h3>@Locale.T("profile.changePassword")</h3>
+            <div class="ab-form">
+                <label>@Locale.T("profile.old")<input type="password" @bind="oldPassword" autocomplete="current-password" disabled="@busy" /></label>
+                <label>@Locale.T("profile.new")<input type="password" @bind="newPassword" autocomplete="new-password" disabled="@busy" /></label>
+                <label>@Locale.T("profile.again")<input type="password" @bind="confirmPassword" autocomplete="new-password" disabled="@busy" /></label>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(formError))
+            {
+                <p class="ad-pop-err">@formError</p>
+            }
+            <div class="al-inline">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SavePasswordAsync">@Locale.T("profile.change")</button>
+                <button type="button" class="acc-btn" @onclick="ClosePassword">@Locale.T("ab.cancel")</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showInfo && form is not null)
+{
+    <div class="acc-result-back" @onclick="CloseInfo">
+        <div class="acc-result is-ok sms-modal ab-modal ad-pop ad-pop-wide" @onclick:stopPropagation="true">
+            <h3>@Locale.T("profile.updateInfo")</h3>
+            <label class="ad-pop-photo">
+                @if (!string.IsNullOrWhiteSpace(form.PhotoDataUrl))
+                {
+                    <img src="@form.PhotoDataUrl" alt="" />
+                }
+                else
+                {
+                    <span>@Initials</span>
+                }
+                <em>✎</em>
+                <InputFile class="sm-photo-file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                           OnChange="OnPhotoAsync" disabled="@busy" />
+            </label>
+            <div class="ab-form ad-pop-grid">
+                <label>@Locale.T("al.name")<input @bind="form.Name" disabled="@busy" /></label>
+                <label>@Locale.T("emp.father")<input @bind="form.FatherName" disabled="@busy" /></label>
+                <div class="ab-radios">
+                    <span>@Locale.T("emp.gender")</span>
+                    <label><input type="radio" name="adg" checked="@(form.Gender == "Male")" @onchange='() => form.Gender = "Male"' disabled="@busy" /> @Locale.T("emp.male")</label>
+                    <label><input type="radio" name="adg" checked="@(form.Gender == "Female")" @onchange='() => form.Gender = "Female"' disabled="@busy" /> @Locale.T("emp.female")</label>
+                </div>
+                <label>@Locale.T("emp.designation")<input @bind="form.Designation" disabled="@busy" /></label>
+                <label>@Locale.T("inst.city")<input @bind="form.City" disabled="@busy" /></label>
+                <label>@Locale.T("emp.phone")<input @bind="form.Phone" disabled="@busy" /></label>
+                <label>@Locale.T("emp.email")<input @bind="form.Email" disabled="@busy" /></label>
+                <label>@Locale.T("al.dob")<input type="date" @bind="form.DateofBirth" disabled="@busy" /></label>
+                <label class="span-2">@Locale.T("emp.address")<input @bind="form.Address" disabled="@busy" /></label>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(formError))
+            {
+                <p class="ad-pop-err">@formError</p>
+            }
+            <div class="al-inline">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveInfoAsync">@Locale.T("inst.update")</button>
+                <button type="button" class="acc-btn" @onclick="CloseInfo">@Locale.T("ab.cancel")</button>
+            </div>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+</CascadingValue>
+
+@code {
+    private bool menuOpen, online, profileOpen, showPassword, showInfo, busy, popupError;
+    private int unread;
+    private string? photoUrl;
+    private string oldPassword = "", newPassword = "", confirmPassword = "", formError = "", busyTitle = "", popupText = "";
+    private AuthProfileDto? form;
+
+    private string displayName =>
+        string.IsNullOrWhiteSpace(Session.Current?.DisplayName)
+            ? Session.Current?.UserName ?? ""
+            : Session.Current!.DisplayName;
+
+    private string role => Session.Current?.Role ?? "";
+
+    private string Initials
+    {
+        get
+        {
+            var name = displayName.Trim();
+            if (name.Length == 0)
+                return "A";
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+                return parts[0][..1].ToUpperInvariant();
+            return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (!Session.IsAuthority)
+        {
+            Nav.NavigateTo("/dashboard", replace: true);
+            return;
+        }
+
+        online = Sync.IsOnline;
+        Sync.StateChanged += OnSync;
+        Locale.Changed += OnLocale;
+        Nav.LocationChanged += OnLocation;
+        Session.Changed += OnSession;
+        photoUrl = Sync.GetProfilePhotoDataUrl(Session.Current!.RegistrationID);
+        await LoadPhotoAsync();
+        await LoadUnreadAsync();
+    }
+
+    private void OnLocation(object? sender, LocationChangedEventArgs e)
+    {
+        profileOpen = false;
+        _ = LoadUnreadAsync();
+        if (!menuOpen)
+            return;
+        _ = InvokeAsync(() =>
+        {
+            menuOpen = false;
+            StateHasChanged();
+        });
+    }
+
+    private void OnSync() => _ = InvokeAsync(() =>
+    {
+        online = Sync.IsOnline;
+        StateHasChanged();
+        return Task.WhenAll(LoadPhotoAsync(), LoadUnreadAsync());
+    });
+
+    private void OnLocale() => _ = InvokeAsync(StateHasChanged);
+    private void OnSession() => _ = InvokeAsync(StateHasChanged);
+
+    private void ToggleMenu() => menuOpen = !menuOpen;
+    private void CloseMenu() => menuOpen = false;
+    private void ToggleProfile() => profileOpen = !profileOpen;
+    private void CloseProfile() => profileOpen = false;
+
+    private void OpenPassword()
+    {
+        profileOpen = false;
+        showPassword = true;
+        formError = "";
+        oldPassword = newPassword = confirmPassword = "";
+    }
+
+    private void ClosePassword()
+    {
+        showPassword = false;
+        formError = "";
+    }
+
+    private async Task OpenInfo()
+    {
+        profileOpen = false;
+        formError = "";
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("profile.needOnline"), true);
+            return;
+        }
+        busyTitle = Locale.T("acc.loading");
+        busy = true;
+        try
+        {
+            form = await Api.GetAuthorityProfileAsync(Session.AccessToken!);
+            if (string.IsNullOrWhiteSpace(form.PhotoDataUrl))
+                form.PhotoDataUrl = photoUrl;
+            showInfo = true;
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void CloseInfo()
+    {
+        showInfo = false;
+        formError = "";
+    }
+
+    private async Task OnPhotoAsync(InputFileChangeEventArgs e)
+    {
+        if (form is null || e.FileCount == 0)
+            return;
+        try
+        {
+            var file = e.File;
+            await using var stream = file.OpenReadStream(2_000_000);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            var dataUrl = $"data:{mime};base64,{Convert.ToBase64String(ms.ToArray())}";
+            form.PhotoDataUrl = await JS.InvokeAsync<string>("sikkhaloyCompressImage", dataUrl, 250, 0.7, 40_960);
+        }
+        catch
+        {
+            formError = Locale.T("sm.badPhoto");
+        }
+    }
+
+    private async Task SavePasswordAsync()
+    {
+        formError = "";
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            formError = Locale.T("profile.needOnline");
+            return;
+        }
+        busyTitle = Locale.T("ab.saving");
+        busy = true;
+        try
+        {
+            var result = await Api.ChangePasswordAsync(Session.AccessToken!, new ChangePasswordRequest
+            {
+                CurrentPassword = oldPassword,
+                NewPassword = newPassword,
+                ConfirmPassword = confirmPassword
+            });
+            if (!result.Succeeded)
+            {
+                formError = Locale.T(result.Error ?? "profile.needOnline");
+                return;
+            }
+            if (Session.Current is not null)
+                await OfflineAuth.UpdateCachedPasswordAsync(Session.Current.UserName, newPassword);
+            showPassword = false;
+            Show(Locale.T("profile.pwChanged"), false);
+        }
+        catch (Exception ex)
+        {
+            formError = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveInfoAsync()
+    {
+        if (form is null)
+            return;
+        formError = "";
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            formError = Locale.T("profile.needOnline");
+            return;
+        }
+        busyTitle = Locale.T("ab.saving");
+        busy = true;
+        try
+        {
+            var result = await Api.SaveAuthorityProfileAsync(Session.AccessToken!, form);
+            if (!result.Succeeded)
+            {
+                formError = Locale.T(result.Error ?? "profile.needOnline");
+                return;
+            }
+            if (Session.Current is not null && !string.IsNullOrWhiteSpace(result.DisplayName))
+                Session.Current.DisplayName = result.DisplayName;
+            if (!string.IsNullOrWhiteSpace(form.PhotoDataUrl) && Session.Current is not null)
+            {
+                Sync.SaveProfilePhoto(Session.Current.RegistrationID, form.PhotoDataUrl);
+                photoUrl = form.PhotoDataUrl;
+            }
+            Session.NotifyChanged();
+            showInfo = false;
+            Show(Locale.T("profile.saved"), false);
+        }
+        catch (Exception ex)
+        {
+            formError = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task LoadUnreadAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+                return;
+            unread = (await Api.GetAuthorityUnreadAsync(Session.AccessToken!)).Count;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task LoadPhotoAsync()
+    {
+        if (Session.Current is null)
+            return;
+        photoUrl = Sync.GetProfilePhotoDataUrl(Session.Current.RegistrationID);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+                return;
+            var data = await Api.GetAuthorityProfileAsync(Session.AccessToken!);
+            if (!string.IsNullOrWhiteSpace(data.Name) && Session.Current is not null)
+                Session.Current.DisplayName = data.Name;
+            if (!string.IsNullOrWhiteSpace(data.PhotoDataUrl) && Session.Current is { } current)
+            {
+                Sync.SaveProfilePhoto(current.RegistrationID, data.PhotoDataUrl);
+                photoUrl = data.PhotoDataUrl;
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private void Logout()
+    {
+        Session.Clear();
+        Nav.NavigateTo("/", replace: true);
+    }
+
+    private void Show(string text, bool err)
+    {
+        popupText = text;
+        popupError = err;
+    }
+
+    private void ClosePopup() => popupText = "";
+
+    public void Dispose()
+    {
+        Sync.StateChanged -= OnSync;
+        Locale.Changed -= OnLocale;
+        Nav.LocationChanged -= OnLocation;
+        Session.Changed -= OnSession;
+    }
+}

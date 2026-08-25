@@ -1,0 +1,215 @@
+@page "/committee/donations"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page committee-page">
+    <h1 class="no-print">@Locale.T("cm.donations")</h1>
+    <div class="filter-row no-print">
+        <select @bind="memberId" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("cm.all")</option>
+            @foreach (var item in lookups.Members)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <select @bind="categoryId" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("cm.all")</option>
+            @foreach (var item in lookups.Categories)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <label class="choice-inline"><input type="radio" name="paid" checked="@(paid == "%")" @onchange="SetPaidAll" /> @Locale.T("cm.allPaid")</label>
+        <label class="choice-inline"><input type="radio" name="paid" checked="@(paid == "1")" @onchange="SetPaidOnly" /> @Locale.T("cm.paid")</label>
+        <label class="choice-inline"><input type="radio" name="paid" checked="@(paid == "0")" @onchange="SetDueOnly" /> @Locale.T("cm.due")</label>
+        <a class="acc-btn acc-btn-primary" href="committee/donation-add">@Locale.T("cm.addDonation")</a>
+    </div>
+    <div class="cm-totals">
+        <span>@Locale.T("cm.total"): ৳@Tk(list.Total)</span>
+        <span>@Locale.T("cm.paid"): ৳@Tk(list.Paid)</span>
+        <span>@Locale.T("cm.due"): ৳@Tk(list.Due)</span>
+    </div>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("cm.name")</th>
+                <th>@Locale.T("cm.sms")</th>
+                <th>@Locale.T("cm.donationCategory")</th>
+                <th>@Locale.T("cm.donationAmount")</th>
+                <th>@Locale.T("cm.paidAmount")</th>
+                <th>@Locale.T("cm.due")</th>
+                <th>@Locale.T("cm.desc")</th>
+                <th>@Locale.T("cm.addDate")</th>
+                <th class="no-print"></th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (list.Rows.Count == 0)
+        {
+            <tr><td colspan="9" class="empty-row">@Locale.T("cm.emptyDonations")</td></tr>
+        }
+        @foreach (var row in list.Rows)
+        {
+            <tr>
+                <td>
+                    <strong>@row.MemberName</strong>
+                    <small class="cm-sub">@row.MemberType</small>
+                </td>
+                <td>@row.SmsNumber</td>
+                <td>
+                    @if (editId == row.CommitteeDonationId)
+                    {
+                        <select @bind="editCatId" disabled="@busy">
+                            @foreach (var item in lookups.Categories)
+                            {
+                                <option value="@item.Id">@item.Name</option>
+                            }
+                        </select>
+                    }
+                    else { @row.DonationCategory }
+                </td>
+                <td>
+                    @if (editId == row.CommitteeDonationId)
+                    {
+                        <input type="number" step="0.01" @bind="editAmount" disabled="@busy" />
+                    }
+                    else { @Tk(row.Amount) }
+                </td>
+                <td>@Tk(row.PaidAmount)</td>
+                <td>@Tk(row.Due)</td>
+                <td>
+                    @if (editId == row.CommitteeDonationId)
+                    {
+                        <input type="text" @bind="editDesc" disabled="@busy" />
+                    }
+                    else { @row.Description }
+                </td>
+                <td>@(row.InsertDate?.ToString("d MMM yyyy"))</td>
+                <td class="no-print">
+                    @if (editId == row.CommitteeDonationId)
+                    {
+                        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="UpdateAsync">@Locale.T("cm.update")</button>
+                        <button type="button" class="acc-btn" @onclick="() => editId = 0">@Locale.T("cm.cancel")</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="acc-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("cm.edit")</button>
+                        @if (row.CanDelete)
+                        {
+                            <button type="button" class="acc-btn acc-btn-danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("cm.delete")</button>
+                        }
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private CommitteeLookupsDto lookups = new();
+    private DonationListDto list = new();
+    private int memberId, categoryId, editId, editCatId;
+    private string paid = "%", editDesc = "", busyTitle = "", popupText = "";
+    private decimal editAmount;
+    private bool busy, popupError;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private Task SetPaidAll() => SetPaid("%");
+    private Task SetPaidOnly() => SetPaid("1");
+    private Task SetDueOnly() => SetPaid("0");
+
+    private async Task SetPaid(string value)
+    {
+        paid = value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            lookups = await Api.GetCommitteeLookupsAsync(Session.AccessToken!);
+            list = await Api.GetDonationsAsync(Session.AccessToken!, memberId, categoryId, paid);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void StartEdit(DonationRowDto row)
+    {
+        editId = row.CommitteeDonationId;
+        editCatId = row.CommitteeDonationCategoryId;
+        editAmount = row.Amount;
+        editDesc = row.Description;
+    }
+
+    private async Task UpdateAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.UpdateDonationAsync(Session.AccessToken!, new UpdateDonationRequest
+            {
+                CommitteeDonationId = editId,
+                CommitteeDonationCategoryId = editCatId,
+                Amount = editAmount,
+                Description = editDesc
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            editId = 0;
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "cm.donationUpdated"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(DonationRowDto row)
+    {
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.DeleteDonationAsync(Session.AccessToken!, row.CommitteeDonationId);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "cm.donationDeleted"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(CommitteeResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("cm.fail")
+        : result.Error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

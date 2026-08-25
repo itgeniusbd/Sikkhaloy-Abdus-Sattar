@@ -1,0 +1,296 @@
+@page "/authority/paid-invoice"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ui-page pi-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.accounts")</p>
+        <h1>@Locale.T("auth.m.paidInvoice")</h1>
+        <p>@Locale.T("ai.pickHint")</p>
+    </header>
+
+    <section class="card pi-pick">
+        @if (SelectedSchool is not null)
+        {
+            <div class="pi-selected">
+                <span class="pi-avatar" aria-hidden="true">@Initial(SchoolTitle(SelectedSchool))</span>
+                <div>
+                    <b>@SchoolTitle(SelectedSchool)</b>
+                    <span>@Locale.T("ab.selected", SelectedSchool.Id)</span>
+                </div>
+                <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearSchool">@Locale.T("auth.clear")</button>
+            </div>
+        }
+        <label class="pi-search">
+            <span>@Locale.T("ab.searchInst")</span>
+            <input @bind="schoolQuery" @bind:event="oninput" placeholder="@Locale.T("ab.searchInstPh")" disabled="@busy" />
+        </label>
+        @if (ShowSchoolList)
+        {
+            <div class="pi-pick-list">
+                @foreach (var item in FilteredSchools)
+                {
+                    <button type="button" class="@(item.Id == schoolId ? "is-on" : null)" disabled="@busy" @onclick="() => PickSchoolAsync(item.Id)">
+                        <b>@item.Id</b>
+                        <span>@SchoolTitle(item)</span>
+                    </button>
+                }
+                @if (!FilteredSchools.Any())
+                {
+                    <p class="muted">@Locale.T("ab.empty")</p>
+                }
+            </div>
+        }
+    </section>
+
+    @if (schoolId > 0)
+    {
+        <section class="card ad-table-card">
+            <div class="ad-table-head">
+                <h3>@Locale.T("auth.m.paidInvoice")</h3>
+                <span>@Locale.T("auth.rows", data.Invoices.Count)</span>
+            </div>
+            <div class="pi-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" checked="@AllOn" disabled="@busy" @onchange="ToggleAll" />
+                            </th>
+                            <th>@Locale.T("ai.sn")</th>
+                            <th>@Locale.T("ai.category")</th>
+                            <th>@Locale.T("ai.month")</th>
+                            <th>@Locale.T("ai.issue")</th>
+                            <th>@Locale.T("ai.invoiceFor")</th>
+                            <th>@Locale.T("ai.unit")</th>
+                            <th>@Locale.T("ai.unitPrice")</th>
+                            <th>@Locale.T("ai.totalAmt")</th>
+                            <th>@Locale.T("ai.discount")</th>
+                            <th>@Locale.T("ai.paid")</th>
+                            <th>@Locale.T("ai.due")</th>
+                            <th>@Locale.T("ai.pay")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (data.Invoices.Count == 0)
+                        {
+                            <tr><td colspan="13" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                        }
+                        @foreach (var row in data.Invoices)
+                        {
+                            <tr class="@(row.Selected ? "is-on" : null)" @onclick="() => ToggleRow(row)">
+                                <td @onclick:stopPropagation="true">
+                                    <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetRow(row, e)" />
+                                </td>
+                                <td>@row.InvoiceSn</td>
+                                <td>@row.Category</td>
+                                <td>@row.MonthName?.ToString("MMM yyyy")</td>
+                                <td>@row.IssueDate?.ToString("d MMM yyyy")</td>
+                                <td>@row.InvoiceFor</td>
+                                <td>@Tk(row.Unit)</td>
+                                <td>@Tk(row.UnitPrice)</td>
+                                <td class="pi-amt">@Tk(row.TotalAmount)</td>
+                                <td @onclick:stopPropagation="true">
+                                    <input type="number" step="0.01" @bind="row.Discount" @bind:after="Refresh" disabled="@busy" />
+                                </td>
+                                <td>@Tk(row.PaidAmount)</td>
+                                <td>@Tk(row.Due)</td>
+                                <td @onclick:stopPropagation="true">
+                                    <input type="number" step="0.01" @bind="row.PayAmount" @bind:after="Refresh" disabled="@busy" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+
+    @if (data.Invoices.Count > 0)
+    {
+        <section class="pi-sum @(SelectedCount == 0 ? "is-empty" : null)">
+            <span class="pi-sum-count">@Locale.T("ai.picked", SelectedCount)</span>
+            <div class="pi-sum-grid">
+                <article>
+                    <span>@Locale.T("ai.totalAmt")</span>
+                    <b>@Tk(SelectedTotal)</b>
+                </article>
+                <article>
+                    <span>@Locale.T("ai.due")</span>
+                    <b>@Tk(SelectedDue)</b>
+                </article>
+                <article class="is-pay">
+                    <span>@Locale.T("ai.pay")</span>
+                    <b>@Tk(SelectedPay)</b>
+                </article>
+            </div>
+        </section>
+        <section class="card pi-pay no-print">
+            <div class="pi-pay-grid">
+                <label>@Locale.T("ai.paidDate") <input type="date" @bind="paidDate" disabled="@busy" /></label>
+                <label>@Locale.T("ai.paidBy") <input @bind="paidBy" disabled="@busy" /></label>
+                <label>@Locale.T("ai.collectedBy") <input @bind="collectedBy" disabled="@busy" /></label>
+                <label>@Locale.T("ai.method") <input @bind="method" disabled="@busy" /></label>
+            </div>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@(busy || SelectedCount == 0)" @onclick="PayAsync">@Locale.T("ai.payNow")</button>
+        </section>
+    }
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthPaidPageDto data = new();
+    private int schoolId;
+    private string schoolQuery = "";
+    private DateTime paidDate = DateTime.Today;
+    private string paidBy = "", collectedBy = "", method = "Cash";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    private AuthorityOptionDto? SelectedSchool => data.Schools.FirstOrDefault(x => x.Id == schoolId);
+    private bool ShowSchoolList => schoolId <= 0 || schoolQuery.Trim().Length > 0;
+    private bool AllOn => data.Invoices.Count > 0 && data.Invoices.All(x => x.Selected);
+    private IEnumerable<AuthInvoiceLineDto> Picked => data.Invoices.Where(x => x.Selected);
+    private int SelectedCount => data.Invoices.Count(x => x.Selected);
+    private decimal SelectedTotal => Picked.Sum(x => x.TotalAmount);
+    private decimal SelectedDue => Picked.Sum(x => x.Due);
+    private decimal SelectedPay => Picked.Sum(x => x.PayAmount);
+
+    private IEnumerable<AuthorityOptionDto> FilteredSchools
+    {
+        get
+        {
+            var q = schoolQuery.Trim();
+            IEnumerable<AuthorityOptionDto> list = data.Schools;
+            if (q.Length > 0)
+            {
+                list = data.Schools.Where(x =>
+                    x.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                    || x.Id.ToString().Contains(q, StringComparison.Ordinal));
+            }
+            return list.Take(40);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task PickSchoolAsync(int id)
+    {
+        schoolId = id;
+        schoolQuery = "";
+        await LoadAsync();
+    }
+
+    private async Task ClearSchool()
+    {
+        schoolId = 0;
+        schoolQuery = "";
+        data.Invoices.Clear();
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var page = await Api.GetAuthorityPaidInvoiceAsync(Session.AccessToken!, schoolId);
+            var schools = page.Schools.Count > 0 ? page.Schools : data.Schools;
+            data = page;
+            if (page.Schools.Count == 0)
+                data.Schools = schools;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        var on = IsOn(e);
+        foreach (var row in data.Invoices)
+            row.Selected = on;
+    }
+
+    private void ToggleRow(AuthInvoiceLineDto row)
+    {
+        if (busy) return;
+        row.Selected = !row.Selected;
+    }
+
+    private void SetRow(AuthInvoiceLineDto row, ChangeEventArgs e) => row.Selected = IsOn(e);
+    private void Refresh() { }
+
+    private async Task PayAsync()
+    {
+        if (schoolId <= 0) { Show(Locale.T("ai.needSchool"), true); return; }
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.PayAuthorityInvoicesAsync(Session.AccessToken!, new AuthPayInvoiceRequest
+            {
+                SchoolID = schoolId,
+                PaidDate = paidDate.ToString("yyyy-MM-dd"),
+                PaymentBy = paidBy,
+                CollectedBy = collectedBy,
+                Method = method,
+                Rows = data.Invoices
+            });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T(result.Message ?? "ai.paidOk"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ai.", StringComparison.OrdinalIgnoreCase) || error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static bool IsOn(ChangeEventArgs e) => e.Value is bool b && b || e.Value is string s && bool.TryParse(s, out var v) && v;
+    private static string Tk(decimal n) => n.ToString("N0");
+    private static string SchoolTitle(AuthorityOptionDto s)
+    {
+        var name = s.Name ?? "";
+        var prefix = s.Id + " - ";
+        return name.StartsWith(prefix, StringComparison.Ordinal) ? name[prefix.Length..] : name;
+    }
+    private static string Initial(string? name)
+    {
+        var t = (name ?? "").Trim();
+        return t.Length == 0 ? "?" : t[..1].ToUpperInvariant();
+    }
+}

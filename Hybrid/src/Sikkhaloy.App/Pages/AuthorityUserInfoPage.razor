@@ -1,0 +1,333 @@
+@page "/authority/user-info"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="ui-page">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("auth.m.userInfo")</h1>
+        <p>@Locale.T("ab.userInfoSub")</p>
+    </header>
+
+    <section class="ad-filters card">
+        <div class="ad-filter-grid">
+            <label>
+                <span>@Locale.T("auth.search")</span>
+                <input @bind="search" @bind:event="oninput" @onkeydown="OnSearchKey" placeholder="@Locale.T("ab.searchPh")" disabled="@busy" />
+            </label>
+            <label>
+                <span>@Locale.T("auth.validation")</span>
+                <select @bind="validation" disabled="@busy">
+                    <option value="">@Locale.T("auth.allStatus")</option>
+                    <option value="Valid">@Locale.T("auth.valid")</option>
+                    <option value="Invalid">@Locale.T("auth.invalid")</option>
+                </select>
+            </label>
+            <label>
+                <span>@Locale.T("ab.password")</span>
+                <select @bind="password" disabled="@busy">
+                    <option value="">@Locale.T("ab.allUsers")</option>
+                    <option value="HasPassword">@Locale.T("ab.hasPassword")</option>
+                    <option value="NoPassword">@Locale.T("ab.noPassword")</option>
+                </select>
+            </label>
+            <div class="ad-filter-actions">
+                <button type="button" class="btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.searchBtn")</button>
+                <button type="button" class="ad-clear" disabled="@busy" @onclick="ClearAsync">@Locale.T("auth.clear")</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="ad-stats">
+        <button type="button" class="ad-stat is-total @(validation == "" ? "is-on" : null)" disabled="@busy" @onclick='() => FilterValid("")'>
+            <span>@Locale.T("ab.totalFound")</span>
+            <strong>@data.Total.ToString("N0")</strong>
+        </button>
+        <button type="button" class="ad-stat is-valid @(validation == "Valid" ? "is-on" : null)" disabled="@busy" @onclick='() => FilterValid("Valid")'>
+            <span>@Locale.T("auth.valid")</span>
+            <strong>@data.Valid.ToString("N0")</strong>
+        </button>
+        <button type="button" class="ad-stat is-invalid @(validation == "Invalid" ? "is-on" : null)" disabled="@busy" @onclick='() => FilterValid("Invalid")'>
+            <span>@Locale.T("auth.invalid")</span>
+            <strong>@data.Invalid.ToString("N0")</strong>
+        </button>
+    </section>
+
+    <section class="card ad-table-card">
+        <div class="ad-table-head">
+            <h3>@Locale.T("auth.institutions")</h3>
+            <span>@Locale.T("auth.rows", data.Rows.Count)</span>
+        </div>
+        <div class="ad-table-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("ab.schoolId")</th>
+                        <th>@Locale.T("auth.colInst")</th>
+                        <th>@Locale.T("ab.userId")</th>
+                        <th>@Locale.T("ab.password")</th>
+                        <th>@Locale.T("ab.phone")</th>
+                        <th>@Locale.T("auth.colValid")</th>
+                        <th>@Locale.T("ab.actSession")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Rows.Count == 0)
+                    {
+                        <tr><td class="ui-empty" colspan="7">@Locale.T("ab.empty")</td></tr>
+                    }
+                    @foreach (var row in data.Rows)
+                    {
+                        <tr class="@(row.Validation == "Invalid" ? "is-invalid" : null)">
+                            <td>@row.SchoolID</td>
+                            <td class="ad-name">
+                                <button type="button" class="ui-inst" disabled="@busy" @onclick="() => OpenUsersAsync(row)">@row.SchoolName</button>
+                            </td>
+                            <td>@row.UserName</td>
+                            <td class="ui-pass">@row.Password</td>
+                            <td>@row.Phone</td>
+                            <td>
+                                <span class="ad-valid @(row.Validation == "Valid" ? "ok" : "no")">@row.Validation</span>
+                            </td>
+                            <td class="ui-sess">@row.SessionNames</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@if (showUsers)
+{
+    <div class="acc-result-back" @onclick="CloseUsers">
+        <div class="ui-modal" @onclick:stopPropagation="true">
+            <header class="ui-modal-head">
+                <div>
+                    <p>@(string.IsNullOrWhiteSpace(userQuery) ? Locale.T("ab.userCount", users.Count) : Locale.T("ab.userShown", VisibleUsers.Count(), users.Count))</p>
+                    <h3>@modalName</h3>
+                </div>
+                <button type="button" class="ui-modal-x" aria-label="@Locale.T("ab.close")" @onclick="CloseUsers">×</button>
+            </header>
+            <div class="ui-modal-body">
+                <div class="ui-modal-tools">
+                    <label class="ui-role">
+                        <span>@Locale.T("ab.userRole")</span>
+                        <select @bind="role" @bind:after="LoadUsersAsync" disabled="@busy">
+                            <option value="%">@Locale.T("ab.selectRole")</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Sub-Admin">Sub-Admin</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Student">Student</option>
+                        </select>
+                    </label>
+                    <label class="ui-user-search">
+                        <span>@Locale.T("ab.userSearch")</span>
+                        <input type="search" @bind="userQuery" @bind:event="oninput" placeholder="@Locale.T("ab.userSearchPh")" />
+                    </label>
+                </div>
+                @if (users.Count == 0)
+                {
+                    <p class="ui-modal-empty">@Locale.T("ab.noUsers")</p>
+                }
+                else if (!VisibleUsers.Any())
+                {
+                    <p class="ui-modal-empty">@Locale.T("ab.noUserMatch")</p>
+                }
+                else
+                {
+                    <div class="ui-user-list">
+                        @foreach (var user in VisibleUsers)
+                        {
+                            <article class="ui-user @(user.IsLockedOut ? "is-lock" : null)">
+                                <div class="ui-avatar">@Initial(user.UserName)</div>
+                                <div class="ui-user-main">
+                                    <strong>@user.UserName</strong>
+                                    <span class="ui-pass">@user.Password</span>
+                                    @if (!string.IsNullOrWhiteSpace(user.Email))
+                                    {
+                                        <a class="ui-mail" href="mailto:@user.Email">@user.Email</a>
+                                    }
+                                </div>
+                                <div class="ui-flags">
+                                    <label class="ui-tog">
+                                        <input type="checkbox" checked="@user.IsApproved" disabled="@busy" @onchange="e => ApproveAsync(user, e)" />
+                                        <i></i>
+                                        @Locale.T("ab.approved")
+                                    </label>
+                                    <label class="ui-tog is-lock">
+                                        <input type="checkbox" checked="@user.IsLockedOut" disabled="@busy" @onchange="() => UnlockAsync(user)" />
+                                        <i></i>
+                                        @Locale.T("ab.locked")
+                                    </label>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </div>
+            <footer class="ui-modal-foot">
+                <button type="button" class="acc-btn" @onclick="CloseUsers">@Locale.T("ab.close")</button>
+            </footer>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private UserInfoListDto data = new();
+    private readonly List<SchoolUserDto> users = [];
+    private string search = "", validation = "", password = "", role = "%", modalName = "", userQuery = "";
+    private int modalSchoolId;
+    private bool busy, popupError, showUsers;
+    private string busyTitle = "", popupText = "";
+
+    private IEnumerable<SchoolUserDto> VisibleUsers
+    {
+        get
+        {
+            var q = userQuery.Trim();
+            if (q.Length == 0) return users;
+            return users.Where(u => Has(u.UserName, q) || Has(u.Password, q) || Has(u.Email, q));
+        }
+    }
+
+    private static bool Has(string? value, string q) =>
+        !string.IsNullOrEmpty(value) && value.Contains(q, StringComparison.CurrentCultureIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await LoadAsync();
+    }
+
+    private async Task FilterValid(string value)
+    {
+        validation = value;
+        await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        search = validation = password = "";
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityUserInfoAsync(Session.AccessToken!, search, validation, password);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OpenUsersAsync(UserInfoRowDto row)
+    {
+        modalSchoolId = row.SchoolID;
+        modalName = row.SchoolName;
+        role = "%";
+        userQuery = "";
+        users.Clear();
+        showUsers = true;
+        await LoadUsersAsync();
+    }
+
+    private void CloseUsers()
+    {
+        showUsers = false;
+        userQuery = "";
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            users.Clear();
+            users.AddRange(await Api.GetAuthoritySchoolUsersAsync(Session.AccessToken!, modalSchoolId, role));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ApproveAsync(SchoolUserDto user, ChangeEventArgs e)
+    {
+        var approved = e.Value is bool b && b;
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SetAuthorityApprovedAsync(Session.AccessToken!, new SetApprovedRequest { UserName = user.UserName, IsApproved = approved });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            user.IsApproved = approved;
+            Show(Locale.T("ab.saved"), false);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task UnlockAsync(SchoolUserDto user)
+    {
+        await SetBusyAsync(Locale.T("ab.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.UnlockAuthorityUserAsync(Session.AccessToken!, new UnlockUserRequest { UserName = user.UserName });
+            if (!result.Succeeded) { Show(Err(result.Error), true); return; }
+            Show(Locale.T("ab.unlocked"), false);
+            await LoadUsersAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Initial(string name)
+    {
+        var t = (name ?? "").Trim();
+        return t.Length == 0 ? "?" : t[..1].ToUpperInvariant();
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private string Err(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("ab.failed")
+        : error.StartsWith("ab.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

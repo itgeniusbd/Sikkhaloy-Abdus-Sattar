@@ -1,0 +1,176 @@
+@page "/authority/payment-collection"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.payCollect")</h1>
+    <div class="filter-row no-print">
+        <select @bind="categoryId" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("ai.allCat")</option>
+            @foreach (var cat in data.Categories)
+            {
+                <option value="@cat.Id">@cat.Name</option>
+            }
+        </select>
+        <select @bind="month" @bind:after="LoadAsync" disabled="@busy">
+            @foreach (var m in data.DetailMonths)
+            {
+                <option value="@m">@m</option>
+            }
+        </select>
+    </div>
+    <div class="ai-cards">
+        <div class="ai-card is-blue"><h5>@data.Summary.InvoiceCount</h5><p>@Locale.T("ai.invoiceCount")</p></div>
+        <div class="ai-card is-blue"><h5>@Tk(data.Summary.UnitCount)</h5><p>@Locale.T("ai.unitCount")</p></div>
+        <div class="ai-card is-blue"><h5>@Tk(data.Summary.TotalAmount)</h5><p>@Locale.T("ai.totalAmt")</p></div>
+        <div class="ai-card is-blue"><h5>@Tk(data.Summary.Discount)</h5><p>@Locale.T("ai.discount")</p></div>
+        <div class="ai-card is-teal"><h5>@Tk(data.Summary.Receivable)</h5><p>@Locale.T("ai.receivable")</p></div>
+        <div class="ai-card is-teal"><h5>@Tk(data.Summary.PaidAmount)</h5><p>@Locale.T("ai.paidAmt")</p></div>
+        <div class="ai-card is-teal"><h5>@Tk(data.Summary.Due)</h5><p>@Locale.T("ai.due")</p></div>
+        <div class="ai-card is-teal"><h5>@data.Summary.CollectPercent.ToString("0.##")%</h5><p>@Locale.T("ai.collected")</p></div>
+    </div>
+    <div class="ab-tabs no-print">
+        <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("ai.months")</button>
+        <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("ai.paidDetails")</button>
+        <button type="button" class="@(tab == 2 ? "is-on" : null)" @onclick="() => tab = 2">@Locale.T("ai.dueDetails")</button>
+    </div>
+    @if (tab == 0)
+    {
+        <div class="ab-table-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("ai.month")</th>
+                        <th>@Locale.T("ai.invoiceCount")</th>
+                        <th>@Locale.T("ai.unit")</th>
+                        <th>@Locale.T("ai.totalAmt")</th>
+                        <th>@Locale.T("ai.discount")</th>
+                        <th>@Locale.T("ai.receivable")</th>
+                        <th>@Locale.T("ai.paid")</th>
+                        <th>@Locale.T("ai.due")</th>
+                        <th>@Locale.T("ai.collected")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (data.Months.Count == 0)
+                    {
+                        <tr><td colspan="9">@Locale.T("ab.empty")</td></tr>
+                    }
+                    @foreach (var row in data.Months)
+                    {
+                        <tr>
+                            <td>@row.Month</td>
+                            <td>@row.InvoiceCount</td>
+                            <td>@Tk(row.UnitCount)</td>
+                            <td>@Tk(row.TotalAmount)</td>
+                            <td>@Tk(row.Discount)</td>
+                            <td>@Tk(row.Receivable)</td>
+                            <td>@Tk(row.PaidAmount)</td>
+                            <td>@Tk(row.Due)</td>
+                            <td>@row.CollectPercent.ToString("0.##")%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        var rows = tab == 1 ? data.PaidRows : data.DueRows;
+        <div class="ab-table-wrap">
+            <table class="ad-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("ab.schoolId")</th>
+                        <th>@Locale.T("ai.institution")</th>
+                        <th>@Locale.T("ai.category")</th>
+                        <th>@Locale.T("ai.sn")</th>
+                        <th>@Locale.T("ai.invoiceFor")</th>
+                        <th>@Locale.T("ai.totalAmt")</th>
+                        <th>@Locale.T("ai.discount")</th>
+                        <th>@Locale.T("ai.paid")</th>
+                        <th>@Locale.T("ai.due")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (rows.Count == 0)
+                    {
+                        <tr><td colspan="9">@Locale.T("ab.empty")</td></tr>
+                    }
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <td>@row.SchoolID</td>
+                            <td>@row.SchoolName</td>
+                            <td>@row.Category</td>
+                            <td>@row.InvoiceSn</td>
+                            <td>@row.InvoiceFor</td>
+                            <td>@Tk(row.TotalAmount)</td>
+                            <td>@Tk(row.Discount)</td>
+                            <td>@Tk(row.PaidAmount)</td>
+                            <td>@Tk(row.Due)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthCollectPageDto data = new();
+    private int categoryId, tab;
+    private string month = "";
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityCollectionAsync(Session.AccessToken!, categoryId, month);
+            if (string.IsNullOrWhiteSpace(month) && data.DetailMonths.Count > 0)
+                month = data.DetailMonths[0];
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static string Tk(decimal n) => n.ToString("N0");
+}

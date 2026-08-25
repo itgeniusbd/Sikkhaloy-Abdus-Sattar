@@ -1,0 +1,132 @@
+@page "/exam/delete-result"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page">
+    <h1>@Locale.T("exam.deleteResult")</h1>
+    <p class="exam-danger">@Locale.T("exam.deleteWarn")</p>
+    <div class="filter-row no-print">
+        <select @bind="examId" @bind:after="OnExamAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectExam")</option>
+            @foreach (var item in filters.Exams)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (examId > 0)
+        {
+            <select @bind="classId" @bind:after="OnClassAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.deleteAll")</option>
+                @foreach (var item in filters.Classes)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (classId > 0)
+        {
+            <select @bind="subjectId" @bind:after="OnSubjectAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.deleteAll")</option>
+                @foreach (var item in filters.Subjects)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (subjectId > 0 && filters.SubExams.Count > 0)
+        {
+            <select @bind="subExamId" disabled="@busy">
+                <option value="0">@Locale.T("exam.deleteAll")</option>
+                @foreach (var item in filters.SubExams)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+    </div>
+    @if (examId > 0)
+    {
+        <button type="button" class="acc-btn acc-btn-primary no-print" disabled="@busy" @onclick="DeleteAsync">@Locale.T("exam.deleteBtn")</button>
+        <p>@Locale.T("exam.deleteAfter") <a class="exam-link" href="exam/publish">@Locale.T("exam.publishAgain")</a></p>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingDelete")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ExamFilterDto filters = new();
+    private int examId, classId, subjectId, subExamId;
+    private bool busy, popupError;
+    private string? popupText;
+
+    protected override Task OnInitializedAsync() => LoadFiltersAsync();
+
+    private async Task LoadFiltersAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "delete", classId, examId, subjectId: subjectId); }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnExamAsync()
+    {
+        classId = 0; subjectId = 0; subExamId = 0;
+        await LoadFiltersAsync();
+    }
+
+    private async Task OnClassAsync()
+    {
+        subjectId = 0; subExamId = 0;
+        await LoadFiltersAsync();
+    }
+
+    private async Task OnSubjectAsync()
+    {
+        subExamId = 0;
+        await LoadFiltersAsync();
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteExamResultAsync(Session.AccessToken!, new ExamDeleteResultRequest
+            {
+                ExamID = examId, ClassID = classId, SubjectID = subjectId, SubExamID = subExamId
+            });
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
+            Show(Locale.T("exam.deleteOk"));
+            await LoadFiltersAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string text, bool err = false) { popupText = text; popupError = err; }
+    private void ClosePopup() => popupText = null;
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

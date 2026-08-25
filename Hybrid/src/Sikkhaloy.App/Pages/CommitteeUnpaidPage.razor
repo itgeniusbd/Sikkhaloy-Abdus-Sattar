@@ -1,0 +1,143 @@
+@page "/committee/unpaid"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page committee-page">
+    <h1>@Locale.T("cm.unpaid")</h1>
+    <div class="filter-row no-print">
+        <input type="text" placeholder="@Locale.T("cm.enterReceipt")" @bind="sn" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindAsync">@Locale.T("cm.find")</button>
+    </div>
+
+    @if (receipt.Found)
+    {
+        <div class="cm-card">
+            <div class="cm-avatar">@Initial(receipt.MemberName)</div>
+            <div>
+                <strong>@receipt.MemberName</strong>
+                <div class="cm-sub">@receipt.MemberType</div>
+                <p><b>@Locale.T("cm.totalDonation"):</b> @Tk(receipt.TotalDonation)</p>
+                <p><b>@Locale.T("cm.paidDonation"):</b> @Tk(receipt.PaidDonation)</p>
+                <p><b>@Locale.T("cm.phone"):</b> @receipt.SmsNumber</p>
+                <p><b>@Locale.T("cm.address"):</b> @receipt.Address</p>
+            </div>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cm.donationCategory")</th>
+                    <th>@Locale.T("cm.desc")</th>
+                    <th>@Locale.T("cm.paidAmount")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var line in receipt.Lines)
+            {
+                <tr>
+                    <td>@line.DonationCategory</td>
+                    <td>@line.Description</td>
+                    <td>@Tk(line.PaidAmount)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        <div class="cm-badges">
+            <span>@Locale.T("cm.receiptNo"): @receipt.CommitteeMoneyReceiptSn</span>
+            <span>@Locale.T("cm.payMethod"): @receipt.AccountName</span>
+            <span>@Locale.T("cm.total"): @Tk(receipt.TotalAmount) @Locale.T("cm.tk")</span>
+            <span>@Locale.T("cm.paidDate"): @(receipt.PaidDate?.ToString("d MMM yyyy (hh:mm tt)"))</span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(receipt.ReceivedBy))
+        {
+            <p class="cm-recv">@Locale.T("cm.recvBy", receipt.ReceivedBy)</p>
+        }
+        <div class="filter-row no-print">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => showConfirm = true">@Locale.T("cm.unpaidBtn")</button>
+        </div>
+    }
+    else if (searched)
+    {
+        <p class="empty-row">@Locale.T("cm.emptyUnpaid")</p>
+    }
+</div>
+
+@if (showConfirm)
+{
+    <div class="acc-result-back" @onclick="() => showConfirm = false">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("cm.unpaidBtn")</h3>
+            <p>@Locale.T("cm.confirmUnpaid")</p>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="UnpaidAsync">@Locale.T("cm.unpaidBtn")</button>
+            <button type="button" class="acc-btn" @onclick="() => showConfirm = false">@Locale.T("cm.cancel")</button>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private UnpaidReceiptDto receipt = new();
+    private string sn = "", busyTitle = "", popupText = "";
+    private bool busy, popupError, searched, showConfirm;
+
+    private async Task FindAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            receipt = await Api.GetUnpaidReceiptAsync(Session.AccessToken!, sn);
+            searched = true;
+            if (!receipt.Found) Show(Locale.T("cm.emptyUnpaid"), true);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task UnpaidAsync()
+    {
+        showConfirm = false;
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            var result = await Api.UnpaidReceiptAsync(Session.AccessToken!, sn);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            receipt = new UnpaidReceiptDto();
+            searched = false;
+            Show(Locale.T(result.Message ?? "cm.unpaidDone"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private static string Initial(string name) => string.IsNullOrWhiteSpace(name) ? "D" : name[..1];
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(CommitteeResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("cm.fail")
+        : result.Error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

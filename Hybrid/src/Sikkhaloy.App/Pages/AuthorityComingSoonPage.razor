@@ -1,0 +1,44 @@
+@page "/authority/soon/{Slug}"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject NavigationManager Nav
+
+<div class="card ad-soon">
+    <p class="eyebrow" style="color: var(--indigo);">@Locale.T("coming.title")</p>
+    <h1>@Title</h1>
+    @if (!string.IsNullOrWhiteSpace(crumb))
+    {
+        <p class="muted">@crumb</p>
+    }
+    <p>@Locale.T("coming.body")</p>
+    <div class="toolbar" style="margin-top: 1rem;">
+        <a class="btn-primary" href="authority">@Locale.T("coming.back")</a>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+
+    private string Title =>
+        AuthorityMenu.TitleKeyFor(Slug) is { } key
+            ? Locale.T(key)
+            : Locale.T("coming.title");
+
+    private string crumb =>
+        AuthorityMenu.GroupKeyFor(Slug) is { } key
+            ? Locale.T(key)
+            : Locale.T("auth.panel");
+
+    protected override void OnInitialized()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (!Session.IsAuthority)
+            Nav.NavigateTo("/dashboard", replace: true);
+    }
+}

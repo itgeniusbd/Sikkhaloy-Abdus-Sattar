@@ -1007,11 +1007,10 @@ WHERE StudentsClass.ClassID = @ClassID
   AND (@SubjectGroupID = 0 OR ISNULL(StudentsClass.SubjectGroupID, 0) = @SubjectGroupID)
   AND (@ShiftID = 0 OR ISNULL(StudentsClass.ShiftID, 0) = @ShiftID)
   AND Student.Status = N'Active'
-  AND StudentsClass.Class_Status IS NULL
   AND StudentsClass.EducationYearID = @EducationYearID
   AND StudentsClass.SchoolID = @SchoolID
 ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1
-              THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END
+              THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS FLOAT) ELSE 0 END
 """;
 
     private const string ClassStudentByIdSql = """
@@ -1031,7 +1030,6 @@ LEFT OUTER JOIN dbo.CreateSection ON StudentsClass.SectionID = CreateSection.Sec
 LEFT OUTER JOIN dbo.CreateShift ON StudentsClass.ShiftID = CreateShift.ShiftID
 WHERE Student.ID = @ID
   AND Student.Status = N'Active'
-  AND StudentsClass.Class_Status IS NULL
   AND StudentsClass.EducationYearID = @EducationYearID
   AND StudentsClass.SchoolID = @SchoolID
 """;

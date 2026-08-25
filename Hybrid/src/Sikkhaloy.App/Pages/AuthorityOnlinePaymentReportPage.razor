@@ -1,0 +1,150 @@
+@page "/authority/online-payment-report"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="card ab-page">
+    <h1>@Locale.T("auth.m.onlinePay")</h1>
+    <div class="filter-row no-print">
+        <select @bind="type" disabled="@busy">
+            <option value="All">@Locale.T("ai.typeAll")</option>
+            <option value="Online">@Locale.T("ai.typeOnline")</option>
+            <option value="Offline">@Locale.T("ai.typeOffline")</option>
+        </select>
+        <select @bind="schoolId" disabled="@busy">
+            <option value="0">@Locale.T("ai.allInst")</option>
+            @foreach (var s in data.Schools)
+            {
+                <option value="@s.Id">@s.Name</option>
+            }
+        </select>
+        <select @bind="method" disabled="@busy">
+            <option value="">@Locale.T("ai.allMethod")</option>
+            <option value="Nagad">Nagad</option>
+            <option value="bKash">bKash</option>
+            <option value="Card">Card</option>
+            <option value="Rocket">Rocket</option>
+            <option value="Cash">Cash</option>
+        </select>
+        <input type="date" @bind="from" disabled="@busy" />
+        <input type="date" @bind="to" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("auth.searchBtn")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearAsync">@Locale.T("auth.clear")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("ai.print")</button>
+    </div>
+    <p class="muted">@from.ToString("d MMM yyyy") — @to.ToString("d MMM yyyy")</p>
+    <div class="ai-cards">
+        <div class="ai-card is-blue"><h5>@Tk(data.TotalAmount)</h5><p>@Locale.T("ai.totalCol")</p></div>
+        <div class="ai-card is-teal"><h5>@Tk(data.OnlineAmount)</h5><p>@Locale.T("ai.onlineCol")</p></div>
+        <div class="ai-card is-purple"><h5>@Tk(data.OfflineAmount)</h5><p>@Locale.T("ai.offlineCol")</p></div>
+        <div class="ai-card is-red"><h5>@data.TotalCount</h5><p>@Locale.T("ai.txn")</p></div>
+        <div class="ai-card is-orange"><h5>@data.OnlineCount / @data.OfflineCount</h5><p>@Locale.T("ai.onOffTxn")</p></div>
+        <div class="ai-card is-green"><h5>@data.InstitutionCount</h5><p>@Locale.T("ai.institution")</p></div>
+    </div>
+    <div class="ab-table-wrap">
+        <table class="ad-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>@Locale.T("ai.date")</th>
+                    <th>@Locale.T("ai.institution")</th>
+                    <th>@Locale.T("ai.paidAmt")</th>
+                    <th>@Locale.T("ai.method")</th>
+                    <th>@Locale.T("ai.filter")</th>
+                    <th>@Locale.T("ai.collectedBy")</th>
+                    <th>@Locale.T("ai.ref")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (data.Rows.Count == 0)
+                {
+                    <tr><td colspan="8">@Locale.T("ab.empty")</td></tr>
+                }
+                @{ var n = 0; }
+                @foreach (var row in data.Rows)
+                {
+                    n++;
+                    <tr>
+                        <td>@n</td>
+                        <td>@row.PaymentDate?.ToString("d MMM yyyy hh:mm tt")</td>
+                        <td>@row.SchoolID - @row.SchoolName</td>
+                        <td>@Tk(row.Amount)</td>
+                        <td>@row.Method</td>
+                        <td>@row.Type</td>
+                        <td>@row.CollectedBy</td>
+                        <td>@row.Reference</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthOnlinePayPageDto data = new();
+    private string type = "All", method = "";
+    private int schoolId;
+    private DateTime from = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime to = DateTime.Today;
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        type = "All";
+        method = "";
+        schoolId = 0;
+        from = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        to = DateTime.Today;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("ab.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            data = await Api.GetAuthorityOnlinePayAsync(Session.AccessToken!, type, schoolId, method, from, to);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "8mm 5mm").AsTask();
+    private void ClosePopup() => popupText = "";
+    private void Show(string text, bool err) { popupText = text; popupError = err; }
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+    private static string Tk(decimal n) => n.ToString("N2");
+}

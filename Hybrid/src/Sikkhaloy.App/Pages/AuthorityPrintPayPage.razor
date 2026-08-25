@@ -1,0 +1,141 @@
+@page "/authority/print-pay/{SchoolId:int}"
+@layout AuthorityLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="card ab-page ai-print">
+    <div class="filter-row no-print">
+        <a class="acc-btn" href="authority/print-invoice">@Locale.T("ai.back")</a>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("ai.print")</button>
+    </div>
+    @if (dto.Found)
+    {
+        <div class="inv-wraper">
+            <div class="inv-inst">
+                <img src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="SIKKHALOY" />
+                <div>
+                    <h2>SIKKHALOY</h2>
+                    <small>Educational institution management service</small>
+                </div>
+            </div>
+            <div class="inv-title"><b>@Locale.T("ai.invoiceTitle")</b></div>
+            <div class="inv-to">
+                <h2>@Locale.T("ai.invoiceTo")</h2>
+                <h5>@dto.SchoolName</h5>
+                <p>@dto.Address</p>
+                <p>@dto.Phone</p>
+            </div>
+            <table class="inv-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("ai.sn")</th>
+                        <th>@Locale.T("ai.desc")</th>
+                        <th class="text-right">@Locale.T("ai.unit")</th>
+                        <th class="text-right">@Locale.T("ai.unitPrice")</th>
+                        <th class="text-right">@Locale.T("ai.lineTotal")</th>
+                        <th class="text-right">@Locale.T("ai.due")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var sn = 0; }
+                    @foreach (var line in dto.Lines)
+                    {
+                        sn++;
+                        <tr>
+                            <td>@sn</td>
+                            <td>@line.Category (@line.InvoiceFor)</td>
+                            <td class="text-right">@Tk(line.Unit)</td>
+                            <td class="text-right">@Tk(line.UnitPrice)</td>
+                            <td class="text-right">@Tk(line.TotalAmount)</td>
+                            <td class="text-right">@Tk(line.Due)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="inv-bottom">
+                <div class="inv-payinfo">
+                    <h4>@Locale.T("ai.thankYou")</h4>
+                    <h5>@Locale.T("inv.bankTransfer")</h5>
+                    <table>
+                        <tr><td>Bank</td><td>Eastern Bank PLC</td></tr>
+                        <tr><td>@Locale.T("inv.accountName")</td><td>IT Genius</td></tr>
+                        <tr><td>Account No.</td><td>10510.7000.1333</td></tr>
+                        <tr><td>@Locale.T("inv.branch")</td><td>Sonargaon Branch</td></tr>
+                        <tr><td>Routing No.</td><td>095276586</td></tr>
+                    </table>
+                </div>
+                <div class="inv-totals">
+                    <table class="inv-gt">
+                        <tr><td>@Locale.T("ai.total"):</td><td>@Tk(dto.GrandTotal) Tk</td></tr>
+                        @if (dto.Discount > 0)
+                        {
+                            <tr><td>@Locale.T("ai.discount"):</td><td>@Tk(dto.Discount) Tk</td></tr>
+                        }
+                    </table>
+                    <div class="inv-grand">
+                        <table>
+                            <tr><td>@Locale.T("ai.due"):</td><td>@Tk(dto.Due) Tk</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="inv-auth">@Locale.T("ai.sign")</div>
+            <div class="inv-footer">
+                <div class="inv-footer-bar"></div>
+                <div class="inv-footer-row">
+                    <span>01739144141</span>
+                    <span>IT Genius, House # 6, Road # 9, Block # D, Bosila Garden City, Mohammadpur, Dhaka-1207</span>
+                    <span>www.itgenius.com.bd</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("sms.errorTitle")</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int SchoolId { get; set; }
+    [SupplyParameterFromQuery] public string? Ids { get; set; }
+
+    private AuthPayPrintDto dto = new();
+    private bool busy;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsAuthority) { Nav.NavigateTo("/dashboard", replace: true); return; }
+        busyTitle = Locale.T("ab.loading");
+        busy = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                return;
+            }
+            dto = await Api.GetAuthorityPayPrintAsync(Session.AccessToken!, SchoolId, Ids ?? "");
+            if (!dto.Found) popupText = Locale.T("ab.empty");
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "8mm 5mm").AsTask();
+    private void ClosePopup() => popupText = "";
+    private static string Tk(decimal n) => n.ToString("0.##");
+}

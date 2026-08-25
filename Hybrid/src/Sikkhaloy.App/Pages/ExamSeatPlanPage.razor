@@ -1,0 +1,351 @@
+@page "/exam/seat-plan"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject SyncEngine Sync
+
+<div class="card structure-page emp-page acc-page exam-page exam-seat-page">
+    <h1 class="no-print">@Locale.T("exam.seatTitle")</h1>
+    <div class="filter-row no-print">
+        <select @bind="examId" @bind:after="OnExamAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectExam")</option>
+            @foreach (var item in filters.Exams)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <input type="text" @bind="examName" @bind:event="oninput" disabled="@busy" placeholder="@Locale.T("exam.examNameHint")" />
+        @if (classChecks.Count == 1 && filters.Groups.Count > 0)
+        {
+            <select @bind="groupId" @bind:after="OnJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.selectGroup")</option>
+                @foreach (var item in filters.Groups)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (classChecks.Count == 1 && filters.Sections.Count > 0)
+        {
+            <select @bind="sectionId" @bind:after="OnJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allSection")</option>
+                @foreach (var item in filters.Sections)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (classChecks.Count == 1 && filters.Shifts.Count > 0)
+        {
+            <select @bind="shiftId" @bind:after="OnJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allShift")</option>
+                @foreach (var item in filters.Shifts)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        <input type="text" @bind="studentIds" disabled="@busy" placeholder="@Locale.T("exam.studentIdsHint")" title="@Locale.T("exam.studentIds")" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("exam.load")</button>
+        <button type="button" class="acc-btn acc-btn-assign" disabled="@(busy || classChecks.Count == 0)" @onclick="RandomizeAsync">@Locale.T("exam.randomSeats")</button>
+        @if (sheet.Students.Count > 0)
+        {
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+            <span class="exam-card-count">@Locale.T("exam.seatCount", sheet.Students.Count)</span>
+            @if (!bangla)
+            {
+                <label class="rc-print-opt">
+                    <input type="checkbox" @bind="showSeatNo" />
+                    @Locale.T("exam.showSeatNo")
+                </label>
+            }
+        }
+        @if (!string.IsNullOrWhiteSpace(okText))
+        {
+            <span class="exam-seat-ok">@okText</span>
+        }
+    </div>
+    <div class="exam-class-wrap no-print">
+        <div class="exam-class-head">
+            <b>@Locale.T("exam.seatClasses")</b>
+            <span class="muted">@Locale.T("exam.classesPicked", classChecks.Count, filters.Classes.Count)</span>
+            <label class="choice-inline">
+                <input type="checkbox" checked="@AllClassesSelected" disabled="@(busy || filters.Classes.Count == 0)"
+                       @onchange="ToggleAllClasses" />
+                <span>@Locale.T("exam.allClasses")</span>
+            </label>
+        </div>
+        <p class="exam-hint">@Locale.T("exam.seatMixHint")</p>
+        <div class="exam-class-picks">
+            @foreach (var item in filters.Classes)
+            {
+                var on = classChecks.Contains(item.Id);
+                <label class="notice-chip @(on ? "on" : null)">
+                    <input type="checkbox" checked="@on" disabled="@busy"
+                           @onchange="e => ToggleClass(item.Id, e)" />
+                    <span>@item.Name</span>
+                </label>
+            }
+        </div>
+    </div>
+    <p class="exam-hint no-print">@Locale.T("exam.landscapeHint")</p>
+
+    @if (sheet.Students.Count > 0)
+    {
+        <div class="exam-seat-grid">
+            @foreach (var student in sheet.Students)
+            {
+                <div class="exam-seat-card @(bangla ? "is-bn" : null) @(showSeatNo && !bangla ? "has-seat" : null)">
+                    @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+                    {
+                        <div class="exam-seat-head is-custom">
+                            <img class="exam-seat-name-logo" src="@nameLogoUrl" alt="" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="exam-seat-head">
+                            @if (!string.IsNullOrWhiteSpace(logoUrl))
+                            {
+                                <img src="@logoUrl" alt="" />
+                            }
+                            <strong>@sheet.SchoolName</strong>
+                        </div>
+                    }
+                    <p class="exam-seat-exam">@DisplayExam</p>
+                    <div class="exam-seat-badge">@Locale.T("exam.seatBadge")</div>
+                    <div class="exam-seat-body">
+                        @if (bangla)
+                        {
+                            <div class="exam-seat-circle">
+                                <span>@Locale.T("exam.idLbl")</span>
+                                <b>@N(student.ID)</b>
+                            </div>
+                            <ul>
+                                <li><b>@student.StudentsName</b></li>
+                                <li>@Locale.T("exam.classLbl") @N(student.ClassName), @Locale.T("exam.rollLbl") @N(student.RollNo)</li>
+                                @if (!string.IsNullOrWhiteSpace(student.SectionName)) { <li>@Locale.T("exam.sectionLbl") @N(student.SectionName)</li> }
+                                @if (!string.IsNullOrWhiteSpace(student.ShiftName)) { <li>@Locale.T("exam.shiftLbl") @N(student.ShiftName)</li> }
+                                @if (!string.IsNullOrWhiteSpace(student.GroupName)) { <li>@Locale.T("exam.groupLbl") @N(student.GroupName)</li> }
+                            </ul>
+                            <div class="exam-seat-circle is-seat">
+                                <span>@Locale.T("exam.seatNo")</span>
+                                <b class="exam-seat-no">@(string.IsNullOrWhiteSpace(student.SeatNo) ? " " : N(student.SeatNo))</b>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="exam-seat-photo">
+                                @if (!string.IsNullOrWhiteSpace(PhotoOf(student)))
+                                {
+                                    <img src="@PhotoOf(student)" alt="" />
+                                }
+                                <strong>@student.ID</strong>
+                            </div>
+                            <ul>
+                                <li><b>@student.StudentsName</b></li>
+                                <li>@Locale.T("exam.classLbl") @student.ClassName, @Locale.T("exam.rollLbl") @student.RollNo</li>
+                                @if (!string.IsNullOrWhiteSpace(student.SectionName)) { <li>@Locale.T("exam.sectionLbl") @student.SectionName</li> }
+                                @if (!string.IsNullOrWhiteSpace(student.ShiftName)) { <li>@Locale.T("exam.shiftLbl") @student.ShiftName</li> }
+                                @if (!string.IsNullOrWhiteSpace(student.GroupName)) { <li>@Locale.T("exam.groupLbl") @student.GroupName</li> }
+                            </ul>
+                            @if (showSeatNo)
+                            {
+                                <div class="exam-seat-en-no">
+                                    <span>@Locale.T("exam.seatNo")</span>
+                                    <b>@(string.IsNullOrWhiteSpace(student.SeatNo) ? " " : student.SeatNo)</b>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    @if (!busy && loaded && sheet.Students.Count == 0)
+    {
+        <p class="empty-row">@Locale.T("exam.empty")</p>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("exam.loadFailed")</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ExamFilterDto filters = new();
+    private ExamSeatPlanSheetDto sheet = new();
+    private readonly HashSet<int> classChecks = [];
+    private int examId;
+    private string groupId = "0", sectionId = "0", shiftId = "0", studentIds = "", examName = "", logoUrl = "", nameLogoUrl = "";
+    private bool busy, loaded, showSeatNo, randomizing;
+    private bool bangla => Locale.IsBengali;
+    private bool AllClassesSelected => filters.Classes.Count > 0 && classChecks.Count == filters.Classes.Count;
+    private int FilterClassId => classChecks.Count == 1 ? classChecks.First() : 0;
+    private string ClassIdsParam => string.Join(",", classChecks.OrderBy(x => x));
+    private string busyTitle => randomizing ? Locale.T("exam.randomizingSeats") : Locale.T("exam.loadingSeat");
+    private string? popupText, okText;
+    private string DisplayExam => string.IsNullOrWhiteSpace(examName) ? sheet.ExamName : examName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var schoolId = Session.Current?.SchoolID ?? 0;
+        logoUrl = Sync.GetSchoolLogoDataUrl(schoolId) ?? "";
+        nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(schoolId) ?? "";
+        await LoadFiltersAsync(false);
+    }
+
+    private async Task LoadFiltersAsync(bool reload)
+    {
+        if (!await OnlineAsync()) return;
+        await ShowBusyAsync();
+        try
+        {
+            filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "seat", FilterClassId, examId, groupId, sectionId, shiftId);
+            if (classChecks.Count != 1)
+            {
+                groupId = "0"; sectionId = "0"; shiftId = "0";
+                filters.Groups = []; filters.Sections = []; filters.Shifts = [];
+            }
+            if (reload) await LoadCardsAsync();
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task OnExamAsync()
+    {
+        var selected = filters.Exams.FirstOrDefault(x => x.Id == examId);
+        if (selected is not null) examName = selected.Name;
+        if (classChecks.Count > 0 || studentIds.Trim().Length > 0) await LoadAsync();
+    }
+
+    private async Task ToggleAllClasses(ChangeEventArgs e)
+    {
+        var on = e.Value is true or "true";
+        classChecks.Clear();
+        if (on)
+        {
+            foreach (var item in filters.Classes)
+                classChecks.Add(item.Id);
+        }
+        sheet = new(); loaded = false; okText = null;
+        await LoadFiltersAsync(false);
+    }
+
+    private async Task ToggleClass(int id, ChangeEventArgs e)
+    {
+        if (e.Value is true or "true") classChecks.Add(id);
+        else classChecks.Remove(id);
+        sheet = new(); loaded = false; okText = null;
+        await LoadFiltersAsync(false);
+    }
+
+    private Task OnJoinAsync() => LoadFiltersAsync(examId > 0 && (classChecks.Count > 0 || studentIds.Trim().Length > 0));
+
+    private async Task LoadAsync()
+    {
+        okText = null;
+        if (examId <= 0)
+        {
+            popupText = Locale.T("exam.selectExam");
+            return;
+        }
+        if (classChecks.Count == 0 && studentIds.Trim().Length == 0)
+        {
+            popupText = Locale.T("exam.needSeatClass");
+            return;
+        }
+        if (!await OnlineAsync()) return;
+        await ShowBusyAsync();
+        try { await LoadCardsAsync(); }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task RandomizeAsync()
+    {
+        okText = null;
+        if (classChecks.Count == 0)
+        {
+            popupText = Locale.T("exam.needSeatClass");
+            return;
+        }
+        if (!await OnlineAsync()) return;
+        randomizing = true;
+        await ShowBusyAsync();
+        try
+        {
+            var result = await Api.RandomizeExamSeatsAsync(Session.AccessToken!, new RandomSeatRequest
+            {
+                ClassIds = classChecks.ToList(),
+                GroupId = classChecks.Count == 1 ? groupId : "0",
+                SectionId = classChecks.Count == 1 ? sectionId : "0",
+                ShiftId = classChecks.Count == 1 ? shiftId : "0"
+            });
+            if (!result.Succeeded)
+            {
+                popupText = Locale.T(result.Error ?? "exam.failed");
+                return;
+            }
+            okText = Locale.T("exam.okSeats", result.Count);
+            if (examId > 0)
+                await LoadCardsAsync();
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { randomizing = false; busy = false; }
+    }
+
+    private async Task LoadCardsAsync()
+    {
+        sheet = new(); loaded = true;
+        if (examId <= 0 || (classChecks.Count == 0 && studentIds.Trim().Length == 0)) return;
+        sheet = await Api.GetExamSeatPlanAsync(
+            Session.AccessToken!, FilterClassId, examId, groupId, sectionId, shiftId, studentIds, ClassIdsParam);
+        if (string.IsNullOrWhiteSpace(examName) && !string.IsNullOrWhiteSpace(sheet.ExamName))
+            examName = sheet.ExamName;
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintLandscape").AsTask();
+    private string PhotoOf(ExamPrintStudentDto student)
+    {
+        if (student.StudentID <= 0 || Session.Current is null) return "";
+        return Sync.GetStudentPhotoDataUrl(Session.Current.SchoolID, student.StudentID) ?? "";
+    }
+    private string N(string? text)
+    {
+        if (!bangla || string.IsNullOrEmpty(text)) return text ?? "";
+        var chars = text.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            if (chars[i] is >= '0' and <= '9')
+                chars[i] = (char)('\u09E6' + (chars[i] - '0'));
+        }
+        return new string(chars);
+    }
+    private async Task ShowBusyAsync()
+    {
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            popupText = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}

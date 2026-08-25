@@ -7,7 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<EduConnectionFactory>();
+builder.Services.AddSingleton<LocalOfficeMode>();
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<StudentSyncService>();
@@ -30,6 +32,14 @@ builder.Services.AddScoped<ReportsService>();
 builder.Services.AddScoped<MasterDataService>();
 builder.Services.AddScoped<ExamService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<SmsOfficeService>();
+builder.Services.AddScoped<RoutineService>();
+builder.Services.AddScoped<CommitteeService>();
+builder.Services.AddScoped<PlatformInvoiceService>();
+builder.Services.AddScoped<AuthorityService>();
+builder.Services.AddScoped<AuthorityBasicService>();
+builder.Services.AddScoped<AuthorityInvoiceService>();
+builder.Services.AddScoped<AuthorityAdminService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"]
              ?? throw new InvalidOperationException("Jwt:Key is missing. Set it in user secrets or environment.");

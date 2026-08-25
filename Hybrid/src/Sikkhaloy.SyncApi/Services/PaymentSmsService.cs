@@ -15,11 +15,13 @@ public sealed class PaymentSmsService
 
     private readonly EduConnectionFactory _connections;
     private readonly ReportsService _reports;
+    private readonly LocalOfficeMode _local;
 
-    public PaymentSmsService(EduConnectionFactory connections, ReportsService reports)
+    public PaymentSmsService(EduConnectionFactory connections, ReportsService reports, LocalOfficeMode local)
     {
         _connections = connections;
         _reports = reports;
+        _local = local;
     }
 
     public async Task<PaymentSmsSettingDto> GetSettingAsync(SessionSnapshot session, CancellationToken cancellationToken)
@@ -175,7 +177,7 @@ ORDER BY pr.PayOrderID
 INSERT INTO dbo.SMS_Send_Record
     (SMS_Send_ID, PhoneNumber, TextSMS, TextCount, SMSCount, PurposeOfSMS, Status, Date, SMS_Response)
 VALUES
-    (@ID, @Phone, @Text, @Len, @Count, N'Due SMS', N'Sent', GETDATE(), @Resp)
+    (@ID, @Phone, @Text, @Len, @Count, N'Due SMS', @Status, GETDATE(), @Resp)
 """, con))
             {
                 ins.Parameters.AddWithValue("@ID", smsId);
@@ -183,6 +185,7 @@ VALUES
                 ins.Parameters.AddWithValue("@Text", job.Message);
                 ins.Parameters.AddWithValue("@Len", job.Message.Length);
                 ins.Parameters.AddWithValue("@Count", job.Count);
+                ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
                 ins.Parameters.AddWithValue("@Resp", response);
                 await ins.ExecuteNonQueryAsync(cancellationToken);
             }
@@ -249,7 +252,7 @@ VALUES (@ID, @SchoolID, @SID, @YearID)
 INSERT INTO dbo.SMS_Send_Record
     (SMS_Send_ID, PhoneNumber, TextSMS, TextCount, SMSCount, PurposeOfSMS, Status, Date, SMS_Response)
 VALUES
-    (@ID, @Phone, @Text, @Len, @Count, N'Payment Collection', N'Sent', GETDATE(), @Resp)
+    (@ID, @Phone, @Text, @Len, @Count, N'Payment Collection', @Status, GETDATE(), @Resp)
 """, con))
         {
             ins.Parameters.AddWithValue("@ID", smsId);
@@ -257,6 +260,7 @@ VALUES
             ins.Parameters.AddWithValue("@Text", msg);
             ins.Parameters.AddWithValue("@Len", msg.Length);
             ins.Parameters.AddWithValue("@Count", count);
+            ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
             ins.Parameters.AddWithValue("@Resp", response);
             await ins.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -430,8 +434,10 @@ WHERE st.ID = @ID AND st.SchoolID = @SchID AND po.SchoolID = @SchID
                || digits.Length == 13 && digits.StartsWith("8801", StringComparison.Ordinal);
     }
 
-    private static async Task<string?> PostGatewayAsync(string number, string text, CancellationToken cancellationToken)
+    private async Task<string?> PostGatewayAsync(string number, string text, CancellationToken cancellationToken)
     {
+        if (_local.IsLocal)
+            return "Localhost - not sent to mobile";
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };

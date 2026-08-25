@@ -1,0 +1,253 @@
+@page "/routine/edit"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page routine-page">
+    <h1>@Locale.T("rt.editTitle")</h1>
+    <div class="filter-row no-print">
+        <select @bind="classInput" @bind:after="OnClassAsync" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in classes)
+            {
+                <option value="@item.ClassID">@item.Name</option>
+            }
+        </select>
+        @if (groups.Count > 0)
+        {
+            <select @bind="groupInput" @bind:after="LoadGridAsync" disabled="@busy">
+                <option value="0">@Locale.T("sms.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (sections.Count > 0)
+        {
+            <select @bind="sectionInput" @bind:after="LoadGridAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allSection")</option>
+                @foreach (var item in sections)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        @if (shifts.Count > 0)
+        {
+            <select @bind="shiftInput" @bind:after="LoadGridAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allShift")</option>
+                @foreach (var item in shifts)
+                {
+                    <option value="@item.ServerId">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="routineInfoId" @bind:after="LoadGridAsync" disabled="@busy">
+            <option value="0">@Locale.T("rt.selectName")</option>
+            @foreach (var item in sheet.Routines)
+            {
+                <option value="@item.RoutineInfoID">@item.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (sheet.Days.Count > 0)
+    {
+        <div class="rt-wrap">
+            <table class="rt-grid">
+                <thead>
+                    <tr>
+                        <th></th>
+                        @foreach (var period in sheet.Periods.Where(x => !x.OffTime))
+                        {
+                            <th>
+                                <span class="rt-period">@period.Period</span>
+                                <span class="rt-dur">@period.Duration</span>
+                                <span class="rt-time">@period.TimeRange</span>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var day in sheet.Days)
+                {
+                    <tr>
+                        <th class="rt-day">@day.Day</th>
+                        @foreach (var cell in day.Cells)
+                        {
+                            <td>
+                                <select value="@cell.SubjectID" disabled="@busy" @onchange="e => OnSubjectAsync(day, cell, e)">
+                                    <option value="0">@Locale.T("rt.noClass")</option>
+                                    @foreach (var item in sheet.Subjects)
+                                    {
+                                        <option value="@item.Id">@item.Name</option>
+                                    }
+                                </select>
+                                <select @bind="cell.TeacherID" disabled="@busy">
+                                    <option value="0">@Locale.T("rt.selectTeacher")</option>
+                                    @foreach (var item in cell.Teachers)
+                                    {
+                                        <option value="@item.Id">@item.Name</option>
+                                    }
+                                </select>
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="filter-row no-print">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("rt.update")</button>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [], sections = [], shifts = [];
+    private ClassStructureDto? structure;
+    private ClassRoutineSheetDto sheet = new();
+    private string classInput = "0", groupInput = "0", sectionInput = "0", shiftInput = "0";
+    private int routineInfoId;
+    private bool busy, popupError;
+    private string? popupText, busyTitle;
+
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnClassAsync()
+    {
+        groupInput = sectionInput = shiftInput = "0";
+        routineInfoId = 0;
+        groups.Clear(); sections.Clear(); shifts.Clear();
+        if (structure is not null && ClassId > 0)
+        {
+            var parts = structure.AssignedParts(ClassId);
+            groups.AddRange(parts.Groups);
+            sections.AddRange(parts.Sections);
+            shifts.AddRange(parts.Shifts);
+        }
+        await LoadGridAsync();
+    }
+
+    private async Task LoadGridAsync()
+    {
+        if (ClassId <= 0) { sheet = new(); return; }
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            sheet = await Api.GetRoutineViewAsync(Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, routineInfoId, true);
+            if (routineInfoId == 0 && sheet.Routines.Count == 1)
+                routineInfoId = sheet.Routines[0].RoutineInfoID;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnSubjectAsync(RoutineDayRowDto day, RoutineCellDto cell, ChangeEventArgs e)
+    {
+        cell.SubjectID = int.TryParse(e.Value?.ToString(), out var n) ? n : 0;
+        cell.TeacherID = 0;
+        cell.Teachers.Clear();
+        if (cell.SubjectID <= 0) return;
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            cell.Teachers.AddRange(await Api.GetRoutineTeachersAsync(Session.AccessToken!, ClassId, cell.SubjectID, day.Day, cell.StartTime, cell.EndTime, routineInfoId));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        await SetBusyAsync(Locale.T("rt.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var req = new AssignRoutineRequest
+            {
+                ClassID = ClassId,
+                RoutineInfoID = routineInfoId,
+                GroupID = GroupId,
+                SectionID = SectionId,
+                ShiftID = ShiftId
+            };
+            foreach (var day in sheet.Days)
+            {
+                foreach (var cell in day.Cells)
+                {
+                    req.Cells.Add(new AssignRoutineCell
+                    {
+                        Day = day.Day,
+                        RoutineTimeID = cell.RoutineTimeID,
+                        RoutineForClassID = cell.RoutineForClassID,
+                        SubjectID = cell.SubjectID,
+                        TeacherID = cell.TeacherID,
+                        StartTime = cell.StartTime,
+                        EndTime = cell.EndTime
+                    });
+                }
+            }
+            var result = await Api.UpdateClassRoutineAsync(Session.AccessToken!, req);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            Show(Locale.T(result.Message ?? "rt.updated"));
+            classInput = "0";
+            await OnClassAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private string FormatErr(RoutineResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("rt.fail")
+        : result.Error.StartsWith("rt.", StringComparison.OrdinalIgnoreCase) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title)
+    {
+        busyTitle = title;
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

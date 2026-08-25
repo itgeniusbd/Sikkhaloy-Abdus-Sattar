@@ -1,4 +1,4 @@
-@inject AppLocale Locale
+@inherits LocaleAwareComponent
 
 <div class="lang-switch" title="Language">
     <button type="button" class="@(Locale.Code == "en" ? "active" : null)" @onclick='() => Locale.Set("en")'>EN</button>

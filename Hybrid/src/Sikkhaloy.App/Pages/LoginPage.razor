@@ -132,7 +132,7 @@
     {
         if (Session.IsAuthenticated)
         {
-            Nav.NavigateTo("/dashboard", replace: true);
+            Nav.NavigateTo(Session.HomePath, replace: true);
             return;
         }
 
@@ -176,12 +176,18 @@
             }
             catch (Exception)
             {
-                result = new LoginResponse { Succeeded = false };
+                result = new LoginResponse { Succeeded = false, Error = "login.needOnline" };
                 apiUp = false;
             }
 
             if (!result.Succeeded || result.Session is null)
             {
+                if (apiUp)
+                {
+                    message = TranslateError(result.Error);
+                    return;
+                }
+
                 result = await OfflineAuth.TryOfflineLoginAsync(model.UserName.Trim(), model.Password);
                 if (!result.Succeeded && result.Error == "login.firstOnline")
                     result.Error = "login.needOnline";
@@ -195,10 +201,10 @@
 
             await SaveRememberAsync();
             Session.Set(result);
-            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            if (!Session.IsAuthority && !string.IsNullOrWhiteSpace(Session.AccessToken))
                 await Sync.RunOnceAsync(result.Session, Session.AccessToken, force: true);
 
-            Nav.NavigateTo("/dashboard");
+            Nav.NavigateTo(Session.HomePath);
         }
         catch (Exception ex)
         {
@@ -207,9 +213,9 @@
             {
                 await SaveRememberAsync();
                 Session.Set(offline);
-                if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                if (!Session.IsAuthority && !string.IsNullOrWhiteSpace(Session.AccessToken))
                     await Sync.RunOnceAsync(offline.Session, Session.AccessToken, force: true);
-                Nav.NavigateTo("/dashboard");
+                Nav.NavigateTo(Session.HomePath);
                 return;
             }
 

@@ -7,6 +7,13 @@
 @inject OfflineAuthService OfflineAuth
 @inject ISyncApiClient Api
 
+@if (Session.IsAuthority)
+{
+    <div class="year-loading">@Locale.T("auth.redirect")</div>
+}
+else
+{
+<CascadingValue Name="AppLang" Value="@Locale.Code" IsFixed="false">
 <div class="app-shell">
     @if (menuOpen)
     {
@@ -32,14 +39,17 @@
                 @if (profileMenuOpen)
                 {
                     <div class="sidebar-user-menu">
-                        <a href="profile/update-info" @onclick="CloseProfileMenu">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
-                            @Locale.T("profile.updateInfo")
-                        </a>
-                        <a href="profile/password" @onclick="CloseProfileMenu">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.7 1.4-3.1 3.1-3.1S15.1 4.3 15.1 6v2z"/></svg>
-                            @Locale.T("profile.changePassword")
-                        </a>
+                        @if (!Session.Access.IsBlocked)
+                        {
+                            <a href="profile/update-info" @onclick="CloseProfileMenu">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+                                @Locale.T("profile.updateInfo")
+                            </a>
+                            <a href="profile/password" @onclick="CloseProfileMenu">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.7 1.4-3.1 3.1-3.1S15.1 4.3 15.1 6v2z"/></svg>
+                                @Locale.T("profile.changePassword")
+                            </a>
+                        }
                     </div>
                 }
             </p>
@@ -56,10 +66,31 @@
             </select>
         </div>
         <div class="sidebar-scroll" @onclick="CloseProfileMenu">
-            <SidebarMenu Menu="menu" />
+            @if (Session.Access.IsBlocked)
+            {
+                <nav class="sidebar-nav">
+                    <NavLink href="invoice/due" Match="NavLinkMatch.Prefix" class="menu-top">
+                        <svg class="menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="2.5" y="6" width="19" height="13" rx="2"/><path d="M2.5 10h19"/><circle cx="16.5" cy="15.2" r="1.4"/>
+                        </svg>
+                        <span>@Locale.T("inv.dueTitle")</span>
+                    </NavLink>
+                </nav>
+            }
+            else
+            {
+                <SidebarMenu Menu="menu" Lang="@Locale.Code" />
+            }
         </div>
     </aside>
     <div class="app-main">
+        @if (Session.IsImpersonating)
+        {
+            <div class="ax-impersonate">
+                <span>@Locale.T("auth.viewingAs", Session.Current?.SchoolName ?? "")</span>
+                <button type="button" @onclick="ReturnAuthority">@Locale.T("auth.backAuthority")</button>
+            </div>
+        }
         <header class="app-header">
             <button type="button" class="menu-toggle" aria-label="@Locale.T("nav.menu")" @onclick="ToggleMenu">
                 <span></span><span></span><span></span>
@@ -74,7 +105,7 @@
                     <span class="header-logo header-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
                 }
                 <div class="header-ins">
-                    <a class="header-name" href="dashboard">
+                    <a class="header-name" href="@(Session.Access.IsBlocked ? "invoice/due" : "dashboard")">
                         @schoolName
                         @if (!string.IsNullOrWhiteSpace(yearName))
                         {
@@ -124,18 +155,52 @@
                 </button>
             </div>
         </header>
+        @if (adminNotices.Count > 0)
+        {
+            <button type="button" class="admin-notice no-print" @onclick="OpenAdminNotice">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 10v4h3l7 4V6L7 10H4zm13.5-1.8v7.6A4.2 4.2 0 0 0 17.5 8.2z"/></svg>
+                <span class="admin-notice-clip">
+                    <span class="admin-notice-marquee" style="--an-speed:@MarqueeDuration">
+                        <span>@NoticeMarquee</span>
+                        <span aria-hidden="true">@NoticeMarquee</span>
+                    </span>
+                </span>
+            </button>
+        }
         <main class="app-content">
             @if (yearBusy)
             {
                 <div class="year-loading">@Locale.T("sidebar.yearLoading")</div>
             }
-            <CascadingValue Name="AppLang" Value="@Locale.Code">
-                @Body
-            </CascadingValue>
+            @Body
         </main>
     </div>
     <GoToTop />
 </div>
+@if (showAdminNotice)
+{
+    <div class="acc-result-back" @onclick="CloseAdminNotice">
+        <div class="acc-result is-ok sms-modal ad-pop ad-pop-wide an-view" @onclick:stopPropagation="true">
+            <h3>@Locale.T("an.viewTitle")</h3>
+            <div class="an-view-list">
+                @foreach (var item in adminNotices)
+                {
+                    <article class="an-view-card">
+                        @if (!string.IsNullOrWhiteSpace(item.Title))
+                        {
+                            <strong>@item.Title</strong>
+                        }
+                        <small>@Locale.T("an.viewDate", FmtDate(item.ShowDate), FmtDate(item.EndDate))</small>
+                        <p>@item.Notice</p>
+                    </article>
+                }
+            </div>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="CloseAdminNotice">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+</CascadingValue>
+}
 
 @code {
     private bool online;
@@ -143,6 +208,9 @@
     private bool yearBusy;
     private bool profileMenuOpen;
     private bool menuOpen;
+    private bool enforcingAccess;
+    private bool showAdminNotice;
+    private DateTime accessAt;
     private string selectedYearId = "0";
     private string? photoUrl;
     private string? logoUrl;
@@ -151,6 +219,7 @@
     private string schoolPhone = "";
     private string schoolEmail = "";
     private IReadOnlyList<EducationYearDto> years = [];
+    private IReadOnlyList<AuthNoticeDto> adminNotices = [];
     private MenuTreeDto menu = new();
 
     private string displayName =>
@@ -201,6 +270,12 @@
             return;
         }
 
+        if (Session.IsAuthority)
+        {
+            Nav.NavigateTo("/authority", replace: true);
+            return;
+        }
+
         Sync.StateChanged += OnSyncState;
         Locale.Changed += OnLocale;
         Session.Changed += OnSession;
@@ -219,6 +294,9 @@
     private void OnSession() => _ = InvokeAsync(LoadOfficeAsync);
     private void OnLocation(object? sender, LocationChangedEventArgs e)
     {
+        EnforceAccess();
+        if ((DateTime.UtcNow - accessAt).TotalSeconds > 30)
+            _ = InvokeAsync(RefreshAccessAsync);
         if (!menuOpen)
             return;
         _ = InvokeAsync(() =>
@@ -226,6 +304,49 @@
             menuOpen = false;
             StateHasChanged();
         });
+    }
+
+    private async Task RefreshAccessAsync()
+    {
+        if (SkipAccessRole())
+        {
+            Session.SetAccess(new());
+            return;
+        }
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+                return;
+            Session.SetAccess(await Api.GetSubscriptionStatusAsync(Session.AccessToken!));
+            accessAt = DateTime.UtcNow;
+            EnforceAccess();
+        }
+        catch
+        {
+        }
+    }
+
+    private void EnforceAccess()
+    {
+        if (!Session.Access.IsBlocked || enforcingAccess)
+            return;
+        var path = Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
+        if (IsInvoiceDuePath(path))
+            return;
+        enforcingAccess = true;
+        Nav.NavigateTo("/invoice/due", replace: true);
+        enforcingAccess = false;
+    }
+
+    private static bool IsInvoiceDuePath(string path) =>
+        path.Equals("invoice", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("invoice/due", StringComparison.OrdinalIgnoreCase);
+
+    private bool SkipAccessRole()
+    {
+        var role = Session.Current?.Role ?? "";
+        return role.Equals("Authority", StringComparison.OrdinalIgnoreCase)
+            || role.Equals("Sub-Authority", StringComparison.OrdinalIgnoreCase);
     }
 
     private void ToggleMenu() => menuOpen = !menuOpen;
@@ -251,7 +372,23 @@
         selectedYearId = Session.Current.EducationYearID.ToString();
         photoUrl = Sync.GetProfilePhotoDataUrl(Session.Current.RegistrationID);
         LoadSchoolHeader();
+        await RefreshAccessAsync();
+        await LoadAdminNoticesAsync();
         StateHasChanged();
+    }
+
+    private async Task LoadAdminNoticesAsync()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+                return;
+            adminNotices = await Api.GetAdminNoticesAsync(Session.AccessToken!);
+        }
+        catch
+        {
+            adminNotices = [];
+        }
     }
 
     private void LoadSchoolHeader()
@@ -323,10 +460,41 @@
 
     private void CloseProfileMenu() => profileMenuOpen = false;
 
+    private string NoticeMarquee =>
+        string.Join("        •        ",
+            adminNotices
+                .Select(n => string.IsNullOrWhiteSpace(n.Notice) ? n.Title : n.Notice.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+    private string MarqueeDuration
+    {
+        get
+        {
+            var seconds = Math.Clamp(NoticeMarquee.Length * 0.08, 18, 90);
+            return $"{seconds:0}s";
+        }
+    }
+
+    private void OpenAdminNotice()
+    {
+        CloseProfileMenu();
+        showAdminNotice = true;
+    }
+
+    private void CloseAdminNotice() => showAdminNotice = false;
+
+    private static string FmtDate(DateTime? value) => value is DateTime d ? d.ToString("d MMM yyyy") : "";
+
     private void Logout()
     {
         Session.Clear();
         Nav.NavigateTo("/", replace: true);
+    }
+
+    private void ReturnAuthority()
+    {
+        if (Session.ReturnToAuthority())
+            Nav.NavigateTo("/authority", replace: true);
     }
 
     public void Dispose()

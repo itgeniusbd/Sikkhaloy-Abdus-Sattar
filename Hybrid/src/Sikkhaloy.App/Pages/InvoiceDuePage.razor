@@ -1,0 +1,260 @@
+@page "/invoice"
+@page "/invoice/due"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page inv-page">
+    <div class="filter-row no-print">
+        <h1>@Locale.T("inv.dueTitle")</h1>
+        @if (due.HasDue)
+        {
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("inv.print")</button>
+        }
+    </div>
+    @if (due.LocalMode)
+    {
+        <div class="sms-local-note no-print">@Locale.T("inv.localNote")</div>
+    }
+
+    @if (!due.HasDue)
+    {
+        <h4 class="inv-empty">@Locale.T("inv.emptyDue")</h4>
+    }
+    else
+    {
+        <div class="inv-wraper">
+            <div class="inv-inst">
+                <img src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="SIKKHALOY" />
+                <div>
+                    <h2>SIKKHALOY</h2>
+                    <small>@Locale.T("inv.tagline")</small>
+                </div>
+            </div>
+            <div class="inv-title"><b>@Locale.T("inv.invoice")</b></div>
+            <div class="inv-to">
+                <h2>@Locale.T("inv.invoiceTo")</h2>
+                <h5>@due.SchoolName</h5>
+                <p>@due.Address</p>
+                <p>@due.Phone</p>
+            </div>
+            <table class="inv-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("inv.sn")</th>
+                        <th>@Locale.T("inv.desc")</th>
+                        <th class="text-right">@Locale.T("inv.unit")</th>
+                        <th class="text-right">@Locale.T("inv.unitPrice")</th>
+                        <th class="text-right">@Locale.T("inv.lineTotal")</th>
+                        @if (due.ShowDiscount) { <th class="text-right">@Locale.T("inv.discount")</th> }
+                        @if (due.ShowPaid) { <th class="text-right">@Locale.T("inv.paid")</th> }
+                        <th class="text-right">@Locale.T("inv.due")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @{ var sn = 0; }
+                @foreach (var line in due.Lines)
+                {
+                    sn++;
+                    <tr>
+                        <td>@sn</td>
+                        <td>@line.InvoiceCategory (@line.InvoiceFor)</td>
+                        <td class="text-right">@Tk(line.Unit)</td>
+                        <td class="text-right">@Tk(line.UnitPrice)</td>
+                        <td class="text-right">@Tk(line.TotalAmount)</td>
+                        @if (due.ShowDiscount) { <td class="text-right">@Tk(line.Discount)</td> }
+                        @if (due.ShowPaid) { <td class="text-right">@Tk(line.PaidAmount)</td> }
+                        <td class="text-right">@Tk(line.Due)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="inv-bottom">
+                <div class="inv-payinfo">
+                    <h4>@Locale.T("inv.thankYou")</h4>
+                    <h5>@Locale.T("inv.payMethod")</h5>
+                    <table>
+                        <tr><td>@Locale.T("inv.bankName")</td><td>Eastern Bank PLC</td></tr>
+                        <tr><td>@Locale.T("inv.accountName")</td><td>IT Genius</td></tr>
+                        <tr><td>@Locale.T("inv.accountNo")</td><td>10510.7000.1333</td></tr>
+                        <tr><td>@Locale.T("inv.branch")</td><td>Sonargaon Branch</td></tr>
+                        <tr><td>@Locale.T("inv.routing")</td><td>095276586</td></tr>
+                        <tr><td>@Locale.T("inv.rocket")</td><td>01739144141-6</td></tr>
+                        <tr><td>@Locale.T("inv.bkash")</td><td>+880 1712-674118</td></tr>
+                    </table>
+                </div>
+                <div class="inv-totals">
+                    <table class="inv-gt">
+                        <tr><td>@Locale.T("inv.total"):</td><td>@Tk(due.GrandTotal) @Locale.T("inv.tk")</td></tr>
+                        @if (due.ShowDiscount)
+                        {
+                            <tr><td>@Locale.T("inv.discount"):</td><td>@Tk(due.Discount) @Locale.T("inv.tk")</td></tr>
+                        }
+                    </table>
+                    <div class="inv-grand">
+                        <table>
+                            <tr><td>@Locale.T("inv.due"):</td><td>@Tk(due.Due) @Locale.T("inv.tk")</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="inv-online no-print">
+                <h5>@Locale.T("inv.payOnline")</h5>
+                <p>@Locale.T("inv.payHint")</p>
+                <button type="button" class="inv-pay-btn" disabled="@busy" @onclick="PayAsync">@Locale.T("inv.payBtn")</button>
+                <small>@Locale.T("inv.powered")</small>
+            </div>
+            <div class="inv-signs">
+                <div>@Locale.T("inv.signRecv")</div>
+                <div>@Locale.T("inv.signAmt")</div>
+                <div>@Locale.T("inv.signAuth")</div>
+            </div>
+            <div class="inv-footer">
+                <div class="inv-footer-bar"></div>
+                <div class="inv-footer-row">
+                    <span>01739144141</span>
+                    <span>IT Genius, House # 6, Road # 9, Block # D, Bosila Garden City, Mohammadpur, Dhaka-1207</span>
+                    <span>www.itgenius.com.bd</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <div class="inv-modal-back no-print" @onclick="() => showModal = false">
+        <div class="inv-modal @(due.IsBlocked ? "is-block" : "is-warn")" @onclick:stopPropagation="true">
+            <div class="inv-modal-head">
+                <h4>@(due.IsBlocked ? Locale.T("inv.blockedTitle") : Locale.T("inv.deadlineTitle"))</h4>
+                <button type="button" class="inv-modal-x" @onclick="() => showModal = false">&times;</button>
+            </div>
+            <div class="inv-modal-body">
+                @if (due.IsBlocked)
+                {
+                    <p>@Locale.T("inv.blockedBody")</p>
+                }
+                else
+                {
+                    <p class="inv-days">@DaysText()</p>
+                    <p>@Locale.T("inv.deadlineBody")</p>
+                }
+                <div class="inv-due-box">
+                    @if (due.GatewayCharge > 0)
+                    {
+                        @Locale.T("inv.dueBoxGw", Tk(due.Due), Tk(due.GatewayCharge), Tk(due.TotalPayable))
+                    }
+                    else
+                    {
+                        @Locale.T("inv.dueBox", Tk(due.Due))
+                    }
+                </div>
+            </div>
+            <div class="inv-modal-foot">
+                <button type="button" class="inv-pay-btn" disabled="@busy" @onclick="PayAsync">@Locale.T("inv.payBtn")</button>
+                <small>@Locale.T("inv.powered")</small>
+            </div>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private DueInvoiceDto due = new();
+    private bool busy, popupError, showModal;
+    private string? popupText, busyTitle;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        busyTitle = Locale.T("inv.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                popupError = true;
+                return;
+            }
+            due = await Api.GetDueInvoiceAsync(Session.AccessToken!);
+            showModal = due.IsBlocked;
+        }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
+        finally { busy = false; }
+    }
+
+    private async Task PayAsync()
+    {
+        if (!due.HasDue || due.Due <= 0)
+        {
+            popupText = Locale.T("inv.noDue");
+            popupError = true;
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("inv.confirmPay")))
+            return;
+        showModal = false;
+        busyTitle = Locale.T("inv.paying");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                popupError = true;
+                return;
+            }
+            var result = await Api.PayDueInvoiceAsync(Session.AccessToken!);
+            if (result.Succeeded && result.LocalMode && string.IsNullOrWhiteSpace(result.CheckoutUrl))
+            {
+                popupText = Locale.T("inv.localNote");
+                popupError = false;
+                return;
+            }
+            if (!result.Succeeded || string.IsNullOrWhiteSpace(result.CheckoutUrl))
+            {
+                popupText = FormatErr(result.Error);
+                popupError = true;
+                return;
+            }
+            await JS.InvokeVoidAsync("sikkhaloyOpenUrl", result.CheckoutUrl);
+            popupText = Locale.T("inv.payOpened");
+            popupError = false;
+        }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "8mm 5mm").AsTask();
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private string DaysText()
+    {
+        var days = due.DaysUntilExpiry;
+        if (days == 0) return Locale.T("inv.days0");
+        if (days == 1) return Locale.T("inv.days1");
+        if (days > 1) return Locale.T("inv.daysN", days);
+        return Locale.T("inv.deadlineTitle");
+    }
+    private string FormatErr(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error)) return Locale.T("inv.payFail");
+        return error.StartsWith("inv.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    }
+}

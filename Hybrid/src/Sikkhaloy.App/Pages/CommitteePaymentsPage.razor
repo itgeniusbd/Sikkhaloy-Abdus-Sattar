@@ -1,0 +1,127 @@
+@page "/committee/payments"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page committee-page">
+    <h1 class="no-print">@Locale.T("cm.payments")</h1>
+    <div class="filter-row no-print">
+        <select @bind="yearId" disabled="@busy">
+            <option value="0">@Locale.T("cm.allSession")</option>
+            @foreach (var item in lookups.Years)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <select @bind="categoryId" disabled="@busy">
+            <option value="0">@Locale.T("cm.allCat")</option>
+            @foreach (var item in lookups.Categories)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <select @bind="memberId" disabled="@busy">
+            <option value="0">@Locale.T("cm.all")</option>
+            @foreach (var item in lookups.Members)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <input type="date" @bind="fromDate" disabled="@busy" />
+        <input type="date" @bind="toDate" disabled="@busy" />
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("cm.find")</button>
+        <button type="button" class="acc-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("cm.print")</button>
+    </div>
+    <PrintHeader Subtitle="@Locale.T("cm.payments")" />
+    <div class="cm-totals">@Locale.T("cm.total"): @Tk(list.Total) @Locale.T("cm.tk")</div>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("cm.receiptNo")</th>
+                <th>@Locale.T("cm.name")</th>
+                <th>@Locale.T("cm.memberType")</th>
+                <th>@Locale.T("cm.sms")</th>
+                <th>@Locale.T("cm.account")</th>
+                <th>@Locale.T("cm.details")</th>
+                <th>@Locale.T("cm.total")</th>
+                <th>@Locale.T("cm.paidDate")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (list.Rows.Count == 0)
+        {
+            <tr><td colspan="8" class="empty-row">@Locale.T("cm.emptyPayments")</td></tr>
+        }
+        @foreach (var row in list.Rows)
+        {
+            <tr>
+                <td><a href="@($"committee/receipt/{row.CommitteeMoneyReceiptId}")">@row.CommitteeMoneyReceiptSn</a></td>
+                <td>@row.MemberName</td>
+                <td>@row.MemberType</td>
+                <td>@row.SmsNumber</td>
+                <td>@row.AccountName</td>
+                <td class="cm-details">@row.Details</td>
+                <td>@Tk(row.TotalAmount)</td>
+                <td>@(row.PaidDate?.ToString("d MMM yyyy"))</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private CommitteeLookupsDto lookups = new();
+    private PaymentRecordListDto list = new();
+    private int yearId, categoryId, memberId;
+    private DateTime? fromDate, toDate;
+    private bool busy, popupError;
+    private string busyTitle = "", popupText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        yearId = Session.Current?.EducationYearID ?? 0;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            lookups = await Api.GetCommitteeLookupsAsync(Session.AccessToken!);
+            list = await Api.GetCommitteePaymentsAsync(Session.AccessToken!, yearId, categoryId, memberId, fromDate, toDate);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint").AsTask();
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

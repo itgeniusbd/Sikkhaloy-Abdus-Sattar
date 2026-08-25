@@ -1,0 +1,200 @@
+@page "/sms/recharge"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page sms-page sms-recharge-page">
+    <h1>@Locale.T("sms.rechargeTitle")</h1>
+    @if (sheet.LocalMode)
+    {
+        <div class="sms-local-note">@Locale.T("sms.localNote")</div>
+    }
+    <div class="sms-info-box">@Locale.T("sms.rechargeInfo")</div>
+    <div class="sms-balance-card">
+        <p>@Locale.T("sms.currentBalance")</p>
+        <h2>@sheet.Balance</h2>
+    </div>
+    <div class="sms-recharge-form">
+        <h3>@Locale.T("sms.rechargeNow")</h3>
+        <div class="filter-row">
+            <input type="number" min="1" placeholder="@Locale.T("sms.qtyHint")" @bind="qty" @bind:event="oninput" disabled="@busy" />
+            @if (qty > 0)
+            {
+                <span class="sms-cost">@Locale.T("sms.costLine", Invoice.ToString("0.00"), Gateway.ToString("0.00"), Payable.ToString("0.00"))</span>
+            }
+            <button type="button" class="acc-btn acc-btn-primary sms-pay-btn" disabled="@(busy || qty <= 0)" @onclick="PayAsync">@Locale.T("sms.payOnline")</button>
+        </div>
+        <p class="muted">@Locale.T("sms.rateNote")</p>
+    </div>
+
+    <h3>@Locale.T("sms.history")</h3>
+    <table class="mgrid">
+        <thead>
+            <tr>
+                <th>@Locale.T("sms.qty")</th>
+                <th>@Locale.T("sms.perSms")</th>
+                <th>@Locale.T("sms.totalPrice")</th>
+                <th>@Locale.T("sms.date")</th>
+                <th>@Locale.T("sms.recharger")</th>
+                <th>@Locale.T("sms.payStatus")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (sheet.History.Count == 0)
+        {
+            <tr><td colspan="6" class="empty-row">@Locale.T("sms.empty")</td></tr>
+        }
+        @foreach (var row in sheet.History)
+        {
+            <tr>
+                <td>@row.RechargeSMS</td>
+                <td>@row.PerSMS_Price.ToString("0.00")</td>
+                <td>@row.Total_Price.ToString("0.00")</td>
+                <td>@row.Date.ToString("d MMM yyyy")</td>
+                <td>@row.UserName</td>
+                <td>
+                    @if (row.Is_Paid)
+                    {
+                        <span class="sms-badge-paid">@Locale.T("sms.paid")</span>
+                    }
+                    else
+                    {
+                        <span class="sms-badge-due">@Locale.T("sms.unpaid")</span>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @if (sheet.DueInvoices.Count > 0)
+    {
+        <h3>@Locale.T("sms.dueInvoice")</h3>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("sms.invoiceNo")</th>
+                    <th>@Locale.T("sms.details")</th>
+                    <th>@Locale.T("sms.qty")</th>
+                    <th>@Locale.T("sms.perSms")</th>
+                    <th>@Locale.T("sms.total")</th>
+                    <th>@Locale.T("sms.paidAmt")</th>
+                    <th>@Locale.T("sms.due")</th>
+                    <th>@Locale.T("sms.issueDate")</th>
+                    <th>@Locale.T("sms.endDate")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in sheet.DueInvoices)
+            {
+                <tr>
+                    <td>@row.Invoice_SN</td>
+                    <td>@row.Invoice_For</td>
+                    <td>@row.Unit.ToString("0")</td>
+                    <td>@row.UnitPrice.ToString("0.00")</td>
+                    <td>@row.TotalAmount.ToString("0.00")</td>
+                    <td>@row.PaidAmount.ToString("0.00")</td>
+                    <td>@row.Due.ToString("0.00")</td>
+                    <td>@row.IssuDate?.ToString("d MMM yyyy")</td>
+                    <td>@row.EndDate?.ToString("d MMM yyyy")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private SmsRechargePageDto sheet = new();
+    private int qty;
+    private bool busy, popupError;
+    private string? popupText, busyTitle;
+
+    private decimal Invoice => qty * sheet.PerSmsRate;
+    private decimal Gateway => Math.Round(Invoice / 1000m * 19m, 2);
+    private decimal Payable => Invoice + Gateway;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        busyTitle = Locale.T("sms.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                popupError = true;
+                return;
+            }
+            sheet = await Api.GetSmsRechargeAsync(Session.AccessToken!);
+        }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
+        finally { busy = false; }
+    }
+
+    private async Task PayAsync()
+    {
+        if (qty <= 0)
+        {
+            popupText = Locale.T("sms.needQty");
+            popupError = true;
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sms.confirmPay")))
+            return;
+        busyTitle = Locale.T("sms.paying");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                popupError = true;
+                return;
+            }
+            var result = await Api.StartSmsRechargeAsync(Session.AccessToken!, new SmsRechargeRequest { Quantity = qty });
+            if (result.Succeeded && result.LocalMode && string.IsNullOrWhiteSpace(result.CheckoutUrl))
+            {
+                popupText = Locale.T("sms.localPay");
+                popupError = false;
+                return;
+            }
+            if (!result.Succeeded || string.IsNullOrWhiteSpace(result.CheckoutUrl))
+            {
+                popupText = FormatErr(result.Error);
+                popupError = true;
+                return;
+            }
+            await JS.InvokeVoidAsync("sikkhaloyOpenUrl", result.CheckoutUrl);
+            popupText = Locale.T("sms.payOpened");
+            popupError = false;
+        }
+        catch (Exception ex) { popupText = ex.Message; popupError = true; }
+        finally { busy = false; }
+    }
+
+    private string FormatErr(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return Locale.T("sms.payFail");
+        return error.StartsWith("sms.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    }
+}

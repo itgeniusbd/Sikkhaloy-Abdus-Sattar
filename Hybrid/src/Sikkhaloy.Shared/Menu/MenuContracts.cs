@@ -857,9 +857,293 @@ public static class HybridMenuRoutes
             return;
         }
 
+        if (lower.Contains("cumulative_setting.aspx")
+            || title.Equals("Publish Cumulative Result", StringComparison.OrdinalIgnoreCase)
+            || (title.Equals("Publish Result", StringComparison.OrdinalIgnoreCase) && lower.Contains("cumulative")))
+        {
+            link.Route = "/exam/cumulative-publish";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("cumulative_result.aspx")
+            || title.Equals("Cumulative Result Card", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/cumulative-result";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("cumulative_position.aspx")
+            || title.Equals("Cumulative Merit Position", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Cumulative Position", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/cumulative-merit";
+            link.Ready = true;
+            return;
+        }
+
+        if (title.Equals("Cumulative Exam", StringComparison.OrdinalIgnoreCase)
+            && !lower.Contains("exam_publish_settings.aspx")
+            && !lower.Contains("/student/"))
+        {
+            link.Route = "/exam/cumulative";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("publish_result.aspx")
+            || title.Equals("Publish Result", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/publish";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("individual_result_for_class.aspx")
+            || title.Equals("Result Card", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("English Result Card", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/result-card";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("examposition_subject.aspx")
+            || title.Equals("Merit List of Subject", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Subject Merit List", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/merit-subject";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("examposition.aspx")
+            || title.Equals("Merit List", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Exam Position", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/merit";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("banglaresult.aspx")
+            || lower.Contains("exmampositionbangla.aspx")
+            || title.Contains("result card (bangla)", StringComparison.OrdinalIgnoreCase)
+            || title.Contains("merit list (madrasa)", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("বাংলা রেজাল্ট কার্ড", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/merit-madrasa";
+            link.Title = "Merit List (Madrasa)";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("analytical_smart_result.aspx")
+            || title.Equals("Analytical Result", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Analytical Smart Result", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/analytical";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("delete_exam_and_result.aspx")
+            || title.Equals("Delete Result", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Delete Exam & Result", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/delete-result";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("seatplan")
+            || title.Equals("Seat Plan", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("সিট প্ল্যান", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("আসন বিন্যাস", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/seat-plan";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("admit_card")
+            || lower.Contains("admitcard")
+            || title.Equals("Admit Card", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("অ্যাডমিট কার্ড", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("প্রবেশপত্র", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/exam/admit-card";
+            link.Ready = true;
+            return;
+        }
+
         if (title.Equals("Exam Setting", StringComparison.OrdinalIgnoreCase))
         {
             link.Route = "/exam/setting";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("send_sms.aspx") && !lower.Contains("others")
+            || title.Equals("Send SMS", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/sms/send";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("send_sms_to_others.aspx")
+            || title.Equals("Send SMS From Contact List", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Send SMS to Others", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/sms/contacts";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("sent_sms_records.aspx")
+            || title.Equals("SMS Sent Records", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Sent SMS Records", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/sms/records";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("sms_recharge.aspx")
+            || title.Equals("SMS Recharge", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/sms/recharge";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("create_routines_for_classes.aspx")
+            || title.Equals("Create Routine", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/routine/create";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("assign_teacher_and_subject")
+            || title.Equals("Assign Routine", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Assign Teacher", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/routine/assign";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("modify_routine.aspx")
+            || title.Equals("Edit Routine", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Modify Routine", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/routine/edit";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("class_routine.aspx")
+            || title.Equals("Class Routine", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/routine/class";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("exam_routine_bangla.aspx")
+            || title.Contains("পরীক্ষার রুটিন", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Exam Routine Bangla", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/routine/exam-bn";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("exam_routine.aspx")
+            || title.Equals("Exam Routine", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/routine/exam";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("memberadd.aspx")
+            || title.Equals("Add Member", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/members";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("donationcategory.aspx")
+            || title.Equals("Add Donation Category", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Donation Category", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/categories";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("donationadd.aspx")
+            || title.Equals("Add Donation", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/donation-add";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("donations.aspx")
+            || title.Equals("Donations", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/donations";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("donationcollect.aspx")
+            || title.Equals("Collect Donation", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Donation Collect", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/collect";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("paymentrecord.aspx")
+            || title.Equals("Payment Record", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/payments";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("unpaidreceipt.aspx")
+            || title.Equals("Unpaid Receipt", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Unpaid Money Receipt", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/unpaid";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("due_invoice.aspx")
+            || title.Equals("Due Invoice", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("SIKKHALOY INVOICE", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/invoice/due";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("invoice_list.aspx")
+            || lower.Contains("paid_receipt.aspx")
+            || title.Equals("Paid Invoice", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Paid Invoice List", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/invoice/paid";
             link.Ready = true;
             return;
         }
@@ -872,11 +1156,65 @@ public static class HybridMenuRoutes
     {
         foreach (var category in tree.Categories)
         {
+            category.Links.RemoveAll(IsTemporarilyHidden);
+            EnsureInputExamMarks(category.Links);
             Deduplicate(category.Links);
+            category.Subs.RemoveAll(IsTemporarilyHiddenSub);
             foreach (var sub in category.Subs)
+            {
+                sub.Links.RemoveAll(IsTemporarilyHidden);
+                EnsureInputExamMarks(sub.Links);
                 Deduplicate(sub.Links);
+            }
+
+            category.Subs.RemoveAll(sub => sub.Links.Count == 0);
         }
     }
+
+    private static void EnsureInputExamMarks(List<MenuLinkDto> links)
+    {
+        if (links.Any(link => RouteIs(link, "/exam/input")))
+            return;
+
+        var collectAt = links.FindIndex(link => RouteIs(link, "/exam/collect-paper"));
+        var checkAt = links.FindIndex(link => RouteIs(link, "/exam/marks-check"));
+        if (collectAt < 0 && checkAt < 0)
+            return;
+
+        var insertAt = collectAt >= 0 ? collectAt + 1 : checkAt;
+        links.Insert(insertAt, new MenuLinkDto
+        {
+            Title = "Input Exam Marks",
+            PageUrl = "Exam/Input_Exam_Marks.aspx",
+            Route = "/exam/input",
+            Ready = true,
+            Sort = insertAt
+        });
+    }
+
+    private static bool RouteIs(MenuLinkDto link, string route) =>
+        (link.Route ?? "").Trim().Equals(route, StringComparison.OrdinalIgnoreCase);
+
+    private static readonly HashSet<string> HiddenSubs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Weekly Exam",
+        "Input Marks",
+        "Edit Marks",
+        "Results"
+    };
+
+    private static readonly HashSet<string> HiddenTitles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Weekly Exam",
+        "Input Marks",
+        "Edit Marks"
+    };
+
+    private static bool IsTemporarilyHiddenSub(MenuSubDto sub) =>
+        HiddenSubs.Contains((sub.Name ?? "").Trim());
+
+    private static bool IsTemporarilyHidden(MenuLinkDto link) =>
+        HiddenTitles.Contains((link.Title ?? "").Trim());
 
     private static void Deduplicate(List<MenuLinkDto> links)
     {

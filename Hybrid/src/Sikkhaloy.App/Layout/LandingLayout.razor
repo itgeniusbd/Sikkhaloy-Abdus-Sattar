@@ -19,7 +19,7 @@
             <LanguageSwitch />
             @if (Session.IsAuthenticated)
             {
-                <a class="land-btn land-btn-solid" href="dashboard">@Locale.T("home.goDashboard")</a>
+                <a class="land-btn land-btn-solid" href="@Session.HomeHref">@Locale.T("home.goDashboard")</a>
             }
             else
             {

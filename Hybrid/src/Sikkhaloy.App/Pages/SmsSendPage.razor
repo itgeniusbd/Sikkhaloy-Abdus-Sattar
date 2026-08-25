@@ -1,0 +1,429 @@
+@page "/sms/send"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page exam-page sms-page">
+    <h1>@Locale.T("sms.sendTitle", balance)</h1>
+    @if (localMode)
+    {
+        <div class="sms-local-note no-print">@Locale.T("sms.localNote")</div>
+    }
+    <div class="sms-template-bar no-print">
+        <span>@Locale.T("sms.templateHint")</span>
+    </div>
+    <div class="sms-modes no-print">
+        <label class="@(mode == "selected" ? "is-on" : null)">
+            <input type="radio" name="sms-mode" checked="@(mode == "selected")" @onchange="@(() => SetMode("selected"))" disabled="@busy" />
+            <span>@Locale.T("sms.modeSelected")</span>
+        </label>
+        <label class="@(mode == "all" ? "is-on" : null)">
+            <input type="radio" name="sms-mode" checked="@(mode == "all")" @onchange="@(() => SetMode("all"))" disabled="@busy" />
+            <span>@Locale.T("sms.modeAll")</span>
+        </label>
+        <label class="@(mode == "numbers" ? "is-on" : null)">
+            <input type="radio" name="sms-mode" checked="@(mode == "numbers")" @onchange="@(() => SetMode("numbers"))" disabled="@busy" />
+            <span>@Locale.T("sms.modeNumbers")</span>
+        </label>
+        <label class="@(mode == "teachers" ? "is-on" : null)">
+            <input type="radio" name="sms-mode" checked="@(mode == "teachers")" @onchange="@(() => SetMode("teachers"))" disabled="@busy" />
+            <span>@Locale.T("sms.modeTeachers")</span>
+        </label>
+        <label class="@(mode == "committee" ? "is-on" : null)">
+            <input type="radio" name="sms-mode" checked="@(mode == "committee")" @onchange="@(() => SetMode("committee"))" disabled="@busy" />
+            <span>@Locale.T("sms.modeCommittee")</span>
+        </label>
+    </div>
+
+    @if (mode == "selected")
+    {
+        <div class="filter-row no-print">
+            <select @bind="classInput" @bind:after="OnClassAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+            @if (groups.Count > 0)
+            {
+                <select @bind="groupInput" @bind:after="LoadStudentsAsync" disabled="@busy">
+                    <option value="0">@Locale.T("sms.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (sections.Count > 0)
+            {
+                <select @bind="sectionInput" @bind:after="LoadStudentsAsync" disabled="@busy">
+                    <option value="0">@Locale.T("sms.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            @if (shifts.Count > 0)
+            {
+                <select @bind="shiftInput" @bind:after="LoadStudentsAsync" disabled="@busy">
+                    <option value="0">@Locale.T("sms.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            }
+            <textarea class="sms-ids" rows="1" placeholder="@Locale.T("sms.idHint")" @bind="findIds" disabled="@busy"></textarea>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindIdsAsync">@Locale.T("si.find")</button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" checked="@AllStudentsOn" @onchange="ToggleStudents" disabled="@busy" /></th>
+                    <th>@Locale.T("exam.id")</th>
+                    <th>@Locale.T("exam.roll")</th>
+                    <th>@Locale.T("exam.class")</th>
+                    <th>@Locale.T("exam.name")</th>
+                    <th>@Locale.T("sms.gender")</th>
+                    <th>@Locale.T("sms.religion")</th>
+                    <th>@Locale.T("sms.phone")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (students.Count == 0)
+            {
+                <tr><td colspan="8" class="empty-row">@Locale.T("sms.empty")</td></tr>
+            }
+            @foreach (var row in students)
+            {
+                <tr>
+                    <td><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                    <td>@row.ID</td>
+                    <td>@row.RollNo</td>
+                    <td>@row.ClassName</td>
+                    <td>@row.Name</td>
+                    <td>@row.Gender</td>
+                    <td>@row.Religion</td>
+                    <td>@row.Phone</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else if (mode == "numbers")
+    {
+        <div class="filter-row no-print">
+            <input type="text" placeholder="@Locale.T("sms.mobileHint")" @bind="phones" disabled="@busy" />
+        </div>
+    }
+    else if (mode == "teachers")
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" checked="@AllTeachersOn" @onchange="ToggleTeachers" disabled="@busy" /></th>
+                    <th>@Locale.T("exam.id")</th>
+                    <th>@Locale.T("exam.name")</th>
+                    <th>@Locale.T("sms.designation")</th>
+                    <th>@Locale.T("sms.phone")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (teachers.Count == 0)
+            {
+                <tr><td colspan="5" class="empty-row">@Locale.T("sms.empty")</td></tr>
+            }
+            @foreach (var row in teachers)
+            {
+                <tr>
+                    <td><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                    <td>@row.ID</td>
+                    <td>@row.Name</td>
+                    <td>@row.Designation</td>
+                    <td>@row.Phone</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else if (mode == "committee")
+    {
+        <div class="filter-row no-print">
+            <select @bind="committeeTypeInput" @bind:after="LoadCommitteeAsync" disabled="@busy">
+                <option value="0">@Locale.T("sms.allCommittee")</option>
+                @foreach (var item in committeeTypes)
+                {
+                    <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+                }
+            </select>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadCommitteeAsync">@Locale.T("si.find")</button>
+        </div>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" checked="@AllCommitteeOn" @onchange="ToggleCommittee" disabled="@busy" /></th>
+                    <th>@Locale.T("cm.name")</th>
+                    <th>@Locale.T("cm.memberType")</th>
+                    <th>@Locale.T("cm.phone")</th>
+                    <th>@Locale.T("cm.status")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (committee.Count == 0)
+            {
+                <tr><td colspan="5" class="empty-row">@Locale.T("sms.empty")</td></tr>
+            }
+            @foreach (var row in committee)
+            {
+                <tr>
+                    <td><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                    <td>@row.MemberName</td>
+                    <td>@row.MemberType</td>
+                    <td>@row.SmsNumber</td>
+                    <td>@row.Status</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    <div class="sms-compose no-print">
+        <p class="sms-nb">@Locale.T("sms.nb")</p>
+        <textarea rows="5" placeholder="@Locale.T("sms.writeHere")" @bind="text" @bind:event="oninput" disabled="@busy"></textarea>
+        <div class="sms-counter">@Locale.T("sms.counter", text.Length, PerMessage, MessageCount)</div>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SendAsync">@Locale.T("sms.send")</button>
+        @if (!string.IsNullOrWhiteSpace(toastText))
+        {
+            <label class="@(toastError ? "exam-input-err" : "exam-input-ok")">@toastText</label>
+        }
+    </div>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="ClosePopup">
+        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
+            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly List<SchoolClassDto> classes = [];
+    private readonly List<ClassPartDto> groups = [];
+    private readonly List<ClassPartDto> sections = [];
+    private readonly List<ClassPartDto> shifts = [];
+    private readonly List<SmsStudentDto> students = [];
+    private readonly List<SmsTeacherDto> teachers = [];
+    private readonly List<CommitteeMemberTypeDto> committeeTypes = [];
+    private readonly List<CommitteeMemberDto> committee = [];
+    private ClassStructureDto? structure;
+    private string classInput = "0", groupInput = "0", sectionInput = "0", shiftInput = "0", committeeTypeInput = "0";
+    private string mode = "selected", findIds = "", phones = "", text = "";
+    private int balance;
+    private bool busy, popupError, toastError, localMode;
+    private string? popupText, toastText, busyTitle;
+
+    private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
+    private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
+    private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
+    private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+    private int CommitteeTypeId => int.TryParse(committeeTypeInput, out var n) ? n : 0;
+    private bool Unicode => text.Any(ch => ch > 127);
+    private int PerMessage => Unicode ? 70 : 160;
+    private int MessageCount => string.IsNullOrEmpty(text) ? 0 : Math.Max(1, (int)Math.Ceiling(text.Length / (double)PerMessage));
+    private bool AllStudentsOn => students.Count > 0 && students.All(x => x.Selected);
+    private bool AllTeachersOn => teachers.Count > 0 && teachers.All(x => x.Selected);
+    private bool AllCommitteeOn => committee.Count > 0 && committee.All(x => x.Selected);
+
+    protected override Task OnInitializedAsync() => BootAsync();
+
+    private async Task BootAsync()
+    {
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var bal = await Api.GetSmsBalanceAsync(Session.AccessToken!);
+            balance = bal.Balance;
+            localMode = bal.LocalMode;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SetMode(string value)
+    {
+        mode = value;
+        students.Clear();
+        teachers.Clear();
+        committee.Clear();
+        if (mode == "teachers")
+            await LoadTeachersAsync();
+        if (mode == "committee")
+            await LoadCommitteeAsync();
+    }
+
+    private async Task OnClassAsync()
+    {
+        findIds = "";
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear(); sections.Clear(); shifts.Clear();
+        if (structure is not null && ClassId > 0)
+        {
+            var parts = structure.AssignedParts(ClassId);
+            groups.AddRange(parts.Groups);
+            sections.AddRange(parts.Sections);
+            shifts.AddRange(parts.Shifts);
+        }
+        await LoadStudentsAsync();
+    }
+
+    private async Task FindIdsAsync()
+    {
+        classInput = "0";
+        groupInput = sectionInput = shiftInput = "0";
+        groups.Clear(); sections.Clear(); shifts.Clear();
+        if (string.IsNullOrWhiteSpace(findIds)) { Show(Locale.T("sms.needId"), true); return; }
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            students.Clear();
+            students.AddRange(await Api.GetSmsStudentsAsync(Session.AccessToken!, 0, 0, 0, 0, findIds));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadStudentsAsync()
+    {
+        students.Clear();
+        if (ClassId <= 0) return;
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            students.AddRange(await Api.GetSmsStudentsAsync(Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, null));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadTeachersAsync()
+    {
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            teachers.Clear();
+            teachers.AddRange(await Api.GetSmsTeachersAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadCommitteeAsync()
+    {
+        await SetBusyAsync(Locale.T("sms.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            if (committeeTypes.Count == 0)
+                committeeTypes.AddRange(await Api.GetCommitteeTypesAsync(Session.AccessToken!));
+            committee.Clear();
+            committee.AddRange(await Api.GetCommitteeMembersAsync(Session.AccessToken!, CommitteeTypeId, null));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void ToggleStudents(ChangeEventArgs e)
+    {
+        var on = e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        foreach (var row in students) row.Selected = on;
+    }
+
+    private void ToggleTeachers(ChangeEventArgs e)
+    {
+        var on = e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        foreach (var row in teachers) row.Selected = on;
+    }
+
+    private void ToggleCommittee(ChangeEventArgs e)
+    {
+        var on = e.Value is true || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+        foreach (var row in committee) row.Selected = on;
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(text)) { Show(Locale.T("sms.needText"), true); return; }
+        await SetBusyAsync(Locale.T("sms.sending"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var request = new SendOfficeSmsRequest { Mode = mode, Text = text, Phones = phones };
+            if (mode == "selected")
+                request.StudentIds = students.Where(x => x.Selected).Select(x => x.StudentID).ToList();
+            if (mode == "teachers")
+                request.TeacherIds = teachers.Where(x => x.Selected).Select(x => x.EmployeeID).ToList();
+            if (mode == "committee")
+                request.CommitteeMemberIds = committee.Where(x => x.Selected).Select(x => x.CommitteeMemberId).ToList();
+            var result = await Api.SendOfficeSmsAsync(Session.AccessToken!, request);
+            if (!result.Succeeded)
+            {
+                Show(FormatErr(result.Error, result.Balance, result.Message), true);
+                return;
+            }
+            text = "";
+            balance = result.Balance;
+            var msg = mode == "all"
+                ? Locale.T("sms.sentAll", result.Sent)
+                : Locale.T("sms.sentFail", result.Sent, result.Failed);
+            if (result.LocalMode)
+                msg += " " + Locale.T("sms.localSent");
+            Show(msg);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string value, bool err = false) { popupText = toastText = value; popupError = toastError = err; }
+    private string FormatErr(string? error, int balance = 0, string? detail = null)
+    {
+        if (string.Equals(error, "sms.low", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("sms.low", balance);
+        if (!string.IsNullOrWhiteSpace(error) && error.StartsWith("sms.", StringComparison.OrdinalIgnoreCase))
+            return Locale.T(error);
+        if (!string.IsNullOrWhiteSpace(error))
+            return error;
+        return string.IsNullOrWhiteSpace(detail) ? Locale.T("sms.fail") : detail;
+    }
+    private void ClosePopup() => popupText = null;
+    private async Task SetBusyAsync(string title)
+    {
+        busyTitle = title;
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

@@ -1,0 +1,192 @@
+@page "/exam/merit-subject"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page emp-page acc-page exam-page">
+    <h1 class="no-print">@Locale.T("exam.meritSubject")</h1>
+    <div class="filter-row no-print">
+        <select @bind="classId" @bind:after="OnClassAsync" disabled="@busy">
+            <option value="0">@Locale.T("si.selectClass")</option>
+            @foreach (var item in filters.Classes)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        @if (filters.Groups.Count > 0)
+        {
+            <select @bind="groupId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.selectGroup")</option>
+                @foreach (var item in filters.Groups)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (filters.Sections.Count > 0)
+        {
+            <select @bind="sectionId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allSection")</option>
+                @foreach (var item in filters.Sections)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        @if (filters.Shifts.Count > 0)
+        {
+            <select @bind="shiftId" @bind:after="LoadJoinAsync" disabled="@busy">
+                <option value="0">@Locale.T("exam.allShift")</option>
+                @foreach (var item in filters.Shifts)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        }
+        <select @bind="examId" @bind:after="OnExamAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectExam")</option>
+            @foreach (var item in filters.Exams)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+        <select @bind="subjectId" @bind:after="LoadAsync" disabled="@busy">
+            <option value="0">@Locale.T("exam.selectSubject")</option>
+            @foreach (var item in filters.Subjects)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (sheet.Rows.Count > 0)
+    {
+        <div class="exam-col-panel no-print">
+            <strong>@Locale.T("exam.hidePrintCols")</strong>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("exam.print")</button>
+        </div>
+        <PrintHeader Subtitle="@Locale.T("exam.meritSubject")" Centered="true" ShowDate="false" />
+        <h2 class="exam-ex-cls">@sheet.Title</h2>
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("exam.id")</th>
+                    <th>@Locale.T("exam.name")</th>
+                    <th>@Locale.T("exam.phone")</th>
+                    <th>@Locale.T("exam.roll")</th>
+                    <th>@sheet.Title</th>
+                    <th>@Locale.T("exam.total")</th>
+                    <th>@Locale.T("exam.grade")</th>
+                    <th>@Locale.T("exam.point")</th>
+                    <th>@Locale.T("exam.pc")</th>
+                    <th>@Locale.T("exam.ps")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in sheet.Rows)
+            {
+                <tr class="@(row.PassStatus is "F" or "Fail" ? "is-fail" : null)">
+                    <td>@row.ID</td>
+                    <td>@row.Name</td>
+                    <td>@row.Phone</td>
+                    <td>@row.RollNo</td>
+                    <td>
+                        <div class="exam-merit-subs">
+                            @foreach (var mark in row.Marks)
+                            {
+                                <span>
+                                    <small>@mark.Name</small>
+                                    <b>@mark.Mark</b>
+                                </span>
+                            }
+                        </div>
+                    </td>
+                    <td>@row.Total.ToString("n2")</td>
+                    <td>@row.Grade</td>
+                    <td>@row.Point.ToString("0.00")</td>
+                    <td>@row.PositionClass</td>
+                    <td>@row.PositionSection</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else if (!busy && subjectId > 0)
+    {
+        <p class="empty-row">@Locale.T("exam.empty")</p>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingMerit")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <div class="acc-result-back" @onclick="() => popupText = null">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("exam.failed")</h3>
+            <p>@popupText</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ExamFilterDto filters = new();
+    private ExamMeritListDto sheet = new();
+    private int classId, examId, subjectId;
+    private string groupId = "0", sectionId = "0", shiftId = "0";
+    private bool busy;
+    private string? popupText;
+
+    protected override Task OnInitializedAsync() => LoadFiltersAsync();
+
+    private async Task LoadFiltersAsync()
+    {
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "result", classId, examId, groupId, sectionId, shiftId); }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task OnClassAsync()
+    {
+        examId = 0; subjectId = 0; groupId = "0"; sectionId = "0"; shiftId = "0"; sheet = new();
+        await LoadFiltersAsync();
+    }
+
+    private async Task OnExamAsync()
+    {
+        subjectId = 0; sheet = new();
+        await LoadFiltersAsync();
+    }
+
+    private async Task LoadJoinAsync()
+    {
+        await LoadFiltersAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        sheet = new();
+        if (classId <= 0 || examId <= 0 || subjectId <= 0) return;
+        if (!await OnlineAsync()) return;
+        busy = true;
+        try { sheet = await Api.GetExamMeritSubjectAsync(Session.AccessToken!, classId, examId, subjectId, groupId, sectionId, shiftId); }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("window.print").AsTask();
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            popupText = Locale.T("subj.needOnline");
+            return false;
+        }
+        return true;
+    }
+}
