@@ -1162,3 +1162,23 @@ SUCCESS: Session tracked successfully from Design.Master!
 
 ========== 2026-08-25 23:03:39 SUCCESS ==========
 [Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
+
+========== 2026-08-25 23:46:36 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn event fired for user: Satter_sikkhaloy============================================================
+
+========== 2026-08-25 23:46:36 SUCCESS ==========
+[Design.Master] Authority user detected, calling TrackUserLogin============================================================
+
+========== 2026-08-25 23:46:36 SUCCESS ==========
+[Design.Master] Starting tracking for user: Satter_sikkhaloy, Category: Authority
+Session Key: 1m5oeviplqzqt0j0gw2y0blz_639232983960808615
+SchoolID: 0, RegID: 14143
+Database connection opened
+Deleted 1 old session(s)
+Using NULL for SchoolID (Authority user)
+Rows inserted: 1
+SUCCESS: Session tracked successfully from Design.Master!
+============================================================
+
+========== 2026-08-25 23:46:36 SUCCESS ==========
+[Design.Master] UserLogin_LoggedIn completed for user: Satter_sikkhaloy============================================================
