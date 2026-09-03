@@ -2033,14 +2033,16 @@ th { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.04em; }
 }
 .dash-session {
     display: grid;
-    grid-template-rows: auto minmax(300px, 1fr);
-    min-height: 360px;
+    grid-template-rows: auto minmax(320px, 1fr);
+    min-height: 380px;
     height: 100%;
     overflow: hidden;
+    padding-bottom: 0.45rem;
 }
 .dash-session .dash-years {
-    min-height: 300px;
+    min-height: 320px;
     height: 100%;
+    align-items: stretch;
     overflow: hidden;
 }
 .dash-panel { padding: 0.8rem 0.9rem 0.85rem; }
@@ -2161,6 +2163,15 @@ th { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.04em; }
     justify-content: flex-end;
     gap: 0.2rem;
     min-width: 0;
+    min-height: 0;
+}
+.dash-year-plot {
+    flex: 1 1 auto;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-height: 0;
 }
 .dash-year-col {
     width: 100%;

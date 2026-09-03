@@ -141,7 +141,9 @@
                     @foreach (var year in online.Sessions)
                     {
                         <div class="dash-year">
-                            <div class="dash-year-col" style="height:@Pct(year.Count, SessionMax)%"></div>
+                            <div class="dash-year-plot">
+                                <div class="dash-year-col" style="height:@Pct(year.Count, SessionMax)%"></div>
+                            </div>
                             <b>@year.Count.ToString("N0")</b>
                             <span>@year.Name</span>
                         </div>
