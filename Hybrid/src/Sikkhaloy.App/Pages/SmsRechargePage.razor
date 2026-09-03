@@ -4,146 +4,292 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page acc-page exam-page sms-page sms-recharge-page">
-    <h1>@Locale.T("sms.rechargeTitle")</h1>
+<div class="sms-rcg-page">
+    <header class="sms-rcg-hero">
+        <div class="sms-rcg-hero-copy">
+            <span class="sms-rcg-hero-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <div>
+                <h1>@Locale.T("sms.rechargeTitle")</h1>
+                <p>@Locale.T("sms.rechargeLead")</p>
+            </div>
+        </div>
+        <div class="sms-rcg-hero-art" aria-hidden="true">
+            <svg viewBox="0 0 120 72" fill="none">
+                <rect x="44" y="8" width="28" height="50" rx="5" stroke="#fff" stroke-width="1.6" opacity="0.85"/>
+                <path d="M78 22h18l-6 6 6 6H78" stroke="#fff" stroke-width="1.6" opacity="0.7"/>
+                <path d="M18 40h16l8-10 8 18 6-8h12" stroke="#fff" stroke-width="1.5" opacity="0.55"/>
+            </svg>
+        </div>
+        <div class="sms-rcg-bal">
+            <small>@Locale.T("sms.currentBalance")</small>
+            <strong>
+                @sheet.Balance.ToString("N0")
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+            </strong>
+        </div>
+    </header>
+
     @if (sheet.LocalMode)
     {
-        <div class="sms-local-note">@Locale.T("sms.localNote")</div>
-    }
-    <div class="sms-info-box">@Locale.T("sms.rechargeInfo")</div>
-    <div class="sms-balance-card">
-        <p>@Locale.T("sms.currentBalance")</p>
-        <h2>@sheet.Balance</h2>
-    </div>
-    <div class="sms-recharge-form">
-        <h3>@Locale.T("sms.rechargeNow")</h3>
-        <div class="filter-row">
-            <input type="number" min="1" placeholder="@Locale.T("sms.qtyHint")" @bind="qty" @bind:event="oninput" disabled="@busy" />
-            @if (qty > 0)
-            {
-                <span class="sms-cost">@Locale.T("sms.costLine", Invoice.ToString("0.00"), Gateway.ToString("0.00"), Payable.ToString("0.00"))</span>
-            }
-            <button type="button" class="acc-btn acc-btn-primary sms-pay-btn" disabled="@(busy || qty <= 0)" @onclick="PayAsync">@Locale.T("sms.payOnline")</button>
+        <div class="sms-rcg-alert is-warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 3 20h18L12 3z"/><path d="M12 10v5"/><path d="M12 17.5h.01"/></svg>
+            <span>@Locale.T("sms.localPay")</span>
         </div>
-        <p class="muted">@Locale.T("sms.rateNote")</p>
+    }
+    <div class="sms-rcg-alert is-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8h.01"/></svg>
+        <span>@Locale.T("sms.rechargeInfo")</span>
     </div>
 
-    <h3>@Locale.T("sms.history")</h3>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("sms.qty")</th>
-                <th>@Locale.T("sms.perSms")</th>
-                <th>@Locale.T("sms.totalPrice")</th>
-                <th>@Locale.T("sms.date")</th>
-                <th>@Locale.T("sms.recharger")</th>
-                <th>@Locale.T("sms.payStatus")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (sheet.History.Count == 0)
-        {
-            <tr><td colspan="6" class="empty-row">@Locale.T("sms.empty")</td></tr>
-        }
-        @foreach (var row in sheet.History)
-        {
-            <tr>
-                <td>@row.RechargeSMS</td>
-                <td>@row.PerSMS_Price.ToString("0.00")</td>
-                <td>@row.Total_Price.ToString("0.00")</td>
-                <td>@row.Date.ToString("d MMM yyyy")</td>
-                <td>@row.UserName</td>
-                <td>
-                    @if (row.Is_Paid)
+    <section class="sms-rcg-card">
+        <div class="sms-rcg-card-head">
+            <span class="sms-rcg-mini is-green" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>
+            </span>
+            <h2>@Locale.T("sms.rechargeNow")</h2>
+        </div>
+        <div class="sms-rcg-form">
+            <label class="sms-rcg-field">
+                <span>@Locale.T("sms.amountTk")</span>
+                <input type="number" min="0" step="0.01" @bind="amountTk" @bind:event="oninput" disabled="@busy" />
+                @if (SmsQty > 0)
+                {
+                    <em>@Locale.T("sms.smsApprox", SmsQty) · @Locale.T("sms.costLine", Invoice.ToString("0.00"), Gateway.ToString("0.00"), Payable.ToString("0.00"))</em>
+                }
+            </label>
+            <button type="button" class="sms-rcg-pay" disabled="@(busy || SmsQty <= 0)" @onclick="PayAsync">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/></svg>
+                @Locale.T("sms.payOnline")
+            </button>
+        </div>
+        <p class="sms-rcg-note">@Locale.T("sms.rateNote")</p>
+    </section>
+
+    <section class="sms-rcg-card">
+        <div class="sms-rcg-hist-bar">
+            <div class="sms-rcg-card-head">
+                <span class="sms-rcg-mini is-blue" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>
+                </span>
+                <h2>@Locale.T("sms.history")</h2>
+            </div>
+            <div class="sms-rcg-hist-tools no-print">
+                <select @bind="rangeDays" @bind:after="OnFilterChanged" disabled="@busy">
+                    <option value="7">@Locale.T("sms.last7")</option>
+                    <option value="30">@Locale.T("sms.last30")</option>
+                    <option value="90">@Locale.T("sms.last90")</option>
+                    <option value="0">@Locale.T("sms.allRecords")</option>
+                </select>
+                <button type="button" class="sms-rcg-refresh" disabled="@busy" @onclick="LoadAsync">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-2.3-6"/><path d="M21 3v5h-5"/></svg>
+                    @Locale.T("sms.refresh")
+                </button>
+            </div>
+        </div>
+
+        @Pager
+
+        <div class="sms-rcg-table-wrap @(busy ? "is-busy" : null)">
+            <table class="sms-rcg-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("sms.sl")</th>
+                        <th>@Locale.T("sms.qty")</th>
+                        <th>@Locale.T("sms.perSms")</th>
+                        <th>@Locale.T("sms.totalPrice")</th>
+                        <th>@Locale.T("sms.date")</th>
+                        <th>@Locale.T("sms.recharger")</th>
+                        <th>@Locale.T("sms.payStatus")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (busy && sheet.History.Count == 0)
+                {
+                    @for (var i = 0; i < 5; i++)
                     {
-                        <span class="sms-badge-paid">@Locale.T("sms.paid")</span>
+                        <tr class="sms-rcg-skel"><td colspan="7"><span></span></td></tr>
                     }
-                    else
+                }
+                else if (PageRows.Count == 0)
+                {
+                    <tr><td colspan="7" class="empty-row">@Locale.T("sms.empty")</td></tr>
+                }
+                else
+                {
+                    var sl = (page - 1) * pageSize;
+                    @foreach (var row in PageRows)
                     {
-                        <span class="sms-badge-due">@Locale.T("sms.unpaid")</span>
+                        sl++;
+                        <tr>
+                            <td>@sl</td>
+                            <td>@row.RechargeSMS</td>
+                            <td>@row.PerSMS_Price.ToString("0.00")</td>
+                            <td>@row.Total_Price.ToString("0.00")</td>
+                            <td>@row.Date.ToString("d MMM yyyy")</td>
+                            <td>@row.UserName</td>
+                            <td>
+                                @if (row.Is_Paid)
+                                {
+                                    <span class="sms-rcg-badge is-paid">@Locale.T("sms.paid")</span>
+                                }
+                                else
+                                {
+                                    <span class="sms-rcg-badge is-pend">@Locale.T("sms.pending")</span>
+                                }
+                            </td>
+                        </tr>
                     }
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="sms-rcg-hist-foot">
+            <span>@Locale.T("sms.totalRecords", Filtered.Count)</span>
+            @Pager
+        </div>
+    </section>
 
     @if (sheet.DueInvoices.Count > 0)
     {
-        <h3>@Locale.T("sms.dueInvoice")</h3>
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th>@Locale.T("sms.invoiceNo")</th>
-                    <th>@Locale.T("sms.details")</th>
-                    <th>@Locale.T("sms.qty")</th>
-                    <th>@Locale.T("sms.perSms")</th>
-                    <th>@Locale.T("sms.total")</th>
-                    <th>@Locale.T("sms.paidAmt")</th>
-                    <th>@Locale.T("sms.due")</th>
-                    <th>@Locale.T("sms.issueDate")</th>
-                    <th>@Locale.T("sms.endDate")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var row in sheet.DueInvoices)
-            {
-                <tr>
-                    <td>@row.Invoice_SN</td>
-                    <td>@row.Invoice_For</td>
-                    <td>@row.Unit.ToString("0")</td>
-                    <td>@row.UnitPrice.ToString("0.00")</td>
-                    <td>@row.TotalAmount.ToString("0.00")</td>
-                    <td>@row.PaidAmount.ToString("0.00")</td>
-                    <td>@row.Due.ToString("0.00")</td>
-                    <td>@row.IssuDate?.ToString("d MMM yyyy")</td>
-                    <td>@row.EndDate?.ToString("d MMM yyyy")</td>
-                </tr>
-            }
-            </tbody>
-        </table>
+        <section class="sms-rcg-card">
+            <div class="sms-rcg-card-head">
+                <h2>@Locale.T("sms.dueInvoice")</h2>
+            </div>
+            <div class="sms-rcg-table-wrap">
+                <table class="sms-rcg-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("sms.invoiceNo")</th>
+                            <th>@Locale.T("sms.details")</th>
+                            <th>@Locale.T("sms.qty")</th>
+                            <th>@Locale.T("sms.perSms")</th>
+                            <th>@Locale.T("sms.total")</th>
+                            <th>@Locale.T("sms.paidAmt")</th>
+                            <th>@Locale.T("sms.due")</th>
+                            <th>@Locale.T("sms.issueDate")</th>
+                            <th>@Locale.T("sms.endDate")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in sheet.DueInvoices)
+                    {
+                        <tr>
+                            <td>@row.Invoice_SN</td>
+                            <td>@row.Invoice_For</td>
+                            <td>@row.Unit.ToString("0")</td>
+                            <td>@row.UnitPrice.ToString("0.00")</td>
+                            <td>@row.TotalAmount.ToString("0.00")</td>
+                            <td>@row.PaidAmount.ToString("0.00")</td>
+                            <td>@row.Due.ToString("0.00")</td>
+                            <td>@row.IssuDate?.ToString("d MMM yyyy")</td>
+                            <td>@row.EndDate?.ToString("d MMM yyyy")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
     }
 </div>
 
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+<ExamBusyOverlay Busy="paying" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="() => popupText = null">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="() => popupText = null" />
 }
 
 @code {
     private SmsRechargePageDto sheet = new();
-    private int qty;
-    private bool busy, popupError;
+    private decimal amountTk;
+    private bool busy, paying, popupError;
     private string? popupText, busyTitle;
+    private int rangeDays = 0;
+    private int page = 1;
+    private const int pageSize = 10;
 
-    private decimal Invoice => qty * sheet.PerSmsRate;
+    private int SmsQty => sheet.PerSmsRate <= 0 || amountTk <= 0 ? 0 : (int)Math.Floor(amountTk / sheet.PerSmsRate);
+    private decimal Invoice => SmsQty * sheet.PerSmsRate;
     private decimal Gateway => Math.Round(Invoice / 1000m * 19m, 2);
     private decimal Payable => Invoice + Gateway;
 
+    private List<SmsRechargeRowDto> Filtered
+    {
+        get
+        {
+            if (rangeDays <= 0) return sheet.History;
+            var from = DateTime.Today.AddDays(1 - rangeDays);
+            return sheet.History.Where(x => x.Date.Date >= from).ToList();
+        }
+    }
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(Filtered.Count / (double)pageSize));
+
+    private List<SmsRechargeRowDto> PageRows
+    {
+        get
+        {
+            var skip = (page - 1) * pageSize;
+            return Filtered.Skip(skip).Take(pageSize).ToList();
+        }
+    }
+
+    private IEnumerable<int> PageNumbers
+    {
+        get
+        {
+            var total = TotalPages;
+            var start = Math.Max(1, page - 2);
+            var end = Math.Min(total, start + 4);
+            start = Math.Max(1, end - 4);
+            for (var i = start; i <= end; i++) yield return i;
+        }
+    }
+
+    private RenderFragment Pager => __builder =>
+    {
+        <div class="sms-rcg-pager no-print">
+            <button type="button" disabled="@(page <= 1 || busy)" @onclick="() => GoPage(-1)">‹</button>
+            @foreach (var n in PageNumbers)
+            {
+                <button type="button" class="@(n == page ? "is-on" : null)" disabled="@busy" @onclick="() => GoPageTo(n)">@n</button>
+            }
+            <button type="button" disabled="@(page >= TotalPages || busy)" @onclick="() => GoPage(1)">›</button>
+        </div>
+    };
+
     protected override Task OnInitializedAsync() => LoadAsync();
+
+    private void OnFilterChanged()
+    {
+        page = 1;
+    }
+
+    private Task GoPage(int delta) => GoPageTo(page + delta);
+
+    private Task GoPageTo(int n)
+    {
+        if (n < 1 || n > TotalPages || n == page) return Task.CompletedTask;
+        page = n;
+        return Task.CompletedTask;
+    }
 
     private async Task LoadAsync()
     {
-        busyTitle = Locale.T("sms.loading");
         busy = true;
         await InvokeAsync(StateHasChanged);
         try
         {
-            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            if (string.IsNullOrWhiteSpace(Session.AccessToken))
             {
                 popupText = Locale.T("subj.needOnline");
                 popupError = true;
                 return;
             }
             sheet = await Api.GetSmsRechargeAsync(Session.AccessToken!);
+            page = Math.Min(page, TotalPages);
         }
         catch (Exception ex) { popupText = ex.Message; popupError = true; }
         finally { busy = false; }
@@ -151,30 +297,31 @@
 
     private async Task PayAsync()
     {
-        if (qty <= 0)
+        if (SmsQty <= 0)
         {
-            popupText = Locale.T("sms.needQty");
+            popupText = Locale.T("sms.needAmount");
             popupError = true;
             return;
         }
         if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sms.confirmPay")))
             return;
         busyTitle = Locale.T("sms.paying");
-        busy = true;
+        paying = true;
         await InvokeAsync(StateHasChanged);
         try
         {
-            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            if (string.IsNullOrWhiteSpace(Session.AccessToken))
             {
                 popupText = Locale.T("subj.needOnline");
                 popupError = true;
                 return;
             }
-            var result = await Api.StartSmsRechargeAsync(Session.AccessToken!, new SmsRechargeRequest { Quantity = qty });
+            var result = await Api.StartSmsRechargeAsync(Session.AccessToken!, new SmsRechargeRequest { Quantity = SmsQty });
             if (result.Succeeded && result.LocalMode && string.IsNullOrWhiteSpace(result.CheckoutUrl))
             {
                 popupText = Locale.T("sms.localPay");
                 popupError = false;
+                await LoadAsync();
                 return;
             }
             if (!result.Succeeded || string.IsNullOrWhiteSpace(result.CheckoutUrl))
@@ -188,7 +335,7 @@
             popupError = false;
         }
         catch (Exception ex) { popupText = ex.Message; popupError = true; }
-        finally { busy = false; }
+        finally { paying = false; }
     }
 
     private string FormatErr(string? error)

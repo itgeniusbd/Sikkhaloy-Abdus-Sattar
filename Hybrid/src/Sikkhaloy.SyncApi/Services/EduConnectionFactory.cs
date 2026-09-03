@@ -9,6 +9,7 @@ public sealed class EduConnectionFactory
     public EduConnectionFactory(IConfiguration configuration)
     {
         _connectionString = configuration.GetConnectionString("EduHybrid")
+            ?? configuration.GetConnectionString("Edu")
             ?? throw new InvalidOperationException("ConnectionStrings:EduHybrid is missing.");
     }
 

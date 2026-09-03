@@ -13,6 +13,8 @@ public sealed class JwtTokenService
     public const string RegistrationIdClaim = "registration_id";
     public const string RoleClaim = "office_role";
     public const string DeviceIdClaim = "device_id";
+    public const string SchoolNameClaim = "school_name";
+    public const string DisplayNameClaim = "display_name";
 
     private readonly IConfiguration _configuration;
 
@@ -36,7 +38,9 @@ public sealed class JwtTokenService
             new Claim(EducationYearIdClaim, session.EducationYearID.ToString()),
             new Claim(RegistrationIdClaim, session.RegistrationID.ToString()),
             new Claim(RoleClaim, session.Role),
-            new Claim(DeviceIdClaim, session.DeviceId)
+            new Claim(DeviceIdClaim, session.DeviceId),
+            new Claim(SchoolNameClaim, session.SchoolName ?? ""),
+            new Claim(DisplayNameClaim, session.DisplayName ?? "")
         };
 
         var credentials = new SigningCredentials(
@@ -62,7 +66,9 @@ public sealed class JwtTokenService
             SchoolID = ParseInt(user.FindFirstValue(SchoolIdClaim)),
             RegistrationID = ParseInt(user.FindFirstValue(RegistrationIdClaim)),
             EducationYearID = ParseInt(user.FindFirstValue(EducationYearIdClaim)),
-            DeviceId = user.FindFirstValue(DeviceIdClaim) ?? ""
+            DeviceId = user.FindFirstValue(DeviceIdClaim) ?? "",
+            SchoolName = user.FindFirstValue(SchoolNameClaim) ?? "",
+            DisplayName = user.FindFirstValue(DisplayNameClaim) ?? ""
         };
     }
 

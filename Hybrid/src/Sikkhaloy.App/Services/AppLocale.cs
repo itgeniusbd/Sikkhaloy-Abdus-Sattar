@@ -21,6 +21,50 @@ public sealed class AppLocale
 
     public string T(string key, params object[] args) => AppStrings.Get(Code, key, args);
 
+    public bool IsNetNotice(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+        if (text.Contains("Sync API", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Sikkhaloy.SyncApi", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("ইন্টারনেট সংযোগ ছাড়া", StringComparison.Ordinal)
+            || text.Contains("without an internet", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("internet connection is needed", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("সিঙ্কের জন্য ইন্টারনেট", StringComparison.Ordinal))
+            return true;
+        if (text.Equals("sync.apiDown", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("sync.needOnline", StringComparison.OrdinalIgnoreCase)
+            || text == T("sync.apiDown")
+            || text == T("sync.needOnline")
+            || text.Contains("127.0.0.1:5135", StringComparison.Ordinal))
+            return true;
+        return text == T("net.pageNeed")
+            || text == T("net.title")
+            || text == T("subj.needOnline")
+            || text == T("login.needOnline")
+            || text == T("profile.needOnline")
+            || text == T("report.needOnline")
+            || text == T("access.needOnline")
+            || text == T("sub.needOnline")
+            || text == T("subact.needOnline")
+            || text == T("readm.offline");
+    }
+
+    public string SyncError(string? error)
+    {
+        if (string.IsNullOrWhiteSpace(error))
+            return T("sync.failed");
+        if (IsNetNotice(error)
+            || error.Equals("sync.apiDown", StringComparison.OrdinalIgnoreCase)
+            || error.Equals("sync.needOnline", StringComparison.OrdinalIgnoreCase))
+            return T("sync.needOnline");
+        if (error.StartsWith("login.", StringComparison.OrdinalIgnoreCase)
+            || error.StartsWith("sync.", StringComparison.OrdinalIgnoreCase)
+            || error.StartsWith("dash.", StringComparison.OrdinalIgnoreCase))
+            return T(error);
+        return error;
+    }
+
     public string Menu(string text)
     {
         var title = System.Text.RegularExpressions.Regex.Replace((text ?? "").Trim(), @"\s+", " ")

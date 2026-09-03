@@ -1,0 +1,571 @@
+@page "/inventory/purchase"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<style>
+    .pos-sale-page, .pos-sale-page * { box-sizing: border-box; }
+    .pos-sale-page { width: 100%; max-width: none; min-width: 0; }
+    .pos-sale-page .pos-grid { display: flex; flex-wrap: wrap; gap: 1rem; align-items: stretch; }
+    .pos-sale-page .pos-cart { flex: 2 1 420px; min-width: 0; }
+    .pos-sale-page .pos-sum {
+        flex: 1 1 280px; min-width: 0; padding: 0; display: flex; flex-direction: column;
+        background: #fff; border: 1px solid #d1fae5; border-radius: 16px; overflow: hidden;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+    .pos-sale-page .ps-head {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.75rem 1rem; color: #fff;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+    }
+    .pos-sale-page .ps-head h2 { margin: 0; font-size: 1.05rem; color: #fff; }
+    .pos-sale-page .ps-body { padding: 0.95rem 1rem 1.1rem; display: grid; gap: 0.75rem; }
+    .pos-sale-page .ps-row { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+    .pos-sale-page .ps-field {
+        display: flex; flex-direction: column; gap: 0.3rem;
+        flex: 1 1 120px; min-width: 110px; max-width: 100%;
+        font-size: 0.75rem; font-weight: 700; color: #475569; margin: 0;
+    }
+    .pos-sale-page .ps-field input,
+    .pos-sale-page .ps-field select,
+    .pos-sale-page .ps-field textarea {
+        width: 100%; min-height: 44px; max-width: 100%;
+        border: 1.5px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
+        padding: 0 0.8rem; font: inherit; font-size: 0.92rem; font-weight: 600; color: #0f172a;
+        outline: none;
+    }
+    .pos-sale-page .ps-field select { appearance: none; -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 0.7rem center; padding-right: 2rem;
+    }
+    .pos-sale-page .ps-field textarea { min-height: 72px; padding: 0.65rem 0.8rem; resize: vertical; }
+    .pos-sale-page .ps-field input:hover, .pos-sale-page .ps-field select:hover, .pos-sale-page .ps-field textarea:hover {
+        border-color: #99f6e4; background: #fff;
+    }
+    .pos-sale-page .ps-field input:focus, .pos-sale-page .ps-field select:focus, .pos-sale-page .ps-field textarea:focus {
+        border-color: #0f766e; background: #fff; box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14);
+    }
+    .pos-sale-page .ps-search { position: relative; margin-bottom: 0.9rem; }
+    .pos-sale-page .ps-search input {
+        width: 100%; min-height: 46px; border: 1.5px solid #99f6e4; border-radius: 12px;
+        padding: 0.55rem 2.4rem 0.55rem 0.9rem; font: inherit; background: #f0fdfa;
+    }
+    .pos-sale-page .ps-search input:focus { outline: none; border-color: #0f766e; background: #fff; box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14); }
+    .pos-sale-page .ps-search i {
+        position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
+        width: 1.1rem; height: 1.1rem; color: #0f766e; pointer-events: none;
+    }
+    .pos-sale-page .ps-search i svg { width: 1.1rem; height: 1.1rem; }
+    .pos-sale-page .pos-cust { border: 1.5px dashed #0f766e; border-radius: 12px; padding: 0.75rem; background: #f8fffc; }
+    .pos-sale-page .pos-totals { margin: 0; display: grid; gap: 0.45rem; }
+    .pos-sale-page .pos-totals > div { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; font-weight: 700; }
+    .pos-sale-page .pos-totals input {
+        width: 120px; min-height: 40px; text-align: right; border: 1.5px solid #e2e8f0;
+        border-radius: 10px; background: #f8fafc; padding: 0 0.6rem; font: inherit; font-weight: 800;
+    }
+    .pos-sale-page .pos-due-row { color: #b91c1c; background: #fef2f2; border-radius: 10px; padding: 0.45rem 0.6rem; }
+    .pos-sale-page .pos-complete { margin-top: 0.15rem; min-height: 48px; border-radius: 12px; }
+    .pos-sale-page .ps-empty { text-align: center; padding: 2rem 1rem; color: #64748b; }
+    .pos-sale-page .ps-empty svg { width: 2.6rem; height: 2.6rem; color: #0f766e; opacity: 0.45; margin-bottom: 0.45rem; }
+    .pos-sale-page .ps-empty p { margin: 0; font-weight: 700; }
+    .pos-sale-page .pos-table-wrap { overflow-x: auto; }
+    @@media (max-width: 720px) {
+        .pos-sale-page .pos-cart, .pos-sale-page .pos-sum { flex: 1 1 100%; }
+    }
+</style>
+
+<div class="card sa-page si-info-page acc-page inv-page pos-sale pos-sale-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("inv.kicker")</p>
+            <h1>@Locale.T("inv.purchase")</h1>
+            <p class="sa-lead">@Locale.T("inv.purchaseHint")</p>
+        </div>
+    </header>
+
+    <section class="pos-avail no-print">
+        <div class="pos-avail-head">
+            <div>
+                <h2>@Locale.T("inv.availableItems")</h2>
+                <p>@Locale.T("inv.clickToCart")</p>
+            </div>
+            <small>@VisibleItems.Count()</small>
+        </div>
+        @if (items.Count == 0)
+        {
+            <p class="inv-hint">@Locale.T("inv.needItemsFirst") <a href="/inventory/items">@Locale.T("inv.addItem")</a></p>
+        }
+        else if (!VisibleItems.Any())
+        {
+            <p class="inv-hint">@Locale.T("inv.empty")</p>
+        }
+        else
+        {
+            <div class="pos-cards">
+                @foreach (var item in VisibleItems)
+                {
+                    var inCart = lines.Any(x => x.ItemID == item.ItemID);
+                    <button type="button" class="pos-card @(inCart ? "is-in" : null)"
+                            disabled="@busy" @onclick="() => PickItem(item)" title="@Locale.T("inv.clickToCart")">
+                        <strong>@item.Name</strong>
+                        <span class="pos-card-cat">@item.Category</span>
+                        <span class="pos-card-meta">
+                            <em>@item.Stock.ToString("0.##") @item.Unit</em>
+                            <b>@item.PurchasePrice.ToString("N0")</b>
+                        </span>
+                    </button>
+                }
+            </div>
+        }
+    </section>
+
+    <div class="ps-search no-print">
+        <input type="text" value="@itemQuery" disabled="@busy"
+               placeholder="@Locale.T("inv.itemSearch")"
+               @oninput="OnItemQuery" @onkeydown="OnItemKey" />
+        <i aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></i>
+    </div>
+
+    <div class="pos-grid">
+        <section class="pos-cart no-print">
+            <div class="pos-cart-head">
+                <h2>@Locale.T("inv.cart")</h2>
+                <em>@lines.Count</em>
+            </div>
+            @if (items.Count == 0)
+            {
+                <p class="inv-hint">@Locale.T("inv.needItemsFirst") <a href="/inventory/items">@Locale.T("inv.addItem")</a></p>
+            }
+            <div class="pos-table-wrap">
+            <table class="mgrid pos-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>@Locale.T("inv.itemName")</th>
+                        <th>@Locale.T("inv.stock")</th>
+                        <th>@Locale.T("inv.qty")</th>
+                        <th>@Locale.T("inv.price")</th>
+                        <th>@Locale.T("inv.amount")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (lines.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="empty-row">
+                            <div class="ps-empty">
+                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2M7.2 14h9.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 21.1 5H5.21L4.27 2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12z"/></svg>
+                                <p>@Locale.T("inv.needLines")</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @{ var n = 0; }
+                @foreach (var line in lines)
+                {
+                    n++;
+                    var stock = items.FirstOrDefault(x => x.ItemID == line.ItemID)?.Stock ?? 0;
+                    <tr>
+                        <td>@n</td>
+                        <td>@line.ItemName</td>
+                        <td class="pos-stock">@stock.ToString("0.##") @line.Unit</td>
+                        <td>
+                            <input type="number" min="0.001" step="0.01" value="@line.Qty.ToString("0.##")"
+                                   disabled="@busy" @onchange="e => ChangeQty(line, e)" />
+                        </td>
+                        <td>
+                            <input type="number" min="0" step="0.01" value="@line.UnitPrice.ToString("0.##")"
+                                   disabled="@busy" @onchange="e => ChangePrice(line, e)" />
+                        </td>
+                        <td>@line.Amount.ToString("N2")</td>
+                        <td><button type="button" class="link-btn is-danger" @onclick="() => lines.Remove(line)">×</button></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            </div>
+        </section>
+
+        <aside class="pos-sum no-print">
+            <div class="ps-head">
+                <h2>@Locale.T("inv.summary")</h2>
+            </div>
+            <div class="ps-body">
+            <div class="ps-row">
+                <label class="ps-field">
+                    <span>@Locale.T("att.date")</span>
+                    <input type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" @bind="date" @bind:format="yyyy-MM-dd" disabled="@busy" />
+                </label>
+                <label class="ps-field">
+                    <span>@Locale.T("inv.account")</span>
+                    <select @bind="accountId" disabled="@busy">
+                        <option value="0">@Locale.T("inv.selectAccount")</option>
+                        @foreach (var acc in accounts)
+                        {
+                            <option value="@acc.AccountID">@acc.AccountName (@acc.Balance.ToString("N0"))</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <div class="pos-cust">
+                @if (supplierId > 0)
+                {
+                    <strong>@supplierName</strong>
+                    <small>@supplierPhone</small>
+                    <button type="button" class="link-btn" @onclick="ClearSupplier">@Locale.T("inv.changeSupplier")</button>
+                }
+                else
+                {
+                    <button type="button" class="pos-cust-add" disabled="@busy" @onclick="() => showSup = true">
+                        + @Locale.T("inv.addSupplierOpt")
+                    </button>
+                }
+            </div>
+            <dl class="pos-totals">
+                <div><dt>@Locale.T("inv.total")</dt><dd>৳ @LineTotal.ToString("N2")</dd></div>
+                <div>
+                    <dt>@Locale.T("inv.paidAmount")</dt>
+                    <dd>
+                        <input type="number" min="0" step="0.01" value="@paidText" disabled="@busy"
+                               placeholder="0.00" @oninput="OnPaidInput" />
+                    </dd>
+                </div>
+                <div class="pos-due-row">
+                    <dt>@Locale.T("inv.dueAmount")</dt>
+                    <dd>৳ @DueNow.ToString("N2")</dd>
+                </div>
+            </dl>
+            <small class="inv-hint">@Locale.T("inv.payNowHint")</small>
+            <label class="ps-field">
+                <span>@Locale.T("inv.details")</span>
+                <textarea rows="2" @bind="note" disabled="@busy" placeholder="@Locale.T("inv.purchaseNotePh")"></textarea>
+            </label>
+            <button type="button" class="pos-complete" disabled="@busy" @onclick="SaveAsync">
+                @Locale.T("inv.completePurchase")
+            </button>
+            </div>
+        </aside>
+    </div>
+</div>
+
+@if (showSup)
+{
+    <div class="pos-back" @onclick="CloseSup">
+        <div class="pos-modal" @onclick:stopPropagation="true">
+            <header>
+                <h3>@Locale.T("inv.addSupplier")</h3>
+                <button type="button" class="pos-x" @onclick="CloseSup">×</button>
+            </header>
+            <div class="pos-tabs">
+                <button type="button" class="@(supTab == "new" ? "is-on" : null)" @onclick='() => supTab = "new"'>@Locale.T("inv.custNew")</button>
+                <button type="button" class="@(supTab == "old" ? "is-on" : null)" @onclick='() => OpenOldTab()'>@Locale.T("inv.custOld")</button>
+            </div>
+            @if (supTab == "new")
+            {
+                <p class="inv-hint">@Locale.T("inv.supplierFindHint")</p>
+                <label>
+                    <span>@Locale.T("inv.supplier")</span>
+                    <input type="text" @bind="newName" disabled="@busy" />
+                </label>
+                <label>
+                    <span>@Locale.T("inv.phone")</span>
+                    <input type="text" @bind="newPhone" disabled="@busy" />
+                </label>
+                <label>
+                    <span>@Locale.T("inv.address")</span>
+                    <input type="text" @bind="newAddress" disabled="@busy" />
+                </label>
+                <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveNewSupplierAsync">@Locale.T("inv.useSupplier")</button>
+            }
+            else
+            {
+                <p class="inv-hint">@Locale.T("inv.oldSupplierHint")</p>
+                <div class="pos-find">
+                    <input type="text" @bind="oldQuery" @bind:event="oninput" disabled="@busy"
+                           placeholder="@Locale.T("inv.supplier")" />
+                </div>
+                <div class="pos-hits">
+                    @if (!FilteredSuppliers.Any())
+                    {
+                        <p class="inv-hint">@Locale.T("inv.empty")</p>
+                    }
+                    @foreach (var hit in FilteredSuppliers)
+                    {
+                        <button type="button" @onclick="() => PickSupplier(hit)">
+                            <b>@hit.Name</b>
+                            <span>@hit.Phone @(hit.Due > 0 ? $"· {Locale.T("inv.due")} {hit.Due:N0}" : "")</span>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<InventoryAccountDto> accounts = [];
+    private readonly List<InventoryItemDto> items = [];
+    private readonly List<InventorySupplierDto> suppliers = [];
+    private readonly List<InventoryLineDto> lines = [];
+    private string note = "", busyTitle = "", popupText = "", itemQuery = "", paidText = "";
+    private string supplierName = "", supplierPhone = "", supTab = "new";
+    private string newName = "", newPhone = "", newAddress = "", oldQuery = "";
+    private DateTime date = DateTime.Today;
+    private int accountId, supplierId;
+    private bool busy, popupError, showSup, pendingSave;
+    private decimal LineTotal => lines.Sum(x => x.Amount);
+    private decimal PaidNow => decimal.TryParse(paidText, out var v) ? Math.Clamp(v, 0, LineTotal) : 0;
+    private decimal DueNow => Math.Max(0, LineTotal - PaidNow);
+    private IEnumerable<InventoryItemDto> VisibleItems
+    {
+        get
+        {
+            var q = itemQuery.Trim();
+            var rows = items.Where(x => x.IsActive);
+            if (q.Length == 0) return rows;
+            return rows.Where(x =>
+                x.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || (x.Sku ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                || x.Category.Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+    private IEnumerable<InventorySupplierDto> FilteredSuppliers
+    {
+        get
+        {
+            var q = oldQuery.Trim();
+            if (q.Length == 0) return suppliers;
+            return suppliers.Where(x =>
+                x.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || (x.Phone ?? "").Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadLookupsAsync();
+
+    private async Task LoadLookupsAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var data = await Api.GetInventoryLookupsAsync(Session.AccessToken!);
+            accounts.Clear();
+            accounts.AddRange(data.Accounts);
+            items.Clear();
+            items.AddRange(data.Items);
+            suppliers.Clear();
+            suppliers.AddRange(data.Suppliers);
+            if (supplierId == 0)
+            {
+                var q = QueryInt("supplier");
+                var found = suppliers.FirstOrDefault(x => x.SupplierID == q);
+                if (found is not null) await PickSupplier(found);
+            }
+            if (accountId == 0)
+            {
+                var def = accounts.FirstOrDefault(x => x.IsDefault) ?? accounts.FirstOrDefault();
+                if (def is not null) accountId = def.AccountID;
+            }
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void OnItemQuery(ChangeEventArgs e) => itemQuery = e.Value?.ToString() ?? "";
+
+    private void OnItemKey(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        var first = VisibleItems.FirstOrDefault();
+        if (first is not null) PickItem(first);
+    }
+
+    private void PickItem(InventoryItemDto item)
+    {
+        var existing = lines.FirstOrDefault(x => x.ItemID == item.ItemID);
+        if (existing is not null)
+        {
+            existing.Qty += 1;
+            existing.Amount = Math.Round(existing.Qty * existing.UnitPrice, 2);
+            return;
+        }
+        var price = item.PurchasePrice > 0 ? item.PurchasePrice : item.SalePrice;
+        lines.Add(new InventoryLineDto
+        {
+            ItemID = item.ItemID,
+            ItemName = item.Name,
+            Unit = item.Unit,
+            Qty = 1,
+            UnitPrice = price,
+            Amount = price
+        });
+    }
+
+    private void ChangeQty(InventoryLineDto line, ChangeEventArgs e)
+    {
+        if (!decimal.TryParse(e.Value?.ToString(), out var qty) || qty <= 0) return;
+        line.Qty = qty;
+        line.Amount = Math.Round(line.Qty * line.UnitPrice, 2);
+    }
+
+    private void ChangePrice(InventoryLineDto line, ChangeEventArgs e)
+    {
+        if (!decimal.TryParse(e.Value?.ToString(), out var price) || price < 0) return;
+        line.UnitPrice = price;
+        line.Amount = Math.Round(line.Qty * line.UnitPrice, 2);
+    }
+
+    private void OnPaidInput(ChangeEventArgs e) => paidText = e.Value?.ToString() ?? "";
+
+    private async Task SaveAsync()
+    {
+        if (lines.Count == 0) { Show(Locale.T("inv.needLines"), true); return; }
+        if (DueNow > 0 && supplierId <= 0)
+        {
+            pendingSave = true;
+            showSup = true;
+            return;
+        }
+        if (PaidNow > 0 && accountId <= 0) { Show(Locale.T("acc.needPay"), true); return; }
+        await SaveCoreAsync();
+    }
+
+    private async Task SaveCoreAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.SaveInventoryPurchaseAsync(Session.AccessToken!, new SaveInventoryDocRequest
+            {
+                Date = date == default ? DateTime.Today : date,
+                InvoiceNo = "",
+                Note = note,
+                AccountID = accountId,
+                SupplierID = supplierId,
+                PayNow = PaidNow,
+                Lines = lines.Select(x => new InventoryLineDto
+                {
+                    ItemID = x.ItemID,
+                    ItemName = x.ItemName,
+                    Qty = x.Qty,
+                    UnitPrice = x.UnitPrice,
+                    Amount = x.Amount
+                }).ToList()
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            if (result.Id > 0)
+            {
+                Nav.NavigateTo($"/inventory/receipt/purchase/{result.Id}");
+                return;
+            }
+            ResetForm();
+            Show(Locale.T(result.Message ?? "inv.purchaseSaved"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; pendingSave = false; }
+    }
+
+    private void OpenOldTab()
+    {
+        supTab = "old";
+        oldQuery = "";
+    }
+
+    private async Task SaveNewSupplierAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newName)) { Show(Locale.T("inv.needSupplier"), true); return; }
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.SaveInventorySupplierAsync(Session.AccessToken!, new SaveInventorySupplierRequest
+            {
+                Name = newName,
+                Phone = newPhone,
+                Address = newAddress
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            var saved = new InventorySupplierDto
+            {
+                SupplierID = result.Id,
+                Name = newName.Trim(),
+                Phone = newPhone.Trim()
+            };
+            if (!suppliers.Any(x => x.SupplierID == saved.SupplierID))
+                suppliers.Add(saved);
+            await PickSupplier(saved);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task PickSupplier(InventorySupplierDto sup)
+    {
+        supplierId = sup.SupplierID;
+        supplierName = sup.Name;
+        supplierPhone = sup.Phone ?? "";
+        showSup = false;
+        if (pendingSave) await SaveCoreAsync();
+    }
+
+    private void ClearSupplier()
+    {
+        supplierId = 0;
+        supplierName = "";
+        supplierPhone = "";
+    }
+
+    private void CloseSup() { showSup = false; pendingSave = false; }
+
+    private void ResetForm()
+    {
+        note = "";
+        paidText = "";
+        date = DateTime.Today;
+        lines.Clear();
+        newName = "";
+        newPhone = "";
+        newAddress = "";
+        var q = QueryInt("supplier");
+        var found = suppliers.FirstOrDefault(x => x.SupplierID == q);
+        if (found is not null) { supplierId = found.SupplierID; supplierName = found.Name; supplierPhone = found.Phone ?? ""; }
+        else ClearSupplier();
+    }
+
+    private int QueryInt(string name)
+    {
+        var query = Nav.ToAbsoluteUri(Nav.Uri).Query.TrimStart('?');
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0].Equals(name, StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(Uri.UnescapeDataString(kv[1]), out var id))
+                return id;
+        }
+        return 0;
+    }
+
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(InventoryResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("inv.failed")
+        : result.Error.Contains('.', StringComparison.Ordinal) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

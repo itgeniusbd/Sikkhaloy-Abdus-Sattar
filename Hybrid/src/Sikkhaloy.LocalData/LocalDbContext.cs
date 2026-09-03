@@ -23,6 +23,7 @@ public sealed class LocalDbContext : DbContext
     public DbSet<YearWatermark> YearWatermarks => Set<YearWatermark>();
     public DbSet<CachedMenu> Menus => Set<CachedMenu>();
     public DbSet<CachedSession> Sessions => Set<CachedSession>();
+    public DbSet<CachedApiSnapshot> ApiSnapshots => Set<CachedApiSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -106,6 +107,13 @@ public sealed class LocalDbContext : DbContext
         {
             e.HasKey(x => x.UserName);
             e.Property(x => x.DisplayName).IsRequired(false);
+        });
+
+        modelBuilder.Entity<CachedApiSnapshot>(e =>
+        {
+            e.ToTable("ApiSnapshots");
+            e.HasKey(x => x.CacheKey);
+            e.Property(x => x.CacheKey).HasMaxLength(500);
         });
     }
 
@@ -207,6 +215,14 @@ public sealed class LocalDbContext : DbContext
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS Menus (
                 UserName TEXT NOT NULL CONSTRAINT PK_Menus PRIMARY KEY,
+                PayloadJson TEXT NOT NULL,
+                PulledUtc TEXT NOT NULL
+            );
+            """, cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS ApiSnapshots (
+                CacheKey TEXT NOT NULL CONSTRAINT PK_ApiSnapshots PRIMARY KEY,
                 PayloadJson TEXT NOT NULL,
                 PulledUtc TEXT NOT NULL
             );

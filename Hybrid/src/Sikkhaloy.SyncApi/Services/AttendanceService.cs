@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
@@ -23,15 +24,18 @@ public sealed class AttendanceService
     private readonly EduConnectionFactory _connections;
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _config;
+    private readonly PaymentSmsService _sms;
 
     public AttendanceService(
         EduConnectionFactory connections,
         IWebHostEnvironment env,
-        IConfiguration config)
+        IConfiguration config,
+        PaymentSmsService sms)
     {
         _connections = connections;
         _env = env;
         _config = config;
+        _sms = sms;
     }
 
     public async Task<IReadOnlyList<AttendanceScheduleDto>> ListSchedulesAsync(
@@ -388,6 +392,7 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.R
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
         var saved = 0;
+        var errors = new List<string>();
         foreach (var row in request.Rows)
         {
             await using var rfid = new SqlCommand(
@@ -396,6 +401,23 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.R
             rfid.Parameters.AddWithValue("@StudentID", row.StudentID);
             rfid.Parameters.AddWithValue("@SchoolID", session.SchoolID);
             await rfid.ExecuteNonQueryAsync(cancellationToken);
+
+            if (row.Assigned)
+            {
+                var alreadyOnSchedule = await IsStudentAssignedAsync(
+                    con, session.SchoolID, row.StudentID, request.ScheduleID, cancellationToken);
+                if (!alreadyOnSchedule)
+                {
+                    var overlap = await GetScheduleOverlapAsync(
+                        con, session.SchoolID, row.StudentID, request.ScheduleID,
+                        "Attendance_Schedule_AssignStudent", "StudentID", cancellationToken);
+                    if (overlap is not null)
+                    {
+                        errors.Add(overlap);
+                        continue;
+                    }
+                }
+            }
 
             await using var del = new SqlCommand("""
 DELETE FROM dbo.Attendance_Schedule_AssignStudent
@@ -425,7 +447,7 @@ VALUES (@SchoolID, @RegistrationID, @ScheduleID, @StudentID, @Pre, @Exit, @Abs, 
             }
             saved++;
         }
-        return new AttendanceResult { Succeeded = true, Saved = saved };
+        return BuildAssignResult(saved, errors);
     }
 
     public async Task<IReadOnlyList<EmployeeRfidRowDto>> ListEmployeeRfidAsync(
@@ -478,6 +500,7 @@ ORDER BY v.ID
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
         var saved = 0;
+        var errors = new List<string>();
         foreach (var row in request.Rows)
         {
             await using var rfid = new SqlCommand(
@@ -486,6 +509,23 @@ ORDER BY v.ID
             rfid.Parameters.AddWithValue("@EmployeeID", row.EmployeeID);
             rfid.Parameters.AddWithValue("@SchoolID", session.SchoolID);
             await rfid.ExecuteNonQueryAsync(cancellationToken);
+
+            if (row.Assigned)
+            {
+                var alreadyOnSchedule = await IsEmployeeAssignedAsync(
+                    con, session.SchoolID, row.EmployeeID, request.ScheduleID, cancellationToken);
+                if (!alreadyOnSchedule)
+                {
+                    var overlap = await GetScheduleOverlapAsync(
+                        con, session.SchoolID, row.EmployeeID, request.ScheduleID,
+                        "Employee_Attendance_Schedule_Assign", "EmployeeID", cancellationToken);
+                    if (overlap is not null)
+                    {
+                        errors.Add(overlap);
+                        continue;
+                    }
+                }
+            }
 
             await using var del = new SqlCommand("""
 DELETE FROM dbo.Employee_Attendance_Schedule_Assign
@@ -513,7 +553,7 @@ VALUES (@SchoolID, @RegistrationID, @EmployeeID, @ScheduleID, @Abs, @Late)
             }
             saved++;
         }
-        return new AttendanceResult { Succeeded = true, Saved = saved };
+        return BuildAssignResult(saved, errors);
     }
 
     public async Task<IReadOnlyList<StudentManualRowDto>> ListStudentManualAsync(
@@ -607,6 +647,8 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(StudentsClass.R
         {
             var hasRecord = ToBool(reader["HasRecord"]);
             var attendance = hasRecord ? (reader["Attendance"]?.ToString() ?? "Pre") : "Pre";
+            if (string.IsNullOrWhiteSpace(attendance))
+                attendance = "Pre";
             var reason = hasRecord ? NullString(reader["Reason"]) : null;
             string? leaveRange = null;
             if (!hasRecord && reader["LeaveStart"] is not DBNull && reader["LeaveStart"] is not null)
@@ -682,6 +724,8 @@ ELSE
             await cmd.ExecuteNonQueryAsync(cancellationToken);
             saved++;
         }
+        if (request.Rows.Any(x => x.SendSms))
+            _ = _sms.TrySendManualAttendanceAsync(session, request, CancellationToken.None);
         return new AttendanceResult { Succeeded = true, Saved = saved };
     }
 
@@ -1413,40 +1457,44 @@ WHERE al.StudentLeaveID = @ID AND al.SchoolID = @SchoolID
         if (kind.Equals("Employee", StringComparison.OrdinalIgnoreCase)
             || kind.Equals("Teacher", StringComparison.OrdinalIgnoreCase))
         {
-            await using var cmd = new SqlCommand("""
-SELECT el.EmployeeLeaveID, v.ID,
+            try
+            {
+                await using var cmd = new SqlCommand("""
+SELECT el.Employee_LeaveID AS EmployeeLeaveID, v.ID,
        LTRIM(RTRIM(ISNULL(v.FirstName, N'') + N' ' + ISNULL(v.LastName, N''))) AS Name,
-       v.Designation, el.LeaveStartDate, el.LeaveEndDate, el.LeaveReason
+       ISNULL(v.Designation, N'') AS Designation,
+       el.LeaveStartDate, el.LeaveEndDate, ISNULL(el.LeaveReason, N'') AS LeaveReason
 FROM dbo.Employee_Leave AS el
-INNER JOIN dbo.VW_Emp_Info AS v ON el.EmployeeID = v.EmployeeID
+INNER JOIN dbo.VW_Emp_Info AS v
+    ON v.EmployeeID = el.EmployeeID AND v.SchoolID = el.SchoolID
 WHERE el.SchoolID = @SchoolID
   AND (@FromDate IS NULL OR CAST(el.LeaveStartDate AS DATE) >= @FromDate)
   AND (@ToDate IS NULL OR CAST(el.LeaveStartDate AS DATE) <= @ToDate)
 ORDER BY el.LeaveStartDate DESC
 """, con);
-            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-            cmd.Parameters.Add("@FromDate", SqlDbType.Date).Value = (object?)from?.Date ?? DBNull.Value;
-            cmd.Parameters.Add("@ToDate", SqlDbType.Date).Value = (object?)to?.Date ?? DBNull.Value;
-            var items = new List<LeaveReportRowDto>();
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
-            {
-                var start = Convert.ToDateTime(reader["LeaveStartDate"]).Date;
-                var end = Convert.ToDateTime(reader["LeaveEndDate"]).Date;
-                items.Add(new LeaveReportRowDto
-                {
-                    LeaveID = Convert.ToInt32(reader["EmployeeLeaveID"]),
-                    Type = "Employee",
-                    ID = reader["ID"]?.ToString() ?? "",
-                    Name = reader["Name"]?.ToString() ?? "",
-                    ClassOrDesignation = NullString(reader["Designation"]),
-                    StartDate = start,
-                    EndDate = end,
-                    Days = (end - start).Days + 1,
-                    Description = NullString(reader["LeaveReason"])
-                });
+                cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                cmd.Parameters.Add("@FromDate", SqlDbType.Date).Value = (object?)from?.Date ?? DBNull.Value;
+                cmd.Parameters.Add("@ToDate", SqlDbType.Date).Value = (object?)to?.Date ?? DBNull.Value;
+                return await ReadEmployeeLeaveReportAsync(cmd, cancellationToken);
             }
-            return items;
+            catch (SqlException)
+            {
+                await using var fallback = new SqlCommand("""
+SELECT el.Employee_LeaveID AS EmployeeLeaveID, CAST(el.EmployeeID AS nvarchar(50)) AS ID,
+       CAST(el.EmployeeID AS nvarchar(50)) AS Name,
+       N'' AS Designation,
+       el.LeaveStartDate, el.LeaveEndDate, ISNULL(el.LeaveReason, N'') AS LeaveReason
+FROM dbo.Employee_Leave AS el
+WHERE el.SchoolID = @SchoolID
+  AND (@FromDate IS NULL OR CAST(el.LeaveStartDate AS DATE) >= @FromDate)
+  AND (@ToDate IS NULL OR CAST(el.LeaveStartDate AS DATE) <= @ToDate)
+ORDER BY el.LeaveStartDate DESC
+""", con);
+                fallback.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                fallback.Parameters.Add("@FromDate", SqlDbType.Date).Value = (object?)from?.Date ?? DBNull.Value;
+                fallback.Parameters.Add("@ToDate", SqlDbType.Date).Value = (object?)to?.Date ?? DBNull.Value;
+                return await ReadEmployeeLeaveReportAsync(fallback, cancellationToken);
+            }
         }
 
         await using var stu = new SqlCommand("""
@@ -1656,6 +1704,31 @@ VALUES (@ScheduleID, @SchoolID, @RegistrationID, @Day, @Late, @Start, @End, GETD
         GuardianName = HasColumn(reader, "GuardianName") ? NullString(reader["GuardianName"]) : null
     };
 
+    private static async Task<IReadOnlyList<LeaveReportRowDto>> ReadEmployeeLeaveReportAsync(
+        SqlCommand cmd, CancellationToken cancellationToken)
+    {
+        var items = new List<LeaveReportRowDto>();
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var start = Convert.ToDateTime(reader["LeaveStartDate"]).Date;
+            var end = Convert.ToDateTime(reader["LeaveEndDate"]).Date;
+            items.Add(new LeaveReportRowDto
+            {
+                LeaveID = Convert.ToInt32(reader["EmployeeLeaveID"]),
+                Type = "Employee",
+                ID = reader["ID"]?.ToString() ?? "",
+                Name = reader["Name"]?.ToString() ?? "",
+                ClassOrDesignation = NullString(reader["Designation"]),
+                StartDate = start,
+                EndDate = end,
+                Days = (end - start).Days + 1,
+                Description = NullString(reader["LeaveReason"])
+            });
+        }
+        return items;
+    }
+
     private static LeaveReportRowDto ReadLeaveReport(SqlDataReader reader, bool withType)
     {
         var start = Convert.ToDateTime(reader["StartDate"]).Date;
@@ -1798,4 +1871,126 @@ VALUES (@ScheduleID, @SchoolID, @RegistrationID, @Day, @Late, @Start, @End, GETD
     private static AttendanceResult Fail(string error) => new() { Succeeded = false, Error = error };
     private static AttendanceResult Ok(int saved = 0, int id = 0) =>
         new() { Succeeded = true, Saved = saved, Id = id };
+
+    private static AttendanceResult BuildAssignResult(int saved, List<string> errors)
+    {
+        if (errors.Count == 0)
+            return Ok(saved);
+
+        // One short schedule-pair line only (never list every person).
+        var detail = errors
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault() ?? "";
+
+        if (saved > 0)
+        {
+            return new AttendanceResult
+            {
+                Succeeded = true,
+                Saved = saved,
+                Error = "att.overlapPartial",
+                Message = detail
+            };
+        }
+
+        return new AttendanceResult
+        {
+            Succeeded = false,
+            Error = "att.overlap",
+            Message = detail,
+            Saved = 0
+        };
+    }
+
+    private static async Task<bool> IsStudentAssignedAsync(
+        SqlConnection con, int schoolId, int studentId, int scheduleId, CancellationToken cancellationToken)
+    {
+        await using var cmd = new SqlCommand("""
+SELECT TOP 1 1
+FROM dbo.Attendance_Schedule_AssignStudent
+WHERE SchoolID = @SchoolID AND StudentID = @PersonID AND ScheduleID = @ScheduleID
+""", con);
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        cmd.Parameters.AddWithValue("@PersonID", studentId);
+        cmd.Parameters.AddWithValue("@ScheduleID", scheduleId);
+        var result = await cmd.ExecuteScalarAsync(cancellationToken);
+        return result is not null && result is not DBNull;
+    }
+
+    private static async Task<bool> IsEmployeeAssignedAsync(
+        SqlConnection con, int schoolId, int employeeId, int scheduleId, CancellationToken cancellationToken)
+    {
+        await using var cmd = new SqlCommand("""
+SELECT TOP 1 1
+FROM dbo.Employee_Attendance_Schedule_Assign
+WHERE SchoolID = @SchoolID AND EmployeeID = @PersonID AND ScheduleID = @ScheduleID
+""", con);
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        cmd.Parameters.AddWithValue("@PersonID", employeeId);
+        cmd.Parameters.AddWithValue("@ScheduleID", scheduleId);
+        var result = await cmd.ExecuteScalarAsync(cancellationToken);
+        return result is not null && result is not DBNull;
+    }
+
+    /// <summary>
+    /// Same rule as V2 ScheduleOverlapValidator: any overlap of schedule Start/End windows
+    /// when the person is already on another schedule.
+    /// </summary>
+    private static async Task<string?> GetScheduleOverlapAsync(
+        SqlConnection con, int schoolId, int personId, int targetScheduleId,
+        string assignTable, string personColumn, CancellationToken cancellationToken)
+    {
+        // Table/column names are fixed callers only — never user input.
+        await using var cmd = new SqlCommand($"""
+SELECT TOP 1
+    existing.ScheduleName AS ExistingScheduleName,
+    existing.StartTime AS ExistingStart,
+    existing.EndTime AS ExistingEnd,
+    target.ScheduleName AS TargetScheduleName,
+    target.StartTime AS TargetStart,
+    target.EndTime AS TargetEnd
+FROM dbo.{assignTable} AS assignTbl
+INNER JOIN dbo.Attendance_Schedule AS existing
+    ON existing.ScheduleID = assignTbl.ScheduleID AND existing.SchoolID = assignTbl.SchoolID
+INNER JOIN dbo.Attendance_Schedule AS target
+    ON target.ScheduleID = @TargetScheduleID AND target.SchoolID = @SchoolID
+WHERE assignTbl.SchoolID = @SchoolID
+  AND assignTbl.{personColumn} = @PersonID
+  AND assignTbl.ScheduleID <> @TargetScheduleID
+  AND existing.StartTime IS NOT NULL
+  AND existing.EndTime IS NOT NULL
+  AND target.StartTime IS NOT NULL
+  AND target.EndTime IS NOT NULL
+  AND existing.StartTime < target.EndTime
+  AND target.StartTime < existing.EndTime
+""", con);
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        cmd.Parameters.AddWithValue("@PersonID", personId);
+        cmd.Parameters.AddWithValue("@TargetScheduleID", targetScheduleId);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+            return null;
+
+        var existing = reader["ExistingScheduleName"]?.ToString() ?? "";
+        var target = reader["TargetScheduleName"]?.ToString() ?? "";
+        var eStart = FormatClock12(reader["ExistingStart"]);
+        var eEnd = FormatClock12(reader["ExistingEnd"]);
+        var tStart = FormatClock12(reader["TargetStart"]);
+        var tEnd = FormatClock12(reader["TargetEnd"]);
+        return $"'{existing}' ({eStart}-{eEnd}) / '{target}' ({tStart}-{tEnd})";
+    }
+
+    private static string FormatClock12(object? value)
+    {
+        if (value is null or DBNull)
+            return "";
+        var span = value switch
+        {
+            TimeSpan ts => ts,
+            DateTime dt => dt.TimeOfDay,
+            _ => TimeSpan.TryParse(value.ToString(), out var parsed) ? parsed : TimeSpan.Zero
+        };
+        return DateTime.Today.Add(span).ToString("h:mm tt", CultureInfo.InvariantCulture);
+    }
 }

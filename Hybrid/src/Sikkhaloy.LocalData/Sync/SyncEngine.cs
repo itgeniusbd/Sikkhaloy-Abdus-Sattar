@@ -29,6 +29,19 @@ public sealed partial class SyncEngine
     {
         _dbFactory = dbFactory;
         _api = api;
+        _api.OfflineQueueChanged += () => _ = NotifyQueueAsync();
+    }
+
+    private async Task NotifyQueueAsync()
+    {
+        try
+        {
+            await RefreshPendingAsync(CancellationToken.None);
+            StateChanged?.Invoke();
+        }
+        catch
+        {
+        }
     }
 
     public bool IsOnline => _online;
@@ -66,7 +79,7 @@ public sealed partial class SyncEngine
         _online = await _api.PingAsync(cancellationToken);
         if (!_online)
         {
-            LastError = "sync.apiDown";
+            LastError = "sync.needOnline";
             RegisterFailure();
             await RefreshPendingAsync(cancellationToken);
             StateChanged?.Invoke();
@@ -81,6 +94,8 @@ public sealed partial class SyncEngine
             await PullYearsAsync(session, accessToken, cancellationToken);
             await PullProfileAsync(session, accessToken, cancellationToken);
             await PullMenuAsync(session, accessToken, cancellationToken);
+            await _api.FlushQueuedWritesAsync(accessToken, cancellationToken);
+            await _api.WarmOfflineCacheAsync(accessToken, cancellationToken);
             _failureCount = 0;
             _nextAttemptUtc = DateTime.MinValue;
             LastError = null;
@@ -176,10 +191,30 @@ public sealed partial class SyncEngine
         dto.EducationYearID = session.EducationYearID;
         dto.RegistrationID = session.RegistrationID;
         dto.UpdatedUtc = now;
+
+        LocalStudent? existing = null;
+        if (dto.LocalId != Guid.Empty)
+            existing = await db.Students.FindAsync(new object[] { dto.LocalId }, cancellationToken);
+        if (existing is null && dto.ServerId is > 0)
+        {
+            existing = await db.Students.FirstOrDefaultAsync(
+                x => x.SchoolID == session.SchoolID && x.ServerId == dto.ServerId,
+                cancellationToken);
+            if (existing is not null)
+                dto.LocalId = existing.LocalId;
+        }
+
         if (dto.LocalId == Guid.Empty)
             dto.LocalId = Guid.NewGuid();
 
-        var existing = await db.Students.FindAsync(new object[] { dto.LocalId }, cancellationToken);
+        if (existing is not null)
+        {
+            if (dto.ServerId is null or <= 0)
+                dto.ServerId = existing.ServerId;
+            if (dto.StudentClassServerId is null or <= 0)
+                dto.StudentClassServerId = existing.StudentClassServerId;
+        }
+
         var operation = existing is null ? SyncOperation.Create : SyncOperation.Update;
         dto.SyncStatus = existing is null ? SyncStatus.PendingCreate : SyncStatus.PendingUpdate;
 
@@ -208,14 +243,28 @@ public sealed partial class SyncEngine
             Copy(dto, existing, session.DeviceId);
         }
 
-        db.Outbox.Add(new OutboxEntry
+        var payload = JsonSerializer.Serialize(dto, JsonOptions);
+        var pendingCreate = await db.Outbox.FirstOrDefaultAsync(
+            x => x.LocalId == dto.LocalId
+                 && x.EntityType == EntityTypes.Student
+                 && x.Operation == SyncOperation.Create,
+            cancellationToken);
+        if (pendingCreate is not null)
         {
-            LocalId = dto.LocalId,
-            EntityType = EntityTypes.Student,
-            Operation = operation,
-            PayloadJson = JsonSerializer.Serialize(dto),
-            CreatedUtc = now
-        });
+            pendingCreate.PayloadJson = payload;
+            pendingCreate.CreatedUtc = now;
+        }
+        else
+        {
+            db.Outbox.Add(new OutboxEntry
+            {
+                LocalId = dto.LocalId,
+                EntityType = EntityTypes.Student,
+                Operation = operation,
+                PayloadJson = payload,
+                CreatedUtc = now
+            });
+        }
 
         await db.SaveChangesAsync(cancellationToken);
         await RefreshPendingAsync(cancellationToken);
@@ -521,7 +570,9 @@ public sealed partial class SyncEngine
     public string? GetSchoolNameLogoDataUrl(int schoolId) =>
         ReadImageDataUrl(SchoolNameLogoPath(schoolId));
 
-    public OfficeProfileDto GetSchoolHeader(int schoolId)
+    public OfficeProfileDto GetSchoolHeader(int schoolId) => ReadSchoolHeader(schoolId);
+
+    private static OfficeProfileDto ReadSchoolHeader(int schoolId)
     {
         var path = SchoolHeaderPath(schoolId);
         if (!File.Exists(path))
@@ -635,15 +686,26 @@ public sealed partial class SyncEngine
         SaveSchoolHeader(profile.SchoolID, profile);
     }
 
+    public void SaveHeaderColor(int schoolId, string color)
+    {
+        if (schoolId <= 0)
+            return;
+        var header = GetSchoolHeader(schoolId);
+        header.HeaderColor = color;
+        File.WriteAllText(SchoolHeaderPath(schoolId), JsonSerializer.Serialize(header));
+    }
+
     private static void SaveSchoolHeader(int schoolId, OfficeProfileDto profile)
     {
+        var existingColor = ReadSchoolHeader(schoolId).HeaderColor;
         var header = new OfficeProfileDto
         {
             SchoolID = schoolId,
             SchoolName = profile.SchoolName ?? "",
             Address = profile.Address ?? "",
             Phone = profile.Phone ?? "",
-            Email = profile.Email ?? ""
+            Email = profile.Email ?? "",
+            HeaderColor = string.IsNullOrWhiteSpace(profile.HeaderColor) ? existingColor : profile.HeaderColor
         };
         File.WriteAllText(SchoolHeaderPath(schoolId), JsonSerializer.Serialize(header));
 
@@ -769,6 +831,7 @@ public sealed partial class SyncEngine
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         var pending = await db.Outbox
+            .Where(x => x.EntityType != EntityTypes.ApiCall && x.EntityType != EntityTypes.PendingSms)
             .OrderBy(x => x.OutboxId)
             .Take(80)
             .ToListAsync(cancellationToken);
@@ -781,7 +844,11 @@ public sealed partial class SyncEngine
         if (classCreates.Count > 0)
         {
             await PushBatchAsync(db, session, accessToken, classCreates, cancellationToken);
-            pending = await db.Outbox.OrderBy(x => x.OutboxId).Take(80).ToListAsync(cancellationToken);
+            pending = await db.Outbox
+                .Where(x => x.EntityType != EntityTypes.ApiCall && x.EntityType != EntityTypes.PendingSms)
+                .OrderBy(x => x.OutboxId)
+                .Take(80)
+                .ToListAsync(cancellationToken);
         }
 
         var parts = pending
@@ -790,7 +857,11 @@ public sealed partial class SyncEngine
         if (parts.Count > 0)
         {
             await PushBatchAsync(db, session, accessToken, parts, cancellationToken);
-            pending = await db.Outbox.OrderBy(x => x.OutboxId).Take(80).ToListAsync(cancellationToken);
+            pending = await db.Outbox
+                .Where(x => x.EntityType != EntityTypes.ApiCall && x.EntityType != EntityTypes.PendingSms)
+                .OrderBy(x => x.OutboxId)
+                .Take(80)
+                .ToListAsync(cancellationToken);
         }
 
         if (pending.Count > 0)
@@ -804,6 +875,10 @@ public sealed partial class SyncEngine
         List<OutboxEntry> batch,
         CancellationToken cancellationToken)
     {
+        var studentIds = batch.Select(x => x.LocalId).ToList();
+        var serverIds = await db.Students.AsNoTracking()
+            .Where(x => studentIds.Contains(x.LocalId) && x.ServerId != null)
+            .ToDictionaryAsync(x => x.LocalId, x => x.ServerId, cancellationToken);
         var request = new PushRequest
         {
             DeviceId = session.DeviceId,
@@ -812,6 +887,7 @@ public sealed partial class SyncEngine
                 LocalId = x.LocalId,
                 EntityType = x.EntityType,
                 Operation = x.Operation,
+                ServerId = serverIds.GetValueOrDefault(x.LocalId),
                 UpdatedUtc = x.CreatedUtc,
                 PayloadJson = x.PayloadJson
             }).ToList()
@@ -878,7 +954,10 @@ public sealed partial class SyncEngine
 
             var local = await db.Students.FirstOrDefaultAsync(
                 x => x.LocalId == dto.LocalId
-                     || (dto.ServerId != null && x.ServerId == dto.ServerId && x.EducationYearID == dto.EducationYearID),
+                     || (dto.ServerId != null && x.ServerId == dto.ServerId && x.EducationYearID == dto.EducationYearID)
+                     || (x.SchoolID == dto.SchoolID
+                         && x.EducationYearID == dto.EducationYearID
+                         && x.StudentCode.ToLower() == dto.StudentCode.ToLower()),
                 cancellationToken);
 
             if (local is not null && local.SyncStatus is SyncStatus.PendingCreate or SyncStatus.PendingUpdate)

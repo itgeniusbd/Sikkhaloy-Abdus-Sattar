@@ -20,65 +20,177 @@
         <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
     </div>
     <h1>@Locale.T("rpt.accSummary") @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }</h1>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <NetBanner Text="@error" />
     @foreach (var acc in items)
     {
+        var addCats = BuildDisplayRows(acc.Adds, acc.AddAdjust);
+        var subCats = BuildDisplayRows(acc.Subs, acc.SubAdjust);
         <div class="acc-det">
-            <div class="adet-row">
-                <div class="adet-card adet-acc">
-                    <div class="adet-name">@acc.AccountName</div>
-                    <div class="adet-half">
-                        <small>@Locale.T("rpt.currentBal")</small>
-                        <strong>@Tk(acc.Balance) @Locale.T("acc.tk")</strong>
+            <h2 class="adet-acc-name">@acc.AccountName</h2>
+            <div class="adet-metrics">
+                <div class="adet-metric adet-m-bal">
+                    <div class="adet-kpi-head">
+                        <span class="adet-kpi-ico" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+                        </span>
+                        <div class="adet-kpi-line">
+                            <small>@Locale.T("rpt.currentBal")</small>
+                            <strong>@Tk(acc.Balance) @Locale.T("acc.tk")</strong>
+                        </div>
+                    </div>
+                    <div class="adet-kpi-chart" aria-hidden="true">
+                        <svg class="adet-spark" viewBox="0 0 200 44" preserveAspectRatio="none"><path d="M0,44 L0,30 C25,18 40,36 65,22 C90,8 110,28 135,16 C160,4 180,20 200,12 L200,44 Z"/></svg>
                     </div>
                 </div>
-                <div class="adet-card adet-io">
-                    <div class="adet-half">
-                        <small>@Locale.T("rpt.totalAdd")</small>
-                        <strong>@Tk(acc.TotalAdd) @Locale.T("acc.tk")</strong>
+                <div class="adet-metric adet-m-add">
+                    <div class="adet-kpi-head">
+                        <span class="adet-kpi-ico" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                        </span>
+                        <div class="adet-kpi-line">
+                            <small>@Locale.T("rpt.totalAdd")</small>
+                            <strong>@Tk(acc.TotalAdd) @Locale.T("acc.tk")</strong>
+                        </div>
                     </div>
-                    <div class="adet-half">
-                        <small>@Locale.T("rpt.totalSub")</small>
-                        <strong>@Tk(acc.TotalSub) @Locale.T("acc.tk")</strong>
+                    <div class="adet-kpi-chart" aria-hidden="true">
+                        <svg class="adet-spark" viewBox="0 0 200 44" preserveAspectRatio="none"><path d="M0,44 L0,34 C30,26 55,38 80,20 C105,2 125,30 150,18 C175,6 190,24 200,14 L200,44 Z"/></svg>
                     </div>
                 </div>
-                <div class="adet-card adet-oc">
-                    <div class="adet-half">
-                        <small>@Locale.T("rpt.opening")</small>
-                        <span class="adet-day">@FromDay</span>
-                        <strong>@Tk(acc.Opening) @Locale.T("acc.tk")</strong>
+                <div class="adet-metric adet-m-sub">
+                    <div class="adet-kpi-head">
+                        <span class="adet-kpi-ico" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+                        </span>
+                        <div class="adet-kpi-line">
+                            <small>@Locale.T("rpt.totalSub")</small>
+                            <strong>@Tk(acc.TotalSub) @Locale.T("acc.tk")</strong>
+                        </div>
                     </div>
-                    <div class="adet-half">
-                        <small>@Locale.T("rpt.closing")</small>
-                        <span class="adet-day">@ToDay</span>
-                        <strong>@Tk(acc.Closing) @Locale.T("acc.tk")</strong>
+                    <div class="adet-kpi-chart" aria-hidden="true">
+                        <svg class="adet-spark" viewBox="0 0 200 44" preserveAspectRatio="none"><path d="M0,44 L0,16 C25,28 50,10 75,24 C100,38 120,12 145,26 C170,40 185,18 200,30 L200,44 Z"/></svg>
+                    </div>
+                </div>
+                <div class="adet-metric adet-m-open">
+                    <div class="adet-kpi-head">
+                        <span class="adet-kpi-ico" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                        </span>
+                        <div class="adet-kpi-line">
+                            <small>@Locale.T("rpt.opening")@if (!string.IsNullOrWhiteSpace(FromDay)) { <span class="adet-day"> · @FromDay</span> }</small>
+                            <strong>@Tk(acc.Opening) @Locale.T("acc.tk")</strong>
+                        </div>
+                    </div>
+                    <div class="adet-kpi-chart" aria-hidden="true">
+                        <svg class="adet-spark" viewBox="0 0 200 44" preserveAspectRatio="none"><path d="M0,44 L0,22 C35,34 60,14 95,28 C130,42 155,16 200,24 L200,44 Z"/></svg>
+                    </div>
+                </div>
+                <div class="adet-metric adet-m-close">
+                    <div class="adet-kpi-head">
+                        <span class="adet-kpi-ico" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                        </span>
+                        <div class="adet-kpi-line">
+                            <small>@Locale.T("rpt.closing")@if (!string.IsNullOrWhiteSpace(ToDay)) { <span class="adet-day"> · @ToDay</span> }</small>
+                            <strong>@Tk(acc.Closing) @Locale.T("acc.tk")</strong>
+                        </div>
+                    </div>
+                    <div class="adet-kpi-chart" aria-hidden="true">
+                        <svg class="adet-spark" viewBox="0 0 200 44" preserveAspectRatio="none"><path d="M0,44 L0,28 C28,16 52,32 80,20 C108,8 132,26 160,14 C180,6 192,22 200,18 L200,44 Z"/></svg>
                     </div>
                 </div>
             </div>
-            @if (acc.Adds.Count > 0)
-            {
-                <div class="rpt-box in">@Locale.T("rpt.addBal")</div>
-                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
-                <tbody>@foreach (var row in acc.Adds) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
-            }
-            @if (acc.AddAdjust.Count > 0)
-            {
-                <div class="rpt-box acc">@Locale.T("rpt.addAdj")</div>
-                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
-                <tbody>@foreach (var row in acc.AddAdjust) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
-            }
-            @if (acc.Subs.Count > 0)
-            {
-                <div class="rpt-box ex">@Locale.T("rpt.subBal")</div>
-                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
-                <tbody>@foreach (var row in acc.Subs) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
-            }
-            @if (acc.SubAdjust.Count > 0)
-            {
-                <div class="rpt-box user">@Locale.T("rpt.subAdj")</div>
-                <table class="mgrid"><thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
-                <tbody>@foreach (var row in acc.SubAdjust) { <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr> }</tbody></table>
-            }
+
+            <div class="adet-split">
+                <section class="adet-panel adet-panel-add">
+                    <h3>@Locale.T("rpt.addBalByCat")</h3>
+                    <div class="adet-panel-body">
+                        <table class="adet-cat-table">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("rpt.category")</th>
+                                    <th class="num">@Locale.T("rpt.amount") (@Locale.T("acc.tk"))</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < addCats.Count; i++)
+                                {
+                                    var row = addCats[i];
+                                    <tr class="@RowClass(row.Badge)">
+                                        <td>
+                                            <span class="adet-cat-name">
+                                                <i class="adet-cat-dot" style="background:@ColorAt(i)"></i>
+                                                <span class="adet-cat-label">@row.Name</span>
+                                                @if (!string.IsNullOrWhiteSpace(row.Badge))
+                                                {
+                                                    <span class="adet-badge @BadgeClass(row.Badge)">@BadgeLabel(row.Badge)</span>
+                                                }
+                                            </span>
+                                        </td>
+                                        <td class="num">@Tk(row.Amount)</td>
+                                    </tr>
+                                }
+                                <tr class="adet-cat-total add">
+                                    <td>@Locale.T("rpt.totalAdd")</td>
+                                    <td class="num">@Tk(acc.TotalAdd) @Locale.T("acc.tk")</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="adet-donut-wrap">
+                            <div class="adet-donut" style="@DonutStyle(addCats, acc.TotalAdd)">
+                                <div class="adet-donut-hole">
+                                    <small>@Locale.T("rpt.total")</small>
+                                    <strong>@Tk(acc.TotalAdd) @Locale.T("acc.tk")</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="adet-panel adet-panel-sub">
+                    <h3>@Locale.T("rpt.subBalByCat")</h3>
+                    <div class="adet-panel-body">
+                        <table class="adet-cat-table">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("rpt.category")</th>
+                                    <th class="num">@Locale.T("rpt.amount") (@Locale.T("acc.tk"))</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < subCats.Count; i++)
+                                {
+                                    var row = subCats[i];
+                                    <tr class="@RowClass(row.Badge)">
+                                        <td>
+                                            <span class="adet-cat-name">
+                                                <i class="adet-cat-dot" style="background:@ColorAt(i)"></i>
+                                                <span class="adet-cat-label">@row.Name</span>
+                                                @if (!string.IsNullOrWhiteSpace(row.Badge))
+                                                {
+                                                    <span class="adet-badge @BadgeClass(row.Badge)">@BadgeLabel(row.Badge)</span>
+                                                }
+                                            </span>
+                                        </td>
+                                        <td class="num">@Tk(row.Amount)</td>
+                                    </tr>
+                                }
+                                <tr class="adet-cat-total sub">
+                                    <td>@Locale.T("rpt.totalSub")</td>
+                                    <td class="num">@Tk(acc.TotalSub) @Locale.T("acc.tk")</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="adet-donut-wrap">
+                            <div class="adet-donut" style="@DonutStyle(subCats, acc.TotalSub)">
+                                <div class="adet-donut-hole">
+                                    <small>@Locale.T("rpt.total")</small>
+                                    <strong>@Tk(acc.TotalSub) @Locale.T("acc.tk")</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     }
 </div>
@@ -101,6 +213,12 @@
     private List<AccountDetailDto> items = [];
     private string accountId = "%", fromText = "", toText = "", error = "";
     private bool busy;
+
+    private static readonly string[] ChartColors =
+    [
+        "#14b8a6", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444",
+        "#06b6d4", "#84cc16", "#ec4899", "#6366f1", "#f97316"
+    ];
 
     private string DateLabel => RangeLabel(fromText, toText);
     private string FromDay => Parse(fromText)?.ToString("d MMM yyyy") ?? "";
@@ -158,5 +276,67 @@
         }
         if (from is not null) return $"After {from.Value:d MMM yyyy}";
         return $"Before {to!.Value:d MMM yyyy}";
+    }
+
+    private sealed record CatRow(string Name, decimal Amount, string Badge);
+
+    private static List<CatRow> BuildDisplayRows(IEnumerable<AccountDetailCatDto> primary, IEnumerable<AccountDetailCatDto> adjust)
+    {
+        var rows = new List<CatRow>();
+        foreach (var row in primary)
+        {
+            if (string.IsNullOrWhiteSpace(row.Name) || row.Amount == 0) continue;
+            rows.Add(new CatRow(row.Name, row.Amount, ""));
+        }
+
+        foreach (var row in adjust)
+        {
+            if (string.IsNullOrWhiteSpace(row.Name) || row.Amount == 0) continue;
+            rows.Add(new CatRow(row.Name, row.Amount, row.Badge));
+        }
+
+        return rows;
+    }
+
+    private string BadgeLabel(string badge) => badge switch
+    {
+        "unpaid" => Locale.T("rpt.badgeUnpaid"),
+        "deleted" => Locale.T("rpt.badgeDeleted"),
+        "adjust" => Locale.T("rpt.badgeAdjust"),
+        _ => ""
+    };
+
+    private static string BadgeClass(string badge) => badge switch
+    {
+        "unpaid" => "is-unpaid",
+        "deleted" => "is-deleted",
+        "adjust" => "is-adjust",
+        _ => ""
+    };
+
+    private static string RowClass(string badge) => badge switch
+    {
+        "unpaid" => "adet-row-unpaid",
+        "deleted" => "adet-row-deleted",
+        "adjust" => "adet-row-adjust",
+        _ => ""
+    };
+
+    private static string ColorAt(int index) => ChartColors[index % ChartColors.Length];
+
+    private static string DonutStyle(IReadOnlyList<CatRow> rows, decimal total)
+    {
+        if (total <= 0 || rows.Count == 0) return "background:#e2e8f0";
+        var parts = new List<string>();
+        double cum = 0;
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var pct = (double)(rows[i].Amount / total * 100m);
+            var start = cum;
+            cum += pct;
+            parts.Add($"{ColorAt(i)} {start:0.##}% {cum:0.##}%");
+        }
+
+        return $"background:conic-gradient({string.Join(", ", parts)})";
     }
 }

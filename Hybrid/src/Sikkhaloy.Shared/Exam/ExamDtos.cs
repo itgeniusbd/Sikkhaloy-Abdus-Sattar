@@ -6,6 +6,7 @@ public sealed class ExamResult
     public string? Error { get; set; }
     public int Id { get; set; }
     public int Count { get; set; }
+    public bool Queued { get; set; }
 }
 
 public sealed class ExamOptionDto
@@ -384,6 +385,7 @@ public class ExamCardStudentDto
     public string LateAbsDays { get; set; } = "";
     public string LeaveDays { get; set; } = "";
     public string LateDays { get; set; } = "";
+    public string? PhotoDataUrl { get; set; }
     public List<ExamCardSubjectDto> Subjects { get; set; } = [];
 }
 
@@ -401,6 +403,8 @@ public sealed class ExamResultCardSheetDto
     public List<string> SubExamNames { get; set; } = [];
     public List<ExamGradeBandViewDto> Grades { get; set; } = [];
     public List<ExamCardStudentDto> Students { get; set; } = [];
+    public string? TeacherSignDataUrl { get; set; }
+    public string? PrincipalSignDataUrl { get; set; }
 }
 
 public sealed class ExamStatRowDto
@@ -500,6 +504,8 @@ public sealed class CumulativeResultCardSheetDto
     public List<CumulativeExamColDto> Exams { get; set; } = [];
     public List<ExamGradeBandViewDto> Grades { get; set; } = [];
     public List<CumulativeCardStudentDto> Students { get; set; } = [];
+    public string? TeacherSignDataUrl { get; set; }
+    public string? PrincipalSignDataUrl { get; set; }
 }
 
 public sealed class ExamAnalyticalDto

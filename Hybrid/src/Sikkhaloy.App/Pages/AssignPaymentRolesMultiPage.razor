@@ -3,10 +3,15 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page acc-page acc-multi-page">
-    <h1>@Locale.T("acc.multiTitle")</h1>
-    <a class="acc-jump" href="accounts/assign-roles">@Locale.T("acc.backAssign")</a>
-    <p class="acc-hint">@Locale.T("acc.assignedHint")</p>
+<div class="card sa-page si-info-page acc-page acc-mod-page acc-multi-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.assign")</p>
+            <h1>@Locale.T("acc.multiTitle")</h1>
+            <p class="sa-lead">@Locale.T("acc.assignedHint")</p>
+            <a class="acc-jump" href="accounts/assign-roles">@Locale.T("acc.backAssign")</a>
+        </div>
+    </header>
 
     <section class="acc-pick-panel">
         <div class="acc-pick-head">
@@ -14,7 +19,7 @@
                 <input type="checkbox" checked="@allClasses" disabled="@busy" @onchange="ToggleAll" />
                 <span>@Locale.T("acc.selectAllClasses")</span>
             </label>
-            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindAsync">@Locale.T("acc.find")</button>
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="FindAsync">@Locale.T("acc.find")</button>
         </div>
         <div class="acc-classes">
             @foreach (var item in classes)
@@ -163,22 +168,16 @@
 
     @if (oneTime.Count > 0 || multi.Count > 0)
     {
-        <div class="acc-assign-bar">
-            <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.assign")</button>
+        <div class="sal-bar no-print acc-assign-bar">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.assign")</button>
         </div>
     }
 </div>
 
-@if (!string.IsNullOrWhiteSpace(popupText))
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText) && !busy)
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="acc.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -188,6 +187,7 @@
     private readonly List<FeeMonth> months = [];
     private bool allClasses;
     private bool busy;
+    private string busyTitle = "";
     private string? popupText;
     private bool popupError;
 
@@ -319,7 +319,7 @@
         var ids = classes.Where(x => x.Selected).Select(x => x.ClassID).ToList();
         if (ids.Count == 0) { ShowPopup(Locale.T("acc.needClasses"), true); return; }
         if (!await OnlineAsync()) return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
             await LoadRolesAsync(ids);
@@ -383,7 +383,7 @@
         if (ids.Count == 0) { ShowPopup(Locale.T("acc.needClasses"), true); return; }
         if (items.Count == 0) { ShowPopup(Locale.T("acc.needRows"), true); return; }
         if (!await OnlineAsync()) return;
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
             var result = await Api.BulkAssignRolesAsync(Session.AccessToken!, new BulkAssignRoleRequest
@@ -420,5 +420,13 @@
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         { ShowPopup(Locale.T("subj.needOnline"), true); return false; }
         return true;
+    }
+
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
     }
 }

@@ -11,7 +11,7 @@
 <div class="login-split">
     <aside class="login-pane">
         <a class="login-logo" href="/">
-            <img src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="Sikkhaloy.com" />
+            <img src="_content/Sikkhaloy.App/img/hybrid-logo.png" alt="SIKKHALOY Hybrid" />
         </a>
         <p class="login-sub">@Locale.T("login.sub")</p>
         <h1>
@@ -94,7 +94,11 @@
                     @ArrowIcon
                 </button>
             </EditForm>
-            @if (!string.IsNullOrWhiteSpace(message))
+            @if (Locale.IsNetNotice(message))
+            {
+                <ResultPopup Text="@message" Error="true" OnClose="() => message = null" />
+            }
+            else if (!string.IsNullOrWhiteSpace(message))
             {
                 <div class="error">@message</div>
             }

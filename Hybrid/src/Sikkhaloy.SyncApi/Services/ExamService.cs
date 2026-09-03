@@ -355,7 +355,17 @@ WHERE StudentsClass.EducationYearID = @EducationYearID AND StudentsClass.SchoolI
 ORDER BY CreateClass.ClassID
 """, session, ct);
         }
-        if (kind is "result" or "publish" or "cumulative-publish" or "cumulative-result")
+        if (kind == "cumulative-publish")
+        {
+            dto.Classes = await QueryOptionsAsync(con, """
+SELECT DISTINCT CreateClass.ClassID AS Id, CreateClass.Class AS Name
+FROM Exam_Publish_Setting
+INNER JOIN CreateClass ON Exam_Publish_Setting.ClassID = CreateClass.ClassID
+WHERE Exam_Publish_Setting.SchoolID = @SchoolID AND Exam_Publish_Setting.EducationYearID = @EducationYearID
+ORDER BY CreateClass.ClassID
+""", session, ct);
+        }
+        else if (kind is "result" or "publish" or "cumulative-result")
         {
             dto.Classes = await QueryOptionsAsync(con, """
 SELECT DISTINCT CreateClass.ClassID AS Id, CreateClass.Class AS Name
@@ -419,7 +429,8 @@ WHERE Exam_Cumulative_Setting.SchoolID = @SchoolID AND Exam_Cumulative_Setting.E
             dto.Exams = await QueryOptionsAsync(con, """
 SELECT DISTINCT Exam_Name.ExamID AS Id, Exam_Name.ExamName AS Name
 FROM Exam_Name INNER JOIN Exam_Result_of_Student ON Exam_Name.ExamID = Exam_Result_of_Student.ExamID
-WHERE Exam_Name.EducationYearID = @EducationYearID AND Exam_Name.SchoolID = @SchoolID AND Exam_Result_of_Student.ClassID = @ClassID
+WHERE Exam_Name.EducationYearID = @EducationYearID AND Exam_Name.SchoolID = @SchoolID
+  AND Exam_Result_of_Student.ClassID = @ClassID AND Exam_Result_of_Student.EducationYearID = @EducationYearID
 ORDER BY Exam_Name.ExamID
 """, session, ct, c => c.Parameters.AddWithValue("@ClassID", classId));
         }
@@ -431,15 +442,6 @@ FROM Exam_Cumulative_Name
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
 ORDER BY Date DESC, CumulativeResultName
 """, session, ct);
-            if (kind == "cumulative-publish" && classId > 0)
-            {
-                dto.Exams = await QueryOptionsAsync(con, """
-SELECT DISTINCT Exam_Name.ExamID AS Id, Exam_Name.ExamName AS Name
-FROM Exam_Name INNER JOIN Exam_Result_of_Student ON Exam_Name.ExamID = Exam_Result_of_Student.ExamID
-WHERE Exam_Name.EducationYearID = @EducationYearID AND Exam_Name.SchoolID = @SchoolID AND Exam_Result_of_Student.ClassID = @ClassID
-ORDER BY Exam_Name.ExamID
-""", session, ct, c => c.Parameters.AddWithValue("@ClassID", classId));
-            }
             if (kind == "cumulative-result" && classId > 0)
             {
                 dto.CumulativeExams = await QueryOptionsAsync(con, """
@@ -479,7 +481,7 @@ WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID ORDER BY ExamI
 
         dto.Grades = await QueryOptionsAsync(con, "SELECT GradeNameID AS Id, GradeName AS Name FROM Exam_Grade_Name WHERE SchoolID = @SchoolID", session, ct, schoolOnly: true);
 
-        if (classId > 0)
+        if (classId > 0 && kind is not "cumulative-publish")
         {
             dto.Groups = await QueryOptionsAsync(con, """
 SELECT DISTINCT [Join].SubjectGroupID AS Id, CreateSubjectGroup.SubjectGroup AS Name
@@ -1026,12 +1028,12 @@ ORDER BY CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE
             if (dto.HasSubExams && subExamId <= 0)
             {
                 foreach (var sub in student.Subs)
-                    await FillObtainedAsync(con, student.StudentClassID, subjectId, examId, sub.SubExamID, sub, ct);
+                    await FillObtainedAsync(con, session, student.StudentClassID, subjectId, examId, sub.SubExamID, sub, ct);
             }
             else
             {
                 var box = new InputSubMarkDto();
-                await FillObtainedAsync(con, student.StudentClassID, subjectId, examId, subExamId, box, ct);
+                await FillObtainedAsync(con, session, student.StudentClassID, subjectId, examId, subExamId, box, ct);
                 student.MarksObtained = box.MarksObtained;
                 student.Absent = box.Absent;
             }
@@ -1242,13 +1244,15 @@ VALUES (@SchoolID, @RegistrationID, @SubjectID, @ExamID, @ClassID, @SubExamID, @
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
-    private static async Task FillObtainedAsync(SqlConnection con, int studentClassId, int subjectId, int examId, int subExamId, InputSubMarkDto target, CancellationToken ct)
+    private static async Task FillObtainedAsync(SqlConnection con, SessionSnapshot session, int studentClassId, int subjectId, int examId, int subExamId, InputSubMarkDto target, CancellationToken ct)
     {
         await using var cmd = new SqlCommand("""
 SELECT MarksObtained, AbsenceStatus FROM Exam_Obtain_Marks
-WHERE StudentClassID = @StudentClassID AND SubjectID = @SubjectID AND ExamID = @ExamID
+WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID
+  AND StudentClassID = @StudentClassID AND SubjectID = @SubjectID AND ExamID = @ExamID
   AND (SubExamID = @SubExamID OR (@SubExamID = 0 AND SubExamID IS NULL))
 """, con);
+        AddSession(cmd, session);
         cmd.Parameters.AddWithValue("@StudentClassID", studentClassId);
         cmd.Parameters.AddWithValue("@SubjectID", subjectId);
         cmd.Parameters.AddWithValue("@ExamID", examId);
@@ -1826,8 +1830,25 @@ WHERE Exam_Obtain_Marks.SchoolID = @SchoolID AND Exam_Obtain_Marks.EducationYear
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
 
-        await using (var cmd = new SqlCommand("SELECT SchoolName, Address, Phone FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+        try
         {
+            await using (var cmd = new SqlCommand("SELECT SchoolName, Address, Phone, Teacher_Sign, Principal_Sign FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+            {
+                AddSchool(cmd, session);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                if (await reader.ReadAsync(ct))
+                {
+                    dto.SchoolName = Text(reader["SchoolName"]);
+                    dto.Address = Text(reader["Address"]);
+                    dto.Phone = Text(reader["Phone"]);
+                    dto.TeacherSignDataUrl = ToDataUrl(reader["Teacher_Sign"] as byte[]);
+                    dto.PrincipalSignDataUrl = ToDataUrl(reader["Principal_Sign"] as byte[]);
+                }
+            }
+        }
+        catch
+        {
+            await using var cmd = new SqlCommand("SELECT SchoolName, Address, Phone FROM SchoolInfo WHERE SchoolID = @SchoolID", con);
             AddSchool(cmd, session);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             if (await reader.ReadAsync(ct))
@@ -1966,6 +1987,14 @@ WHERE ers.SchoolID = @SchoolID AND ers.EducationYearID = @EducationYearID AND er
 
         try
         {
+            await FillCardPhotosAsync(con, session, dto.Students, ct);
+        }
+        catch
+        {
+        }
+
+        try
+        {
             await FillCardAttendanceAsync(con, session, classId, attFrom, attTo, attSchedule, dto.Students, ct);
         }
         catch
@@ -1976,12 +2005,15 @@ WHERE ers.SchoolID = @SchoolID AND ers.EducationYearID = @EducationYearID AND er
         try
         {
             await using var cmd = new SqlCommand("""
-SELECT Exam_SubExam_Name.SubExamName, MIN(Exam_SubExam_Name.Sub_ExamSN) AS SN, MIN(Exam_SubExam_Name.SubExamID) AS SubExamID
-FROM Exam_Obtain_Marks INNER JOIN Exam_SubExam_Name ON Exam_Obtain_Marks.SubExamID = Exam_SubExam_Name.SubExamID
-WHERE Exam_Obtain_Marks.SchoolID = @SchoolID AND Exam_Obtain_Marks.EducationYearID = @EducationYearID
-  AND Exam_Obtain_Marks.ExamID = @ExamID AND Exam_Obtain_Marks.ClassID = @ClassID
-GROUP BY Exam_SubExam_Name.SubExamName
-ORDER BY SN, SubExamID
+SELECT DISTINCT Exam_SubExam_Name.SubExamName, Exam_SubExam_Name.Sub_ExamSN AS SN, Exam_SubExam_Name.SubExamID
+FROM Exam_SubExam_Name
+INNER JOIN Exam_Obtain_Marks ON Exam_SubExam_Name.SubExamID = Exam_Obtain_Marks.SubExamID
+INNER JOIN Exam_Result_of_Student ON Exam_Obtain_Marks.StudentResultID = Exam_Result_of_Student.StudentResultID
+INNER JOIN StudentsClass ON Exam_Result_of_Student.StudentClassID = StudentsClass.StudentClassID
+WHERE Exam_SubExam_Name.SchoolID = @SchoolID AND Exam_SubExam_Name.EducationYearID = @EducationYearID
+  AND Exam_Result_of_Student.ExamID = @ExamID AND StudentsClass.ClassID = @ClassID
+  AND Exam_Obtain_Marks.SchoolID = @SchoolID AND Exam_Obtain_Marks.EducationYearID = @EducationYearID
+ORDER BY Exam_SubExam_Name.Sub_ExamSN, Exam_SubExam_Name.SubExamID
 """, con);
             AddSession(cmd, session);
             cmd.Parameters.AddWithValue("@ClassID", classId);
@@ -2325,6 +2357,37 @@ ORDER BY CASE WHEN ISNUMERIC(sc.RollNo) = 1 THEN CAST(REPLACE(REPLACE(sc.RollNo,
         return match?.Comments?.Trim() ?? "";
     }
 
+    private static async Task FillCardPhotosAsync(
+        SqlConnection con, SessionSnapshot session, List<ExamCardStudentDto> students, CancellationToken ct)
+    {
+        var ids = students.Select(s => s.StudentID).Where(id => id > 0).Distinct().ToList();
+        if (ids.Count == 0) return;
+        var inList = string.Join(",", ids.Select((_, i) => "@P" + i));
+        await using var cmd = new SqlCommand($"""
+SELECT s.StudentID, si.Image
+FROM dbo.Student s
+LEFT OUTER JOIN dbo.Student_Image si ON s.StudentImageID = si.StudentImageID
+WHERE s.SchoolID = @SchoolID AND s.StudentID IN ({inList}) AND si.Image IS NOT NULL
+""", con);
+        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        for (var i = 0; i < ids.Count; i++)
+            cmd.Parameters.AddWithValue("@P" + i, ids[i]);
+
+        var byId = students.Where(s => s.StudentID > 0)
+            .GroupBy(s => s.StudentID)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            var id = ToInt(reader["StudentID"]);
+            if (!byId.TryGetValue(id, out var rows)) continue;
+            if (reader["Image"] is not byte[] bytes || bytes.Length == 0) continue;
+            var mime = bytes.Length >= 8 && bytes[0] == 0x89 ? "image/png" : "image/jpeg";
+            var url = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+            foreach (var row in rows) row.PhotoDataUrl = url;
+        }
+    }
+
     private static async Task FillCardAttendanceAsync(
         SqlConnection con, SessionSnapshot session, int classId, DateTime? from, DateTime? to, int scheduleId,
         List<ExamCardStudentDto> students, CancellationToken ct)
@@ -2371,11 +2434,12 @@ GROUP BY StudentClassID, Attendance
         }
 
         static string CountOf(Dictionary<(int Scid, string Status), int> map, int scid, string status) =>
-            map.TryGetValue((scid, status), out var n) ? n.ToString() : "0";
+            map.TryGetValue((scid, status), out var n) && n > 0 ? n.ToString() : "";
 
         foreach (var student in students)
         {
-            student.WorkingDays = working;
+            var days = (working ?? "").Trim();
+            student.WorkingDays = days.Length == 0 || days == "0" ? "" : days;
             student.PresentDays = CountOf(counts, student.StudentClassID, "Pre");
             student.AbsentDays = CountOf(counts, student.StudentClassID, "Abs");
             student.LeaveDays = CountOf(counts, student.StudentClassID, "Leave");

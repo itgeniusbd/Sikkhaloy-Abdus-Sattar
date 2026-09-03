@@ -4,79 +4,86 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page">
-    <h1>@Locale.T("subj.title")</h1>
+<div class="card sa-page sj-page">
+    <header class="sa-head sj-head">
+        <div>
+            <p class="sa-kicker">@Locale.T("subj.kicker")</p>
+            <h1>@Locale.T("subj.title")</h1>
+        </div>
+        <a class="btn-ghost" href="/basic-settings/assign-subjects">@Locale.T("asgn.title")</a>
+    </header>
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error">@error</div>
+        <NetBanner Text="@error" />
     }
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="ok">@message</div>
     }
 
-    <div class="inline-add">
+    <div class="sj-add">
         <input type="text" placeholder="@Locale.T("subj.placeholder")" @bind="newName" @onkeydown="OnAddKey" disabled="@busy" />
-        <button type="button" class="primary" disabled="@busy" @onclick="AddAsync">@Locale.T("subj.add")</button>
+        <button type="button" class="btn-primary" disabled="@busy" @onclick="AddAsync">@Locale.T("subj.add")</button>
     </div>
 
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th class="act">@Locale.T("subj.delete")</th>
-                <th class="act">@Locale.T("subj.edit")</th>
-                <th>@Locale.T("subj.list")</th>
-                <th>@Locale.T("subj.serial")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0 && !busy && string.IsNullOrWhiteSpace(error))
-        {
-            <tr><td colspan="4" class="empty-row">@Locale.T("subj.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in rows)
-            {
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
                 <tr>
-                    <td class="act">
-                        <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("subj.delete")</button>
-                    </td>
-                    <td class="act">
-                        @if (editingId == row.SubjectID)
-                        {
-                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => SaveEditAsync(row)">@Locale.T("subj.update")</button>
-                            <button type="button" class="link-btn" disabled="@busy" @onclick="CancelEdit">@Locale.T("subj.cancel")</button>
-                        }
-                        else
-                        {
-                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("subj.edit")</button>
-                        }
-                    </td>
-                    <td>
-                        @if (editingId == row.SubjectID)
-                        {
-                            <input type="text" @bind="editName" disabled="@busy" />
-                        }
-                        else
-                        {
-                            @row.SubjectName
-                        }
-                    </td>
-                    <td>
-                        <input class="sn-input" value="@SerialOf(row)" disabled="@busy"
-                               @onchange="e => SetSerial(row.SubjectID, e.Value?.ToString())" />
-                    </td>
+                    <th>@Locale.T("subj.list")</th>
+                    <th>@Locale.T("subj.serial")</th>
+                    <th></th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy && string.IsNullOrWhiteSpace(error))
+            {
+                <tr><td colspan="3" class="empty-row">@Locale.T("subj.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>
+                            @if (editingId == row.SubjectID)
+                            {
+                                <input type="text" @bind="editName" disabled="@busy" />
+                            }
+                            else
+                            {
+                                @row.SubjectName
+                            }
+                        </td>
+                        <td>
+                            <input class="sn-input" value="@SerialOf(row)" disabled="@busy"
+                                   @onchange="e => SetSerial(row.SubjectID, e.Value?.ToString())" />
+                        </td>
+                        <td class="act">
+                            @if (editingId == row.SubjectID)
+                            {
+                                <button type="button" class="cls-act cls-act-save" disabled="@busy" @onclick="() => SaveEditAsync(row)">@Locale.T("subj.update")</button>
+                                <button type="button" class="cls-act cls-act-cancel" disabled="@busy" @onclick="CancelEdit">@Locale.T("subj.cancel")</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="cls-act cls-act-edit" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("subj.edit")</button>
+                                <button type="button" class="cls-act cls-act-del" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("subj.delete")</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 
     @if (rows.Count > 0)
     {
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveSerialsAsync">@Locale.T("subj.updateSerial")</button>
+        <div class="sj-foot">
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveSerialsAsync">@Locale.T("subj.updateSerial")</button>
+        </div>
     }
 </div>
 

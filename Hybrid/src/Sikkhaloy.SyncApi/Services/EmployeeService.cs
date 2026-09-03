@@ -58,19 +58,16 @@ public sealed class EmployeeService
         var password = request.Password ?? "";
         var confirm = request.ConfirmPassword ?? "";
         var email = (request.Email ?? "").Trim();
-        var question = (request.Question ?? "").Trim();
-        var answer = (request.Answer ?? "").Trim();
+        var question = "Username";
+        var answer = userName;
 
         if (firstName.Length == 0 || lastName.Length == 0 || designation.Length == 0
             || phone.Length == 0 || gender.Length == 0)
             return Fail("emp.needInfo");
         if (request.AbsDeducted && request.AbsDeduction <= 0)
             return Fail("emp.needAbsAmount");
-        if (userName.Length == 0 || password.Length == 0 || email.Length == 0
-            || question.Length == 0 || answer.Length == 0)
+        if (userName.Length == 0 || password.Length == 0 || email.Length == 0)
             return Fail("emp.needLogin");
-        if (question.StartsWith("Select ", StringComparison.OrdinalIgnoreCase))
-            return Fail("sub.question");
         if (userName.Any(char.IsWhiteSpace))
             return Fail("sub.userSpace");
         if (userName.Length is < 8 or > 30)
@@ -286,9 +283,58 @@ WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID
         cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
         cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await UpdatePersonAsync(con, session.SchoolID, employeeId, request, cancellationToken);
         if (code.Length > 0)
             await MarkDeviceUpdateAsync(con, null, session, "Update Employee ID", cancellationToken);
         return new EmployeeResult { Succeeded = true, EmployeeID = employeeId };
+    }
+
+    private static async Task UpdatePersonAsync(
+        SqlConnection con, int schoolId, int employeeId, UpdateEmployeeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var name = (request.Name ?? "").Trim();
+        var (firstName, lastName) = SplitName(name);
+        var hasName = name.Length > 0;
+        var hasFather = request.FatherName is not null;
+        var hasPhone = request.Phone is not null;
+        var hasDes = request.Designation is not null;
+        if (!hasName && !hasFather && !hasPhone && !hasDes)
+            return;
+
+        const string set = """
+SET FirstName = CASE WHEN @HasName = 1 THEN @FirstName ELSE FirstName END,
+    LastName = CASE WHEN @HasName = 1 THEN @LastName ELSE LastName END,
+    FatherName = CASE WHEN @HasFather = 1 THEN @FatherName ELSE FatherName END,
+    Phone = CASE WHEN @HasPhone = 1 THEN @Phone ELSE Phone END,
+    Designation = CASE WHEN @HasDes = 1 THEN @Designation ELSE Designation END
+WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID
+""";
+        foreach (var table in new[] { "dbo.Teacher", "dbo.Staff_Info" })
+        {
+            await using var cmd = new SqlCommand($"UPDATE {table} {set}", con);
+            cmd.Parameters.AddWithValue("@HasName", hasName ? 1 : 0);
+            cmd.Parameters.AddWithValue("@FirstName", firstName);
+            cmd.Parameters.AddWithValue("@LastName", lastName);
+            cmd.Parameters.AddWithValue("@HasFather", hasFather ? 1 : 0);
+            Add(cmd, "@FatherName", request.FatherName);
+            cmd.Parameters.AddWithValue("@HasPhone", hasPhone ? 1 : 0);
+            Add(cmd, "@Phone", request.Phone);
+            cmd.Parameters.AddWithValue("@HasDes", hasDes ? 1 : 0);
+            Add(cmd, "@Designation", request.Designation);
+            cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
+            cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    private static (string First, string Last) SplitName(string name)
+    {
+        name = (name ?? "").Trim();
+        if (name.Length == 0)
+            return ("", "");
+        var i = name.IndexOf(' ');
+        return i < 0 ? (name, "") : (name[..i], name[(i + 1)..].Trim());
     }
 
     public async Task<EmployeeResult> SetJobStatusAsync(
@@ -308,6 +354,205 @@ SET Job_Status = @JobStatus
 WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID
 """, con);
         cmd.Parameters.AddWithValue("@JobStatus", status);
+        cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
+        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        var n = await cmd.ExecuteNonQueryAsync(cancellationToken);
+        return n > 0
+            ? new EmployeeResult { Succeeded = true, EmployeeID = employeeId }
+            : Fail("emp.needId");
+    }
+
+    public async Task<EmployeeEditDto?> GetAsync(
+        SessionSnapshot session, int employeeId, CancellationToken cancellationToken)
+    {
+        if (employeeId <= 0)
+            return null;
+
+        const string sql = """
+SELECT e.EmployeeID, ISNULL(e.ID, N'') AS ID, ISNULL(e.EmployeeType, N'') AS EmployeeType,
+       e.Permanent_Temporary, e.Salary, e.IS_Abs_Deducted, e.Abs_Deduction,
+       e.IS_Late_Count_As_Abs, e.Late_Days, e.Bank_AccNo,
+       ISNULL(t.FirstName, s.FirstName) AS FirstName,
+       ISNULL(t.LastName, s.LastName) AS LastName,
+       ISNULL(t.FatherName, s.FatherName) AS FatherName,
+       ISNULL(t.Gender, s.Gender) AS Gender,
+       t.Age, ISNULL(t.DateofBirth, s.DateofBirth) AS DateofBirth,
+       ISNULL(t.Religion, s.Religion) AS Religion,
+       t.Nationality, ISNULL(t.Address, s.Address) AS Address,
+       t.City, t.State, t.PostalCode,
+       ISNULL(t.Phone, s.Phone) AS Phone, t.Email,
+       ISNULL(t.Designation, s.Designation) AS Designation,
+       CASE WHEN e.EmployeeType = N'Teacher' THEN t.Image ELSE s.Image END AS Photo
+FROM dbo.Employee_Info AS e
+LEFT JOIN dbo.Teacher AS t ON t.EmployeeID = e.EmployeeID AND e.EmployeeType = N'Teacher'
+LEFT JOIN dbo.Staff_Info AS s ON s.EmployeeID = e.EmployeeID AND e.EmployeeType = N'Staff'
+WHERE e.EmployeeID = @EmployeeID AND e.SchoolID = @SchoolID
+""";
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+        await using var cmd = new SqlCommand(sql, con);
+        cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
+        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+            return null;
+
+        return new EmployeeEditDto
+        {
+            EmployeeID = Convert.ToInt32(reader["EmployeeID"]),
+            ID = reader["ID"]?.ToString() ?? "",
+            EmployeeType = reader["EmployeeType"]?.ToString() ?? "",
+            FirstName = reader["FirstName"]?.ToString()?.Trim() ?? "",
+            LastName = reader["LastName"]?.ToString()?.Trim() ?? "",
+            FatherName = NullString(reader["FatherName"]),
+            Gender = string.IsNullOrWhiteSpace(reader["Gender"]?.ToString()) ? "Male" : reader["Gender"]!.ToString()!.Trim(),
+            Age = NullString(reader["Age"]),
+            DateOfBirth = ReadDate(reader["DateofBirth"]),
+            Religion = NullString(reader["Religion"]) ?? "Islam",
+            Nationality = NullString(reader["Nationality"]),
+            Address = NullString(reader["Address"]),
+            City = NullString(reader["City"]),
+            State = NullString(reader["State"]),
+            PostalCode = NullString(reader["PostalCode"]),
+            Phone = NullString(reader["Phone"]),
+            Email = NullString(reader["Email"]),
+            Designation = reader["Designation"]?.ToString()?.Trim() ?? "",
+            PermanentTemporary = NullString(reader["Permanent_Temporary"]) ?? "Permanent",
+            Salary = reader["Salary"] is DBNull ? 0 : Convert.ToDecimal(reader["Salary"]),
+            AbsDeducted = ReadFlag(reader["IS_Abs_Deducted"]),
+            AbsDeduction = reader["Abs_Deduction"] is DBNull ? 0 : Convert.ToDecimal(reader["Abs_Deduction"]),
+            LateCountAsAbs = ReadFlag(reader["IS_Late_Count_As_Abs"]),
+            LateDays = reader["Late_Days"] is DBNull ? null : Convert.ToInt32(reader["Late_Days"]),
+            BankAccNo = NullString(reader["Bank_AccNo"]),
+            PhotoDataUrl = ToDataUrl(reader["Photo"] as byte[])
+        };
+    }
+
+    public async Task<EmployeeResult> SaveDetailAsync(
+        SessionSnapshot session, int employeeId, EmployeeEditDto? request, CancellationToken cancellationToken)
+    {
+        request ??= new EmployeeEditDto();
+        if (employeeId <= 0)
+            return Fail("emp.needId");
+        var firstName = (request.FirstName ?? "").Trim();
+        var lastName = (request.LastName ?? "").Trim();
+        var designation = (request.Designation ?? "").Trim();
+        var gender = (request.Gender ?? "").Trim();
+        if (firstName.Length == 0 || lastName.Length == 0 || designation.Length == 0 || gender.Length == 0)
+            return Fail("emp.needInfo");
+        if (request.AbsDeducted && request.AbsDeduction <= 0)
+            return Fail("emp.needAbsAmount");
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+        if (!await OwnsEmployeeAsync(con, session.SchoolID, employeeId, cancellationToken))
+            return Fail("emp.needId");
+
+        var isTeacher = string.Equals(request.EmployeeType, "Teacher", StringComparison.OrdinalIgnoreCase)
+            || await IsTeacherAsync(con, session.SchoolID, employeeId, cancellationToken);
+
+        if (isTeacher)
+        {
+            await using var cmd = new SqlCommand("""
+UPDATE dbo.Teacher
+SET FirstName = @FirstName, LastName = @LastName, FatherName = @FatherName, Gender = @Gender,
+    Age = @Age, DateofBirth = @DateofBirth, Religion = @Religion, Nationality = @Nationality,
+    Address = @Address, City = @City, State = @State, PostalCode = @PostalCode,
+    Phone = @Phone, Email = @Email, Designation = @Designation
+WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID
+""", con);
+            cmd.Parameters.AddWithValue("@FirstName", firstName);
+            cmd.Parameters.AddWithValue("@LastName", lastName);
+            Add(cmd, "@FatherName", request.FatherName);
+            cmd.Parameters.AddWithValue("@Gender", gender);
+            Add(cmd, "@Age", request.Age);
+            cmd.Parameters.AddWithValue("@DateofBirth", request.DateOfBirth is { } d ? d : DBNull.Value);
+            Add(cmd, "@Religion", request.Religion);
+            Add(cmd, "@Nationality", request.Nationality);
+            Add(cmd, "@Address", request.Address);
+            Add(cmd, "@City", request.City);
+            Add(cmd, "@State", request.State);
+            Add(cmd, "@PostalCode", request.PostalCode);
+            Add(cmd, "@Phone", request.Phone);
+            Add(cmd, "@Email", request.Email);
+            cmd.Parameters.AddWithValue("@Designation", designation);
+            cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+        else
+        {
+            await using var cmd = new SqlCommand("""
+UPDATE dbo.Staff_Info
+SET FirstName = @FirstName, LastName = @LastName, Gender = @Gender, FatherName = @FatherName,
+    Designation = @Designation, DateofBirth = @DateofBirth, Religion = @Religion,
+    Address = @Address, Phone = @Phone
+WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID
+""", con);
+            cmd.Parameters.AddWithValue("@FirstName", firstName);
+            cmd.Parameters.AddWithValue("@LastName", lastName);
+            cmd.Parameters.AddWithValue("@Gender", gender);
+            Add(cmd, "@FatherName", request.FatherName);
+            cmd.Parameters.AddWithValue("@Designation", designation);
+            cmd.Parameters.AddWithValue("@DateofBirth", request.DateOfBirth is { } d ? d : DBNull.Value);
+            Add(cmd, "@Religion", request.Religion);
+            Add(cmd, "@Address", request.Address);
+            Add(cmd, "@Phone", request.Phone);
+            cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await using var job = new SqlCommand("""
+UPDATE dbo.Employee_Info
+SET ID = CASE WHEN @ID = N'' THEN ID ELSE @ID END,
+    Permanent_Temporary = @PermanentTemporary,
+    Salary = @Salary,
+    IS_Abs_Deducted = @AbsDeducted,
+    Abs_Deduction = @AbsDeduction,
+    IS_Late_Count_As_Abs = @LateCountAsAbs,
+    Late_Days = @LateDays,
+    Bank_AccNo = @BankAccNo
+WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID
+""", con);
+        job.Parameters.AddWithValue("@ID", (request.ID ?? "").Trim());
+        job.Parameters.AddWithValue("@PermanentTemporary",
+            string.Equals(request.PermanentTemporary, "Temporary", StringComparison.OrdinalIgnoreCase) ? "Temporary" : "Permanent");
+        job.Parameters.AddWithValue("@Salary", request.Salary);
+        job.Parameters.AddWithValue("@AbsDeducted", request.AbsDeducted);
+        job.Parameters.AddWithValue("@AbsDeduction", request.AbsDeducted ? request.AbsDeduction : 0);
+        job.Parameters.AddWithValue("@LateCountAsAbs", request.LateCountAsAbs);
+        Add(job, "@LateDays", request.LateCountAsAbs ? request.LateDays : null);
+        Add(job, "@BankAccNo", request.BankAccNo);
+        job.Parameters.AddWithValue("@EmployeeID", employeeId);
+        job.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        await job.ExecuteNonQueryAsync(cancellationToken);
+        return new EmployeeResult { Succeeded = true, EmployeeID = employeeId };
+    }
+
+    public async Task<EmployeeResult> SavePhotoAsync(
+        SessionSnapshot session, int employeeId, EmployeePhotoRequest? request, CancellationToken cancellationToken)
+    {
+        request ??= new EmployeePhotoRequest();
+        if (employeeId <= 0)
+            return Fail("emp.needId");
+        var bytes = DecodeImage(request.Image);
+        if (bytes.Length == 0)
+            return Fail("emp.badPhoto");
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+        if (!await OwnsEmployeeAsync(con, session.SchoolID, employeeId, cancellationToken))
+            return Fail("emp.needId");
+
+        var teacher = string.Equals(request.EmployeeType, "Teacher", StringComparison.OrdinalIgnoreCase)
+            || await IsTeacherAsync(con, session.SchoolID, employeeId, cancellationToken);
+        var table = teacher ? "dbo.Teacher" : "dbo.Staff_Info";
+        await using var cmd = new SqlCommand($"""
+UPDATE {table} SET Image = @Image
+WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID
+""", con);
+        cmd.Parameters.Add("@Image", SqlDbType.VarBinary, -1).Value = bytes;
         cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
         cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
         var n = await cmd.ExecuteNonQueryAsync(cancellationToken);
@@ -645,18 +890,21 @@ ORDER BY e.ID
         bool withSubCategory, CancellationToken cancellationToken)
     {
         var subCols = withSubCategory
-            ? "ISNULL(SubCategoryID, 0) AS SubCategoryID, ISNULL(SubCategoryName, N'') AS SubCategoryName"
+            ? "ISNULL(v.SubCategoryID, 0) AS SubCategoryID, ISNULL(v.SubCategoryName, N'') AS SubCategoryName"
             : "0 AS SubCategoryID, N'' AS SubCategoryName";
         var sql = $"""
-SELECT EmployeeID, ID, Bank_AccNo, EmployeeType, Permanent_Temporary, Salary,
-       LTRIM(RTRIM(ISNULL(FirstName, N'') + N' ' + ISNULL(LastName, N''))) AS Name,
-       FatherName, Designation, Phone, DeviceID, Job_Status,
-       {subCols}
-FROM dbo.VW_Emp_Info
-WHERE SchoolID = @SchoolID
-  AND (@Status = N'%' OR Job_Status = @Status)
-  AND (EmployeeType LIKE @EmployeeType)
-ORDER BY ID
+SELECT v.EmployeeID, v.ID, v.Bank_AccNo, v.EmployeeType, v.Permanent_Temporary, v.Salary,
+       LTRIM(RTRIM(ISNULL(v.FirstName, N'') + N' ' + ISNULL(v.LastName, N''))) AS Name,
+       v.FatherName, v.Designation, v.Phone, v.DeviceID, v.Job_Status,
+       {subCols},
+       CASE WHEN v.EmployeeType = N'Teacher' THEN t.Image ELSE st.Image END AS Photo
+FROM dbo.VW_Emp_Info AS v
+LEFT JOIN dbo.Teacher AS t ON t.EmployeeID = v.EmployeeID AND v.EmployeeType = N'Teacher'
+LEFT JOIN dbo.Staff_Info AS st ON st.EmployeeID = v.EmployeeID AND v.EmployeeType = N'Staff'
+WHERE v.SchoolID = @SchoolID
+  AND (@Status = N'%' OR v.Job_Status = @Status)
+  AND (v.EmployeeType LIKE @EmployeeType)
+ORDER BY v.ID
 """;
         return await ReadListAsync(con, sql, schoolId, employeeType, jobStatus, search, cancellationToken);
     }
@@ -669,7 +917,7 @@ ORDER BY ID
 SELECT e.EmployeeID, e.ID, e.Bank_AccNo, e.EmployeeType, e.Permanent_Temporary, e.Salary,
        LTRIM(RTRIM(ISNULL(t.FirstName, N'') + N' ' + ISNULL(t.LastName, N''))) AS Name,
        t.FatherName, t.Designation, t.Phone, e.DeviceID, e.Job_Status,
-       0 AS SubCategoryID, N'' AS SubCategoryName
+       0 AS SubCategoryID, N'' AS SubCategoryName, t.Image AS Photo
 FROM dbo.Employee_Info AS e
 INNER JOIN dbo.Teacher AS t ON t.EmployeeID = e.EmployeeID
 WHERE e.SchoolID = @SchoolID AND e.EmployeeType = N'Teacher'
@@ -679,7 +927,7 @@ UNION ALL
 SELECT e.EmployeeID, e.ID, e.Bank_AccNo, e.EmployeeType, e.Permanent_Temporary, e.Salary,
        LTRIM(RTRIM(ISNULL(s.FirstName, N'') + N' ' + ISNULL(s.LastName, N''))) AS Name,
        s.FatherName, s.Designation, s.Phone, e.DeviceID, e.Job_Status,
-       0 AS SubCategoryID, N'' AS SubCategoryName
+       0 AS SubCategoryID, N'' AS SubCategoryName, s.Image AS Photo
 FROM dbo.Employee_Info AS e
 INNER JOIN dbo.Staff_Info AS s ON s.EmployeeID = e.EmployeeID
 WHERE e.SchoolID = @SchoolID AND e.EmployeeType = N'Staff'
@@ -716,7 +964,8 @@ ORDER BY ID
                 Salary = reader["Salary"] is DBNull ? 0 : Convert.ToDecimal(reader["Salary"]),
                 BankAccNo = NullString(reader["Bank_AccNo"]),
                 DeviceID = NullString(reader["DeviceID"]),
-                SubCategoryName = NullString(reader["SubCategoryName"])
+                SubCategoryName = NullString(reader["SubCategoryName"]),
+                PhotoDataUrl = HasColumn(reader, "Photo") ? ToDataUrl(reader["Photo"] as byte[]) : null
             };
             if (search.Length == 0
                 || Contains(row.ID, search)
@@ -845,6 +1094,18 @@ END
     {
         await using var cmd = new SqlCommand(
             "SELECT 1 FROM dbo.Employee_Info WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID", con);
+        cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        return await cmd.ExecuteScalarAsync(cancellationToken) is not null and not DBNull;
+    }
+
+    private static async Task<bool> IsTeacherAsync(
+        SqlConnection con, int schoolId, int employeeId, CancellationToken cancellationToken)
+    {
+        await using var cmd = new SqlCommand("""
+SELECT 1 FROM dbo.Employee_Info
+WHERE EmployeeID = @EmployeeID AND SchoolID = @SchoolID AND EmployeeType = N'Teacher'
+""", con);
         cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
         cmd.Parameters.AddWithValue("@SchoolID", schoolId);
         return await cmd.ExecuteScalarAsync(cancellationToken) is not null and not DBNull;
@@ -1116,6 +1377,38 @@ WHERE UserId = @UserId
             return null;
         var date = Convert.ToDateTime(value);
         return date.Year < 1900 ? null : date;
+    }
+
+    private static bool ReadFlag(object value)
+    {
+        if (value is null or DBNull)
+            return false;
+        if (value is bool flag)
+            return flag;
+        if (value is byte b)
+            return b != 0;
+        if (value is int i)
+            return i != 0;
+        return string.Equals(Convert.ToString(value), "True", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(Convert.ToString(value), "1", StringComparison.Ordinal);
+    }
+
+    private static byte[] DecodeImage(string? raw)
+    {
+        raw = (raw ?? "").Trim();
+        if (raw.Length == 0)
+            return [];
+        var comma = raw.IndexOf(',');
+        if (raw.StartsWith("data:", StringComparison.OrdinalIgnoreCase) && comma > 0)
+            raw = raw[(comma + 1)..];
+        try
+        {
+            return Convert.FromBase64String(raw);
+        }
+        catch (FormatException)
+        {
+            return [];
+        }
     }
 
     private static bool Contains(string? source, string search) =>

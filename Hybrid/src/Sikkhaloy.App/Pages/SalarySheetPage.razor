@@ -11,7 +11,7 @@
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
     <div class="filter-row no-print">
@@ -80,20 +80,20 @@
                         <td>@row.WorkingDays</td>
                         <td>@row.FineCountDays</td>
                         <td class="sal-lines">
-                            @foreach (var line in row.Allowances)
+                            @foreach (var line in VisibleAllowances(row))
                             {
                                 <div>@line.Name: @Money(line.Amount)</div>
                             }
                         </td>
                         <td class="sal-lines">
-                            @foreach (var line in row.Bonuses.Where(x => x.Amount > 0))
+                            @foreach (var line in VisibleBonuses(row))
                             {
                                 <div>@line.Name: @Money(line.Amount)</div>
                             }
                         </td>
                         <td class="num">@Money(row.GrossSalary)</td>
                         <td class="num">@Money(row.Deduction)</td>
-                        <td class="num">@Money(row.Fine + row.AttendanceFine)</td>
+                        <td class="num">@Money(row.Fine)</td>
                         <td class="num">@Money(row.NetSalary)</td>
                         <td class="sal-sign"></td>
                     </tr>
@@ -111,7 +111,7 @@
                         <td class="num">@Money(rows.Sum(x => x.Bonus))</td>
                         <td class="num">@Money(rows.Sum(x => x.GrossSalary))</td>
                         <td class="num">@Money(rows.Sum(x => x.Deduction))</td>
-                        <td class="num">@Money(rows.Sum(x => x.Fine + x.AttendanceFine))</td>
+                        <td class="num">@Money(rows.Sum(x => x.Fine))</td>
                         <td class="num">@Money(rows.Sum(x => x.NetSalary))</td>
                         <td></td>
                     </tr>
@@ -221,6 +221,24 @@
             return false;
         }
         return true;
+    }
+
+    private IEnumerable<SalaryLineDto> VisibleAllowances(MonthlyPayorderDto row)
+    {
+        foreach (var line in row.Allowances.Where(x => x.Amount != 0))
+            yield return line;
+        var extra = row.Allowance - row.Allowances.Sum(x => x.Amount);
+        if (Math.Abs(extra) >= 0.01m)
+            yield return new SalaryLineDto { Name = Locale.T("sal.other"), Amount = extra };
+    }
+
+    private IEnumerable<SalaryLineDto> VisibleBonuses(MonthlyPayorderDto row)
+    {
+        foreach (var line in row.Bonuses.Where(x => x.Amount != 0))
+            yield return line;
+        var extra = row.Bonus - row.Bonuses.Sum(x => x.Amount);
+        if (Math.Abs(extra) >= 0.01m)
+            yield return new SalaryLineDto { Name = Locale.T("sal.other"), Amount = extra };
     }
 
     private static string Money(decimal value) => value.ToString("0.##");

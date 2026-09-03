@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Dashboard" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Admin.aspx.cs" Inherits="EDUCATION.COM.Profile.Admin" Culture="auto" UICulture="auto" %>
+<%@ Page Title="Dashboard" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Admin.aspx.cs" Inherits="EDUCATION.COM.Profile.Admin" Culture="auto" UICulture="auto" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <link href="/Employee/CSS/Acadamic_Calender.css" rel="stylesheet" />
@@ -90,15 +90,17 @@
                         <i class="fab fa-youtube"></i> কিভাবে অনলাইনে পেমেন্ট করবেন দেখুন
                     </a>
                 </div>
-                <div class="modal-footer justify-content-center" style="flex-wrap:nowrap; gap:6px; padding:10px;">
-                    <a href="Invoice/Due_Invoice.aspx" class="btn btn-danger" style="white-space:nowrap; font-size:12px; padding:6px 10px;">
-                        <i class="fa fa-file-invoice"></i> Due Invoice দেখুন
-                    </a>
-                    <button type="button" id="btnModalShurjoPay" class="btn"
-                        style="background:linear-gradient(135deg,#f7971e,#ffd200);color:#222;font-weight:700;border:none;white-space:nowrap;font-size:12px;padding:6px 10px;">
+                <div class="modal-footer" style="display:flex;flex-direction:column;gap:10px;padding:12px 16px 16px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
+                        <a href="Invoice/Due_Invoice.aspx" class="btn" style="background:#0d9488;color:#fff;font-weight:700;border:none;white-space:nowrap;padding:10px 12px;">
+                            <i class="fa fa-file-invoice"></i> Due Invoice দেখুন
+                        </a>
+                        <button type="button" class="btn" data-dismiss="modal" style="background:#f59e0b;color:#1c1917;font-weight:700;border:none;white-space:nowrap;padding:10px 12px;">পরে দেখব</button>
+                    </div>
+                    <button type="button" id="btnModalShurjoPay" class="btn btn-block"
+                        style="background:#16a34a;color:#fff;font-weight:800;border:none;font-size:16px;padding:14px 16px;width:100%;">
                         <i class="fa fa-credit-card"></i> অনলাইনে পেমেন্ট করুন
                     </button>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal" style="white-space:nowrap; font-size:12px; padding:6px 10px;">পরে দেখব</button>
                 </div>
             </div>
         </div>

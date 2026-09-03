@@ -223,34 +223,52 @@ WHERE StudentClassID = @StudentClassID AND SchoolID = @SchoolID
                 await upd.ExecuteNonQueryAsync(cancellationToken);
             }
 
-            await using (var delPay = new SqlCommand("""
+            if (!request.KeepPayOrder)
+            {
+                await using var delPay = new SqlCommand("""
 DELETE FROM dbo.Income_PayOrder
 WHERE SchoolID = @SchoolID AND StudentClassID = @StudentClassID AND PaidAmount = 0
-""", con, tx))
-            {
+""", con, tx);
                 delPay.Parameters.AddWithValue("@SchoolID", session.SchoolID);
                 delPay.Parameters.AddWithValue("@StudentClassID", request.OldStudentClassID);
                 await delPay.ExecuteNonQueryAsync(cancellationToken);
             }
+            else
+            {
+                await using var keep = new SqlCommand("""
+UPDATE dbo.Income_PayOrder
+SET StudentClassID = @NewId, ClassID = @ClassID
+WHERE SchoolID = @SchoolID
+  AND EducationYearID = @EducationYearID
+  AND StudentID = @StudentID
+  AND StudentClassID = @OldId
+  AND ISNULL(PaidAmount, 0) = 0
+""", con, tx);
+                keep.Parameters.AddWithValue("@NewId", newId);
+                keep.Parameters.AddWithValue("@ClassID", request.ClassID);
+                keep.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                keep.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
+                keep.Parameters.AddWithValue("@StudentID", request.StudentID);
+                keep.Parameters.AddWithValue("@OldId", request.OldStudentClassID);
+                await keep.ExecuteNonQueryAsync(cancellationToken);
 
-            foreach (var table in new[]
-            {
-                "Income_Discount_Record", "Income_LateFee_Change_Record", "Income_LateFee_Discount_Record",
-                "Income_MoneyReceipt", "Income_PaymentRecord", "Income_PayOrder"
-            })
-            {
-                await using var move = new SqlCommand($"""
+                foreach (var table in new[]
+                {
+                    "Income_Discount_Record", "Income_LateFee_Change_Record", "Income_LateFee_Discount_Record"
+                })
+                {
+                    await using var move = new SqlCommand($"""
 UPDATE dbo.[{table}] SET StudentClassID = @NewId WHERE StudentClassID = @OldId
 """, con, tx);
-                move.Parameters.AddWithValue("@NewId", newId);
-                move.Parameters.AddWithValue("@OldId", request.OldStudentClassID);
-                try
-                {
-                    await move.ExecuteNonQueryAsync(cancellationToken);
-                }
-                catch (SqlException)
-                {
-                    // table may be missing on some databases
+                    move.Parameters.AddWithValue("@NewId", newId);
+                    move.Parameters.AddWithValue("@OldId", request.OldStudentClassID);
+                    try
+                    {
+                        await move.ExecuteNonQueryAsync(cancellationToken);
+                    }
+                    catch (SqlException)
+                    {
+                    }
                 }
             }
 
@@ -262,6 +280,65 @@ UPDATE dbo.[{table}] SET StudentClassID = @NewId WHERE StudentClassID = @OldId
             await tx.RollbackAsync(cancellationToken);
             throw;
         }
+    }
+
+    public async Task<StudentInfoResult> BulkChangeClassAsync(
+        SessionSnapshot session, BulkChangeClassRequest? request, CancellationToken cancellationToken)
+    {
+        var students = (request?.Students ?? [])
+            .Where(x => x.StudentID > 0 && x.OldStudentClassID > 0)
+            .GroupBy(x => x.StudentID)
+            .Select(g => g.First())
+            .ToList();
+        if (students.Count == 0)
+            return Fail("sm.needStudents");
+        if (request!.ClassID <= 0)
+            return Fail("sm.needNewClass");
+        var subjects = request.Subjects.Where(x => x.SubjectID > 0).ToList();
+        if (subjects.Count == 0)
+            return Fail("si.needSubject");
+
+        var ok = 0;
+        var failed = new List<string>();
+        foreach (var stu in students)
+        {
+            var one = await ChangeClassAsync(session, new ChangeClassRequest
+            {
+                StudentID = stu.StudentID,
+                OldStudentClassID = stu.OldStudentClassID,
+                ClassID = request.ClassID,
+                SubjectGroupID = request.SubjectGroupID,
+                SectionID = request.SectionID,
+                ShiftID = request.ShiftID,
+                RollNo = stu.RollNo,
+                ClassStatus = request.ClassStatus,
+                KeepPayOrder = request.KeepPayOrder,
+                Subjects = subjects
+            }, cancellationToken);
+            if (one.Succeeded)
+                ok++;
+            else
+                failed.Add(string.IsNullOrWhiteSpace(stu.ID) ? stu.StudentsName : $"{stu.ID} {stu.StudentsName}".Trim());
+        }
+
+        if (ok == 0)
+        {
+            return new StudentInfoResult
+            {
+                Succeeded = false,
+                Error = failed.Count > 0 ? "sm.classExistsSome" : "sm.needStudents",
+                Detail = failed.Count > 0 ? string.Join(", ", failed) : null,
+                Count = 0
+            };
+        }
+
+        return new StudentInfoResult
+        {
+            Succeeded = true,
+            Count = ok,
+            Error = failed.Count > 0 ? "sm.classExistsSome" : null,
+            Detail = failed.Count > 0 ? string.Join(", ", failed) : null
+        };
     }
 
     public async Task<StudentInfoResult> BulkPlacementAsync(
@@ -737,18 +814,26 @@ WHERE StudentID = @StudentID AND SchoolID = @SchoolID
 
             if (exists)
             {
-                await using var upd = new SqlCommand(
-                    "UPDATE dbo.Student_Image SET Image = @Image WHERE StudentImageID = @Id", con, tx);
+                var sql = request.IsGuardian
+                    ? "UPDATE dbo.Student_Image SET Guardian_Photo = @Image WHERE StudentImageID = @Id"
+                    : "UPDATE dbo.Student_Image SET Image = @Image WHERE StudentImageID = @Id";
+                await using var upd = new SqlCommand(sql, con, tx);
                 AddImageParam(upd, bytes);
                 upd.Parameters.AddWithValue("@Id", imageId);
                 await upd.ExecuteNonQueryAsync(cancellationToken);
             }
             else
             {
-                await using var ins = new SqlCommand("""
+                var insSql = request.IsGuardian
+                    ? """
+INSERT INTO dbo.Student_Image (Image, Guardian_Photo) VALUES (NULL, @Image);
+SELECT CAST(SCOPE_IDENTITY() AS INT);
+"""
+                    : """
 INSERT INTO dbo.Student_Image (Image, Guardian_Photo) VALUES (@Image, NULL);
 SELECT CAST(SCOPE_IDENTITY() AS INT);
-""", con, tx);
+""";
+                await using var ins = new SqlCommand(insSql, con, tx);
                 AddImageParam(ins, bytes);
                 imageId = ToInt(await ins.ExecuteScalarAsync(cancellationToken));
 
@@ -1097,7 +1182,8 @@ WHERE Student.ID = @ID
 
         var names = items.Select((_, i) => "@p" + i).ToArray();
         await using var cmd = new SqlCommand($"""
-SELECT Student.StudentID, ISNULL(Student.StudentImageID, 0) AS StudentImageID, Student_Image.Image
+SELECT Student.StudentID, ISNULL(Student.StudentImageID, 0) AS StudentImageID,
+       Student_Image.Image, Student_Image.Guardian_Photo
 FROM dbo.Student
 LEFT OUTER JOIN dbo.Student_Image ON Student.StudentImageID = Student_Image.StudentImageID
 WHERE Student.SchoolID = @SchoolID AND Student.StudentID IN ({string.Join(",", names)})
@@ -1113,12 +1199,17 @@ WHERE Student.SchoolID = @SchoolID AND Student.StudentID IN ({string.Join(",", n
             if (!byId.TryGetValue(ToInt(reader["StudentID"]), out var row))
                 continue;
             row.StudentImageID = ToInt(reader["StudentImageID"]);
-            if (reader["Image"] is byte[] bytes && bytes.Length is > 0 and <= 150_000)
-            {
-                var mime = bytes.Length >= 8 && bytes[0] == 0x89 ? "image/png" : "image/jpeg";
-                row.PhotoDataUrl = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
-            }
+            row.PhotoDataUrl = ToPhotoDataUrl(reader["Image"] as byte[]);
+            row.GuardianPhotoDataUrl = ToPhotoDataUrl(reader["Guardian_Photo"] as byte[]);
         }
+    }
+
+    private static string? ToPhotoDataUrl(byte[]? bytes)
+    {
+        if (bytes is not { Length: > 0 and <= 150_000 })
+            return null;
+        var mime = bytes.Length >= 8 && bytes[0] == 0x89 ? "image/png" : "image/jpeg";
+        return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
     }
 
     private static byte[] DecodePhoto(string? raw)

@@ -4,9 +4,30 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page acc-page exam-page committee-page">
-    <h1 class="no-print">@Locale.T("cm.payments")</h1>
-    <div class="filter-row no-print">
+<div class="card structure-page emp-page acc-page exam-page committee-page sms-mod cm-dons-page cm-pay-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">Committee / @Locale.T("cm.payments")</p>
+            <h1>@Locale.T("cm.payments")</h1>
+            <p class="cm-dons-lead">@Locale.T("cm.paymentsSub")</p>
+        </div>
+        <div class="cm-head-actions">
+            <button type="button" class="cm-act cm-act-secondary" disabled="@busy" @onclick="PrintAsync">@Locale.T("cm.print")</button>
+        </div>
+    </header>
+
+    <div class="cm-dons-stats no-print">
+        <article class="is-total">
+            <small>@Locale.T("cm.total")</small>
+            <b>৳ @Tk(list.Total)</b>
+        </article>
+        <article class="is-paid">
+            <small>@Locale.T("cm.receiptCount")</small>
+            <b>@list.Rows.Count.ToString("N0")</b>
+        </article>
+    </div>
+
+    <div class="cm-dons-filters no-print">
         <select @bind="yearId" disabled="@busy">
             <option value="0">@Locale.T("cm.allSession")</option>
             @foreach (var item in lookups.Years)
@@ -28,68 +49,93 @@
                 <option value="@item.Id">@item.Name</option>
             }
         </select>
-        <input type="date" @bind="fromDate" disabled="@busy" />
-        <input type="date" @bind="toDate" disabled="@busy" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("cm.find")</button>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("cm.print")</button>
+        <input type="date" title="@Locale.T("cm.from")" @bind="fromDate" disabled="@busy" />
+        <input type="date" title="@Locale.T("cm.to")" @bind="toDate" disabled="@busy" />
+        <button type="button" class="cm-act cm-act-success" disabled="@busy" @onclick="LoadAsync">@Locale.T("cm.find")</button>
     </div>
+
     <PrintHeader Subtitle="@Locale.T("cm.payments")" />
-    <div class="cm-totals">@Locale.T("cm.total"): @Tk(list.Total) @Locale.T("cm.tk")</div>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("cm.receiptNo")</th>
-                <th>@Locale.T("cm.name")</th>
-                <th>@Locale.T("cm.memberType")</th>
-                <th>@Locale.T("cm.sms")</th>
-                <th>@Locale.T("cm.account")</th>
-                <th>@Locale.T("cm.details")</th>
-                <th>@Locale.T("cm.total")</th>
-                <th>@Locale.T("cm.paidDate")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (list.Rows.Count == 0)
+
+    <div class="cm-dons-table">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cm.receiptNo")</th>
+                    <th>@Locale.T("cm.name")</th>
+                    <th>@Locale.T("cm.memberType")</th>
+                    <th>@Locale.T("cm.sms")</th>
+                    <th>@Locale.T("cm.account")</th>
+                    <th>@Locale.T("cm.details")</th>
+                    <th>@Locale.T("cm.total")</th>
+                    <th>@Locale.T("cm.paidDate")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (list.Rows.Count == 0)
+            {
+                <tr><td colspan="8" class="empty-row">@Locale.T("cm.emptyPayments")</td></tr>
+            }
+            @foreach (var row in PageRows)
+            {
+                <tr>
+                    <td><a class="cm-pay-link" href="@($"committee/receipt/{row.CommitteeMoneyReceiptId}")">@row.CommitteeMoneyReceiptSn</a></td>
+                    <td><strong>@row.MemberName</strong></td>
+                    <td>@row.MemberType</td>
+                    <td>@row.SmsNumber</td>
+                    <td>@row.AccountName</td>
+                    <td class="cm-details">@row.Details</td>
+                    <td class="cm-dons-num is-paid">৳ @Tk(row.TotalAmount)</td>
+                    <td>@(row.PaidDate?.ToString("d MMM yyyy"))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (list.Rows.Count > 0)
         {
-            <tr><td colspan="8" class="empty-row">@Locale.T("cm.emptyPayments")</td></tr>
+            <footer class="cm-dons-pager no-print">
+                <span>@Locale.T("cm.showingRange", PageFrom, PageTo, list.Rows.Count)</span>
+                @if (PageCount > 1)
+                {
+                    <div>
+                        <button type="button" disabled="@(page <= 1 || busy)" @onclick="() => GoPage(page - 1)">‹</button>
+                        @for (var i = 1; i <= PageCount; i++)
+                        {
+                            var n = i;
+                            if (n == 1 || n == PageCount || (n >= page - 2 && n <= page + 2))
+                            {
+                                <button type="button" class="@(n == page ? "is-on" : null)" disabled="@busy" @onclick="() => GoPage(n)">@n</button>
+                            }
+                            else if (n == page - 3 || n == page + 3)
+                            {
+                                <span>…</span>
+                            }
+                        }
+                        <button type="button" disabled="@(page >= PageCount || busy)" @onclick="() => GoPage(page + 1)">›</button>
+                    </div>
+                }
+            </footer>
         }
-        @foreach (var row in list.Rows)
-        {
-            <tr>
-                <td><a href="@($"committee/receipt/{row.CommitteeMoneyReceiptId}")">@row.CommitteeMoneyReceiptSn</a></td>
-                <td>@row.MemberName</td>
-                <td>@row.MemberType</td>
-                <td>@row.SmsNumber</td>
-                <td>@row.AccountName</td>
-                <td class="cm-details">@row.Details</td>
-                <td>@Tk(row.TotalAmount)</td>
-                <td>@(row.PaidDate?.ToString("d MMM yyyy"))</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    </div>
 </div>
 
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
 
 @code {
     private CommitteeLookupsDto lookups = new();
     private PaymentRecordListDto list = new();
-    private int yearId, categoryId, memberId;
+    private int yearId, categoryId, memberId, page = 1;
+    private const int PageSize = 100;
     private DateTime? fromDate, toDate;
     private bool busy, popupError;
     private string busyTitle = "", popupText = "";
+    private IEnumerable<PaymentRecordRowDto> PageRows => list.Rows.Skip((page - 1) * PageSize).Take(PageSize);
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(list.Rows.Count / (double)PageSize));
+    private int PageFrom => list.Rows.Count == 0 ? 0 : (page - 1) * PageSize + 1;
+    private int PageTo => Math.Min(page * PageSize, list.Rows.Count);
 
     protected override async Task OnInitializedAsync()
     {
@@ -105,11 +151,13 @@
             if (!await OnlineAsync()) return;
             lookups = await Api.GetCommitteeLookupsAsync(Session.AccessToken!);
             list = await Api.GetCommitteePaymentsAsync(Session.AccessToken!, yearId, categoryId, memberId, fromDate, toDate);
+            page = 1;
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
     }
 
+    private void GoPage(int value) => page = Math.Clamp(value, 1, PageCount);
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint").AsTask();
     private static string Tk(decimal n) => n.ToString("0.##");
     private void Show(string value, bool err = false) { popupText = value; popupError = err; }

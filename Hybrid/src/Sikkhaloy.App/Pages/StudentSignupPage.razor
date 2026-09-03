@@ -3,143 +3,196 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page">
-    <h1>@Locale.T("si.signup")</h1>
-    <p class="muted">@Locale.T("si.crumb")</p>
-    <p class="muted">@Locale.T("si.signupHint")</p>
+<div class="card sa-page emp-list-page si-signup-page si-info-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("si.crumb")</p>
+            <h1>@Locale.T("si.signup")</h1>
+            <p class="sa-lead">@Locale.T("si.signupHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row">
-        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allGroup")</option>
-                @foreach (var item in groups)
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item.ClassID">@item.Name</option>
                 }
             </select>
+        </section>
+        @if (groups.Count > 0)
+        {
+            <section class="sal-box is-group">
+                <span class="sal-box-h">@Locale.T("si.group")</span>
+                <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (sections.Count > 0)
         {
-            <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allSection")</option>
-                @foreach (var item in sections)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-section">
+                <span class="sal-box-h">@Locale.T("si.section")</span>
+                <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (shifts.Count > 0)
         {
-            <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allShift")</option>
-                @foreach (var item in shifts)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-shift">
+                <span class="sal-box-h">@Locale.T("si.shift")</span>
+                <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
-        <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindByIdAsync">@Locale.T("si.find")</button>
+        <section class="sal-box is-sid">
+            <span class="sal-box-h">@Locale.T("si.idBar")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("si.enterId")"
+                   @bind="findId" @bind:event="oninput" disabled="@busy" @onkeydown="OnIdKey" />
+        </section>
+        <section class="sal-box is-find">
+            <span class="sal-box-h">&nbsp;</span>
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="FindByIdAsync">@Locale.T("si.find")</button>
+        </section>
+        <span class="el-count">
+            @Locale.T("si.stuCount", tab == "create" ? withoutLogin.Count : created.Count)
+            @if (tab == "create" && SelectedCount > 0)
+            {
+                <em>@Locale.T("si.picked", SelectedCount)</em>
+            }
+        </span>
     </div>
 
     <div class="si-tabs no-print">
-        <button type="button" class="@(tab == "created" ? "active" : null)" @onclick="@(() => tab = "created")">@Locale.T("si.createdTab")</button>
-        <button type="button" class="@(tab == "create" ? "active" : null)" @onclick="@(() => tab = "create")">@Locale.T("si.createTab")</button>
+        <button type="button" class="@(tab == "created" ? "active" : null)" disabled="@busy" @onclick="@(() => tab = "created")">
+            @Locale.T("si.createdTab")
+            <b>@created.Count</b>
+        </button>
+        <button type="button" class="@(tab == "create" ? "active" : null)" disabled="@busy" @onclick="@(() => tab = "create")">
+            @Locale.T("si.createTab")
+            <b>@withoutLogin.Count</b>
+        </button>
     </div>
 
     @if (tab == "create")
     {
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th class="act"><input type="checkbox" checked="@allCreate" disabled="@busy" @onchange="ToggleAllCreate" /></th>
-                    <th>@Locale.T("si.id")</th>
-                    <th>@Locale.T("si.roll")</th>
-                    <th>@Locale.T("si.name")</th>
-                    <th>@Locale.T("si.father")</th>
-                    <th>@Locale.T("si.phone")</th>
-                    <th>@Locale.T("si.address")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (withoutLogin.Count == 0 && !busy)
-            {
-                <tr><td colspan="7" class="empty-row">@Locale.T("si.empty")</td></tr>
-            }
-            else
-            {
-                @foreach (var row in withoutLogin)
-                {
+        <div class="sj-grid">
+            <table class="mgrid">
+                <thead>
                     <tr>
-                        <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
-                        <td>@row.ID</td>
-                        <td>@row.RollNo</td>
-                        <td>@row.StudentsName</td>
-                        <td>@row.FathersName</td>
-                        <td>@row.Phone</td>
-                        <td>@row.Address</td>
+                        <th class="act"><input type="checkbox" checked="@allCreate" disabled="@(busy || withoutLogin.Count == 0)" @onchange="ToggleAllCreate" /></th>
+                        <th>@Locale.T("si.id")</th>
+                        <th>@Locale.T("si.roll")</th>
+                        <th>@Locale.T("si.name")</th>
+                        <th>@Locale.T("si.father")</th>
+                        <th>@Locale.T("si.phone")</th>
+                        <th>@Locale.T("si.address")</th>
                     </tr>
+                </thead>
+                <tbody>
+                @if (withoutLogin.Count == 0 && !busy)
+                {
+                    <tr><td colspan="7" class="empty-row">@Locale.T("si.empty")</td></tr>
                 }
-            }
-            </tbody>
-        </table>
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="CreateAsync">@Locale.T("si.createUsers")</button>
+                else
+                {
+                    @foreach (var row in withoutLogin)
+                    {
+                        <tr class="@(row.Selected ? "is-on" : null)">
+                            <td class="act"><input type="checkbox" @bind="row.Selected" @bind:after="RefreshSelect" disabled="@busy" /></td>
+                            <td>@row.ID</td>
+                            <td>@row.RollNo</td>
+                            <td class="si-name">@row.StudentsName</td>
+                            <td>@row.FathersName</td>
+                            <td>@row.Phone</td>
+                            <td>@row.Address</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="si-signup-foot no-print">
+            <button type="button" class="sal-gen" disabled="@(busy || SelectedCount == 0)" @onclick="CreateAsync">
+                @Locale.T("si.createUsers")@(SelectedCount > 0 ? $" ({SelectedCount})" : "")
+            </button>
+        </div>
     }
     else
     {
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th>@Locale.T("si.id")</th>
-                    <th>@Locale.T("si.roll")</th>
-                    <th>@Locale.T("si.name")</th>
-                    <th>@Locale.T("si.phone")</th>
-                    <th>@Locale.T("si.user")</th>
-                    <th>@Locale.T("si.password")</th>
-                    <th>@Locale.T("si.created")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (created.Count == 0 && !busy)
-            {
-                <tr><td colspan="7" class="empty-row">@Locale.T("si.empty")</td></tr>
-            }
-            else
-            {
-                @foreach (var row in created)
-                {
+        <div class="sj-grid">
+            <table class="mgrid">
+                <thead>
                     <tr>
-                        <td>@row.ID</td>
-                        <td>@row.RollNo</td>
-                        <td>@row.StudentsName</td>
-                        <td>@row.Phone</td>
-                        <td>@row.UserName</td>
-                        <td>@row.Password</td>
-                        <td>@(row.CreateDate?.ToString("d") ?? "—")</td>
+                        <th class="act"><input type="checkbox" checked="@allCreated" disabled="@(busy || created.Count == 0)" @onchange="ToggleAllCreated" /> @Locale.T("si.sms")</th>
+                        <th>@Locale.T("si.id")</th>
+                        <th>@Locale.T("si.roll")</th>
+                        <th>@Locale.T("si.name")</th>
+                        <th>@Locale.T("si.phone")</th>
+                        <th>@Locale.T("si.user")</th>
+                        <th>@Locale.T("si.password")</th>
+                        <th>@Locale.T("si.created")</th>
                     </tr>
+                </thead>
+                <tbody>
+                @if (created.Count == 0 && !busy)
+                {
+                    <tr><td colspan="8" class="empty-row">@Locale.T("si.empty")</td></tr>
                 }
-            }
-            </tbody>
-        </table>
+                else
+                {
+                    @foreach (var row in created)
+                    {
+                        <tr class="@(row.Selected ? "is-on" : null)">
+                            <td class="act"><input type="checkbox" @bind="row.Selected" @bind:after="RefreshCreatedSelect" disabled="@busy" /></td>
+                            <td>@row.ID</td>
+                            <td>@row.RollNo</td>
+                            <td class="si-name">@row.StudentsName</td>
+                            <td>@row.Phone</td>
+                            <td>@row.UserName</td>
+                            <td>@row.Password</td>
+                            <td>@(row.CreateDate?.ToString("d MMM yyyy") ?? "—")</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="si-signup-foot no-print">
+            <button type="button" class="sal-gen" disabled="@(busy || SmsSelectedCount == 0)" @onclick="SendSmsAsync">
+                @Locale.T("si.sendUserPass")@(SmsSelectedCount > 0 ? $" ({SmsSelectedCount})" : "")
+            </button>
+        </div>
     }
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<SchoolClassDto> classes = [];
@@ -155,23 +208,48 @@
     private string shiftInput = "0";
     private string findId = "";
     private string tab = "created";
+    private string busyTitle = "";
+    private string popupText = "";
     private bool busy;
+    private bool popupError;
     private string? error;
-    private string? message;
     private bool allCreate;
+    private bool allCreated;
 
     private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
     private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
     private int SectionId => int.TryParse(sectionInput, out var n) ? n : 0;
     private int ShiftId => int.TryParse(shiftInput, out var n) ? n : 0;
+    private int SelectedCount => withoutLogin.Count(x => x.Selected);
+    private int SmsSelectedCount => created.Count(x => x.Selected);
 
     protected override async Task OnInitializedAsync()
     {
+        busyTitle = Locale.T("si.loading");
+        busy = true;
         if (!await EnsureOnlineAsync())
+        {
+            busy = false;
             return;
-        structure = await Api.GetClassStructureAsync(Session.AccessToken);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        }
+        try
+        {
+            structure = await Api.GetClassStructureAsync(Session.AccessToken);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private async Task OnClassChanged()
@@ -194,29 +272,46 @@
         shifts.AddRange(structure.Shifts.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
     }
 
+    private async Task OnIdKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await FindByIdAsync();
+    }
+
     private async Task FindByIdAsync()
     {
-        classInput = "0";
-        groupInput = sectionInput = shiftInput = "0";
-        groups.Clear();
-        sections.Clear();
-        shifts.Clear();
+        if (!string.IsNullOrWhiteSpace(findId))
+        {
+            classInput = "0";
+            groupInput = sectionInput = shiftInput = "0";
+            groups.Clear();
+            sections.Clear();
+            shifts.Clear();
+        }
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        error = message = null;
+        error = null;
+        busyTitle = Locale.T("si.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
         if (!await EnsureOnlineAsync())
+        {
+            busy = false;
             return;
+        }
         if (string.IsNullOrWhiteSpace(findId) && ClassId <= 0)
         {
             withoutLogin.Clear();
             created.Clear();
+            allCreate = false;
+            allCreated = false;
+            busy = false;
             return;
         }
 
-        busy = true;
         try
         {
             var data = await Api.GetStudentSignupAsync(Session.AccessToken, ClassId, GroupId, SectionId, ShiftId, findId);
@@ -224,15 +319,16 @@
             withoutLogin.AddRange(data.WithoutLogin);
             created.Clear();
             created.AddRange(data.Created);
-            allCreate = false;
+            RefreshSelect();
+            RefreshCreatedSelect();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -242,45 +338,122 @@
 
     private void ToggleAllCreate(ChangeEventArgs e)
     {
-        allCreate = e.Value is true or "true";
+        allCreate = e.Value is true || e.Value?.ToString() == "True";
         foreach (var row in withoutLogin)
             row.Selected = allCreate;
     }
 
+    private void RefreshSelect() =>
+        allCreate = withoutLogin.Count > 0 && withoutLogin.All(x => x.Selected);
+
+    private void ToggleAllCreated(ChangeEventArgs e)
+    {
+        allCreated = e.Value is true || e.Value?.ToString() == "True";
+        foreach (var row in created)
+            row.Selected = allCreated;
+    }
+
+    private void RefreshCreatedSelect() =>
+        allCreated = created.Count > 0 && created.All(x => x.Selected);
+
+    private async Task SendSmsAsync()
+    {
+        error = null;
+        var ids = created.Where(x => x.Selected).Select(x => x.StudentID).ToList();
+        if (ids.Count == 0)
+        {
+            Show(Locale.T("sms.needSelect"), true);
+            return;
+        }
+        busyTitle = Locale.T("sms.sending");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        if (!await EnsureOnlineAsync())
+        {
+            busy = false;
+            return;
+        }
+        try
+        {
+            var result = await Api.SendStudentLoginSmsAsync(Session.AccessToken!, new StudentLoginSmsRequest { StudentIDs = ids });
+            if (!result.Succeeded && result.Sent == 0)
+            {
+                Show(SmsErr(result), true);
+                return;
+            }
+            var msg = result.Failed > 0
+                ? Locale.T("si.smsResult", result.Sent, result.Failed)
+                : Locale.T("si.smsOk", result.Sent);
+            if (result.LocalMode)
+                msg += " " + Locale.T("sms.localSent");
+            Show(msg, result.Sent == 0);
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private string SmsErr(SmsResult result)
+    {
+        if (string.Equals(result.Error, "sms.low", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("sms.low", result.Balance);
+        if (!string.IsNullOrWhiteSpace(result.Error) && result.Error.StartsWith("sms.", StringComparison.OrdinalIgnoreCase))
+            return Locale.T(result.Error);
+        return string.IsNullOrWhiteSpace(result.Error) ? Locale.T("sms.fail") : result.Error;
+    }
+
     private async Task CreateAsync()
     {
-        error = message = null;
+        error = null;
         var ids = withoutLogin.Where(x => x.Selected).Select(x => x.StudentID).ToList();
         if (ids.Count == 0)
         {
-            error = Locale.T("si.needStudents");
+            Show(Locale.T("si.needStudents"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
-
+        busyTitle = Locale.T("si.creating");
         busy = true;
+        await InvokeAsync(StateHasChanged);
+        if (!await EnsureOnlineAsync())
+        {
+            busy = false;
+            return;
+        }
         try
         {
             var result = await Api.CreateStudentUsersAsync(Session.AccessToken, new CreateStudentUsersRequest { StudentIDs = ids });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
-            var ok = Locale.T("si.okCreate", result.Count);
             tab = "created";
-            await LoadAsync();
-            message = ok;
+            var data = await Api.GetStudentSignupAsync(Session.AccessToken, ClassId, GroupId, SectionId, ShiftId, findId);
+            withoutLogin.Clear();
+            withoutLogin.AddRange(data.WithoutLogin);
+            created.Clear();
+            created.AddRange(data.Created);
+            RefreshSelect();
+            RefreshCreatedSelect();
+            Show(Locale.T("si.okCreate", result.Count));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -292,10 +465,19 @@
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
+    }
+
+    private void ClosePopup() => popupText = "";
+
+    private void Show(string value, bool err = false)
+    {
+        popupText = value;
+        popupError = err;
+        error = err ? value : null;
     }
 
     private string Translate(string? key) =>

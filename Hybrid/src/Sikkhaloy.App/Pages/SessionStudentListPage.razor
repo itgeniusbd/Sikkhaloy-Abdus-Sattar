@@ -50,9 +50,27 @@
         <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
     </div>
 
-    <h1>@TitleText @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }</h1>
-    @if (!string.IsNullOrWhiteSpace(FilterLine)) { <div class="sess-line">@FilterLine</div> }
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <header class="sess-report-head">
+        <div class="sess-report-title">
+            <span class="sess-title-line" aria-hidden="true"></span>
+            <h1>
+                @TitleText
+                @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }
+            </h1>
+            <span class="sess-title-line" aria-hidden="true"></span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(FilterLine))
+        {
+            <div class="sess-filter-pills no-print">
+                @foreach (var pill in FilterPills)
+                {
+                    <span class="sess-filter-pill">@pill</span>
+                }
+            </div>
+        }
+    </header>
+
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
         <div class="sess-tiles @TileCount">
@@ -82,7 +100,9 @@
                 <div class="sess-tile paid"><small>@Locale.T("rpt.percentage")</small><strong>@data.Percentage.ToString("0.##")%</strong></div>
             }
         </div>
-        <table class="mgrid">
+        <div class="sess-section is-stu">
+            <div class="sess-section-head">@Locale.T("rpt.result")</div>
+            <table class="mgrid sess-table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -154,7 +174,8 @@
                 </tr>
             }
             </tbody>
-        </table>
+            </table>
+        </div>
     }
 </div>
 
@@ -219,6 +240,20 @@
             if (role is not null) parts.Add($" {Locale.T("acc.role")} : {role.Name}.");
             if (HasPayFor && payFor != "%") parts.Add($" {Locale.T("rpt.payFor")} : {payFor}.");
             return string.Join("", parts);
+        }
+    }
+
+    private IEnumerable<string> FilterPills
+    {
+        get
+        {
+            var cls = classes.FirstOrDefault(x => x.Id == classId);
+            if (cls is not null) yield return $"{Locale.T("rpt.class")}: {cls.Name}";
+            var sec = sections.FirstOrDefault(x => x.Id.ToString() == sectionId);
+            if (sec is not null) yield return $"{Locale.T("students.section")}: {sec.Name}";
+            var role = roles.FirstOrDefault(x => x.Id.ToString() == roleId);
+            if (role is not null) yield return $"{Locale.T("acc.role")}: {role.Name}";
+            if (HasPayFor && payFor != "%") yield return $"{Locale.T("rpt.payFor")}: {payFor}";
         }
     }
 

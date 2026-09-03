@@ -156,14 +156,7 @@
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@busyMessage" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -176,7 +169,33 @@
     private string? busyMessage;
     private bool AllSubs => sheet.HasSubExams && subExamId <= 0;
 
-    protected override Task OnInitializedAsync() => LoadFiltersAsync();
+    [SupplyParameterFromQuery(Name = "examId")] public int QExam { get; set; }
+    [SupplyParameterFromQuery(Name = "classId")] public int QClass { get; set; }
+    [SupplyParameterFromQuery(Name = "subjectId")] public int QSubject { get; set; }
+
+    private bool _ready;
+    private int _lastQExam = -1, _lastQClass = -1, _lastQSubject = -1;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_ready && _lastQExam == QExam && _lastQClass == QClass && _lastQSubject == QSubject)
+            return;
+
+        var queryChanged = _lastQExam != QExam || _lastQClass != QClass || _lastQSubject != QSubject;
+        _lastQExam = QExam;
+        _lastQClass = QClass;
+        _lastQSubject = QSubject;
+
+        if (QExam > 0) examId = QExam;
+        if (QClass > 0) classId = QClass;
+        if (QSubject > 0) subjectId = QSubject;
+
+        await LoadFiltersAsync();
+        _ready = true;
+
+        if (queryChanged && examId > 0 && classId > 0 && subjectId > 0)
+            await ShowStudentsAsync();
+    }
 
     private async Task LoadFiltersAsync()
     {
@@ -255,7 +274,7 @@
                 Students = sheet.Students
             });
             if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
-            Show(Locale.T("exam.inputOk"));
+            Show(Locale.T(result.Queued ? "sync.savedOffline" : "exam.inputOk"));
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { ClearBusy(); }
@@ -331,13 +350,13 @@
         busyTitle = "";
         busyMessage = null;
     }
-    private async Task<bool> OnlineAsync()
+    private Task<bool> OnlineAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             Show(Locale.T("subj.needOnline"), true);
-            return false;
+            return Task.FromResult(false);
         }
-        return true;
+        return Task.FromResult(true);
     }
 }

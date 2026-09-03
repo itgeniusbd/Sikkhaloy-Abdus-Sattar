@@ -227,6 +227,37 @@ public sealed class MyAccountsDto
     public List<ReportGroupDto> ExpenseGroups { get; set; } = [];
 }
 
+public sealed class BalanceRemainingDto
+{
+    public decimal Remaining { get; set; }
+}
+
+public sealed class BalanceSubmitOtpRequest
+{
+    public string Phone { get; set; } = "";
+}
+
+public sealed class BalanceSubmitRequest
+{
+    public decimal Amount { get; set; }
+    public DateTime SubmissionDate { get; set; }
+    public string? ReceivedBy { get; set; }
+    public string Phone { get; set; } = "";
+    public string Otp { get; set; } = "";
+    public string PaymentMethod { get; set; } = "Cash";
+    public string? Remarks { get; set; }
+    public DateTime? PeriodFrom { get; set; }
+    public DateTime? PeriodTo { get; set; }
+}
+
+public sealed class AccountDetailCatDto
+{
+    public string Name { get; set; } = "";
+    public decimal Amount { get; set; }
+    /// <summary>unpaid, deleted, adjust, or empty for regular rows.</summary>
+    public string Badge { get; set; } = "";
+}
+
 public sealed class AccountDetailDto
 {
     public int AccountID { get; set; }
@@ -236,10 +267,10 @@ public sealed class AccountDetailDto
     public decimal TotalSub { get; set; }
     public decimal Opening { get; set; }
     public decimal Closing { get; set; }
-    public List<NameAmountDto> Adds { get; set; } = [];
-    public List<NameAmountDto> AddAdjust { get; set; } = [];
-    public List<NameAmountDto> Subs { get; set; } = [];
-    public List<NameAmountDto> SubAdjust { get; set; } = [];
+    public List<AccountDetailCatDto> Adds { get; set; } = [];
+    public List<AccountDetailCatDto> AddAdjust { get; set; } = [];
+    public List<AccountDetailCatDto> Subs { get; set; } = [];
+    public List<AccountDetailCatDto> SubAdjust { get; set; } = [];
 }
 
 public sealed class AccountsLogDto
@@ -311,6 +342,9 @@ public sealed class SessionStudentRowDto
 public sealed class SessionPaidDueDto
 {
     public int Students { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+    public int TotalPages { get; set; } = 1;
     public decimal Fee { get; set; }
     public decimal LateFee { get; set; }
     public decimal Concession { get; set; }

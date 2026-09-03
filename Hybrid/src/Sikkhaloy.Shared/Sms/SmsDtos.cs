@@ -90,10 +90,14 @@ public sealed class SmsRecordDto
 {
     public Guid SMS_Send_ID { get; set; }
     public string PhoneNumber { get; set; } = "";
+    public string RecipientName { get; set; } = "";
+    public string RecipientCode { get; set; } = "";
     public string TextSMS { get; set; } = "";
     public int TextCount { get; set; }
     public int SMSCount { get; set; }
     public string PurposeOfSMS { get; set; } = "";
+    public string Kind { get; set; } = "";
+    public string Status { get; set; } = "";
     public DateTime Date { get; set; }
 }
 
@@ -101,6 +105,16 @@ public sealed class SmsRecordsDto
 {
     public int Balance { get; set; }
     public int TotalSent { get; set; }
+    public int TotalRecipients { get; set; }
+    public int DistinctRecipients { get; set; }
+    public int Successful { get; set; }
+    public int Failed { get; set; }
+    public decimal TotalCost { get; set; }
+    public decimal PerSmsRate { get; set; } = 0.36m;
+    public int RowCount { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public int TotalPages { get; set; } = 1;
     public bool LocalMode { get; set; }
     public List<SmsRecordDto> Rows { get; set; } = [];
 }
@@ -141,4 +155,42 @@ public sealed class SmsRechargePageDto
 public sealed class SmsRechargeRequest
 {
     public int Quantity { get; set; }
+}
+
+public sealed class SmsTemplateDto
+{
+    public int TemplateID { get; set; }
+    public string TemplateName { get; set; } = "";
+    public string TemplateCategory { get; set; } = "";
+    public string TemplateType { get; set; } = "";
+    public string MessageTemplate { get; set; } = "";
+    public bool IsActive { get; set; } = true;
+    public DateTime? CreatedDate { get; set; }
+}
+
+public sealed class SaveSmsTemplateRequest
+{
+    public int TemplateID { get; set; }
+    public string TemplateName { get; set; } = "";
+    public string TemplateCategory { get; set; } = "";
+    public string TemplateType { get; set; } = "";
+    public string MessageTemplate { get; set; } = "";
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed class SmsTemplateResult
+{
+    public bool Succeeded { get; set; }
+    public string? Error { get; set; }
+    public int TemplateID { get; set; }
+}
+
+public sealed class CommitteePaymentSmsLangDto
+{
+    public string Lang { get; set; } = "bn";
+}
+
+public sealed class DonorReceiptSmsRequest
+{
+    public string? Lang { get; set; }
 }

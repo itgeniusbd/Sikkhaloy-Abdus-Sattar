@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
@@ -34,9 +34,13 @@ namespace EDUCATION.COM
             if (!isAuthority && Session["SchoolID"] != null)
             {
                 string currentPath = Request.AppRelativeCurrentExecutionFilePath.ToLower();
-                bool isDueInvoicePage = currentPath.Contains("due_invoice") || currentPath.Contains("shurjopaycallback") || currentPath.Contains("support_ticket");
+                bool isAllowedInvoicePage =
+                    currentPath.Contains("due_invoice")
+                    || currentPath.Contains("shurjopaycallback")
+                    || currentPath.Contains("invoice_list")
+                    || currentPath.Contains("paid_receipt");
 
-                if (!isDueInvoicePage && IsInvoiceExpiredAndBlocked())
+                if (!isAllowedInvoicePage && IsInvoiceExpiredAndBlocked())
                 {
                     Response.Redirect("~/Profile/Invoice/Due_Invoice.aspx", false);
                     Context.ApplicationInstance.CompleteRequest();
@@ -380,11 +384,16 @@ namespace EDUCATION.COM
                 {
                     con2.Open();
                     using (var expCmd = new SqlCommand(
-                        @"SELECT COUNT(*) FROM AAP_Invoice 
-                          WHERE SchoolID = @SID 
-                            AND IsPaid = 0 
-                            AND EndDate IS NOT NULL 
-                            AND EndDate < GETDATE()", con2))
+                        @"SELECT COUNT(*) FROM AAP_Invoice i
+                          INNER JOIN AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+                          WHERE i.SchoolID = @SID
+                            AND i.IsPaid = 0
+                            AND c.InvoiceCategory <> N'SMS'
+                            AND i.IssuDate IS NOT NULL
+                            AND CASE
+                                  WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                                  ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                                END < CAST(GETDATE() AS DATE)", con2))
                     {
                         expCmd.Parameters.AddWithValue("@SID", schoolId);
                         int expiredCount = (int)expCmd.ExecuteScalar();

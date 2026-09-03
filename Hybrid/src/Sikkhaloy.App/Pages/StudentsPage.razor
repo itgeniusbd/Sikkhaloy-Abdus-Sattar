@@ -6,92 +6,118 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card students-card">
-    <div class="toolbar no-print">
-        <h1>@Locale.T("students.title")</h1>
-        <div class="toolbar-actions">
+<div class="card sa-page students-card si-info-page">
+    <header class="sa-head sj-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("si.crumb")</p>
+            <h1>@Locale.T("students.title")</h1>
+        </div>
+        <div class="stu-head-acts">
             <span class="id-find-wrap @(idInvalid ? "invalid" : null)">
                 <input type="text"
-                       class="id-find"
+                       class="si-find-input"
                        placeholder="@(idInvalid ? Locale.T(idErrorKey) : Locale.T("report.enterId"))"
                        @bind="idInput"
                        @bind:event="oninput"
                        @bind:after="ClearIdError"
                        @onkeydown="OnIdKey" />
             </span>
-            <button type="button" class="btn-find btn-find-search" @onclick="FindByIdAsync" disabled="@busy">
+            <button type="button" class="stu-btn is-find" @onclick="FindByIdAsync" disabled="@busy">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                 @Locale.T("report.findDetails")
             </button>
-            <button class="btn-print" @onclick='() => PrintAsync("portrait")' disabled="@busy">@Locale.T("print.portrait")</button>
-            <button class="btn-print" @onclick='() => PrintAsync("landscape")' disabled="@busy">@Locale.T("print.landscape")</button>
-            <button class="primary" @onclick="SyncNow" disabled="@busy">@(busy ? Locale.T("students.syncing") : Locale.T("students.sync"))</button>
-            <a href="students/new">@Locale.T("students.admission")</a>
+            <button type="button" class="stu-btn is-print" @onclick="PrintAsync" disabled="@busy">@Locale.T("print.btn")</button>
+            <button type="button" class="stu-btn is-sync" @onclick="SyncNow" disabled="@busy">@(busy ? Locale.T("students.syncing") : Locale.T("students.sync"))</button>
+            <a class="stu-btn is-add" href="students/new">@Locale.T("students.admission")</a>
         </div>
-    </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(message))
+    @if (Locale.IsNetNotice(message))
+    {
+        <ResultPopup Text="@message" Error="true" OnClose="() => message = null" />
+    }
+    else if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="no-print @(Sync.LastError is { Length: > 0 } ? "error" : "ok")">@message</div>
     }
 
-    <div class="filter-row no-print">
-        <select @bind="classInput" @bind:after="OnClassChanged">
-            <option value="0">@Locale.T("students.allClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupInput" @bind:after="OnGroupChanged">
-                <option value="0">@Locale.T("si.allGroup")</option>
-                @foreach (var item in groups)
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="OnClassChanged">
+                <option value="0">@Locale.T("students.allClass")</option>
+                @foreach (var item in classes)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item.ClassID">@item.Name</option>
                 }
             </select>
+        </section>
+        @if (groups.Count > 0)
+        {
+            <section class="sal-box is-group">
+                <span class="sal-box-h">@Locale.T("si.group")</span>
+                <select @bind="groupInput" @bind:after="OnGroupChanged">
+                    <option value="0">@Locale.T("si.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (sections.Count > 0)
         {
-            <select @bind="sectionInput" @bind:after="OnSectionChanged">
-                <option value="0">@Locale.T("si.allSection")</option>
-                @foreach (var item in sections)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-section">
+                <span class="sal-box-h">@Locale.T("si.section")</span>
+                <select @bind="sectionInput" @bind:after="OnSectionChanged">
+                    <option value="0">@Locale.T("si.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (shifts.Count > 0)
         {
-            <select @bind="shiftInput" @bind:after="OnShiftChanged">
-                <option value="0">@Locale.T("si.allShift")</option>
-                @foreach (var item in shifts)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-shift">
+                <span class="sal-box-h">@Locale.T("si.shift")</span>
+                <select @bind="shiftInput" @bind:after="OnShiftChanged">
+                    <option value="0">@Locale.T("si.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
-        <select @bind="cohortInput" @bind:after="OnCohortChanged">
-            <option value="">@Locale.T("students.all")</option>
-            <option value="new">@Locale.T("students.new")</option>
-            <option value="old">@Locale.T("students.old")</option>
-        </select>
-        <input type="search"
-               placeholder="@Locale.T("students.search")"
-               value="@searchInput"
-               @oninput="OnSearchInput"
-               @onkeydown="OnSearchKey" />
-        <button type="button" class="btn-find" @onclick="Find" disabled="@busy">@Locale.T("students.find")</button>
-        <button type="button" class="btn-clear" @onclick="Clear" disabled="@busy">@Locale.T("students.clear")</button>
+        <section class="sal-box is-cohort">
+            <span class="sal-box-h">@Locale.T("students.cohort")</span>
+            <select @bind="cohortInput" @bind:after="OnCohortChanged">
+                <option value="">@Locale.T("students.all")</option>
+                <option value="new">@Locale.T("students.new")</option>
+                <option value="old">@Locale.T("students.old")</option>
+            </select>
+        </section>
+        <section class="sal-box is-search">
+            <span class="sal-box-h">@Locale.T("students.keyword")</span>
+            <input class="si-find-input" type="search"
+                   placeholder="@Locale.T("students.search")"
+                   value="@searchInput"
+                   @oninput="OnSearchInput"
+                   @onkeydown="OnSearchKey" />
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="Find">@Locale.T("students.find")</button>
+            <button type="button" class="stu-clear" disabled="@busy" @onclick="Clear">@Locale.T("students.clear")</button>
+        </div>
     </div>
 
     <div class="column-row no-print">
         <span>@Locale.T("students.columns")</span>
         @foreach (var column in columns)
         {
-            <label>
+            <label class="stu-col @(column.Visible ? "is-on" : null)">
                 <input type="checkbox" @bind="column.Visible" />
                 @Locale.T(column.LabelKey)
             </label>
@@ -121,6 +147,7 @@
                     <th class="@ColClass("roll") sortable" @onclick='() => SortBy("Roll")'>@Locale.T("students.roll")</th>
                     <th class="@ColClass("gender") sortable" @onclick='() => SortBy("Gender")'>@Locale.T("students.gender")</th>
                     <th class="@ColClass("phone") sortable" @onclick='() => SortBy("Phone")'>@Locale.T("students.phone")</th>
+                    <th class="@ColClass("address") sortable" @onclick='() => SortBy("Address")'>@Locale.T("students.address")</th>
                     <th class="@ColClass("religion") sortable" @onclick='() => SortBy("Religion")'>@Locale.T("students.religion")</th>
                     <th class="@ColClass("class") sortable" @onclick='() => SortBy("Class")'>@Locale.T("students.class")</th>
                     <th class="@ColClass("group") sortable" @onclick='() => SortBy("Group")'>@Locale.T("students.group")</th>
@@ -136,7 +163,7 @@
             @if (visibleRows.Count == 0)
             {
                 <tr>
-                    <td colspan="18" class="empty-row">@Locale.T("students.empty")</td>
+                    <td colspan="19" class="empty-row">@Locale.T("students.empty")</td>
                 </tr>
             }
             else
@@ -162,6 +189,7 @@
                         <td class="@ColClass("roll")">@student.RollNo</td>
                         <td class="@ColClass("gender")">@GenderLabel(student.Gender)</td>
                         <td class="@ColClass("phone")">@student.SMSPhoneNo</td>
+                        <td class="@($"{ColClass("address")} stu-addr")">@AddressOf(student)</td>
                         <td class="@ColClass("religion")">@student.Religion</td>
                         <td class="@ColClass("class")">@ClassOf(student)</td>
                         <td class="@ColClass("group")">@student.GroupName</td>
@@ -170,7 +198,7 @@
                         <td class="@ColClass("dob")">@(student.DateofBirth?.ToString("dd MMM yyyy"))</td>
                         <td class="@ColClass("admission")">@(student.AdmissionDate?.ToString("d MMM yyyy"))</td>
                         <td class="@ColClass("sync")">@student.SyncStatus</td>
-                        <td class="no-print"><a href="@($"students/{student.LocalId}")">@Locale.T("students.edit")</a></td>
+                        <td class="no-print"><a class="cls-act cls-act-edit" href="@($"students/{student.LocalId}")">@Locale.T("students.edit")</a></td>
                     </tr>
                 }
             }
@@ -188,6 +216,8 @@
     }
 </div>
 
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+
 @code {
     private IReadOnlyList<StudentDto> students = [];
     private IReadOnlyList<SchoolClassDto> classes = [];
@@ -197,6 +227,7 @@
     private ClassStructureDto? structure;
     private List<StudentDto> filtered = [];
     private bool busy;
+    private string busyTitle = "";
     private bool printing;
     private string? message;
     private string classInput = "0";
@@ -229,6 +260,7 @@
         new("roll", "students.roll"),
         new("gender", "students.gender"),
         new("phone", "students.phone"),
+        new("address", "students.address"),
         new("religion", "students.religion"),
         new("class", "students.class"),
         new("group", "students.group"),
@@ -268,7 +300,16 @@
         }
 
         Session.Changed += OnSessionChanged;
-        await LoadAsync();
+        busyTitle = Locale.T("si.loading");
+        busy = true;
+        try
+        {
+            await LoadAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private void OnSessionChanged() => _ = InvokeAsync(LoadAsync);
@@ -511,12 +552,12 @@
         Nav.NavigateTo($"students/details/{found.LocalId}");
     }
 
-    private async Task PrintAsync(string orientation)
+    private async Task PrintAsync()
     {
         printing = true;
         await InvokeAsync(StateHasChanged);
         await Task.Delay(50);
-        await JS.InvokeVoidAsync("sikkhaloyPrint", orientation);
+        await JS.InvokeVoidAsync("sikkhaloyPrint");
         printing = false;
     }
 
@@ -563,6 +604,7 @@
                 || Contains(x.MothersName, keyword)
                 || Contains(x.BloodGroup, keyword)
                 || Contains(x.SMSPhoneNo, keyword)
+                || Contains(AddressOf(x), keyword)
                 || Contains(x.Gender, keyword)
                 || Contains(GenderLabel(x.Gender), keyword)
                 || Contains(x.Religion, keyword)
@@ -589,6 +631,7 @@
             "Roll" => x => x.RollNo ?? "",
             "Gender" => x => x.Gender ?? "",
             "Phone" => x => x.SMSPhoneNo ?? "",
+            "Address" => AddressOf,
             "Religion" => x => x.Religion ?? "",
             "Class" => ClassOf,
             "Group" => x => x.GroupName ?? "",
@@ -643,6 +686,13 @@
         return gender ?? "";
     }
 
+    private static string AddressOf(StudentDto student)
+    {
+        if (!string.IsNullOrWhiteSpace(student.StudentsLocalAddress))
+            return student.StudentsLocalAddress.Trim();
+        return student.StudentPermanentAddress?.Trim() ?? "";
+    }
+
     private string ColClass(string key) => columns.First(x => x.Key == key).Visible ? "" : "col-off";
     private static string DetailsHref(StudentDto student) => $"students/details/{student.LocalId}";
     private static bool IsMale(StudentDto student) => IsMale(student.Gender);
@@ -674,7 +724,9 @@
             return;
         }
 
+        busyTitle = Locale.T("students.syncing");
         busy = true;
+        await InvokeAsync(StateHasChanged);
         message = null;
         try
         {
@@ -682,10 +734,7 @@
             await RefreshPlacementsAsync(Session.Current);
             await LoadAsync();
             message = !string.IsNullOrWhiteSpace(Sync.LastError)
-                ? (Sync.LastError.StartsWith("login.", StringComparison.OrdinalIgnoreCase)
-                    || Sync.LastError.StartsWith("sync.", StringComparison.OrdinalIgnoreCase)
-                        ? Locale.T(Sync.LastError)
-                        : Sync.LastError)
+                ? Locale.SyncError(Sync.LastError)
                 : Sync.IsOnline ? Locale.T("students.synced") : Locale.T("students.offlineQueued");
         }
         finally

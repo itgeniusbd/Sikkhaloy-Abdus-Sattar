@@ -23,6 +23,7 @@ public sealed class SmStudentRowDto
     public string? ShiftName { get; set; }
     public int StudentImageID { get; set; }
     public string? PhotoDataUrl { get; set; }
+    public string? GuardianPhotoDataUrl { get; set; }
     public bool Selected { get; set; }
     public bool HasSubject { get; set; }
     public string SubjectType { get; set; } = "Compulsory";
@@ -38,6 +39,28 @@ public sealed class ChangeClassRequest
     public int ShiftID { get; set; }
     public string? RollNo { get; set; }
     public string ClassStatus { get; set; } = "Promotion";
+    public bool KeepPayOrder { get; set; }
+    public List<SaveStudentSubjectItem> Subjects { get; set; } = [];
+}
+
+public sealed class BulkChangeClassItem
+{
+    public int StudentID { get; set; }
+    public int OldStudentClassID { get; set; }
+    public string? RollNo { get; set; }
+    public string ID { get; set; } = "";
+    public string StudentsName { get; set; } = "";
+}
+
+public sealed class BulkChangeClassRequest
+{
+    public int ClassID { get; set; }
+    public int SubjectGroupID { get; set; }
+    public int SectionID { get; set; }
+    public int ShiftID { get; set; }
+    public string ClassStatus { get; set; } = "Promotion";
+    public bool KeepPayOrder { get; set; }
+    public List<BulkChangeClassItem> Students { get; set; } = [];
     public List<SaveStudentSubjectItem> Subjects { get; set; } = [];
 }
 
@@ -91,6 +114,7 @@ public sealed class SaveStudentPhotoRequest
 {
     public int StudentID { get; set; }
     public string ImageBase64 { get; set; } = "";
+    public bool IsGuardian { get; set; }
 }
 
 public sealed class TcStudentDto

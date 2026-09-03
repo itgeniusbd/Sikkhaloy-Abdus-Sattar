@@ -137,6 +137,25 @@ WHERE SchoolID = @SchoolID
                 profile.LogoBase64 = Convert.ToBase64String(logo);
         }
 
+        await FillHeaderColorAsync(con, profile, cancellationToken);
+        await FillNameLogoAsync(con, profile, cancellationToken);
+    }
+
+    private static async Task FillHeaderColorAsync(
+        SqlConnection con, OfficeProfileDto profile, CancellationToken cancellationToken)
+    {
+        await EnsureHeaderColorColumnAsync(con, cancellationToken);
+        await using var cmd = new SqlCommand(
+            "SELECT HeaderColor FROM dbo.SchoolInfo WHERE SchoolID = @SchoolID", con);
+        cmd.Parameters.AddWithValue("@SchoolID", profile.SchoolID);
+        var value = (await cmd.ExecuteScalarAsync(cancellationToken))?.ToString()?.Trim();
+        if (IsHeaderColor(value))
+            profile.HeaderColor = value;
+    }
+
+    private static async Task FillNameLogoAsync(
+        SqlConnection con, OfficeProfileDto profile, CancellationToken cancellationToken)
+    {
         await using var exists = new SqlCommand(
             "SELECT CASE WHEN COL_LENGTH(N'dbo.SchoolInfo', N'SchoolNameLogo') IS NULL THEN 0 ELSE 1 END", con);
         if (Convert.ToInt32(await exists.ExecuteScalarAsync(cancellationToken)) == 0)
@@ -154,6 +173,36 @@ WHERE SchoolID = @SchoolID
         else
             profile.ClearNameLogo = true;
     }
+
+    public async Task<ProfileResult> SaveHeaderColorAsync(
+        SessionSnapshot session, HeaderColorRequest? request, CancellationToken cancellationToken)
+    {
+        var color = (request?.Color ?? "").Trim();
+        if (!IsHeaderColor(color))
+            return new ProfileResult { Succeeded = false, Error = "header.colorInvalid" };
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+        await EnsureHeaderColorColumnAsync(con, cancellationToken);
+        await using var cmd = new SqlCommand(
+            "UPDATE dbo.SchoolInfo SET HeaderColor = @Color WHERE SchoolID = @SchoolID", con);
+        cmd.Parameters.AddWithValue("@Color", color);
+        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        return new ProfileResult { Succeeded = true };
+    }
+
+    private static async Task EnsureHeaderColorColumnAsync(SqlConnection con, CancellationToken cancellationToken)
+    {
+        await using var cmd = new SqlCommand("""
+IF COL_LENGTH(N'dbo.SchoolInfo', N'HeaderColor') IS NULL
+    ALTER TABLE dbo.SchoolInfo ADD HeaderColor NVARCHAR(16) NULL
+""", con);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static bool IsHeaderColor(string? value) =>
+        value is { Length: 7 } && value[0] == '#' && value[1..].All(Uri.IsHexDigit);
 
     public async Task<MenuTreeDto> GetMenuAsync(SessionSnapshot session, CancellationToken cancellationToken)
     {

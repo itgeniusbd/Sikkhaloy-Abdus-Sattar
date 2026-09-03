@@ -9,11 +9,13 @@ public sealed class AccountsService
 {
     private readonly EduConnectionFactory _connections;
     private readonly PaymentSmsService _sms;
+    private readonly InventoryService _inventory;
 
-    public AccountsService(EduConnectionFactory connections, PaymentSmsService sms)
+    public AccountsService(EduConnectionFactory connections, PaymentSmsService sms, InventoryService inventory)
     {
         _connections = connections;
         _sms = sms;
+        _inventory = inventory;
     }
 
     private static AccountsResult Fail(string error) => new() { Error = error };
@@ -457,7 +459,11 @@ ORDER BY CASE WHEN ISNUMERIC(sc.RollNo) = 1 THEN CAST(sc.RollNo AS INT) ELSE 0 E
 
     public async Task<AccountsResult> CreatePayOrdersAsync(SessionSnapshot session, CreatePayOrdersRequest? request, CancellationToken cancellationToken)
     {
-        if (request is null || request.StudentClassIDs.Count == 0 || request.Items.Count == 0)
+        if (request is null || request.Items.Count == 0)
+            return Fail("acc.needRows");
+        if (request.StudentClassIDs.Count == 0 && request.StudentIDs.Count > 0)
+            request.StudentClassIDs = await ResolveStudentClassIdsAsync(session, request.StudentIDs, cancellationToken);
+        if (request.StudentClassIDs.Count == 0)
             return Fail("acc.needRows");
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
@@ -883,6 +889,7 @@ ORDER BY s.ID
         bundle.Student = await ReadStudentAsync(con, session, code, cancellationToken);
         if (bundle.Student is null)
             return bundle;
+        await EnsureInventoryFeePayOrdersAsync(con, session, bundle.Student.StudentID, cancellationToken);
         await using var cmd = new SqlCommand("""
 SELECT po.PayOrderID, po.RoleID, po.EducationYearID, r.Role, po.PayFor, ISNULL(y.EducationYear, N'') AS YearName,
        ISNULL(c.Class, N'') AS ClassName,
@@ -926,50 +933,207 @@ ORDER BY po.EndDate
                     LateFeeDiscount = lateDisc,
                     PaidAmount = paid,
                     Due = due,
-                    PayNow = due,
+                    PayNow = 0,
+                    Selected = false,
                     StartDate = Convert.ToDateTime(reader["StartDate"]).Date,
                     EndDate = end,
                     Overdue = end < DateTime.Today,
                     CurrentYear = yearId == session.EducationYearID
                 };
-                if (row.CurrentYear)
+                if (string.Equals(row.Role, InventoryService.SaleCategory, StringComparison.OrdinalIgnoreCase))
+                    bundle.InventoryDues.Add(row);
+                else if (row.CurrentYear)
                     bundle.CurrentDues.Add(row);
                 else
                     bundle.OtherDues.Add(row);
             }
         }
         bundle.CurrentDue = bundle.CurrentDues.Sum(x => x.Due);
+        await LoadBundleReceiptsAsync(con, session, bundle, cancellationToken);
+        return bundle;
+    }
+
+    private static async Task EnsureInventoryFeePayOrdersAsync(
+        SqlConnection con, SessionSnapshot session, int studentId, CancellationToken ct)
+    {
+        if (studentId <= 0) return;
+        if (await ScalarIntAsync(con, "SELECT CASE WHEN COL_LENGTH(N'dbo.Inv_Sale', N'FeePayOrderID') IS NULL THEN 0 ELSE 1 END", ct) <= 0)
+            return;
+        var roleId = await ScalarIntAsync(con, """
+SELECT TOP 1 RoleID FROM dbo.Income_Roles WHERE SchoolID = @SchoolID AND Role = @Role
+""", ct, p =>
+        {
+            p.AddWithValue("@SchoolID", session.SchoolID);
+            p.AddWithValue("@Role", InventoryService.SaleCategory);
+        });
+        if (roleId <= 0)
+        {
+            roleId = await ScalarIntAsync(con, """
+INSERT INTO dbo.Income_Roles (SchoolID, RegistrationID, Role, NumberOfPay, Description, Date)
+VALUES (@SchoolID, @RegistrationID, @Role, 1, N'Inventory due', GETDATE());
+SELECT CAST(SCOPE_IDENTITY() AS INT);
+""", ct, p =>
+            {
+                p.AddWithValue("@SchoolID", session.SchoolID);
+                p.AddWithValue("@RegistrationID", session.RegistrationID);
+                p.AddWithValue("@Role", InventoryService.SaleCategory);
+            });
+        }
+
+        var pending = new List<(int SaleId, decimal Due, string Invoice, DateTime Date, int YearId, int ClassId, int StudentClassId)>();
+        await using (var find = new SqlCommand("""
+SELECT s.SaleID, s.Total - ISNULL(s.PaidAmount, 0) AS Due,
+       ISNULL(NULLIF(s.InvoiceNo, N''), N'S-' + CAST(s.SaleID AS nvarchar(20))) AS InvoiceNo,
+       s.DocDate, s.EducationYearID, ISNULL(sc.ClassID, 0) AS ClassID, ISNULL(sc.StudentClassID, 0) AS StudentClassID
+FROM dbo.Inv_Sale AS s
+INNER JOIN dbo.Inv_Customer AS c ON c.CustomerID = s.CustomerID
+LEFT JOIN dbo.StudentsClass AS sc ON sc.StudentID = c.StudentID AND sc.SchoolID = s.SchoolID
+    AND sc.EducationYearID = s.EducationYearID AND sc.Class_Status IS NULL
+WHERE s.SchoolID = @SchoolID AND c.StudentID = @StudentID
+  AND ISNULL(s.FeePayOrderID, 0) = 0
+  AND s.Total > ISNULL(s.PaidAmount, 0)
+""", con))
+        {
+            find.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            find.Parameters.AddWithValue("@StudentID", studentId);
+            await using var reader = await find.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                pending.Add((
+                    ToInt(reader["SaleID"]),
+                    ToDec(reader["Due"]),
+                    reader["InvoiceNo"]?.ToString() ?? "",
+                    Convert.ToDateTime(reader["DocDate"]).Date,
+                    ToInt(reader["EducationYearID"]),
+                    ToInt(reader["ClassID"]),
+                    ToInt(reader["StudentClassID"])));
+            }
+        }
+
+        foreach (var row in pending)
+        {
+            var payOrderId = await ScalarIntAsync(con, """
+INSERT INTO dbo.Income_PayOrder
+    (SchoolID, RegistrationID, StudentID, ClassID, StudentClassID, EducationYearID,
+     Amount, PaidAmount, LateFee, Discount, LateFee_Discount, RoleID, PayFor,
+     StartDate, EndDate, CreatedDate, NumberOfPayment, Is_Active, Is_LateFeeAdded)
+VALUES
+    (@SchoolID, @RegistrationID, @StudentID, @ClassID, @SCID, @YearID,
+     @Amount, 0, 0, 0, 0, @RoleID, @PayFor,
+     @Date, @Date, GETDATE(), 0, 1, 0);
+SELECT CAST(SCOPE_IDENTITY() AS INT);
+""", ct, p =>
+            {
+                p.AddWithValue("@SchoolID", session.SchoolID);
+                p.AddWithValue("@RegistrationID", session.RegistrationID);
+                p.AddWithValue("@StudentID", studentId);
+                p.AddWithValue("@ClassID", row.ClassId > 0 ? row.ClassId : DBNull.Value);
+                p.AddWithValue("@SCID", row.StudentClassId > 0 ? row.StudentClassId : DBNull.Value);
+                p.AddWithValue("@YearID", row.YearId > 0 ? row.YearId : session.EducationYearID);
+                p.AddWithValue("@Amount", (double)row.Due);
+                p.AddWithValue("@RoleID", roleId);
+                p.AddWithValue("@PayFor", row.Invoice);
+                p.AddWithValue("@Date", row.Date);
+            });
+            if (payOrderId <= 0) continue;
+            await using var upd = new SqlCommand("UPDATE dbo.Inv_Sale SET FeePayOrderID = @PID WHERE SaleID = @ID", con);
+            upd.Parameters.AddWithValue("@PID", payOrderId);
+            upd.Parameters.AddWithValue("@ID", row.SaleId);
+            await upd.ExecuteNonQueryAsync(ct);
+        }
+    }
+
+    private static async Task ApplyInventoryFeePaymentsAsync(
+        SqlConnection con, SqlTransaction tx, int schoolId, List<CollectPaymentItem> items, CancellationToken ct)
+    {
+        if (items.Count == 0) return;
+        var rows = string.Join(", ", Enumerable.Range(0, items.Count).Select(i => $"(@PID{i}, @PA{i})"));
+        await using var cmd = new SqlCommand($"""
+IF COL_LENGTH(N'dbo.Inv_Sale', N'FeePayOrderID') IS NOT NULL
+UPDATE s
+SET PaidAmount = CASE WHEN s.PaidAmount + v.Paid > s.Total THEN s.Total ELSE s.PaidAmount + v.Paid END
+FROM dbo.Inv_Sale AS s
+INNER JOIN (VALUES {rows}) AS v(PayOrderID, Paid) ON s.FeePayOrderID = v.PayOrderID
+WHERE s.SchoolID = @SchoolID
+""", con, tx);
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        for (var i = 0; i < items.Count; i++)
+        {
+            cmd.Parameters.AddWithValue($"@PID{i}", items[i].PayOrderID);
+            cmd.Parameters.AddWithValue($"@PA{i}", items[i].PaidAmount);
+        }
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    private static async Task<int> ScalarIntAsync(
+        SqlConnection con, string sql, CancellationToken ct, Action<SqlParameterCollection>? bind = null)
+    {
+        await using var cmd = new SqlCommand(sql, con);
+        bind?.Invoke(cmd.Parameters);
+        var value = await cmd.ExecuteScalarAsync(ct);
+        return value is null or DBNull ? 0 : Convert.ToInt32(value);
+    }
+
+    private static async Task LoadBundleReceiptsAsync(
+        SqlConnection con, SessionSnapshot session, FeeStudentBundleDto bundle, CancellationToken cancellationToken)
+    {
+        var studentId = bundle.Student!.StudentID;
         try
         {
-            await using var rec = new SqlCommand("""
+            await using (var rec = new SqlCommand("""
 SELECT TOP 50 mr.MoneyReceiptID, CAST(mr.MoneyReceipt_SN AS nvarchar(20)) AS ReceiptNo, ISNULL(mr.TotalAmount, 0) AS TotalAmount,
        mr.PaidDate, ISNULL(mr.CollectionDate, mr.PaidDate) AS CollectionDate, mr.EducationYearID,
        ISNULL(y.EducationYear, N'') AS YearName, ISNULL(mr.PrintedReceiptNo, N'') AS PrintedReceiptNo
 FROM dbo.Income_MoneyReceipt AS mr
 LEFT JOIN dbo.Education_Year AS y ON mr.EducationYearID = y.EducationYearID
 WHERE mr.SchoolID = @SchoolID AND mr.StudentID = @StudentID
+  AND (
+        mr.EducationYearID = @YearID
+        OR EXISTS (
+            SELECT 1 FROM dbo.Income_PaymentRecord AS pr
+            WHERE pr.MoneyReceiptID = mr.MoneyReceiptID
+              AND pr.SchoolID = @SchoolID
+              AND pr.EducationYearID = @YearID
+        )
+  )
 ORDER BY ISNULL(mr.CollectionDate, mr.PaidDate) DESC, mr.MoneyReceiptID DESC
-""", con);
-            rec.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-            rec.Parameters.AddWithValue("@StudentID", bundle.Student.StudentID);
-            await using var recReader = await rec.ExecuteReaderAsync(cancellationToken);
-            while (await recReader.ReadAsync(cancellationToken))
+""", con))
             {
-                var item = new ReceiptListDto
-                {
-                    MoneyReceiptID = ToInt(recReader["MoneyReceiptID"]),
-                    ReceiptNo = recReader["ReceiptNo"]?.ToString() ?? "",
-                    TotalAmount = ToDec(recReader["TotalAmount"]),
-                    PaidDate = Convert.ToDateTime(recReader["PaidDate"]),
-                    CollectionDate = Convert.ToDateTime(recReader["CollectionDate"]),
-                    EducationYearID = ToInt(recReader["EducationYearID"]),
-                    YearName = NullString(recReader["YearName"]),
-                    PrintedReceiptNo = NullString(recReader["PrintedReceiptNo"])
-                };
-                if (item.EducationYearID == session.EducationYearID)
-                    bundle.Receipts.Add(item);
-                else
-                    bundle.PreviousReceipts.Add(item);
+                rec.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                rec.Parameters.AddWithValue("@StudentID", studentId);
+                rec.Parameters.AddWithValue("@YearID", session.EducationYearID);
+                await using var recReader = await rec.ExecuteReaderAsync(cancellationToken);
+                while (await recReader.ReadAsync(cancellationToken))
+                    bundle.Receipts.Add(MapReceipt(recReader, true));
+            }
+
+            await using (var prev = new SqlCommand("""
+SELECT TOP 50 mr.MoneyReceiptID, CAST(mr.MoneyReceipt_SN AS nvarchar(20)) AS ReceiptNo, ISNULL(mr.TotalAmount, 0) AS TotalAmount,
+       mr.PaidDate, ISNULL(mr.CollectionDate, mr.PaidDate) AS CollectionDate, mr.EducationYearID,
+       ISNULL(y.EducationYear, N'') AS YearName, ISNULL(mr.PrintedReceiptNo, N'') AS PrintedReceiptNo
+FROM dbo.Income_MoneyReceipt AS mr
+LEFT JOIN dbo.Education_Year AS y ON mr.EducationYearID = y.EducationYearID
+WHERE mr.SchoolID = @SchoolID AND mr.StudentID = @StudentID
+  AND mr.EducationYearID <> @YearID
+  AND mr.EducationYearID = (
+        SELECT MAX(x.EducationYearID) FROM dbo.Income_MoneyReceipt AS x
+        WHERE x.StudentID = mr.StudentID AND x.SchoolID = @SchoolID AND x.EducationYearID <> @YearID
+  )
+  AND NOT EXISTS (
+        SELECT 1 FROM dbo.Income_PaymentRecord AS pr
+        WHERE pr.MoneyReceiptID = mr.MoneyReceiptID
+          AND pr.SchoolID = @SchoolID
+          AND pr.EducationYearID = @YearID
+  )
+ORDER BY ISNULL(mr.CollectionDate, mr.PaidDate) DESC, mr.MoneyReceiptID DESC
+""", con))
+            {
+                prev.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                prev.Parameters.AddWithValue("@StudentID", studentId);
+                prev.Parameters.AddWithValue("@YearID", session.EducationYearID);
+                await using var prevReader = await prev.ExecuteReaderAsync(cancellationToken);
+                while (await prevReader.ReadAsync(cancellationToken))
+                    bundle.PreviousReceipts.Add(MapReceipt(prevReader, true));
             }
         }
         catch (SqlException)
@@ -979,30 +1143,32 @@ SELECT TOP 50 MoneyReceiptID, CAST(MoneyReceipt_SN AS nvarchar(20)) AS ReceiptNo
        PaidDate, EducationYearID
 FROM dbo.Income_MoneyReceipt
 WHERE SchoolID = @SchoolID AND StudentID = @StudentID
+  AND EducationYearID = @YearID
 ORDER BY PaidDate DESC, MoneyReceiptID DESC
 """, con);
             rec.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-            rec.Parameters.AddWithValue("@StudentID", bundle.Student.StudentID);
+            rec.Parameters.AddWithValue("@StudentID", studentId);
+            rec.Parameters.AddWithValue("@YearID", session.EducationYearID);
             await using var recReader = await rec.ExecuteReaderAsync(cancellationToken);
             while (await recReader.ReadAsync(cancellationToken))
-            {
-                var paid = Convert.ToDateTime(recReader["PaidDate"]);
-                var item = new ReceiptListDto
-                {
-                    MoneyReceiptID = ToInt(recReader["MoneyReceiptID"]),
-                    ReceiptNo = recReader["ReceiptNo"]?.ToString() ?? "",
-                    TotalAmount = ToDec(recReader["TotalAmount"]),
-                    PaidDate = paid,
-                    CollectionDate = paid,
-                    EducationYearID = ToInt(recReader["EducationYearID"])
-                };
-                if (item.EducationYearID == session.EducationYearID)
-                    bundle.Receipts.Add(item);
-                else
-                    bundle.PreviousReceipts.Add(item);
-            }
+                bundle.Receipts.Add(MapReceipt(recReader, false));
         }
-        return bundle;
+    }
+
+    private static ReceiptListDto MapReceipt(SqlDataReader reader, bool hasStamp)
+    {
+        var paid = Convert.ToDateTime(reader["PaidDate"]);
+        return new ReceiptListDto
+        {
+            MoneyReceiptID = ToInt(reader["MoneyReceiptID"]),
+            ReceiptNo = reader["ReceiptNo"]?.ToString() ?? "",
+            TotalAmount = ToDec(reader["TotalAmount"]),
+            PaidDate = paid,
+            CollectionDate = hasStamp ? Convert.ToDateTime(reader["CollectionDate"]) : paid,
+            EducationYearID = ToInt(reader["EducationYearID"]),
+            YearName = hasStamp ? NullString(reader["YearName"]) : null,
+            PrintedReceiptNo = hasStamp ? NullString(reader["PrintedReceiptNo"]) : null
+        };
     }
 
     private static async Task<FeeStudentDto?> ReadStudentAsync(
@@ -1070,10 +1236,13 @@ ORDER BY CASE WHEN sc.EducationYearID = @YearID THEN 0 ELSE 1 END,
         await using var tx = (SqlTransaction)await con.BeginTransactionAsync(cancellationToken);
         try
         {
+            await using (var opts = new SqlCommand("SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON; SET ANSI_WARNINGS ON; SET ANSI_PADDING ON; SET CONCAT_NULL_YIELDS_NULL ON; SET ARITHABORT ON;", con, tx))
+                await opts.ExecuteNonQueryAsync(cancellationToken);
+            var payOrderIds = items.Select(x => x.PayOrderID).Distinct().ToList();
+            var orders = await LoadPayOrdersBatchAsync(con, tx, session.SchoolID, payOrderIds, cancellationToken);
             foreach (var item in items)
             {
-                var due = await GetDueAsync(con, tx, item.PayOrderID, cancellationToken);
-                if (item.PaidAmount > due)
+                if (!orders.TryGetValue(item.PayOrderID, out var due) || item.PaidAmount > due.Due)
                 {
                     await tx.RollbackAsync(cancellationToken);
                     return Fail("acc.overDue");
@@ -1081,16 +1250,57 @@ ORDER BY CASE WHEN sc.EducationYearID = @YearID THEN 0 ELSE 1 END,
             }
 
             int receiptId;
-            await using (var sp = new SqlCommand("dbo.MoneyReceipt", con, tx) { CommandType = CommandType.StoredProcedure })
+            var receiptNo = "";
+            var receiptClassId = request.StudentClassID;
+            foreach (var item in items)
             {
-                sp.Parameters.AddWithValue("@StudentID", request.StudentID);
-                sp.Parameters.AddWithValue("@RegistrationID", session.RegistrationID);
-                sp.Parameters.AddWithValue("@StudentClassID", request.StudentClassID);
-                sp.Parameters.AddWithValue("@EducationYearID", request.EducationYearID > 0 ? request.EducationYearID : session.EducationYearID);
-                sp.Parameters.AddWithValue("@PaymentBy", "Institution");
-                sp.Parameters.AddWithValue("@PaidDate", paidDate);
-                sp.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                receiptId = ToInt(await sp.ExecuteScalarAsync(cancellationToken) ?? 0);
+                var order = orders[item.PayOrderID];
+                if (order.EducationYearID == session.EducationYearID && order.StudentClassID > 0)
+                {
+                    receiptClassId = order.StudentClassID;
+                    break;
+                }
+            }
+            if (receiptClassId <= 0)
+            {
+                foreach (var item in items)
+                {
+                    var order = orders[item.PayOrderID];
+                    if (order.StudentClassID > 0)
+                    {
+                        receiptClassId = order.StudentClassID;
+                        break;
+                    }
+                }
+            }
+            await using (var rec = new SqlCommand("""
+DECLARE @Sn int;
+SELECT @Sn = ISNULL(MAX(MoneyReceipt_SN), 100000)
+FROM dbo.Income_MoneyReceipt WITH (UPDLOCK, HOLDLOCK)
+WHERE SchoolID = @SchoolID;
+IF (@Sn < 100000) SET @Sn = 100000;
+INSERT INTO dbo.Income_MoneyReceipt
+    (StudentID, RegistrationID, StudentClassID, PaidDate, EducationYearID, PaymentBy, SchoolID, MoneyReceipt_SN, CollectionDate)
+VALUES
+    (@SID, @RID, @SCID, @PaidDate, @YearID, N'Institution', @SchoolID, @Sn + 1, GETDATE());
+SELECT CAST(SCOPE_IDENTITY() AS int), CAST(@Sn + 1 AS nvarchar(20));
+""", con, tx))
+            {
+                rec.Parameters.AddWithValue("@SID", request.StudentID);
+                rec.Parameters.AddWithValue("@RID", session.RegistrationID);
+                rec.Parameters.AddWithValue("@SCID", receiptClassId);
+                rec.Parameters.AddWithValue("@YearID", session.EducationYearID);
+                rec.Parameters.AddWithValue("@PaidDate", paidDate);
+                rec.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                await using var reader = await rec.ExecuteReaderAsync(cancellationToken);
+                if (!await reader.ReadAsync(cancellationToken))
+                {
+                    await reader.CloseAsync();
+                    await tx.RollbackAsync(cancellationToken);
+                    return Fail("acc.receiptFail");
+                }
+                receiptId = ToInt(reader[0]);
+                receiptNo = reader[1]?.ToString() ?? "";
             }
             if (receiptId <= 0)
             {
@@ -1099,62 +1309,38 @@ ORDER BY CASE WHEN sc.EducationYearID = @YearID THEN 0 ELSE 1 END,
             }
 
             decimal total = 0;
-            foreach (var item in items)
+            await using (var ins = new SqlCommand(BuildPaymentInsertSql(items.Count), con, tx))
             {
-                int roleId, yearId, classId;
-                string payFor;
-                await using (var info = new SqlCommand("""
-SELECT RoleID, PayFor, EducationYearID, StudentClassID
-FROM dbo.Income_PayOrder WHERE PayOrderID = @ID AND SchoolID = @SchoolID
-""", con, tx))
+                ins.Parameters.AddWithValue("@SID", request.StudentID);
+                ins.Parameters.AddWithValue("@RID", session.RegistrationID);
+                ins.Parameters.AddWithValue("@Date", paidDate);
+                ins.Parameters.AddWithValue("@MID", receiptId);
+                ins.Parameters.AddWithValue("@SchID", session.SchoolID);
+                ins.Parameters.AddWithValue("@AccID", request.AccountID);
+                for (var i = 0; i < items.Count; i++)
                 {
-                    info.Parameters.AddWithValue("@ID", item.PayOrderID);
-                    info.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                    await using var reader = await info.ExecuteReaderAsync(cancellationToken);
-                    if (!await reader.ReadAsync(cancellationToken))
-                        continue;
-                    roleId = ToInt(reader["RoleID"]);
-                    payFor = reader["PayFor"]?.ToString() ?? "";
-                    yearId = ToInt(reader["EducationYearID"]);
-                    classId = ToInt(reader["StudentClassID"]);
+                    var order = orders[items[i].PayOrderID];
+                    ins.Parameters.AddWithValue($"@Role{i}", order.RoleID);
+                    ins.Parameters.AddWithValue($"@PID{i}", items[i].PayOrderID);
+                    ins.Parameters.AddWithValue($"@PA{i}", items[i].PaidAmount);
+                    ins.Parameters.AddWithValue($"@PF{i}", order.PayFor);
+                    ins.Parameters.AddWithValue($"@SCID{i}", order.StudentClassID);
+                    ins.Parameters.AddWithValue($"@EID{i}", order.EducationYearID);
+                    total += items[i].PaidAmount;
                 }
-                await using (var ins = new SqlCommand("""
-INSERT INTO dbo.Income_PaymentRecord
-    (StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, PayFor, PaidDate, MoneyReceiptID, StudentClassID, EducationYearID, SchoolID, AccountID)
-VALUES
-    (@SID, @RID, @RoleID, @PID, @PA, @PF, @Date, @MID, @SCID, @EID, @SchID, @AccID)
-""", con, tx))
+                await ins.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            await using (var upd = new SqlCommand(BuildPayOrderUpdateSql(items.Count), con, tx))
+            {
+                upd.Parameters.AddWithValue("@Date", paidDate);
+                upd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                for (var i = 0; i < items.Count; i++)
                 {
-                    ins.Parameters.AddWithValue("@SID", request.StudentID);
-                    ins.Parameters.AddWithValue("@RID", session.RegistrationID);
-                    ins.Parameters.AddWithValue("@RoleID", roleId);
-                    ins.Parameters.AddWithValue("@PID", item.PayOrderID);
-                    ins.Parameters.AddWithValue("@PA", item.PaidAmount);
-                    ins.Parameters.AddWithValue("@PF", payFor);
-                    ins.Parameters.AddWithValue("@Date", paidDate);
-                    ins.Parameters.AddWithValue("@MID", receiptId);
-                    ins.Parameters.AddWithValue("@SCID", classId);
-                    ins.Parameters.AddWithValue("@EID", yearId);
-                    ins.Parameters.AddWithValue("@SchID", session.SchoolID);
-                    ins.Parameters.AddWithValue("@AccID", request.AccountID);
-                    await ins.ExecuteNonQueryAsync(cancellationToken);
+                    upd.Parameters.AddWithValue($"@PID{i}", items[i].PayOrderID);
+                    upd.Parameters.AddWithValue($"@PA{i}", items[i].PaidAmount);
                 }
-                await using (var upd = new SqlCommand("""
-UPDATE dbo.Income_PayOrder
-SET PaidAmount = PaidAmount + @PA,
-    LastPaidDate = @Date,
-    NumberOfPayment = NumberOfPayment + 1,
-    Is_LateFeeAdded = CASE WHEN EndDate < GETDATE() AND ISNULL(LateFee, 0) > 0 THEN 1 ELSE Is_LateFeeAdded END
-WHERE PayOrderID = @P AND SchoolID = @SchoolID
-""", con, tx))
-                {
-                    upd.Parameters.AddWithValue("@PA", item.PaidAmount);
-                    upd.Parameters.AddWithValue("@Date", paidDate);
-                    upd.Parameters.AddWithValue("@P", item.PayOrderID);
-                    upd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                    await upd.ExecuteNonQueryAsync(cancellationToken);
-                }
-                total += item.PaidAmount;
+                await upd.ExecuteNonQueryAsync(cancellationToken);
             }
 
             await using (var tot = new SqlCommand("UPDATE dbo.Income_MoneyReceipt SET TotalAmount = @T WHERE MoneyReceiptID = @MID", con, tx))
@@ -1163,46 +1349,18 @@ WHERE PayOrderID = @P AND SchoolID = @SchoolID
                 tot.Parameters.AddWithValue("@MID", receiptId);
                 await tot.ExecuteNonQueryAsync(cancellationToken);
             }
+            await ApplyInventoryFeePaymentsAsync(con, tx, session.SchoolID, items, cancellationToken);
             await tx.CommitAsync(cancellationToken);
 
-            string receiptNo;
-            await using (var sn = new SqlCommand("SELECT CAST(MoneyReceipt_SN AS nvarchar(20)) FROM dbo.Income_MoneyReceipt WHERE MoneyReceiptID = @MID", con))
-            {
-                sn.Parameters.AddWithValue("@MID", receiptId);
-                receiptNo = (await sn.ExecuteScalarAsync(cancellationToken))?.ToString() ?? receiptId.ToString();
-            }
             if (request.SendSms)
             {
-                var phone = "";
-                var name = "";
-                var code = "";
-                await using (var stu = new SqlCommand("SELECT ID, StudentsName, SMSPhoneNo FROM dbo.Student WHERE StudentID = @SID AND SchoolID = @SchoolID", con))
+                var details = string.Concat(items.Select(x =>
                 {
-                    stu.Parameters.AddWithValue("@SID", request.StudentID);
-                    stu.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                    await using var reader = await stu.ExecuteReaderAsync(cancellationToken);
-                    if (await reader.ReadAsync(cancellationToken))
-                    {
-                        code = reader["ID"]?.ToString() ?? "";
-                        name = reader["StudentsName"]?.ToString() ?? "";
-                        phone = reader["SMSPhoneNo"]?.ToString() ?? "";
-                    }
-                }
-                var details = new System.Text.StringBuilder();
-                await using (var pay = new SqlCommand("""
-SELECT r.Role, pr.PayFor FROM dbo.Income_PaymentRecord AS pr
-INNER JOIN dbo.Income_Roles AS r ON pr.RoleID = r.RoleID
-WHERE pr.MoneyReceiptID = @MID AND pr.SchoolID = @SchoolID
-""", con))
-                {
-                    pay.Parameters.AddWithValue("@MID", receiptId);
-                    pay.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                    await using var reader = await pay.ExecuteReaderAsync(cancellationToken);
-                    while (await reader.ReadAsync(cancellationToken))
-                        details.Append(", ").Append(reader["Role"]).Append(": ").Append(reader["PayFor"]);
-                }
-                await _sms.TrySendAfterCollectAsync(session, request.StudentID, code, name, phone, total, receiptNo,
-                    details.ToString(), cancellationToken);
+                    var order = orders[x.PayOrderID];
+                    return $", {order.Role}: {order.PayFor}";
+                }));
+                _ = _sms.TrySendAfterCollectAsync(session, request.StudentID, "", "", "", total, receiptNo,
+                    details, CancellationToken.None);
             }
             return new AccountsResult { Succeeded = true, Id = receiptId, Saved = items.Count, ReceiptNo = receiptNo };
         }
@@ -1211,6 +1369,120 @@ WHERE pr.MoneyReceiptID = @MID AND pr.SchoolID = @SchoolID
             try { await tx.RollbackAsync(cancellationToken); } catch { }
             return new AccountsResult { Error = string.IsNullOrWhiteSpace(ex.Message) ? "acc.failed" : ex.Message };
         }
+    }
+
+    private sealed class PayOrderPayInfo
+    {
+        public int RoleID { get; init; }
+        public int EducationYearID { get; init; }
+        public int StudentClassID { get; init; }
+        public string PayFor { get; init; } = "";
+        public string Role { get; init; } = "";
+        public decimal Due { get; init; }
+    }
+
+    private static async Task<Dictionary<int, PayOrderPayInfo>> LoadPayOrdersBatchAsync(
+        SqlConnection con, SqlTransaction tx, int schoolId, IReadOnlyList<int> payOrderIds, CancellationToken cancellationToken)
+    {
+        var map = new Dictionary<int, PayOrderPayInfo>();
+        if (payOrderIds.Count == 0)
+            return map;
+        var names = new List<string>(payOrderIds.Count);
+        await using var cmd = new SqlCommand { Connection = con, Transaction = tx };
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        for (var i = 0; i < payOrderIds.Count; i++)
+        {
+            var name = "@p" + i;
+            names.Add(name);
+            cmd.Parameters.AddWithValue(name, payOrderIds[i]);
+        }
+        cmd.CommandText = $"""
+SELECT po.PayOrderID, po.RoleID, po.PayFor, po.EducationYearID, po.StudentClassID,
+       ISNULL(r.Role, N'') AS Role,
+       po.Amount, po.LateFee, po.Discount, po.LateFee_Discount, po.PaidAmount, po.EndDate
+FROM dbo.Income_PayOrder AS po
+LEFT JOIN dbo.Income_Roles AS r ON po.RoleID = r.RoleID
+WHERE po.SchoolID = @SchoolID AND po.PayOrderID IN ({string.Join(", ", names)})
+""";
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            map[ToInt(reader["PayOrderID"])] = new PayOrderPayInfo
+            {
+                RoleID = ToInt(reader["RoleID"]),
+                EducationYearID = ToInt(reader["EducationYearID"]),
+                StudentClassID = ToInt(reader["StudentClassID"]),
+                PayFor = reader["PayFor"]?.ToString() ?? "",
+                Role = reader["Role"]?.ToString() ?? "",
+                Due = DueOf(
+                    ToDec(reader["Amount"]),
+                    ToDec(reader["LateFee"]),
+                    ToDec(reader["Discount"]),
+                    ToDec(reader["LateFee_Discount"]),
+                    ToDec(reader["PaidAmount"]),
+                    Convert.ToDateTime(reader["EndDate"]).Date)
+            };
+        }
+        return map;
+    }
+
+    private static string BuildPaymentInsertSql(int count)
+    {
+        var rows = string.Join(", ", Enumerable.Range(0, count).Select(i =>
+            $"(@SID, @RID, @Role{i}, @PID{i}, @PA{i}, @PF{i}, @Date, @MID, @SCID{i}, @EID{i}, @SchID, @AccID)"));
+        return $"""
+INSERT INTO dbo.Income_PaymentRecord
+    (StudentID, RegistrationID, RoleID, PayOrderID, PaidAmount, PayFor, PaidDate, MoneyReceiptID, StudentClassID, EducationYearID, SchoolID, AccountID)
+VALUES {rows}
+""";
+    }
+
+    private static string BuildPayOrderUpdateSql(int count)
+    {
+        var rows = string.Join(", ", Enumerable.Range(0, count).Select(i => $"(@PID{i}, @PA{i})"));
+        return $"""
+UPDATE po
+SET PaidAmount = po.PaidAmount + v.Paid,
+    LastPaidDate = @Date,
+    NumberOfPayment = po.NumberOfPayment + 1,
+    Is_LateFeeAdded = CASE WHEN po.EndDate < GETDATE() AND ISNULL(po.LateFee, 0) > 0 THEN 1 ELSE po.Is_LateFeeAdded END
+FROM dbo.Income_PayOrder AS po
+INNER JOIN (VALUES {rows}) AS v(PayOrderID, Paid) ON po.PayOrderID = v.PayOrderID
+WHERE po.SchoolID = @SchoolID
+""";
+    }
+
+    private static async Task<Dictionary<int, decimal>> LoadDuesBatchAsync(
+        SqlConnection con, SqlTransaction tx, IReadOnlyList<int> payOrderIds, CancellationToken cancellationToken)
+    {
+        var dues = new Dictionary<int, decimal>();
+        if (payOrderIds.Count == 0)
+            return dues;
+        var names = new List<string>(payOrderIds.Count);
+        await using var cmd = new SqlCommand { Connection = con, Transaction = tx };
+        for (var i = 0; i < payOrderIds.Count; i++)
+        {
+            var name = "@p" + i;
+            names.Add(name);
+            cmd.Parameters.AddWithValue(name, payOrderIds[i]);
+        }
+        cmd.CommandText = $"""
+SELECT PayOrderID, Amount, LateFee, Discount, LateFee_Discount, PaidAmount, EndDate
+FROM dbo.Income_PayOrder WHERE PayOrderID IN ({string.Join(", ", names)})
+""";
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var id = ToInt(reader["PayOrderID"]);
+            dues[id] = DueOf(
+                ToDec(reader["Amount"]),
+                ToDec(reader["LateFee"]),
+                ToDec(reader["Discount"]),
+                ToDec(reader["LateFee_Discount"]),
+                ToDec(reader["PaidAmount"]),
+                Convert.ToDateTime(reader["EndDate"]).Date);
+        }
+        return dues;
     }
 
     private static async Task<decimal> GetDueAsync(SqlConnection con, SqlTransaction tx, int payOrderId, CancellationToken cancellationToken)
@@ -1357,6 +1629,10 @@ WHERE PayOrderID = @ID AND SchoolID = @SchoolID
         var sn = (receiptNo ?? "").Trim();
         if (sn.Length == 0)
             return null;
+        var unpadded = sn.TrimStart('0');
+        if (unpadded.Length == 0)
+            unpadded = "0";
+        int.TryParse(unpadded, out var snInt);
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
         await using var cmd = new SqlCommand("""
@@ -1373,18 +1649,29 @@ SELECT TOP 1 mr.MoneyReceiptID, CAST(mr.MoneyReceipt_SN AS nvarchar(20)) AS Rece
 FROM dbo.Income_MoneyReceipt AS mr
 LEFT JOIN dbo.Admin AS a ON mr.RegistrationID = a.RegistrationID
 WHERE mr.SchoolID = @SchoolID
-  AND (CAST(mr.MoneyReceipt_SN AS nvarchar(20)) = @SN OR CAST(mr.MoneyReceiptID AS nvarchar(20)) = @SN)
+  AND (
+        (@SNInt > 0 AND mr.MoneyReceipt_SN = @SNInt)
+     OR (@SNInt > 0 AND mr.MoneyReceiptID = @SNInt)
+     OR CAST(mr.MoneyReceipt_SN AS nvarchar(20)) = @SN
+     OR CAST(mr.MoneyReceiptID AS nvarchar(20)) = @SN
+     OR CAST(mr.MoneyReceipt_SN AS nvarchar(20)) = @Unpadded
+     OR CAST(mr.MoneyReceiptID AS nvarchar(20)) = @Unpadded
+     OR LTRIM(RTRIM(ISNULL(mr.PrintedReceiptNo, N''))) IN (@SN, @Unpadded)
+  )
 """, con);
         cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
         cmd.Parameters.AddWithValue("@SN", sn);
+        cmd.Parameters.AddWithValue("@Unpadded", unpadded);
+        cmd.Parameters.AddWithValue("@SNInt", snInt);
         ReceiptDetailDto? dto = null;
-        int studentId = 0, studentClassId = 0;
+        int studentId = 0, studentClassId = 0, receiptClassId = 0;
         await using (var reader = await cmd.ExecuteReaderAsync(cancellationToken))
         {
             if (!await reader.ReadAsync(cancellationToken))
                 return null;
             studentId = ToInt(reader["StudentID"]);
             studentClassId = ToInt(reader["StudentClassID"]);
+            receiptClassId = studentClassId;
             dto = new ReceiptDetailDto
             {
                 MoneyReceiptID = ToInt(reader["MoneyReceiptID"]),
@@ -1398,18 +1685,30 @@ WHERE mr.SchoolID = @SchoolID
             };
         }
         await using (var stu = new SqlCommand("""
-SELECT TOP 1 s.StudentID, sc.StudentClassID, sc.ClassID, sc.EducationYearID, s.ID, s.StudentsName,
-       c.Class, sc.RollNo, s.SMSPhoneNo, s.FathersName, ISNULL(sec.Section, N'') AS Section
-FROM dbo.Student AS s
-INNER JOIN dbo.StudentsClass AS sc ON s.StudentID = sc.StudentID
-LEFT JOIN dbo.CreateClass AS c ON sc.ClassID = c.ClassID
-LEFT JOIN dbo.CreateSection AS sec ON sc.SectionID = sec.SectionID
-WHERE s.StudentID = @SID AND s.SchoolID = @SchoolID
-ORDER BY CASE WHEN sc.StudentClassID = @SCID THEN 0 ELSE 1 END
+;WITH chain AS (
+    SELECT sc.StudentClassID, sc.ClassID, sc.SectionID, sc.RollNo, sc.EducationYearID, sc.[Date], 0 AS hops
+    FROM dbo.StudentsClass AS sc
+    WHERE sc.StudentClassID = @SCID AND sc.StudentID = @SID AND sc.SchoolID = @SchoolID
+    UNION ALL
+    SELECT prev.StudentClassID, prev.ClassID, prev.SectionID, prev.RollNo, prev.EducationYearID, prev.[Date], c.hops + 1
+    FROM chain AS c
+    INNER JOIN dbo.StudentsClass AS prev
+        ON prev.New_StudentClassID = c.StudentClassID AND prev.StudentID = @SID AND prev.SchoolID = @SchoolID
+    WHERE @PaidDate < ISNULL(c.[Date], @PaidDate) AND c.hops < 8
+)
+SELECT TOP 1 s.StudentID, ch.StudentClassID, ch.ClassID, ch.EducationYearID, s.ID, s.StudentsName,
+       c.Class, ch.RollNo, s.SMSPhoneNo, s.FathersName, ISNULL(sec.Section, N'') AS Section
+FROM chain AS ch
+INNER JOIN dbo.Student AS s ON s.StudentID = @SID
+LEFT JOIN dbo.CreateClass AS c ON ch.ClassID = c.ClassID
+LEFT JOIN dbo.CreateSection AS sec ON ch.SectionID = sec.SectionID
+ORDER BY ch.hops DESC
+OPTION (MAXRECURSION 8)
 """, con))
         {
             stu.Parameters.AddWithValue("@SID", studentId);
             stu.Parameters.AddWithValue("@SCID", studentClassId);
+            stu.Parameters.AddWithValue("@PaidDate", dto!.PaidDate);
             stu.Parameters.AddWithValue("@SchoolID", session.SchoolID);
             await using var reader = await stu.ExecuteReaderAsync(cancellationToken);
             if (await reader.ReadAsync(cancellationToken))
@@ -1429,6 +1728,64 @@ ORDER BY CASE WHEN sc.StudentClassID = @SCID THEN 0 ELSE 1 END
                     Section = NullString(reader["Section"])
                 };
             }
+        }
+        if (dto.Student is null)
+        {
+            await using var fallback = new SqlCommand("""
+SELECT TOP 1 s.StudentID, sc.StudentClassID, sc.ClassID, sc.EducationYearID, s.ID, s.StudentsName,
+       c.Class, sc.RollNo, s.SMSPhoneNo, s.FathersName, ISNULL(sec.Section, N'') AS Section
+FROM dbo.Student AS s
+INNER JOIN dbo.StudentsClass AS sc ON s.StudentID = sc.StudentID
+LEFT JOIN dbo.CreateClass AS c ON sc.ClassID = c.ClassID
+LEFT JOIN dbo.CreateSection AS sec ON sc.SectionID = sec.SectionID
+WHERE s.StudentID = @SID AND s.SchoolID = @SchoolID
+ORDER BY CASE WHEN sc.StudentClassID = @SCID THEN 0 ELSE 1 END
+""", con);
+            fallback.Parameters.AddWithValue("@SID", studentId);
+            fallback.Parameters.AddWithValue("@SCID", studentClassId);
+            fallback.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await using var fbReader = await fallback.ExecuteReaderAsync(cancellationToken);
+            if (await fbReader.ReadAsync(cancellationToken))
+            {
+                dto.Student = new FeeStudentDto
+                {
+                    StudentID = ToInt(fbReader["StudentID"]),
+                    StudentClassID = ToInt(fbReader["StudentClassID"]),
+                    ClassID = ToInt(fbReader["ClassID"]),
+                    EducationYearID = ToInt(fbReader["EducationYearID"]),
+                    ID = fbReader["ID"]?.ToString() ?? "",
+                    Name = fbReader["StudentsName"]?.ToString() ?? "",
+                    ClassName = NullString(fbReader["Class"]),
+                    RollNo = NullString(fbReader["RollNo"]),
+                    Phone = NullString(fbReader["SMSPhoneNo"]),
+                    FathersName = NullString(fbReader["FathersName"]),
+                    Section = NullString(fbReader["Section"])
+                };
+            }
+        }
+        if (dto.Student is not null && dto.Student.StudentClassID != receiptClassId)
+        {
+            await using var fix = new SqlCommand("""
+UPDATE mr SET StudentClassID = old.StudentClassID
+FROM dbo.Income_MoneyReceipt AS mr
+INNER JOIN dbo.StudentsClass AS cur
+    ON mr.StudentClassID = cur.StudentClassID AND cur.StudentID = mr.StudentID AND cur.SchoolID = mr.SchoolID
+INNER JOIN dbo.StudentsClass AS old
+    ON old.New_StudentClassID = cur.StudentClassID AND old.StudentID = mr.StudentID AND old.SchoolID = mr.SchoolID
+WHERE mr.StudentID = @SID AND mr.SchoolID = @SchoolID
+  AND mr.PaidDate < ISNULL(cur.[Date], mr.PaidDate);
+UPDATE pr SET StudentClassID = old.StudentClassID
+FROM dbo.Income_PaymentRecord AS pr
+INNER JOIN dbo.StudentsClass AS cur
+    ON pr.StudentClassID = cur.StudentClassID AND cur.StudentID = pr.StudentID AND cur.SchoolID = pr.SchoolID
+INNER JOIN dbo.StudentsClass AS old
+    ON old.New_StudentClassID = cur.StudentClassID AND old.StudentID = pr.StudentID AND old.SchoolID = pr.SchoolID
+WHERE pr.StudentID = @SID AND pr.SchoolID = @SchoolID
+  AND pr.PaidDate < ISNULL(cur.[Date], pr.PaidDate);
+""", con);
+            fix.Parameters.AddWithValue("@SID", studentId);
+            fix.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await fix.ExecuteNonQueryAsync(cancellationToken);
         }
         await using (var lines = new SqlCommand("""
 SELECT pr.PayOrderID, r.Role, pr.PayFor, ISNULL(y.EducationYear, N'') AS YearName, pr.PaidAmount,
@@ -2040,84 +2397,129 @@ WHERE ExpenseSubCategoryID = @ID AND SchoolID = @SchoolID
         }
     }
 
-    public async Task<(IReadOnlyList<ExpenseDto> Items, decimal Total)> ListExpenseAsync(
-        SessionSnapshot session, int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo, CancellationToken cancellationToken)
+    public async Task<(IReadOnlyList<ExpenseDto> Items, decimal Total, int TotalCount)> ListExpenseAsync(
+        SessionSnapshot session, int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo,
+        int page, int pageSize, CancellationToken cancellationToken)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+        var skip = (page - 1) * pageSize;
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
-        await using var cmd = new SqlCommand("""
-SELECT e.ExpenseID, e.ExpenseCategoryID, e.ExpenseSubCategoryID, c.CategoryName,
-       ISNULL(s.SubCategoryName, N'') AS SubCategoryName, e.ExpenseFor, e.Amount, e.ExpenseDate
-FROM dbo.Expenditure AS e
-INNER JOIN dbo.Expense_CategoryName AS c ON e.ExpenseCategoryID = c.ExpenseCategoryID
-LEFT JOIN dbo.Expense_SubCategory AS s ON e.ExpenseSubCategoryID = s.ExpenseSubCategoryID
+
+        const string whereSql = """
 WHERE e.SchoolID = @SchoolID AND e.EducationYearID = @YearID
   AND (@Cat = 0 OR e.ExpenseCategoryID = @Cat)
   AND (@Sub = 0 OR e.ExpenseSubCategoryID = @Sub)
   AND (@From IS NULL OR CAST(e.ExpenseDate AS DATE) >= @From)
   AND (@To IS NULL OR CAST(e.ExpenseDate AS DATE) <= @To)
   AND (CAST(e.ExpenseID AS nvarchar(20)) LIKE @Rid)
-ORDER BY e.ExpenseID DESC
-""", con);
-        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-        cmd.Parameters.AddWithValue("@YearID", session.EducationYearID);
-        cmd.Parameters.AddWithValue("@Cat", categoryId);
-        cmd.Parameters.AddWithValue("@Sub", subCategoryId);
-        var fromP = cmd.Parameters.Add("@From", SqlDbType.Date);
-        fromP.Value = from?.Date ?? (object)DBNull.Value;
-        var toP = cmd.Parameters.Add("@To", SqlDbType.Date);
-        toP.Value = to?.Date ?? (object)DBNull.Value;
-        cmd.Parameters.AddWithValue("@Rid", string.IsNullOrWhiteSpace(receiptNo) ? "%" : receiptNo.Trim());
-        var items = new List<ExpenseDto>();
+""";
+        const string fromSql = """
+FROM dbo.Expenditure AS e
+INNER JOIN dbo.Expense_CategoryName AS c ON e.ExpenseCategoryID = c.ExpenseCategoryID
+LEFT JOIN dbo.Expense_SubCategory AS s ON e.ExpenseSubCategoryID = s.ExpenseSubCategoryID
+""";
+
+        void BindFilters(SqlCommand cmd)
+        {
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            cmd.Parameters.AddWithValue("@YearID", session.EducationYearID);
+            cmd.Parameters.AddWithValue("@Cat", categoryId);
+            cmd.Parameters.AddWithValue("@Sub", subCategoryId);
+            var fromP = cmd.Parameters.Add("@From", SqlDbType.Date);
+            fromP.Value = from?.Date ?? (object)DBNull.Value;
+            var toP = cmd.Parameters.Add("@To", SqlDbType.Date);
+            toP.Value = to?.Date ?? (object)DBNull.Value;
+            cmd.Parameters.AddWithValue("@Rid", string.IsNullOrWhiteSpace(receiptNo) ? "%" : receiptNo.Trim());
+        }
+
         decimal total = 0;
+        var totalCount = 0;
         try
         {
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
+            await using (var sum = new SqlCommand($"SELECT ISNULL(SUM(e.Amount), 0), COUNT(1) {fromSql} {whereSql}", con))
             {
-                var amount = ToDec(reader["Amount"]);
-                total += amount;
-                items.Add(ReadExpenseRow(reader, amount));
+                BindFilters(sum);
+                await using var sumReader = await sum.ExecuteReaderAsync(cancellationToken);
+                if (await sumReader.ReadAsync(cancellationToken))
+                {
+                    total = ToDec(sumReader[0]);
+                    totalCount = ToInt(sumReader[1]);
+                }
             }
+
+            await using var cmd = new SqlCommand($"""
+SELECT e.ExpenseID, e.ExpenseCategoryID, e.ExpenseSubCategoryID, c.CategoryName,
+       ISNULL(s.SubCategoryName, N'') AS SubCategoryName, e.ExpenseFor, e.Amount, e.ExpenseDate
+{fromSql}
+{whereSql}
+ORDER BY e.ExpenseID DESC
+OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY
+""", con);
+            BindFilters(cmd);
+            cmd.Parameters.AddWithValue("@Skip", skip);
+            cmd.Parameters.AddWithValue("@Take", pageSize);
+            var items = new List<ExpenseDto>();
+            await using var listReader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await listReader.ReadAsync(cancellationToken))
+            {
+                var amount = ToDec(listReader["Amount"]);
+                items.Add(ReadExpenseRow(listReader, amount));
+            }
+            return (items, total, totalCount);
         }
         catch (SqlException)
         {
-            await using var fallback = new SqlCommand("""
-SELECT e.ExpenseID, e.ExpenseCategoryID, c.CategoryName, e.ExpenseFor, e.Amount, e.ExpenseDate
-FROM dbo.Expenditure AS e
-INNER JOIN dbo.Expense_CategoryName AS c ON e.ExpenseCategoryID = c.ExpenseCategoryID
+            const string fallbackWhere = """
 WHERE e.SchoolID = @SchoolID AND e.EducationYearID = @YearID
   AND (@Cat = 0 OR e.ExpenseCategoryID = @Cat)
   AND (@From IS NULL OR CAST(e.ExpenseDate AS DATE) >= @From)
   AND (@To IS NULL OR CAST(e.ExpenseDate AS DATE) <= @To)
   AND (CAST(e.ExpenseID AS nvarchar(20)) LIKE @Rid)
-ORDER BY e.ExpenseID DESC
-""", con);
-            fallback.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-            fallback.Parameters.AddWithValue("@YearID", session.EducationYearID);
-            fallback.Parameters.AddWithValue("@Cat", categoryId);
-            var from2 = fallback.Parameters.Add("@From", SqlDbType.Date);
-            from2.Value = from?.Date ?? (object)DBNull.Value;
-            var to2 = fallback.Parameters.Add("@To", SqlDbType.Date);
-            to2.Value = to?.Date ?? (object)DBNull.Value;
-            fallback.Parameters.AddWithValue("@Rid", string.IsNullOrWhiteSpace(receiptNo) ? "%" : receiptNo.Trim());
-            await using var reader = await fallback.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
+""";
+            const string fallbackFrom = """
+FROM dbo.Expenditure AS e
+INNER JOIN dbo.Expense_CategoryName AS c ON e.ExpenseCategoryID = c.ExpenseCategoryID
+""";
+            await using (var sum = new SqlCommand($"SELECT ISNULL(SUM(e.Amount), 0), COUNT(1) {fallbackFrom} {fallbackWhere}", con))
             {
-                var amount = ToDec(reader["Amount"]);
-                total += amount;
+                BindFilters(sum);
+                await using var sumReader = await sum.ExecuteReaderAsync(cancellationToken);
+                if (await sumReader.ReadAsync(cancellationToken))
+                {
+                    total = ToDec(sumReader[0]);
+                    totalCount = ToInt(sumReader[1]);
+                }
+            }
+
+            await using var fallback = new SqlCommand($"""
+SELECT e.ExpenseID, e.ExpenseCategoryID, c.CategoryName, e.ExpenseFor, e.Amount, e.ExpenseDate
+{fallbackFrom}
+{fallbackWhere}
+ORDER BY e.ExpenseID DESC
+OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY
+""", con);
+            BindFilters(fallback);
+            fallback.Parameters.AddWithValue("@Skip", skip);
+            fallback.Parameters.AddWithValue("@Take", pageSize);
+            var items = new List<ExpenseDto>();
+            await using var fbReader = await fallback.ExecuteReaderAsync(cancellationToken);
+            while (await fbReader.ReadAsync(cancellationToken))
+            {
+                var amount = ToDec(fbReader["Amount"]);
                 items.Add(new ExpenseDto
                 {
-                    ExpenseID = ToInt(reader["ExpenseID"]),
-                    ExpenseCategoryID = ToInt(reader["ExpenseCategoryID"]),
-                    Category = reader["CategoryName"]?.ToString() ?? "",
-                    Details = NullString(reader["ExpenseFor"]),
+                    ExpenseID = ToInt(fbReader["ExpenseID"]),
+                    ExpenseCategoryID = ToInt(fbReader["ExpenseCategoryID"]),
+                    Category = fbReader["CategoryName"]?.ToString() ?? "",
+                    Details = NullString(fbReader["ExpenseFor"]),
                     Amount = amount,
-                    Date = Convert.ToDateTime(reader["ExpenseDate"]).Date
+                    Date = Convert.ToDateTime(fbReader["ExpenseDate"]).Date
                 });
             }
+            return (items, total, totalCount);
         }
-        return (items, total);
     }
 
     public async Task<AccountsResult> CreateExpenseAsync(SessionSnapshot session, SaveExpenseRequest? request, CancellationToken cancellationToken)
@@ -2172,26 +2574,56 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);
             return Fail("acc.needAmount");
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
+        await _inventory.PrepareSchemaAsync(con, cancellationToken);
+        var reapply = await IsInventoryPurchaseCategoryAsync(con, session.SchoolID, request.ExpenseCategoryID, cancellationToken);
         await SetContextAsync(con, session.RegistrationID, cancellationToken);
+        await using var tx = (SqlTransaction)await con.BeginTransactionAsync(cancellationToken);
         try
         {
+            var inv = await _inventory.SyncExpenseInventoryInTxAsync(
+                con, tx, session, request.ExpenseID, request.Amount, reapply, cancellationToken);
+            if (!inv.Succeeded)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return Fail(inv.Error ?? "acc.failed");
+            }
+            var details = request.Details;
+            if (reapply && details is not null &&
+                details.StartsWith("Supplier Payment:", StringComparison.OrdinalIgnoreCase))
+            {
+                var dot = details.IndexOf('.', "Supplier Payment:".Length);
+                if (dot > 0)
+                    details = details[..(dot + 1)] + $" {request.Amount:0.##} Tk.";
+            }
             await using var cmd = new SqlCommand("""
 UPDATE dbo.Expenditure
 SET Amount = @Amount, ExpenseFor = @Details, ExpenseCategoryID = @Cat, ExpenseSubCategoryID = @Sub
 WHERE ExpenseID = @ID AND SchoolID = @SchoolID
-""", con);
+""", con, tx);
             cmd.Parameters.AddWithValue("@Amount", request.Amount);
-            cmd.Parameters.AddWithValue("@Details", (object?)request.Details ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Details", (object?)details ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@Cat", request.ExpenseCategoryID);
             cmd.Parameters.AddWithValue("@Sub", (object?)request.ExpenseSubCategoryID ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@ID", request.ExpenseID);
             cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
             var n = await cmd.ExecuteNonQueryAsync(cancellationToken);
-            return n > 0 ? Ok(request.ExpenseID) : Fail("acc.empty");
+            if (n <= 0)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return Fail("acc.empty");
+            }
+            await tx.CommitAsync(cancellationToken);
+            return Ok(request.ExpenseID);
         }
         catch (SqlException)
         {
+            await tx.RollbackAsync(cancellationToken);
             return Fail("acc.overBalance");
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
         }
     }
 
@@ -2201,20 +2633,54 @@ WHERE ExpenseID = @ID AND SchoolID = @SchoolID
             return Fail("acc.empty");
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
+        await _inventory.PrepareSchemaAsync(con, cancellationToken);
         await SetContextAsync(con, session.RegistrationID, cancellationToken);
+        await using var tx = (SqlTransaction)await con.BeginTransactionAsync(cancellationToken);
         try
         {
+            var inv = await _inventory.SyncExpenseInventoryInTxAsync(con, tx, session, id, 0, false, cancellationToken);
+            if (!inv.Succeeded)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return Fail(inv.Error ?? "acc.failed");
+            }
             await using var cmd = new SqlCommand(
-                "DELETE FROM dbo.Expenditure WHERE ExpenseID = @ID AND SchoolID = @SchoolID", con);
+                "DELETE FROM dbo.Expenditure WHERE ExpenseID = @ID AND SchoolID = @SchoolID", con, tx);
             cmd.Parameters.AddWithValue("@ID", id);
             cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
             var n = await cmd.ExecuteNonQueryAsync(cancellationToken);
-            return n > 0 ? Ok(id) : Fail("acc.empty");
+            if (n <= 0)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return Fail("acc.empty");
+            }
+            await tx.CommitAsync(cancellationToken);
+            return Ok(id);
         }
         catch (SqlException)
         {
+            await tx.RollbackAsync(cancellationToken);
             return Fail("acc.failed");
         }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private static async Task<bool> IsInventoryPurchaseCategoryAsync(
+        SqlConnection con, int schoolId, int categoryId, CancellationToken cancellationToken)
+    {
+        if (categoryId <= 0) return false;
+        await using var cmd = new SqlCommand("""
+SELECT CategoryName FROM dbo.Expense_CategoryName
+WHERE ExpenseCategoryID = @ID AND SchoolID = @SchoolID
+""", con);
+        cmd.Parameters.AddWithValue("@ID", categoryId);
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        var name = (await cmd.ExecuteScalarAsync(cancellationToken))?.ToString() ?? "";
+        return string.Equals(name.Trim(), InventoryService.PurchaseCategory, StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<ExpenseDto?> GetExpenseAsync(SessionSnapshot session, int id, CancellationToken cancellationToken)
@@ -2283,4 +2749,39 @@ WHERE e.ExpenseID = @ID AND e.SchoolID = @SchoolID
         Amount = amount,
         Date = Convert.ToDateTime(reader["ExpenseDate"]).Date
     };
+
+    private async Task<List<int>> ResolveStudentClassIdsAsync(
+        SessionSnapshot session, IEnumerable<string> studentIds, CancellationToken cancellationToken)
+    {
+        var codes = studentIds
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (codes.Count == 0)
+            return [];
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+        var ids = new List<int>();
+        foreach (var code in codes)
+        {
+            await using var cmd = new SqlCommand("""
+SELECT TOP 1 sc.StudentClassID
+FROM dbo.StudentsClass AS sc
+INNER JOIN dbo.Student AS s ON s.StudentID = sc.StudentID
+WHERE sc.SchoolID = @SchoolID AND sc.EducationYearID = @YearID AND s.ID = @ID
+""", con);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            cmd.Parameters.AddWithValue("@YearID", session.EducationYearID);
+            cmd.Parameters.AddWithValue("@ID", code);
+            var value = await cmd.ExecuteScalarAsync(cancellationToken);
+            if (value is int id && id > 0)
+                ids.Add(id);
+            else if (value is not null and not DBNull)
+                ids.Add(Convert.ToInt32(value));
+        }
+
+        return ids;
+    }
 }

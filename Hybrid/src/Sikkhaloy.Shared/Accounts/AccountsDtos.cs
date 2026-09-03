@@ -14,6 +14,7 @@ public sealed class AccountsResult
     public int Saved { get; set; }
     public int Failed { get; set; }
     public string? ReceiptNo { get; set; }
+    public bool Queued { get; set; }
 }
 
 public sealed class PaymentRoleDto
@@ -121,6 +122,7 @@ public sealed class PayOrderStudentDto
 public sealed class CreatePayOrdersRequest
 {
     public List<int> StudentClassIDs { get; set; } = [];
+    public List<string> StudentIDs { get; set; } = [];
     public List<CreatePayOrderItem> Items { get; set; } = [];
 }
 
@@ -250,6 +252,7 @@ public sealed class FeeStudentBundleDto
     public decimal CurrentDue { get; set; }
     public List<DueRowDto> CurrentDues { get; set; } = [];
     public List<DueRowDto> OtherDues { get; set; } = [];
+    public List<DueRowDto> InventoryDues { get; set; } = [];
     public List<ReceiptListDto> Receipts { get; set; } = [];
     public List<ReceiptListDto> PreviousReceipts { get; set; } = [];
 }
@@ -262,6 +265,7 @@ public sealed class CollectPaymentRequest
     public int AccountID { get; set; }
     public DateTime? PaidDate { get; set; }
     public bool SendSms { get; set; }
+    public string? StudentCode { get; set; }
     public List<CollectPaymentItem> Items { get; set; } = [];
 }
 
@@ -280,6 +284,7 @@ public sealed class AddMorePayOrderRequest
     public string PayFor { get; set; } = "";
     public decimal Amount { get; set; }
     public decimal Discount { get; set; }
+    public string? StudentCode { get; set; }
 }
 
 public sealed class SaveConcessionRequest
@@ -429,6 +434,7 @@ public sealed class ExpenseListDto
 {
     public List<ExpenseDto> Items { get; set; } = [];
     public decimal Total { get; set; }
+    public int TotalCount { get; set; }
 }
 
 public sealed class SaveExpenseCategoryRequest

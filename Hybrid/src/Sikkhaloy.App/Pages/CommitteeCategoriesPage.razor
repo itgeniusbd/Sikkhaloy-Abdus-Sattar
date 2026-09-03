@@ -3,65 +3,80 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page acc-page exam-page committee-page">
-    <h1>@Locale.T("cm.categories")</h1>
-    <div class="filter-row no-print">
-        <input type="text" placeholder="@Locale.T("cm.categoryName")" @bind="name" disabled="@busy" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("cm.addCategory")</button>
+<div class="card structure-page emp-page acc-page exam-page committee-page sms-mod cm-dons-page cm-cat-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">Committee / @Locale.T("cm.categories")</p>
+            <h1>@Locale.T("cm.categories")</h1>
+            <p class="cm-dons-lead">@Locale.T("cm.categoriesSub")</p>
+        </div>
+    </header>
+
+    <div class="cm-cat-add no-print">
+        <label>
+            <span>@Locale.T("cm.categoryName")</span>
+            <input type="text" placeholder="@Locale.T("cm.categoryName")" @bind="name" disabled="@busy" @onkeydown="OnAddKey" />
+        </label>
+        <button type="button" class="cm-act cm-act-success" disabled="@busy" @onclick="SaveAsync">@Locale.T("cm.addCategory")</button>
     </div>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("cm.categoryName")</th>
-                <th>@Locale.T("cm.createDate")</th>
-                <th class="no-print"></th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0)
+
+    <div class="cm-dons-table">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cm.categoryName")</th>
+                    <th>@Locale.T("cm.createDate")</th>
+                    <th class="no-print">@Locale.T("sms.tplActions")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0)
+            {
+                <tr><td colspan="3" class="empty-row">@Locale.T("cm.emptyCategories")</td></tr>
+            }
+            @foreach (var row in rows)
+            {
+                <tr>
+                    <td>
+                        @if (editId == row.CommitteeDonationCategoryId)
+                        {
+                            <input type="text" class="cm-cat-edit" @bind="editName" disabled="@busy" />
+                        }
+                        else
+                        {
+                            <strong>@row.DonationCategory</strong>
+                        }
+                    </td>
+                    <td>@(row.InsertDate?.ToString("d MMM yyyy"))</td>
+                    <td class="no-print cm-dons-acts">
+                        @if (editId == row.CommitteeDonationCategoryId)
+                        {
+                            <button type="button" class="sms-tpl-act" disabled="@busy" @onclick="UpdateAsync">@Locale.T("cm.update")</button>
+                            <button type="button" class="sms-tpl-ghost" @onclick="() => editId = 0">@Locale.T("cm.cancel")</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="sms-tpl-act" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("cm.edit")</button>
+                            <button type="button" class="sms-tpl-act is-danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("cm.delete")</button>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (rows.Count > 0)
         {
-            <tr><td colspan="3" class="empty-row">@Locale.T("cm.emptyCategories")</td></tr>
+            <footer class="cm-dons-pager">
+                <span>@Locale.T("cm.showingRange", 1, rows.Count, rows.Count)</span>
+            </footer>
         }
-        @foreach (var row in rows)
-        {
-            <tr>
-                <td>
-                    @if (editId == row.CommitteeDonationCategoryId)
-                    {
-                        <input type="text" @bind="editName" disabled="@busy" />
-                    }
-                    else { @row.DonationCategory }
-                </td>
-                <td>@(row.InsertDate?.ToString("d MMM yyyy"))</td>
-                <td class="no-print">
-                    @if (editId == row.CommitteeDonationCategoryId)
-                    {
-                        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="UpdateAsync">@Locale.T("cm.update")</button>
-                        <button type="button" class="acc-btn" @onclick="() => editId = 0">@Locale.T("cm.cancel")</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="acc-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("cm.edit")</button>
-                        <button type="button" class="acc-btn acc-btn-danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("cm.delete")</button>
-                    }
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    </div>
 </div>
 
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
 
 @code {
@@ -83,6 +98,11 @@
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
+    }
+
+    private async Task OnAddKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SaveAsync();
     }
 
     private async Task SaveAsync()

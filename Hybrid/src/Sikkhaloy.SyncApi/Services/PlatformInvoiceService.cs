@@ -15,6 +15,15 @@ public sealed class PlatformInvoiceService
     private const string ReturnUrl = "https://sikkhaloy.com/Profile/Invoice/ShurjoPayCallback.aspx";
     private const string CancelUrl = "https://sikkhaloy.com/Profile/Invoice/Due_Invoice.aspx";
 
+    // Access due date is the 15th of the issue month (next month if issued after the 15th).
+    private const string AccessDueDateSql = """
+CASE
+  WHEN i.IssuDate IS NULL THEN DATEFROMPARTS(YEAR(i.EndDate), MONTH(i.EndDate), 15)
+  WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+  ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+END
+""";
+
     private readonly EduConnectionFactory _connections;
     private readonly LocalOfficeMode _local;
 
@@ -275,9 +284,11 @@ ORDER BY CreatedDate DESC
         var dto = new SubscriptionStatusDto();
         await using (var cmd = new SqlCommand("""
 SELECT COUNT(*) AS DueCount,
-       ISNULL(SUM(TotalAmount - PaidAmount - Discount), 0) AS Due
-FROM dbo.AAP_Invoice
-WHERE SchoolID = @SID AND IsPaid = 0
+       ISNULL(SUM(i.TotalAmount - i.PaidAmount - i.Discount), 0) AS Due
+FROM dbo.AAP_Invoice i
+INNER JOIN dbo.AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+WHERE i.SchoolID = @SID AND i.IsPaid = 0
+  AND c.InvoiceCategory <> N'SMS'
 """, con))
         {
             cmd.Parameters.AddWithValue("@SID", schoolId);
@@ -297,10 +308,13 @@ WHERE SchoolID = @SID AND IsPaid = 0
             dto.DaysUntilExpiry = (int)(grace.Date - DateTime.Today).TotalDays;
         }
 
-        await using (var cmd = new SqlCommand("""
-SELECT COUNT(*) FROM dbo.AAP_Invoice
-WHERE SchoolID = @SID AND IsPaid = 0
-  AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) < CAST(GETDATE() AS DATE)
+        await using (var cmd = new SqlCommand($"""
+SELECT COUNT(*) FROM dbo.AAP_Invoice i
+INNER JOIN dbo.AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+WHERE i.SchoolID = @SID AND i.IsPaid = 0
+  AND c.InvoiceCategory <> N'SMS'
+  AND i.IssuDate IS NOT NULL
+  AND ({AccessDueDateSql}) < CAST(GETDATE() AS DATE)
 """, con))
         {
             cmd.Parameters.AddWithValue("@SID", schoolId);
@@ -316,10 +330,13 @@ WHERE SchoolID = @SID AND IsPaid = 0
         if (dto.InGrace)
             return dto;
 
-        await using (var cmd = new SqlCommand("""
-SELECT MIN(CAST(EndDate AS DATE)) FROM dbo.AAP_Invoice
-WHERE SchoolID = @SID AND IsPaid = 0
-  AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) >= CAST(GETDATE() AS DATE)
+        await using (var cmd = new SqlCommand($"""
+SELECT MIN({AccessDueDateSql}) FROM dbo.AAP_Invoice i
+INNER JOIN dbo.AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+WHERE i.SchoolID = @SID AND i.IsPaid = 0
+  AND c.InvoiceCategory <> N'SMS'
+  AND i.IssuDate IS NOT NULL
+  AND ({AccessDueDateSql}) >= CAST(GETDATE() AS DATE)
 """, con))
         {
             cmd.Parameters.AddWithValue("@SID", schoolId);

@@ -1,0 +1,284 @@
+@page "/committee/donor-login"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page committee-page cm-donor-login-page">
+    <div class="cm-page-head no-print">
+        <h1>@Locale.T("cm.createDonorLogin")</h1>
+        <div class="cm-head-actions">
+            <a class="cm-act cm-act-dark" href="/committee/donations">@Locale.T("cm.donations")</a>
+        </div>
+    </div>
+
+    <h2 class="cm-donor-login-sub">@Locale.T("cm.donorLoginTitle")</h2>
+
+    <div class="filter-row no-print">
+        <label>
+            @Locale.T("cm.donorType")
+            <select @bind="typeId" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("cm.allTypes")</option>
+                @foreach (var item in types)
+                {
+                    <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+                }
+            </select>
+        </label>
+        <label class="cm-donor-login-find">
+            @Locale.T("cm.findDonor")
+            <input type="text" placeholder="@Locale.T("cm.findDonorHint")" @bind="searchQ" disabled="@busy" @onkeydown="OnSearchKey" />
+        </label>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("cm.find")</button>
+    </div>
+
+    <div class="cm-donor-login-info no-print">@Locale.T("cm.donorLoginDebug", TotalCount, pending.Count, created.Count)</div>
+
+    <div class="si-tabs no-print">
+        <button type="button" class="@(tab == "create" ? "active" : null)" disabled="@busy" @onclick="@(() => tab = "create")">
+            @Locale.T("cm.donorLoginCreateTab")
+            <b>@pending.Count</b>
+        </button>
+        <button type="button" class="@(tab == "created" ? "active" : null)" disabled="@busy" @onclick="@(() => tab = "created")">
+            @Locale.T("cm.donorLoginCreatedTab")
+            <b>@created.Count</b>
+        </button>
+    </div>
+
+    @if (tab == "create")
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th class="no-print due-check">
+                        <label class="rpt-check">
+                            <input type="checkbox" checked="@allPending" @onchange="ToggleAllPending" disabled="@(busy || pending.Count == 0)" />
+                            @Locale.T("att.all")
+                        </label>
+                    </th>
+                    <th>@Locale.T("cm.donor")</th>
+                    <th>@Locale.T("cm.phone")</th>
+                    <th>@Locale.T("cm.memberType")</th>
+                    <th>@Locale.T("cm.address")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (pending.Count == 0 && loaded)
+            {
+                <tr><td colspan="5" class="empty-row">@Locale.T("cm.donorLoginEmptyPending")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in pending)
+                {
+                    <tr class="@(row.Selected ? "is-sel" : null)">
+                        <td class="no-print due-check">
+                            <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetPendingRow(row, e)" />
+                        </td>
+                        <td>@row.MemberName</td>
+                        <td>@row.SmsNumber</td>
+                        <td>@row.MemberType</td>
+                        <td>@row.Address</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+        <div class="cm-donor-login-foot no-print">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@(busy || SelectedPending == 0)" @onclick="CreateAsync">
+                @Locale.T("cm.donorLoginCreateBtn")@(SelectedPending > 0 ? $" ({SelectedPending})" : "")
+            </button>
+        </div>
+    }
+    else
+    {
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th class="no-print due-check">
+                        <label class="rpt-check">
+                            <input type="checkbox" checked="@allCreated" @onchange="ToggleAllCreated" disabled="@(busy || created.Count == 0)" />
+                            SMS
+                        </label>
+                    </th>
+                    <th>@Locale.T("cm.donor")</th>
+                    <th>@Locale.T("cm.phone")</th>
+                    <th>@Locale.T("cm.username")</th>
+                    <th>@Locale.T("cm.password")</th>
+                    <th>@Locale.T("cm.createdDate")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (created.Count == 0 && loaded)
+            {
+                <tr><td colspan="6" class="empty-row">@Locale.T("cm.donorLoginEmptyCreated")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in created)
+                {
+                    <tr class="@(row.Selected ? "is-sel" : null)">
+                        <td class="no-print due-check">
+                            <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetCreatedRow(row, e)" />
+                        </td>
+                        <td>@row.MemberName</td>
+                        <td>@row.SmsNumber</td>
+                        <td>@row.UserName</td>
+                        <td>@row.Password</td>
+                        <td>@(row.CreateDate?.ToString("d MMM yyyy"))</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+        <div class="cm-donor-login-foot no-print">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@(busy || SelectedCreated == 0)" @onclick="SendSmsAsync">
+                @Locale.T("cm.donorLoginSendSms")@(SelectedCreated > 0 ? $" ({SelectedCreated})" : "")
+            </button>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<CommitteeMemberTypeDto> types = [];
+    private readonly List<DonorLoginPendingRowDto> pending = [];
+    private readonly List<DonorLoginCreatedRowDto> created = [];
+
+    private int typeId;
+    private string searchQ = "", tab = "create", busyTitle = "", popupText = "";
+    private bool busy, popupError, loaded, allPending, allCreated;
+
+    private int TotalCount => pending.Count + created.Count;
+    private int SelectedPending => pending.Count(x => x.Selected);
+    private int SelectedCreated => created.Count(x => x.Selected);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await OnlineAsync()) return;
+        types.Clear();
+        types.AddRange(await Api.GetCommitteeTypesAsync(Session.AccessToken!));
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        pending.Clear();
+        created.Clear();
+        loaded = false;
+        if (!await OnlineAsync()) return;
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            var data = await Api.GetDonorLoginPageAsync(Session.AccessToken!, typeId, searchQ);
+            pending.AddRange(data.Pending);
+            created.AddRange(data.Created);
+            allPending = allCreated = false;
+            loaded = true;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await LoadAsync();
+    }
+
+    private void ToggleAllPending(ChangeEventArgs e)
+    {
+        allPending = e.Value is true;
+        foreach (var row in pending) row.Selected = allPending;
+    }
+
+    private void SetPendingRow(DonorLoginPendingRowDto row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true;
+        allPending = pending.Count > 0 && pending.All(x => x.Selected);
+    }
+
+    private void ToggleAllCreated(ChangeEventArgs e)
+    {
+        allCreated = e.Value is true;
+        foreach (var row in created) row.Selected = allCreated;
+    }
+
+    private void SetCreatedRow(DonorLoginCreatedRowDto row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true;
+        allCreated = created.Count > 0 && created.All(x => x.Selected);
+    }
+
+    private async Task CreateAsync()
+    {
+        var ids = pending.Where(x => x.Selected).Select(x => x.CommitteeMemberId).ToList();
+        if (ids.Count == 0) { Show(Locale.T("cm.bulkEditNeedSelect"), true); return; }
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateDonorLoginsAsync(Session.AccessToken!, new DonorLoginCreateRequest
+            {
+                CommitteeMemberIds = ids
+            });
+            if (!result.Succeeded)
+            {
+                Show(FormatErr(result.Error), true);
+                return;
+            }
+            var msg = Locale.T(result.Message ?? "cm.donorLoginCreated");
+            if (result.Skipped > 0) msg += $" ({result.Skipped} skipped)";
+            Show(msg);
+            await LoadAsync();
+            tab = "created";
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SendSmsAsync()
+    {
+        var ids = created.Where(x => x.Selected).Select(x => x.CommitteeMemberId).ToList();
+        if (ids.Count == 0) { Show(Locale.T("cm.bulkEditNeedSelect"), true); return; }
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SendDonorLoginSmsAsync(Session.AccessToken!, new DonorLoginSmsRequest
+            {
+                CommitteeMemberIds = ids
+            });
+            if (!result.Succeeded && result.Sent == 0)
+            {
+                Show(FormatErr(result.Error, result.Message), true);
+                return;
+            }
+            Show(Locale.T("cm.donorLoginSmsResult", result.Sent, result.Failed));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(string? error, string? extra = null)
+    {
+        if (!string.IsNullOrWhiteSpace(error) && (error.StartsWith("acc.", StringComparison.OrdinalIgnoreCase) || error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase)))
+            return Locale.T(error, extra ?? "");
+        return string.IsNullOrWhiteSpace(error) ? Locale.T("cm.fail") : error;
+    }
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

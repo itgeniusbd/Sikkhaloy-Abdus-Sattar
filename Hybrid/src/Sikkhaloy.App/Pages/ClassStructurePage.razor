@@ -15,7 +15,7 @@
     </h1>
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error">@error</div>
+        <NetBanner Text="@error" />
     }
     @if (!string.IsNullOrWhiteSpace(message))
     {
@@ -198,66 +198,67 @@
 
 @if (showClassModal)
 {
-    <div class="modal-back" @onclick="CloseModal">
-        <div class="modal-panel" @onclick:stopPropagation="true">
-            <div class="modal-head">
+    <div class="modal-back cls-modal-back" @onclick="CloseModal">
+        <div class="modal-panel cls-modal" @onclick:stopPropagation="true">
+            <div class="modal-head cls-modal-head">
                 <strong>@Locale.T("cls.modalTitle")</strong>
-                <button type="button" class="link-btn" @onclick="CloseModal">×</button>
+                <button type="button" class="cls-modal-x" aria-label="@Locale.T("cls.cancel")" @onclick="CloseModal">×</button>
             </div>
-            <div class="inline-add">
+            <div class="inline-add cls-modal-add">
                 <input type="text" placeholder="@Locale.T("cls.classPlaceholder")" @bind="newClassName" />
                 <input type="text" class="sn-input" placeholder="@Locale.T("cls.snPlaceholder")" @bind="newClassSn" />
                 <button type="button" class="primary" disabled="@busy" @onclick="AddClass">@Locale.T("cls.addClass")</button>
             </div>
             @if (!string.IsNullOrWhiteSpace(modalMessage))
             {
-                <div class="ok">@modalMessage</div>
+                <div class="ok cls-modal-msg">@modalMessage</div>
             }
-            <table class="mgrid">
-                <thead>
-                    <tr>
-                        <th>@Locale.T("cls.class")</th>
-                        <th>@Locale.T("cls.serial")</th>
-                        <th>@Locale.T("cls.edit")</th>
-                        <th>@Locale.T("cls.delete")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var row in classes)
-                {
-                    <tr>
-                        <td>
-                            @if (editingClassId == row.LocalId)
-                            {
-                                <input type="text" @bind="editingName" />
-                            }
-                            else
-                            {
-                                @row.Name
-                            }
-                        </td>
-                        <td>
-                            <input class="sn-input" value="@SerialOf(row)" @onchange="e => SetSerial(row.ClassID, e.Value?.ToString())" />
-                        </td>
-                        <td class="act">
-                            @if (editingClassId == row.LocalId)
-                            {
-                                <button type="button" class="link-btn" @onclick="() => SaveClassName(row)">@Locale.T("cls.update")</button>
-                                <button type="button" class="link-btn" @onclick="CancelEdit">@Locale.T("cls.cancel")</button>
-                            }
-                            else
-                            {
-                                <button type="button" class="link-btn" @onclick="() => StartEditClass(row)">@Locale.T("cls.edit")</button>
-                            }
-                        </td>
-                        <td class="act">
-                            <button type="button" class="link-btn danger" @onclick="() => DeleteClass(row)">@Locale.T("cls.delete")</button>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-            <button type="button" class="btn-serial" disabled="@busy" @onclick="UpdateSerials">@Locale.T("cls.updateSerial")</button>
+            <div class="cls-modal-body">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("cls.class")</th>
+                            <th>@Locale.T("cls.serial")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var row in classes)
+                    {
+                        <tr>
+                            <td>
+                                @if (editingClassId == row.LocalId)
+                                {
+                                    <input type="text" @bind="editingName" />
+                                }
+                                else
+                                {
+                                    @row.Name
+                                }
+                            </td>
+                            <td>
+                                <input class="sn-input" value="@SerialOf(row)" @onchange="e => SetSerial(row.ClassID, e.Value?.ToString())" />
+                            </td>
+                            <td class="act">
+                                @if (editingClassId == row.LocalId)
+                                {
+                                    <button type="button" class="cls-act cls-act-save" @onclick="() => SaveClassName(row)">@Locale.T("cls.update")</button>
+                                    <button type="button" class="cls-act cls-act-cancel" @onclick="CancelEdit">@Locale.T("cls.cancel")</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="cls-act cls-act-edit" @onclick="() => StartEditClass(row)">@Locale.T("cls.edit")</button>
+                                    <button type="button" class="cls-act cls-act-del" @onclick="() => DeleteClass(row)">@Locale.T("cls.delete")</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="cls-modal-foot">
+                <button type="button" class="btn-serial" disabled="@busy" @onclick="UpdateSerials">@Locale.T("cls.updateSerial")</button>
+            </div>
         </div>
     </div>
 }

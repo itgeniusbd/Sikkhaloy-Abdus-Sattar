@@ -3,148 +3,164 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page">
-    <h1>@Locale.T("emp.addStaff")</h1>
-    <p class="muted">@Locale.T("emp.crumb")</p>
+<div class="card sa-page emp-add-page emp-staff-page">
+    <header class="sa-head">
+        <p class="sa-kicker">@Locale.T("emp.kicker")</p>
+        <h1>@Locale.T("emp.addStaff")</h1>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="form-grid">
-        <label>@Locale.T("emp.firstName")
-            <input @bind="form.FirstName" disabled="@busy" />
-        </label>
-        <label>@Locale.T("emp.lastName")
-            <input @bind="form.LastName" disabled="@busy" />
-        </label>
-        <label>@Locale.T("emp.gender")
-            <span class="readm-type">
-                <label class="choice-inline">
-                    <input type="radio" name="sgender" checked="@(form.Gender == "Male")" @onchange="@(() => form.Gender = "Male")" />
-                    <span>@Locale.T("emp.male")</span>
-                </label>
-                <label class="choice-inline">
-                    <input type="radio" name="sgender" checked="@(form.Gender == "Female")" @onchange="@(() => form.Gender = "Female")" />
-                    <span>@Locale.T("emp.female")</span>
-                </label>
-            </span>
-        </label>
-        <label>@Locale.T("emp.father")
-            <input @bind="form.FatherName" disabled="@busy" />
-        </label>
-        <label>@Locale.T("emp.designation")
-            <input @bind="form.Designation" disabled="@busy" />
-        </label>
-        <label>@Locale.T("emp.religion")
-            <select @bind="form.Religion" disabled="@busy">
-                <option>Islam</option>
-                <option>Hinduism</option>
-                <option>Buddhism</option>
-                <option>Christianity</option>
-            </select>
-        </label>
-        <label>@Locale.T("emp.phone")
-            <input @bind="form.Phone" disabled="@busy" />
-        </label>
-        <label class="span-2">@Locale.T("emp.address")
-            <textarea @bind="form.Address" disabled="@busy"></textarea>
-        </label>
-        <label>@Locale.T("emp.jobType")
-            <span class="readm-type">
-                <label class="choice-inline">
-                    <input type="radio" name="sjob" checked="@(form.PermanentTemporary == "Permanent")" @onchange="@(() => form.PermanentTemporary = "Permanent")" />
-                    <span>@Locale.T("emp.permanent")</span>
-                </label>
-                <label class="choice-inline">
-                    <input type="radio" name="sjob" checked="@(form.PermanentTemporary == "Temporary")" @onchange="@(() => form.PermanentTemporary = "Temporary")" />
-                    <span>@Locale.T("emp.temporary")</span>
-                </label>
-            </span>
-        </label>
-        <label>@Locale.T("emp.salary")
-            <input type="number" min="0" step="0.01" @bind="form.Salary" disabled="@busy" />
-        </label>
-        <label>@Locale.T("emp.absDeduct")
-            <span class="readm-type">
-                <label class="choice-inline">
-                    <input type="radio" name="sabs" checked="@form.AbsDeducted" @onchange="@(() => form.AbsDeducted = true)" />
-                    <span>@Locale.T("emp.yes")</span>
-                </label>
-                <label class="choice-inline">
-                    <input type="radio" name="sabs" checked="@(!form.AbsDeducted)" @onchange="@(() => form.AbsDeducted = false)" />
-                    <span>@Locale.T("emp.no")</span>
-                </label>
-            </span>
-        </label>
-        @if (form.AbsDeducted)
-        {
-            <label>@Locale.T("emp.absAmount")
-                <input type="number" min="0" step="0.01" @bind="form.AbsDeduction" disabled="@busy" />
+    <section class="emp-block">
+        <h3>@Locale.T("emp.staffInfo")</h3>
+        <div class="sa-form">
+            <label class="sa-field">@Locale.T("emp.firstName")
+                <input @bind="form.FirstName" placeholder="@Locale.T("sub.ph.first")" disabled="@busy" />
             </label>
-        }
-        <label>@Locale.T("emp.lateAbs")
-            <span class="readm-type">
-                <label class="choice-inline">
-                    <input type="radio" name="slate" checked="@form.LateCountAsAbs" @onchange="@(() => form.LateCountAsAbs = true)" />
-                    <span>@Locale.T("emp.yes")</span>
-                </label>
-                <label class="choice-inline">
-                    <input type="radio" name="slate" checked="@(!form.LateCountAsAbs)" @onchange="@(() => form.LateCountAsAbs = false)" />
-                    <span>@Locale.T("emp.no")</span>
-                </label>
-            </span>
-        </label>
-        @if (form.LateCountAsAbs)
-        {
-            <label>@Locale.T("emp.lateDays")
-                <input type="number" min="1" @bind="lateDays" disabled="@busy" />
+            <label class="sa-field">@Locale.T("emp.lastName")
+                <input @bind="form.LastName" placeholder="@Locale.T("sub.ph.last")" disabled="@busy" />
             </label>
-        }
-    </div>
-    <div class="access-bar" style="margin-top: 0.7rem;">
-        <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("emp.submit")</button>
+            <label class="sa-field">@Locale.T("emp.father")
+                <input @bind="form.FatherName" disabled="@busy" />
+            </label>
+            <label class="sa-field">@Locale.T("emp.designation")
+                <input @bind="form.Designation" placeholder="@Locale.T("sub.ph.designation")" disabled="@busy" />
+            </label>
+            <label class="sa-field">@Locale.T("emp.phone")
+                <input @bind="form.Phone" disabled="@busy" />
+            </label>
+            <label class="sa-field">@Locale.T("emp.gender")
+                <span class="aj-type">
+                    <label class="aj-chip">
+                        <input type="radio" name="sgender" checked="@(form.Gender == "Male")" disabled="@busy" @onchange="@(() => form.Gender = "Male")" />
+                        <span>@Locale.T("emp.male")</span>
+                    </label>
+                    <label class="aj-chip">
+                        <input type="radio" name="sgender" checked="@(form.Gender == "Female")" disabled="@busy" @onchange="@(() => form.Gender = "Female")" />
+                        <span>@Locale.T("emp.female")</span>
+                    </label>
+                </span>
+            </label>
+            <label class="sa-field">@Locale.T("emp.religion")
+                <select @bind="form.Religion" disabled="@busy">
+                    <option>Islam</option>
+                    <option>Hinduism</option>
+                    <option>Buddhism</option>
+                    <option>Christianity</option>
+                </select>
+            </label>
+            <label class="sa-field span-2">@Locale.T("emp.address")
+                <input @bind="form.Address" disabled="@busy" />
+            </label>
+        </div>
+    </section>
+
+    <section class="emp-block">
+        <h3>@Locale.T("emp.jobInfo")</h3>
+        <div class="sa-form">
+            <label class="sa-field">@Locale.T("emp.jobType")
+                <span class="aj-type">
+                    <label class="aj-chip">
+                        <input type="radio" name="sjob" checked="@(form.PermanentTemporary == "Permanent")" disabled="@busy" @onchange="@(() => form.PermanentTemporary = "Permanent")" />
+                        <span>@Locale.T("emp.permanent")</span>
+                    </label>
+                    <label class="aj-chip">
+                        <input type="radio" name="sjob" checked="@(form.PermanentTemporary == "Temporary")" disabled="@busy" @onchange="@(() => form.PermanentTemporary = "Temporary")" />
+                        <span>@Locale.T("emp.temporary")</span>
+                    </label>
+                </span>
+            </label>
+            <label class="sa-field">@Locale.T("emp.salary")
+                <input type="number" min="0" step="0.01" @bind="form.Salary" disabled="@busy" />
+            </label>
+            <label class="sa-field">@Locale.T("emp.absDeduct")
+                <span class="aj-type">
+                    <label class="aj-chip">
+                        <input type="radio" name="sabs" checked="@form.AbsDeducted" disabled="@busy" @onchange="@(() => form.AbsDeducted = true)" />
+                        <span>@Locale.T("emp.yes")</span>
+                    </label>
+                    <label class="aj-chip">
+                        <input type="radio" name="sabs" checked="@(!form.AbsDeducted)" disabled="@busy" @onchange="@(() => form.AbsDeducted = false)" />
+                        <span>@Locale.T("emp.no")</span>
+                    </label>
+                </span>
+            </label>
+            @if (form.AbsDeducted)
+            {
+                <label class="sa-field">@Locale.T("emp.absAmount")
+                    <input type="number" min="0" step="0.01" @bind="form.AbsDeduction" disabled="@busy" />
+                </label>
+            }
+            <label class="sa-field">@Locale.T("emp.lateAbs")
+                <span class="aj-type">
+                    <label class="aj-chip">
+                        <input type="radio" name="slate" checked="@form.LateCountAsAbs" disabled="@busy" @onchange="@(() => form.LateCountAsAbs = true)" />
+                        <span>@Locale.T("emp.yes")</span>
+                    </label>
+                    <label class="aj-chip">
+                        <input type="radio" name="slate" checked="@(!form.LateCountAsAbs)" disabled="@busy" @onchange="@(() => form.LateCountAsAbs = false)" />
+                        <span>@Locale.T("emp.no")</span>
+                    </label>
+                </span>
+            </label>
+            @if (form.LateCountAsAbs)
+            {
+                <label class="sa-field">@Locale.T("emp.lateDays")
+                    <input type="number" min="1" @bind="lateDays" disabled="@busy" />
+                </label>
+            }
+        </div>
+    </section>
+
+    <div class="sa-foot">
+        <button type="button" class="btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("emp.submit")</button>
     </div>
 
     <h2 class="emp-list-title">@Locale.T("emp.staffList")</h2>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("emp.id")</th>
-                <th>@Locale.T("emp.name")</th>
-                <th>@Locale.T("emp.father")</th>
-                <th>@Locale.T("emp.designation")</th>
-                <th>@Locale.T("emp.phone")</th>
-                <th>@Locale.T("emp.salary")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0 && !busy)
-        {
-            <tr><td colspan="6" class="empty-row">@Locale.T("emp.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in rows)
-            {
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
                 <tr>
-                    <td>@row.ID</td>
-                    <td>@row.Name</td>
-                    <td>@row.FatherName</td>
-                    <td>@row.Designation</td>
-                    <td>@row.Phone</td>
-                    <td>@row.Salary.ToString("0.##")</td>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("emp.name")</th>
+                    <th>@Locale.T("emp.father")</th>
+                    <th>@Locale.T("emp.designation")</th>
+                    <th>@Locale.T("emp.phone")</th>
+                    <th>@Locale.T("emp.salary")</th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="6" class="empty-row">@Locale.T("emp.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.FatherName</td>
+                        <td>@row.Designation</td>
+                        <td>@row.Phone</td>
+                        <td>@row.Salary.ToString("0.##")</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<ExamBusyOverlay Busy="saving" Title="@Locale.T("emp.savingStaff")" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly CreateStaffRequest form = new()
@@ -156,8 +172,10 @@
     private readonly List<EmployeeListDto> rows = [];
     private int lateDays = 3;
     private bool busy;
+    private bool saving;
     private string? error;
-    private string? message;
+    private string popupText = "";
+    private bool popupError;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -199,58 +217,89 @@
 
     private async Task SaveAsync()
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         if (string.IsNullOrWhiteSpace(form.FirstName) || string.IsNullOrWhiteSpace(form.LastName)
             || string.IsNullOrWhiteSpace(form.Designation) || string.IsNullOrWhiteSpace(form.Gender))
         {
-            error = Locale.T("emp.needInfo");
+            Show(Locale.T("emp.needInfo"), true);
             return;
         }
         if (form.AbsDeducted && form.AbsDeduction <= 0)
         {
-            error = Locale.T("emp.needAbsAmount");
+            Show(Locale.T("emp.needAbsAmount"), true);
             return;
         }
         if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return;
         }
 
-        busy = true;
+        await BeginSaveAsync();
         try
         {
+            if (!await Api.PingAsync())
+            {
+                Show(Locale.T("subj.needOnline"), true);
+                return;
+            }
+
             form.LateDays = form.LateCountAsAbs ? lateDays : null;
             var result = await Api.CreateStaffAsync(Session.AccessToken, form);
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
-            message = Locale.T("emp.okStaff");
-            form.FirstName = form.LastName = form.FatherName = form.Designation = form.Phone = form.Address = "";
-            form.Gender = "Male";
-            form.Religion = "Islam";
-            form.PermanentTemporary = "Permanent";
-            form.Salary = 0;
-            form.AbsDeducted = form.LateCountAsAbs = false;
-            form.AbsDeduction = 0;
-            lateDays = 3;
+            ResetForm();
             await LoadAsync();
+            Show(Locale.T("emp.okStaff"));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
+            saving = false;
             busy = false;
         }
+    }
+
+    private void ResetForm()
+    {
+        form.FirstName = form.LastName = form.FatherName = form.Designation = form.Phone = form.Address = "";
+        form.Gender = "Male";
+        form.Religion = "Islam";
+        form.PermanentTemporary = "Permanent";
+        form.Salary = 0;
+        form.AbsDeducted = form.LateCountAsAbs = false;
+        form.AbsDeduction = 0;
+        lateDays = 3;
+    }
+
+    private async Task BeginSaveAsync()
+    {
+        saving = true;
+        busy = true;
+        popupText = "";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void ClosePopup() => popupText = "";
+
+    private void Show(string value, bool err = false)
+    {
+        popupText = value;
+        popupError = err;
+        error = err ? value : null;
     }
 
     private string Translate(string? key) =>

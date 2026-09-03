@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Configuration;
 using System.Data.SqlClient;
@@ -472,9 +472,11 @@ namespace EDUCATION.COM.Profile.Invoice
                         }
 
                         
-                        // Grace Period auto-cancel: payment success holei AccessGraceUntil = NULL
-                        using (var graceCmd = new SqlCommand(
-                            "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID AND AccessGraceUntil IS NOT NULL", conn, tran))
+                        // Keep grace while other invoices are still unpaid (SMS recharge must not lock the school).
+                        using (var graceCmd = new SqlCommand(@"
+IF NOT EXISTS (SELECT 1 FROM AAP_Invoice WHERE SchoolID = @SID AND IsPaid = 0)
+    UPDATE SchoolInfo SET AccessGraceUntil = NULL
+    WHERE SchoolID = @SID AND AccessGraceUntil IS NOT NULL", conn, tran))
                         {
                             graceCmd.Parameters.AddWithValue("@SID", schoolId);
                             graceCmd.ExecuteNonQuery();

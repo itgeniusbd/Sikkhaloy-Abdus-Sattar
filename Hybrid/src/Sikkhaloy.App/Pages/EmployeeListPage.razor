@@ -6,101 +6,122 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 
-<div class="card structure-page emp-page">
-    <h1>@(deactivated ? Locale.T("emp.deactivated") : Locale.T("emp.list"))</h1>
-    <p class="muted no-print">@Locale.T("emp.crumb")</p>
-
-    @if (!string.IsNullOrWhiteSpace(error))
-    {
-        <div class="error no-print">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok no-print">@message</div>
-    }
-
-    <div class="filter-row no-print">
-        <label class="choice-inline">
-            <input type="radio" name="etype" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
-            <span>@Locale.T("emp.all")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="etype" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
-            <span>@Locale.T("emp.teacher")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="etype" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
-            <span>@Locale.T("emp.staff")</span>
-        </label>
-        <input type="text" placeholder="@Locale.T("emp.search")" @bind="query" @bind:event="oninput" />
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadAsync">@Locale.T("emp.find")</button>
-        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("emp.print")</button>
-        <button type="button" class="link-btn" @onclick="ToggleStatus">
+<div class="card sa-page emp-list-page">
+    <header class="sa-head sj-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("emp.kicker")</p>
+            <h1>@(deactivated ? Locale.T("emp.deactivated") : Locale.T("emp.list"))</h1>
+            <p class="sa-lead">@(deactivated ? Locale.T("emp.listLeadOff") : Locale.T("emp.listLead"))</p>
+        </div>
+        <a class="btn-ghost" href="@(deactivated ? "/staff/employees" : "/staff/employees/deactivated")">
             @(deactivated ? Locale.T("emp.activeHint") : Locale.T("emp.deactivatedHint"))
-        </button>
+        </a>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
+    {
+        <NetBanner Text="@error" />
+    }
+
+    <div class="el-bar no-print">
+        <div class="aj-type">
+            <button type="button" class="el-pill @(type == "%" ? "is-on" : null)" disabled="@busy" @onclick="@(() => SetType("%"))">@Locale.T("emp.all")</button>
+            <button type="button" class="el-pill @(type == "Teacher" ? "is-on" : null)" disabled="@busy" @onclick="@(() => SetType("Teacher"))">@Locale.T("emp.teacher")</button>
+            <button type="button" class="el-pill @(type == "Staff" ? "is-on" : null)" disabled="@busy" @onclick="@(() => SetType("Staff"))">@Locale.T("emp.staff")</button>
+        </div>
+        <input type="text" placeholder="@Locale.T("emp.search")" @bind="query" @bind:event="oninput" @onkeydown="OnSearchKey" disabled="@busy" />
+        <button type="button" class="btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("emp.find")</button>
+        <button type="button" class="btn-print" disabled="@(rows.Count == 0)" @onclick="PrintAsync">@Locale.T("emp.print")</button>
+        <span class="el-count">@Locale.T("emp.count", rows.Count)</span>
     </div>
 
-    <p class="muted">@Locale.T("emp.count", rows.Count)</p>
+    <PrintHeader ShowDate="false" />
+    <p class="el-print-meta print-only">
+        <strong>@(deactivated ? Locale.T("emp.deactivated") : Locale.T("emp.list"))</strong>
+        <span>@Locale.T("print.printed", DateTime.Now.ToString("dd MMM yyyy hh:mm tt"))</span>
+        <span>@Locale.T("emp.count", rows.Count)</span>
+    </p>
 
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th class="no-print">@(deactivated ? Locale.T("emp.reactivate") : Locale.T("emp.deactivate"))</th>
-                <th>@Locale.T("emp.id")</th>
-                <th>@Locale.T("emp.name")</th>
-                <th>@Locale.T("emp.father")</th>
-                <th>@Locale.T("emp.phone")</th>
-                <th>@Locale.T("emp.designation")</th>
-                <th class="no-print">@Locale.T("emp.type")</th>
-                <th class="no-print">@Locale.T("emp.salary")</th>
-                <th>@Locale.T("emp.bank")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0 && !busy)
-        {
-            <tr><td colspan="9" class="empty-row">@Locale.T("emp.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in rows)
-            {
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
                 <tr>
-                    <td class="act no-print">
-                        <button type="button" class="link-btn @(deactivated ? null : "danger")" disabled="@busy"
-                                @onclick="() => SetStatusAsync(row)">
-                            @(deactivated ? Locale.T("emp.reactivate") : Locale.T("emp.deactivate"))
-                        </button>
-                    </td>
-                    <td>
-                        <input class="no-print emp-cell" @bind="row.ID" disabled="@busy" />
-                        <span class="print-only">@row.ID</span>
-                    </td>
-                    <td>@row.Name</td>
-                    <td>@row.FatherName</td>
-                    <td>@row.Phone</td>
-                    <td>@row.Designation</td>
-                    <td class="no-print">
-                        <input class="emp-cell" @bind="row.EmployeeType" disabled="@busy" />
-                    </td>
-                    <td class="no-print">
-                        <input class="emp-cell" type="number" step="0.01" @bind="row.Salary" disabled="@busy" />
-                    </td>
-                    <td>
-                        <input class="no-print emp-cell" @bind="row.BankAccNo" disabled="@busy" />
-                        <span class="print-only">@row.BankAccNo</span>
-                    </td>
+                    <th class="no-print act">@Locale.T("subj.edit")</th>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("emp.name")</th>
+                    <th>@Locale.T("emp.father")</th>
+                    <th>@Locale.T("emp.phone")</th>
+                    <th>@Locale.T("emp.designation")</th>
+                    <th class="no-print">@Locale.T("emp.type")</th>
+                    <th class="no-print">@Locale.T("emp.salary")</th>
+                    <th>@Locale.T("emp.bank")</th>
+                    <th>@Locale.T("sm.photo")</th>
+                    <th class="no-print act">@(deactivated ? Locale.T("emp.reactivate") : Locale.T("emp.deactivate"))</th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="11" class="empty-row">@Locale.T("emp.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
-
-    @if (!deactivated && rows.Count > 0)
-    {
-        <button type="button" class="btn-serial no-print" disabled="@busy" @onclick="SaveAsync">@Locale.T("emp.save")</button>
-    }
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td class="act no-print">
+                            @if (!deactivated)
+                            {
+                                <a class="cls-act cls-act-edit" href="/staff/employees/@row.EmployeeID/edit">@Locale.T("subj.edit")</a>
+                            }
+                        </td>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.FatherName</td>
+                        <td>@row.Phone</td>
+                        <td>@row.Designation</td>
+                        <td class="no-print">@row.EmployeeType</td>
+                        <td class="no-print">@row.Salary.ToString("0.##")</td>
+                        <td>@row.BankAccNo</td>
+                        <td class="el-photo-cell">
+                            <label class="sm-photo el-photo">
+                                @if (!string.IsNullOrWhiteSpace(row.PhotoDataUrl))
+                                {
+                                    <img src="@row.PhotoDataUrl" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="sm-photo-empty">@Locale.T("emp.noPhoto")</span>
+                                }
+                                @if (!deactivated)
+                                {
+                                    <span class="sm-photo-edit no-print" title="@Locale.T("sm.photo")">✎</span>
+                                    <InputFile class="sm-photo-file"
+                                               accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                               OnChange="e => OnPhotoAsync(row, e)"
+                                               disabled="@(busy || photoBusy.Contains(row.EmployeeID))" />
+                                }
+                            </label>
+                        </td>
+                        <td class="act no-print">
+                            <button type="button" class="cls-act @(deactivated ? "cls-act-save" : "cls-act-del")" disabled="@busy"
+                                    @onclick="() => SetStatusAsync(row)">
+                                @(deactivated ? Locale.T("emp.reactivate") : Locale.T("emp.deactivate"))
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<ExamBusyOverlay Busy="saving" Title="@Locale.T("emp.updating")" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<EmployeeListDto> rows = [];
@@ -108,14 +129,45 @@
     private string query = "";
     private bool deactivated;
     private bool busy;
+    private bool saving;
     private string? error;
-    private string? message;
-
+    private string popupText = "";
+    private bool popupError;
     private bool statusReady;
+    private readonly HashSet<int> photoBusy = [];
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnInitialized()
     {
-        var next = Nav.Uri.Contains("/staff/employees/deactivated", StringComparison.OrdinalIgnoreCase);
+        base.OnInitialized();
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnParametersSetAsync() =>
+        await ApplyRouteAsync();
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        try
+        {
+            await ApplyRouteAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private bool IsDeactivatedRoute()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0].Trim('/');
+        return path.Equals("staff/employees/deactivated", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task ApplyRouteAsync()
+    {
+        var next = IsDeactivatedRoute();
         if (statusReady && next == deactivated)
             return;
         deactivated = next;
@@ -129,14 +181,15 @@
         await LoadAsync();
     }
 
-    private void ToggleStatus()
+    private async Task OnSearchKey(KeyboardEventArgs e)
     {
-        Nav.NavigateTo(deactivated ? "/staff/employees" : "/staff/employees/deactivated");
+        if (e.Key == "Enter")
+            await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        error = message = null;
+        error = null;
         if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             error = Locale.T("subj.needOnline");
@@ -171,51 +224,68 @@
         }
     }
 
-    private async Task SaveAsync()
+    private async Task OnPhotoAsync(EmployeeListDto row, InputFileChangeEventArgs e)
     {
-        error = message = null;
-        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        var file = e.File;
+        if (file is null || string.IsNullOrWhiteSpace(Session.AccessToken))
             return;
 
-        busy = true;
+        photoBusy.Add(row.EmployeeID);
         try
         {
-            foreach (var row in rows)
+            await using var stream = file.OpenReadStream(2_000_000);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var raw = ms.ToArray();
+            if (raw.Length == 0)
             {
-                var result = await Api.UpdateEmployeeAsync(Session.AccessToken, row.EmployeeID, new UpdateEmployeeRequest
-                {
-                    ID = row.ID,
-                    EmployeeType = row.EmployeeType,
-                    Salary = row.Salary,
-                    BankAccNo = row.BankAccNo ?? ""
-                });
-                if (!result.Succeeded)
-                {
-                    error = Translate(result.Error);
-                    return;
-                }
+                Show(Locale.T("emp.badPhoto"), true);
+                return;
             }
 
-            message = Locale.T("emp.saved");
-            await LoadAsync();
+            var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            var dataUrl = $"data:{mime};base64,{Convert.ToBase64String(raw)}";
+            var compressed = await JS.InvokeAsync<string>("sikkhaloyCompressImage", dataUrl, 300, 0.7, 80_000);
+            if (string.IsNullOrWhiteSpace(compressed) || !compressed.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+            {
+                Show(Locale.T("emp.badPhoto"), true);
+                return;
+            }
+
+            var result = await Api.SaveEmployeePhotoAsync(Session.AccessToken, row.EmployeeID, new EmployeePhotoRequest
+            {
+                EmployeeType = row.EmployeeType,
+                Image = compressed
+            });
+            if (!result.Succeeded)
+            {
+                Show(Translate(result.Error), true);
+                return;
+            }
+
+            row.PhotoDataUrl = compressed;
+            Show(Locale.T("emp.photoOk"));
+        }
+        catch (JSException)
+        {
+            Show(Locale.T("emp.badPhoto"), true);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
-            busy = false;
+            photoBusy.Remove(row.EmployeeID);
         }
     }
 
     private async Task SetStatusAsync(EmployeeListDto row)
     {
-        error = message = null;
         if (!deactivated)
         {
             var ok = await JS.InvokeAsync<bool>("confirm", Locale.T("emp.confirmDeactivate"));
@@ -223,7 +293,7 @@
                 return;
         }
 
-        busy = true;
+        await BeginSaveAsync();
         try
         {
             var result = await Api.SetEmployeeStatusAsync(Session.AccessToken, row.EmployeeID, new SetJobStatusRequest
@@ -232,29 +302,55 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
             await LoadAsync();
+            Show(Locale.T("emp.saved"));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
+            saving = false;
             busy = false;
         }
     }
 
+    private async Task BeginSaveAsync()
+    {
+        saving = true;
+        busy = true;
+        popupText = "";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void ClosePopup() => popupText = "";
+
+    private void Show(string value, bool err = false)
+    {
+        popupText = value;
+        popupError = err;
+        error = err ? value : null;
+    }
+
     private async Task PrintAsync() =>
-        await JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false);
+        await JS.InvokeVoidAsync("sikkhaloyPrint");
 
     private string Translate(string? key) =>
         string.IsNullOrWhiteSpace(key) ? Locale.T("emp.failed") : Locale.T(key);
+
+    public override void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        base.Dispose();
+    }
 }

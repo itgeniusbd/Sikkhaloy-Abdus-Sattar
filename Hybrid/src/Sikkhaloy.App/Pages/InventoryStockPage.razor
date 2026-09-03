@@ -1,0 +1,347 @@
+@page "/inventory/stock"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<style>
+    .inv-stock-page, .inv-stock-page * { box-sizing: border-box; }
+    .inv-stock-page { width: 100%; max-width: none; min-width: 0; }
+    .inv-stock-page .is-hero { margin-bottom: 0.85rem; }
+    .inv-stock-page .is-hero h1 { margin: 0.12rem 0 0.3rem; font-size: 1.35rem; }
+    .inv-stock-page .is-bar {
+        display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: flex-end;
+        margin-bottom: 1rem;
+    }
+    .inv-stock-page .is-field {
+        display: flex; flex-direction: column; gap: 0.3rem;
+        flex: 1 1 160px; min-width: 150px; max-width: 100%;
+        font-size: 0.75rem; font-weight: 700; color: #475569;
+    }
+    .inv-stock-page .is-field.is-search { flex: 2 1 260px; }
+    .inv-stock-page .is-box { position: relative; width: 100%; }
+    .inv-stock-page .is-box.has-ico input { padding-right: 2.3rem; }
+    .inv-stock-page .is-box > i {
+        position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%);
+        width: 1rem; height: 1rem; color: #0f766e; pointer-events: none; display: grid; place-items: center;
+    }
+    .inv-stock-page .is-box > i svg { width: 1rem; height: 1rem; }
+    .inv-stock-page .is-box input,
+    .inv-stock-page .is-box select {
+        width: 100%; height: 44px; min-height: 44px; max-width: 100%;
+        border: 1.5px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
+        padding: 0 0.85rem; font: inherit; font-size: 0.92rem; font-weight: 600; color: #0f172a;
+        outline: none; appearance: none; -webkit-appearance: none;
+    }
+    .inv-stock-page .is-box select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 0.7rem center; padding-right: 2rem;
+    }
+    .inv-stock-page .is-box input::placeholder { color: #94a3b8; font-weight: 500; }
+    .inv-stock-page .is-box input:hover, .inv-stock-page .is-box select:hover { border-color: #99f6e4; background: #fff; }
+    .inv-stock-page .is-box input:focus, .inv-stock-page .is-box select:focus {
+        border-color: #0f766e; background: #fff; box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14);
+    }
+    .inv-stock-page .is-btn {
+        height: 44px; min-height: 44px; border: 0; border-radius: 12px;
+        padding: 0 1.05rem; color: #fff; font: inherit; font-weight: 800;
+        cursor: pointer; white-space: nowrap; flex: 0 0 auto;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+        box-shadow: 0 6px 16px rgba(15, 118, 110, 0.22);
+    }
+    .inv-stock-page .is-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .inv-stock-page .is-print {
+        height: 44px; border: 1px solid #cbd5e1; border-radius: 12px;
+        background: #fff; color: #334155; font: inherit; font-weight: 800;
+        padding: 0 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;
+        flex: 0 0 auto;
+    }
+    .inv-stock-page .is-print svg { width: 1rem; height: 1rem; }
+    .inv-stock-page .is-kpis {
+        display: flex; flex-wrap: wrap; gap: 0.85rem; margin-bottom: 1rem;
+    }
+    .inv-stock-page .is-kpi {
+        flex: 1 1 150px; min-width: 140px;
+        display: flex; align-items: center; justify-content: space-between; gap: 0.55rem;
+        padding: 0.9rem 1rem; border-radius: 16px; border: 1px solid transparent;
+    }
+    .inv-stock-page .is-kpi small { display: block; font-size: 0.76rem; font-weight: 800; }
+    .inv-stock-page .is-kpi strong { display: block; margin-top: 0.15rem; font-size: 1.22rem; font-weight: 800; color: #0f172a; line-height: 1.15; }
+    .inv-stock-page .is-kpi-ico {
+        width: 2.4rem; height: 2.4rem; border-radius: 12px; flex: 0 0 auto;
+        display: grid; place-items: center;
+    }
+    .inv-stock-page .is-kpi-ico svg { width: 1.2rem; height: 1.2rem; }
+    .inv-stock-page .is-kpi.is-n { background: #eff6ff; border-color: #bfdbfe; }
+    .inv-stock-page .is-kpi.is-n small { color: #1d4ed8; }
+    .inv-stock-page .is-kpi.is-n .is-kpi-ico { background: #dbeafe; color: #2563eb; }
+    .inv-stock-page .is-kpi.is-w { background: #fff7ed; border-color: #fed7aa; }
+    .inv-stock-page .is-kpi.is-w small { color: #c2410c; }
+    .inv-stock-page .is-kpi.is-w .is-kpi-ico { background: #ffedd5; color: #ea580c; }
+    .inv-stock-page .is-kpi.is-v { background: #f0fdfa; border-color: #99f6e4; }
+    .inv-stock-page .is-kpi.is-v small { color: #0f766e; }
+    .inv-stock-page .is-kpi.is-v .is-kpi-ico { background: #ccfbf1; color: #0f766e; }
+    .inv-stock-page .is-kpi.is-b { background: #ecfdf5; border-color: #a7f3d0; }
+    .inv-stock-page .is-kpi.is-b small { color: #047857; }
+    .inv-stock-page .is-kpi.is-b .is-kpi-ico { background: #d1fae5; color: #059669; }
+    .inv-stock-page .is-kpi.is-s { background: #f5f3ff; border-color: #ddd6fe; }
+    .inv-stock-page .is-kpi.is-s small { color: #6d28d9; }
+    .inv-stock-page .is-kpi.is-s .is-kpi-ico { background: #ede9fe; color: #7c3aed; }
+    .inv-stock-page .is-table-wrap {
+        width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        border-radius: 14px; border: 1px solid #d1fae5; background: #fff;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+    }
+    .inv-stock-page .is-table { width: 100%; min-width: 860px; border-collapse: collapse; margin: 0; }
+    .inv-stock-page .is-table th {
+        background: #0f766e; color: #fff; font-weight: 800; font-size: 0.78rem;
+        text-align: left; padding: 0.62rem 0.7rem; white-space: nowrap;
+    }
+    .inv-stock-page .is-table td {
+        padding: 0.58rem 0.7rem; border-bottom: 1px solid #eef2f6; color: #334155; vertical-align: middle;
+    }
+    .inv-stock-page .is-table tbody tr:nth-child(even) td { background: #f8fafc; }
+    .inv-stock-page .is-table tbody tr:hover td { background: #f1f5f9; }
+    .inv-stock-page .is-table .empty-row { text-align: center; color: #94a3b8; padding: 1.6rem 0.6rem; }
+    .inv-stock-page .is-table tfoot td {
+        background: #ecfdf5; color: #134e4a; font-weight: 800; border-bottom: 0;
+    }
+    .inv-stock-page .is-num { text-align: right !important; white-space: nowrap; font-weight: 700; }
+    .inv-stock-page .is-name { font-weight: 800; color: #0f172a; }
+    .inv-stock-page .is-sub { display: block; color: #64748b; font-size: 0.75rem; font-weight: 650; }
+    .inv-stock-page .is-low td { background: #fff7ed !important; }
+    .inv-stock-page .is-st {
+        display: inline-block; padding: 0.16rem 0.65rem; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 800;
+    }
+    .inv-stock-page .is-st.is-ok { background: #dcfce7; color: #166534; }
+    .inv-stock-page .is-st.is-low { background: #ffedd5; color: #c2410c; }
+    .inv-stock-page .is-qty { font-weight: 800; color: #0f766e; }
+    @@media print {
+        .inv-stock-page .is-bar, .inv-stock-page .no-print { display: none !important; }
+        .inv-stock-page .is-table-wrap { border: 0; box-shadow: none; overflow: visible; }
+        .inv-stock-page .is-table { min-width: 0; }
+    }
+    @@media (max-width: 720px) {
+        .inv-stock-page .is-btn, .inv-stock-page .is-print { width: 100%; justify-content: center; }
+    }
+</style>
+
+<div class="card sa-page si-info-page acc-page rpt-page inv-page inv-stock-page">
+    <header class="sa-head is-hero no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("inv.kicker")</p>
+            <h1>@Locale.T("inv.stockReport")</h1>
+            <p class="sa-lead">@Locale.T("inv.stockHint")</p>
+        </div>
+    </header>
+
+    <div class="is-bar no-print">
+        <label class="is-field">
+            <span>@Locale.T("inv.category")</span>
+            <span class="is-box">
+                <select @bind="categoryId" disabled="@busy">
+                    <option value="0">@Locale.T("inv.allCategories")</option>
+                    @foreach (var cat in categories)
+                    {
+                        <option value="@cat.ItemCategoryID">@cat.Name</option>
+                    }
+                </select>
+            </span>
+        </label>
+        <button type="button" class="is-btn" disabled="@busy" @onclick="LoadAsync">@Locale.T("inv.load")</button>
+        <label class="is-field is-search">
+            <span>@Locale.T("inv.searchStock")</span>
+            <span class="is-box has-ico">
+                <input type="search" placeholder="@Locale.T("inv.searchStock")" @bind="search" @bind:event="oninput" />
+                <i aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></i>
+            </span>
+        </label>
+        <button type="button" class="is-print" disabled="@busy" @onclick="PrintAsync">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3m-3 11H8v-5h8zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1m-1-9H6v4h12z"/></svg>
+            @Locale.T("si.print")
+        </button>
+    </div>
+
+    <div class="is-kpis">
+        <div class="is-kpi is-n">
+            <div>
+                <small>@Locale.T("inv.kpiItems")</small>
+                <strong>@VisibleRows.Count</strong>
+            </div>
+            <span class="is-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+            </span>
+        </div>
+        <div class="is-kpi is-w">
+            <div>
+                <small>@Locale.T("inv.kpiLow")</small>
+                <strong>@VisibleLow</strong>
+            </div>
+            <span class="is-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M1 21h22L12 2 1 21m12-3h-2v-2h2zm0-4h-2v-4h2z"/></svg>
+            </span>
+        </div>
+        <div class="is-kpi is-v">
+            <div>
+                <small>@Locale.T("inv.kpiValue")</small>
+                <strong>৳ @VisibleValue.ToString("N2")</strong>
+            </div>
+            <span class="is-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1.81.45 1.61 1.67 1.61 1.16 0 1.6-.64 1.6-1.31 0-.86-.67-1.13-2.11-1.61-2.03-.67-3.47-1.54-3.47-3.55 0-1.66 1.29-2.95 3.2-3.3V5h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-1.74-1.87-1.01 0-1.5.52-1.5 1.21 0 .74.56 1.04 2.08 1.56 2.12.7 3.51 1.5 3.51 3.63 0 1.74-1.22 2.96-3.24 3.22"/></svg>
+            </span>
+        </div>
+        <div class="is-kpi is-b">
+            <div>
+                <small>@Locale.T("inv.kpiPurchase")</small>
+                <strong>৳ @VisiblePurchase.ToString("N2")</strong>
+            </div>
+            <span class="is-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2M7.2 14h9.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 21.1 5H5.21L4.27 2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12L7.2 14z"/></svg>
+            </span>
+        </div>
+        <div class="is-kpi is-s">
+            <div>
+                <small>@Locale.T("inv.kpiSale")</small>
+                <strong>৳ @VisibleSale.ToString("N2")</strong>
+            </div>
+            <span class="is-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h2v-2H3zm0 4h2v-2H3zm0-8h2V7H3zm4 4h14v-2H7zm0 4h14v-2H7zM7 7v2h14V7z"/></svg>
+            </span>
+        </div>
+    </div>
+
+    <div class="is-table-wrap">
+        <table class="is-table">
+            <thead>
+                <tr>
+                    <th>@Locale.T("inv.itemName")</th>
+                    <th>@Locale.T("inv.category")</th>
+                    <th>@Locale.T("inv.unit")</th>
+                    <th class="is-num">@Locale.T("inv.purchased")</th>
+                    <th class="is-num">@Locale.T("inv.sold")</th>
+                    <th class="is-num">@Locale.T("inv.stock")</th>
+                    <th class="is-num">@Locale.T("inv.minStock")</th>
+                    <th class="is-num">@Locale.T("inv.avgCost")</th>
+                    <th class="is-num">@Locale.T("inv.value")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (VisibleRows.Count == 0 && !busy)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("inv.empty")</td></tr>
+            }
+            @foreach (var row in VisibleRows)
+            {
+                <tr class="@(row.LowStock ? "is-low" : null)">
+                    <td>
+                        <span class="is-name">@row.Name</span>
+                        <span class="is-st @(row.LowStock ? "is-low" : "is-ok")">
+                            @(row.LowStock ? Locale.T("inv.kpiLow") : Locale.T("inv.stock"))
+                        </span>
+                    </td>
+                    <td>@row.Category</td>
+                    <td>@row.Unit</td>
+                    <td class="is-num">@row.Purchased.ToString("0.##")</td>
+                    <td class="is-num">@row.Sold.ToString("0.##")</td>
+                    <td class="is-num"><span class="is-qty">@row.Stock.ToString("0.##")</span></td>
+                    <td class="is-num">@row.MinStock.ToString("0.##")</td>
+                    <td class="is-num">@row.AvgCost.ToString("0.##")</td>
+                    <td class="is-num">@row.StockValue.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+            @if (VisibleRows.Count > 0)
+            {
+                <tfoot>
+                    <tr>
+                        <td colspan="3">@VisibleRows.Count</td>
+                        <td class="is-num">@VisibleRows.Sum(x => x.Purchased).ToString("0.##")</td>
+                        <td class="is-num">@VisibleRows.Sum(x => x.Sold).ToString("0.##")</td>
+                        <td class="is-num">@VisibleRows.Sum(x => x.Stock).ToString("0.##")</td>
+                        <td></td>
+                        <td></td>
+                        <td class="is-num">৳ @VisibleValue.ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="true" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<InventoryCategoryDto> categories = [];
+    private InventoryStockDto? data;
+    private int categoryId;
+    private string search = "", busyTitle = "", popupText = "";
+    private bool busy;
+
+    private IReadOnlyList<InventoryStockRowDto> VisibleRows
+    {
+        get
+        {
+            var rows = data?.Rows ?? [];
+            var q = search.Trim();
+            if (q.Length == 0) return rows;
+            return rows.Where(x => Matches(x, q)).ToList();
+        }
+    }
+
+    private int VisibleLow => VisibleRows.Count(x => x.LowStock);
+    private decimal VisibleValue => VisibleRows.Sum(x => x.StockValue);
+    private decimal VisiblePurchase =>
+        SearchEmpty ? data?.PurchaseTotal ?? 0 : VisibleRows.Sum(x => Math.Round(x.Purchased * x.AvgCost, 2));
+    private decimal VisibleSale =>
+        SearchEmpty ? data?.SaleTotal ?? 0 : VisibleRows.Sum(x => Math.Round(x.Sold * x.SalePrice, 2));
+    private bool SearchEmpty => string.IsNullOrWhiteSpace(search);
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private static bool Matches(InventoryStockRowDto row, string q)
+    {
+        return Contains(row.Name, q)
+            || Contains(row.Category, q)
+            || Contains(row.Unit, q)
+            || Contains(row.Purchased.ToString("0.##"), q)
+            || Contains(row.Sold.ToString("0.##"), q)
+            || Contains(row.Stock.ToString("0.##"), q)
+            || Contains(row.MinStock.ToString("0.##"), q)
+            || Contains(row.AvgCost.ToString("0.##"), q)
+            || Contains(row.StockValue.ToString("N2"), q)
+            || Contains(row.StockValue.ToString("0.##"), q)
+            || Contains(row.SalePrice.ToString("0.##"), q);
+    }
+
+    private static bool Contains(string? value, string q) =>
+        !string.IsNullOrWhiteSpace(value) && value.Contains(q, StringComparison.OrdinalIgnoreCase);
+
+    private async Task LoadAsync()
+    {
+        busyTitle = Locale.T("acc.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                return;
+            }
+            if (categories.Count == 0)
+                categories.AddRange(await Api.GetInventoryCategoriesAsync(Session.AccessToken!));
+            data = await Api.GetInventoryStockAsync(Session.AccessToken!, categoryId);
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+}

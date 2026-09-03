@@ -4,6 +4,8 @@
 @using Sikkhaloy.LocalData
 @inject IDbContextFactory<LocalDbContext> DbFactory
 @inject SyncLoopService SyncLoop
+@inject SessionPersist Persist
+@implements IDisposable
 
 @if (!string.IsNullOrWhiteSpace(error))
 {
@@ -32,11 +34,23 @@ else
             await using var db = await DbFactory.CreateDbContextAsync();
             await LocalDbContext.EnsureSchemaAsync(db);
             SyncLoop.Start();
-            ready = true;
         }
         catch (Exception ex)
         {
             error = ex.Message;
         }
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || ready || !string.IsNullOrWhiteSpace(error))
+            return;
+
+        await Persist.TryRestoreAsync();
+        Persist.StartWatching();
+        ready = true;
+        StateHasChanged();
+    }
+
+    public void Dispose() => Persist.Dispose();
 }

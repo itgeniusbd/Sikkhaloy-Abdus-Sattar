@@ -6,7 +6,16 @@
 @inject NavigationManager Nav
 
 <div class="card structure-page emp-page acc-page rpt-page ie-rpt sess-rpt pd-rpt">
-    <h1>@Locale.T("rpt.paidDueTitle") @if (!string.IsNullOrWhiteSpace(ClassLine)) { <small>@ClassLine</small> }</h1>
+    <header class="sess-report-head">
+        <div class="sess-report-title">
+            <span class="sess-title-line" aria-hidden="true"></span>
+            <h1>
+                @Locale.T("rpt.paidDueTitle")
+                @if (!string.IsNullOrWhiteSpace(ClassLine)) { <small>@ClassLine</small> }
+            </h1>
+            <span class="sess-title-line" aria-hidden="true"></span>
+        </div>
+    </header>
     <div class="rpt-filters no-print">
         <div class="rpt-radios">
             <label class="rpt-check"><input type="radio" name="pd" checked="@(status == "%")" @onchange="SetAll" /> @Locale.T("rpt.all")</label>
@@ -49,7 +58,7 @@
         <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
         <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
     </div>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
         <div class="sess-tiles six pd-boxes">
@@ -72,7 +81,7 @@
                     <span>[@row.ID] @row.Name. <b>@Locale.T("rpt.rollNo")</b> @row.RollNo. <b>@Locale.T("rpt.class"): </b>@row.ClassName</span>
                     <span><b>@Locale.T("rpt.paid"):</b> @Tk(row.Paid) @Locale.T("acc.tk"). <b>@Locale.T("rpt.due"):</b> @Tk(row.Unpaid) @Locale.T("acc.tk")</span>
                 </div>
-                <table class="mgrid">
+                <table class="mgrid sess-table">
                     <thead>
                         <tr>
                             <th>@Locale.T("acc.role")</th>
@@ -103,6 +112,14 @@
                 </table>
             </div>
         }
+        @if (data.TotalPages > 1)
+        {
+            <div class="pager no-print">
+                <button type="button" disabled="@(currentPage <= 1 || busy)" @onclick="PrevPageAsync">@Locale.T("students.prev")</button>
+                <span>@Locale.T("students.page", currentPage, data.TotalPages)</span>
+                <button type="button" disabled="@(currentPage >= data.TotalPages || busy)" @onclick="NextPageAsync">@Locale.T("students.next")</button>
+            </div>
+        }
     }
 </div>
 
@@ -123,6 +140,8 @@
     private List<NameAmountDto> sections = [], roles = [], payFors = [];
     private string classId = "%", sectionId = "%", roleId = "%", payFor = "%", status = "Due", fromText = "", toText = "", error = "";
     private bool busy;
+    private int currentPage = 1;
+    private const int PageSize = 25;
 
     private string ClassLine
     {
@@ -156,6 +175,7 @@
         sectionId = "%";
         roleId = "%";
         payFor = "%";
+        currentPage = 1;
         _ = InvokeAsync(ReloadForSessionAsync);
     }
 
@@ -191,6 +211,7 @@
 
     private async Task LoadAsync()
     {
+        currentPage = 1;
         busy = true;
         error = "";
         await PaintAsync();
@@ -199,8 +220,36 @@
         finally { busy = false; }
     }
 
-    private async Task LoadCoreAsync() =>
-        data = await Api.GetSessionPaidDueAsync(Session.AccessToken, status, classId, sectionId, roleId, payFor, Parse(fromText), Parse(toText));
+    private async Task LoadCoreAsync()
+    {
+        data = await Api.GetSessionPaidDueAsync(Session.AccessToken, status, classId, sectionId, roleId, payFor, Parse(fromText), Parse(toText), currentPage, PageSize);
+        if (data is not null)
+            currentPage = data.Page;
+    }
+
+    private async Task PrevPageAsync()
+    {
+        if (currentPage <= 1 || busy) return;
+        currentPage--;
+        await GoPageAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        if (data is null || currentPage >= data.TotalPages || busy) return;
+        currentPage++;
+        await GoPageAsync();
+    }
+
+    private async Task GoPageAsync()
+    {
+        busy = true;
+        error = "";
+        await PaintAsync();
+        try { await LoadCoreAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
 
     private void SetAll() => status = "%";
     private void SetPaid() => status = "Paid";

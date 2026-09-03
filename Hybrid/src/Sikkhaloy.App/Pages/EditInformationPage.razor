@@ -6,141 +6,268 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page">
-    <h1>@Locale.T("sm.editInfo")</h1>
-    <p class="muted">@Locale.T("sm.crumb")</p>
-    <p class="muted">@Locale.T("sm.editHint")</p>
-    <p class="muted">@Locale.T("sm.photoHint")</p>
+<div class="card sa-page si-info-page si-id-page sm-cc-page sm-edit-page students-card">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("sm.crumb")</p>
+            <h1>@Locale.T("sm.editInfo")</h1>
+            <p class="sa-lead">@Locale.T("sm.editHint") @Locale.T("sm.photoHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row">
-        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allGroup")</option>
-                @foreach (var item in groups)
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item.ClassID">@item.Name</option>
                 }
             </select>
+        </section>
+        @if (groups.Count > 0)
+        {
+            <section class="sal-box is-group">
+                <span class="sal-box-h">@Locale.T("si.group")</span>
+                <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (sections.Count > 0)
         {
-            <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allSection")</option>
-                @foreach (var item in sections)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-section">
+                <span class="sal-box-h">@Locale.T("si.section")</span>
+                <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (shifts.Count > 0)
         {
-            <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allShift")</option>
-                @foreach (var item in shifts)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-shift">
+                <span class="sal-box-h">@Locale.T("si.shift")</span>
+                <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
-        <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindByIdAsync">@Locale.T("si.find")</button>
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+        <section class="sal-box is-sid">
+            <span class="sal-box-h">@Locale.T("si.idBar")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("si.enterId")"
+                   @bind="findId" @bind:event="oninput" disabled="@busy" @onkeydown="OnIdKey" />
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="FindByIdAsync">@Locale.T("si.find")</button>
+            <button type="button" class="sal-gen" disabled="@(busy || rows.Count == 0)" @onclick="SaveAsync">@Locale.T("si.update")</button>
+        </div>
+        <span class="el-count">@Locale.T("si.stuCount", rows.Count)</span>
     </div>
 
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("sm.photo")</th>
-                <th>@Locale.T("si.id")</th>
-                <th>@Locale.T("si.name")</th>
-                <th>@Locale.T("si.father")</th>
-                <th>@Locale.T("si.phone")</th>
-                <th>@Locale.T("si.roll")</th>
-                <th>@Locale.T("sm.seat")</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0 && !busy)
-        {
-            <tr><td colspan="8" class="empty-row">@Locale.T("si.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in rows)
-            {
-                <tr @key="row.StudentID">
-                    <td>
-                        <label class="sm-photo">
-                            @if (!string.IsNullOrWhiteSpace(row.PhotoDataUrl))
-                            {
-                                <img src="@row.PhotoDataUrl" alt="" />
-                            }
-                            else
-                            {
-                                <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
-                            }
-                            <span class="sm-photo-edit" title="@Locale.T("sm.photo")">✎</span>
-                            <InputFile class="sm-photo-file"
-                                       accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                       OnChange="e => OnPhotoAsync(row, e)"
-                                       disabled="@(busy || photoBusy.Contains(row.StudentID))" />
-                            @{
-                                var kb = PhotoKb(row.PhotoDataUrl);
-                            }
-                            @if (kb > 0)
-                            {
-                                <span class="sm-photo-kb">@kb KB</span>
-                            }
-                        </label>
-                    </td>
-                    <td>@row.ID</td>
-                    <td>@row.StudentsName</td>
-                    <td>@row.FathersName</td>
-                    <td>@row.Phone</td>
-                    <td><input class="sm-cell" @bind="row.RollNo" disabled="@busy" /></td>
-                    <td><input class="sm-cell" @bind="row.SeatNo" disabled="@busy" /></td>
-                    <td><button type="button" class="link-btn" disabled="@busy" @onclick="() => OpenEdit(row)">@Locale.T("sm.updateInfo")</button></td>
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("sm.photo")</th>
+                    <th>@Locale.T("sm.guardianPhoto")</th>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("si.father")</th>
+                    <th>@Locale.T("si.phone")</th>
+                    <th>@Locale.T("si.roll")</th>
+                    <th>@Locale.T("sm.seat")</th>
+                    <th></th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("si.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr @key="row.StudentID" class="@(IsDirty(row) ? "is-on" : null)">
+                        <td>
+                            <label class="sm-photo">
+                                @if (!string.IsNullOrWhiteSpace(row.PhotoDataUrl))
+                                {
+                                    <img src="@row.PhotoDataUrl" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
+                                }
+                                <span class="sm-photo-edit" title="@Locale.T("sm.photo")">✎</span>
+                                <InputFile class="sm-photo-file"
+                                           accept="image/*,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                           OnChange="e => BeginPhotoAsync(row, false, e)"
+                                           disabled="@busy" />
+                                @{
+                                    var kb = PhotoKb(row.PhotoDataUrl);
+                                }
+                                @if (kb > 0)
+                                {
+                                    <span class="sm-photo-kb">@kb KB</span>
+                                }
+                            </label>
+                        </td>
+                        <td>
+                            <label class="sm-photo">
+                                @if (!string.IsNullOrWhiteSpace(row.GuardianPhotoDataUrl))
+                                {
+                                    <img src="@row.GuardianPhotoDataUrl" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="sm-photo-empty">@Locale.T("si.noPhoto")</span>
+                                }
+                                <span class="sm-photo-edit" title="@Locale.T("sm.guardianPhoto")">✎</span>
+                                <InputFile class="sm-photo-file"
+                                           accept="image/*,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                           OnChange="e => BeginPhotoAsync(row, true, e)"
+                                           disabled="@busy" />
+                                @{
+                                    var gkb = PhotoKb(row.GuardianPhotoDataUrl);
+                                }
+                                @if (gkb > 0)
+                                {
+                                    <span class="sm-photo-kb">@gkb KB</span>
+                                }
+                            </label>
+                        </td>
+                        <td>@row.ID</td>
+                        <td class="si-name">@row.StudentsName</td>
+                        <td>@row.FathersName</td>
+                        <td>@row.Phone</td>
+                        <td><input class="sm-cell" @bind="row.RollNo" @bind:event="oninput" disabled="@busy" /></td>
+                        <td><input class="sm-cell" @bind="row.SeatNo" @bind:event="oninput" disabled="@busy" /></td>
+                        <td>
+                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => OpenEdit(row)">
+                                @Locale.T("sm.updateInfo")
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
 
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (photoRow is not null)
+{
+    <div class="acc-result-back">
+        <div class="acc-result is-ok sm-photo-modal @(photoCropping ? "is-crop" : null)" @onclick:stopPropagation="true">
+            <h3>@(photoGuardian ? Locale.T("sm.guardianPhoto") : Locale.T("sm.photo"))</h3>
+            <p>@photoRow.StudentsName · ID @photoRow.ID</p>
+            @if (photoCropping)
+            {
+                <p class="sm-photo-swatch-hint">@Locale.T("sm.photoCropHint")</p>
+                <div @ref="cropHost" class="sm-crop-host"></div>
+                <div class="sm-crop-tools">
+                    <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="@(() => ZoomCropAsync(-1))">−</button>
+                    <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="@(() => ZoomCropAsync(1))">+</button>
+                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="ApplyCropAsync">@Locale.T("sm.photoCropApply")</button>
+                    <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="SkipCropAsync">@Locale.T("sm.photoCropSkip")</button>
+                </div>
+                <div class="sm-photo-actions">
+                    <button type="button" class="acc-btn" disabled="@busy" @onclick="ClosePhotoEdit">@Locale.T("cls.cancel")</button>
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrWhiteSpace(photoPreview))
+                {
+                    <img class="sm-photo-preview" src="@photoPreview" alt="" />
+                }
+                <div class="sm-bg-row">
+                    <span>@Locale.T("sm.photoBg")</span>
+                    <input type="color" value="@photoBg" disabled="@busy"
+                           @oninput="OnPhotoBgChanged" @onchange="OnPhotoBgChanged"
+                           title="@Locale.T("sm.photoSwatchHint")" />
+                    @for (var i = 0; i < photoSwatches.Count; i++)
+                    {
+                        var index = i;
+                        var color = photoSwatches[index];
+                        <button type="button" class="sm-photo-swatch @(photoSwatchIndex == index ? "is-on" : null)"
+                                style="background:@color" disabled="@busy"
+                                title="@(index == 0 ? Locale.T("sm.photoWhite") : Locale.T("sm.photoSwatchHint"))"
+                                @onclick="() => SetPhotoSwatchAsync(index)"></button>
+                    }
+                </div>
+                <p class="sm-photo-swatch-hint">@Locale.T("sm.photoSwatchHint")</p>
+                <label class="choice-inline">
+                    <input type="checkbox" checked="@photoReplaceBg" disabled="@busy"
+                           @onchange="OnReplaceBgChanged" />
+                    <span>@Locale.T("sm.photoReplaceBg")</span>
+                </label>
+                <div class="sm-photo-actions">
+                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SavePhotoAsync">@Locale.T("si.update")</button>
+                    <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="StartCropAgainAsync">@Locale.T("sm.photoCropAgain")</button>
+                    <button type="button" class="acc-btn" disabled="@busy" @onclick="ClosePhotoEdit">@Locale.T("cls.cancel")</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
 @code {
+    private static readonly string[] DefaultSwatches = ["#ffffff", "#0c26bb", "#e0f2fe", "#f1f5f9", "#dcfce7", "#fef3c7", "#ffe4e6"];
+    private const string DefaultPhotoBg = "#ffffff";
+    private readonly List<string> photoSwatches = [..DefaultSwatches];
     private readonly List<SchoolClassDto> classes = [];
     private readonly List<ClassPartDto> groups = [];
     private readonly List<ClassPartDto> sections = [];
     private readonly List<ClassPartDto> shifts = [];
     private readonly List<SmStudentRowDto> rows = [];
+    private readonly Dictionary<int, (string? Roll, string? Seat)> originals = [];
     private ClassStructureDto? structure;
+    private SmStudentRowDto? photoRow;
+    private ElementReference cropHost;
     private string classInput = "0";
     private string groupInput = "0";
     private string sectionInput = "0";
     private string shiftInput = "0";
     private string findId = "";
+    private string busyTitle = "";
+    private string popupText = "";
+    private string photoRaw = "";
+    private string photoOriginal = "";
+    private string photoPreview = "";
+    private string photoBg = DefaultPhotoBg;
+    private bool photoGuardian;
+    private bool photoReplaceBg = true;
+    private bool photoCropping;
+    private bool cropStarted;
+    private int photoSwatchIndex;
     private bool busy;
-    private readonly HashSet<int> photoBusy = [];
+    private bool popupError;
     private string? error;
-    private string? message;
 
     private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
     private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
@@ -149,11 +276,28 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        structure = await Api.GetClassStructureAsync(Session.AccessToken);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        await SetBusyAsync("si.loading");
+        try
+        {
+            if (!await EnsureOnlineAsync())
+                return;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+            await LoadPhotoSwatchesAsync();
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private async Task OnClassChanged()
@@ -177,6 +321,12 @@
         shifts.AddRange(parts.Shifts);
     }
 
+    private async Task OnIdKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await FindByIdAsync();
+    }
+
     private async Task FindByIdAsync()
     {
         classInput = "0";
@@ -189,29 +339,33 @@
 
     private async Task LoadAsync()
     {
-        error = message = null;
-        if (!await EnsureOnlineAsync())
-            return;
+        error = null;
         if (string.IsNullOrWhiteSpace(findId) && ClassId <= 0)
         {
             rows.Clear();
+            originals.Clear();
             return;
         }
 
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var data = await Api.GetSmStudentsAsync(Session.AccessToken, ClassId, GroupId, SectionId, ShiftId, findId, null);
             rows.Clear();
             rows.AddRange(data);
+            originals.Clear();
+            foreach (var row in rows)
+                originals[row.StudentClassID] = (row.RollNo, row.SeatNo);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -219,9 +373,15 @@
         }
     }
 
-    private async Task OnPhotoAsync(SmStudentRowDto row, InputFileChangeEventArgs e)
+    private bool IsDirty(SmStudentRowDto row) =>
+        originals.TryGetValue(row.StudentClassID, out var o)
+        && (!string.Equals(o.Roll, row.RollNo, StringComparison.Ordinal)
+            || !string.Equals(o.Seat, row.SeatNo, StringComparison.Ordinal));
+
+    private async Task BeginPhotoAsync(SmStudentRowDto row, bool guardian, InputFileChangeEventArgs e)
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         var file = e.File;
         if (file is null)
             return;
@@ -232,79 +392,305 @@
                  || name.EndsWith(".jpg") || name.EndsWith(".jpeg") || name.EndsWith(".png") || name.EndsWith(".webp");
         if (!ok)
         {
-            error = Locale.T("sm.badPhoto");
+            Show(Locale.T("sm.badPhoto"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
 
-        photoBusy.Add(row.StudentID);
         try
         {
             IBrowserFile work = file;
             try
             {
-                work = await file.RequestImageFileAsync("image/jpeg", 800, 800);
+                work = await file.RequestImageFileAsync("image/png", 1600, 1600);
             }
             catch (NotSupportedException)
             {
-                // Browser resize is optional; JS compression still runs below.
+                try
+                {
+                    work = await file.RequestImageFileAsync("image/jpeg", 1600, 1600);
+                }
+                catch (NotSupportedException)
+                {
+                }
             }
 
-            await using var stream = work.OpenReadStream(2_000_000);
+            await using var stream = work.OpenReadStream(4_000_000);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
             var raw = ms.ToArray();
             if (raw.Length == 0)
             {
-                error = Locale.T("sm.needPhoto");
+                Show(Locale.T("sm.needPhoto"), true);
                 return;
             }
 
-            var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
-            var dataUrl = $"data:{mime};base64,{Convert.ToBase64String(raw)}";
-            var compressed = await JS.InvokeAsync<string>("sikkhaloyCompressImage", dataUrl, 250, 0.7, 40_960);
-            if (string.IsNullOrWhiteSpace(compressed) || !compressed.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
-            {
-                error = Locale.T("sm.badPhoto");
-                return;
-            }
-
-            var kb = PhotoKb(compressed);
-            var result = await Api.SaveStudentPhotoAsync(Session.AccessToken, new SaveStudentPhotoRequest
-            {
-                StudentID = row.StudentID,
-                ImageBase64 = compressed
-            });
-            if (!result.Succeeded)
-            {
-                error = Translate(result.Error);
-                return;
-            }
-
-            row.PhotoDataUrl = compressed;
-            if (result.Count > 0)
-                row.StudentImageID = result.Count;
-            if (Session.Current is not null)
-                Sync.SaveStudentPhoto(Session.Current.SchoolID, row.StudentID, compressed);
-            message = Locale.T("sm.okPhoto", kb);
+            var mime = string.IsNullOrWhiteSpace(work.ContentType) ? "image/png" : work.ContentType;
+            photoOriginal = $"data:{mime};base64,{Convert.ToBase64String(raw)}";
+            photoRaw = photoOriginal;
+            photoRow = row;
+            photoGuardian = guardian;
+            photoBg = DefaultPhotoBg;
+            photoSwatchIndex = 0;
+            photoReplaceBg = true;
+            photoPreview = "";
+            photoCropping = true;
+            cropStarted = false;
+            await LoadPhotoSwatchesAsync();
         }
         catch (JSException)
         {
-            error = Locale.T("sm.badPhoto");
-        }
-        catch (HttpRequestException)
-        {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("sm.badPhoto"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
+        }
+    }
+
+    private async Task OnPhotoBgChanged(ChangeEventArgs e)
+    {
+        photoBg = NormalizeHex(e.Value?.ToString());
+        if (photoSwatchIndex > 0 && photoSwatchIndex < photoSwatches.Count)
+        {
+            photoSwatches[photoSwatchIndex] = photoBg;
+            await SavePhotoSwatchesAsync();
+        }
+        await RefreshPhotoPreviewAsync();
+    }
+
+    private async Task OnReplaceBgChanged(ChangeEventArgs e)
+    {
+        photoReplaceBg = e.Value is true or "true";
+        await RefreshPhotoPreviewAsync();
+    }
+
+    private async Task SetPhotoSwatchAsync(int index)
+    {
+        if (index < 0 || index >= photoSwatches.Count)
+            return;
+        photoSwatchIndex = index;
+        photoBg = NormalizeHex(photoSwatches[index]);
+        await RefreshPhotoPreviewAsync();
+    }
+
+    private string PhotoSwatchKey =>
+        (Session.Current?.RegistrationID ?? 0).ToString();
+
+    private async Task LoadPhotoSwatchesAsync()
+    {
+        photoSwatches.Clear();
+        photoSwatches.AddRange(DefaultSwatches);
+        try
+        {
+            var saved = await JS.InvokeAsync<string[]?>("sikkhaloyPhotoSwatchesLoad", PhotoSwatchKey);
+            if (saved is null || saved.Length == 0)
+                return;
+            for (var i = 0; i < photoSwatches.Count && i < saved.Length; i++)
+            {
+                var hex = NormalizeHex(saved[i]);
+                if (i == 0)
+                    photoSwatches[i] = DefaultPhotoBg;
+                else
+                    photoSwatches[i] = hex;
+            }
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task SavePhotoSwatchesAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyPhotoSwatchesSave", PhotoSwatchKey, photoSwatches.ToArray());
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task RefreshPhotoPreviewAsync()
+    {
+        if (string.IsNullOrWhiteSpace(photoRaw))
+            return;
+        try
+        {
+            photoPreview = await JS.InvokeAsync<string>("sikkhaloyPreparePhoto", photoRaw, new
+            {
+                maxWidth = 250,
+                quality = 0.7,
+                maxBytes = 40_960,
+                bgColor = photoBg,
+                replaceBg = photoReplaceBg
+            });
+        }
+        catch (JSException)
+        {
+            photoPreview = photoRaw;
+        }
+    }
+
+    private async Task SavePhotoAsync()
+    {
+        if (photoRow is null || string.IsNullOrWhiteSpace(photoPreview))
+            return;
+        error = null;
+        popupText = "";
+        await SetBusyAsync("si.saving");
+        try
+        {
+            if (!await EnsureOnlineAsync())
+                return;
+            if (!photoPreview.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+            {
+                Show(Locale.T("sm.badPhoto"), true);
+                return;
+            }
+
+            var kb = PhotoKb(photoPreview);
+            var result = await Api.SaveStudentPhotoAsync(Session.AccessToken, new SaveStudentPhotoRequest
+            {
+                StudentID = photoRow.StudentID,
+                ImageBase64 = photoPreview,
+                IsGuardian = photoGuardian
+            });
+            if (!result.Succeeded)
+            {
+                Show(Translate(result.Error), true);
+                return;
+            }
+
+            if (photoGuardian)
+                photoRow.GuardianPhotoDataUrl = photoPreview;
+            else
+                photoRow.PhotoDataUrl = photoPreview;
+            if (result.Count > 0)
+                photoRow.StudentImageID = result.Count;
+            if (Session.Current is not null)
+            {
+                if (photoGuardian)
+                    Sync.SaveGuardianPhoto(Session.Current.SchoolID, photoRow.StudentID, photoPreview);
+                else
+                    Sync.SaveStudentPhoto(Session.Current.SchoolID, photoRow.StudentID, photoPreview);
+            }
+
+            var ok = photoGuardian ? Locale.T("sm.okGuardianPhoto", kb) : Locale.T("sm.okPhoto", kb);
+            ClosePhotoEdit();
+            Show(ok, false);
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
         }
         finally
         {
-            photoBusy.Remove(row.StudentID);
+            busy = false;
         }
+    }
+
+    private void ClosePhotoEdit()
+    {
+        _ = JS.InvokeVoidAsync("sikkhaloyCropDestroy");
+        photoRow = null;
+        photoRaw = "";
+        photoOriginal = "";
+        photoPreview = "";
+        photoGuardian = false;
+        photoCropping = false;
+        cropStarted = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!photoCropping || cropStarted || string.IsNullOrWhiteSpace(photoOriginal))
+            return;
+        cropStarted = true;
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyCropStart", cropHost, photoOriginal);
+        }
+        catch (JSException)
+        {
+            cropStarted = false;
+        }
+    }
+
+    private Task ZoomCropAsync(int delta) =>
+        JS.InvokeVoidAsync("sikkhaloyCropZoom", delta).AsTask();
+
+    private async Task ApplyCropAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("sikkhaloyCropApply");
+            var cropped = token == "ok" ? await ReadCropDataAsync() : token;
+            if (!string.IsNullOrWhiteSpace(cropped))
+                photoRaw = cropped;
+        }
+        catch (Exception)
+        {
+            photoRaw = photoOriginal;
+        }
+        await FinishCropAsync();
+    }
+
+    private async Task<string> ReadCropDataAsync()
+    {
+        var length = await JS.InvokeAsync<int>("sikkhaloyCropLength");
+        if (length <= 0)
+            return "";
+        var parts = new System.Text.StringBuilder(length);
+        const int chunk = 16_000;
+        for (var i = 0; i < length; i += chunk)
+            parts.Append(await JS.InvokeAsync<string>("sikkhaloyCropRead", i, chunk));
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyCropClear");
+        }
+        catch (JSException)
+        {
+        }
+        return parts.ToString();
+    }
+
+    private Task SkipCropAsync()
+    {
+        photoRaw = photoOriginal;
+        return FinishCropAsync();
+    }
+
+    private async Task StartCropAgainAsync()
+    {
+        photoCropping = true;
+        cropStarted = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task FinishCropAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyCropDestroy");
+        }
+        catch (JSException)
+        {
+        }
+        photoCropping = false;
+        cropStarted = false;
+        await RefreshPhotoPreviewAsync();
+    }
+
+    private static string NormalizeHex(string? value)
+    {
+        var hex = (value ?? DefaultPhotoBg).Trim();
+        if (!hex.StartsWith('#'))
+            hex = "#" + hex;
+        return hex.Length is 4 or 7 ? hex.ToLowerInvariant() : DefaultPhotoBg;
     }
 
     private static int PhotoKb(string? dataUrl)
@@ -318,18 +704,19 @@
 
     private async Task SaveAsync()
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         if (rows.Count == 0)
         {
-            error = Locale.T("sm.needStudents");
+            Show(Locale.T("sm.needStudents"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
 
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.SaveSmRollsAsync(Session.AccessToken, new SaveRollSeatRequest
             {
                 Items = rows.Select(x => new SaveRollSeatItem
@@ -341,19 +728,22 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
-            message = Locale.T("sm.okRolls", result.Count);
+            originals.Clear();
+            foreach (var row in rows)
+                originals[row.StudentClassID] = (row.RollNo, row.SeatNo);
+            Show(Locale.T("sm.okRolls", result.Count), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -370,18 +760,26 @@
         var match = locals.FirstOrDefault(x => x.ServerId == row.StudentID);
         if (match is null)
         {
-            error = Locale.T("sm.needSync");
+            Show(Locale.T("sm.needSync"), true);
             return;
         }
 
         Nav.NavigateTo($"students/{match.LocalId}");
     }
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
@@ -389,4 +787,13 @@
 
     private string Translate(string? key) =>
         string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
 }

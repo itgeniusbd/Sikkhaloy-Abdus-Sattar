@@ -97,10 +97,11 @@ WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = 
         }
 
         await using (var cmd = new SqlCommand("""
-SELECT DISTINCT Exam_Name.ExamID, Exam_Name.ExamName
-FROM Exam_Result_of_Student INNER JOIN Exam_Name ON Exam_Result_of_Student.ExamID = Exam_Name.ExamID
-WHERE Exam_Result_of_Student.SchoolID = @SchoolID AND Exam_Result_of_Student.EducationYearID = @EducationYearID
-  AND Exam_Result_of_Student.ClassID = @ClassID
+SELECT Exam_Name.ExamID, Exam_Name.ExamName
+FROM Exam_Publish_Setting
+INNER JOIN Exam_Name ON Exam_Publish_Setting.ExamID = Exam_Name.ExamID
+WHERE Exam_Publish_Setting.SchoolID = @SchoolID AND Exam_Publish_Setting.EducationYearID = @EducationYearID
+  AND Exam_Publish_Setting.ClassID = @ClassID
 ORDER BY Exam_Name.ExamID
 """, con))
         {
@@ -141,10 +142,15 @@ WHERE Exam_Cumulative_FullMarks.CumulativeNameID = @CumulativeNameID AND Exam_Cu
         }
 
         await using (var cmd = new SqlCommand("""
-SELECT DISTINCT Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN
-FROM Exam_Result_of_Subject INNER JOIN Subject ON Exam_Result_of_Subject.SubjectID = Subject.SubjectID
-WHERE Exam_Result_of_Subject.SchoolID = @SchoolID AND Exam_Result_of_Subject.EducationYearID = @EducationYearID
-  AND Exam_Result_of_Subject.ClassID = @ClassID
+SELECT DISTINCT Subject.SubjectID, Subject.SubjectName, Subject.SN
+FROM Exam_Full_Marks
+INNER JOIN Subject ON Exam_Full_Marks.SubjectID = Subject.SubjectID
+INNER JOIN Exam_Publish_Setting ON Exam_Full_Marks.SchoolID = Exam_Publish_Setting.SchoolID
+  AND Exam_Full_Marks.EducationYearID = Exam_Publish_Setting.EducationYearID
+  AND Exam_Full_Marks.ClassID = Exam_Publish_Setting.ClassID
+  AND Exam_Full_Marks.ExamID = Exam_Publish_Setting.ExamID
+WHERE Exam_Full_Marks.SchoolID = @SchoolID AND Exam_Full_Marks.EducationYearID = @EducationYearID
+  AND Exam_Full_Marks.ClassID = @ClassID
 ORDER BY Subject.SN
 """, con))
         {
@@ -219,11 +225,10 @@ ORDER BY Cumulative_SettingID DESC
 
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
-        await using var tx = (SqlTransaction)await con.BeginTransactionAsync(ct);
 
         try
         {
-            await ExecTxAsync(con, tx, """
+            await ExecSqlAsync(con, """
 DELETE FROM Exam_Cumulative_ExamList
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID AND CumulativeNameID = @CumulativeNameID
 DELETE FROM Exam_Cumulative_FullMarks
@@ -244,7 +249,7 @@ WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = 
             var gradeId = request.GradeNameID;
             if (gradeId <= 0)
             {
-                await using var gradeCmd = new SqlCommand("SELECT TOP 1 GradeNameID FROM Exam_Grade_Name WHERE SchoolID = @SchoolID", con, tx);
+                await using var gradeCmd = new SqlCommand("SELECT TOP 1 GradeNameID FROM Exam_Grade_Name WHERE SchoolID = @SchoolID", con);
                 AddSchool(gradeCmd, session);
                 gradeId = ToInt(await gradeCmd.ExecuteScalarAsync(ct));
             }
@@ -261,7 +266,7 @@ VALUES
      @GradeAsItIs, @OptionalPct, @PositionFormat, @HideSub, @HideSec, @HideClass, @FromDate, @ToDate, @ScheduleID,
      @GradeNameID, @GradeOnGpa);
 SELECT CAST(SCOPE_IDENTITY() AS int);
-""", con, tx))
+""", con))
             {
                 cmd.CommandTimeout = 0;
                 AddSession(cmd, session);
@@ -291,7 +296,7 @@ INSERT INTO Exam_Cumulative_ExamList
 SELECT @SchoolID, @RegistrationID, @CumulativeNameID, @EducationYearID, @ExamID, @ClassID, @ExamAdd_Percentage, @Exam_EnableFail, @Cumulative_SettingID,
        ISNULL((SELECT TOP 1 Publish_SettingID FROM Exam_Publish_Setting
                WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID AND ExamID = @ExamID), 0)
-""", con, tx);
+""", con);
                 cmd.CommandTimeout = 0;
                 AddSession(cmd, session);
                 cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
@@ -303,27 +308,38 @@ SELECT @SchoolID, @RegistrationID, @CumulativeNameID, @EducationYearID, @ExamID,
                 await cmd.ExecuteNonQueryAsync(ct);
             }
 
-            var subjects = request.Subjects.Count > 0 ? request.Subjects : (await GetCumulativePublishSettingAsync(session, request.ClassID, request.CumulativeNameID, ct)).Subjects;
-            foreach (var row in subjects)
-            {
-                var mark = request.SameCountable ? request.CountableMark : row.CountableMark;
-                if (mark < 1) continue;
-                await using var cmd = new SqlCommand("""
+            var subjects = request.Subjects;
+            await using (var cmd = new SqlCommand("""
 INSERT INTO Exam_Cumulative_FullMarks
     (CumulativeNameID, SchoolID, RegistrationID, SubjectID, ClassID, EducationYearID, FullMarks, Cumulative_SettingID)
-VALUES
-    (@CumulativeNameID, @SchoolID, @RegistrationID, @SubjectID, @ClassID, @EducationYearID, @FullMarks, @Cumulative_SettingID)
-""", con, tx);
-                AddSession(cmd, session);
-                cmd.Parameters.AddWithValue("@CumulativeNameID", request.CumulativeNameID);
-                cmd.Parameters.AddWithValue("@SubjectID", row.SubjectID);
-                cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
-                cmd.Parameters.AddWithValue("@FullMarks", mark);
-                cmd.Parameters.AddWithValue("@Cumulative_SettingID", settingId);
-                await cmd.ExecuteNonQueryAsync(ct);
+SELECT @CumulativeNameID, @SchoolID, @RegistrationID, v.SubjectID, @ClassID, @EducationYearID, v.FullMarks, @Cumulative_SettingID
+FROM (VALUES {0}) AS v(SubjectID, FullMarks)
+""", con))
+            {
+                var marks = subjects
+                    .Select(row => (row.SubjectID, Mark: request.SameCountable ? request.CountableMark : row.CountableMark))
+                    .Where(x => x.Mark >= 1)
+                    .ToList();
+                if (marks.Count > 0)
+                {
+                    cmd.CommandTimeout = 0;
+                    AddSession(cmd, session);
+                    cmd.Parameters.AddWithValue("@CumulativeNameID", request.CumulativeNameID);
+                    cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
+                    cmd.Parameters.AddWithValue("@Cumulative_SettingID", settingId);
+                    var values = new List<string>(marks.Count);
+                    for (var i = 0; i < marks.Count; i++)
+                    {
+                        values.Add($"(@SubjectID{i}, @FullMarks{i})");
+                        cmd.Parameters.AddWithValue($"@SubjectID{i}", marks[i].SubjectID);
+                        cmd.Parameters.AddWithValue($"@FullMarks{i}", marks[i].Mark);
+                    }
+                    cmd.CommandText = string.Format(cmd.CommandText, string.Join(",", values));
+                    await cmd.ExecuteNonQueryAsync(ct);
+                }
             }
 
-            await using (var cmd = new SqlCommand("EXEC [dbo].[SP_Cumulative_Exam_Subject] @SchoolID, @RegistrationID, @EducationYearID, @ClassID, @CumulativeNameID, @Cumulative_SettingID", con, tx))
+            await using (var cmd = new SqlCommand("EXEC [dbo].[SP_Cumulative_Exam_Subject] @SchoolID, @RegistrationID, @EducationYearID, @ClassID, @CumulativeNameID, @Cumulative_SettingID", con))
             {
                 cmd.CommandTimeout = 0;
                 AddSession(cmd, session);
@@ -333,27 +349,52 @@ VALUES
                 await cmd.ExecuteNonQueryAsync(ct);
             }
 
-            foreach (var row in subjects)
+            if (request.SameCountable || subjects.Count == 0)
             {
-                var add = request.SameCountable || row.AddInExam;
-                await using var cmd = new SqlCommand("""
-UPDATE Exam_Cumulative_Subject SET IS_Add_InExam = @IS_Add_InExam
-WHERE CumulativeNameID = @CumulativeNameID AND SchoolID = @SchoolID AND EducationYearID = @EducationYearID
-  AND ClassID = @ClassID AND SubjectID = @SubjectID
-""", con, tx);
-                AddSession(cmd, session);
-                cmd.Parameters.AddWithValue("@IS_Add_InExam", add ? 1 : 0);
-                cmd.Parameters.AddWithValue("@CumulativeNameID", request.CumulativeNameID);
-                cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
-                cmd.Parameters.AddWithValue("@SubjectID", row.SubjectID);
-                await cmd.ExecuteNonQueryAsync(ct);
+                await ExecSqlAsync(con, """
+UPDATE Exam_Cumulative_Subject SET IS_Add_InExam = 1
+WHERE CumulativeNameID = @CumulativeNameID AND SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID
+""", session, ct, c =>
+                {
+                    c.Parameters.AddWithValue("@CumulativeNameID", request.CumulativeNameID);
+                    c.Parameters.AddWithValue("@ClassID", request.ClassID);
+                });
+            }
+            else
+            {
+                var addIds = subjects.Where(x => x.AddInExam).Select(x => x.SubjectID).Distinct().ToList();
+                if (addIds.Count == 0)
+                {
+                    await ExecSqlAsync(con, """
+UPDATE Exam_Cumulative_Subject SET IS_Add_InExam = 0
+WHERE CumulativeNameID = @CumulativeNameID AND SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID
+""", session, ct, c =>
+                    {
+                        c.Parameters.AddWithValue("@CumulativeNameID", request.CumulativeNameID);
+                        c.Parameters.AddWithValue("@ClassID", request.ClassID);
+                    });
+                }
+                else
+                {
+                    var names = addIds.Select((_, i) => "@Add" + i).ToArray();
+                    await ExecSqlAsync(con, $"""
+UPDATE Exam_Cumulative_Subject SET IS_Add_InExam = CASE WHEN SubjectID IN ({string.Join(",", names)}) THEN 1 ELSE 0 END
+WHERE CumulativeNameID = @CumulativeNameID AND SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID
+""", session, ct, c =>
+                    {
+                        for (var i = 0; i < addIds.Count; i++)
+                            c.Parameters.AddWithValue(names[i], addIds[i]);
+                        c.Parameters.AddWithValue("@CumulativeNameID", request.CumulativeNameID);
+                        c.Parameters.AddWithValue("@ClassID", request.ClassID);
+                    });
+                }
             }
 
             var format = string.IsNullOrWhiteSpace(request.PositionFormat) ? "Point" : request.PositionFormat;
             await using (var cmd = new SqlCommand("""
 EXEC [dbo].[SP_Cumulative_Exam_Student] @SchoolID, @RegistrationID, @EducationYearID, @ClassID, @CumulativeNameID, @Cumulative_SettingID
 EXEC [dbo].[SP_Cumulative_HighestMark_Position] @SchoolID, @EducationYearID, @ClassID, @CumulativeNameID, @Exam_Position_Format
-""", con, tx))
+""", con))
             {
                 cmd.CommandTimeout = 0;
                 AddSession(cmd, session);
@@ -367,8 +408,32 @@ EXEC [dbo].[SP_Cumulative_HighestMark_Position] @SchoolID, @EducationYearID, @Cl
             if (request.AttendanceFrom is not null && request.AttendanceTo is not null)
             {
                 await using var cmd = new SqlCommand("""
-EXEC [dbo].[SP_Cumulative_Attendance] @SchoolID, @EducationYearID, @ClassID, @CumulativeNameID, @RegistrationID, @From_Date, @To_Date, @ScheduleID
-""", con, tx);
+DELETE FROM Attendance_Student
+WHERE SchoolID = @SchoolID AND ClassID = @ClassID AND EducationYearID = @EducationYearID AND CumulativeNameID = @CumulativeNameID;
+
+INSERT INTO Attendance_Student
+    (SchoolID, RegistrationID, EducationYearID, CumulativeNameID, ClassID, StudentID, StudentClassID,
+     WorkingDays, TotalPresent, TotalAbsent, TotalLate, TotalLeave, TotalBunk, TotalLateAbs)
+SELECT
+    @SchoolID, @RegistrationID, @EducationYearID, @CumulativeNameID, @ClassID,
+    StudentsClass.StudentID,
+    Attendance_Record.StudentClassID,
+    COUNT(*) AS WorkingDays,
+    SUM(CASE WHEN Attendance_Record.Attendance = N'Pre' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN Attendance_Record.Attendance = N'Abs' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN Attendance_Record.Attendance = N'Late' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN Attendance_Record.Attendance = N'Leave' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN Attendance_Record.Attendance = N'Bunk' THEN 1 ELSE 0 END),
+    SUM(CASE WHEN Attendance_Record.Attendance = N'Late Abs' THEN 1 ELSE 0 END)
+FROM Attendance_Record
+INNER JOIN StudentsClass ON Attendance_Record.StudentClassID = StudentsClass.StudentClassID
+WHERE Attendance_Record.SchoolID = @SchoolID
+  AND Attendance_Record.ClassID = @ClassID
+  AND Attendance_Record.EducationYearID = @EducationYearID
+  AND Attendance_Record.AttendanceDate BETWEEN @From_Date AND @To_Date
+  AND (@ScheduleID = 0 OR ISNULL(Attendance_Record.Attendance_ScheduleID, 0) = @ScheduleID)
+GROUP BY Attendance_Record.StudentClassID, StudentsClass.StudentID;
+""", con);
                 cmd.CommandTimeout = 0;
                 AddSession(cmd, session);
                 cmd.Parameters.AddWithValue("@ClassID", request.ClassID);
@@ -379,12 +444,10 @@ EXEC [dbo].[SP_Cumulative_Attendance] @SchoolID, @EducationYearID, @ClassID, @Cu
                 await cmd.ExecuteNonQueryAsync(ct);
             }
 
-            await tx.CommitAsync(ct);
             return Ok(settingId);
         }
         catch (Exception ex)
         {
-            await tx.RollbackAsync(ct);
             return Fail(ex.Message);
         }
     }
@@ -494,8 +557,25 @@ ORDER BY ISNULL(Subject.SN, 999), Subject.SubjectID
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
 
-        await using (var cmd = new SqlCommand("SELECT SchoolName, Address, Phone FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+        try
         {
+            await using (var cmd = new SqlCommand("SELECT SchoolName, Address, Phone, Teacher_Sign, Principal_Sign FROM SchoolInfo WHERE SchoolID = @SchoolID", con))
+            {
+                AddSchool(cmd, session);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                if (await reader.ReadAsync(ct))
+                {
+                    dto.SchoolName = Text(reader["SchoolName"]);
+                    dto.Address = Text(reader["Address"]);
+                    dto.Phone = Text(reader["Phone"]);
+                    dto.TeacherSignDataUrl = ToDataUrl(reader["Teacher_Sign"] as byte[]);
+                    dto.PrincipalSignDataUrl = ToDataUrl(reader["Principal_Sign"] as byte[]);
+                }
+            }
+        }
+        catch
+        {
+            await using var cmd = new SqlCommand("SELECT SchoolName, Address, Phone FROM SchoolInfo WHERE SchoolID = @SchoolID", con);
             AddSchool(cmd, session);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             if (await reader.ReadAsync(ct))
@@ -779,12 +859,23 @@ WHERE erstu.SchoolID = @SchoolID AND erstu.EducationYearID = @EducationYearID AN
             }
         }
 
+        try
+        {
+            await FillCardPhotosAsync(con, session, dto.Students.Cast<ExamCardStudentDto>().ToList(), ct);
+        }
+        catch
+        {
+        }
+
         return dto;
     }
 
-    private static async Task ExecTxAsync(SqlConnection con, SqlTransaction tx, string sql, SessionSnapshot session, CancellationToken ct, Action<SqlCommand>? extra = null)
+    private static Task ExecTxAsync(SqlConnection con, SqlTransaction tx, string sql, SessionSnapshot session, CancellationToken ct, Action<SqlCommand>? extra = null) =>
+        ExecSqlAsync(con, sql, session, ct, extra, tx);
+
+    private static async Task ExecSqlAsync(SqlConnection con, string sql, SessionSnapshot session, CancellationToken ct, Action<SqlCommand>? extra = null, SqlTransaction? tx = null)
     {
-        await using var cmd = new SqlCommand(sql, con, tx);
+        await using var cmd = tx is null ? new SqlCommand(sql, con) : new SqlCommand(sql, con, tx);
         cmd.CommandTimeout = 0;
         AddSession(cmd, session);
         extra?.Invoke(cmd);

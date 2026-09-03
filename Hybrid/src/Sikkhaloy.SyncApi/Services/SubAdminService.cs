@@ -30,15 +30,12 @@ public sealed class SubAdminService
         var password = request.Password ?? "";
         var confirm = request.ConfirmPassword ?? "";
         var email = (request.Email ?? "").Trim();
-        var question = (request.Question ?? "").Trim();
-        var answer = (request.Answer ?? "").Trim();
+        var question = "Username";
+        var answer = userName;
 
         if (firstName.Length == 0 || lastName.Length == 0 || designation.Length == 0
-            || userName.Length == 0 || password.Length == 0 || email.Length == 0
-            || question.Length == 0 || answer.Length == 0)
+            || userName.Length == 0 || password.Length == 0 || email.Length == 0)
             return Fail("sub.required");
-        if (question.StartsWith("Select ", StringComparison.OrdinalIgnoreCase))
-            return Fail("sub.question");
         if (userName.Any(char.IsWhiteSpace))
             return Fail("sub.userSpace");
         if (userName.Length is < 8 or > 30)

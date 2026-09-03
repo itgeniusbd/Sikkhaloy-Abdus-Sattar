@@ -19,7 +19,7 @@
         <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => tab = 1">@Locale.T("rpt.expenseLog")</button>
         <button type="button" class="@(tab == 2 ? "active" : null)" @onclick="() => tab = 2">@Locale.T("rpt.adjust")</button>
     </div>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
         <div id="log-export">

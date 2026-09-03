@@ -4,63 +4,79 @@
 @inject SyncEngine Sync
 @inject NavigationManager Nav
 
-<div class="card students-card">
-    <div class="toolbar">
+<div class="card sa-page students-card readm-list-page">
+    <header class="sa-head">
         <div>
+            <p class="sa-kicker">@Locale.T("readm.crumb")</p>
             <h1>@Locale.T("readm.heading")</h1>
-            <p class="muted">@Locale.T("readm.crumb")</p>
+            <p class="sa-lead">@Locale.T("readm.lead")</p>
         </div>
-    </div>
+    </header>
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error">@error</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row">
-        <select @bind="fromYearId" @bind:after="LoadCandidatesAsync">
-            <option value="0">@Locale.T("readm.selectSession")</option>
-            @foreach (var year in years)
-            {
-                <option value="@year.EducationYearID">@year.Name</option>
-            }
-        </select>
-        <select @bind="classId" @bind:after="OnClassChanged">
-            <option value="0">@Locale.T("readm.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupId" @bind:after="LoadCandidatesAsync">
-                <option value="0">@Locale.T("readm.allGroup")</option>
-                @foreach (var item in groups)
+    <div class="sal-bar">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("readm.prevSession")</span>
+            <select @bind="fromYearId" @bind:after="LoadCandidatesAsync">
+                <option value="0">@Locale.T("readm.selectSession")</option>
+                @foreach (var year in years)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@year.EducationYearID">@year.Name</option>
                 }
             </select>
+        </section>
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("students.class")</span>
+            <select @bind="classId" @bind:after="OnClassChanged">
+                <option value="0">@Locale.T("readm.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        @if (groups.Count > 0)
+        {
+            <section class="sal-box is-group">
+                <span class="sal-box-h">@Locale.T("students.group")</span>
+                <select @bind="groupId" @bind:after="LoadCandidatesAsync">
+                    <option value="0">@Locale.T("readm.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (sections.Count > 0)
         {
-            <select @bind="sectionId" @bind:after="LoadCandidatesAsync">
-                <option value="0">@Locale.T("readm.allSection")</option>
-                @foreach (var item in sections)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-section">
+                <span class="sal-box-h">@Locale.T("students.section")</span>
+                <select @bind="sectionId" @bind:after="LoadCandidatesAsync">
+                    <option value="0">@Locale.T("readm.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (shifts.Count > 0)
         {
-            <select @bind="shiftId" @bind:after="LoadCandidatesAsync">
-                <option value="0">@Locale.T("readm.allShift")</option>
-                @foreach (var item in shifts)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-shift">
+                <span class="sal-box-h">@Locale.T("students.shift")</span>
+                <select @bind="shiftId" @bind:after="LoadCandidatesAsync">
+                    <option value="0">@Locale.T("readm.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
     </div>
 

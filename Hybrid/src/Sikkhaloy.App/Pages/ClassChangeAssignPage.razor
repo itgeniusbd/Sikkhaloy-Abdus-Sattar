@@ -4,105 +4,128 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
-<div class="card structure-page emp-page">
-    <div class="toolbar">
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card">
+    <header class="sa-head sj-head no-print">
         <div>
+            <p class="sa-kicker">@Locale.T("sm.crumb")</p>
             <h1>@Locale.T("sm.assignTitle")</h1>
-            <p class="muted">@Locale.T("sm.crumb")</p>
         </div>
-        <a class="btn-clear" href="student-mgmt/class-change">@Locale.T("sm.back")</a>
-    </div>
+        <a class="stu-btn is-sync" href="student-mgmt/class-change">@Locale.T("sm.back")</a>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
     @if (student is not null)
     {
-        <div class="si-info">
-            <ul>
-                <li><b>(@student.ID) @student.StudentsName</b></li>
-                <li><b>@Locale.T("si.father"):</b> @student.FathersName</li>
-                <li>
-                    <b>@Locale.T("si.class"):</b> @student.ClassName
-                    @if (!string.IsNullOrWhiteSpace(student.GroupName))
-                    {
-                        <text>, @Locale.T("students.group"): @student.GroupName</text>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(student.SectionName))
-                    {
-                        <text>, @Locale.T("students.section"): @student.SectionName</text>
-                    }
-                    @if (!string.IsNullOrWhiteSpace(student.ShiftName))
-                    {
-                        <text>, @Locale.T("students.shift"): @student.ShiftName</text>
-                    }
-                </li>
-                <li><b>@Locale.T("si.roll"):</b> @student.RollNo</li>
-            </ul>
+        <div class="si-found no-print">
+            <span class="si-found-id">@student.ID</span>
+            <div class="si-found-main">
+                <strong>@student.StudentsName</strong>
+                <span>@Locale.T("si.father"): @student.FathersName</span>
+            </div>
+            <div class="si-found-meta">
+                <em>@Locale.T("si.class"): @student.ClassName</em>
+                @if (!string.IsNullOrWhiteSpace(student.GroupName))
+                {
+                    <em>@Locale.T("si.group"): @student.GroupName</em>
+                }
+                @if (!string.IsNullOrWhiteSpace(student.SectionName))
+                {
+                    <em>@Locale.T("si.section"): @student.SectionName</em>
+                }
+                @if (!string.IsNullOrWhiteSpace(student.ShiftName))
+                {
+                    <em>@Locale.T("si.shift"): @student.ShiftName</em>
+                }
+                <em>@Locale.T("si.roll"): @student.RollNo</em>
+            </div>
         </div>
 
-        <div class="filter-row">
-            <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
-                <option value="0">@Locale.T("sm.newClass")</option>
-                @foreach (var item in classes.Where(x => x.ClassID != student.ClassID))
-                {
-                    <option value="@item.ClassID">@item.Name</option>
-                }
-            </select>
-            <input type="text" placeholder="@Locale.T("si.rollNumber")" @bind="rollNo" disabled="@busy" />
-            @if (groups.Count > 0)
-            {
-                <select @bind="groupInput" @bind:after="LoadSubjectsAsync" disabled="@busy">
-                    <option value="0">@Locale.T("si.selectGroup")</option>
-                    @foreach (var item in groups)
+        <div class="sal-bar no-print">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+            <section class="sal-box is-class">
+                <span class="sal-box-h">@Locale.T("sm.newClass")</span>
+                <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+                    <option value="0">@Locale.T("sm.newClass")</option>
+                    @foreach (var item in classes.Where(x => x.ClassID != student.ClassID))
                     {
-                        <option value="@item.ServerId">@item.Name</option>
+                        <option value="@item.ClassID">@item.Name</option>
                     }
                 </select>
+            </section>
+            <section class="sal-box is-month">
+                <span class="sal-box-h">@Locale.T("si.rollNumber")</span>
+                <input class="si-find-input" type="text" placeholder="@Locale.T("si.rollNumber")" @bind="rollNo" disabled="@busy" />
+            </section>
+            @if (groups.Count > 0)
+            {
+                <section class="sal-box is-group">
+                    <span class="sal-box-h">@Locale.T("si.group")</span>
+                    <select @bind="groupInput" @bind:after="LoadSubjectsAsync" disabled="@busy">
+                        <option value="0">@Locale.T("si.selectGroup")</option>
+                        @foreach (var item in groups)
+                        {
+                            <option value="@item.ServerId">@item.Name</option>
+                        }
+                    </select>
+                </section>
             }
             @if (sections.Count > 0)
             {
-                <select @bind="sectionInput" disabled="@busy">
-                    <option value="0">@Locale.T("si.selectSection")</option>
-                    @foreach (var item in sections)
-                    {
-                        <option value="@item.ServerId">@item.Name</option>
-                    }
-                </select>
+                <section class="sal-box is-section">
+                    <span class="sal-box-h">@Locale.T("si.section")</span>
+                    <select @bind="sectionInput" disabled="@busy">
+                        <option value="0">@Locale.T("si.selectSection")</option>
+                        @foreach (var item in sections)
+                        {
+                            <option value="@item.ServerId">@item.Name</option>
+                        }
+                    </select>
+                </section>
             }
             @if (shifts.Count > 0)
             {
-                <select @bind="shiftInput" disabled="@busy">
-                    <option value="0">@Locale.T("si.selectShift")</option>
-                    @foreach (var item in shifts)
-                    {
-                        <option value="@item.ServerId">@item.Name</option>
-                    }
-                </select>
+                <section class="sal-box is-shift">
+                    <span class="sal-box-h">@Locale.T("si.shift")</span>
+                    <select @bind="shiftInput" disabled="@busy">
+                        <option value="0">@Locale.T("si.selectShift")</option>
+                        @foreach (var item in shifts)
+                        {
+                            <option value="@item.ServerId">@item.Name</option>
+                        }
+                    </select>
+                </section>
             }
-        </div>
-
-        <div class="filter-row">
-            <label class="choice-inline">
-                <input type="radio" name="status" checked="@(classStatus == "Promotion")"
-                       @onchange="@(() => classStatus = "Promotion")" />
-                <span>@Locale.T("sm.promotion")</span>
-            </label>
-            <label class="choice-inline">
-                <input type="radio" name="status" checked="@(classStatus == "Demotion")"
-                       @onchange="@(() => classStatus = "Demotion")" />
-                <span>@Locale.T("sm.demotion")</span>
-            </label>
+            <section class="sal-box is-type">
+                <span class="sal-box-h">@Locale.T("sm.payOrder")</span>
+                <label class="choice-inline">
+                    <input type="checkbox" @bind="keepPayOrder" disabled="@busy" />
+                    <span>@Locale.T("sm.keepPayOrder")</span>
+                </label>
+            </section>
+            <section class="sal-box is-names">
+                <span class="sal-box-h">@Locale.T("sm.change")</span>
+                <span class="readm-type">
+                    <label class="choice-inline">
+                        <input type="radio" name="status" checked="@(classStatus == "Promotion")"
+                               @onchange="@(() => classStatus = "Promotion")" />
+                        <span>@Locale.T("sm.promotion")</span>
+                    </label>
+                    <label class="choice-inline">
+                        <input type="radio" name="status" checked="@(classStatus == "Demotion")"
+                               @onchange="@(() => classStatus = "Demotion")" />
+                        <span>@Locale.T("sm.demotion")</span>
+                    </label>
+                </span>
+            </section>
         </div>
 
         @if (ClassId > 0)
         {
+            <div class="sj-grid">
             <table class="mgrid">
                 <thead>
                     <tr>
@@ -142,10 +165,16 @@
                 }
                 </tbody>
             </table>
-            <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+        </div>
         }
     }
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     [Parameter] public int StudentId { get; set; }
@@ -164,9 +193,12 @@
     private string shiftInput = "0";
     private string rollNo = "";
     private string classStatus = "Promotion";
+    private string busyTitle = "";
+    private string popupText = "";
+    private bool keepPayOrder;
     private bool busy;
+    private bool popupError;
     private string? error;
-    private string? message;
     private int loadedId;
     private int oldClassId;
 
@@ -180,13 +212,16 @@
         if (loadedId == StudentId && student is not null)
             return;
         loadedId = StudentId;
-        error = message = null;
+        error = null;
+        popupText = "";
         student = null;
         subjects.Clear();
         if (!await EnsureOnlineAsync())
             return;
 
+        busyTitle = Locale.T("si.loading");
         busy = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             structure = await Api.GetClassStructureAsync(Session.AccessToken);
@@ -262,7 +297,8 @@
     {
         if (student is null)
             return;
-        error = message = null;
+        error = null;
+        popupText = "";
         if (ClassId <= 0 || ClassId == student.ClassID)
         {
             error = Locale.T("sm.sameClass");
@@ -294,6 +330,7 @@
                 ShiftID = ShiftId,
                 RollNo = rollNo,
                 ClassStatus = classStatus,
+                KeepPayOrder = keepPayOrder,
                 Subjects = picked
             });
             if (!result.Succeeded)
@@ -302,8 +339,6 @@
                 return;
             }
 
-            message = Locale.T("sm.okClass");
-            student = null;
             Nav.NavigateTo("student-mgmt/class-change");
         }
         catch (HttpRequestException)
@@ -329,6 +364,15 @@
         }
         return true;
     }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
 
     private string Translate(string? key) =>
         string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);

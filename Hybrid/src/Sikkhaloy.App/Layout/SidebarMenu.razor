@@ -1,4 +1,5 @@
 @inherits LocaleAwareComponent
+@implements IDisposable
 @inject NavigationManager Nav
 
 <nav class="sidebar-nav">
@@ -14,8 +15,8 @@
 
     @foreach (var category in Menu.Categories)
     {
-        <details class="menu-group" open="@ContainsPath(category)">
-            <summary>
+        <details class="menu-group" open="@IsGroupOpen(category)">
+            <summary @onclick="() => ToggleGroup(category)" @onclick:preventDefault="true">
                 <span class="menu-left">
                     @Icon(category.Name)
                     <span>@Locale.Menu(category.Name)</span>
@@ -24,8 +25,8 @@
             <div class="menu-tree">
                 @foreach (var sub in category.Subs)
                 {
-                    <details class="menu-sub" open="@ContainsPath(sub.Links)">
-                        <summary>
+                    <details class="menu-sub" open="@IsSubOpen(category, sub)">
+                        <summary @onclick="() => ToggleSub(category, sub)" @onclick:preventDefault="true">
                             <span class="menu-left">
                                 <span class="menu-dot"></span>
                                 <span>@Locale.Menu(sub.Name)</span>
@@ -34,24 +35,46 @@
                         <div class="menu-leaves">
                             @foreach (var link in sub.Links)
                             {
-                                <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
-                                    <span class="menu-dot"></span>
-                                    <span>@Locale.Menu(link.Title)</span>
-                                </NavLink>
+                                @if (NeedsReload(link))
+                                {
+                                    <a href="@Href(link)" class="@LeafClass(link)" @onclick="() => Reload(link)" @onclick:preventDefault="true">
+                                        <span class="menu-dot"></span>
+                                        <span>@Locale.Menu(link.Title)</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
+                                        <span class="menu-dot"></span>
+                                        <span>@Locale.Menu(link.Title)</span>
+                                    </NavLink>
+                                }
                             }
                         </div>
                     </details>
                 }
                 @foreach (var link in category.Links)
                 {
-                    <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
-                        <span class="menu-dot"></span>
-                        <span>@Locale.Menu(link.Title)</span>
-                    </NavLink>
+                    @if (NeedsReload(link))
+                    {
+                        <a href="@Href(link)" class="@LeafClass(link)" @onclick="() => Reload(link)" @onclick:preventDefault="true">
+                            <span class="menu-dot"></span>
+                            <span>@Locale.Menu(link.Title)</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <NavLink href="@Href(link)" class="@LinkClass(link)" Match="NavLinkMatch.All">
+                            <span class="menu-dot"></span>
+                            <span>@Locale.Menu(link.Title)</span>
+                        </NavLink>
+                    }
                 }
             </div>
         </details>
     }
+
+    <HelpMenuLink />
 </nav>
 
 @code {
@@ -59,9 +82,85 @@
     public MenuTreeDto Menu { get; set; } = new();
     [Parameter] public string Lang { get; set; } = "";
 
+    private string? openGroup;
+    private string? openSubKey;
     private string CurrentPath => Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
 
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        FollowCurrentPath();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (openGroup is null)
+            FollowCurrentPath();
+    }
+
+    private void FollowCurrentPath()
+    {
+        var match = Menu.Categories.FirstOrDefault(ContainsPath);
+        openGroup = match?.Name;
+        if (match is null)
+        {
+            openSubKey = null;
+            return;
+        }
+        var sub = match.Subs.FirstOrDefault(s => ContainsPath(s.Links));
+        openSubKey = sub is null ? null : SubKey(match, sub);
+    }
+
+    private bool IsGroupOpen(MenuCategoryDto category) =>
+        string.Equals(openGroup, category.Name, StringComparison.Ordinal);
+
+    private bool IsSubOpen(MenuCategoryDto category, MenuSubDto sub) =>
+        string.Equals(openSubKey, SubKey(category, sub), StringComparison.Ordinal);
+
+    private static string SubKey(MenuCategoryDto category, MenuSubDto sub) => category.Name + "|" + sub.Name;
+
+    private void ToggleGroup(MenuCategoryDto category)
+    {
+        if (IsGroupOpen(category))
+        {
+            openGroup = "";
+            openSubKey = null;
+            return;
+        }
+        openGroup = category.Name;
+        var sub = category.Subs.FirstOrDefault(s => ContainsPath(s.Links));
+        openSubKey = sub is null ? null : SubKey(category, sub);
+    }
+
+    private void ToggleSub(MenuCategoryDto category, MenuSubDto sub)
+    {
+        var key = SubKey(category, sub);
+        openSubKey = string.Equals(openSubKey, key, StringComparison.Ordinal) ? null : key;
+        openGroup = category.Name;
+    }
+
     private static string Href(MenuLinkDto link) => (link.Route ?? "").TrimStart('/');
+
+    private static bool NeedsReload(MenuLinkDto link)
+    {
+        var href = Href(link);
+        return href.Equals("accounts/expense", StringComparison.OrdinalIgnoreCase)
+            || href.Equals("accounts/expense-edit", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void Reload(MenuLinkDto link) => Nav.NavigateTo(Href(link), forceLoad: true);
+
+    private string? LeafClass(MenuLinkDto link)
+    {
+        var extra = LinkClass(link);
+        var on = Href(link).Equals(CurrentPath, StringComparison.OrdinalIgnoreCase);
+        if (on) return string.IsNullOrEmpty(extra) ? "active" : $"active {extra}";
+        return extra;
+    }
 
     private static string? LinkClass(MenuLinkDto link) => link.Ready ? null : "soon-link";
 
@@ -104,6 +203,8 @@
                 "<path d='M21 14.5a2 2 0 0 1-2 2H8l-5 3.2V5.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/>",
             "routines" =>
                 "<circle cx='12' cy='12' r='8.5'/><path d='M12 7.2V12l3.2 1.8'/>",
+            "inventory" =>
+                "<path d='M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z'/><path d='M12 12 3 7.5M12 12v9M12 12l9-4.5'/>",
             "committee" =>
                 "<path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='3'/><path d='M22 21v-2a3.5 3.5 0 0 0-2.5-3.4'/><circle cx='17.5' cy='7.2' r='2.4'/>",
             _ =>

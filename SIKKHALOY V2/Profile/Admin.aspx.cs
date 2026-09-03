@@ -1,4 +1,4 @@
-﻿using Education;
+using Education;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -52,9 +52,11 @@ namespace EDUCATION.COM.Profile
                     using (SqlConnection conDue = new SqlConnection(connStr))
                     {
                         string dueQuery = @"SELECT COUNT(*) AS DueRecordCount, 
-                                                   ISNULL(SUM(TotalAmount - PaidAmount - Discount), 0) AS TotalDue
-                                            FROM AAP_Invoice 
-                                            WHERE SchoolID = @SchoolID AND IsPaid = 0";
+                                                   ISNULL(SUM(i.TotalAmount - i.PaidAmount - i.Discount), 0) AS TotalDue
+                                            FROM AAP_Invoice i
+                                            INNER JOIN AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+                                            WHERE i.SchoolID = @SchoolID AND i.IsPaid = 0
+                                              AND c.InvoiceCategory <> N'SMS'";
                         using (SqlCommand dueCmd = new SqlCommand(dueQuery, conDue))
                         {
                             dueCmd.Parameters.AddWithValue("@SchoolID", schoolId);
@@ -84,10 +86,15 @@ namespace EDUCATION.COM.Profile
                 {
                     using (SqlConnection conExp = new SqlConnection(connStr))
                     {
-                        string expSql = @"SELECT COUNT(*) FROM AAP_Invoice
-                                          WHERE SchoolID = @SID AND IsPaid = 0
-                                            AND EndDate IS NOT NULL
-                                            AND CAST(EndDate AS DATE) < CAST(GETDATE() AS DATE)";
+                        string expSql = @"SELECT COUNT(*) FROM AAP_Invoice i
+                                          INNER JOIN AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+                                          WHERE i.SchoolID = @SID AND i.IsPaid = 0
+                                            AND c.InvoiceCategory <> N'SMS'
+                                            AND i.IssuDate IS NOT NULL
+                                            AND CASE
+                                                  WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                                                  ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                                                END < CAST(GETDATE() AS DATE)";
                         using (SqlCommand expCmd = new SqlCommand(expSql, conExp))
                         {
                             expCmd.Parameters.AddWithValue("@SID", schoolId);
@@ -166,17 +173,28 @@ namespace EDUCATION.COM.Profile
                     return;
                 }
 
-                // ── ২. Expired invoice নেই — রানিং মাসের EndDate countdown (১-১০ দিন বাকি) ──
+                // Until the 15th of the issue month: warn on every dashboard load.
+                // After the 15th: BASIC.Master blocks all pages except Due/Paid invoice.
                 int endDateDaysLeft = -1;
                 try
                 {
                     using (SqlConnection con3 = new SqlConnection(connStr))
                     {
-                        string edSql = @"SELECT TOP 1 DATEDIFF(day, CAST(GETDATE() AS DATE), CAST(EndDate AS DATE)) AS DaysLeft
-                                         FROM AAP_Invoice
-                                         WHERE SchoolID = @SID AND IsPaid = 0
-                                           AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) >= CAST(GETDATE() AS DATE)
-                                         ORDER BY EndDate ASC";
+                        string edSql = @"SELECT TOP 1 DATEDIFF(day, CAST(GETDATE() AS DATE),
+                                                CASE
+                                                  WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                                                  ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                                                END) AS DaysLeft
+                                         FROM AAP_Invoice i
+                                         INNER JOIN AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+                                         WHERE i.SchoolID = @SID AND i.IsPaid = 0
+                                           AND c.InvoiceCategory <> N'SMS'
+                                           AND i.IssuDate IS NOT NULL
+                                           AND CASE
+                                                 WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                                                 ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                                               END >= CAST(GETDATE() AS DATE)
+                                         ORDER BY DaysLeft ASC";
                         using (SqlCommand edCmd = new SqlCommand(edSql, con3))
                         {
                             edCmd.Parameters.AddWithValue("@SID", schoolId);
@@ -192,43 +210,32 @@ namespace EDUCATION.COM.Profile
                     System.Diagnostics.Debug.WriteLine("EndDate check error: " + ex.Message);
                 }
 
-                if (endDateDaysLeft >= 0 && endDateDaysLeft <= 10)
+                if (dueRecordCount > 0 && totalDue > 0 && endDateDaysLeft >= 0)
                 {
-                    string endMsg = endDateDaysLeft == 0
-                        ? "আজই আপনার বকেয়া পরিশোধের শেষ দিন!"
-                        : string.Format("আপনার বকেয়া পরিশোধের সময় বাকি মাত্র <strong>{0} দিন</strong>।", endDateDaysLeft);
+                    string endMsg;
+                    string iconClass = "fa-clock";
+                    if (endDateDaysLeft == 0)
+                        endMsg = "আজই আপনার বকেয়া পরিশোধের শেষ দিন!";
+                    else
+                        endMsg = string.Format("আপনার বকেয়া পরিশোধের সময় বাকি মাত্র <strong>{0} দিন</strong>।", endDateDaysLeft);
+
+                    string warningJs = string.IsNullOrEmpty(endMsg) ? "$('#dueWarningSection').hide();" : string.Format(@"
+                                $('#dueWarningSection').show();
+                                $('#dueWarningText').html('{0}');
+                                $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
+                                $('#dueWarningIcon').removeClass('fa-clock fa-hourglass-half fa-ban').addClass('{1}');
+                    ", endMsg.Replace("'", "\\'"), iconClass);
 
                     string endScript = string.Format(@"
                         $(document).ready(function() {{
-                            $('#dueWarningSection').show();
-                            $('#dueWarningText').html('{0}');
-                            $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
-                            $('#dueWarningIcon').removeClass('fa-hourglass-half fa-ban').addClass('fa-clock');
+                            {0}
                             $('#dueRecordCount').text('{1}');
                             $('#totalDueAmount').text('{2}');
                             $('#dueInvoiceModal').modal('show');
                         }});
-                    ", endMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
+                    ", warningJs, dueCountStr, dueTotalStr);
 
                     ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", endScript, true);
-                    return;
-                }
-
-                // ── ৩. সাধারণ due invoice notification ──────────────────────────────
-                if (!IsDueNoticeEnabled())
-                    return;
-
-                if (dueRecordCount > 0 && totalDue > 0)
-                {
-                    string script = string.Format(@"
-                        $(document).ready(function() {{
-                            $('#dueRecordCount').text('{0}');
-                            $('#totalDueAmount').text('{1}');
-                            $('#dueInvoiceModal').modal('show');
-                        }});
-                    ", dueCountStr, dueTotalStr);
-
-                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", script, true);
                 }
             }
             catch (Exception ex)

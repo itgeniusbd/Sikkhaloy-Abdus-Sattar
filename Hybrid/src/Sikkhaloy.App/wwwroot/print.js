@@ -1,23 +1,364 @@
-window.sikkhaloyCompressImage = function (dataUrl, maxWidth, quality, maxBytes) {
+window.sikkhaloyParseHexColor = function (hex) {
+    hex = String(hex || "#ffffff").trim().replace("#", "");
+    if (hex.length === 3)
+        hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
+    if (hex.length !== 6)
+        return [255, 255, 255];
+    return [parseInt(hex.slice(0, 2), 16) || 0, parseInt(hex.slice(2, 4), 16) || 0, parseInt(hex.slice(4, 6), 16) || 0];
+};
+
+window.sikkhaloyColorDist = function (r, g, b, br, bg, bb) {
+    var dr = r - br, dg = g - bg, db = b - bb;
+    return Math.sqrt(dr * dr + dg * dg + db * db);
+};
+
+window.sikkhaloyLuma = function (r, g, b) {
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+window.sikkhaloyReplaceEdgeBackground = function (ctx, w, h, fillHex) {
+    var fill = window.sikkhaloyParseHexColor(fillHex);
+    var img = ctx.getImageData(0, 0, w, h);
+    var d = img.data;
+    var nPix = w * h;
+    var patch = Math.max(3, Math.min(12, (Math.min(w, h) / 22) | 0));
+    function samplePatch(x0, y0) {
+        var r = 0, g = 0, b = 0, n = 0;
+        for (var y = y0; y < y0 + patch && y < h; y++) {
+            for (var x = x0; x < x0 + patch && x < w; x++) {
+                var i = (y * w + x) * 4;
+                r += d[i];
+                g += d[i + 1];
+                b += d[i + 2];
+                n++;
+            }
+        }
+        return n ? [r / n, g / n, b / n] : [255, 255, 255];
+    }
+    var corners = [
+        samplePatch(0, 0),
+        samplePatch(w - patch, 0),
+        samplePatch(0, h - patch),
+        samplePatch(w - patch, h - patch)
+    ];
+    var best = 0, bestCount = 0;
+    for (var i = 0; i < 4; i++) {
+        var votes = 0;
+        for (var j = 0; j < 4; j++) {
+            if (window.sikkhaloyColorDist(corners[i][0], corners[i][1], corners[i][2],
+                corners[j][0], corners[j][1], corners[j][2]) <= 52)
+                votes++;
+        }
+        if (votes > bestCount) {
+            bestCount = votes;
+            best = i;
+        }
+    }
+    var br = 0, bgc = 0, bb = 0, cn = 0, vsum = 0;
+    for (var j = 0; j < 4; j++) {
+        var dist = window.sikkhaloyColorDist(corners[best][0], corners[best][1], corners[best][2],
+            corners[j][0], corners[j][1], corners[j][2]);
+        if (dist > 52) continue;
+        br += corners[j][0];
+        bgc += corners[j][1];
+        bb += corners[j][2];
+        vsum += dist * dist;
+        cn++;
+    }
+    if (cn < 1) return;
+    br /= cn;
+    bgc /= cn;
+    bb /= cn;
+    var std = Math.sqrt(vsum / cn);
+    var tol = Math.max(36, Math.min(64, 40 + std * 1.8));
+    var fringeTol = Math.max(tol + 16, Math.min(88, tol * 1.55));
+    var lumaBg = window.sikkhaloyLuma(br, bgc, bb);
+    var cbBg = -0.168736 * br - 0.331264 * bgc + 0.5 * bb;
+    var crBg = 0.5 * br - 0.418688 * bgc - 0.081312 * bb;
+
+    function chromaDist(r, g, b) {
+        var cb = -0.168736 * r - 0.331264 * g + 0.5 * b;
+        var cr = 0.5 * r - 0.418688 * g - 0.081312 * b;
+        return Math.hypot(cb - cbBg, cr - crBg);
+    }
+    function spillOf(r, g, b) {
+        var rgbSim = 1 - Math.min(1, window.sikkhaloyColorDist(r, g, b, br, bgc, bb) / Math.max(fringeTol, 48));
+        var c = 1 - Math.min(1, chromaDist(r, g, b) / 44);
+        if (c < 0.1) c = 0;
+        var chan = 0;
+        var spread = Math.max(br, bgc, bb) - Math.min(br, bgc, bb);
+        if (spread >= 12) {
+            var px, bgDom;
+            if (bb >= br && bb >= bgc) {
+                px = b - Math.max(r, g);
+                bgDom = bb - Math.max(br, bgc);
+            } else if (bgc >= br && bgc >= bb) {
+                px = g - Math.max(r, b);
+                bgDom = bgc - Math.max(br, bb);
+            } else {
+                px = r - Math.max(g, b);
+                bgDom = br - Math.max(bgc, bb);
+            }
+            if (bgDom > 6 && px > 1)
+                chan = Math.max(0, Math.min(1, px / bgDom));
+        }
+        return Math.max(chan, rgbSim * 0.88, c * 0.8);
+    }
+
+    function isBgPixel(idx) {
+        if (d[idx + 3] < 40) return true;
+        var r = d[idx], g = d[idx + 1], b = d[idx + 2];
+        var L = window.sikkhaloyLuma(r, g, b);
+        if (L < lumaBg - 48 && chromaDist(r, g, b) > 14) return false;
+        return window.sikkhaloyColorDist(r, g, b, br, bgc, bb) <= tol;
+    }
+
+    var seen = new Uint8Array(nPix);
+    var q = [];
+    function seed(x, y) {
+        if (x < 0 || y < 0 || x >= w || y >= h) return;
+        var p = y * w + x;
+        if (seen[p] || !isBgPixel(p * 4)) return;
+        seen[p] = 1;
+        q.push(p);
+    }
+    function seedCorner(x0, y0) {
+        for (var y = y0; y < y0 + patch && y < h; y++)
+            for (var x = x0; x < x0 + patch && x < w; x++)
+                seed(x, y);
+    }
+    seedCorner(0, 0);
+    seedCorner(w - patch, 0);
+    seedCorner(0, h - patch);
+    seedCorner(w - patch, h - patch);
+    if (q.length < 6) return;
+    var qs = 0;
+    while (qs < q.length) {
+        var p = q[qs++];
+        var px = p % w;
+        var py = (p / w) | 0;
+        var fromL = window.sikkhaloyLuma(d[p * 4], d[p * 4 + 1], d[p * 4 + 2]);
+        for (var dy = -1; dy <= 1; dy++) {
+            for (var dx = -1; dx <= 1; dx++) {
+                if (!dx && !dy) continue;
+                var nx = px + dx, ny = py + dy;
+                if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                var np = ny * w + nx;
+                if (seen[np]) continue;
+                var ni = np * 4;
+                var toL = window.sikkhaloyLuma(d[ni], d[ni + 1], d[ni + 2]);
+                if (toL < fromL - 24 && toL < lumaBg - 30 && chromaDist(d[ni], d[ni + 1], d[ni + 2]) > 18)
+                    continue;
+                if (!isBgPixel(ni)) continue;
+                seen[np] = 1;
+                q.push(np);
+            }
+        }
+    }
+    var marked = 0;
+    for (var n = 0; n < seen.length; n++)
+        if (seen[n]) marked++;
+    if (marked < nPix * 0.02 || marked > nPix * 0.9)
+        return;
+
+    var expand = new Uint8Array(seen);
+    for (var pass = 0; pass < 6; pass++) {
+        var next = new Uint8Array(expand);
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+                var p = y * w + x;
+                if (expand[p]) continue;
+                var i = p * 4;
+                if (spillOf(d[i], d[i + 1], d[i + 2]) < 0.16) continue;
+                var touch = false;
+                for (var dy = -1; dy <= 1 && !touch; dy++) {
+                    for (var dx = -1; dx <= 1; dx++) {
+                        var nx = x + dx, ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                        if (expand[ny * w + nx]) { touch = true; break; }
+                    }
+                }
+                if (touch) next[p] = 1;
+            }
+        }
+        expand = next;
+    }
+    seen = expand;
+
+    var nearDist = new Uint8Array(nPix);
+    for (var n = 0; n < nPix; n++)
+        nearDist[n] = seen[n] ? 0 : 12;
+    for (var pass = 0; pass < 8; pass++) {
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+                var p = y * w + x;
+                var bestD = nearDist[p];
+                if (bestD === 0) continue;
+                for (var dy = -1; dy <= 1; dy++) {
+                    for (var dx = -1; dx <= 1; dx++) {
+                        if (!dx && !dy) continue;
+                        var nx = x + dx, ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                        var nd = nearDist[ny * w + nx] + 1;
+                        if (nd < bestD) bestD = nd;
+                    }
+                }
+                nearDist[p] = bestD;
+            }
+        }
+    }
+
+    var alpha = new Float32Array(nPix);
+    for (var n = 0; n < nPix; n++) {
+        if (seen[n]) { alpha[n] = 0; continue; }
+        var i = n * 4;
+        var r = d[i], g = d[i + 1], b = d[i + 2];
+        var nd = nearDist[n];
+        var spill = spillOf(r, g, b);
+        if (nd > 8 && spill < 0.55) { alpha[n] = 1; continue; }
+        if (spill >= 0.38) { alpha[n] = 0; continue; }
+        var spat = Math.min(1, nd / 6);
+        var keep = (1 - spill * 1.15) * (0.2 + 0.8 * spat);
+        if (keep < 0) keep = 0;
+        if (keep > 1) keep = 1;
+        alpha[n] = keep;
+    }
+
+    function blurAlpha() {
+        var out = new Float32Array(nPix);
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+                var s = 0, c = 0;
+                for (var dy = -1; dy <= 1; dy++) {
+                    for (var dx = -1; dx <= 1; dx++) {
+                        var nx = x + dx, ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                        s += alpha[ny * w + nx];
+                        c++;
+                    }
+                }
+                out[y * w + x] = s / c;
+            }
+        }
+        alpha = out;
+    }
+    blurAlpha();
+    blurAlpha();
+
+    for (var n = 0; n < nPix; n++) {
+        var i = n * 4;
+        var a = alpha[n];
+        var r = d[i], g = d[i + 1], b = d[i + 2];
+        var spill = spillOf(r, g, b);
+        if (a <= 0.06 || spill >= 0.34 && nearDist[n] <= 8) {
+            d[i] = fill[0];
+            d[i + 1] = fill[1];
+            d[i + 2] = fill[2];
+            d[i + 3] = 255;
+            continue;
+        }
+        if (a >= 0.97 && spill < 0.12) {
+            d[i + 3] = 255;
+            continue;
+        }
+        var bgAmt = Math.max(1 - a, spill * 1.05);
+        if (bgAmt > 1) bgAmt = 1;
+        var fgAmt = 1 - bgAmt;
+        if (fgAmt < 0.08) {
+            d[i] = fill[0];
+            d[i + 1] = fill[1];
+            d[i + 2] = fill[2];
+            d[i + 3] = 255;
+            continue;
+        }
+        var fr = (r - br * bgAmt) / fgAmt;
+        var fg = (g - bgc * bgAmt) / fgAmt;
+        var fb = (b - bb * bgAmt) / fgAmt;
+        if (bb >= br && bb >= bgc) {
+            var extra = fb - Math.max(fr, fg);
+            if (extra > 0) fb -= extra;
+        } else if (bgc >= br && bgc >= bb) {
+            var extra = fg - Math.max(fr, fb);
+            if (extra > 0) fg -= extra;
+        } else {
+            var extra = fr - Math.max(fg, fb);
+            if (extra > 0) fr -= extra;
+        }
+        if (fr < 0) fr = 0; else if (fr > 255) fr = 255;
+        if (fg < 0) fg = 0; else if (fg > 255) fg = 255;
+        if (fb < 0) fb = 0; else if (fb > 255) fb = 255;
+        if (spill > 0.08) {
+            var L = window.sikkhaloyLuma(fr, fg, fb);
+            var k = Math.min(1, spill * 1.25);
+            fr = fr * (1 - k) + L * k;
+            fg = fg * (1 - k) + L * k;
+            fb = fb * (1 - k) + L * k;
+        }
+        d[i] = Math.round(fr * a + fill[0] * (1 - a));
+        d[i + 1] = Math.round(fg * a + fill[1] * (1 - a));
+        d[i + 2] = Math.round(fb * a + fill[2] * (1 - a));
+        d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+};
+
+window.sikkhaloyPreparePhoto = function (dataUrl, opts) {
+    opts = opts || {};
+    var maxWidth = Number(opts.maxWidth) || 250;
+    var quality = Number(opts.quality) || 0.7;
+    var maxBytes = Number(opts.maxBytes) || 40960;
+    var bgColor = opts.bgColor || "#ffffff";
+    var replaceBg = opts.replaceBg !== false;
     return new Promise(function (resolve, reject) {
         var img = new Image();
         img.onload = function () {
+            var workMax = replaceBg ? Math.max(maxWidth, 560) : maxWidth;
             var w = img.width;
             var h = img.height;
+            if (w > workMax) {
+                h = Math.max(1, Math.round(h * workMax / w));
+                w = workMax;
+            }
+            var source = document.createElement("canvas");
+            source.width = w;
+            source.height = h;
+            var sctx = source.getContext("2d");
+            sctx.imageSmoothingEnabled = true;
+            sctx.imageSmoothingQuality = "high";
+            sctx.fillStyle = bgColor;
+            sctx.fillRect(0, 0, w, h);
+            sctx.drawImage(img, 0, 0, w, h);
+            if (replaceBg) {
+                try {
+                    window.sikkhaloyReplaceEdgeBackground(sctx, w, h, bgColor);
+                } catch (err) { }
+            }
             if (w > maxWidth) {
                 h = Math.max(1, Math.round(h * maxWidth / w));
                 w = maxWidth;
+                var scaled = document.createElement("canvas");
+                scaled.width = w;
+                scaled.height = h;
+                var xctx = scaled.getContext("2d");
+                xctx.imageSmoothingEnabled = true;
+                xctx.imageSmoothingQuality = "high";
+                xctx.fillStyle = bgColor;
+                xctx.fillRect(0, 0, w, h);
+                xctx.drawImage(source, 0, 0, w, h);
+                source = scaled;
             }
-            var canvas = document.createElement("canvas");
             var q = quality;
-            var result = dataUrl;
+            var result = "";
+            var canvas = document.createElement("canvas");
             for (var i = 0; i < 8; i++) {
                 canvas.width = w;
                 canvas.height = h;
                 var ctx = canvas.getContext("2d");
-                ctx.fillStyle = "#fff";
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = "high";
+                ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, w, h);
-                ctx.drawImage(img, 0, 0, w, h);
+                ctx.drawImage(source, 0, 0, w, h);
                 result = canvas.toDataURL("image/jpeg", q);
                 var bytes = Math.ceil((result.length - 23) * 0.75);
                 if (bytes <= maxBytes || (w <= 140 && q <= 0.42))
@@ -28,12 +369,261 @@ window.sikkhaloyCompressImage = function (dataUrl, maxWidth, quality, maxBytes) 
                 } else {
                     q = Math.max(0.42, q - 0.08);
                 }
+                source = canvas;
+                canvas = document.createElement("canvas");
             }
             resolve(result);
         };
         img.onerror = function () { reject(new Error("image")); };
         img.src = dataUrl;
     });
+};
+
+window.sikkhaloyCompressImage = function (dataUrl, maxWidth, quality, maxBytes, bgColor) {
+    return window.sikkhaloyPreparePhoto(dataUrl, {
+        maxWidth: maxWidth,
+        quality: quality,
+        maxBytes: maxBytes,
+        bgColor: bgColor || "#ffffff",
+        replaceBg: false
+    });
+};
+
+window.sikkhaloyCrop = (function () {
+    var st = null;
+
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+    function boxRect() {
+        var v = st.view.getBoundingClientRect();
+        var side = Math.min(v.width, v.height) * 0.78;
+        return { left: (v.width - side) / 2, top: (v.height - side) / 2, side: side };
+    }
+
+    function applyTransform() {
+        st.img.style.transform = "translate(" + st.x + "px," + st.y + "px) scale(" + st.scale + ")";
+    }
+
+    function minScale() {
+        var b = boxRect();
+        return Math.max(b.side / st.natW, b.side / st.natH);
+    }
+
+    function constrain() {
+        var b = boxRect();
+        var w = st.natW * st.scale;
+        var h = st.natH * st.scale;
+        st.x = clamp(st.x, b.left + b.side - w, b.left);
+        st.y = clamp(st.y, b.top + b.side - h, b.top);
+    }
+
+    function layoutBox() {
+        var b = boxRect();
+        st.hole.style.width = b.side + "px";
+        st.hole.style.height = b.side + "px";
+        st.hole.style.left = b.left + "px";
+        st.hole.style.top = b.top + "px";
+    }
+
+    function fit() {
+        var v = st.view.getBoundingClientRect();
+        st.scale = Math.max(minScale(), Math.max(v.width / st.natW, v.height / st.natH));
+        var w = st.natW * st.scale;
+        var h = st.natH * st.scale;
+        st.x = (v.width - w) / 2;
+        st.y = (v.height - h) / 2;
+        constrain();
+        applyTransform();
+        layoutBox();
+    }
+
+    function zoomAt(factor, clientX, clientY) {
+        if (!st) return;
+        var r = st.view.getBoundingClientRect();
+        var px = clientX - r.left;
+        var py = clientY - r.top;
+        var next = clamp(st.scale * factor, minScale(), minScale() * 8);
+        if (Math.abs(next - st.scale) < 0.0001) return;
+        st.x = px - (px - st.x) * (next / st.scale);
+        st.y = py - (py - st.y) * (next / st.scale);
+        st.scale = next;
+        constrain();
+        applyTransform();
+    }
+
+    function onResize() {
+        if (!st) return;
+        layoutBox();
+        st.scale = Math.max(st.scale, minScale());
+        constrain();
+        applyTransform();
+    }
+
+    function onDown(e) {
+        if (!st) return;
+        st.view.setPointerCapture(e.pointerId);
+        st.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (st.pointers.size === 2) {
+            var pts = Array.from(st.pointers.values());
+            st.lastPinch = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        }
+        e.preventDefault();
+    }
+
+    function onMove(e) {
+        if (!st || !st.pointers.has(e.pointerId)) return;
+        var prev = st.pointers.get(e.pointerId);
+        st.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (st.pointers.size === 2) {
+            var pts = Array.from(st.pointers.values());
+            var dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            if (st.lastPinch > 0)
+                zoomAt(dist / st.lastPinch, (pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2);
+            st.lastPinch = dist;
+        } else if (st.pointers.size === 1) {
+            st.x += e.clientX - prev.x;
+            st.y += e.clientY - prev.y;
+            constrain();
+            applyTransform();
+        }
+        e.preventDefault();
+    }
+
+    function onUp(e) {
+        if (!st) return;
+        st.pointers.delete(e.pointerId);
+        if (st.pointers.size < 2) st.lastPinch = 0;
+        try { st.view.releasePointerCapture(e.pointerId); } catch (err) { }
+    }
+
+    function onWheel(e) {
+        if (!st) return;
+        e.preventDefault();
+        zoomAt(e.deltaY < 0 ? 1.08 : 0.92, e.clientX, e.clientY);
+    }
+
+    function start(host, dataUrl) {
+        destroy();
+        if (!host) return;
+        host.innerHTML = "";
+        var view = document.createElement("div");
+        view.className = "sm-crop-view";
+        var img = document.createElement("img");
+        img.alt = "";
+        img.draggable = false;
+        var hole = document.createElement("div");
+        hole.className = "sm-crop-hole";
+        view.appendChild(img);
+        view.appendChild(hole);
+        host.appendChild(view);
+        st = {
+            host: host, view: view, img: img, hole: hole,
+            x: 0, y: 0, scale: 1, natW: 1, natH: 1,
+            pointers: new Map(), lastPinch: 0
+        };
+        img.onload = function () {
+            st.natW = img.naturalWidth || 1;
+            st.natH = img.naturalHeight || 1;
+            img.style.width = st.natW + "px";
+            img.style.height = st.natH + "px";
+            fit();
+        };
+        img.src = dataUrl;
+        view.addEventListener("pointerdown", onDown);
+        view.addEventListener("pointermove", onMove);
+        view.addEventListener("pointerup", onUp);
+        view.addEventListener("pointercancel", onUp);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
+        view.addEventListener("wheel", onWheel, { passive: false });
+        window.addEventListener("resize", onResize);
+    }
+
+    function zoom(delta) {
+        if (!st) return;
+        var r = st.view.getBoundingClientRect();
+        zoomAt(delta > 0 ? 1.12 : 0.88, r.left + r.width / 2, r.top + r.height / 2);
+    }
+
+    function apply() {
+        if (!st || !st.img) return "";
+        var nw = st.img.naturalWidth || st.natW || 1;
+        var nh = st.img.naturalHeight || st.natH || 1;
+        var b = boxRect();
+        var scale = st.scale || 1;
+        if (scale <= 0 || !b.side) return "";
+        var sx = (b.left - st.x) / scale;
+        var sy = (b.top - st.y) / scale;
+        var sw = b.side / scale;
+        var sh = b.side / scale;
+        if (!isFinite(sx) || !isFinite(sy) || !isFinite(sw) || !isFinite(sh))
+            return "";
+        sx = clamp(sx, 0, Math.max(0, nw - 1));
+        sy = clamp(sy, 0, Math.max(0, nh - 1));
+        sw = Math.max(1, Math.min(sw, nw - sx));
+        sh = Math.max(1, Math.min(sh, nh - sy));
+        var out = 640;
+        var canvas = document.createElement("canvas");
+        canvas.width = out;
+        canvas.height = out;
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, out, out);
+        ctx.drawImage(st.img, sx, sy, sw, sh, 0, 0, out, out);
+        return canvas.toDataURL("image/jpeg", 0.92);
+    }
+
+    function destroy() {
+        if (!st) return;
+        window.removeEventListener("resize", onResize);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        st.host.innerHTML = "";
+        st = null;
+    }
+
+    return { start: start, zoom: zoom, apply: apply, destroy: destroy };
+})();
+
+window.sikkhaloyCropStart = function (host, dataUrl) { window.sikkhaloyCrop.start(host, dataUrl); };
+window.sikkhaloyCropZoom = function (delta) { window.sikkhaloyCrop.zoom(delta); };
+window.sikkhaloyCropApply = function () {
+    try {
+        window.__sikkhaloyCropData = window.sikkhaloyCrop.apply() || "";
+        return window.__sikkhaloyCropData ? "ok" : "";
+    } catch (e) {
+        window.__sikkhaloyCropData = "";
+        return "";
+    }
+};
+window.sikkhaloyCropLength = function () {
+    return (window.__sikkhaloyCropData || "").length;
+};
+window.sikkhaloyCropRead = function (start, len) {
+    var d = window.__sikkhaloyCropData || "";
+    start = Math.max(0, Number(start) || 0);
+    len = Math.max(0, Number(len) || 0);
+    return d.substring(start, start + len);
+};
+window.sikkhaloyCropClear = function () {
+    window.__sikkhaloyCropData = "";
+};
+window.sikkhaloyCropDestroy = function () { window.sikkhaloyCrop.destroy(); };
+
+window.sikkhaloyPhotoSwatchesLoad = function (userKey) {
+    try {
+        var raw = localStorage.getItem("sikkhaloy-photo-swatches-" + (userKey || "0"));
+        var arr = raw ? JSON.parse(raw) : null;
+        return Array.isArray(arr) ? arr : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+window.sikkhaloyPhotoSwatchesSave = function (userKey, colors) {
+    try {
+        localStorage.setItem("sikkhaloy-photo-swatches-" + (userKey || "0"), JSON.stringify(colors || []));
+    } catch (e) { }
 };
 
 window.sikkhaloyReceiptPrintSave = function (opts) {
@@ -66,7 +656,7 @@ window.sikkhaloyPrintReceipt = function (opts) {
     var infoPx = narrow ? (inches <= 3 ? 8 : 9) : (fontPx + 1);
     var tablePx = narrow ? (inches <= 3 ? 8 : 9) : fontPx;
     var titlePx = narrow ? (inches <= 3 ? 11 : 12) : 15;
-    var schoolPx = narrow ? (inches <= 3 ? 11 : 12) : (fontPx + 4);
+    var schoolPx = narrow ? (inches <= 3 ? 16 : 18) : Math.max(24, fontPx + 13);
     var sideMm = Math.max(4, (210 - inches * 25.4) / 2);
     var width = inches + "in";
 
@@ -90,25 +680,46 @@ window.sikkhaloyPrintReceipt = function (opts) {
     el.textContent =
         "@page { size: A4 portrait; margin: " + topPx + "px " + sideMm + "mm 8mm " + sideMm + "mm !important; }" +
         "@media print {" +
-        "html, body, #app, .app-shell, .app-main, .app-content, .card, .mr-page {" +
+        "html, body, #app, .app-shell, .app-main, .app-content, .card, .mr-page, .mr-preview, .mr-layout {" +
         " height: auto !important; min-height: 0 !important; width: 100% !important; max-width: none !important;" +
         " display: block !important; padding: 0 !important; margin: 0 !important;" +
         " overflow: visible !important; box-shadow: none !important; border: 0 !important;" +
+        " background: #fff !important; -webkit-print-color-adjust: economy; print-color-adjust: economy;" +
         " transform: none !important; zoom: 1 !important; }" +
+        ".mr-preview .mr-sheet { box-shadow: none !important; background: #fff !important; }" +
         ".mr-sheet { width: " + width + " !important; max-width: " + width + " !important;" +
-        " margin: 0 auto !important; padding: 0 !important; border: 0 !important; height: auto !important; }" +
+        " margin: 0 auto !important; padding: 0 !important; border: 0 !important; height: auto !important;" +
+        " background: #fff !important; box-shadow: none !important; }" +
+        ".mr-page .mgrid th { background: #000 !important; color: #fff !important; font-weight: 700 !important;" +
+        " border-color: #000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }" +
+        ".no-print, .app-sidebar, .app-header { display: none !important; }" +
         ".print-receipt .print-header, .print-receipt .print-date, .print-receipt .print-only," +
         ".print-receipt .app-header, .print-receipt .app-sidebar { display: none !important; }" +
+        ".mr-sheet p, .mr-sheet strong { font-weight: 700 !important; }" +
         ".mr-name-logo { max-width: 100% !important; max-height: " + (narrow ? "42px" : "72px") + " !important; display: block !important; margin: 0 auto 4px !important; }" +
-        ".mr-school { font-size: " + schoolPx + "px !important; font-weight: 700 !important; color: #000 !important; }" +
-        ".mr-addr, .mr-addr span { font-size: " + infoPx + "px !important; color: #000 !important; }" +
-        ".mr-head { font-size: " + titlePx + "px !important; letter-spacing: " + (narrow ? "0" : "1px") + " !important; }" +
-        ".mr-info { margin: " + (narrow ? "6px 0" : "15px 0") + " !important; overflow: visible !important; }" +
-        ".mr-info > div { padding: " + (narrow ? "1px 3px" : "2px 6px") + " !important; overflow: visible !important; }" +
-        ".mr-info p { font-size: " + infoPx + "px !important; white-space: nowrap !important;" +
-        " overflow: visible !important; margin: " + (narrow ? "2px 0" : "5px 0") + " !important; }" +
-        ".mr-page .mgrid th, .mr-page .mgrid td { font-size: " + tablePx + "px !important; padding: " + (narrow ? "2px 1px" : "3px") + " !important; white-space: nowrap !important; }" +
-        ".mr-words, .mr-recv, .mr-due-title, .oi-total, .mr-blessing { font-size: " + infoPx + "px !important; white-space: nowrap !important; }" +
+        ".mr-school { font-size: " + schoolPx + "px !important; font-weight: 800 !important; color: #000 !important; text-align: center !important; line-height: 1.2 !important; }" +
+        ".mr-addr, .mr-addr span { font-size: " + infoPx + "px !important; font-weight: 500 !important; color: #000 !important; text-align: center !important; }" +
+        ".mr-head { font-size: " + titlePx + "px !important; letter-spacing: " + (narrow ? "0" : "1px") + " !important; font-weight: 700 !important; text-align: center !important; }" +
+        ".mr-info { margin: " + (narrow ? "5px 0 8px" : "8px 0 10px") + " !important; overflow: visible !important; text-align: left !important; align-items: start !important; }" +
+        ".mr-info > div { padding: " + (narrow ? "3px 5px" : "4px 8px") + " !important; overflow: visible !important; align-self: start !important; }" +
+        ".mr-info p { font-size: " + infoPx + "px !important; white-space: normal !important; overflow-wrap: anywhere !important;" +
+        " text-align: left !important; font-weight: 600 !important; line-height: 1.35 !important;" +
+        " overflow: visible !important; margin: 0 !important; padding: 3px 0 !important; }" +
+        ".mr-info .mr-dates { font-size: " + (narrow ? "7.5px" : (infoPx - 1) + "px") + " !important; line-height: 1.35 !important; letter-spacing: -0.02em !important; }" +
+        ".mr-info strong { font-weight: 800 !important; }" +
+        ".mr-money { white-space: nowrap !important; font-weight: 800 !important; }" +
+        ".mr-page .mr-grid th, .mr-page .mgrid th { font-size: " + tablePx + "px !important; padding: " + (narrow ? "3px 1px" : "5px 3px") + " !important;" +
+        " text-align: center !important; font-weight: 700 !important; }" +
+        ".mr-page .mr-grid td, .mr-page .mgrid td { font-size: " + tablePx + "px !important; padding: " + (narrow ? "3px 1px" : "4px 3px") + " !important;" +
+        " white-space: normal !important; vertical-align: middle !important; }" +
+        ".mr-page .mr-grid td.mr-payfor, .mr-page .mgrid td.mr-payfor { text-align: center !important; font-weight: 600 !important; }" +
+        ".mr-page .mr-grid tfoot tr.mr-total-row td, .mr-page .mgrid tfoot tr.mr-total-row td { font-size: " + (tablePx + 1) + "px !important; font-weight: 800 !important; }" +
+        ".mr-page .mr-grid tfoot td.mr-total-label, .mr-page .mgrid tfoot td.mr-total-label { text-align: right !important; padding-right: 6px !important; }" +
+        ".mr-page .mr-grid td.mr-fee, .mr-page .mr-grid td.mr-amt, .mr-page .mgrid td.mr-fee, .mr-page .mgrid td.mr-amt {" +
+        " text-align: center !important; font-weight: 800 !important; }" +
+        ".mr-page .mr-grid tfoot td, .mr-page .mgrid tfoot td { text-align: center !important; font-weight: 800 !important; }" +
+        ".mr-words, .mr-recv, .mr-due-title, .oi-total, .mr-blessing { font-size: " + infoPx + "px !important;" +
+        " white-space: normal !important; text-align: center !important; font-weight: 700 !important; }" +
         "}";
     window.print();
 };
@@ -122,10 +733,15 @@ window.sikkhaloyPrint = function (orientation, compact, marginOverride) {
         document.head.appendChild(el);
     }
 
-    var landscape = orientation === "landscape";
-    var margin = marginOverride || (compact ? "6mm 8mm" : (landscape ? "8mm" : "10mm"));
+    var landscapeHint = document.getElementById("sikkhaloy-print-landscape");
+    if (landscapeHint)
+        landscapeHint.textContent = "";
+
+    var isLandscape = String(orientation || "").toLowerCase() === "landscape";
+    var size = isLandscape ? "A4 landscape" : "A4 portrait";
+    var margin = marginOverride || (compact ? "6mm 8mm" : "10mm");
     el.textContent =
-        "@page { size: A4 " + (landscape ? "landscape" : "portrait") + "; margin: " + margin + "; }" +
+        "@page { size: " + size + "; margin: " + margin + "; }" +
         "@media print {" +
         "html, body, #app, .ad-shell, .ad-main, .ad-content, .app-shell, .app-main, .app-content, .card, .ai-print {" +
         " background: #fff !important; height: auto !important; overflow: visible !important;" +
@@ -134,7 +750,7 @@ window.sikkhaloyPrint = function (orientation, compact, marginOverride) {
         ".ad-shell, .app-shell { display: block !important; grid-template-columns: none !important; }" +
         "}";
     document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
-    document.body.classList.add(landscape ? "print-landscape" : "print-portrait");
+    document.body.classList.add(isLandscape ? "print-landscape" : "print-portrait");
     if (compact)
         document.body.classList.add("print-compact");
 
@@ -146,12 +762,22 @@ window.sikkhaloyPrint = function (orientation, compact, marginOverride) {
     window.print();
 };
 
-window.sikkhaloyPrintLeave = function (pageSize, topSpace) {
-    window.sikkhaloyApplyLeavePrint(pageSize, topSpace);
-    window.print();
+window.sikkhaloyTcPrintSave = function (opts) {
+    try { localStorage.setItem("sikkhaloy-tc-print", JSON.stringify(opts || {})); } catch (e) { }
 };
 
-window.sikkhaloyApplyLeavePrint = function (pageSize, topSpace) {
+window.sikkhaloyTcPrintLoad = function () {
+    try {
+        return JSON.parse(localStorage.getItem("sikkhaloy-tc-print") || "{}");
+    } catch (e) {
+        return {};
+    }
+};
+
+window.sikkhaloyPrintTc = function (opts) {
+    opts = opts || {};
+    try { localStorage.setItem("sikkhaloy-tc-print", JSON.stringify(opts)); } catch (e) { }
+
     var id = "sikkhaloy-print-page";
     var el = document.getElementById(id);
     if (!el) {
@@ -159,24 +785,130 @@ window.sikkhaloyApplyLeavePrint = function (pageSize, topSpace) {
         el.id = id;
         document.head.appendChild(el);
     }
-    var sizes = {
-        A4: "210mm 297mm",
-        A5: "148mm 210mm",
-        A6: "105mm 148mm",
-        letter: "8.5in 11in"
-    };
-    var paper = sizes[pageSize] || sizes.A4;
-    var top = Math.max(0, Number(topSpace) || 0);
+    var landscapeHint = document.getElementById("sikkhaloy-print-landscape");
+    if (landscapeHint)
+        landscapeHint.textContent = "";
+
+    var topPx = Math.max(0, Number(opts.topSpace) || 0);
+    var hideIns = !!opts.hideIns;
+    var margin = topPx > 0 ? (topPx + "px 8mm 8mm 8mm") : "8mm";
+    var hideCss = hideIns
+        ? ".sm-tc-page.hide-ins .cert-sheet .page-print-header, .sm-tc-page.hide-ins .cert-sheet .print-header, .sm-tc-page.hide-ins .cert-sheet .print-header-banner { display:none !important; }"
+        : "";
+
     el.textContent =
-        "@page { size: " + paper + "; margin: " + top + "px 6mm 6mm 6mm; }" +
+        "@page { margin: " + margin + "; }" +
         "@media print {" +
         "html, body, #app, .app-shell, .app-main, .app-content {" +
-        " height: auto !important; min-height: 0 !important; display: block !important;" +
-        " padding: 0 !important; margin: 0 !important; overflow: visible !important; }" +
-        ".leave-print-page, .gp-page-wrap {" +
-        " margin: 0 !important; padding-top: 0 !important; max-width: none !important; width: 100% !important; }" +
+        " background:#fff !important; height:100% !important; max-height:100% !important;" +
+        " overflow:hidden !important; padding:0 !important; margin:0 !important; }" +
+        ".app-sidebar, .app-header, .go-top, .nav-back, .no-print, .pager, .layout-print-header, .admin-notice, #blazor-error-ui, .acc-loading-back { display:none !important; }" +
+        ".app-shell { display:block !important; grid-template-columns:none !important; background:#fff !important; }" +
+        ".sm-tc-page.card { padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; background:transparent !important; width:100% !important; height:100% !important; max-width:none !important; }" +
+        ".sm-tc-page .cert-sheet { width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; border:0 !important; min-height:0 !important; background:transparent !important; }" +
+        ".sm-tc-page .cert-frame { position:fixed !important; inset:0 !important; width:auto !important; min-height:0 !important; height:auto !important; padding:3px !important; box-sizing:border-box !important; }" +
+        ".sm-tc-page .cert-frame-inner { height:100% !important; min-height:0 !important; overflow:hidden !important; padding:4mm 6mm 5mm !important; box-sizing:border-box !important; }" +
+        ".sm-tc-page .print-name-logo { max-height:22mm !important; width:100% !important; object-fit:fill !important; }" +
+        ".sm-tc-page .cert-signs { padding-top:8mm !important; margin-top:auto !important; }" +
+        ".sm-tc-page .tc-upto { border:none !important; width:auto !important; padding:0 !important; background:transparent !important; box-shadow:none !important; }" +
+        hideCss +
         "}";
-    document.body.classList.remove("print-landscape", "print-compact");
+    document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+    var restore = function () {
+        document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+        window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+};
+
+window.sikkhaloyPrintCert = function () {
+    var id = "sikkhaloy-print-page";
+    var el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement("style");
+        el.id = id;
+        document.head.appendChild(el);
+    }
+    var landscapeHint = document.getElementById("sikkhaloy-print-landscape");
+    if (landscapeHint)
+        landscapeHint.textContent = "";
+
+    el.textContent =
+        "@page { margin: 6mm; }" +
+        "@media print {" +
+        "html, body, #app, .app-shell, .app-main, .app-content {" +
+        " background:#fff !important; height:100% !important; max-height:100% !important;" +
+        " overflow:hidden !important; padding:0 !important; margin:0 !important; }" +
+        ".app-sidebar, .app-header, .go-top, .nav-back, .no-print, .pager, .layout-print-header, .admin-notice, #blazor-error-ui, .acc-loading-back { display:none !important; }" +
+        ".app-shell { display:block !important; grid-template-columns:none !important; background:#fff !important; }" +
+        ".si-certs-page.card { padding:0 !important; margin:0 !important; border:0 !important; box-shadow:none !important; background:transparent !important; width:100% !important; height:100% !important; max-width:none !important; }" +
+        ".si-certs-page .cert-sheet { width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; border:0 !important; min-height:0 !important; background:transparent !important; }" +
+        ".si-certs-page .cert-frame { position:fixed !important; inset:0 !important; width:auto !important; min-height:0 !important; height:auto !important; padding:3px !important; box-sizing:border-box !important; }" +
+        ".si-certs-page .cert-frame-inner { height:100% !important; min-height:0 !important; overflow:hidden !important; padding:4mm 6mm 5mm !important; box-sizing:border-box !important; }" +
+        ".si-certs-page .print-name-logo { max-height:22mm !important; width:100% !important; object-fit:fill !important; }" +
+        ".si-certs-page .cert-signs { padding-top:8mm !important; margin-top:auto !important; }" +
+        "}";
+    document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+    document.body.classList.add("print-portrait");
+    var restore = function () {
+        document.body.classList.remove("print-portrait", "print-landscape", "print-compact");
+        window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+};
+
+window.sikkhaloyPrintLeave = function (opts) {
+    window.sikkhaloyApplyLeavePrint(opts);
+    window.print();
+};
+
+window.sikkhaloyApplyLeavePrint = function (opts) {
+    opts = opts || {};
+    // Back-compat: old call (pageSize string, topSpace number)
+    if (typeof opts === "string") {
+        opts = { size: arguments[0], topSpace: arguments[1] };
+    }
+
+    var id = "sikkhaloy-print-page";
+    var el = document.getElementById(id);
+    if (!el) {
+        el = document.createElement("style");
+        el.id = id;
+        document.head.appendChild(el);
+    }
+
+    var inches = Number(opts.size);
+    if (!isFinite(inches)) inches = 4;
+    if (inches < 3) inches = 3;
+    if (inches > 6) inches = 6;
+
+    var topPx = Math.max(0, Number(opts.topSpace) || 0);
+    var fontPx = Math.min(20, Math.max(8, Number(opts.fontSize) || 11));
+    var narrow = inches <= 3.5;
+    var sideMm = Math.max(4, (210 - inches * 25.4) / 2);
+    var width = inches + "in";
+    var logoH = narrow ? "36px" : "56px";
+
+    el.textContent =
+        "@page { size: A4 portrait; margin: " + topPx + "px " + sideMm + "mm 8mm " + sideMm + "mm !important; }" +
+        "@media print {" +
+        "html, body, #app, .app-shell, .app-main, .app-content, .card, .leave-print-page {" +
+        " height: auto !important; min-height: 0 !important; width: 100% !important; max-width: none !important;" +
+        " display: block !important; padding: 0 !important; margin: 0 !important;" +
+        " overflow: visible !important; box-shadow: none !important; border: 0 !important;" +
+        " transform: none !important; zoom: 1 !important; }" +
+        ".gp-page-wrap {" +
+        " width: " + width + " !important; max-width: " + width + " !important;" +
+        " margin: 0 auto !important; padding-top: 0 !important;" +
+        " font-size: " + fontPx + "px !important; }" +
+        ".gp-name-logo { max-height: " + logoH + " !important; width: 100% !important; object-fit: contain !important; display: block !important; margin: 0 auto !important; }" +
+        ".print-leave .print-header, .print-leave .print-only," +
+        ".print-leave .layout-print-header, .print-leave .app-header, .print-leave .app-sidebar { display: none !important; }" +
+        "}";
+
+    document.body.classList.remove("print-landscape", "print-compact", "print-receipt");
     document.body.classList.add("print-portrait", "print-leave");
 };
 
@@ -208,6 +940,18 @@ window.sikkhaloyGoTop = (function () {
         }
     };
 })();
+
+window.sikkhaloyDownloadText = function (fileName, contentType, text) {
+    var blob = new Blob(["\uFEFF" + String(text || "")], { type: contentType || "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = fileName || "download";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+};
 
 window.sikkhaloyDownloadStream = async function (fileName, contentType, streamRef) {
     var data = await streamRef.arrayBuffer();
@@ -293,6 +1037,15 @@ window.sikkhaloyExportCollectPaper = function (fileName) {
     setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
 };
 
+document.addEventListener("wheel", function (e) {
+    var t = e.target;
+    if (!t || t.tagName !== "INPUT" || t.type !== "number") return;
+    if (document.activeElement === t) {
+        t.blur();
+        e.preventDefault();
+    }
+}, { passive: false, capture: true });
+
 document.addEventListener("keydown", function (e) {
     if (e.key !== "Tab") return;
     var el = e.target;
@@ -315,30 +1068,37 @@ document.addEventListener("keydown", function (e) {
 }, true);
 
 window.sikkhaloyPrintLandscape = function () {
-    var id = "sikkhaloy-print-landscape";
-    var style = document.getElementById(id);
-    if (!style) {
-        style = document.createElement("style");
-        style.id = id;
-        document.head.appendChild(style);
-    }
-    style.textContent = "@media print { @page { size: A4 landscape; margin: 4mm; } }";
-    window.print();
+    window.sikkhaloyPrint(null, false, "4mm");
 };
 
 window.sikkhaloyPrintAdmit = function () {
-    var id = "sikkhaloy-print-landscape";
-    var style = document.getElementById(id);
-    if (!style) {
-        style = document.createElement("style");
-        style.id = id;
-        document.head.appendChild(style);
-    }
-    style.textContent = "@media print { @page { size: A4 landscape; margin: 3mm; } }";
-    window.print();
+    window.sikkhaloyPrint(null, true, "3mm");
 };
 
 window.sikkhaloyOpenUrl = function (url) {
     if (!url) return;
     window.open(url, "_blank");
+};
+
+window.sikkhaloySessionSave = function (json) {
+    try { localStorage.setItem("sikkhaloy.session", json || ""); } catch (e) { }
+};
+
+window.sikkhaloySessionLoad = function () {
+    try { return localStorage.getItem("sikkhaloy.session") || ""; } catch (e) { return ""; }
+};
+
+window.sikkhaloySessionClear = function () {
+    try { localStorage.removeItem("sikkhaloy.session"); } catch (e) { }
+};
+
+window.sikkhaloyFormValues = function (ids) {
+    var o = {};
+    ids = ids || [];
+    for (var i = 0; i < ids.length; i++) {
+        var id = ids[i];
+        var el = document.getElementById(id);
+        o[id] = el ? String(el.value || "") : "";
+    }
+    return o;
 };

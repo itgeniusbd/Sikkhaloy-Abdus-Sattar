@@ -3,12 +3,16 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page access-page subadmin-page">
-    <h1>@Locale.T("sub.title")</h1>
-    <div class="wizard-steps">
-        <span class="@(step == 1 ? "on" : null)">1. @Locale.T("sub.step1")</span>
-        <span class="@(step == 2 ? "on" : null)">2. @Locale.T("sub.step2")</span>
-        <span class="@(step == 3 ? "on" : null)">3. @Locale.T("sub.step3")</span>
+<div class="card sa-page access-page">
+    <header class="sa-head">
+        <p class="sa-kicker">@Locale.T("sub.kicker")</p>
+        <h1>@Locale.T("sub.title")</h1>
+        <p class="sa-lead">@Locale.T("sub.lead")</p>
+    </header>
+    <div class="sa-steps">
+        <span class="@(step > 1 ? "is-done" : null) @(step == 1 ? "is-on" : null)"><i>1</i>@Locale.T("sub.step1")</span>
+        <span class="@(step > 2 ? "is-done" : null) @(step == 2 ? "is-on" : null)"><i>2</i>@Locale.T("sub.step2")</span>
+        <span class="@(step == 3 ? "is-on" : null)"><i>3</i>@Locale.T("sub.step3")</span>
     </div>
 
     @if (!isAdmin)
@@ -19,61 +23,57 @@
     {
         @if (!string.IsNullOrWhiteSpace(error))
         {
-            <div class="error">@error</div>
+            <NetBanner Text="@error" />
         }
 
         @if (step == 1)
         {
-            <div class="form-grid">
-                <label>@Locale.T("sub.firstName")
+            <div class="sa-form">
+                <label class="sa-field">@Locale.T("sub.firstName")
                     <input @bind="form.FirstName" placeholder="@Locale.T("sub.ph.first")" />
                 </label>
-                <label>@Locale.T("sub.lastName")
+                <label class="sa-field">@Locale.T("sub.lastName")
                     <input @bind="form.LastName" placeholder="@Locale.T("sub.ph.last")" />
                 </label>
-                <label class="span-2">@Locale.T("sub.designation")
+                <label class="sa-field span-2">@Locale.T("sub.designation")
                     <input @bind="form.Designation" placeholder="@Locale.T("sub.ph.designation")" />
                 </label>
-                <label>@Locale.T("sub.user")
+                <label class="sa-field">@Locale.T("sub.user")
                     <input value="@form.UserName" @oninput="OnUserInput" placeholder="@Locale.T("sub.ph.user")" autocomplete="off" />
+                    <small>@Locale.T("sub.userHint")</small>
                 </label>
-                <label>@Locale.T("sub.email")
+                <label class="sa-field">@Locale.T("sub.email")
                     <input @bind="form.Email" placeholder="@Locale.T("sub.ph.email")" autocomplete="off" />
                 </label>
-                <label>@Locale.T("sub.password")
-                    <input type="password" @bind="form.Password" placeholder="@Locale.T("sub.ph.password")" autocomplete="new-password" />
+                <label class="sa-field">@Locale.T("sub.password")
+                    <span class="sa-pass">
+                        <input type="@(_showPass ? "text" : "password")" @bind="form.Password" placeholder="@Locale.T("sub.ph.password")" autocomplete="new-password" />
+                        <button type="button" class="sa-eye" tabindex="-1" @onclick="() => _showPass = !_showPass">@(_showPass ? EyeOffIcon : EyeIcon)</button>
+                    </span>
+                    <small>@Locale.T("sub.passHint")</small>
                 </label>
-                <label>@Locale.T("sub.confirm")
-                    <input type="password" @bind="form.ConfirmPassword" placeholder="@Locale.T("sub.ph.confirm")" autocomplete="new-password" />
-                </label>
-                <label class="span-2">@Locale.T("sub.question")
-                    <select @bind="form.Question">
-                        <option value="">@Locale.T("sub.questionSelect")</option>
-                        @foreach (var q in questions)
-                        {
-                            <option value="@q">@Locale.T(q)</option>
-                        }
-                    </select>
-                </label>
-                <label class="span-2">@Locale.T("sub.answer")
-                    <input @bind="form.Answer" placeholder="@Locale.T("sub.ph.answer")" />
+                <label class="sa-field">@Locale.T("sub.confirm")
+                    <span class="sa-pass">
+                        <input type="@(_showConfirm ? "text" : "password")" @bind="form.ConfirmPassword" placeholder="@Locale.T("sub.ph.confirm")" autocomplete="new-password" />
+                        <button type="button" class="sa-eye" tabindex="-1" @onclick="() => _showConfirm = !_showConfirm">@(_showConfirm ? EyeOffIcon : EyeIcon)</button>
+                    </span>
                 </label>
             </div>
-            <div class="access-bar" style="margin-top: 0.7rem;">
-                <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="CreateAsync">@Locale.T("sub.saveContinue")</button>
+            <div class="sa-foot">
+                <button type="button" class="btn-primary" disabled="@busy" @onclick="CreateAsync">@Locale.T("sub.saveContinue")</button>
             </div>
         }
         else if (step == 2)
         {
-            <p class="muted access-hint">@Locale.T("sub.assignTitle") · @createdUser</p>
-            <div class="access-bar">
+            <p class="sa-assign">@Locale.T("sub.assignTitle") · <b>@createdUser</b></p>
+            <div class="access-bar sa-access-bar">
                 @if (pages.Count > 0)
                 {
                     <span class="access-count">@Locale.T("access.picked", selectedCount, pages.Count)</span>
                 }
                 <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="AssignAsync">@Locale.T("sub.submit")</button>
             </div>
-            <div class="access-grid">
+            <div class="access-grid sa-access-grid">
                 <table class="mgrid">
                     <thead>
                         <tr>
@@ -117,12 +117,13 @@
         }
         else
         {
-            <div class="success-box">
+            <div class="sa-done">
+                <span class="sa-done-ico">✓</span>
                 <h2>@Locale.T("sub.successTitle")</h2>
                 <p>@Locale.T("sub.success")</p>
                 <div class="success-actions">
                     <button type="button" class="btn-primary" @onclick="Reset">@Locale.T("sub.another")</button>
-                    <a class="btn-primary" href="/basic-settings/page-access">@Locale.T("sub.manageAccess")</a>
+                    <a class="btn-ghost" href="/basic-settings/page-access">@Locale.T("sub.manageAccess")</a>
                 </div>
             </div>
         }
@@ -130,18 +131,17 @@
 </div>
 
 @code {
-    private static readonly string[] questions =
-    [
-        "sub.q1", "sub.q2", "sub.q3", "sub.q4", "sub.q5", "sub.q6",
-        "sub.q7", "sub.q8", "sub.q9", "sub.q10", "sub.q11", "sub.q12"
-    ];
-
     private readonly CreateSubAdminRequest form = new();
     private List<PageRow> pages = [];
     private int step = 1;
     private bool busy;
+    private bool _showPass;
+    private bool _showConfirm;
     private string? error;
     private string createdUser = "";
+
+    private static readonly MarkupString EyeIcon = Icon("M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z");
+    private static readonly MarkupString EyeOffIcon = Icon("M3 3l18 18M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-4.4M9.9 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3.2 3.9M6.1 6.1A18 18 0 0 0 2 12s3.5 7 10 7c1.5 0 2.9-.3 4.1-.8");
 
     private bool isAdmin =>
         string.Equals(Session.Current?.Role, "Admin", StringComparison.OrdinalIgnoreCase);
@@ -180,9 +180,7 @@
                 UserName = form.UserName,
                 Password = form.Password,
                 ConfirmPassword = form.ConfirmPassword,
-                Email = form.Email,
-                Question = string.IsNullOrWhiteSpace(form.Question) ? "" : Locale.T(form.Question),
-                Answer = form.Answer
+                Email = form.Email
             };
             var result = await Api.CreateSubAdminAsync(Session.AccessToken, request);
             if (!result.Succeeded)
@@ -254,6 +252,7 @@
         pages = [];
         createdUser = "";
         error = null;
+        _showPass = _showConfirm = false;
         step = 1;
     }
 
@@ -261,8 +260,7 @@
     {
         if (string.IsNullOrWhiteSpace(key))
             return Locale.T("sub.failed");
-        var text = Locale.T(key);
-        return text;
+        return Locale.T(key);
     }
 
     private void ToggleAll(ChangeEventArgs e)
@@ -308,6 +306,9 @@
 
         return rows;
     }
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
 
     private sealed class PageRow
     {

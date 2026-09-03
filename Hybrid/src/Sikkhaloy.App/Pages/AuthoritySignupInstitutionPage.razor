@@ -6,75 +6,171 @@
 @inject NavigationManager Nav
 @using Microsoft.AspNetCore.Components.Forms
 
-<div class="card ab-page">
-    <h1>@Locale.T("auth.m.signupInst")</h1>
-    <p class="muted">@Locale.T("auth.m.basic")</p>
+<div class="ui-page si-signup">
+    <header class="ui-head">
+        <p class="ui-kicker">@Locale.T("auth.m.basic")</p>
+        <h1>@Locale.T("auth.m.signupInst")</h1>
+        <p>@Locale.T("ab.signupLead")</p>
+    </header>
+
+    <div class="sa-steps">
+        <span class="@(step > 1 ? "is-done" : null) @(step == 1 ? "is-on" : null)"><i>1</i>@Locale.T("ab.stepUser")</span>
+        <span class="@(step > 2 ? "is-done" : null) @(step == 2 ? "is-on" : null)"><i>2</i>@Locale.T("ab.stepInst")</span>
+        <span class="@(step == 3 ? "is-on" : null)"><i>3</i>@Locale.T("ab.stepDone")</span>
+    </div>
 
     @if (step == 1)
     {
-        <div class="ab-form">
+        <section class="card si-signup-card">
             <h2>@Locale.T("ab.stepUser")</h2>
-            <label>@Locale.T("ab.userName")<input @bind="userName" disabled="@busy" /></label>
-            <label>@Locale.T("ab.password")<input type="password" @bind="password" disabled="@busy" /></label>
-            <label>@Locale.T("ab.confirm")<input type="password" @bind="confirm" disabled="@busy" /></label>
-            <label>@Locale.T("ab.email")<input @bind="email" disabled="@busy" /></label>
-            <label>@Locale.T("ab.question")<input @bind="question" disabled="@busy" /></label>
-            <label>@Locale.T("ab.answer")<input @bind="answer" disabled="@busy" /></label>
-            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="CreateUserAsync">@Locale.T("ab.createUser")</button>
-        </div>
+            <div class="sa-form">
+                <label class="sa-field">
+                    @Locale.T("ab.userName")
+                    <input @bind="userName" disabled="@busy" autocomplete="off" />
+                    <small>@Locale.T("ab.userLen")</small>
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.email")
+                    <input type="email" @bind="email" disabled="@busy" autocomplete="off" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.password")
+                    <span class="sa-pass">
+                        <input type="@(showPass ? "text" : "password")" @bind="password" disabled="@busy" autocomplete="new-password" />
+                        <button type="button" class="sa-eye" tabindex="-1" @onclick="() => showPass = !showPass">@(showPass ? EyeOffIcon : EyeIcon)</button>
+                    </span>
+                    <small>@Locale.T("ab.passLen")</small>
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.confirm")
+                    <span class="sa-pass">
+                        <input type="@(showConfirm ? "text" : "password")" @bind="confirm" disabled="@busy" autocomplete="new-password" />
+                        <button type="button" class="sa-eye" tabindex="-1" @onclick="() => showConfirm = !showConfirm">@(showConfirm ? EyeOffIcon : EyeIcon)</button>
+                    </span>
+                </label>
+            </div>
+            <div class="sa-foot">
+                <button type="button" class="btn-primary" disabled="@busy" @onclick="CreateUserAsync">@Locale.T("ab.createUser")</button>
+            </div>
+        </section>
     }
     else if (step == 2)
     {
-        <div class="ab-form">
+        <section class="card si-signup-card">
             <h2>@Locale.T("ab.stepInst")</h2>
-            <label>@Locale.T("ab.perStudent")<input @bind="perStudent" disabled="@busy" /></label>
-            <label>@Locale.T("ab.instName")<input @bind="schoolName" disabled="@busy" /></label>
-            <label>@Locale.T("ab.established")<input @bind="established" disabled="@busy" /></label>
-            <label>@Locale.T("ab.principal")<input @bind="principal" disabled="@busy" /></label>
-            <label>@Locale.T("ab.staff")<input @bind="staff" disabled="@busy" /></label>
-            <label>@Locale.T("ab.students")<input @bind="students" disabled="@busy" /></label>
-            <label>@Locale.T("ab.city")<input @bind="city" disabled="@busy" /></label>
-            <label>@Locale.T("ab.state")<input @bind="state" disabled="@busy" /></label>
-            <label>@Locale.T("ab.localArea")<input @bind="localArea" disabled="@busy" /></label>
-            <label>@Locale.T("ab.postal")<input @bind="postal" disabled="@busy" /></label>
-            <label>@Locale.T("ab.phone")<input @bind="phone" disabled="@busy" /></label>
-            <label>@Locale.T("ab.email")<input @bind="instEmail" disabled="@busy" /></label>
-            <label>@Locale.T("ab.website")<input @bind="website" disabled="@busy" /></label>
-            <label>@Locale.T("ab.address")<input @bind="address" disabled="@busy" /></label>
-            <label>
-                @Locale.T("ab.referrer")
-                <select @bind="referrerId" disabled="@busy">
-                    <option value="0">@Locale.T("ab.noRef")</option>
-                    @foreach (var item in referrers)
-                    {
-                        <option value="@item.Id">@item.Name</option>
-                    }
-                </select>
-            </label>
-            <label>@Locale.T("ab.commission")<input @bind="commission" disabled="@busy" /></label>
-            <div class="ab-radios">
-                <span>@Locale.T("ab.duration")</span>
-                <label><input type="radio" name="dur" checked="@(years == 2)" @onchange="@(() => years = 2)" disabled="@busy" /> @Locale.T("ab.years2")</label>
-                <label><input type="radio" name="dur" checked="@(years == 3)" @onchange="@(() => years = 3)" disabled="@busy" /> @Locale.T("ab.years3")</label>
-                <label><input type="radio" name="dur" checked="@(years == 5)" @onchange="@(() => years = 5)" disabled="@busy" /> @Locale.T("ab.years5")</label>
-                <small>@Locale.T("ab.expiry", DateTime.Today.AddYears(years).ToString("dd MMM yyyy"), years)</small>
+            <p class="si-signup-user">@Locale.T("ab.userName"): <b>@userName</b></p>
+            <div class="sa-form">
+                <label class="sa-field span-2">
+                    @Locale.T("ab.instName")
+                    <input @bind="schoolName" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.perStudent")
+                    <input @bind="perStudent" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.established")
+                    <input @bind="established" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.principal")
+                    <input @bind="principal" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.staff")
+                    <input @bind="staff" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.students")
+                    <input @bind="students" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.city")
+                    <input @bind="city" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.state")
+                    <input @bind="state" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.localArea")
+                    <input @bind="localArea" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.postal")
+                    <input @bind="postal" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.phone")
+                    <input @bind="phone" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.email")
+                    <input type="email" @bind="instEmail" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.website")
+                    <input @bind="website" disabled="@busy" />
+                </label>
+                <label class="sa-field span-2">
+                    @Locale.T("ab.address")
+                    <input @bind="address" disabled="@busy" />
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.referrer")
+                    <select @bind="referrerId" disabled="@busy">
+                        <option value="0">@Locale.T("ab.noRef")</option>
+                        @foreach (var item in referrers)
+                        {
+                            <option value="@item.Id">@item.Name</option>
+                        }
+                    </select>
+                </label>
+                <label class="sa-field">
+                    @Locale.T("ab.commission")
+                    <input @bind="commission" disabled="@busy" />
+                </label>
+                <div class="sa-field span-2">
+                    <span>@Locale.T("ab.duration")</span>
+                    <div class="si-signup-years">
+                        <label class="@(years == 2 ? "is-on" : null)">
+                            <input type="radio" name="dur" checked="@(years == 2)" @onchange="@(() => years = 2)" disabled="@busy" />
+                            <span>@Locale.T("ab.years2")</span>
+                        </label>
+                        <label class="@(years == 3 ? "is-on" : null)">
+                            <input type="radio" name="dur" checked="@(years == 3)" @onchange="@(() => years = 3)" disabled="@busy" />
+                            <span>@Locale.T("ab.years3")</span>
+                        </label>
+                        <label class="@(years == 5 ? "is-on" : null)">
+                            <input type="radio" name="dur" checked="@(years == 5)" @onchange="@(() => years = 5)" disabled="@busy" />
+                            <span>@Locale.T("ab.years5")</span>
+                        </label>
+                    </div>
+                    <small>@Locale.T("ab.expiry", DateTime.Today.AddYears(years).ToString("dd MMM yyyy"), years)</small>
+                </div>
+                <label class="sa-field span-2 si-logo">
+                    @Locale.T("ab.logo")
+                    <InputFile OnChange="OnLogo" accept=".png,.jpg,.jpeg" />
+                </label>
+                @if (!string.IsNullOrWhiteSpace(logoPreview))
+                {
+                    <div class="si-logo-preview">
+                        <img src="@logoPreview" alt="" />
+                    </div>
+                }
             </div>
-            <label>
-                @Locale.T("ab.logo")
-                <InputFile OnChange="OnLogo" accept=".png,.jpg,.jpeg" />
-            </label>
-            @if (!string.IsNullOrWhiteSpace(logoPreview))
-            {
-                <img class="ab-logo" src="@logoPreview" alt="" />
-            }
-            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SubmitAsync">@Locale.T("ab.submit")</button>
-        </div>
+            <div class="sa-foot">
+                <button type="button" class="btn-primary" disabled="@busy" @onclick="SubmitAsync">@Locale.T("ab.submit")</button>
+            </div>
+        </section>
     }
     else
     {
-        <div class="ab-done">
+        <div class="sa-done">
+            <span class="sa-done-ico">✓</span>
+            <h2>@Locale.T("ab.stepDone")</h2>
             <p>@Locale.T("ab.instCreated")</p>
-            <a class="acc-btn acc-btn-primary" href="authority">@Locale.T("ab.continue")</a>
+            <a class="btn-primary" href="authority">@Locale.T("ab.continue")</a>
         </div>
     }
 </div>
@@ -82,25 +178,23 @@
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
 
 @code {
     private int step = 1, referrerId, years = 2;
-    private string userName = "", password = "", confirm = "", email = "", question = "", answer = "";
+    private string userName = "", password = "", confirm = "", email = "";
     private string perStudent = "", schoolName = "", established = "", principal = "", staff = "", students = "";
     private string city = "", state = "", localArea = "", postal = "", phone = "", instEmail = "", website = "", address = "";
     private string commission = "10", logoBase64 = "", logoPreview = "";
     private readonly List<AuthorityOptionDto> referrers = [];
-    private bool busy, popupError;
+    private bool busy, popupError, showPass, showConfirm;
     private string busyTitle = "", popupText = "";
+
+    private static readonly MarkupString EyeIcon = Icon("M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z");
+    private static readonly MarkupString EyeOffIcon = Icon("M3 3l18 18M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-4.4M9.9 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3.2 3.9M6.1 6.1A18 18 0 0 0 2 12s3.5 7 10 7c1.5 0 2.9-.3 4.1-.8");
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"{d}\"/></svg>";
 
     protected override async Task OnInitializedAsync()
     {
@@ -125,8 +219,7 @@
             if (!await OnlineAsync()) return;
             var result = await Api.CreateAuthorityUserAsync(Session.AccessToken!, new SignupUserRequest
             {
-                UserName = userName, Password = password, ConfirmPassword = confirm,
-                Email = email, Question = question, Answer = answer
+                UserName = userName, Password = password, ConfirmPassword = confirm, Email = email
             });
             if (!result.Succeeded) { Show(Err(result.Error), true); return; }
             step = 2;
@@ -144,7 +237,7 @@
             if (!await OnlineAsync()) return;
             var result = await Api.CreateAuthorityInstitutionAsync(Session.AccessToken!, new SignupInstitutionRequest
             {
-                UserName = userName, Password = password, PasswordAnswer = answer,
+                UserName = userName, Password = password,
                 PerStudentRate = perStudent, SchoolName = schoolName, Established = established,
                 Principal = principal, AcadamicStaff = staff, Students = students, City = city,
                 State = state, LocalArea = localArea, PostalCode = postal, Phone = phone,

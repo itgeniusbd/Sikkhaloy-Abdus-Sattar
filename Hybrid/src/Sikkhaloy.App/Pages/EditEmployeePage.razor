@@ -1,0 +1,324 @@
+@page "/staff/employees/{EmployeeId:int}/edit"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="card sa-page emp-add-page emp-edit-page">
+    <header class="sa-head sj-head">
+        <div>
+            <p class="sa-kicker">@Locale.T("emp.kicker")</p>
+            <h1>@Locale.T("emp.editTitle")</h1>
+        </div>
+        <a class="btn-ghost" href="/staff/employees">@Locale.T("emp.activeHint")</a>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
+    {
+        <NetBanner Text="@error" />
+    }
+
+    @if (form.EmployeeID > 0)
+    {
+        <section class="emp-block">
+            <h3>@(form.IsTeacher ? Locale.T("emp.step1") : Locale.T("emp.staffInfo"))</h3>
+            <div class="sa-form">
+                <label class="sa-field">@Locale.T("emp.id")
+                    <input @bind="form.ID" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.firstName")
+                    <input @bind="form.FirstName" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.lastName")
+                    <input @bind="form.LastName" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.father")
+                    <input @bind="form.FatherName" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.designation")
+                    <input @bind="form.Designation" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.phone")
+                    <input @bind="form.Phone" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.gender")
+                    <span class="aj-type">
+                        <label class="aj-chip">
+                            <input type="radio" name="egender" checked="@(form.Gender == "Male")" disabled="@busy" @onchange="@(() => form.Gender = "Male")" />
+                            <span>@Locale.T("emp.male")</span>
+                        </label>
+                        <label class="aj-chip">
+                            <input type="radio" name="egender" checked="@(form.Gender == "Female")" disabled="@busy" @onchange="@(() => form.Gender = "Female")" />
+                            <span>@Locale.T("emp.female")</span>
+                        </label>
+                    </span>
+                </label>
+                @if (form.IsTeacher)
+                {
+                    <label class="sa-field">@Locale.T("emp.age")
+                        <input @bind="form.Age" disabled="@busy" />
+                    </label>
+                }
+                <label class="sa-field">@Locale.T("emp.dob")
+                    <input type="date" @bind="form.DateOfBirth" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.religion")
+                    <select @bind="form.Religion" disabled="@busy">
+                        <option>Islam</option>
+                        <option>Hinduism</option>
+                        <option>Buddhism</option>
+                        <option>Christianity</option>
+                    </select>
+                </label>
+                @if (form.IsTeacher)
+                {
+                    <label class="sa-field">@Locale.T("emp.nationality")
+                        <input @bind="form.Nationality" disabled="@busy" />
+                    </label>
+                    <label class="sa-field">@Locale.T("sub.email")
+                        <input @bind="form.Email" disabled="@busy" />
+                    </label>
+                    <label class="sa-field">@Locale.T("emp.city")
+                        <input @bind="form.City" disabled="@busy" />
+                    </label>
+                    <label class="sa-field">@Locale.T("emp.state")
+                        <input @bind="form.State" disabled="@busy" />
+                    </label>
+                    <label class="sa-field">@Locale.T("emp.postal")
+                        <input @bind="form.PostalCode" disabled="@busy" />
+                    </label>
+                }
+                <label class="sa-field span-2">@Locale.T("emp.address")
+                    <input @bind="form.Address" disabled="@busy" />
+                </label>
+            </div>
+        </section>
+
+        <section class="emp-block">
+            <h3>@Locale.T("emp.jobInfo")</h3>
+            <div class="sa-form">
+                <label class="sa-field">@Locale.T("emp.jobType")
+                    <span class="aj-type">
+                        <label class="aj-chip">
+                            <input type="radio" name="ejob" checked="@(form.PermanentTemporary == "Permanent")" disabled="@busy" @onchange="@(() => form.PermanentTemporary = "Permanent")" />
+                            <span>@Locale.T("emp.permanent")</span>
+                        </label>
+                        <label class="aj-chip">
+                            <input type="radio" name="ejob" checked="@(form.PermanentTemporary == "Temporary")" disabled="@busy" @onchange="@(() => form.PermanentTemporary = "Temporary")" />
+                            <span>@Locale.T("emp.temporary")</span>
+                        </label>
+                    </span>
+                </label>
+                <label class="sa-field">@Locale.T("emp.salary")
+                    <input type="number" min="0" step="0.01" @bind="form.Salary" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.bank")
+                    <input @bind="form.BankAccNo" disabled="@busy" />
+                </label>
+                <label class="sa-field">@Locale.T("emp.absDeduct")
+                    <span class="aj-type">
+                        <label class="aj-chip">
+                            <input type="radio" name="eabs" checked="@form.AbsDeducted" disabled="@busy" @onchange="@(() => form.AbsDeducted = true)" />
+                            <span>@Locale.T("emp.yes")</span>
+                        </label>
+                        <label class="aj-chip">
+                            <input type="radio" name="eabs" checked="@(!form.AbsDeducted)" disabled="@busy" @onchange="@(() => form.AbsDeducted = false)" />
+                            <span>@Locale.T("emp.no")</span>
+                        </label>
+                    </span>
+                </label>
+                @if (form.AbsDeducted)
+                {
+                    <label class="sa-field">@Locale.T("emp.absAmount")
+                        <input type="number" min="0" step="0.01" @bind="form.AbsDeduction" disabled="@busy" />
+                    </label>
+                }
+                <label class="sa-field">@Locale.T("emp.lateAbs")
+                    <span class="aj-type">
+                        <label class="aj-chip">
+                            <input type="radio" name="elate" checked="@form.LateCountAsAbs" disabled="@busy" @onchange="@(() => form.LateCountAsAbs = true)" />
+                            <span>@Locale.T("emp.yes")</span>
+                        </label>
+                        <label class="aj-chip">
+                            <input type="radio" name="elate" checked="@(!form.LateCountAsAbs)" disabled="@busy" @onchange="@(() => form.LateCountAsAbs = false)" />
+                            <span>@Locale.T("emp.no")</span>
+                        </label>
+                    </span>
+                </label>
+                @if (form.LateCountAsAbs)
+                {
+                    <label class="sa-field">@Locale.T("emp.lateDays")
+                        <input type="number" min="1" @bind="lateDays" disabled="@busy" />
+                    </label>
+                }
+            </div>
+        </section>
+
+        <div class="sa-foot aj-foot">
+            <button type="button" class="cls-act cls-act-del" disabled="@busy" @onclick="DeactivateAsync">@Locale.T("emp.deactivate")</button>
+            <button type="button" class="btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("emp.updateInfo")</button>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="saving" Title="@Locale.T("emp.updating")" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    [Parameter] public int EmployeeId { get; set; }
+
+    private EmployeeEditDto form = new();
+    private int lateDays = 3;
+    private bool busy;
+    private bool saving;
+    private string? error;
+    private string popupText = "";
+    private bool popupError;
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            if (!await Api.PingAsync())
+            {
+                error = Locale.T("subj.needOnline");
+                return;
+            }
+
+            var data = await Api.GetEmployeeAsync(Session.AccessToken, EmployeeId);
+            if (data is null || data.EmployeeID <= 0)
+            {
+                error = Locale.T("emp.needId");
+                return;
+            }
+
+            form = data;
+            lateDays = form.LateDays is > 0 ? form.LateDays.Value : 3;
+        }
+        catch (HttpRequestException)
+        {
+            error = Locale.T("subj.needOnline");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(form.FirstName) || string.IsNullOrWhiteSpace(form.LastName)
+            || string.IsNullOrWhiteSpace(form.Designation) || string.IsNullOrWhiteSpace(form.Gender))
+        {
+            Show(Locale.T("emp.needInfo"), true);
+            return;
+        }
+        if (form.AbsDeducted && form.AbsDeduction <= 0)
+        {
+            Show(Locale.T("emp.needAbsAmount"), true);
+            return;
+        }
+
+        form.LateDays = form.LateCountAsAbs ? lateDays : null;
+        await BeginSaveAsync();
+        try
+        {
+            var result = await Api.SaveEmployeeDetailAsync(Session.AccessToken, EmployeeId, form);
+            if (!result.Succeeded)
+            {
+                Show(Translate(result.Error), true);
+                return;
+            }
+
+            Show(Locale.T("emp.saved"));
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            saving = false;
+            busy = false;
+        }
+    }
+
+    private async Task DeactivateAsync()
+    {
+        var ok = await JS.InvokeAsync<bool>("confirm", Locale.T("emp.confirmDeactivate"));
+        if (!ok)
+            return;
+
+        await BeginSaveAsync();
+        try
+        {
+            var result = await Api.SetEmployeeStatusAsync(Session.AccessToken, EmployeeId, new SetJobStatusRequest
+            {
+                JobStatus = "Deactivate"
+            });
+            if (!result.Succeeded)
+            {
+                Show(Translate(result.Error), true);
+                return;
+            }
+
+            Nav.NavigateTo("/staff/employees");
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            saving = false;
+            busy = false;
+        }
+    }
+
+    private async Task BeginSaveAsync()
+    {
+        saving = true;
+        busy = true;
+        popupText = "";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void ClosePopup() => popupText = "";
+
+    private void Show(string value, bool err = false)
+    {
+        popupText = value;
+        popupError = err;
+        error = err ? value : null;
+    }
+
+    private string Translate(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? Locale.T("emp.failed") : Locale.T(key);
+}

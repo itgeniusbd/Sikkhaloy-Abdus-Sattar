@@ -5,14 +5,12 @@ using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Sikkhaloy.Shared.Auth;
 using Sikkhaloy.Shared.Sms;
+using Sikkhaloy.Shared.Students;
 
 namespace Sikkhaloy.SyncApi.Services;
 
 public sealed class SmsOfficeService
 {
-    private const string GatewayUrl = "http://loopsitbd.powersms.net.bd/httpapi/sendsms";
-    private const string GatewayUser = "Sikkhaloy";
-    private const string GatewayPassword = "Sikkhaloy@SMS_345";
     private const decimal PerSmsRate = 0.36m;
     private const string ShurjoPayBase = "https://engine.shurjopayment.com";
     private const string ShurjoPayUser = "sikkhaloy";
@@ -23,11 +21,13 @@ public sealed class SmsOfficeService
 
     private readonly EduConnectionFactory _connections;
     private readonly LocalOfficeMode _local;
+    private readonly OfficeSmsGateway _gateway;
 
-    public SmsOfficeService(EduConnectionFactory connections, LocalOfficeMode local)
+    public SmsOfficeService(EduConnectionFactory connections, LocalOfficeMode local, OfficeSmsGateway gateway)
     {
         _connections = connections;
         _local = local;
+        _gateway = gateway;
     }
 
     public bool IsLocal => _local.IsLocal;
@@ -37,7 +37,7 @@ public sealed class SmsOfficeService
     {
         if (_local.IsLocal)
             return ("Localhost - not sent to mobile", null, true);
-        var call = await PostGatewayAsync(phone, text, ct);
+        var call = await _gateway.SendAsync(phone, text, ct);
         return (call.Body, call.Error, false);
     }
 
@@ -185,8 +185,8 @@ ORDER BY FirstName, LastName
                     continue;
                 }
                 var call = _local.IsLocal
-                    ? new GatewayCall("Localhost - not sent to mobile", null)
-                    : await PostGatewayAsync(job.Phone, text, ct);
+                    ? new OfficeSmsGateway.GatewayCall("Localhost - not sent to mobile", null)
+                    : await _gateway.SendAsync(job.Phone, text, ct);
                 if (string.IsNullOrWhiteSpace(call.Body))
                 {
                     failed++;
@@ -235,6 +235,138 @@ VALUES (@ID, @SchoolID, @SID, @TID, @YearID)
                         other.Parameters.AddWithValue("@SchoolID", session.SchoolID);
                         other.Parameters.AddWithValue("@SID", job.StudentId > 0 ? job.StudentId : DBNull.Value);
                         other.Parameters.AddWithValue("@TID", job.TeacherId > 0 ? job.TeacherId : DBNull.Value);
+                        other.Parameters.AddWithValue("@YearID", session.EducationYearID);
+                        await other.ExecuteNonQueryAsync(ct);
+                    }
+                    sent++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    lastError = ex.Message;
+                }
+            }
+
+            return new SmsResult
+            {
+                Succeeded = sent > 0,
+                Sent = sent,
+                Failed = failed,
+                Balance = await ReadBalanceAsync(con, session.SchoolID, ct),
+                Error = sent > 0 ? null : (lastError ?? "sms.fail"),
+                Message = sent > 0 && _local.IsLocal ? "sms.localSent" : lastError,
+                LocalMode = _local.IsLocal
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SmsResult { Error = ex.Message, LocalMode = _local.IsLocal };
+        }
+    }
+
+    public async Task<SmsResult> SendStudentLoginSmsAsync(
+        SessionSnapshot session, StudentLoginSmsRequest? request, CancellationToken ct)
+    {
+        try
+        {
+            var ids = (request?.StudentIDs ?? []).Where(x => x > 0).Distinct().ToList();
+            if (ids.Count == 0)
+                return Fail("sms.needSelect");
+
+            await using var con = _connections.Create();
+            await con.OpenAsync(ct);
+            var school = await SessionSchool.ResolveNameAsync(session, con, ct);
+            var website = "www.sikkhaloy.com";
+            await using (var webCmd = new SqlCommand(
+                "SELECT LTRIM(RTRIM(ISNULL(Website, N''))) FROM dbo.SchoolInfo WHERE SchoolID = @SchoolID", con))
+            {
+                webCmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                var value = await webCmd.ExecuteScalarAsync(ct);
+                var site = (value as string ?? "").Trim();
+                if (site.Length > 0) website = site;
+            }
+
+            var names = ids.Select((_, i) => "@S" + i).ToArray();
+            await using var cmd = new SqlCommand($"""
+SELECT Student.StudentID, Student.StudentsName, ISNULL(Student.SMSPhoneNo, N'') AS SMSPhoneNo,
+       ISNULL(Registration.UserName, N'') AS UserName, ISNULL(AST.Password, N'') AS Password
+FROM dbo.Student
+INNER JOIN dbo.Registration ON Registration.RegistrationID = Student.StudentRegistrationID
+LEFT JOIN dbo.AST ON AST.RegistrationID = Student.StudentRegistrationID
+WHERE Student.SchoolID = @SchoolID AND Student.StudentID IN ({string.Join(",", names)})
+""", con);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            for (var i = 0; i < ids.Count; i++)
+                cmd.Parameters.AddWithValue(names[i], ids[i]);
+
+            var jobs = new List<(int StudentId, string Phone, string Text, int Count)>();
+            await using (var reader = await cmd.ExecuteReaderAsync(ct))
+            {
+                while (await reader.ReadAsync(ct))
+                {
+                    var name = reader["StudentsName"]?.ToString() ?? "";
+                    var phone = reader["SMSPhoneNo"]?.ToString() ?? "";
+                    var user = reader["UserName"]?.ToString() ?? "";
+                    var pass = reader["Password"]?.ToString() ?? "";
+                    var text = $"Dear, {name} Your Login Username Is: {user} And Password Is: {pass} Visit: {website} and Login. Regards: {school}";
+                    jobs.Add((Convert.ToInt32(reader["StudentID"]), phone, text, IsValidBdMobile(phone) ? SmsCount(text) : 0));
+                }
+            }
+
+            var valid = jobs.Where(x => x.Count > 0).ToList();
+            if (valid.Count == 0)
+                return Fail("sms.needPhone");
+            var needed = valid.Sum(x => x.Count);
+            var balance = await ReadBalanceAsync(con, session.SchoolID, ct);
+            if (balance < needed)
+                return new SmsResult { Error = "sms.low", Balance = balance };
+
+            var sent = 0;
+            var failed = 0;
+            string? lastError = null;
+            foreach (var job in jobs)
+            {
+                if (job.Count <= 0 || string.IsNullOrWhiteSpace(job.Phone))
+                {
+                    failed++;
+                    continue;
+                }
+                var call = _local.IsLocal
+                    ? new OfficeSmsGateway.GatewayCall("Localhost - not sent to mobile", null)
+                    : await _gateway.SendAsync(job.Phone, job.Text, ct);
+                if (string.IsNullOrWhiteSpace(call.Body))
+                {
+                    failed++;
+                    lastError = call.Error;
+                    continue;
+                }
+                try
+                {
+                    var smsId = Guid.NewGuid();
+                    await using (var ins = new SqlCommand("""
+INSERT INTO dbo.SMS_Send_Record
+    (SMS_Send_ID, PhoneNumber, TextSMS, TextCount, SMSCount, PurposeOfSMS, Status, Date, SMS_Response)
+VALUES
+    (@ID, @Phone, @Text, @Len, @Count, N'Student User & Password', @Status, GETDATE(), @Resp)
+""", con))
+                    {
+                        ins.Parameters.AddWithValue("@ID", smsId);
+                        ins.Parameters.AddWithValue("@Phone", job.Phone);
+                        ins.Parameters.AddWithValue("@Text", job.Text);
+                        ins.Parameters.AddWithValue("@Len", job.Text.Length);
+                        ins.Parameters.AddWithValue("@Count", job.Count);
+                        ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
+                        ins.Parameters.AddWithValue("@Resp", call.Body);
+                        await ins.ExecuteNonQueryAsync(ct);
+                    }
+                    await using (var other = new SqlCommand("""
+INSERT INTO dbo.SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID)
+VALUES (@ID, @SchoolID, @SID, NULL, @YearID)
+""", con))
+                    {
+                        other.Parameters.AddWithValue("@ID", smsId);
+                        other.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                        other.Parameters.AddWithValue("@SID", job.StudentId);
                         other.Parameters.AddWithValue("@YearID", session.EducationYearID);
                         await other.ExecuteNonQueryAsync(ct);
                     }
@@ -433,60 +565,157 @@ DELETE FROM dbo.SMS_Group_Phone_Number WHERE SMS_NumberID = @ID AND SchoolID = @
     }
 
     public async Task<SmsRecordsDto> GetRecordsAsync(
-        SessionSnapshot session, DateTime? from, DateTime? to, string? search, CancellationToken ct)
+        SessionSnapshot session, DateTime? from, DateTime? to, string? search, string? kind, int page, int pageSize, CancellationToken ct)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 10, 50);
+        var q = (search ?? "").Trim();
+        if (q.Length > 80) q = q[..80];
+        var like = q.Length == 0 ? "" : "%" + EscapeLike(q) + "%";
+        var kindKey = (kind ?? "").Trim().ToLowerInvariant();
+        if (kindKey is not ("group" or "individual" or "system")) kindKey = "";
+        var fromDt = from?.Date ?? new DateTime(2000, 1, 1);
+        var toEx = (to?.Date ?? DateTime.Today).AddDays(1);
+        var skip = (page - 1) * pageSize;
+
+        const string Filter = """
+FROM dbo.SMS_Send_Record AS r
+INNER JOIN dbo.SMS_OtherInfo AS o ON r.SMS_Send_ID = o.SMS_Send_ID
+WHERE o.SchoolID = @SchoolID
+  AND r.Date >= @From AND r.Date < @ToEx
+  AND (@Q = N'' OR r.PhoneNumber LIKE @Like OR LEFT(r.PurposeOfSMS, 120) LIKE @Like)
+  AND (
+        @Kind = N''
+        OR CASE
+            WHEN o.SMS_NumberID IS NOT NULL THEN N'group'
+            WHEN o.StudentID IS NOT NULL OR o.TeacherID IS NOT NULL OR o.CommitteeMemberId IS NOT NULL THEN N'individual'
+            ELSE N'system'
+           END = @Kind
+      )
+""";
+
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
         var dto = new SmsRecordsDto
         {
             Balance = await ReadBalanceAsync(con, session.SchoolID, ct),
-            LocalMode = _local.IsLocal
+            LocalMode = _local.IsLocal,
+            PerSmsRate = PerSmsRate,
+            Page = page,
+            PageSize = pageSize
         };
-        var q = (search ?? "").Trim();
-        await using (var count = new SqlCommand("""
-SELECT ISNULL(SUM(r.SMSCount), 0)
-FROM dbo.SMS_Send_Record AS r
-INNER JOIN dbo.SMS_OtherInfo AS o ON r.SMS_Send_ID = o.SMS_Send_ID
-WHERE o.SchoolID = @SchoolID
-  AND CAST(r.Date AS date) BETWEEN ISNULL(@From, '19000101') AND ISNULL(@To, '30000101')
-  AND (@Q = N'' OR r.PhoneNumber LIKE N'%' + @Q + N'%' OR r.PurposeOfSMS LIKE N'%' + @Q + N'%')
+
+        await using (var stats = new SqlCommand($"""
+SELECT COUNT_BIG(*) AS Recipients,
+       ISNULL(SUM(r.SMSCount), 0) AS TotalSent,
+       ISNULL(SUM(CASE WHEN ISNULL(r.Status, N'') IN (N'Sent', N'Local') THEN r.SMSCount ELSE 0 END), 0) AS Successful,
+       ISNULL(SUM(CASE WHEN ISNULL(r.Status, N'') IN (N'Sent', N'Local') THEN 0 ELSE ISNULL(r.SMSCount, 0) END), 0) AS Failed
+{Filter}
 """, con))
         {
-            count.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-            count.Parameters.AddWithValue("@From", (object?)from?.Date ?? DBNull.Value);
-            count.Parameters.AddWithValue("@To", (object?)to?.Date ?? DBNull.Value);
-            count.Parameters.AddWithValue("@Q", q);
-            dto.TotalSent = Convert.ToInt32(await count.ExecuteScalarAsync(ct));
+            stats.CommandTimeout = 45;
+            BindRecordFilter(stats, session.SchoolID, fromDt, toEx, q, like, kindKey);
+            await using var reader = await stats.ExecuteReaderAsync(ct);
+            if (await reader.ReadAsync(ct))
+            {
+                dto.TotalRecipients = ToInt(reader["Recipients"]);
+                dto.TotalSent = ToInt(reader["TotalSent"]);
+                dto.DistinctRecipients = dto.TotalRecipients;
+                dto.Successful = ToInt(reader["Successful"]);
+                dto.Failed = ToInt(reader["Failed"]);
+            }
         }
-        await using var cmd = new SqlCommand("""
-SELECT TOP 400 r.SMS_Send_ID, r.PhoneNumber, r.TextSMS, r.TextCount, r.SMSCount, r.PurposeOfSMS, r.Date
-FROM dbo.SMS_Send_Record AS r
-INNER JOIN dbo.SMS_OtherInfo AS o ON r.SMS_Send_ID = o.SMS_Send_ID
-WHERE o.SchoolID = @SchoolID
-  AND CAST(r.Date AS date) BETWEEN ISNULL(@From, '19000101') AND ISNULL(@To, '30000101')
-  AND (@Q = N'' OR r.PhoneNumber LIKE N'%' + @Q + N'%' OR r.PurposeOfSMS LIKE N'%' + @Q + N'%')
+
+        dto.RowCount = dto.TotalRecipients;
+        dto.TotalCost = Math.Round(dto.TotalSent * PerSmsRate, 2);
+        dto.TotalPages = dto.RowCount <= 0 ? 1 : (int)Math.Ceiling(dto.RowCount / (double)pageSize);
+        if (page > dto.TotalPages)
+        {
+            page = dto.TotalPages;
+            dto.Page = page;
+            skip = (page - 1) * pageSize;
+        }
+
+        await using var cmd = new SqlCommand($"""
+SELECT r.SMS_Send_ID, r.PhoneNumber, r.TextSMS, r.TextCount, r.SMSCount, r.PurposeOfSMS, r.Date, r.Status,
+       r.Kind, r.RecipientName, r.RecipientCode
+FROM (
+    SELECT r.SMS_Send_ID, r.PhoneNumber,
+           ISNULL(r.TextSMS, N'') AS TextSMS,
+           r.TextCount, r.SMSCount,
+           LEFT(ISNULL(r.PurposeOfSMS, N''), 80) AS PurposeOfSMS,
+           r.Date, ISNULL(r.Status, N'') AS Status,
+           CASE
+             WHEN o.SMS_NumberID IS NOT NULL THEN N'group'
+             WHEN o.StudentID IS NOT NULL OR o.TeacherID IS NOT NULL OR o.CommitteeMemberId IS NOT NULL THEN N'individual'
+             ELSE N'system'
+           END AS Kind,
+           COALESCE(
+             NULLIF(LTRIM(RTRIM(st.StudentsName)), N''),
+             NULLIF(LTRIM(RTRIM(ISNULL(t.FirstName, N'') + N' ' + ISNULL(t.LastName, N''))), N''),
+             NULLIF(LTRIM(RTRIM(ISNULL(sf.FirstName, N'') + N' ' + ISNULL(sf.LastName, N''))), N''),
+             NULLIF(LTRIM(RTRIM(cm.MemberName)), N''),
+             NULLIF(LTRIM(RTRIM(cn.Name)), N''),
+             r.PhoneNumber
+           ) AS RecipientName,
+           ISNULL(st.ID, N'') AS RecipientCode
+    FROM (
+        SELECT r.SMS_Send_ID
+        {Filter}
+        ORDER BY r.Date DESC
+        OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY
+    ) AS ids
+    INNER JOIN dbo.SMS_Send_Record AS r ON r.SMS_Send_ID = ids.SMS_Send_ID
+    INNER JOIN dbo.SMS_OtherInfo AS o ON o.SMS_Send_ID = ids.SMS_Send_ID
+    LEFT JOIN dbo.Student AS st ON st.StudentID = o.StudentID
+    OUTER APPLY (SELECT TOP 1 FirstName, LastName FROM dbo.Teacher WHERE TeacherID = o.TeacherID OR EmployeeID = o.TeacherID) AS t
+    OUTER APPLY (SELECT TOP 1 FirstName, LastName FROM dbo.Staff_Info WHERE EmployeeID = o.TeacherID) AS sf
+    LEFT JOIN dbo.CommitteeMember AS cm ON cm.CommitteeMemberId = o.CommitteeMemberId
+    LEFT JOIN dbo.SMS_Group_Phone_Number AS cn ON cn.SMS_NumberID = o.SMS_NumberID
+) AS r
 ORDER BY r.Date DESC
 """, con);
-        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-        cmd.Parameters.AddWithValue("@From", (object?)from?.Date ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@To", (object?)to?.Date ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Q", q);
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        cmd.CommandTimeout = 45;
+        BindRecordFilter(cmd, session.SchoolID, fromDt, toEx, q, like, kindKey);
+        cmd.Parameters.AddWithValue("@Skip", skip);
+        cmd.Parameters.AddWithValue("@Take", pageSize);
+        await using var rows = await cmd.ExecuteReaderAsync(ct);
+        while (await rows.ReadAsync(ct))
         {
             dto.Rows.Add(new SmsRecordDto
             {
-                SMS_Send_ID = reader["SMS_Send_ID"] is Guid g ? g : Guid.Parse(reader["SMS_Send_ID"].ToString()!),
-                PhoneNumber = reader["PhoneNumber"]?.ToString() ?? "",
-                TextSMS = reader["TextSMS"]?.ToString() ?? "",
-                TextCount = reader["TextCount"] is DBNull ? 0 : Convert.ToInt32(reader["TextCount"]),
-                SMSCount = reader["SMSCount"] is DBNull ? 0 : Convert.ToInt32(reader["SMSCount"]),
-                PurposeOfSMS = reader["PurposeOfSMS"]?.ToString() ?? "",
-                Date = Convert.ToDateTime(reader["Date"])
+                SMS_Send_ID = rows["SMS_Send_ID"] is Guid g ? g : Guid.Parse(rows["SMS_Send_ID"].ToString()!),
+                PhoneNumber = rows["PhoneNumber"]?.ToString() ?? "",
+                RecipientName = rows["RecipientName"]?.ToString() ?? "",
+                RecipientCode = rows["RecipientCode"]?.ToString() ?? "",
+                TextSMS = rows["TextSMS"]?.ToString() ?? "",
+                TextCount = rows["TextCount"] is DBNull ? 0 : Convert.ToInt32(rows["TextCount"]),
+                SMSCount = rows["SMSCount"] is DBNull ? 0 : Convert.ToInt32(rows["SMSCount"]),
+                PurposeOfSMS = rows["PurposeOfSMS"]?.ToString() ?? "",
+                Kind = rows["Kind"]?.ToString() ?? "",
+                Status = rows["Status"]?.ToString() ?? "",
+                Date = rows["Date"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(rows["Date"])
             });
         }
         return dto;
     }
+
+    private static void BindRecordFilter(
+        SqlCommand cmd, int schoolId, DateTime fromDt, DateTime toEx, string q, string like, string kind)
+    {
+        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+        cmd.Parameters.AddWithValue("@From", fromDt);
+        cmd.Parameters.AddWithValue("@ToEx", toEx);
+        cmd.Parameters.AddWithValue("@Q", q);
+        cmd.Parameters.AddWithValue("@Like", like);
+        cmd.Parameters.AddWithValue("@Kind", kind);
+    }
+
+    private static string EscapeLike(string value) =>
+        value.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]");
+
+    private static int ToInt(object value) =>
+        value is DBNull ? 0 : Convert.ToInt32(Convert.ToDecimal(value));
 
     public async Task<SmsRechargePageDto> GetRechargeAsync(SessionSnapshot session, CancellationToken ct)
     {
@@ -722,54 +951,6 @@ WHERE SchoolID = @SchoolID AND StudentID IN ({string.Join(",", studentIds.Select
         return value is null or DBNull ? 0 : Convert.ToInt32(value);
     }
 
-    private static async Task<GatewayCall> PostGatewayAsync(string number, string text, CancellationToken ct)
-    {
-        try
-        {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-            var safe = text.Replace("A+", "A Plus", StringComparison.OrdinalIgnoreCase).Replace("+", " Plus ");
-            var body = "userId=" + Uri.EscapeDataString(GatewayUser)
-                       + "&password=" + Uri.EscapeDataString(GatewayPassword)
-                       + "&smsText=" + Uri.EscapeDataString(safe)
-                       + "&commaSeperatedReceiverNumbers=" + Uri.EscapeDataString(number);
-            using var content = new StringContent(body, Encoding.UTF8, "application/x-www-form-urlencoded");
-            using var response = await http.PostAsync(GatewayUrl, content, ct);
-            var json = await response.Content.ReadAsStringAsync(ct);
-            if (GatewayIsError(json, out var gatewayMessage))
-                return new GatewayCall(null, gatewayMessage ?? ("SMS gateway error (" + (int)response.StatusCode + ")."));
-            if (!response.IsSuccessStatusCode)
-                return new GatewayCall(null, "SMS gateway HTTP " + (int)response.StatusCode
-                    + (string.IsNullOrWhiteSpace(json) ? "" : ": " + TrimErr(json)));
-            return new GatewayCall(string.IsNullOrWhiteSpace(json) ? "Sent" : json, null);
-        }
-        catch (Exception ex)
-        {
-            return new GatewayCall(null, "SMS gateway: " + ex.Message);
-        }
-    }
-
-    private static bool GatewayIsError(string json, out string? message)
-    {
-        message = null;
-        if (string.IsNullOrWhiteSpace(json))
-            return false;
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            message = JsonText(root, "message") ?? JsonText(root, "Message");
-            if (!root.TryGetProperty("isError", out var err))
-                return false;
-            return err.ValueKind == JsonValueKind.True
-                   || (err.ValueKind == JsonValueKind.String
-                       && string.Equals(err.GetString(), "true", StringComparison.OrdinalIgnoreCase));
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
-    }
-
     private static async Task<string?> CreateShurjoPayOrderAsync(
         int schoolId, decimal amount, decimal invoiceAmt, string name, string phone, string email, string address,
         string note, CancellationToken ct)
@@ -892,5 +1073,4 @@ WHERE SchoolID = @SchoolID AND StudentID IN ({string.Join(",", studentIds.Select
     private static SmsResult Fail(string error) => new() { Error = error };
 
     private readonly record struct SmsJob(string Phone, int Count, int StudentId, int TeacherId, int ContactId, string Purpose);
-    private readonly record struct GatewayCall(string? Body, string? Error);
 }

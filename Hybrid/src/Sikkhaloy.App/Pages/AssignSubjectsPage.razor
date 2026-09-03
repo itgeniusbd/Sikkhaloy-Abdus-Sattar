@@ -4,88 +4,105 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page">
-    <h1>@Locale.T("asgn.title")</h1>
+<div class="card sa-page aj-page">
+    <header class="sa-head sj-head">
+        <div>
+            <p class="sa-kicker">@Locale.T("asgn.kicker")</p>
+            <h1>@Locale.T("asgn.title")</h1>
+            <p class="sa-lead">@Locale.T("asgn.lead")</p>
+        </div>
+        <a class="btn-ghost" href="/basic-settings/subjects">@Locale.T("asgn.toSubjects")</a>
+    </header>
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error">@error</div>
+        <NetBanner Text="@error" />
     }
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="ok">@message</div>
     }
 
-    <div class="filter-row">
-        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
-            <option value="0">@Locale.T("asgn.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupInput" @bind:after="OnGroupChanged" disabled="@busy">
-                <option value="0">@Locale.T("asgn.selectGroup")</option>
-                @foreach (var item in groups)
+    <div class="aj-bar">
+        <label class="aj-field">
+            @Locale.T("asgn.class")
+            <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+                <option value="0">@Locale.T("asgn.selectClass")</option>
+                @foreach (var item in classes)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item.ClassID">@item.Name</option>
                 }
             </select>
+        </label>
+        @if (groups.Count > 0)
+        {
+            <label class="aj-field">
+                @Locale.T("asgn.group")
+                <select @bind="groupInput" @bind:after="OnGroupChanged" disabled="@busy">
+                    <option value="0">@Locale.T("asgn.selectGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </label>
         }
     </div>
 
     @if (classReady)
     {
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th>@Locale.T("asgn.subjects")</th>
-                    <th class="act">@Locale.T("asgn.select")</th>
-                    <th>@Locale.T("asgn.subjectIs")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (rows.Count == 0)
-            {
-                <tr><td colspan="3" class="empty-row">@Locale.T("asgn.empty")</td></tr>
-            }
-            else
-            {
-                @foreach (var row in rows)
-                {
-                    <tr class="@(row.Selected ? "is-allowed" : null)">
-                        <td>@row.SubjectName</td>
-                        <td class="act">
-                            <input type="checkbox" checked="@row.Selected" disabled="@busy"
-                                   @onchange="e => Toggle(row, e)" />
-                        </td>
-                        <td>
-                            <span class="readm-type">
-                                <label class="choice-inline">
-                                    <input type="radio" name="type-@row.SubjectID" disabled="@busy"
-                                           checked="@(row.SubjectType == "Compulsory")"
-                                           @onchange="@(() => row.SubjectType = "Compulsory")" />
-                                    <span>@Locale.T("readm.compulsory")</span>
-                                </label>
-                                <label class="choice-inline">
-                                    <input type="radio" name="type-@row.SubjectID" disabled="@busy"
-                                           checked="@(row.SubjectType == "Optional")"
-                                           @onchange="@(() => row.SubjectType = "Optional")" />
-                                    <span>@Locale.T("readm.optional")</span>
-                                </label>
-                            </span>
-                        </td>
+        <div class="sj-grid">
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("asgn.subjects")</th>
+                        <th class="act">@Locale.T("asgn.select")</th>
+                        <th>@Locale.T("asgn.subjectIs")</th>
                     </tr>
+                </thead>
+                <tbody>
+                @if (rows.Count == 0)
+                {
+                    <tr><td colspan="3" class="empty-row">@Locale.T("asgn.empty")</td></tr>
                 }
-            }
-            </tbody>
-        </table>
+                else
+                {
+                    @foreach (var row in rows)
+                    {
+                        <tr class="@(row.Selected ? "is-on" : null)">
+                            <td>@row.SubjectName</td>
+                            <td class="act">
+                                <label class="aj-check">
+                                    <input type="checkbox" checked="@row.Selected" disabled="@busy"
+                                           @onchange="e => Toggle(row, e)" />
+                                </label>
+                            </td>
+                            <td>
+                                <span class="aj-type">
+                                    <label class="aj-chip @(row.SubjectType == "Compulsory" ? "is-on" : null)">
+                                        <input type="radio" name="type-@row.SubjectID" disabled="@busy"
+                                               checked="@(row.SubjectType == "Compulsory")"
+                                               @onchange="@(() => row.SubjectType = "Compulsory")" />
+                                        <span>@Locale.T("readm.compulsory")</span>
+                                    </label>
+                                    <label class="aj-chip @(row.SubjectType == "Optional" ? "is-on" : null)">
+                                        <input type="radio" name="type-@row.SubjectID" disabled="@busy"
+                                               checked="@(row.SubjectType == "Optional")"
+                                               @onchange="@(() => row.SubjectType = "Optional")" />
+                                        <span>@Locale.T("readm.optional")</span>
+                                    </label>
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
 
-        <div class="asgn-actions">
-            <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("asgn.assign")</button>
+        <div class="sj-foot aj-foot">
             <button type="button" class="link-btn danger" disabled="@busy" @onclick="ClearAsync">@Locale.T("asgn.removeAll")</button>
+            <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("asgn.assign")</button>
         </div>
     }
 </div>

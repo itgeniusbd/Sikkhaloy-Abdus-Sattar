@@ -1,27 +1,26 @@
 using System.Data;
-using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using Sikkhaloy.Shared.Accounts;
+using Sikkhaloy.Shared.Attendance;
 using Sikkhaloy.Shared.Auth;
 
 namespace Sikkhaloy.SyncApi.Services;
 
 public sealed class PaymentSmsService
 {
-    private const string GatewayUrl = "http://loopsitbd.powersms.net.bd/httpapi/sendsms";
-    private const string GatewayUser = "Sikkhaloy";
-    private const string GatewayPassword = "Sikkhaloy@SMS_345";
-
     private readonly EduConnectionFactory _connections;
     private readonly ReportsService _reports;
     private readonly LocalOfficeMode _local;
+    private readonly OfficeSmsGateway _gateway;
 
-    public PaymentSmsService(EduConnectionFactory connections, ReportsService reports, LocalOfficeMode local)
+    public PaymentSmsService(
+        EduConnectionFactory connections, ReportsService reports, LocalOfficeMode local, OfficeSmsGateway gateway)
     {
         _connections = connections;
         _reports = reports;
         _local = local;
+        _gateway = gateway;
     }
 
     public async Task<PaymentSmsSettingDto> GetSettingAsync(SessionSnapshot session, CancellationToken cancellationToken)
@@ -107,6 +106,122 @@ ORDER BY pr.PayOrderID
             details.ToString(), cancellationToken);
     }
 
+    public async Task<AccountsResult> SendInventorySaleAsync(SessionSnapshot session, int saleId, CancellationToken cancellationToken)
+    {
+        if (saleId <= 0)
+            return new AccountsResult { Error = "acc.needReceipt" };
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+        string phone = "", studentCode = "", party = "", receiptNo = "";
+        int studentId = 0;
+        decimal amount = 0, due = 0;
+        var details = new StringBuilder();
+        await using (var cmd = new SqlCommand("""
+SELECT d.SaleID, ISNULL(d.InvoiceNo, N'') AS InvoiceNo, ISNULL(d.Total, 0) AS Total,
+       ISNULL(d.PaidAmount, CASE WHEN ISNULL(d.ExtraIncomeID, 0) > 0 THEN d.Total ELSE 0 END) AS PaidAmount,
+       ISNULL(NULLIF(LTRIM(RTRIM(cust.Name)), N''), ISNULL(d.Customer, N'')) AS Party,
+       ISNULL(NULLIF(LTRIM(RTRIM(cust.Phone)), N''), ISNULL(s.SMSPhoneNo, N'')) AS Phone,
+       ISNULL(cust.StudentID, 0) AS StudentID,
+       ISNULL(NULLIF(LTRIM(RTRIM(cust.StudentCode)), N''), ISNULL(s.ID, N'')) AS StudentCode
+FROM dbo.Inv_Sale AS d
+LEFT JOIN dbo.Inv_Customer AS cust ON cust.CustomerID = d.CustomerID AND cust.SchoolID = d.SchoolID
+LEFT JOIN dbo.Student AS s ON s.StudentID = cust.StudentID
+WHERE d.SaleID = @ID AND d.SchoolID = @SchoolID
+""", con))
+        {
+            cmd.Parameters.AddWithValue("@ID", saleId);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+                return new AccountsResult { Error = "inv.empty" };
+            receiptNo = reader["InvoiceNo"]?.ToString() ?? "";
+            if (string.IsNullOrWhiteSpace(receiptNo))
+                receiptNo = saleId.ToString();
+            var total = reader["Total"] is DBNull ? 0 : Convert.ToDecimal(reader["Total"]);
+            var paid = reader["PaidAmount"] is DBNull ? 0 : Convert.ToDecimal(reader["PaidAmount"]);
+            amount = paid > 0 ? paid : total;
+            due = Math.Max(0, total - paid);
+            party = reader["Party"]?.ToString() ?? "";
+            phone = reader["Phone"]?.ToString() ?? "";
+            studentId = reader["StudentID"] is DBNull ? 0 : Convert.ToInt32(reader["StudentID"]);
+            studentCode = reader["StudentCode"]?.ToString() ?? "";
+        }
+        await using (var lines = new SqlCommand("""
+SELECT i.Name, l.Qty
+FROM dbo.Inv_SaleLine AS l
+INNER JOIN dbo.Inv_Item AS i ON i.ItemID = l.ItemID
+WHERE l.SaleID = @ID
+ORDER BY l.SaleLineID
+""", con))
+        {
+            lines.Parameters.AddWithValue("@ID", saleId);
+            await using var reader = await lines.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var qty = reader["Qty"] is DBNull ? 0 : Convert.ToDecimal(reader["Qty"]);
+                details.Append(", ").Append(reader["Name"]);
+                if (qty > 0)
+                    details.Append(" x").Append(Fmt(qty));
+            }
+        }
+
+        phone = (phone ?? "").Trim();
+        if (!IsValidBdMobile(phone))
+            return new AccountsResult { Error = "acc.smsNoPhone" };
+
+        var template = await ReadTemplateAsync(con, session.SchoolID, cancellationToken);
+        var school = await SessionSchool.ResolveNameAsync(session, con, cancellationToken);
+        var name = string.IsNullOrWhiteSpace(party) ? school : party;
+        var idText = string.IsNullOrWhiteSpace(studentCode) ? receiptNo : studentCode;
+        var msg = BuildMessage(template, name, idText, amount, receiptNo, details.ToString(), due, school);
+        var count = SmsCount(msg);
+        var balance = 0;
+        await using (var bal = new SqlCommand("SELECT TOP 1 SMS_Balance FROM dbo.SMS WHERE SchoolID = @SchoolID", con))
+        {
+            bal.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            var value = await bal.ExecuteScalarAsync(cancellationToken);
+            balance = value is null or DBNull ? 0 : Convert.ToInt32(value);
+        }
+        if (balance < count)
+            return new AccountsResult { Error = "acc.smsLow" };
+
+        var response = await PostGatewayAsync(phone, msg, cancellationToken);
+        if (string.IsNullOrWhiteSpace(response))
+            return new AccountsResult { Error = "acc.smsFail" };
+
+        var smsId = Guid.NewGuid();
+        await using (var ins = new SqlCommand("""
+INSERT INTO dbo.SMS_Send_Record
+    (SMS_Send_ID, PhoneNumber, TextSMS, TextCount, SMSCount, PurposeOfSMS, Status, Date, SMS_Response)
+VALUES
+    (@ID, @Phone, @Text, @Len, @Count, N'Inventory Sale', @Status, GETDATE(), @Resp)
+""", con))
+        {
+            ins.Parameters.AddWithValue("@ID", smsId);
+            ins.Parameters.AddWithValue("@Phone", phone);
+            ins.Parameters.AddWithValue("@Text", msg);
+            ins.Parameters.AddWithValue("@Len", msg.Length);
+            ins.Parameters.AddWithValue("@Count", count);
+            ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
+            ins.Parameters.AddWithValue("@Resp", response);
+            await ins.ExecuteNonQueryAsync(cancellationToken);
+        }
+        if (studentId > 0)
+        {
+            await using var other = new SqlCommand("""
+INSERT INTO dbo.SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, EducationYearID)
+VALUES (@ID, @SchoolID, @SID, @YearID)
+""", con);
+            other.Parameters.AddWithValue("@ID", smsId);
+            other.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            other.Parameters.AddWithValue("@SID", studentId);
+            other.Parameters.AddWithValue("@YearID", session.EducationYearID);
+            await other.ExecuteNonQueryAsync(cancellationToken);
+        }
+        return new AccountsResult { Succeeded = true, Saved = count };
+    }
+
     public async Task<AccountsResult> SendDueSmsAsync(SessionSnapshot session, DueSmsRequest request, CancellationToken cancellationToken)
     {
         var ids = (request.Ids ?? [])
@@ -120,6 +235,7 @@ ORDER BY pr.PayOrderID
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
         var template = await ReadDueTemplateAsync(con, session.SchoolID, cancellationToken);
+        var school = await SessionSchool.ResolveNameAsync(session, con, cancellationToken);
         var balance = 0;
         await using (var bal = new SqlCommand("SELECT TOP 1 SMS_Balance FROM dbo.SMS WHERE SchoolID = @SchoolID", con))
         {
@@ -142,7 +258,7 @@ ORDER BY pr.PayOrderID
             var phone = (detail.Phone ?? "").Trim();
             var dueDetails = string.Join(", ", detail.Lines.Select(x =>
                 $"{x.Role}: {x.PayFor} - {Fmt(x.Due)} Tk"));
-            var msg = BuildDueMessage(template, detail.Name, detail.ID, detail.Due, dueDetails, session.SchoolName);
+            var msg = BuildDueMessage(template, detail.Name, detail.ID, detail.Due, dueDetails, school);
             if (!IsValidBdMobile(phone))
             {
                 jobs.Add((detail.StudentID, phone, msg, 0));
@@ -166,8 +282,8 @@ ORDER BY pr.PayOrderID
                 failed++;
                 continue;
             }
-            var response = await PostGatewayAsync(job.Phone, job.Message, cancellationToken);
-            if (string.IsNullOrWhiteSpace(response))
+            var call = await PostGatewayAsync(job.Phone, job.Message, cancellationToken);
+            if (string.IsNullOrWhiteSpace(call))
             {
                 failed++;
                 continue;
@@ -186,7 +302,7 @@ VALUES
                 ins.Parameters.AddWithValue("@Len", job.Message.Length);
                 ins.Parameters.AddWithValue("@Count", job.Count);
                 ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
-                ins.Parameters.AddWithValue("@Resp", response);
+                ins.Parameters.AddWithValue("@Resp", call);
                 await ins.ExecuteNonQueryAsync(cancellationToken);
             }
             await using (var other = new SqlCommand("""
@@ -212,6 +328,22 @@ VALUES (@ID, @SchoolID, @SID, @YearID)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(studentName) || string.IsNullOrWhiteSpace(studentCode))
+            {
+                await using var con = _connections.Create();
+                await con.OpenAsync(cancellationToken);
+                await using var cmd = new SqlCommand(
+                    "SELECT ID, StudentsName, SMSPhoneNo FROM dbo.Student WHERE StudentID = @SID AND SchoolID = @SchoolID", con);
+                cmd.Parameters.AddWithValue("@SID", studentId);
+                cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+                if (await reader.ReadAsync(cancellationToken))
+                {
+                    studentCode = reader["ID"]?.ToString() ?? studentCode;
+                    studentName = reader["StudentsName"]?.ToString() ?? studentName;
+                    phone = reader["SMSPhoneNo"]?.ToString() ?? phone;
+                }
+            }
             await SendCoreAsync(session, studentId, studentCode, studentName, phone ?? "", amount, receiptNo, details, cancellationToken);
         }
         catch
@@ -231,7 +363,8 @@ VALUES (@ID, @SchoolID, @SID, @YearID)
         await con.OpenAsync(cancellationToken);
         var template = await ReadTemplateAsync(con, session.SchoolID, cancellationToken);
         var due = await CurrentDueAsync(con, studentCode, session.SchoolID, cancellationToken);
-        var msg = BuildMessage(template, studentName, studentCode, amount, receiptNo, details, due, session.SchoolName);
+        var school = await SessionSchool.ResolveNameAsync(session, con, cancellationToken);
+        var msg = BuildMessage(template, studentName, studentCode, amount, receiptNo, details, due, school);
         var count = SmsCount(msg);
         var balance = 0;
         await using (var bal = new SqlCommand("SELECT TOP 1 SMS_Balance FROM dbo.SMS WHERE SchoolID = @SchoolID", con))
@@ -274,6 +407,51 @@ VALUES (@ID, @SchoolID, @SID, @YearID)
             other.Parameters.AddWithValue("@SID", studentId);
             other.Parameters.AddWithValue("@YearID", session.EducationYearID);
             await other.ExecuteNonQueryAsync(cancellationToken);
+        }
+        return new AccountsResult { Succeeded = true, Saved = count };
+    }
+
+    public async Task<AccountsResult> SendPlainSmsAsync(
+        SessionSnapshot session, string phone, string message, string purpose, CancellationToken cancellationToken)
+    {
+        phone = (phone ?? "").Trim();
+        if (!IsValidBdMobile(phone))
+            return new AccountsResult { Error = "rpt.invalidPhone" };
+
+        await using var con = _connections.Create();
+        await con.OpenAsync(cancellationToken);
+        var count = SmsCount(message);
+        var balance = 0;
+        await using (var bal = new SqlCommand("SELECT TOP 1 SMS_Balance FROM dbo.SMS WHERE SchoolID = @SchoolID", con))
+        {
+            bal.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            var value = await bal.ExecuteScalarAsync(cancellationToken);
+            balance = value is null or DBNull ? 0 : Convert.ToInt32(value);
+        }
+        if (balance < count)
+            return new AccountsResult { Error = "acc.smsLow" };
+
+        var response = await PostGatewayAsync(phone, message, cancellationToken);
+        if (string.IsNullOrWhiteSpace(response))
+            return new AccountsResult { Error = "acc.smsFail" };
+
+        var smsId = Guid.NewGuid();
+        await using (var ins = new SqlCommand("""
+INSERT INTO dbo.SMS_Send_Record
+    (SMS_Send_ID, PhoneNumber, TextSMS, TextCount, SMSCount, PurposeOfSMS, Status, Date, SMS_Response)
+VALUES
+    (@ID, @Phone, @Text, @Len, @Count, @Purpose, @Status, GETDATE(), @Resp)
+""", con))
+        {
+            ins.Parameters.AddWithValue("@ID", smsId);
+            ins.Parameters.AddWithValue("@Phone", phone);
+            ins.Parameters.AddWithValue("@Text", message);
+            ins.Parameters.AddWithValue("@Len", message.Length);
+            ins.Parameters.AddWithValue("@Count", count);
+            ins.Parameters.AddWithValue("@Purpose", purpose);
+            ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
+            ins.Parameters.AddWithValue("@Resp", response);
+            await ins.ExecuteNonQueryAsync(cancellationToken);
         }
         return new AccountsResult { Succeeded = true, Saved = count };
     }
@@ -391,7 +569,14 @@ SELECT ISNULL(SUM(
 FROM dbo.Income_PayOrder AS po
 INNER JOIN dbo.Student AS st ON po.StudentID = st.StudentID
 WHERE st.ID = @ID AND st.SchoolID = @SchID AND po.SchoolID = @SchID
-  AND po.Status = N'Due' AND po.EndDate < GETDATE()
+  AND po.Status = N'Due'
+  AND (
+    po.EndDate < GETDATE()
+    OR EXISTS (
+      SELECT 1 FROM dbo.Income_Roles AS invr
+      WHERE invr.RoleID = po.RoleID AND invr.Role = N'Inventory Sale'
+    )
+  )
 """, con);
         cmd.Parameters.AddWithValue("@ID", studentCode);
         cmd.Parameters.AddWithValue("@SchID", schoolId);
@@ -438,25 +623,56 @@ WHERE st.ID = @ID AND st.SchoolID = @SchID AND po.SchoolID = @SchID
     {
         if (_local.IsLocal)
             return "Localhost - not sent to mobile";
-        try
+        var call = await _gateway.SendAsync(number, text, cancellationToken);
+        return string.IsNullOrWhiteSpace(call.Error) ? call.Body : null;
+    }
+
+    public async Task TrySendManualAttendanceAsync(
+        SessionSnapshot session, SaveStudentManualRequest request, CancellationToken cancellationToken)
+    {
+        foreach (var row in request.Rows)
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-            http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            var safe = text.Replace("A+", "A Plus", StringComparison.OrdinalIgnoreCase).Replace("+", " Plus ");
-            var body = "userId=" + Uri.EscapeDataString(GatewayUser)
-                       + "&password=" + Uri.EscapeDataString(GatewayPassword)
-                       + "&smsText=" + Uri.EscapeDataString(safe)
-                       + "&commaSeperatedReceiverNumbers=" + Uri.EscapeDataString(number);
-            using var content = new StringContent(body, Encoding.UTF8, "application/x-www-form-urlencoded");
-            using var response = await http.PostAsync(GatewayUrl, content, cancellationToken);
-            var json = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (!response.IsSuccessStatusCode || json.Contains("\"isError\":true", StringComparison.OrdinalIgnoreCase))
-                return null;
-            return string.IsNullOrWhiteSpace(json) ? "Sent" : json;
-        }
-        catch
-        {
-            return null;
+            if (!row.SendSms)
+                continue;
+            var status = (row.Attendance ?? "").Trim();
+            if (status is not ("Abs" or "Late" or "Bunk"))
+                continue;
+            try
+            {
+                var phone = (row.Phone ?? "").Trim();
+                var name = row.Name ?? "";
+                var code = row.ID ?? "";
+                if (string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(name))
+                {
+                    await using var con = _connections.Create();
+                    await con.OpenAsync(cancellationToken);
+                    await using var cmd = new SqlCommand(
+                        "SELECT ID, StudentsName, SMSPhoneNo FROM dbo.Student WHERE StudentID = @SID AND SchoolID = @SchoolID", con);
+                    cmd.Parameters.AddWithValue("@SID", row.StudentID);
+                    cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                    await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+                    if (await reader.ReadAsync(cancellationToken))
+                    {
+                        code = reader["ID"]?.ToString() ?? code;
+                        name = reader["StudentsName"]?.ToString() ?? name;
+                        phone = reader["SMSPhoneNo"]?.ToString() ?? phone;
+                    }
+                }
+
+                if (!IsValidBdMobile(phone))
+                    continue;
+                var label = status switch
+                {
+                    "Late" => "Late",
+                    "Bunk" => "Bunk",
+                    _ => "Absent"
+                };
+                var msg = $"{name} (ID: {code}) is marked {label} on {request.AttendanceDate:dd MMM yyyy}. {session.SchoolName}";
+                await PostGatewayAsync(phone, msg, cancellationToken);
+            }
+            catch
+            {
+            }
         }
     }
 }

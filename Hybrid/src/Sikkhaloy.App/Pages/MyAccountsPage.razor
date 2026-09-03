@@ -1,5 +1,6 @@
 @page "/accounts/reports/my-accounts"
 @inherits LocaleAwareComponent
+@implements IDisposable
 @inject AppSession Session
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
@@ -9,45 +10,200 @@
     <div class="rpt-filters no-print">
         <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
         <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.submit")</button>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        @if (CanSubmit)
+        {
+            <button type="button" class="acc-btn my-submit-btn" disabled="@busy" @onclick="OpenSubmitModalAsync">@Locale.T("rpt.submitBalance")</button>
+        }
         <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
     </div>
-    <h1>@Locale.T("rpt.myTitle") @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }</h1>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
-        <div class="my-widgets">
-            <ReportWidget Css="user" Icon="user" Label="@(data.Designation ?? Locale.T("rpt.designation"))" Amount="@data.UserName" />
-            <ReportWidget Css="paid" Icon="money" Label="@Locale.T("rpt.income")" Amount="@($"{Tk(data.Income)} {Locale.T("acc.tk")}")" />
-            <ReportWidget Css="ex" Icon="area" Label="@Locale.T("rpt.expense")" Amount="@($"{Tk(data.Expense)} {Locale.T("acc.tk")}")" />
-            <ReportWidget Css="late" Icon="calc" Label="@Locale.T("rpt.balance")" Amount="@($"{Tk(data.Balance)} {Locale.T("acc.tk")}")" />
-            <ReportWidget Css="subm" Icon="card" Label="@Locale.T("rpt.submitted")" Amount="@($"{Tk(data.Submitted)} {Locale.T("acc.tk")}")" />
-            <ReportWidget Css="con" Icon="wallet" Label="@Locale.T("rpt.remaining")" Amount="@($"{Tk(data.Remaining)} {Locale.T("acc.tk")}")" />
+        <header class="my-report-head">
+            <div class="my-report-title">
+                <span class="my-title-line" aria-hidden="true"></span>
+                <h1>@Locale.T("rpt.myTitle")</h1>
+                <span class="my-title-line" aria-hidden="true"></span>
+            </div>
+            @if (data is not null)
+            {
+                <div class="my-date-pill">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                    @(string.IsNullOrWhiteSpace(DateLabel) ? Locale.T("auth.allTime") : DateLabel)
+                </div>
+            }
+            <div class="my-user-pill">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg>
+                <span>@(data.Designation ?? Locale.T("rpt.designation"))</span>
+                <strong>@data.UserName</strong>
+            </div>
+        </header>
+
+        <div class="my-kpis">
+            <div class="my-kpi my-kpi-in">
+                <span class="my-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C8.7 2 6 4.2 6 7v1.1C4.3 8.8 3 10.5 3 12.5V19c0 1.7 1.3 3 3 3h12c1.7 0 3-1.3 3-3v-6.5c0-2-1.3-3.7-3-4.4V7c0-2.8-2.7-5-6-5z"/></svg>
+                </span>
+                <div class="my-kpi-txt">
+                    <strong>@Tk(data.Income) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.income")</small>
+                </div>
+            </div>
+            <div class="my-kpi my-kpi-ex">
+                <span class="my-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 13-4-4h3V8h2v3h3l-4 4z"/></svg>
+                </span>
+                <div class="my-kpi-txt">
+                    <strong>@Tk(data.Expense) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.expense")</small>
+                </div>
+            </div>
+            <div class="my-kpi my-kpi-bal">
+                <span class="my-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 5h16v14H4zm2 2v2h12V7zm0 4v2h8v-2z"/></svg>
+                </span>
+                <div class="my-kpi-txt">
+                    <strong>@Tk(data.Balance) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.balance")</small>
+                </div>
+            </div>
+            <div class="my-kpi my-kpi-sub">
+                <span class="my-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-8 9H8v-2h4zm4 0h-2v-2h2z"/></svg>
+                </span>
+                <div class="my-kpi-txt">
+                    <strong>@Tk(data.Submitted) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.submitted")</small>
+                </div>
+            </div>
+            <div class="my-kpi my-kpi-rem @(data.Remaining < 0 ? "is-neg" : null)">
+                <span class="my-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3C9.8 3 8 4.8 8 7v1H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2V7c0-2.2-1.8-4-4-4z"/></svg>
+                </span>
+                <div class="my-kpi-txt">
+                    <strong>@Tk(data.Remaining) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.remaining")</small>
+                </div>
+            </div>
         </div>
-        <div class="rpt-tabs no-print">
+
+        <div class="rpt-tabs my-tabs no-print">
             <button type="button" class="@(tab == 0 ? "active" : null)" @onclick="() => tab = 0">@Locale.T("rpt.income")</button>
             <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => tab = 1">@Locale.T("rpt.expense")</button>
         </div>
-        @foreach (var group in tab == 0 ? data.IncomeGroups : data.ExpenseGroups)
+
+        @if (ActiveGroups.Count == 0)
         {
-            <div class="rpt-cat-head"><span>@group.Category</span><span>@Tk(group.Total) @Locale.T("acc.tk")</span></div>
-            <table class="mgrid">
-                <thead><tr><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
-                <tbody>
-                @foreach (var line in group.Lines)
-                {
-                    <tr>
-                        <td>@line.AccountName</td>
-                        <td>@line.Details</td>
-                        <td class="num">@Tk(line.Amount)</td>
-                        <td>@line.Date.ToString("d MMM yyyy")</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+            <p class="my-empty-hint">@Locale.T("rpt.empty")</p>
+        }
+        @foreach (var group in ActiveGroups)
+        {
+            <div class="my-cat-block @(tab == 0 ? "is-in" : "is-ex")">
+                <div class="my-cat-head">
+                    <h3>@group.Category</h3>
+                    <span>@Tk(group.Total) @Locale.T("acc.tk")</span>
+                </div>
+                <table class="my-table">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("rpt.account")</th>
+                            <th>@Locale.T("rpt.details")</th>
+                            <th class="num">@Locale.T("rpt.amount")</th>
+                            <th>@Locale.T("rpt.date")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var line in group.Lines)
+                    {
+                        <tr>
+                            <td>@line.AccountName</td>
+                            <td>@line.Details</td>
+                            <td class="num">@Tk(line.Amount)</td>
+                            <td>@line.Date.ToString("d MMM yyyy")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
         }
     }
 </div>
+
+@if (showSubmitModal)
+{
+    <div class="inv-modal-back no-print" @onclick="CloseSubmitModal">
+        <div class="inv-modal my-submit-modal" @onclick:stopPropagation="true">
+            <div class="inv-modal-head">
+                <h4>@Locale.T("rpt.balanceSubmitTitle")</h4>
+                <button type="button" class="inv-modal-x" @onclick="CloseSubmitModal">&times;</button>
+            </div>
+            <div class="inv-modal-body my-submit-body">
+                <div class="my-bal-banner @(availableBalance < 0 ? "is-neg" : null)">
+                    <small>@Locale.T("rpt.availableBalance")</small>
+                    <strong>@Tk(availableBalance) @Locale.T("acc.tk")</strong>
+                    @if (!string.IsNullOrWhiteSpace(DateLabel))
+                    {
+                        <span class="my-bal-range">@DateLabel</span>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(modalError))
+                {
+                    <div class="error my-modal-error">@modalError</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(modalInfo))
+                {
+                    <div class="ok my-modal-info">@modalInfo</div>
+                }
+                <label class="my-field">
+                    <span>@Locale.T("rpt.receiverPhone")</span>
+                    <input type="tel" maxlength="11" @bind="receiverPhone" placeholder="01XXXXXXXXX" />
+                </label>
+                <div class="my-otp-row">
+                    <button type="button" class="acc-btn acc-btn-primary" disabled="@(modalBusy || otpCooldown > 0)" @onclick="SendOtpAsync">
+                        @(otpSent ? Locale.T("rpt.resendOtp") : Locale.T("rpt.sendOtp"))
+                        @if (otpCooldown > 0) { <text> (@otpCooldown)</text> }
+                    </button>
+                </div>
+                @if (otpSent)
+                {
+                    <label class="my-field">
+                        <span>@Locale.T("rpt.otp")</span>
+                        <input type="text" maxlength="6" inputmode="numeric" @bind="otpText" placeholder="000000" />
+                    </label>
+                }
+                <label class="my-field">
+                    <span>@Locale.T("rpt.submitAmount")</span>
+                    <input type="number" min="1" step="1" @bind="submitAmount" />
+                </label>
+                <label class="my-field">
+                    <span>@Locale.T("rpt.submitDate")</span>
+                    <input type="date" @bind="submitDate" />
+                </label>
+                <label class="my-field">
+                    <span>@Locale.T("rpt.receiverName")</span>
+                    <input type="text" @bind="receivedBy" />
+                </label>
+                <label class="my-field">
+                    <span>@Locale.T("rpt.paymentMethod")</span>
+                    <select @bind="paymentMethod">
+                        <option value="Cash">@Locale.T("rpt.cash")</option>
+                        <option value="Bank">@Locale.T("rpt.bank")</option>
+                        <option value="Mobile Banking">@Locale.T("rpt.mobileBanking")</option>
+                    </select>
+                </label>
+                <label class="my-field">
+                    <span>@Locale.T("rpt.remarks")</span>
+                    <textarea rows="2" @bind="remarks"></textarea>
+                </label>
+            </div>
+            <div class="inv-modal-foot">
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@(modalBusy || !otpSent)" @onclick="SubmitBalanceAsync">@Locale.T("rpt.submitBalance")</button>
+            </div>
+        </div>
+    </div>
+}
 
 @if (busy)
 {
@@ -62,20 +218,39 @@
 
 @code {
     [SupplyParameterFromQuery] public int Reg { get; set; }
+    [SupplyParameterFromQuery] public string? From { get; set; }
+    [SupplyParameterFromQuery] public string? To { get; set; }
 
     private MyAccountsDto? data;
     private string fromText = "", toText = "", error = "";
     private bool busy;
     private int tab;
 
+    private bool showSubmitModal;
+    private bool modalBusy;
+    private string modalError = "", modalInfo = "";
+    private decimal availableBalance;
+    private string receiverPhone = "", otpText = "", receivedBy = "", remarks = "";
+    private string paymentMethod = "Cash";
+    private decimal submitAmount;
+    private DateTime submitDate = DateTime.Today;
+    private bool otpSent;
+    private int otpCooldown;
+    private CancellationTokenSource? otpTimerCts;
+
+    private bool CanSubmit => Session.Current is not null
+        && (Reg <= 0 || Reg == Session.Current.RegistrationID);
+
     private string DateLabel => RangeLabel(fromText, toText);
+
+    private List<ReportGroupDto> ActiveGroups =>
+        tab == 0 ? data?.IncomeGroups ?? [] : data?.ExpenseGroups ?? [];
 
     protected override async Task OnInitializedAsync()
     {
         if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
-        var start = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        fromText = Iso(start);
-        toText = Iso(DateTime.Today);
+        fromText = From ?? "";
+        toText = To ?? "";
         await LoadAsync();
     }
 
@@ -87,6 +262,141 @@
         try { data = await Api.GetMyAccountsAsync(Session.AccessToken, Reg, Parse(fromText), Parse(toText)); }
         catch (Exception ex) { error = ex.Message; }
         finally { busy = false; }
+    }
+
+    private async Task OpenSubmitModalAsync()
+    {
+        if (data is null) return;
+        modalError = "";
+        modalInfo = "";
+        otpSent = false;
+        otpText = "";
+        receiverPhone = "";
+        receivedBy = "";
+        remarks = "";
+        paymentMethod = "Cash";
+        submitAmount = 0;
+        submitDate = DateTime.Today;
+        showSubmitModal = true;
+        modalBusy = true;
+        try
+        {
+            var bal = await Api.GetMyBalanceRemainingAsync(Session.AccessToken, null, null);
+            availableBalance = bal.Remaining;
+        }
+        catch (Exception ex)
+        {
+            modalError = ex.Message;
+            availableBalance = 0;
+        }
+        finally { modalBusy = false; }
+    }
+
+    private void CloseSubmitModal()
+    {
+        showSubmitModal = false;
+        StopOtpTimer();
+    }
+
+    private async Task SendOtpAsync()
+    {
+        modalError = "";
+        modalInfo = "";
+        modalBusy = true;
+        try
+        {
+            var result = await Api.SendMyBalanceOtpAsync(Session.AccessToken, new BalanceSubmitOtpRequest { Phone = receiverPhone });
+            if (!result.Succeeded)
+            {
+                modalError = FormatApiError(result);
+                return;
+            }
+            otpSent = true;
+            modalInfo = Locale.T("rpt.otpSent");
+            StartOtpCooldown(60);
+        }
+        catch (Exception ex) { modalError = ex.Message; }
+        finally { modalBusy = false; }
+    }
+
+    private async Task SubmitBalanceAsync()
+    {
+        modalError = "";
+        modalInfo = "";
+        modalBusy = true;
+        try
+        {
+            var result = await Api.SubmitMyBalanceAsync(Session.AccessToken, new BalanceSubmitRequest
+            {
+                Phone = receiverPhone,
+                Otp = otpText,
+                Amount = submitAmount,
+                SubmissionDate = submitDate,
+                ReceivedBy = receivedBy,
+                PaymentMethod = paymentMethod,
+                Remarks = remarks
+            });
+            if (!result.Succeeded)
+            {
+                modalError = FormatApiError(result);
+                return;
+            }
+            showSubmitModal = false;
+            StopOtpTimer();
+            await LoadAsync();
+        }
+        catch (Exception ex) { modalError = ex.Message; }
+        finally { modalBusy = false; }
+    }
+
+    private string FormatApiError(AccountsResult result)
+    {
+        if (string.IsNullOrWhiteSpace(result.Error))
+            return Locale.T("acc.failed");
+        var msg = Locale.T(result.Error);
+        if (result.Error == "rpt.otpWait" && result.Count > 0)
+            return $"{msg} ({result.Count}s)";
+        if (result.Error == "rpt.amountExceeds" && result.Count > 0)
+            return $"{msg} ({Tk(result.Count)} {Locale.T("acc.tk")})";
+        return msg;
+    }
+
+    private void StartOtpCooldown(int seconds)
+    {
+        StopOtpTimer();
+        otpCooldown = seconds;
+        otpTimerCts = new CancellationTokenSource();
+        _ = RunOtpCooldownAsync(otpTimerCts.Token);
+    }
+
+    private async Task RunOtpCooldownAsync(CancellationToken token)
+    {
+        try
+        {
+            while (otpCooldown > 0 && !token.IsCancellationRequested)
+            {
+                await Task.Delay(1000, token);
+                otpCooldown--;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private void StopOtpTimer()
+    {
+        otpCooldown = 0;
+        otpTimerCts?.Cancel();
+        otpTimerCts?.Dispose();
+        otpTimerCts = null;
+    }
+
+    public override void Dispose()
+    {
+        StopOtpTimer();
+        base.Dispose();
     }
 
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
@@ -106,7 +416,7 @@
         {
             var a = from.Value.ToString("d MMM yyyy");
             var b = to.Value.ToString("d MMM yyyy");
-            return from.Value == to.Value ? a : $"({a} To {b})";
+            return from.Value == to.Value ? a : $"{a} — {b}";
         }
         if (from is not null) return $"After {from.Value:d MMM yyyy}";
         return $"Before {to!.Value:d MMM yyyy}";

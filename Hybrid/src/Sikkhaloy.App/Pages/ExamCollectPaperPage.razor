@@ -162,14 +162,7 @@
 }
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -351,14 +344,14 @@
     private static string? G(int id) => id <= 0 ? null : id.ToString();
     private void Show(string text, bool err = false) { popupText = text; popupError = err; }
     private void ClosePopup() => popupText = null;
-    private async Task<bool> OnlineAsync()
+    private Task<bool> OnlineAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             Show(Locale.T("subj.needOnline"), true);
-            return false;
+            return Task.FromResult(false);
         }
-        return true;
+        return Task.FromResult(true);
     }
 
     private sealed class ColOpt

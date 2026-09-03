@@ -5,157 +5,194 @@
 @inject IJSRuntime JS
 @inject SyncEngine Sync
 
-<div class="card structure-page emp-page acc-page mr-page @(hideIns ? "hide-ins" : null) @(hideDue ? "hide-due" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
-        <div class="no-print mr-top">
-        <div class="mr-back-row">
-            <a class="mr-back" href="committee/collect">@Locale.T("cm.backCollect")</a>
-            <a class="mr-back" href="committee/donations">@Locale.T("cm.backDonations")</a>
+<div class="card sa-page si-info-page acc-page acc-mod-page mr-page mr-check-page cm-receipt-page @(hideIns ? "hide-ins" : null) @(hideDue ? "hide-due" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("cm.donations")</p>
+            <h1>@Locale.T("cm.receipt")</h1>
         </div>
+    </header>
+
+    <div class="no-print mr-toolbar">
+        <a class="mr-back" href="committee/collect">@Locale.T("cm.backCollect")</a>
+        <a class="mr-back" href="committee/donations">@Locale.T("cm.backDonations")</a>
         @if (dto is not null)
         {
-            <button type="button" class="acc-btn acc-btn-primary mr-print-top" @onclick="PrintAsync">@Locale.T("si.print")</button>
+            <span class="mr-toolbar-meta">@Locale.T("cm.receiptNo"): <strong>@dto.CommitteeMoneyReceiptSn</strong></span>
+            <button type="button" class="sal-gen" @onclick="PrintAsync">@Locale.T("si.print")</button>
         }
     </div>
 
+    @if (busy && dto is null)
+    {
+        <div class="mr-skeleton no-print" aria-hidden="true">
+            <div class="mr-skel-block"></div>
+            <div class="mr-skel-lines"><span></span><span></span><span></span></div>
+        </div>
+    }
+
     @if (dto is not null)
     {
-        <div class="mr-sheet" style="@SheetStyle">
-            <div class="mr-ins">
-                @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
-                {
-                    <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
-                }
-                else
-                {
-                    <div class="mr-school">@schoolName</div>
-                    <div class="mr-addr">
-                        @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
-                        @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
-                        @if (!string.IsNullOrWhiteSpace(schoolEmail)) { <span>@schoolEmail</span> }
+        <div class="mr-layout">
+            <div class="mr-preview">
+                <div class="mr-sheet" style="@SheetStyle">
+                    <div class="mr-ins">
+                        @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+                        {
+                            <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+                        }
+                        else
+                        {
+                            <div class="mr-school">@schoolName</div>
+                            <div class="mr-addr">
+                                @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
+                                @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
+                                @if (!string.IsNullOrWhiteSpace(schoolEmail)) { <span>@schoolEmail</span> }
+                            </div>
+                        }
                     </div>
-                }
-            </div>
-            <div class="mr-head">@Locale.T("cm.receipt")</div>
-            <div class="mr-info">
-                <div>
-                    <p><strong>@Locale.T("cm.donor"):</strong> @dto.MemberName (@dto.MemberType)</p>
-                    <p><strong>@Locale.T("cm.mobile"):</strong> @dto.SmsNumber</p>
-                    <p><strong>@Locale.T("cm.receiptNo"):</strong> @dto.CommitteeMoneyReceiptSn</p>
-                </div>
-                <div>
-                    <p><strong>@Locale.T("cm.paidDate"):</strong> @Stamp(dto.PaidDate)</p>
-                    <p><strong>@Locale.T("cm.payMethod"):</strong> @dto.AccountName</p>
-                    <p><strong>@Locale.T("cm.address"):</strong> @dto.Address</p>
-                </div>
-            </div>
-            <table class="mgrid mr-grid">
-                <thead>
-                    <tr>
-                        <th>@Locale.T("cm.donationCategory")</th>
-                        <th>@Locale.T("cm.desc")</th>
-                        <th>@Locale.T("cm.paidAmount")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var line in dto.Lines)
-                {
-                    <tr>
-                        <td>@line.DonationCategory</td>
-                        <td>@line.Description</td>
-                        <td>@Tk(line.PaidAmount) @Locale.T("acc.tk")</td>
-                    </tr>
-                }
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td></td>
-                        <td class="mr-fee">@Locale.T("cm.total"):</td>
-                        <td>@Tk(dto.TotalAmount) @Locale.T("acc.tk")</td>
-                    </tr>
-                </tfoot>
-            </table>
-            <p class="mr-words">@AmountInWords(dto.TotalAmount)</p>
-            @if (dto.CurrentDues.Count > 0)
-            {
-                <div class="mr-dues">
-                    <div class="mr-due-title">@Locale.T("cm.currentDue")</div>
-                    <table class="mgrid">
+                    <div class="mr-head">@Locale.T("cm.receipt")</div>
+                    <div class="mr-info">
+                        <div>
+                            <p><strong>@Locale.T("cm.donor"):</strong> @dto.MemberName (@dto.MemberType)</p>
+                            <p><strong>@Locale.T("cm.mobile"):</strong> @dto.SmsNumber</p>
+                            <p><strong>@Locale.T("cm.receiptNo"):</strong> @dto.CommitteeMoneyReceiptSn</p>
+                        </div>
+                        <div>
+                            <p><strong>@Locale.T("cm.paidDate"):</strong> @PaidStamp(dto.PaidDate)</p>
+                            <p><strong>@Locale.T("cm.payMethod"):</strong> @dto.AccountName</p>
+                            <p><strong>@Locale.T("cm.address"):</strong> @dto.Address</p>
+                        </div>
+                    </div>
+                    <table class="mgrid mr-grid">
                         <thead>
                             <tr>
                                 <th>@Locale.T("cm.donationCategory")</th>
                                 <th>@Locale.T("cm.desc")</th>
-                                <th>@Locale.T("cm.dueAmount")</th>
+                                <th>@Locale.T("cm.paidAmount")</th>
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var line in dto.CurrentDues)
+                        @foreach (var line in dto.Lines)
                         {
                             <tr>
-                                <td>@line.DonationCategory</td>
-                                <td>@line.Description</td>
-                                <td>@Tk(line.Due) @Locale.T("acc.tk")</td>
+                                <td class="mr-payfor">@line.DonationCategory</td>
+                                <td class="mr-fee">@line.Description</td>
+                                <td class="mr-amt mr-money">@TkAmt(line.PaidAmount)</td>
                             </tr>
                         }
                         </tbody>
                         <tfoot>
-                            <tr>
+                            <tr class="mr-total-row">
                                 <td></td>
-                                <td></td>
-                                <td>@Locale.T("cm.total"): @Tk(dto.CurrentDues.Sum(x => x.Due)) @Locale.T("acc.tk")</td>
+                                <td class="mr-fee mr-total-label">@Locale.T("cm.total"):</td>
+                                <td class="mr-amt mr-money">@TkAmt(dto.TotalAmount)</td>
                             </tr>
                         </tfoot>
                     </table>
+                    <p class="mr-words">@AmountInWords(dto.TotalAmount)</p>
+                    @if (dto.CurrentDues.Count > 0)
+                    {
+                        <div class="mr-dues">
+                            <div class="mr-due-title">@Locale.T("cm.currentDue")</div>
+                            <table class="mgrid">
+                                <thead>
+                                    <tr>
+                                        <th>@Locale.T("cm.donationCategory")</th>
+                                        <th>@Locale.T("cm.desc")</th>
+                                        <th>@Locale.T("cm.dueAmount")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var line in dto.CurrentDues)
+                                {
+                                    <tr>
+                                        <td class="mr-payfor">@line.DonationCategory</td>
+                                        <td class="mr-fee">@line.Description</td>
+                                        <td class="mr-amt mr-money">@TkAmt(line.Due)</td>
+                                    </tr>
+                                }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2" class="mr-fee">@Locale.T("cm.total"):</td>
+                                        <td class="mr-amt mr-money">@TkAmt(dto.CurrentDues.Sum(x => x.Due))</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                    <p class="mr-blessing">@Locale.T("cm.blessing")</p>
+                    <p class="mr-recv">@Locale.T("acc.recvByLine", dto.ReceivedBy)</p>
                 </div>
-            }
-            <p class="mr-blessing">@Locale.T("cm.blessing")</p>
-            <p class="mr-recv">@Locale.T("acc.recvByLine", dto.ReceivedBy)</p>
-        </div>
+            </div>
 
-        <div class="no-print mr-print-opt">
-            <div class="mr-print-head">
-                <div>
-                    <h4>@Locale.T("acc.printOptions")</h4>
-                    <p>@Locale.T("acc.printSizeHint")</p>
-                </div>
-                <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("si.print")</button>
-            </div>
-            <div class="mr-print-body">
-                <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
-                <label class="acc-check"><input type="checkbox" checked="@hideDue" @onchange="OnHideDue" /><span>@Locale.T("acc.hideDue")</span></label>
-                <label>@Locale.T("acc.printSize")
-                    <select @bind="printSize" @bind:after="PersistOptsAsync">
-                        <option value="3">@Locale.T("acc.inch", "3")</option>
-                        <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
-                        <option value="4">@Locale.T("acc.inch", "4")</option>
-                        <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
-                        <option value="5">@Locale.T("acc.inch", "5")</option>
-                        <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
-                        <option value="6">@Locale.T("acc.inch", "6")</option>
-                    </select>
-                </label>
-                <label>@Locale.T("acc.topSpace")
-                    <input type="number" min="0" @bind="topSpace" @bind:after="PersistOptsAsync" />
-                </label>
-                <label>@Locale.T("acc.fontSize")
-                    <input type="number" min="10" max="20" @bind="fontSize" @bind:after="PersistOptsAsync" />
-                </label>
-            </div>
+            <aside class="mr-tools no-print">
+                <section class="mr-tool-card">
+                    <h3>@Locale.T("acc.printOptions")</h3>
+                    <p class="mr-tool-hint">@Locale.T("acc.printSizeHint")</p>
+                    <div class="mr-opt-checks">
+                        <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
+                        <label class="acc-check"><input type="checkbox" checked="@hideDue" @onchange="OnHideDue" /><span>@Locale.T("acc.hideDue")</span></label>
+                    </div>
+                    <div class="mr-opt-grid">
+                        <label class="mr-opt-field">
+                            <span>@Locale.T("acc.printSize")</span>
+                            <select @bind="printSize" @bind:after="PersistOptsAsync">
+                                <option value="3">@Locale.T("acc.inch", "3")</option>
+                                <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
+                                <option value="4">@Locale.T("acc.inch", "4")</option>
+                                <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
+                                <option value="5">@Locale.T("acc.inch", "5")</option>
+                                <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
+                                <option value="6">@Locale.T("acc.inch", "6")</option>
+                            </select>
+                        </label>
+                        <label class="mr-opt-field">
+                            <span>@Locale.T("acc.topSpace")</span>
+                            <input type="number" class="pc-num" min="0" step="1" @bind="topSpace" @bind:after="PersistOptsAsync" />
+                        </label>
+                        <label class="mr-opt-field">
+                            <span>@Locale.T("acc.fontSize")</span>
+                            <input type="number" class="pc-num" min="10" max="20" step="1" @bind="fontSize" @bind:after="PersistOptsAsync" />
+                        </label>
+                    </div>
+                </section>
+
+                <section class="mr-tool-card mr-tool-sms">
+                    <div class="mr-sms-bal">@Locale.T("acc.smsRemain"): @smsBalance</div>
+                    <p class="mr-sms-note"><strong>@Locale.T("acc.smsOn")</strong> @Locale.T("acc.smsHint")</p>
+                    <div class="cm-sms-lang">
+                        <span>@Locale.T("sms.cmPayLangOnReceipt")</span>
+                        <div class="att-switch">
+                            <label class="@(payLang == "bn" ? "is-pick" : null)">
+                                <input type="radio" name="cm-rcpt-lang" checked="@(payLang == "bn")" disabled="@(busy || smsBusy)" @onchange='() => SetPayLang("bn")' />
+                                <span>@Locale.T("sms.cmPayLangBn")</span>
+                            </label>
+                            <label class="@(payLang == "en" ? "is-pick" : null)">
+                                <input type="radio" name="cm-rcpt-lang" checked="@(payLang == "en")" disabled="@(busy || smsBusy)" @onchange='() => SetPayLang("en")' />
+                                <span>@Locale.T("sms.cmPayLangEn")</span>
+                            </label>
+                        </div>
+                    </div>
+                    <p class="mr-sms-note"><a href="sms/templates">@Locale.T("sms.templateLink")</a></p>
+                    <button type="button" class="sal-gen" disabled="@(busy || smsBusy)" @onclick="SendSmsAsync">@Locale.T("acc.sendSms")</button>
+                    @if (!string.IsNullOrWhiteSpace(smsMsg))
+                    {
+                        <p class="@(smsOk ? "mr-sms-ok" : "mr-sms-err")">@smsMsg</p>
+                    }
+                </section>
+            </aside>
         </div>
     }
 </div>
 
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
-@if (!string.IsNullOrWhiteSpace(popupText))
+@if (!string.IsNullOrWhiteSpace(popupText) && !busy)
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result is-err" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">!</div>
-            <h3>@Locale.T("sms.errorTitle")</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="true" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@busyMessage" />
 
 @code {
     [Parameter] public int Id { get; set; }
@@ -169,13 +206,15 @@
     private string schoolPhone = "";
     private string schoolEmail = "";
     private string? nameLogoUrl;
-    private bool busy, hideIns, hideDue, optionsLoaded;
-    private string busyTitle = "", popupText = "";
+    private bool busy, hideIns, hideDue, optionsLoaded, smsBusy, smsOk;
+    private int smsBalance;
+    private string payLang = "bn";
+    private string popupText = "", busyTitle = "", busyMessage = "", smsMsg = "";
     private string SheetStyle => $"width:{printSize}in;max-width:100%";
     private bool IsNarrow => printSize is "3" or "3.5";
     private static readonly string[] Widths = ["3", "3.5", "4", "4.5", "5", "5.5", "6"];
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if (Session.Current is null) return;
         var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
@@ -184,7 +223,12 @@
         schoolPhone = header.Phone ?? "";
         schoolEmail = header.Email ?? "";
         nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(Session.Current.SchoolID);
-        if (!string.IsNullOrWhiteSpace(nameLogoUrl) || string.IsNullOrWhiteSpace(Session.AccessToken))
+        _ = LoadNameLogoAsync();
+    }
+
+    private async Task LoadNameLogoAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(nameLogoUrl) || string.IsNullOrWhiteSpace(Session.AccessToken) || Session.Current is null)
             return;
         try
         {
@@ -201,6 +245,7 @@
                 Email = schoolEmail,
                 NameLogoBase64 = inst.NameLogoDataUrl
             });
+            await InvokeAsync(StateHasChanged);
         }
         catch
         {
@@ -231,22 +276,40 @@
     {
         if (loadedId == Id && dto is not null) return;
         loadedId = Id;
-        busyTitle = Locale.T("cm.loading");
-        busy = true;
+        popupText = "";
         try
         {
-            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            if (string.IsNullOrWhiteSpace(Session.AccessToken))
             {
                 popupText = Locale.T("subj.needOnline");
                 return;
             }
             dto = await Api.GetDonationReceiptAsync(Session.AccessToken!, Id);
+            if (dto is null) popupText = Locale.T("cm.fail");
+            else
+            {
+                _ = LoadSmsBalanceAsync();
+                _ = LoadPayLangAsync();
+            }
         }
         catch (Exception ex) { popupText = ex.Message; }
-        finally { busy = false; }
     }
 
-    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintReceipt", PrintOpts()).AsTask();
+    private async Task PrintAsync()
+    {
+        busyTitle = Locale.T("si.print");
+        busyMessage = Locale.T("exam.pleaseWait");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyPrintReceipt", PrintOpts());
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
 
     private Task OnHideIns(ChangeEventArgs e)
     {
@@ -282,9 +345,69 @@
 
     private static bool IsOn(ChangeEventArgs e) => e.Value is true or "true" or "True";
     private static string Tk(decimal n) => n.ToString("0.##");
-    private static string Stamp(DateTime? value) =>
-        value is null ? "" : $"{value:d-MMM-yy}\u00A0{value:hh:mm}\u00A0{value:tt}";
+    private static string TkAmt(decimal amount) => $"\u09F3{amount.ToString("0.##")}";
+    private static string PaidStamp(DateTime? value) =>
+        value is null ? "" : value.Value.ToString("d-MMM-yy (hh:mm tt)");
     private void ClosePopup() => popupText = "";
+
+    private async Task LoadSmsBalanceAsync()
+    {
+        try
+        {
+            var sms = await Api.GetPaymentSmsSettingAsync(Session.AccessToken!);
+            smsBalance = sms.Balance;
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task LoadPayLangAsync()
+    {
+        try
+        {
+            var lang = await Api.GetCommitteePaymentSmsLangAsync(Session.AccessToken!);
+            payLang = lang?.Lang == "en" ? "en" : "bn";
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SetPayLang(string lang)
+    {
+        if (payLang == lang || string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        payLang = lang;
+        try
+        {
+            await Api.SaveCommitteePaymentSmsLangAsync(Session.AccessToken, new CommitteePaymentSmsLangDto { Lang = lang });
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SendSmsAsync()
+    {
+        if (dto is null || string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        smsBusy = true;
+        smsMsg = "";
+        try
+        {
+            var result = await Api.SendDonorReceiptSmsAsync(Session.AccessToken, dto.CommitteeMoneyReceiptId,
+                new DonorReceiptSmsRequest { Lang = payLang });
+            smsOk = result.Succeeded;
+            smsMsg = Locale.T(result.Succeeded ? "acc.smsSent" : result.Error ?? "acc.smsFail");
+            if (result.Succeeded)
+                await LoadSmsBalanceAsync();
+        }
+        catch (Exception ex)
+        {
+            smsOk = false;
+            smsMsg = ex.Message;
+        }
+        finally { smsBusy = false; }
+    }
 
     private string AmountInWords(decimal amount)
     {

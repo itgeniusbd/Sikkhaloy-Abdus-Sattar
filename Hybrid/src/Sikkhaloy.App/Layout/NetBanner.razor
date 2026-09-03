@@ -1,0 +1,20 @@
+@inject AppLocale Locale
+
+@if (Locale.IsNetNotice(Text))
+{
+    <div class="acc-net-banner no-print">
+        <OfflineWifiIcon Small="true" />
+        <div>
+            <strong>@Locale.T("net.title")</strong>
+            <p>@Locale.T("net.pageNeed")</p>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(Text))
+{
+    <div class="error no-print">@Text</div>
+}
+
+@code {
+    [Parameter] public string? Text { get; set; }
+}

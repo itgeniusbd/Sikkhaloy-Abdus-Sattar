@@ -1,0 +1,358 @@
+@page "/inventory/receipt/sale/{Id:int}"
+@page "/inventory/receipt/purchase/{Id:int}"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject SyncEngine Sync
+@inject NavigationManager Nav
+
+<div class="card sa-page si-info-page acc-page acc-mod-page mr-page mr-check-page @(hideIns ? "hide-ins" : null) @(hideDue ? "hide-due" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("inv.kicker")</p>
+            <h1>@Locale.T(IsPurchase ? "inv.purchaseReceipt" : "inv.saleReceipt")</h1>
+        </div>
+    </header>
+
+    <div class="no-print mr-toolbar">
+        <a class="mr-back" href="@(IsPurchase ? "inventory/purchase" : "inventory/sale")">@Locale.T("inv.backPos")</a>
+        @if (doc is not null)
+        {
+            <span class="mr-toolbar-meta">@Locale.T("acc.receiptNo"): <strong>@ReceiptNo</strong></span>
+            <button type="button" class="sal-gen" @onclick="PrintAsync">@Locale.T("si.print")</button>
+            @if (IsOfflineReceipt)
+            {
+                <p class="mr-tool-hint">@Locale.T("acc.offlineReceiptNote")</p>
+            }
+        }
+    </div>
+
+    @if (doc is not null)
+    {
+        <div class="mr-layout">
+            <div class="mr-preview">
+                <div class="mr-sheet" style="@SheetStyle">
+                    <div class="mr-ins">
+                        @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+                        {
+                            <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+                        }
+                        else
+                        {
+                            <div class="mr-school">@schoolName</div>
+                            <div class="mr-addr">
+                                @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
+                                @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
+                            </div>
+                        }
+                    </div>
+                    <div class="mr-head">@Locale.T("acc.receiptTitle")</div>
+                    <div class="mr-info">
+                        <div>
+                            <p>
+                                <strong>@(IsPurchase ? Locale.T("inv.supplier") : Locale.T("inv.customer")):</strong>
+                                @(string.IsNullOrWhiteSpace(doc.Party) ? Locale.T("inv.cashParty") : doc.Party)
+                            </p>
+                            <p><strong>@Locale.T("acc.receiptNo"):</strong> @ReceiptNo</p>
+                            @if (!string.IsNullOrWhiteSpace(doc.Note))
+                            {
+                                <p><strong>@Locale.T("inv.details"):</strong> @doc.Note</p>
+                            }
+                        </div>
+                        <div>
+                            <p><strong>@Locale.T("att.date"):</strong> @doc.Date.ToString("d MMM yyyy")</p>
+                            <p><strong>@Locale.T("inv.account"):</strong> @(doc.AccountName ?? "")</p>
+                        </div>
+                    </div>
+                    <table class="mgrid mr-grid">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>@Locale.T("inv.itemName")</th>
+                                <th>@Locale.T("inv.qty")</th>
+                                <th>@Locale.T("inv.price")</th>
+                                <th>@Locale.T("inv.amount")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @{ var n = 0; }
+                        @foreach (var line in doc.Lines)
+                        {
+                            n++;
+                            <tr>
+                                <td>@n</td>
+                                <td class="mr-payfor">@line.ItemName</td>
+                                <td class="mr-amt">@line.Qty.ToString("0.##") @line.Unit</td>
+                                <td class="mr-amt">@line.UnitPrice.ToString("N2")</td>
+                                <td class="mr-amt">@line.Amount.ToString("N2")</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot>
+                            <tr class="mr-total-row">
+                                <td colspan="4" class="mr-fee mr-total-label">@Locale.T("inv.total"):</td>
+                                <td class="mr-amt mr-money">@doc.Total.ToString("N2") @Locale.T("acc.tk")</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="mr-fee">@Locale.T("inv.paid"):</td>
+                                <td class="mr-amt">@doc.PaidAmount.ToString("N2")</td>
+                            </tr>
+                            @if (doc.DueAmount > 0)
+                            {
+                                <tr class="mr-dues">
+                                    <td colspan="4" class="mr-fee">@Locale.T("inv.due"):</td>
+                                    <td class="mr-amt mr-money">@doc.DueAmount.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tfoot>
+                    </table>
+                    <p class="mr-words">@AmountInWords(doc.PaidAmount > 0 ? doc.PaidAmount : doc.Total)</p>
+                    <p class="mr-recv">@Locale.T("acc.recvByLine", doc.UserName ?? "")</p>
+                </div>
+            </div>
+            <aside class="mr-tools no-print">
+                <section class="mr-tool-card">
+                    <h3>@Locale.T("acc.printOptions")</h3>
+                    <p class="mr-tool-hint">@Locale.T("acc.printSizeHint")</p>
+                    <div class="mr-opt-checks">
+                        <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
+                        <label class="acc-check"><input type="checkbox" checked="@hideDue" @onchange="OnHideDue" /><span>@Locale.T("acc.hideDue")</span></label>
+                    </div>
+                    <div class="mr-opt-grid">
+                        <label class="mr-opt-field">
+                            <span>@Locale.T("acc.printSize")</span>
+                            <select @bind="printSize" @bind:after="PersistOptsAsync">
+                                <option value="3">@Locale.T("acc.inch", "3")</option>
+                                <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
+                                <option value="4">@Locale.T("acc.inch", "4")</option>
+                                <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
+                                <option value="5">@Locale.T("acc.inch", "5")</option>
+                                <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
+                                <option value="6">@Locale.T("acc.inch", "6")</option>
+                            </select>
+                        </label>
+                        <label class="mr-opt-field">
+                            <span>@Locale.T("acc.topSpace")</span>
+                            <input type="number" class="pc-num" min="0" step="1" @bind="topSpace" @bind:after="PersistOptsAsync" />
+                        </label>
+                        <label class="mr-opt-field">
+                            <span>@Locale.T("acc.fontSize")</span>
+                            <input type="number" class="pc-num" min="10" max="20" step="1" @bind="fontSize" @bind:after="PersistOptsAsync" />
+                        </label>
+                    </div>
+                    <button type="button" class="sal-gen" @onclick="PrintAsync">@Locale.T("si.print")</button>
+                </section>
+                @if (!IsPurchase)
+                {
+                    <section class="mr-tool-card mr-tool-sms">
+                        <div class="mr-sms-bal">@Locale.T("acc.smsRemain"): @smsBalance</div>
+                        <p class="mr-sms-note"><strong>@Locale.T("acc.smsOn")</strong> @Locale.T("inv.smsHint")</p>
+                        <p class="mr-sms-note"><a href="sms/templates">@Locale.T("sms.templateLink")</a></p>
+                        <button type="button" class="sal-gen" disabled="@(busy || smsBusy || IsOfflineReceipt)" @onclick="SendSmsAsync">@Locale.T("inv.sendSaleSms")</button>
+                        @if (!string.IsNullOrWhiteSpace(smsMsg))
+                        {
+                            <p class="@(smsOk ? "mr-sms-ok" : "mr-sms-err")">@smsMsg</p>
+                        }
+                    </section>
+                }
+            </aside>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private InventoryDocDto? doc;
+    private string busyTitle = "", popupText = "", printSize = "4", smsMsg = "";
+    private string schoolName = "", schoolAddr = "", schoolPhone = "";
+    private string? nameLogoUrl;
+    private int topSpace, fontSize = 11, smsBalance;
+    private bool busy, hideIns, hideDue, optionsLoaded, smsBusy, smsOk, popupError;
+    private bool IsPurchase => Nav.ToBaseRelativePath(Nav.Uri).Contains("purchase", StringComparison.OrdinalIgnoreCase);
+    private string ReceiptNo => string.IsNullOrWhiteSpace(doc?.InvoiceNo) ? Id.ToString() : doc!.InvoiceNo;
+    private bool IsOfflineReceipt =>
+        ReceiptNo.StartsWith("OFF-", StringComparison.OrdinalIgnoreCase) || Id >= 2_000_000_000;
+    private void ClosePopup() => popupText = "";
+    private string SheetStyle => $"width:{printSize}in;max-width:100%;font-size:{fontSize}px;padding-top:{Math.Max(0, topSpace)}px";
+    private bool IsNarrow => printSize is "3" or "3.5";
+    private static readonly string[] Widths = ["3", "3.5", "4", "4.5", "5", "5.5", "6"];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        LoadSchool();
+        await LoadAsync();
+    }
+
+    private void LoadSchool()
+    {
+        if (Session.Current is null) return;
+        var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+        schoolName = string.IsNullOrWhiteSpace(header.SchoolName) ? Session.Current.SchoolName : header.SchoolName;
+        schoolAddr = header.Address ?? "";
+        schoolPhone = header.Phone ?? "";
+        nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(Session.Current.SchoolID);
+    }
+
+    private async Task LoadAsync()
+    {
+        if (Id <= 0) return;
+        busyTitle = Locale.T("acc.loading");
+        busy = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                popupError = true;
+                popupText = Locale.T("subj.needOnline");
+                return;
+            }
+            doc = IsPurchase
+                ? await Api.GetInventoryPurchaseAsync(Session.AccessToken!, Id)
+                : await Api.GetInventorySaleAsync(Session.AccessToken!, Id);
+            if (doc is null || doc.Id <= 0)
+            {
+                doc = null;
+                popupError = true;
+                popupText = Locale.T("inv.empty");
+            }
+            else if (!IsPurchase)
+                await LoadSmsBalanceAsync();
+        }
+        catch (Exception ex) { popupError = true; popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || optionsLoaded) return;
+        optionsLoaded = true;
+        try
+        {
+            var saved = await JS.InvokeAsync<ReceiptPrintOpts>("sikkhaloyReceiptPrintLoad");
+            if (saved is null) return;
+            printSize = NormalizeWidth(saved.Size);
+            if (saved.TopSpace >= 0) topSpace = saved.TopSpace;
+            if (saved.FontSize is >= 10 and <= 20) fontSize = saved.FontSize;
+            hideIns = saved.HideIns;
+            hideDue = saved.HideDue;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch { }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrintReceipt", PrintOpts()).AsTask();
+    private Task PersistOptsAsync() => JS.InvokeVoidAsync("sikkhaloyReceiptPrintSave", PrintOpts()).AsTask();
+    private Task OnHideIns(ChangeEventArgs e)
+    {
+        hideIns = e.Value is true or "true" or "True";
+        return PersistOptsAsync();
+    }
+    private Task OnHideDue(ChangeEventArgs e)
+    {
+        hideDue = e.Value is true or "true" or "True";
+        return PersistOptsAsync();
+    }
+    private object PrintOpts() => new { size = printSize, topSpace, fontSize, hideIns, hideDue };
+    private static string NormalizeWidth(string? size) =>
+        size is not null && Widths.Contains(size) ? size : "4";
+
+    private async Task LoadSmsBalanceAsync()
+    {
+        try
+        {
+            var sms = await Api.GetPaymentSmsSettingAsync(Session.AccessToken!);
+            smsBalance = sms.Balance;
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SendSmsAsync()
+    {
+        if (IsPurchase || doc is null) return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            popupError = true;
+            popupText = Locale.T("subj.needOnline");
+            return;
+        }
+        smsBusy = true;
+        smsMsg = "";
+        try
+        {
+            var result = await Api.SendInventorySaleSmsAsync(Session.AccessToken!, Id);
+            smsOk = result.Succeeded;
+            smsMsg = Locale.T(result.Succeeded ? "acc.smsSent" : result.Error ?? "acc.smsFail");
+            if (result.Succeeded)
+                await LoadSmsBalanceAsync();
+        }
+        catch (Exception ex)
+        {
+            smsOk = false;
+            smsMsg = ex.Message;
+        }
+        finally { smsBusy = false; }
+    }
+
+    private sealed class ReceiptPrintOpts
+    {
+        public string? Size { get; set; }
+        public int TopSpace { get; set; }
+        public int FontSize { get; set; }
+        public bool HideIns { get; set; }
+        public bool HideDue { get; set; }
+    }
+
+    private string AmountInWords(decimal amount)
+    {
+        var fraction = (int)Math.Round((double)(amount % 1m) * 100d, MidpointRounding.AwayFromZero);
+        var text = ConvertNumber((double)amount);
+        if (Locale.IsBengali)
+            return fraction > 0 ? $"{text} টাকা এবং {ConvertNumber(fraction)} পয়সা মাত্র" : $"{text} টাকা মাত্র";
+        return fraction > 0 ? text + " Tk And " + ConvertNumber(fraction) + " Paisa Only" : text + " Tk Only";
+    }
+
+    private string ConvertNumber(double number)
+    {
+        if (number < 0 || number > 999999999) return Locale.IsBengali ? "সীমার বাইরে" : "NUMBER OUT OF RANGE!";
+        var bn = Locale.IsBengali;
+        var crore = (long)Math.Floor(number / 10000000);
+        number -= crore * 10000000;
+        var lakh = (long)Math.Floor(number / 100000);
+        number -= lakh * 100000;
+        var thousand = (long)Math.Floor(number / 1000);
+        number -= thousand * 1000;
+        var hundred = (long)Math.Floor(number / 100);
+        number %= 100;
+        var tn = (int)Math.Floor(number / 10);
+        var one = (int)Math.Floor(number % 10);
+        var res = "";
+        if (crore > 0) res += ConvertNumber(crore) + (bn ? " কোটি" : " Crore");
+        if (lakh > 0) res += (res.Length == 0 ? "" : " ") + ConvertNumber(lakh) + (bn ? " লক্ষ" : " Lakh");
+        if (thousand > 0) res += (res.Length == 0 ? "" : " ") + ConvertNumber(thousand) + (bn ? " হাজার" : " Thousand");
+        if (hundred > 0) res += (res.Length == 0 ? "" : " ") + ConvertNumber(hundred) + (bn ? " শত" : " Hundred");
+        string[] onesEn = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+            "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+        string[] tensEn = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+        string[] onesBn = ["", "এক", "দুই", "তিন", "চার", "পাঁচ", "ছয়", "সাত", "আট", "নয়", "দশ",
+            "এগারো", "বারো", "তেরো", "চৌদ্দ", "পনেরো", "ষোলো", "সতেরো", "আঠারো", "উনিশ"];
+        string[] tensBn = ["", "", "বিশ", "ত্রিশ", "চল্লিশ", "পঞ্চাশ", "ষাট", "সত্তর", "আশি", "নব্বই"];
+        var ones = bn ? onesBn : onesEn;
+        var tens = bn ? tensBn : tensEn;
+        if (tn > 0 || one > 0)
+        {
+            if (res.Length > 0) res += bn ? " " : " And ";
+            if (tn < 2) res += ones[tn * 10 + one];
+            else res += tens[tn] + (one > 0 ? (bn ? " " : "-") + ones[one] : "");
+        }
+        return res.Length == 0 ? (bn ? "শূন্য" : "zero") : res;
+    }
+}

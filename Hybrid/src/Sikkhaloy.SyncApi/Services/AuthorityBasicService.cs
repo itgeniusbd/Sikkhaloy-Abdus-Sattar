@@ -94,11 +94,10 @@ public sealed partial class AuthorityBasicService
         var password = request.Password ?? "";
         var confirm = request.ConfirmPassword ?? "";
         var email = (request.Email ?? "").Trim();
-        var question = (request.Question ?? "").Trim();
-        var answer = (request.Answer ?? "").Trim();
+        var question = string.IsNullOrWhiteSpace(request.Question) ? "Institution" : request.Question.Trim();
+        var answer = string.IsNullOrWhiteSpace(request.Answer) ? "n/a" : request.Answer.Trim();
 
-        if (userName.Length == 0 || password.Length == 0 || email.Length == 0
-            || question.Length == 0 || answer.Length == 0)
+        if (userName.Length == 0 || password.Length == 0 || email.Length == 0)
             return Fail("ab.required");
         if (userName.Any(char.IsWhiteSpace))
             return Fail("ab.userSpace");
@@ -147,12 +146,12 @@ public sealed partial class AuthorityBasicService
         request ??= new SignupInstitutionRequest();
         var userName = (request.UserName ?? "").Trim();
         var password = request.Password ?? "";
-        var answer = request.PasswordAnswer ?? "";
+        var answer = string.IsNullOrWhiteSpace(request.PasswordAnswer) ? "n/a" : request.PasswordAnswer;
         var schoolName = (request.SchoolName ?? "").Trim();
         var city = (request.City ?? "").Trim();
         var rateText = (request.PerStudentRate ?? "").Trim();
 
-        if (userName.Length == 0 || password.Length == 0 || answer.Length == 0)
+        if (userName.Length == 0 || password.Length == 0)
             return Fail("ab.needUser");
         if (schoolName.Length == 0 || city.Length == 0 || rateText.Length == 0)
             return Fail("ab.instRequired");
@@ -384,12 +383,12 @@ ORDER BY Sch.SchoolID
         await con.OpenAsync(ct);
         await using var cmd = new SqlCommand("""
 SELECT Registration.RegistrationID, Registration.UserName, aspnet_Membership.IsApproved,
-       aspnet_Membership.IsLockedOut, aspnet_Membership.Email, AST.Password,
+       aspnet_Membership.IsLockedOut, aspnet_Membership.Email, ISNULL(AST.Password, N'') AS Password,
        Registration.Validation, Registration.CreateDate
 FROM dbo.aspnet_Users
 INNER JOIN dbo.aspnet_Membership ON aspnet_Users.UserId = aspnet_Membership.UserId
-INNER JOIN dbo.Registration INNER JOIN dbo.AST ON Registration.RegistrationID = AST.RegistrationID
-    ON aspnet_Users.UserName = Registration.UserName
+INNER JOIN dbo.Registration ON aspnet_Users.UserName = Registration.UserName
+LEFT JOIN dbo.AST ON Registration.RegistrationID = AST.RegistrationID
 WHERE Registration.SchoolID = @SchoolID AND Registration.Category = @Category
 ORDER BY Registration.UserName
 """, con);

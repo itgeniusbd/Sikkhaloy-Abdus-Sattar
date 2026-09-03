@@ -160,7 +160,7 @@ public sealed partial class AuthorityInvoiceService
                 cmd.Parameters.AddWithValue("@RegistrationID", session.RegistrationID);
                 cmd.Parameters.AddWithValue("@SchoolID", row.SchoolID);
                 cmd.Parameters.AddWithValue("@IssuDate", issue.Value.Date);
-                cmd.Parameters.AddWithValue("@EndDate", issue.Value.Date.AddDays(15));
+                cmd.Parameters.AddWithValue("@EndDate", MonthPayDueDate(issue.Value.Date));
                 cmd.Parameters.AddWithValue("@Invoice_For", invoiceFor);
                 cmd.Parameters.AddWithValue("@TotalAmount", amount);
                 cmd.Parameters.AddWithValue("@Discount", row.Discount);
@@ -389,12 +389,7 @@ public sealed partial class AuthorityInvoiceService
                 await RecordCommissionAsync(con, tx, row.InvoiceID, ct);
             }
 
-            await using (var grace = new SqlCommand(
-                "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID AND AccessGraceUntil IS NOT NULL", con, tx))
-            {
-                grace.Parameters.AddWithValue("@SID", request.SchoolID);
-                try { await grace.ExecuteNonQueryAsync(ct); } catch { }
-            }
+            await ClearGraceIfNoDueAsync(con, tx, request.SchoolID, ct);
 
             await tx.CommitAsync(ct);
             return Ok("ai.paidOk");
@@ -928,6 +923,28 @@ public sealed partial class AuthorityInvoiceService
         catch
         {
         }
+    }
+
+    private static async Task ClearGraceIfNoDueAsync(
+        SqlConnection con, SqlTransaction tx, int schoolId, CancellationToken ct)
+    {
+        await using var cmd = new SqlCommand(
+            """
+            IF NOT EXISTS (
+                SELECT 1 FROM dbo.AAP_Invoice
+                WHERE SchoolID = @SID AND IsPaid = 0
+            )
+                UPDATE dbo.SchoolInfo SET AccessGraceUntil = NULL
+                WHERE SchoolID = @SID AND AccessGraceUntil IS NOT NULL
+            """, con, tx);
+        cmd.Parameters.AddWithValue("@SID", schoolId);
+        try { await cmd.ExecuteNonQueryAsync(ct); } catch { }
+    }
+
+    private static DateTime MonthPayDueDate(DateTime issue)
+    {
+        var due = new DateTime(issue.Year, issue.Month, 15);
+        return issue.Day <= 15 ? due : due.AddMonths(1);
     }
 
     private static List<int> ParseIds(string? ids)

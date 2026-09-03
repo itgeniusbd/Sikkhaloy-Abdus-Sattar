@@ -14,6 +14,7 @@ public sealed class OfficeProfileDto
     public string? LogoBase64 { get; set; }
     public string? NameLogoBase64 { get; set; }
     public bool ClearNameLogo { get; set; }
+    public string? HeaderColor { get; set; }
 }
 
 public sealed class AdminInfoDto
@@ -45,6 +46,11 @@ public sealed class ProfileResult
     public string? Error { get; set; }
     public string? DisplayName { get; set; }
     public string? PhotoDataUrl { get; set; }
+}
+
+public sealed class HeaderColorRequest
+{
+    public string Color { get; set; } = "";
 }
 
 public sealed class SwitchYearRequest

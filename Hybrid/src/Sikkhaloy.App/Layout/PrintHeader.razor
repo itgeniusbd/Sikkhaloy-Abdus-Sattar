@@ -2,6 +2,9 @@
 @inject SyncEngine Sync
 @inject AppLocale Locale
 
+@if (Session.Current is not null)
+{
+<div class="@(FromLayout ? "layout-print-header" : "page-print-header")">
 @if (useNameLogo)
 {
     <div class="print-header print-header-banner print-only @(Centered ? "is-center" : null)">
@@ -33,13 +36,24 @@ else
         </div>
     </div>
 }
-@if (!string.IsNullOrWhiteSpace(Subtitle))
+@if (!string.IsNullOrWhiteSpace(Subtitle) || ShowDate)
 {
-    <h2 class="print-only list-print-title @(Centered ? "is-center" : null)">@Subtitle</h2>
+    <div class="print-only print-meta-row @(Centered ? "is-center" : null)">
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <h2 class="list-print-title">@Subtitle</h2>
+        }
+        else
+        {
+            <span></span>
+        }
+        @if (ShowDate)
+        {
+            <p class="print-date">@Locale.T("print.printed", DateTime.Now.ToString("dd MMM yyyy hh:mm tt"))</p>
+        }
+    </div>
 }
-@if (ShowDate)
-{
-    <p class="print-only print-date @(Centered ? "is-center" : null)">@Locale.T("print.printed", DateTime.Now.ToString("dd MMM yyyy hh:mm tt"))</p>
+</div>
 }
 
 @code {
@@ -47,6 +61,7 @@ else
     [Parameter] public bool ShowDate { get; set; } = true;
     [Parameter] public bool Centered { get; set; }
     [Parameter] public bool ShowInstitutionId { get; set; } = true;
+    [Parameter] public bool FromLayout { get; set; }
 
     private string schoolName = "";
     private string address = "";
@@ -72,6 +87,6 @@ else
         email = header.Email ?? "";
         logoUrl = Sync.GetSchoolLogoDataUrl(schoolId);
         nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(schoolId);
-        useNameLogo = Centered && !string.IsNullOrWhiteSpace(nameLogoUrl);
+        useNameLogo = !string.IsNullOrWhiteSpace(nameLogoUrl);
     }
 }

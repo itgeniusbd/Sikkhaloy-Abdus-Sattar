@@ -1,4 +1,4 @@
-﻿using AttendanceDevice.Config_Class;
+using AttendanceDevice.Config_Class;
 using AttendanceDevice.Model;
 using System;
 using System.Data.Entity;
@@ -79,11 +79,27 @@ namespace AttendanceDevice.Settings.Pages
                 return;
             }
 
+            var commKeyText = CommKeyTextbox.Text.Trim();
+            var commKey = 2015;
+            if (commKeyText != "")
+            {
+                if (!int.TryParse(commKeyText, out commKey) || commKey < 0 || commKey > 999999)
+                {
+                    LoadingDH.IsOpen = false;
+
+                    if (ErrorSnackbar.Message != null)
+                        ErrorSnackbar.Message.Content = "Comm Key must be a number between 0 and 999999.";
+
+                    ErrorSnackbar.IsActive = true;
+                    return;
+                }
+            }
+
             var device = new Device()
             {
                 DeviceName = DeviceNameTextbox.Text,
                 DeviceIP = DeviceIPTextbox.Text.Trim(),
-                CommKey = 2015,
+                CommKey = commKey,
                 Port = 4370
             };
 
@@ -156,31 +172,60 @@ namespace AttendanceDevice.Settings.Pages
             if (e.EditAction != DataGridEditAction.Commit) return;
 
             LoadingDH.IsOpen = true;
+            ErrorSnackbar.IsActive = false;
 
             var deviceContext = e.Row.DataContext as Device;
+            if (deviceContext == null)
+            {
+                LoadingDH.IsOpen = false;
+                return;
+            }
+
+            if (deviceContext.CommKey < 0 || deviceContext.CommKey > 999999)
+            {
+                LoadingDH.IsOpen = false;
+
+                if (ErrorSnackbar.Message != null)
+                    ErrorSnackbar.Message.Content = "Comm Key must be a number between 0 and 999999.";
+
+                ErrorSnackbar.IsActive = true;
+                return;
+            }
+
+            var checkIp = await Device_PingTest.PingHostAsync(deviceContext.DeviceIP);
 
             using (var db = new ModelContext())
             {
-                if (db.Devices.Any(o => o.DeviceIP == deviceContext.DeviceIP))
+                var device = await db.Devices.FindAsync(deviceContext.Id);
+                if (device == null)
                 {
+                    LoadingDH.IsOpen = false;
+                    return;
+                }
+
+                if (db.Devices.Any(o => o.Id != device.Id && o.DeviceIP == deviceContext.DeviceIP))
+                {
+                    if (ErrorSnackbar.Message != null)
+                        ErrorSnackbar.Message.Content = "Another device already uses this IP address.";
+
+                    ErrorSnackbar.IsActive = true;
                     DeviceDtagrid.ItemsSource = db.Devices.ToList();
                     LoadingDH.IsOpen = false;
                     return;
                 }
 
-                var checkIp = deviceContext != null && await Device_PingTest.PingHostAsync(deviceContext.DeviceIP);
-
-                if (deviceContext != null)
-                {
-                    deviceContext.IsConnected = Convert.ToInt32(checkIp);
-                    db.Entry(deviceContext).State = EntityState.Modified;
-                }
+                device.DeviceName = deviceContext.DeviceName;
+                device.DeviceIP = deviceContext.DeviceIP;
+                device.Port = deviceContext.Port;
+                device.CommKey = deviceContext.CommKey;
+                device.IsConnected = Convert.ToInt32(checkIp);
 
                 await db.SaveChangesAsync();
 
                 DeviceDtagrid.ItemsSource = db.Devices.ToList();
-                LoadingDH.IsOpen = false;
             }
+
+            LoadingDH.IsOpen = false;
         }
         private void BtnRefresh_Click(object sender, RoutedEventArgs e)
         {

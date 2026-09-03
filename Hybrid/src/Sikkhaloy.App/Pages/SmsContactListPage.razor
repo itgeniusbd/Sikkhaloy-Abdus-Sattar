@@ -4,101 +4,137 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page acc-page exam-page sms-page">
-    <h1>@Locale.T("sms.contactTitle", balance)</h1>
+<div class="sms-ui-page">
+    <header class="sms-ui-hero">
+        <div class="sms-ui-hero-copy">
+            <span class="sms-ui-hero-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <div>
+                <h1>@Locale.T("sms.contactTitle")</h1>
+                <p>@Locale.T("sms.contactLead")</p>
+            </div>
+        </div>
+        <div class="sms-ui-bal">
+            <small>@Locale.T("sms.currentBalance")</small>
+            <strong>@balance.ToString("N0")</strong>
+        </div>
+    </header>
+
     @if (localMode)
     {
-        <div class="sms-local-note no-print">@Locale.T("sms.localNote")</div>
+        <div class="sms-ui-alert is-warn">@Locale.T("sms.localNote")</div>
     }
-    <div class="filter-row no-print">
-        <select @bind="groupId" @bind:after="LoadContactsAsync" disabled="@busy">
-            <option value="0">@Locale.T("sms.allGroup")</option>
-            @foreach (var item in groups)
-            {
-                <option value="@item.SMS_GroupID">@item.GroupName</option>
-            }
-        </select>
-        <input type="text" placeholder="@Locale.T("sms.searchHint")" @bind="search" disabled="@busy" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadContactsAsync">@Locale.T("sms.search")</button>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="OpenNewContact">@Locale.T("sms.addMobile")</button>
-        <button type="button" class="acc-btn" disabled="@busy" @onclick="() => showGroup = true">@Locale.T("sms.addGroup")</button>
-    </div>
-    <div class="sms-total">@Locale.T("sms.totalContact", contacts.Count)</div>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th><input type="checkbox" checked="@AllOn" @onchange="ToggleAll" disabled="@busy" /></th>
-                <th>@Locale.T("sms.group")</th>
-                <th>@Locale.T("exam.name")</th>
-                <th>@Locale.T("sms.mobile")</th>
-                <th>@Locale.T("sms.address")</th>
-                <th>@Locale.T("sms.addDate")</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (contacts.Count == 0)
+
+    <section class="sms-ui-card">
+        <div class="sms-ui-filters no-print">
+            <select @bind="groupId" @bind:after="LoadContactsAsync" disabled="@busy">
+                <option value="0">@Locale.T("sms.allGroup")</option>
+                @foreach (var item in groups)
+                {
+                    <option value="@item.SMS_GroupID">@item.GroupName</option>
+                }
+            </select>
+            <input type="text" placeholder="@Locale.T("sms.searchHint")" @bind="search" @onkeydown="OnSearchKey" disabled="@busy" />
+            <button type="button" class="sms-ui-btn" disabled="@busy" @onclick="LoadContactsAsync">@Locale.T("sms.search")</button>
+            <button type="button" class="sms-ui-btn is-ghost" disabled="@busy" @onclick="OpenNewContact">@Locale.T("sms.addMobile")</button>
+            <button type="button" class="sms-ui-btn is-ghost" disabled="@busy" @onclick="() => showGroup = true">@Locale.T("sms.addGroup")</button>
+        </div>
+        <div class="sms-ui-range">@Locale.T("sms.totalContact", contacts.Count) @Locale.T("sms.selectedCount", contacts.Count(x => x.Selected))</div>
+
+        <div class="sms-ui-table-wrap @(busy ? "is-busy" : null)">
+            <table class="sms-ui-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" checked="@AllOn" @onchange="ToggleAll" disabled="@busy" /></th>
+                        <th>@Locale.T("sms.group")</th>
+                        <th>@Locale.T("exam.name")</th>
+                        <th>@Locale.T("sms.mobile")</th>
+                        <th>@Locale.T("sms.address")</th>
+                        <th>@Locale.T("sms.addDate")</th>
+                        <th class="no-print"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (contacts.Count == 0)
+                {
+                    <tr><td colspan="7" class="empty-row">@Locale.T("sms.emptyData")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in PageRows)
+                    {
+                        <tr>
+                            <td><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                            <td>@row.GroupName</td>
+                            <td>@row.Name</td>
+                            <td>@row.MobileNo</td>
+                            <td>@row.Address</td>
+                            <td>@(row.Add_Date?.ToString("d MMM yyyy"))</td>
+                            <td class="sms-ui-acts no-print">
+                                <button type="button" class="sms-ui-link" disabled="@busy" @onclick="() => EditContact(row)">@Locale.T("sms.edit")</button>
+                                <button type="button" class="sms-ui-link is-del" disabled="@busy" @onclick="() => DeleteContactAsync(row)">@Locale.T("sms.delete")</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (TotalPages > 1)
         {
-            <tr><td colspan="7" class="empty-row">@Locale.T("sms.emptyData")</td></tr>
+            <div class="sms-ui-pager no-print">
+                @for (var n = 1; n <= TotalPages; n++)
+                {
+                    var p = n;
+                    <button type="button" class="@(p == page ? "is-on" : null)" disabled="@busy" @onclick="() => page = p">@p</button>
+                }
+            </div>
         }
-        @foreach (var row in contacts)
-        {
-            <tr>
-                <td><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
-                <td>@row.GroupName</td>
-                <td>@row.Name</td>
-                <td>@row.MobileNo</td>
-                <td>@row.Address</td>
-                <td>@(row.Add_Date?.ToString("d MMM yyyy"))</td>
-                <td class="sms-actions">
-                    <button type="button" class="link-btn" disabled="@busy" @onclick="() => EditContact(row)">@Locale.T("sms.edit")</button>
-                    <button type="button" class="link-btn" disabled="@busy" @onclick="() => DeleteContactAsync(row)">@Locale.T("sms.delete")</button>
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    </section>
 
     @if (contacts.Count > 0)
     {
-        <div class="sms-compose no-print">
+        <section class="sms-ui-card sms-ui-compose no-print">
+            <div class="sms-ui-card-head">
+                <h2>@Locale.T("sms.composeTitle")</h2>
+                <span>@Locale.T("sms.selectedCount", contacts.Count(x => x.Selected))</span>
+            </div>
             <label>@Locale.T("sms.textMessage")</label>
             <textarea rows="5" @bind="text" @bind:event="oninput" disabled="@busy"></textarea>
-            <div class="sms-counter">@Locale.T("sms.counter", text.Length, PerMessage, MessageCount)</div>
-            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SendAsync">@Locale.T("sms.sendBtn")</button>
-            @if (!string.IsNullOrWhiteSpace(toastText))
-            {
-                <label class="@(toastError ? "exam-input-err" : "exam-input-ok")">@toastText</label>
-            }
-        </div>
+            <div class="sms-ui-counter">@Locale.T("sms.counter", text.Length, PerMessage, MessageCount)</div>
+            <button type="button" class="sms-ui-btn" disabled="@busy" @onclick="SendAsync">@Locale.T("sms.sendBtn")</button>
+        </section>
     }
 </div>
 
 @if (showGroup)
 {
     <div class="acc-result-back" @onclick="() => showGroup = false">
-        <div class="acc-result is-ok sms-modal" @onclick:stopPropagation="true">
+        <div class="acc-result is-ok sms-ui-modal" @onclick:stopPropagation="true">
             <h3>@Locale.T("sms.addNewGroup")</h3>
-            <div class="filter-row">
+            <div class="sms-ui-filters">
                 <input type="text" placeholder="@Locale.T("sms.groupName")" @bind="groupName" disabled="@busy" />
-                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveGroupAsync">@Locale.T("sms.add")</button>
+                <button type="button" class="sms-ui-btn" disabled="@busy" @onclick="SaveGroupAsync">@Locale.T("sms.add")</button>
             </div>
-            <table class="mgrid">
-                <thead><tr><th>@Locale.T("sms.groupName")</th><th></th></tr></thead>
-                <tbody>
-                @foreach (var item in groups)
-                {
-                    <tr>
-                        <td>@item.GroupName</td>
-                        <td class="sms-actions">
-                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => EditGroup(item)">@Locale.T("sms.edit")</button>
-                            <button type="button" class="link-btn" disabled="@busy" @onclick="() => DeleteGroupAsync(item)">@Locale.T("sms.delete")</button>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => showGroup = false">@Locale.T("acc.ok")</button>
+            <div class="sms-ui-table-wrap">
+                <table class="sms-ui-table">
+                    <thead><tr><th>@Locale.T("sms.groupName")</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var item in groups)
+                    {
+                        <tr>
+                            <td>@item.GroupName</td>
+                            <td class="sms-ui-acts">
+                                <button type="button" class="sms-ui-link" disabled="@busy" @onclick="() => EditGroup(item)">@Locale.T("sms.edit")</button>
+                                <button type="button" class="sms-ui-link is-del" disabled="@busy" @onclick="() => DeleteGroupAsync(item)">@Locale.T("sms.delete")</button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <button type="button" class="sms-ui-btn" @onclick="() => showGroup = false">@Locale.T("acc.ok")</button>
         </div>
     </div>
 }
@@ -106,7 +142,7 @@
 @if (showNumber)
 {
     <div class="acc-result-back" @onclick="() => showNumber = false">
-        <div class="acc-result is-ok sms-modal" @onclick:stopPropagation="true">
+        <div class="acc-result is-ok sms-ui-modal" @onclick:stopPropagation="true">
             <h3>@Locale.T("sms.addContact")</h3>
             <label>@Locale.T("sms.groupName")</label>
             <select @bind="newGroupId" disabled="@busy">
@@ -122,45 +158,47 @@
             <input type="text" @bind="mobile" disabled="@busy" />
             <label>@Locale.T("sms.address")</label>
             <textarea rows="3" @bind="address" disabled="@busy"></textarea>
-            <div class="filter-row">
-                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SaveContactAsync">@Locale.T("sms.addToList")</button>
-                <button type="button" class="acc-btn" @onclick="() => showNumber = false">@Locale.T("acc.ok")</button>
+            <div class="sms-ui-filters">
+                <button type="button" class="sms-ui-btn" disabled="@busy" @onclick="SaveContactAsync">@Locale.T("sms.addToList")</button>
+                <button type="button" class="sms-ui-btn is-ghost" @onclick="() => showNumber = false">@Locale.T("acc.ok")</button>
             </div>
         </div>
     </div>
 }
 
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+<ExamBusyOverlay Busy="sending" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
 
 @code {
     private readonly List<SmsGroupDto> groups = [];
     private readonly List<SmsContactDto> contacts = [];
-    private int groupId, newGroupId, editNumberId, editGroupId, balance;
+    private int groupId, newGroupId, editNumberId, editGroupId, balance, page = 1;
+    private const int pageSize = 15;
     private string search = "", text = "", groupName = "", personName = "", mobile = "", address = "";
-    private bool busy, popupError, toastError, showGroup, showNumber, localMode;
-    private string? popupText, toastText, busyTitle;
+    private bool busy, sending, popupError, showGroup, showNumber, localMode;
+    private string? popupText, busyTitle;
 
     private bool Unicode => text.Any(ch => ch > 127);
     private int PerMessage => Unicode ? 70 : 160;
     private int MessageCount => string.IsNullOrEmpty(text) ? 0 : Math.Max(1, (int)Math.Ceiling(text.Length / (double)PerMessage));
     private bool AllOn => contacts.Count > 0 && contacts.All(x => x.Selected);
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(contacts.Count / (double)pageSize));
+    private IEnumerable<SmsContactDto> PageRows => contacts.Skip((page - 1) * pageSize).Take(pageSize);
 
     protected override Task OnInitializedAsync() => BootAsync();
 
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await LoadContactsAsync();
+    }
+
     private async Task BootAsync()
     {
-        await SetBusyAsync(Locale.T("sms.loading"));
+        busy = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             if (!await OnlineAsync()) return;
@@ -186,6 +224,7 @@
     {
         contacts.Clear();
         contacts.AddRange(await Api.GetSmsContactsAsync(Session.AccessToken!, groupId, search));
+        page = 1;
     }
 
     private void ToggleAll(ChangeEventArgs e)
@@ -285,7 +324,9 @@
         if (string.IsNullOrWhiteSpace(text)) { Show(Locale.T("sms.needText"), true); return; }
         var ids = contacts.Where(x => x.Selected).Select(x => x.SMS_NumberID).ToList();
         if (ids.Count == 0) { Show(Locale.T("sms.needContactPick"), true); return; }
-        await SetBusyAsync(Locale.T("sms.sending"));
+        busyTitle = Locale.T("sms.sending");
+        sending = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             if (!await OnlineAsync()) return;
@@ -304,12 +345,13 @@
             Show(msg);
         }
         catch (Exception ex) { Show(ex.Message, true); }
-        finally { busy = false; }
+        finally { sending = false; }
     }
 
     private async Task RunAsync(Func<Task> work)
     {
-        await SetBusyAsync(Locale.T("sms.loading"));
+        busy = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             if (!await OnlineAsync()) return;
@@ -321,7 +363,7 @@
 
     private async Task<bool> ConfirmAsync() =>
         await JS.InvokeAsync<bool>("confirm", Locale.T("sms.confirmDel"));
-    private void Show(string value, bool err = false) { popupText = toastText = value; popupError = toastError = err; }
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
     private string FormatErr(string? error, int balance = 0, string? detail = null)
     {
         if (string.Equals(error, "sms.low", StringComparison.OrdinalIgnoreCase))
@@ -333,20 +375,13 @@
         return string.IsNullOrWhiteSpace(detail) ? Locale.T("sms.fail") : detail;
     }
     private void ClosePopup() => popupText = null;
-    private async Task SetBusyAsync(string title)
+    private Task<bool> OnlineAsync()
     {
-        busyTitle = title;
-        busy = true;
-        await InvokeAsync(StateHasChanged);
-        await Task.Delay(40);
-    }
-    private async Task<bool> OnlineAsync()
-    {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             Show(Locale.T("subj.needOnline"), true);
-            return false;
+            return Task.FromResult(false);
         }
-        return true;
+        return Task.FromResult(true);
     }
 }

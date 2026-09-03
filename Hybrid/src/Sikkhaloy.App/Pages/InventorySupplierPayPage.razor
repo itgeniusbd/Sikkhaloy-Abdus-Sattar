@@ -1,0 +1,690 @@
+@page "/inventory/suppliers"
+@page "/inventory/supplier-pay"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<style>
+    .inv-pay-modern, .inv-pay-modern * { box-sizing: border-box; }
+    .inv-pay-modern { width: 100%; max-width: none; min-width: 0; }
+    .inv-pay-modern .ip-bar {
+        display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: flex-end; margin-bottom: 1rem;
+    }
+    .inv-pay-modern .ip-search { flex: 1 1 240px; min-width: 180px; position: relative; }
+    .inv-pay-modern .ip-search input {
+        width: 100%; height: 44px; border: 1.5px solid #e2e8f0; border-radius: 12px;
+        background: #f8fafc; padding: 0 2.4rem 0 0.9rem; font: inherit; font-weight: 600;
+    }
+    .inv-pay-modern .ip-search input:focus { outline: none; border-color: #0f766e; background: #fff; box-shadow: 0 0 0 4px rgba(15,118,110,.14); }
+    .inv-pay-modern .ip-search i {
+        position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%);
+        width: 1rem; height: 1rem; color: #0f766e; pointer-events: none;
+    }
+    .inv-pay-modern .ip-search i svg { width: 1rem; height: 1rem; }
+    .inv-pay-modern .ip-kpis { display: flex; flex-wrap: wrap; gap: 0.85rem; margin-bottom: 1rem; }
+    .inv-pay-modern .ip-kpi {
+        flex: 1 1 150px; min-width: 140px; display: flex; justify-content: space-between; align-items: center;
+        gap: 0.5rem; padding: 0.9rem 1rem; border-radius: 16px; border: 1px solid transparent;
+    }
+    .inv-pay-modern .ip-kpi small { display: block; font-size: 0.76rem; font-weight: 800; }
+    .inv-pay-modern .ip-kpi strong { display: block; margin-top: 0.15rem; font-size: 1.25rem; font-weight: 800; color: #0f172a; }
+    .inv-pay-modern .ip-kpi.is-n { background: #eff6ff; border-color: #bfdbfe; }
+    .inv-pay-modern .ip-kpi.is-n small { color: #1d4ed8; }
+    .inv-pay-modern .ip-kpi.is-b { background: #ecfdf5; border-color: #a7f3d0; }
+    .inv-pay-modern .ip-kpi.is-b small { color: #047857; }
+    .inv-pay-modern .ip-kpi.is-p { background: #f0fdfa; border-color: #99f6e4; }
+    .inv-pay-modern .ip-kpi.is-p small { color: #0f766e; }
+    .inv-pay-modern .ip-kpi.is-d { background: #fef2f2; border-color: #fecaca; }
+    .inv-pay-modern .ip-kpi.is-d small { color: #b91c1c; }
+    .inv-pay-modern .ip-split { display: flex; flex-wrap: wrap; gap: 1rem; align-items: stretch; }
+    .inv-pay-modern .ip-card {
+        background: #fff; border: 1px solid #d1fae5; border-radius: 16px; overflow: hidden; min-width: 0;
+        box-shadow: 0 10px 28px rgba(15,23,42,.06);
+    }
+    .inv-pay-modern .ip-card.is-list { flex: 1 1 280px; }
+    .inv-pay-modern .ip-card.is-detail { flex: 2 1 420px; }
+    .inv-pay-modern .ip-head {
+        display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; color: #fff;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+    }
+    .inv-pay-modern .ip-head h2 { margin: 0; font-size: 1.02rem; flex: 1; }
+    .inv-pay-modern .ip-head small {
+        background: rgba(255,255,255,.2); border-radius: 999px; min-width: 1.6rem; text-align: center;
+        font-weight: 800; padding: 0.1rem 0.5rem;
+    }
+    .inv-pay-modern .ip-body { padding: 0.85rem 1rem 1rem; }
+    .inv-pay-modern .ip-table-wrap { overflow-x: auto; }
+    .inv-pay-modern table { width: 100%; border-collapse: collapse; margin: 0; }
+    .inv-pay-modern th {
+        background: #0f766e; color: #fff; font-size: 0.78rem; font-weight: 800;
+        text-align: left; padding: 0.55rem 0.65rem; white-space: nowrap;
+    }
+    .inv-pay-modern td { padding: 0.55rem 0.65rem; border-bottom: 1px solid #eef2f6; color: #334155; }
+    .inv-pay-modern tbody tr:hover td { background: #f8fafc; }
+    .inv-pay-modern tr.is-on td { background: #ecfdf5 !important; }
+    .inv-pay-modern .empty-row { text-align: center; color: #94a3b8; padding: 1.4rem .6rem; }
+    .inv-pay-modern .ip-name {
+        border: 0; background: none; color: #0f766e; font: inherit; font-weight: 800;
+        cursor: pointer; padding: 0; text-align: left;
+    }
+    .inv-pay-modern .ip-name:hover { text-decoration: underline; }
+    .inv-pay-modern .ip-sub { display: block; color: #64748b; font-size: 0.75rem; font-weight: 650; }
+    .inv-pay-modern .ip-due { color: #b91c1c; font-weight: 800; }
+    .inv-pay-modern .ip-ok { color: #047857; font-weight: 800; }
+    .inv-pay-modern .ip-pay {
+        height: 34px; border: 0; border-radius: 9px; padding: 0 0.8rem; color: #fff;
+        font: inherit; font-weight: 800; cursor: pointer; background: linear-gradient(135deg, #0f766e, #115e59);
+    }
+    .inv-pay-modern .ip-pay:disabled { opacity: .45; cursor: not-allowed; }
+    .inv-pay-modern .ip-add {
+        height: 44px; border: 0; border-radius: 12px; padding: 0 1rem; color: #fff;
+        font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+    }
+    .inv-pay-modern .ip-add:disabled { opacity: .45; }
+    .inv-pay-modern .ip-acts { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .inv-pay-modern .ip-ico {
+        display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: 0;
+        border-radius: 8px; cursor: pointer; background: #f1f5f9; color: #334155;
+    }
+    .inv-pay-modern .ip-ico.is-del { background: #fef2f2; color: #b91c1c; }
+    .inv-pay-modern .ip-ico svg { width: 0.95rem; height: 0.95rem; }
+    .inv-pay-modern .ip-buy {
+        color: #fff; background: rgba(255,255,255,.2); border-radius: 999px;
+        padding: 0.2rem 0.7rem; font-size: 0.78rem; font-weight: 800; text-decoration: none;
+    }
+    .inv-pay-modern .ip-st {
+        display: inline-block; padding: .16rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 800;
+    }
+    .inv-pay-modern .ip-st.is-paid { background: #dcfce7; color: #166534; }
+    .inv-pay-modern .ip-st.is-due { background: #fee2e2; color: #b91c1c; }
+    .inv-pay-modern .ip-hint { margin: 0; color: #64748b; font-weight: 700; text-align: center; padding: 2rem 1rem; }
+    .inv-pay-modern .ip-eye {
+        display: inline-grid; place-items: center; width: 2rem; height: 2rem;
+        border-radius: 8px; color: #0f766e; background: #ecfdf5; text-decoration: none;
+    }
+    .inv-pay-modern .ip-eye svg { width: 1.05rem; height: 1.05rem; }
+    .inv-pay-modern .ip-sec { margin-top: 0.9rem; }
+    .inv-pay-modern .ip-sec h3 { margin: 0 0 0.5rem; font-size: 0.92rem; color: #115e59; }
+    .ip-back { position: fixed; inset: 0; z-index: 80; background: rgba(15,39,68,.55); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .ip-back, .ip-modal, .ip-modal * { box-sizing: border-box; }
+    .ip-modal {
+        width: min(520px, 96vw); max-height: 92vh; overflow-x: hidden; overflow-y: auto; background: #fff;
+        border-radius: 16px; box-shadow: 0 18px 50px rgba(15,23,42,.28);
+    }
+    .ip-modal header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: .85rem 1rem; background: linear-gradient(135deg, #0f766e, #115e59); color: #fff;
+    }
+    .ip-modal header h3 { margin: 0; font-size: 1.08rem; }
+    .ip-modal .ip-x { border: 0; background: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
+    .ip-modal .ip-form { display: grid; gap: .7rem; padding: 1rem; overflow-x: hidden; }
+    .ip-modal input, .ip-modal select { max-width: 100%; }
+    .ip-modal label { display: grid; gap: .28rem; font-size: .75rem; font-weight: 800; color: #475569; margin: 0; }
+    .ip-modal input, .ip-modal select {
+        width: 100%; min-height: 42px; border: 1.5px solid #e2e8f0; border-radius: 12px;
+        background: #f8fafc; padding: 0 .8rem; font: inherit; font-weight: 600;
+    }
+    .ip-modal input:focus, .ip-modal select:focus { outline: none; border-color: #0f766e; background: #fff; box-shadow: 0 0 0 4px rgba(15,118,110,.14); }
+    .ip-modal .ip-duebox {
+        background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+        font-weight: 800; border-radius: 10px; padding: .7rem .9rem;
+    }
+    .ip-modal .ip-save {
+        min-height: 44px; border: 0; border-radius: 12px; color: #fff; font: inherit; font-weight: 800;
+        cursor: pointer; background: linear-gradient(135deg, #0f766e, #115e59);
+    }
+    .ip-modal .ip-save:disabled { opacity: .55; }
+    @@media (max-width: 720px) {
+        .inv-pay-modern .ip-card.is-list, .inv-pay-modern .ip-card.is-detail { flex: 1 1 100%; }
+    }
+</style>
+
+<div class="card sa-page si-info-page acc-page inv-page inv-pay-page inv-pay-modern">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("inv.kicker")</p>
+            <h1>@Locale.T("inv.suppliers")</h1>
+            <p class="sa-lead">@Locale.T("inv.suppliersHint")</p>
+        </div>
+    </header>
+
+    <div class="ip-kpis">
+        <div class="ip-kpi is-n">
+            <div><small>@Locale.T("inv.totalSuppliers")</small><strong>@suppliers.Count</strong></div>
+        </div>
+        <div class="ip-kpi is-b">
+            <div><small>@Locale.T("inv.purchased")</small><strong>৳ @suppliers.Sum(x => x.Purchased).ToString("N2")</strong></div>
+        </div>
+        <div class="ip-kpi is-p">
+            <div><small>@Locale.T("inv.paid")</small><strong>৳ @suppliers.Sum(x => x.Paid).ToString("N2")</strong></div>
+        </div>
+        <div class="ip-kpi is-d">
+            <div><small>@Locale.T("inv.due")</small><strong>৳ @suppliers.Sum(x => x.Due).ToString("N2")</strong></div>
+        </div>
+    </div>
+
+    <div class="ip-bar no-print">
+        <label class="ip-search">
+            <input type="text" placeholder="@Locale.T("inv.searchSupplier")" @bind="search" @bind:event="oninput" />
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></i>
+        </label>
+        <button type="button" class="ip-add" disabled="@busy" @onclick="OpenAdd">+ @Locale.T("inv.addSupplier")</button>
+    </div>
+
+    <div class="ip-split">
+        <section class="ip-card is-list">
+            <div class="ip-head">
+                <h2>@Locale.T("inv.supplierList")</h2>
+                <small>@VisibleSuppliers.Count</small>
+            </div>
+            <div class="ip-body">
+                <div class="ip-table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>@Locale.T("inv.supplier")</th>
+                                <th>@Locale.T("inv.due")</th>
+                                <th class="no-print">@Locale.T("sms.tplActions")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (VisibleSuppliers.Count == 0 && !busy)
+                        {
+                            <tr><td colspan="4" class="empty-row">@Locale.T("inv.empty")</td></tr>
+                        }
+                        @{ var n = 0; }
+                        @foreach (var row in VisibleSuppliers)
+                        {
+                            n++;
+                            <tr class="@(supplierId == row.SupplierID ? "is-on" : null)">
+                                <td>@n</td>
+                                <td>
+                                    <button type="button" class="ip-name" @onclick="() => SelectSupplierAsync(row.SupplierID)">@row.Name</button>
+                                    @if (!string.IsNullOrWhiteSpace(row.Phone))
+                                    {
+                                        <small class="ip-sub">@row.Phone</small>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(row.Address))
+                                    {
+                                        <small class="ip-sub">@row.Address</small>
+                                    }
+                                </td>
+                                <td class="@(row.Due > 0 ? "ip-due" : "ip-ok")">৳ @row.Due.ToString("N2")</td>
+                                <td class="no-print">
+                                    <div class="ip-acts">
+                                        <button type="button" class="ip-pay" disabled="@(busy || row.Due <= 0)" @onclick="() => OpenPayAsync(row.SupplierID)">
+                                            @Locale.T("inv.payBtn")
+                                        </button>
+                                        <button type="button" class="ip-ico" disabled="@busy" title="@Locale.T("sal.edit")" @onclick="() => StartEdit(row)">
+                                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>
+                                        </button>
+                                        <button type="button" class="ip-ico is-del" disabled="@busy" title="@Locale.T("sal.delete")" @onclick="() => DeleteAsync(row)">
+                                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3.46-9.12 1.41-1.41L12 10.59l1.12-1.12 1.41 1.41L13.41 12l1.12 1.12-1.41 1.41L12 13.41l-1.13 1.12-1.41-1.41L10.59 12zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="ip-card is-detail">
+            <div class="ip-head">
+                <h2>@(supplierId > 0 && !string.IsNullOrWhiteSpace(ledger.Supplier.Name) ? ledger.Supplier.Name : Locale.T("inv.dueInvoices"))</h2>
+                <small>@ledger.Dues.Count</small>
+                @if (supplierId > 0)
+                {
+                    <a class="ip-buy" href="@($"/inventory/purchase?supplier={supplierId}")">@Locale.T("inv.purchase")</a>
+                }
+            </div>
+            <div class="ip-body">
+                @if (supplierId <= 0)
+                {
+                    <p class="ip-hint">@Locale.T("inv.clickSupplier")</p>
+                }
+                else
+                {
+                    <div class="ip-table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>@Locale.T("inv.invoice")</th>
+                                    <th>@Locale.T("att.date")</th>
+                                    <th>@Locale.T("inv.total")</th>
+                                    <th>@Locale.T("inv.paid")</th>
+                                    <th>@Locale.T("inv.due")</th>
+                                    <th>@Locale.T("rpt.status")</th>
+                                    <th class="no-print">@Locale.T("sms.tplActions")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @if (ledger.Dues.Count == 0 && !busy)
+                            {
+                                <tr><td colspan="8" class="empty-row">@Locale.T("inv.empty")</td></tr>
+                            }
+                            @{ var pn = 0; }
+                            @foreach (var row in ledger.Dues)
+                            {
+                                pn++;
+                                <tr>
+                                    <td>@pn</td>
+                                    <td><strong>@row.InvoiceNo</strong></td>
+                                    <td>@row.Date.ToString("d MMM yyyy")</td>
+                                    <td>৳ @row.Total.ToString("N2")</td>
+                                    <td class="ip-ok">৳ @row.Paid.ToString("N2")</td>
+                                    <td class="@(row.Due > 0 ? "ip-due" : "ip-ok")">৳ @row.Due.ToString("N2")</td>
+                                    <td>
+                                        <span class="ip-st @(row.Due > 0 ? "is-due" : "is-paid")">@(row.Due > 0 ? Locale.T("inv.due") : Locale.T("acc.paid"))</span>
+                                    </td>
+                                    <td class="no-print">
+                                        @if (row.Due > 0)
+                                        {
+                                            <button type="button" class="ip-pay" disabled="@busy" @onclick="() => OpenPayAsync(supplierId, row.PurchaseID)">@Locale.T("inv.payBtn")</button>
+                                        }
+                                        <a class="ip-eye" href="@($"/inventory/receipt/purchase/{row.PurchaseID}")" title="@Locale.T("rpt.viewBtn")">
+                                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 6a9.77 9.77 0 0 1 8.82 5.5A9.77 9.77 0 0 1 12 17a9.77 9.77 0 0 1-8.82-5.5A9.77 9.77 0 0 1 12 6m0 9a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m0-2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></svg>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="ip-sec">
+                        <h3>@Locale.T("inv.payHistory") (@ledger.Payments.Count)</h3>
+                        @if (ledger.Payments.Count == 0)
+                        {
+                            <p class="ip-hint" style="padding:1rem">@Locale.T("inv.noPayHistory")</p>
+                        }
+                        else
+                        {
+                            <div class="ip-table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>@Locale.T("att.date")</th>
+                                            <th>@Locale.T("inv.invoice")</th>
+                                            <th>@Locale.T("inv.account")</th>
+                                            <th>@Locale.T("inv.amount")</th>
+                                            <th>@Locale.T("inv.details")</th>
+                                            <th>@Locale.T("inv.by")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var row in ledger.Payments)
+                                    {
+                                        <tr>
+                                            <td>@row.Date.ToString("d MMM yyyy")</td>
+                                            <td>@row.InvoiceNo</td>
+                                            <td>@row.AccountName</td>
+                                            <td class="ip-ok">৳ @row.Amount.ToString("N2")</td>
+                                            <td>@row.Note</td>
+                                            <td>@row.UserName</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+@if (showPay)
+{
+    <div class="ip-back" @onclick="ClosePay">
+        <div class="ip-modal" @onclick:stopPropagation="true">
+            <header>
+                <h3>@Locale.T("inv.payBtn") — @PaySupplierName</h3>
+                <button type="button" class="ip-x" @onclick="ClosePay">×</button>
+            </header>
+            <div class="ip-form">
+                <label>
+                    <span>@Locale.T("inv.invoice")</span>
+                    <select @bind="purchaseId" disabled="@busy">
+                        <option value="0">@Locale.T("inv.anyDue")</option>
+                        @foreach (var due in ledger.Dues.Where(x => x.Due > 0))
+                        {
+                            <option value="@due.PurchaseID">@due.InvoiceNo (@due.Date.ToString("d MMM")) — @due.Due.ToString("N0")</option>
+                        }
+                    </select>
+                </label>
+                <label>
+                    <span>@Locale.T("att.date")</span>
+                    <input type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" @bind="date" @bind:format="yyyy-MM-dd" disabled="@busy" />
+                </label>
+                <label>
+                    <span>@Locale.T("inv.account")</span>
+                    <select @bind="accountId" disabled="@busy">
+                        <option value="0">@Locale.T("inv.selectAccount")</option>
+                        @foreach (var acc in accounts)
+                        {
+                            <option value="@acc.AccountID">@acc.AccountName (@acc.Balance.ToString("N0"))</option>
+                        }
+                    </select>
+                </label>
+                <label>
+                    <span>@Locale.T("inv.paidAmount")</span>
+                    <input type="text" inputmode="decimal" placeholder="" @bind="amountText" @bind:event="oninput" disabled="@busy" />
+                </label>
+                <label>
+                    <span>@Locale.T("inv.details")</span>
+                    <input type="text" placeholder="@Locale.T("inv.payNotePh")" @bind="note" disabled="@busy" />
+                </label>
+                <div class="ip-duebox">@Locale.T("inv.dueAmount"): ৳ @RemainingDue.ToString("N2")</div>
+                <button type="button" class="ip-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("inv.savePay")</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showForm)
+{
+    <div class="ip-back" @onclick="CloseForm">
+        <div class="ip-modal" @onclick:stopPropagation="true">
+            <header>
+                <h3>@(editId > 0 ? Locale.T("sal.edit") : Locale.T("inv.addSupplier"))</h3>
+                <button type="button" class="ip-x" @onclick="CloseForm">×</button>
+            </header>
+            <div class="ip-form">
+                <label>
+                    <span>@Locale.T("inv.supplier")</span>
+                    <input type="text" placeholder="@Locale.T("inv.enterName")" @bind="name" disabled="@busy" />
+                </label>
+                <label>
+                    <span>@Locale.T("inv.phone")</span>
+                    <input type="text" placeholder="@Locale.T("inv.enterPhone")" @bind="phone" disabled="@busy" />
+                </label>
+                <label>
+                    <span>@Locale.T("inv.address")</span>
+                    <input type="text" placeholder="@Locale.T("inv.enterAddress")" @bind="address" disabled="@busy" />
+                </label>
+                <button type="button" class="ip-save" disabled="@busy" @onclick="SaveSupplierAsync">
+                    @(editId > 0 ? Locale.T("si.update") : $"+ {Locale.T("inv.addSupplier")}")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<InventorySupplierDto> suppliers = [];
+    private readonly List<InventoryAccountDto> accounts = [];
+    private InventorySupplierLedgerDto ledger = new();
+    private string note = "", busyTitle = "", popupText = "", search = "";
+    private string name = "", phone = "", address = "";
+    private DateTime date = DateTime.Today;
+    private int supplierId, purchaseId, accountId, editId;
+    private string amountText = "";
+    private bool busy, popupError, showPay, showForm;
+    private decimal SelectedDue =>
+        purchaseId > 0
+            ? ledger.Dues.FirstOrDefault(x => x.PurchaseID == purchaseId)?.Due ?? 0
+            : ledger.Dues.Sum(x => x.Due);
+    private decimal RemainingDue
+    {
+        get
+        {
+            var raw = amountText.Replace(",", "").Trim();
+            if (!decimal.TryParse(raw, out var paid) || paid < 0)
+                paid = 0;
+            return Math.Max(0, SelectedDue - paid);
+        }
+    }
+    private string PaySupplierName =>
+        suppliers.FirstOrDefault(x => x.SupplierID == supplierId)?.Name
+        ?? ledger.Supplier.Name
+        ?? "";
+
+    private IReadOnlyList<InventorySupplierDto> VisibleSuppliers
+    {
+        get
+        {
+            var q = search.Trim();
+            var rows = suppliers.AsEnumerable();
+            if (q.Length > 0)
+                rows = rows.Where(x =>
+                    x.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || (x.Phone ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                    || (x.Address ?? "").Contains(q, StringComparison.OrdinalIgnoreCase));
+            return rows.OrderByDescending(x => x.Due).ThenBy(x => x.Name).ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadLookupsAsync();
+
+    private async Task LoadLookupsAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var data = await Api.GetInventoryLookupsAsync(Session.AccessToken!);
+            accounts.Clear();
+            accounts.AddRange(data.Accounts);
+            suppliers.Clear();
+            suppliers.AddRange(data.Suppliers);
+            if (accountId == 0)
+            {
+                var def = accounts.FirstOrDefault(x => x.IsDefault) ?? accounts.FirstOrDefault();
+                if (def is not null) accountId = def.AccountID;
+            }
+            var q = QueryInt("supplier");
+            if (q > 0)
+                await SelectSupplierAsync(q);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SelectSupplierAsync(int id)
+    {
+        supplierId = id;
+        purchaseId = 0;
+        amountText = "";
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            await LoadLedgerCoreAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OpenPayAsync(int id, int invoice = 0)
+    {
+        if (supplierId != id || ledger.Supplier.SupplierID != id)
+            await SelectSupplierAsync(id);
+        var sup = suppliers.FirstOrDefault(x => x.SupplierID == id);
+        if (sup is null || (sup.Due <= 0 && ledger.Dues.All(x => x.Due <= 0)))
+        {
+            Show(Locale.T("inv.noDue"), true);
+            return;
+        }
+        purchaseId = invoice;
+        amountText = "";
+        date = DateTime.Today;
+        note = "";
+        showPay = true;
+    }
+
+    private void ClosePay() => showPay = false;
+
+    private void OpenAdd()
+    {
+        editId = 0;
+        name = "";
+        phone = "";
+        address = "";
+        showForm = true;
+    }
+
+    private void StartEdit(InventorySupplierDto row)
+    {
+        editId = row.SupplierID;
+        name = row.Name;
+        phone = row.Phone ?? "";
+        address = row.Address ?? "";
+        showForm = true;
+    }
+
+    private void CloseForm()
+    {
+        showForm = false;
+        editId = 0;
+        name = "";
+        phone = "";
+        address = "";
+    }
+
+    private async Task SaveSupplierAsync()
+    {
+        var saveName = name;
+        var savePhone = phone;
+        var saveAddress = address;
+        var saveId = editId;
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SaveInventorySupplierAsync(Session.AccessToken!, new SaveInventorySupplierRequest
+            {
+                SupplierID = saveId,
+                Name = saveName,
+                Phone = savePhone,
+                Address = saveAddress
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            CloseForm();
+            var fresh = await Api.GetInventoryLookupsAsync(Session.AccessToken!);
+            accounts.Clear();
+            accounts.AddRange(fresh.Accounts);
+            suppliers.Clear();
+            suppliers.AddRange(fresh.Suppliers);
+            if (supplierId > 0)
+                await LoadLedgerCoreAsync();
+            Show(Locale.T(result.Message ?? "inv.supplierSaved"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(InventorySupplierDto row)
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.DeleteInventorySupplierAsync(Session.AccessToken!, row.SupplierID);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            if (editId == row.SupplierID) CloseForm();
+            if (supplierId == row.SupplierID)
+            {
+                supplierId = 0;
+                ledger = new();
+            }
+            var fresh = await Api.GetInventoryLookupsAsync(Session.AccessToken!);
+            accounts.Clear();
+            accounts.AddRange(fresh.Accounts);
+            suppliers.Clear();
+            suppliers.AddRange(fresh.Suppliers);
+            Show(Locale.T(result.Message ?? "inv.deleted"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task LoadLedgerCoreAsync()
+    {
+        ledger = await Api.GetInventorySupplierLedgerAsync(Session.AccessToken!, supplierId);
+        if (purchaseId > 0 && ledger.Dues.All(x => x.PurchaseID != purchaseId || x.Due <= 0))
+            purchaseId = 0;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!decimal.TryParse(amountText.Replace(",", "").Trim(), out var payAmount) || payAmount <= 0)
+        {
+            Show(Locale.T("inv.needPayAmount"), true);
+            return;
+        }
+        var payNote = note;
+        var paySupplier = supplierId;
+        var payPurchase = purchaseId;
+        var payAccount = accountId;
+        var payDate = date;
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.SaveInventorySupplierPaymentAsync(Session.AccessToken!, new SaveInventorySupplierPaymentRequest
+            {
+                SupplierID = paySupplier,
+                PurchaseID = payPurchase,
+                AccountID = payAccount,
+                Amount = payAmount,
+                Date = payDate == default ? DateTime.Today : payDate,
+                Note = payNote
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            note = "";
+            amountText = "";
+            showPay = false;
+            var fresh = await Api.GetInventoryLookupsAsync(Session.AccessToken!);
+            accounts.Clear();
+            accounts.AddRange(fresh.Accounts);
+            suppliers.Clear();
+            suppliers.AddRange(fresh.Suppliers);
+            await LoadLedgerCoreAsync();
+            Show(Locale.T(result.Message ?? "inv.paySaved"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private int QueryInt(string name)
+    {
+        var query = Nav.ToAbsoluteUri(Nav.Uri).Query.TrimStart('?');
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0].Equals(name, StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(Uri.UnescapeDataString(kv[1]), out var id))
+                return id;
+        }
+        return 0;
+    }
+
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(InventoryResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("inv.failed")
+        : result.Error.Contains('.', StringComparison.Ordinal) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

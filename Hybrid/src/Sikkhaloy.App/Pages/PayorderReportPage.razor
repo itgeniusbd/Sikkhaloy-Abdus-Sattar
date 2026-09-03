@@ -4,16 +4,26 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@implements IDisposable
 
 <div class="card structure-page emp-page acc-page rpt-page ie-rpt po-rpt">
+    <div class="sess-year no-print">
+        <label>@Locale.T("rpt.sessionYear")</label>
+        <select @bind="yearId" @bind:after="OnYearAsync" disabled="@busy">
+            @foreach (var year in years)
+            {
+                <option value="@year.EducationYearID">@year.Name</option>
+            }
+        </select>
+    </div>
     <div class="rpt-filters no-print">
         <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
         <input type="date" value="@toText" @onchange="OnTo" title="@Locale.T("rpt.to")" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => LoadAsync(0)">@Locale.T("acc.find")</button>
+        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
         <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
     </div>
     <h1>@Locale.T("rpt.payorderTitle") @if (!string.IsNullOrWhiteSpace(DateLabel)) { <small>@DateLabel</small> }</h1>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
         <div class="rpt-fees">
@@ -29,7 +39,7 @@
             @foreach (var role in data.Roles)
             {
                 <tr class="@(role.RoleID == selectedRoleId ? "is-sel" : null)">
-                    <td><button type="button" class="link-btn" @onclick="() => LoadAsync(role.RoleID)">@role.Role</button></td>
+                    <td><button type="button" class="link-btn" @onclick="() => SelectRole(role.RoleID)">@role.Role</button></td>
                     <td class="num">@Tk(role.Fee)</td>
                     <td class="num">@Tk(role.LateFee)</td>
                     <td class="num">@Tk(role.Concession)</td>
@@ -39,7 +49,7 @@
             }
             </tbody>
         </table>
-        var selected = data.Roles.FirstOrDefault(x => x.PayFors.Count > 0);
+        var selected = data.Roles.FirstOrDefault(x => x.RoleID == selectedRoleId && x.PayFors.Count > 0);
         if (selected is not null)
         {
             <div class="rpt-box pay">@Locale.T("rpt.paySummary"): @selected.Role</div>
@@ -76,6 +86,8 @@
 
 @code {
     private PayorderReportDto? data;
+    private List<EducationYearDto> years = [];
+    private int yearId;
     private string fromText = "", toText = "", error = "";
     private bool busy;
     private int selectedRoleId;
@@ -85,25 +97,86 @@
     protected override async Task OnInitializedAsync()
     {
         if (Session.Current is null) { Nav.NavigateTo("/login", replace: true); return; }
-        await LoadAsync(0);
-    }
-
-    private async Task LoadAsync(int roleId)
-    {
+        Session.Changed += OnSessionChanged;
         busy = true;
-        error = "";
-        selectedRoleId = roleId;
         await PaintAsync();
-        try { data = await Api.GetPayorderReportAsync(Session.AccessToken, Parse(fromText), Parse(toText), roleId); }
+        try
+        {
+            years.AddRange(await Api.GetYearsAsync(Session.AccessToken));
+            yearId = CurrentYear();
+            ApplyYearDates();
+            await LoadCoreAsync();
+        }
         catch (Exception ex) { error = ex.Message; }
         finally { busy = false; }
     }
+
+    private int CurrentYear()
+    {
+        var current = Session.Current?.EducationYearID ?? 0;
+        if (current > 0 && years.Any(x => x.EducationYearID == current))
+            return current;
+        return years.FirstOrDefault(x => x.IsCurrent)?.EducationYearID
+            ?? years.FirstOrDefault()?.EducationYearID
+            ?? 0;
+    }
+
+    private EducationYearDto? SelectedYear => years.FirstOrDefault(x => x.EducationYearID == yearId);
+
+    private void ApplyYearDates()
+    {
+        var year = SelectedYear;
+        if (year?.StartDate is DateTime start)
+            fromText = Iso(start.Date);
+        else
+            fromText = Iso(new DateTime(DateTime.Today.Year, 1, 1));
+
+        if (year?.EndDate is DateTime end)
+            toText = Iso(end.Date);
+        else
+            toText = Iso(DateTime.Today);
+    }
+
+    private void OnSessionChanged()
+    {
+        var current = Session.Current?.EducationYearID ?? 0;
+        if (current <= 0 || current == yearId) return;
+        yearId = current;
+        ApplyYearDates();
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private async Task OnYearAsync()
+    {
+        selectedRoleId = 0;
+        ApplyYearDates();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        error = "";
+        selectedRoleId = 0;
+        await PaintAsync();
+        try { await LoadCoreAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task LoadCoreAsync()
+    {
+        data = await Api.GetPayorderReportAsync(Session.AccessToken, Parse(fromText), Parse(toText), 0);
+    }
+
+    private void SelectRole(int roleId) => selectedRoleId = roleId;
 
     private void OnFrom(ChangeEventArgs e) => fromText = e.Value?.ToString() ?? "";
     private void OnTo(ChangeEventArgs e) => toText = e.Value?.ToString() ?? "";
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
     private async Task PaintAsync() { await InvokeAsync(StateHasChanged); await Task.Delay(40); }
     private static DateTime? Parse(string? text) => DateTime.TryParse(text, out var day) ? day.Date : null;
+    private static string Iso(DateTime day) => day.ToString("yyyy-MM-dd");
     private static string Tk(decimal n) => n.ToString("N0");
 
     private static string RangeLabel(string fromRaw, string toRaw)
@@ -119,5 +192,11 @@
         }
         if (from is not null) return $"After {from.Value:d MMM yyyy}";
         return $"Before {to!.Value:d MMM yyyy}";
+    }
+
+    public override void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        base.Dispose();
     }
 }

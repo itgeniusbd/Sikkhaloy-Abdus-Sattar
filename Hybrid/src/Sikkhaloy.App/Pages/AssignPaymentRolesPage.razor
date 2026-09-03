@@ -2,104 +2,142 @@
 @inherits LocaleAwareComponent
 @inject AppSession Session
 @inject ISyncApiClient Api
-@inject IJSRuntime JS
 
-<div class="card structure-page emp-page acc-page">
-    <h1>@Locale.T("acc.assign")</h1>
-    <a class="acc-jump" href="accounts/assign-roles-multi">@Locale.T("acc.multiClass")</a>
+<div class="card sa-page si-info-page acc-page acc-mod-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.assign")</p>
+            <h1>@Locale.T("acc.assign")</h1>
+            <p class="sa-lead">@Locale.T("acc.assignHint")</p>
+            <a class="acc-jump" href="accounts/assign-roles-multi">@Locale.T("acc.multiClass")</a>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
-    @if (!string.IsNullOrWhiteSpace(message)) { <div class="ok">@message</div> }
-
-    <div class="filter-row">
-        <select @bind="classInput" @bind:after="LoadAssignedAsync" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        <select @bind="roleInput" @bind:after="LoadAssignedAsync" disabled="@busy">
-            <option value="0">@Locale.T("acc.roleName")</option>
-            @foreach (var item in roles)
-            {
-                <option value="@item.RoleID">@item.Role (@item.NumberOfPay)</option>
-            }
-        </select>
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="LoadAssignedAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-role">
+            <span class="sal-box-h">@Locale.T("acc.roleName")</span>
+            <select @bind="roleInput" @bind:after="LoadAssignedAsync" disabled="@busy">
+                <option value="0">@Locale.T("acc.roleName")</option>
+                @foreach (var item in roles)
+                {
+                    <option value="@item.RoleID">@item.Role (@item.NumberOfPay)</option>
+                }
+            </select>
+        </section>
     </div>
 
     @if (ClassId > 0 && RoleId > 0 && drafts.Count > 0)
     {
         <p class="muted">@Locale.T("acc.installments") · @Locale.T("acc.slots"): @drafts.Count</p>
-        <div class="filter-row">
-            <button type="button" class="btn-serial" disabled="@busy" @onclick="AutoFill">@Locale.T("acc.autoFill")</button>
-            <input type="number" min="0" step="0.01" placeholder="@Locale.T("acc.amountAll")" @bind="amountAll" @bind:after="CopyAmount" disabled="@busy" />
-            <input type="number" min="0" step="0.01" placeholder="@Locale.T("acc.lateAll")" @bind="lateAll" @bind:after="CopyLate" disabled="@busy" />
+        <div class="sal-bar no-print">
+            <section class="sal-box is-amt">
+                <span class="sal-box-h">@Locale.T("acc.amountAll")</span>
+                <input type="number" min="0" step="0.01" placeholder="@Locale.T("acc.amountAll")" @bind="amountAll" @bind:after="CopyAmount" disabled="@busy" />
+            </section>
+            <section class="sal-box is-late">
+                <span class="sal-box-h">@Locale.T("acc.lateAll")</span>
+                <input type="number" min="0" step="0.01" placeholder="@Locale.T("acc.lateAll")" @bind="lateAll" @bind:after="CopyLate" disabled="@busy" />
+            </section>
+            <div class="sal-actions">
+                <button type="button" class="sal-bonus" disabled="@busy" @onclick="AutoFill">@Locale.T("acc.autoFill")</button>
+                <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.assign")</button>
+            </div>
         </div>
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th class="act"></th>
-                    <th>@Locale.T("acc.payFor")</th>
-                    <th>@Locale.T("acc.amount")</th>
-                    <th>@Locale.T("acc.start")</th>
-                    <th>@Locale.T("acc.end")</th>
-                    <th>@Locale.T("acc.lateFee")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var row in drafts)
-            {
-                <tr>
-                    <td class="act"><input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => Set(row, e)" /></td>
-                    <td><input type="text" @bind="row.PayFor" disabled="@busy" /></td>
-                    <td><input type="number" min="0" step="0.01" @bind="row.Amount" disabled="@busy" /></td>
-                    <td><input type="date" @bind="row.StartDate" disabled="@busy" /></td>
-                    <td><input type="date" @bind="row.EndDate" disabled="@busy" /></td>
-                    <td><input type="number" min="0" step="0.01" @bind="row.LateFee" disabled="@busy" /></td>
-                </tr>
-            }
-            </tbody>
-        </table>
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.assign")</button>
+        <div class="sj-grid">
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th class="act"></th>
+                        <th>@Locale.T("acc.payFor")</th>
+                        <th>@Locale.T("acc.amount")</th>
+                        <th>@Locale.T("acc.start")</th>
+                        <th>@Locale.T("acc.end")</th>
+                        <th>@Locale.T("acc.lateFee")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in drafts)
+                {
+                    <tr>
+                        <td class="act"><input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => Set(row, e)" /></td>
+                        <td><input type="text" @bind="row.PayFor" disabled="@busy" /></td>
+                        <td><input type="number" min="0" step="0.01" @bind="row.Amount" disabled="@busy" /></td>
+                        <td><input type="date" @bind="row.StartDate" disabled="@busy" /></td>
+                        <td><input type="date" @bind="row.EndDate" disabled="@busy" /></td>
+                        <td><input type="number" min="0" step="0.01" @bind="row.LateFee" disabled="@busy" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
     }
 
     <h2 class="emp-list-title">@Locale.T("acc.assigned")</h2>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("acc.payFor")</th>
-                <th>@Locale.T("acc.amount")</th>
-                <th>@Locale.T("acc.lateFee")</th>
-                <th>@Locale.T("acc.start")</th>
-                <th>@Locale.T("acc.end")</th>
-                <th class="act"></th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (assigned.Count == 0 && !busy)
-        {
-            <tr><td colspan="6" class="empty-row">@Locale.T("acc.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in assigned)
-            {
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
                 <tr>
-                    <td>@row.PayFor</td>
-                    <td>@row.Amount.ToString("0.##")</td>
-                    <td>@row.LateFee.ToString("0.##")</td>
-                    <td>@row.StartDate.ToString("dd-MMM-yyyy")</td>
-                    <td>@row.EndDate.ToString("dd-MMM-yyyy")</td>
-                    <td class="act">
-                        <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteAsync(row.AssignRoleID)">@Locale.T("sal.delete")</button>
-                    </td>
+                    <th>@Locale.T("acc.payFor")</th>
+                    <th>@Locale.T("acc.amount")</th>
+                    <th>@Locale.T("acc.lateFee")</th>
+                    <th>@Locale.T("acc.start")</th>
+                    <th>@Locale.T("acc.end")</th>
+                    <th class="act"></th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (assigned.Count == 0 && !busy)
+            {
+                <tr><td colspan="6" class="empty-row">@Locale.T("acc.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
+            else
+            {
+                @foreach (var row in assigned)
+                {
+                    <tr>
+                        <td>@row.PayFor</td>
+                        <td>@row.Amount.ToString("0.##")</td>
+                        <td>@row.LateFee.ToString("0.##")</td>
+                        <td>@row.StartDate.ToString("dd-MMM-yyyy")</td>
+                        <td>@row.EndDate.ToString("dd-MMM-yyyy")</td>
+                        <td class="act">
+                            <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => AskDelete(row.AssignRoleID)">@Locale.T("sal.delete")</button>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (confirmDeleteId is int delId)
+{
+    <div class="acc-result-back" @onclick="() => confirmDeleteId = null">
+        <div class="acc-result is-ok" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("sal.delete")</h3>
+            <p>@Locale.T("acc.confirmDelete")</p>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => DeleteAsync(delId)">@Locale.T("sal.delete")</button>
+            <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="() => confirmDeleteId = null">@Locale.T("cls.cancel")</button>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(popupText) && !busy)
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="acc.failed" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<SchoolClassDto> classes = [];
@@ -111,9 +149,10 @@
     private string roleInput = "0";
     private decimal? amountAll;
     private decimal? lateAll;
-    private bool busy;
-    private string? error;
-    private string? message;
+    private bool busy, popupError;
+    private string busyTitle = "";
+    private string? popupText;
+    private int? confirmDeleteId;
     private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
     private int RoleId => int.TryParse(roleInput, out var n) ? n : 0;
 
@@ -193,19 +232,18 @@
         drafts.Clear();
         if (ClassId <= 0 || RoleId <= 0) return;
         if (!await OnlineAsync()) return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
             assigned.AddRange(await Api.GetAssignedRolesAsync(Session.AccessToken!, ClassId, RoleId));
             RebuildDrafts();
         }
-        catch (Exception ex) { error = ex.Message; }
+        catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
     }
 
     private async Task SaveAsync()
     {
-        error = message = null;
         var items = drafts.Where(x => x.Selected).Select(x => new BulkAssignItem
         {
             RoleID = RoleId,
@@ -215,9 +253,9 @@
             StartDate = x.StartDate,
             EndDate = x.EndDate
         }).ToList();
-        if (items.Count == 0) { error = Locale.T("acc.needRows"); return; }
+        if (items.Count == 0) { Show(Locale.T("acc.needRows"), true); return; }
         if (!await OnlineAsync()) return;
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
             var result = await Api.BulkAssignRolesAsync(Session.AccessToken!, new BulkAssignRoleRequest
@@ -225,40 +263,62 @@
                 ClassIDs = [ClassId],
                 Items = items
             });
-            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "acc.failed"), true); return; }
             amountAll = lateAll = null;
-            message = Locale.T("acc.saved");
-            await LoadAssignedAsync();
+            await LoadAssignedQuietAsync();
+            Show(Locale.T("acc.saved"), false);
         }
-        catch (Exception ex) { error = ex.Message; }
+        catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
     }
 
+    private void AskDelete(int id) => confirmDeleteId = id;
+
     private async Task DeleteAsync(int id)
     {
-        error = message = null;
-        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("acc.confirmDelete")))
-            return;
+        confirmDeleteId = null;
         if (!await OnlineAsync()) return;
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
             var result = await Api.DeleteAssignedRoleAsync(Session.AccessToken!, id);
-            if (!result.Succeeded) { error = Locale.T(result.Error ?? "acc.failed"); return; }
-            message = Locale.T("acc.saved");
-            await LoadAssignedAsync();
+            if (!result.Succeeded) { Show(Locale.T(result.Error ?? "acc.failed"), true); return; }
+            await LoadAssignedQuietAsync();
+            Show(Locale.T("acc.saved"), false);
         }
-        catch (Exception ex) { error = ex.Message; }
+        catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
+    }
+
+    private async Task LoadAssignedQuietAsync()
+    {
+        assigned.Clear();
+        drafts.Clear();
+        if (ClassId <= 0 || RoleId <= 0) return;
+        assigned.AddRange(await Api.GetAssignedRolesAsync(Session.AccessToken!, ClassId, RoleId));
+        RebuildDrafts();
     }
 
     private async Task<bool> OnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
-        {
-            error = Locale.T("subj.needOnline");
-            return false;
-        }
+        { Show(Locale.T("subj.needOnline"), true); return false; }
         return true;
     }
+
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+    }
+
+    private void ClosePopup() => popupText = null;
 }

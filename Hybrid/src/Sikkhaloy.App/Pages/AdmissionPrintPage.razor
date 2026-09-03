@@ -12,8 +12,12 @@
     </div>
 
     <div class="adm-print blank-form">
-        <div class="adm-school">
-            @if (!string.IsNullOrWhiteSpace(logoUrl))
+        <div class="adm-school @(string.IsNullOrWhiteSpace(nameLogoUrl) ? null : "is-banner")">
+            @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+            {
+                <img class="adm-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+            }
+            else if (!string.IsNullOrWhiteSpace(logoUrl))
             {
                 <img src="@logoUrl" alt="" />
             }
@@ -21,10 +25,13 @@
             {
                 <span class="adm-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
             }
-            <div>
-                <h1>@schoolName</h1>
-                <p>@schoolAddress @schoolPhone</p>
-            </div>
+            @if (string.IsNullOrWhiteSpace(nameLogoUrl))
+            {
+                <div>
+                    <h1>@schoolName</h1>
+                    <p>@schoolAddress @schoolPhone</p>
+                </div>
+            }
         </div>
 
         <div class="adm-top">
@@ -137,6 +144,7 @@
     private string schoolAddress = "";
     private string schoolPhone = "";
     private string? logoUrl;
+    private string? nameLogoUrl;
 
     protected override void OnInitialized()
     {
@@ -151,6 +159,7 @@
         schoolAddress = header.Address ?? "";
         schoolPhone = header.Phone ?? "";
         logoUrl = Sync.GetSchoolLogoDataUrl(Session.Current.SchoolID);
+        nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(Session.Current.SchoolID);
     }
 
     private async Task PrintAsync() =>

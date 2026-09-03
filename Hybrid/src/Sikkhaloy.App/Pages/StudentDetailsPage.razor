@@ -1,4 +1,4 @@
-﻿@page "/students/details"
+@page "/students/details"
 @page "/students/details/{LocalId:guid}"
 @inherits LocaleAwareComponent
 @inject AppSession Session
@@ -7,26 +7,36 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="report-page">
-    <div class="report-nav no-print">
-        <a href="students">&lt;&lt; @Locale.T("report.back")</a>
-        <input type="text"
-               placeholder="@Locale.T("report.enterId")"
-               @bind="idInput"
-               @onkeydown="OnIdKey" />
-        <button class="btn-find" @onclick="FindAsync">@Locale.T("report.find")</button>
-        <a href="admission/print-form">@Locale.T("blank.link")</a>
-        @if (student is not null)
-        {
-            <button class="btn-print" @onclick='() => PrintAsync("portrait")'>@Locale.T("print.portrait")</button>
-            <button class="btn-print" @onclick='() => PrintAsync("landscape")'>@Locale.T("print.landscape")</button>
-            <a href="@($"students/{student.LocalId}")">@Locale.T("students.edit")</a>
-        }
-    </div>
+<div class="card sa-page si-info-page report-page students-card">
+    <header class="sa-head sj-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("si.crumb")</p>
+            <h1>@Locale.T("report.detailsTitle")</h1>
+        </div>
+        <div class="stu-head-acts">
+            <a class="stu-clear" href="students">@Locale.T("report.back")</a>
+            <span class="id-find-wrap @(idInvalid ? "invalid" : null)">
+                <input type="text"
+                       class="si-find-input"
+                       placeholder="@(idInvalid ? Locale.T(idErrorKey) : Locale.T("report.enterId"))"
+                       @bind="idInput"
+                       @bind:event="oninput"
+                       @bind:after="ClearIdError"
+                       @onkeydown="OnIdKey" />
+            </span>
+            <button type="button" class="stu-btn is-find" @onclick="FindAsync" disabled="@reportBusy">@Locale.T("report.find")</button>
+            <a class="stu-btn is-add" href="admission/print-form">@Locale.T("blank.link")</a>
+            @if (student is not null)
+            {
+                <button type="button" class="stu-btn is-print" @onclick="PrintAsync" disabled="@reportBusy">@Locale.T("print.btn")</button>
+                <a class="stu-btn is-sync" href="@($"students/{student.LocalId}")">@Locale.T("students.edit")</a>
+            }
+        </div>
+    </header>
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
     @if (student is null)
@@ -57,11 +67,11 @@
         </section>
 
         <div class="report-tabs no-print">
-            <button type="button" class="@(tab == "profile" ? "active" : null)" @onclick='() => tab = "profile"'>@Locale.T("report.profile")</button>
-            <button type="button" class="@(tab == "result" ? "active" : null)" @onclick='() => tab = "result"'>@Locale.T("report.result")</button>
-            <button type="button" class="@(tab == "attendance" ? "active" : null)" @onclick='() => tab = "attendance"'>@Locale.T("report.attendance")</button>
-            <button type="button" class="@(tab == "subjects" ? "active" : null)" @onclick='() => tab = "subjects"'>@Locale.T("report.subjects")</button>
-            <button type="button" class="@(tab == "accounts" ? "active" : null)" @onclick='() => tab = "accounts"'>@Locale.T("report.accounts")</button>
+            <button type="button" class="@(tab == "profile" ? "active" : null)" @onclick='() => SelectTabAsync("profile")'>@Locale.T("report.profile")</button>
+            <button type="button" class="@(tab == "result" ? "active" : null)" @onclick='() => SelectTabAsync("result")'>@Locale.T("report.result")</button>
+            <button type="button" class="@(tab == "attendance" ? "active" : null)" @onclick='() => SelectTabAsync("attendance")'>@Locale.T("report.attendance")</button>
+            <button type="button" class="@(tab == "subjects" ? "active" : null)" @onclick='() => SelectTabAsync("subjects")'>@Locale.T("report.subjects")</button>
+            <button type="button" class="@(tab == "accounts" ? "active" : null)" @onclick='() => SelectTabAsync("accounts")'>@Locale.T("report.accounts")</button>
         </div>
 
         @if (tab != "profile")
@@ -93,8 +103,12 @@
         @if (tab == "profile")
         {
             <div class="adm-print adm-screen">
-                <div class="adm-school">
-                    @if (!string.IsNullOrWhiteSpace(logoUrl))
+                <div class="adm-school @(string.IsNullOrWhiteSpace(nameLogoUrl) ? null : "is-banner")">
+                    @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+                    {
+                        <img class="adm-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+                    }
+                    else if (!string.IsNullOrWhiteSpace(logoUrl))
                     {
                         <img src="@logoUrl" alt="" />
                     }
@@ -102,10 +116,13 @@
                     {
                         <span class="adm-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
                     }
-                    <div>
-                        <h1>@schoolName</h1>
-                        <p>@schoolAddress @schoolPhone</p>
-                    </div>
+                    @if (string.IsNullOrWhiteSpace(nameLogoUrl))
+                    {
+                        <div>
+                            <h1>@schoolName</h1>
+                            <p>@schoolAddress @schoolPhone</p>
+                        </div>
+                    }
                 </div>
 
                 <div class="adm-top">
@@ -228,7 +245,7 @@
         }
         else if (!string.IsNullOrWhiteSpace(reportError))
         {
-            <p class="muted no-print">@reportError</p>
+            <NetBanner Text="@reportError" />
         }
         else if (tab == "result")
         {
@@ -383,34 +400,47 @@
                         <span class="att-pill late">@Locale.T("report.late")</span>
                         <span class="att-pill lateabs">@Locale.T("report.lateAbs")</span>
                         <span class="att-pill leave">@Locale.T("report.leave")</span>
+                        <span class="att-pill hol">@Locale.T("report.holidays")</span>
                     </div>
-                    <div class="table-wrap">
-                        <table class="mgrid">
-                            <thead>
-                                <tr>
-                                    <th>@Locale.T("report.date")</th>
-                                    <th>@Locale.T("report.status")</th>
-                                    <th>@Locale.T("report.entry")</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (report?.Attendance.Days.Count > 0)
+                    <div class="att-cal-nav no-print">
+                        <button type="button" class="att-cal-btn" @onclick="PrevMonth">‹</button>
+                        <strong>@MonthTitle</strong>
+                        <button type="button" class="att-cal-btn" @onclick="NextMonth">›</button>
+                    </div>
+                    <div class="att-cal">
+                        <div class="att-cal-head">
+                            @foreach (var day in WeekDays)
+                            {
+                                <span class="@(day is "শুক্র" or "Fri" ? "is-friday" : null)">@day</span>
+                            }
+                        </div>
+                        <div class="att-cal-grid">
+                            @foreach (var cell in CalendarCells)
+                            {
+                                @if (cell.Date is null)
                                 {
-                                    @foreach (var day in report.Attendance.Days)
-                                    {
-                                        <tr>
-                                            <td>@day.Date.ToString("dd MMM yyyy")</td>
-                                            <td><span class="att-pill @AttClass(day.Attendance)">@OrDash(day.Attendance)</span></td>
-                                            <td>@OrDash(day.EntryTime)</td>
-                                        </tr>
-                                    }
+                                    <div class="att-cal-cell is-empty"></div>
                                 }
                                 else
                                 {
-                                    <tr><td colspan="3">@Locale.T("report.empty")</td></tr>
+                                    <div class="att-cal-cell @cell.Css">
+                                        <span class="att-cal-num">@cell.Date.Value.Day</span>
+                                        @if (!string.IsNullOrWhiteSpace(cell.Status))
+                                        {
+                                            <span class="att-cal-st">@cell.Status</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(cell.Time))
+                                        {
+                                            <small>@cell.Time</small>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(cell.Note))
+                                        {
+                                            <small>@cell.Note</small>
+                                        }
+                                    </div>
                                 }
-                            </tbody>
-                        </table>
+                            }
+                        </div>
                     </div>
                 }
             </div>
@@ -473,34 +503,7 @@
                         else if (accTab == "receipts")
                         {
                             <div class="acc-total">@Locale.T("report.totalPaid"): @Money(report?.Accounts.Receipts.Sum(x => x.Amount) ?? 0)</div>
-                            <div class="table-wrap">
-                                <table class="mgrid">
-                                    <thead>
-                                        <tr>
-                                            <th>@Locale.T("report.receipt")</th>
-                                            <th>@Locale.T("report.paidDate")</th>
-                                            <th>@Locale.T("report.paid")</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (report?.Accounts.Receipts.Count > 0)
-                                        {
-                                            @foreach (var row in report.Accounts.Receipts)
-                                            {
-                                                <tr>
-                                                    <td>@OrDash(row.ReceiptNo)</td>
-                                                    <td>@D(row.PaidDate)</td>
-                                                    <td>@Money(row.Amount)</td>
-                                                </tr>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <tr><td colspan="3">@Locale.T("report.empty")</td></tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
+                            @ReceiptTable(report?.Accounts.Receipts)
                         }
                         else if (accTab == "concession")
                         {
@@ -553,11 +556,18 @@
                         <span class="due">@Locale.T("report.totalDue"): @Money(report?.Accounts.TotalDue)</span>
                     </div>
                     @PayTable(report?.Accounts.AllPayOrders, false)
+                    @if ((report?.Accounts.Receipts.Count ?? 0) > 0)
+                    {
+                        <div class="acc-total">@Locale.T("report.paidRecord")</div>
+                        @ReceiptTable(report!.Accounts.Receipts)
+                    }
                 </div>
             </div>
         }
     }
 </div>
+
+<ExamBusyOverlay Busy="reportBusy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
 
 @code {
     [Parameter] public Guid LocalId { get; set; }
@@ -569,13 +579,23 @@
     private string? error;
     private string? reportError;
     private string tab = "profile";
-    private string attTab = "summary";
+    private string attTab = "details";
     private string accTab = "due";
     private bool reportBusy;
+    private string busyTitle = "";
+    private bool resultLoaded;
+    private bool attLoaded;
+    private bool subLoaded;
+    private bool accLoaded;
+    private bool idInvalid;
+    private string idErrorKey = "report.needId";
+    private DateTime calMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private Guid loadedLocalId;
     private string schoolName = "";
     private string schoolAddress = "";
     private string schoolPhone = "";
     private string? logoUrl;
+    private string? nameLogoUrl;
 
     private string Initial =>
         student is null || student.StudentsName.Length == 0 ? "S" : student.StudentsName[..1];
@@ -602,7 +622,7 @@
         if (LocalId == Guid.Empty)
         {
             student = null;
-            report = null;
+            ResetReport();
             return;
         }
 
@@ -610,22 +630,52 @@
         if (student is null)
         {
             error = Locale.T("report.notFound");
-            report = null;
+            ResetReport();
             return;
+        }
+
+        if (loadedLocalId != LocalId)
+        {
+            ResetReport();
+            loadedLocalId = LocalId;
+            tab = "profile";
         }
 
         idInput = student.StudentCode;
         error = null;
+        idInvalid = false;
         if (student.ServerId is int sid && sid > 0)
             student.PhotoDataUrl ??= Sync.GetStudentPhotoDataUrl(Session.Current.SchoolID, sid);
-        await LoadReportAsync();
+        if (tab != "profile")
+            await LoadPartAsync(tab);
     }
 
-    private async Task LoadReportAsync()
+    private void ResetReport()
     {
         report = null;
         reportError = null;
+        resultLoaded = attLoaded = subLoaded = accLoaded = false;
+    }
+
+    private async Task SelectTabAsync(string name)
+    {
+        tab = name;
+        if (name == "profile")
+            return;
+        await LoadPartAsync(name);
+    }
+
+    private async Task LoadPartAsync(string part)
+    {
         if (Session.Current is null || student is null || string.IsNullOrWhiteSpace(student.StudentCode))
+            return;
+        if (part == "result" && resultLoaded)
+            return;
+        if (part == "attendance" && attLoaded)
+            return;
+        if (part == "subjects" && subLoaded)
+            return;
+        if (part == "accounts" && accLoaded)
             return;
         if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
@@ -633,20 +683,41 @@
             return;
         }
 
+        reportError = null;
+        busyTitle = Locale.T("report.loading");
         reportBusy = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
-            if (!await Api.PingAsync())
+            var chunk = await Api.GetStudentReportAsync(Session.AccessToken, student.StudentCode, part);
+            report ??= new StudentReportDto();
+            report.Found = chunk.Found;
+            report.StudentID = chunk.StudentID;
+            report.StudentClassID = chunk.StudentClassID;
+            report.ClassID = chunk.ClassID;
+            if (part == "result")
             {
-                reportError = Locale.T("report.needOnline");
-                return;
+                report.Result = chunk.Result;
+                resultLoaded = true;
             }
-
-            report = await Api.GetStudentReportAsync(Session.AccessToken, student.StudentCode);
-            if (!string.IsNullOrWhiteSpace(report.PhotoDataUrl) && student.ServerId is int id && id > 0)
+            else if (part == "attendance")
             {
-                Sync.SaveStudentPhoto(Session.Current.SchoolID, id, report.PhotoDataUrl);
-                student.PhotoDataUrl = report.PhotoDataUrl;
+                report.Attendance = chunk.Attendance;
+                attLoaded = true;
+                var last = chunk.Attendance.Days.LastOrDefault()?.Date;
+                calMonth = last is DateTime d
+                    ? new DateTime(d.Year, d.Month, 1)
+                    : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            }
+            else if (part == "subjects")
+            {
+                report.Subjects = chunk.Subjects;
+                subLoaded = true;
+            }
+            else if (part == "accounts")
+            {
+                report.Accounts = chunk.Accounts;
+                accLoaded = true;
             }
         }
         catch (HttpRequestException)
@@ -672,6 +743,7 @@
         schoolAddress = header.Address ?? "";
         schoolPhone = header.Phone ?? "";
         logoUrl = Sync.GetSchoolLogoDataUrl(Session.Current.SchoolID);
+        nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(Session.Current.SchoolID);
     }
 
     private async Task OnIdKey(KeyboardEventArgs e)
@@ -688,6 +760,8 @@
         var code = idInput.Trim();
         if (code.Length == 0)
         {
+            idInvalid = true;
+            idErrorKey = "report.needId";
             error = Locale.T("report.needId");
             return;
         }
@@ -696,15 +770,25 @@
             Session.Current.SchoolID, Session.Current.EducationYearID, code);
         if (found is null)
         {
+            idInvalid = true;
+            idErrorKey = "report.notFound";
             error = Locale.T("report.notFound");
             return;
         }
 
+        idInvalid = false;
         Nav.NavigateTo($"students/details/{found.LocalId}");
     }
 
-    private async Task PrintAsync(string orientation) =>
-        await JS.InvokeVoidAsync("sikkhaloyPrint", orientation);
+    private void ClearIdError()
+    {
+        idInvalid = false;
+        if (error == Locale.T("report.needId") || error == Locale.T("report.notFound"))
+            error = null;
+    }
+
+    private async Task PrintAsync() =>
+        await JS.InvokeVoidAsync("sikkhaloyPrint");
 
     private string ClassOf(StudentDto row)
     {
@@ -715,9 +799,9 @@
 
     private string GenderLabel(string? gender)
     {
-        if (string.Equals(gender, "Male", StringComparison.OrdinalIgnoreCase) || gender == "à¦›à§‡à¦²à§‡")
+        if (string.Equals(gender, "Male", StringComparison.OrdinalIgnoreCase) || gender == "ছেলে")
             return Locale.T("male");
-        if (string.Equals(gender, "Female", StringComparison.OrdinalIgnoreCase) || gender == "à¦®à§‡à¦¯à¦¼à§‡")
+        if (string.Equals(gender, "Female", StringComparison.OrdinalIgnoreCase) || gender == "মেয়ে")
             return Locale.T("female");
         return string.IsNullOrWhiteSpace(gender) ? "-" : gender;
     }
@@ -735,17 +819,131 @@
 
     private static string D(DateTime? value) => value?.ToString("dd MMM yyyy") ?? "-";
 
-    private static string AttClass(string? status)
+    private void PrevMonth() => calMonth = calMonth.AddMonths(-1);
+    private void NextMonth() => calMonth = calMonth.AddMonths(1);
+
+    private string MonthTitle =>
+        calMonth.ToString("MMMM yyyy", Locale.IsBengali
+            ? new System.Globalization.CultureInfo("bn-BD")
+            : System.Globalization.CultureInfo.InvariantCulture);
+
+    private string[] WeekDays => Locale.IsBengali
+        ? ["শনি", "রবি", "সোম", "মঙ্গল", "বুধ", "বৃহস্পতি", "শুক্র"]
+        : ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+
+    private List<CalCell> CalendarCells
+    {
+        get
+        {
+            var first = new DateTime(calMonth.Year, calMonth.Month, 1);
+            var startOffset = ((int)first.DayOfWeek - (int)DayOfWeek.Saturday + 7) % 7;
+            var daysInMonth = DateTime.DaysInMonth(calMonth.Year, calMonth.Month);
+            var att = (report?.Attendance.Days ?? [])
+                .GroupBy(x => x.Date.Date)
+                .ToDictionary(g => g.Key, g => g.Last());
+            var hol = (report?.Attendance.Holidays ?? [])
+                .GroupBy(x => x.Date.Date)
+                .ToDictionary(g => g.Key, g => g.First());
+            var leaves = report?.Attendance.Leaves ?? [];
+            var cells = new List<CalCell>(42);
+            for (var i = 0; i < startOffset; i++)
+                cells.Add(new CalCell());
+            for (var d = 1; d <= daysInMonth; d++)
+            {
+                var date = new DateTime(calMonth.Year, calMonth.Month, d);
+                var cell = new CalCell { Date = date, IsToday = date.Date == DateTime.Today };
+                var css = cell.IsToday ? "is-today" : "";
+                if (att.TryGetValue(date, out var day) && !string.IsNullOrWhiteSpace(day.Attendance))
+                {
+                    cell.Status = day.Attendance;
+                    var time = day.EntryTime;
+                    if (!string.IsNullOrWhiteSpace(day.ExitTime))
+                        time = string.IsNullOrWhiteSpace(time) ? day.ExitTime : $"{time} - {day.ExitTime}";
+                    cell.Time = time;
+                    css = $"{css} {CalAttClass(day.Attendance)}".Trim();
+                }
+                if (hol.TryGetValue(date, out var holiday))
+                {
+                    css = $"{(cell.IsToday ? "is-today " : "")}is-hol";
+                    cell.Note = holiday.Name;
+                }
+                else if (string.IsNullOrWhiteSpace(cell.Status))
+                {
+                    var lv = leaves.FirstOrDefault(x => date >= x.StartDate.Date && date <= x.EndDate.Date);
+                    if (lv is not null)
+                    {
+                        css = $"{(cell.IsToday ? "is-today " : "")}is-leave";
+                        var note = Locale.T("report.leave");
+                        if (!string.IsNullOrWhiteSpace(lv.LeaveType))
+                            note += ": " + lv.LeaveType;
+                        if (!string.IsNullOrWhiteSpace(lv.Description))
+                            note += " — " + lv.Description;
+                        cell.Note = note;
+                    }
+                }
+                if (date.DayOfWeek == DayOfWeek.Friday)
+                    css = $"{css} is-friday".Trim();
+                cell.Css = css.Trim();
+                cells.Add(cell);
+            }
+            while (cells.Count % 7 != 0)
+                cells.Add(new CalCell());
+            return cells;
+        }
+    }
+
+    private static string CalAttClass(string? status)
     {
         var key = (status ?? "").Trim();
-        if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase)) return "pre";
-        if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase)) return "abs";
-        if (key.Equals("Late", StringComparison.OrdinalIgnoreCase)) return "late";
-        if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase)) return "leave";
-        if (key.Equals("Bunk", StringComparison.OrdinalIgnoreCase)) return "bunk";
-        if (key.Contains("Late", StringComparison.OrdinalIgnoreCase)) return "lateabs";
+        if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase)) return "is-pre";
+        if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase)) return "is-abs";
+        if (key.Equals("Late", StringComparison.OrdinalIgnoreCase)) return "is-late";
+        if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase)) return "is-leave";
+        if (key.Equals("Bunk", StringComparison.OrdinalIgnoreCase)) return "is-bunk";
+        if (key.Contains("Late", StringComparison.OrdinalIgnoreCase)) return "is-lateabs";
         return "";
     }
+
+    private sealed class CalCell
+    {
+        public DateTime? Date { get; set; }
+        public bool IsToday { get; set; }
+        public string Css { get; set; } = "";
+        public string? Status { get; set; }
+        public string? Time { get; set; }
+        public string? Note { get; set; }
+    }
+
+    private RenderFragment ReceiptTable(IReadOnlyList<StudentReportReceiptDto>? rows) => @<div class="table-wrap">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("report.receipt")</th>
+                    <th>@Locale.T("acc.printedNo")</th>
+                    <th>@Locale.T("report.paidDate")</th>
+                    <th>@Locale.T("report.paid")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if ((rows ?? []).Count > 0)
+                {
+                    @foreach (var row in rows!)
+                    {
+                        <tr>
+                            <td>@OrDash(row.ReceiptNo)</td>
+                            <td>@OrDash(row.PrintedReceiptNo)</td>
+                            <td>@D(row.PaidDate)</td>
+                            <td>@Money(row.Amount)</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="4">@Locale.T("report.empty")</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>;
 
     private RenderFragment PayTable(IReadOnlyList<StudentReportPayOrderDto>? rows, bool showSession) => @<div class="table-wrap">
         <table class="mgrid">

@@ -15,6 +15,7 @@ public sealed class EmployeeListDto
     public string? BankAccNo { get; set; }
     public string? DeviceID { get; set; }
     public string? SubCategoryName { get; set; }
+    public string? PhotoDataUrl { get; set; }
 }
 
 public sealed class CreateTeacherRequest
@@ -77,6 +78,10 @@ public sealed class EmployeeResult
 public sealed class UpdateEmployeeRequest
 {
     public string? ID { get; set; }
+    public string? Name { get; set; }
+    public string? FatherName { get; set; }
+    public string? Phone { get; set; }
+    public string? Designation { get; set; }
     public string? EmployeeType { get; set; }
     public decimal? Salary { get; set; }
     public string? BankAccNo { get; set; }
@@ -85,6 +90,44 @@ public sealed class UpdateEmployeeRequest
 public sealed class SetJobStatusRequest
 {
     public string JobStatus { get; set; } = "Active";
+}
+
+public sealed class EmployeePhotoRequest
+{
+    public string EmployeeType { get; set; } = "";
+    public string Image { get; set; } = "";
+}
+
+public sealed class EmployeeEditDto
+{
+    public int EmployeeID { get; set; }
+    public string ID { get; set; } = "";
+    public string EmployeeType { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string? FatherName { get; set; }
+    public string Gender { get; set; } = "Male";
+    public string? Age { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? Religion { get; set; }
+    public string? Nationality { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string Designation { get; set; } = "";
+    public string PermanentTemporary { get; set; } = "Permanent";
+    public decimal Salary { get; set; }
+    public bool AbsDeducted { get; set; }
+    public decimal AbsDeduction { get; set; }
+    public bool LateCountAsAbs { get; set; }
+    public int? LateDays { get; set; }
+    public string? BankAccNo { get; set; }
+    public string? PhotoDataUrl { get; set; }
+    public bool IsTeacher =>
+        string.Equals(EmployeeType, "Teacher", StringComparison.OrdinalIgnoreCase);
 }
 
 public sealed class TeacherAccountDto

@@ -4,9 +4,13 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page att-page att-settings-page">
-    <div class="att-set-head">
-        <h1>@Locale.T("att.settings")</h1>
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-settings-page">
+    <header class="sa-head sj-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("att.scheduleHint")</p>
+            <h1>@Locale.T("att.settings")</h1>
+            <p class="sa-lead">@Locale.T("att.settingsHint")</p>
+        </div>
         <div class="att-set-actions">
             <button type="button" class="att-dl att-dl-app" disabled="@Busy" @onclick='() => DownloadAsync("app")'>
                 @Locale.T("att.dlApp")
@@ -18,22 +22,16 @@
                 @Locale.T("att.dlInfo")
             </button>
         </div>
-    </div>
+    </header>
 
-    <div class="att-set-alert">@Locale.T("att.settingsHint")</div>
-
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
     @if (settings is not null && settings.AttendanceSettingID <= 0)
     {
-        <div class="error">@Locale.T("att.inactive")</div>
+        <div class="error no-print">@Locale.T("att.inactive")</div>
     }
     else if (settings is not null)
     {
@@ -76,7 +74,9 @@
                         </div>
                         <input type="number" min="0" @bind="settings.SmsTimeoutMinute" disabled="@Busy" />
                     </div>
-                    <button type="button" class="btn-serial" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                    <div class="sal-actions">
+                        <button type="button" class="sal-gen" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                    </div>
                 </section>
 
                 <section class="att-set-card">
@@ -87,7 +87,9 @@
                     @OnOff("set-stu-exit", "att.exitSms", "att.hintExit", settings.StudentExitSms, v => settings.StudentExitSms = v)
                     @OnOff("set-stu-abs", "att.absSms", "att.hintStuAbs", settings.StudentAbsSms, v => settings.StudentAbsSms = v)
                     @OnOff("set-stu-late", "att.lateSms", "att.hintStuLate", settings.StudentLateSms, v => settings.StudentLateSms = v)
-                    <button type="button" class="btn-serial" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                    <div class="sal-actions">
+                        <button type="button" class="sal-gen" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                    </div>
                 </section>
             </div>
 
@@ -123,37 +125,47 @@
                         </div>
                         <input type="text" @bind="settings.EmployeeSmsNumber" disabled="@Busy" />
                     </div>
-                    <button type="button" class="btn-serial" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                    <div class="sal-actions">
+                        <button type="button" class="sal-gen" disabled="@Busy" @onclick="SaveAsync">@Locale.T("si.update")</button>
+                    </div>
                 </section>
             </div>
         </div>
     }
 </div>
 
+<ExamBusyOverlay Busy="Busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
 @code {
     private AttendanceSettingsDto? settings;
+    private string busyTitle = "";
+    private string popupText = "";
     private bool busy;
     private bool downloading;
+    private bool popupError;
     private string? error;
-    private string? message;
     private bool Busy => busy || downloading;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             settings = await Api.GetAttendanceSettingsAsync(Session.AccessToken!);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -165,27 +177,28 @@
     {
         if (settings is null)
             return;
-        message = error = null;
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        error = null;
+        popupText = "";
+        await SetBusyAsync("si.saving");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.SaveAttendanceSettingsAsync(Session.AccessToken!, settings);
             if (!result.Succeeded)
             {
-                error = Locale.T(result.Error ?? "att.failed");
+                Show(Locale.T(result.Error ?? "att.failed"), true);
                 return;
             }
-            message = Locale.T("att.updated");
+            Show(Locale.T("att.updated"), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -195,12 +208,16 @@
 
     private async Task DownloadAsync(string kind)
     {
-        message = error = null;
-        if (!await EnsureOnlineAsync())
-            return;
+        error = null;
+        popupText = "";
+        busyTitle = Locale.T("si.loading");
         downloading = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = kind switch
             {
                 "app" => await Api.DownloadAttendanceAppAsync(Session.AccessToken!),
@@ -209,7 +226,7 @@
             };
             if (!result.Succeeded)
             {
-                error = Locale.T(result.Error ?? "att.dlFailed");
+                Show(Locale.T(result.Error ?? "att.dlFailed"), true);
                 return;
             }
             using var stream = new MemoryStream(result.Content);
@@ -218,11 +235,11 @@
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -252,11 +269,28 @@
         </div>
     };
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;

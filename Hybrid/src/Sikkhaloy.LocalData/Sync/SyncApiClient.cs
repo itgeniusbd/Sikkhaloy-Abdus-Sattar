@@ -1,5 +1,9 @@
+using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Sikkhaloy.LocalData;
 using Sikkhaloy.Shared.Accounts;
 using Sikkhaloy.Shared.Access;
 using Sikkhaloy.Shared.Attendance;
@@ -12,7 +16,9 @@ using Sikkhaloy.Shared.Institution;
 using Sikkhaloy.Shared.Menu;
 using Sikkhaloy.Shared.Routine;
 using Sikkhaloy.Shared.Committee;
+using Sikkhaloy.Shared.Inventory;
 using Sikkhaloy.Shared.Invoice;
+using Sikkhaloy.Shared.Support;
 using Sikkhaloy.Shared.Authority;
 using Sikkhaloy.Shared.Sms;
 using Sikkhaloy.Shared.Students;
@@ -25,6 +31,10 @@ public interface ISyncApiClient
 {
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<bool> PingAsync(CancellationToken cancellationToken = default);
+    event Action? OfflineQueueChanged;
+    Task<int> FlushQueuedWritesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task QueueOfficeSmsAsync(string phones, string text, CancellationToken cancellationToken = default);
+    Task WarmOfflineCacheAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PublicInstituteDto>> GetPublicInstitutesAsync(CancellationToken cancellationToken = default);
     Task<PublicStatsDto> GetPublicStatsAsync(CancellationToken cancellationToken = default);
     Task<PublicContactResult> SendPublicContactAsync(PublicContactRequest request, CancellationToken cancellationToken = default);
@@ -38,6 +48,7 @@ public interface ISyncApiClient
     Task<EducationYearResult> UpdateYearAsync(string accessToken, int yearId, SaveEducationYearRequest request, CancellationToken cancellationToken = default);
     Task<EducationYearResult> DeleteYearAsync(string accessToken, int yearId, CancellationToken cancellationToken = default);
     Task<OfficeProfileDto> GetProfileAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<ProfileResult> SaveHeaderColorAsync(string accessToken, HeaderColorRequest request, CancellationToken cancellationToken = default);
     Task<AdminInfoDto?> GetAdminInfoAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<ProfileResult> SaveAdminInfoAsync(string accessToken, AdminInfoDto request, CancellationToken cancellationToken = default);
     Task<ProfileResult> ChangePasswordAsync(string accessToken, ChangePasswordRequest request, CancellationToken cancellationToken = default);
@@ -72,6 +83,9 @@ public interface ISyncApiClient
     Task<EmployeeResult> CreateStaffAsync(string accessToken, CreateStaffRequest request, CancellationToken cancellationToken = default);
     Task<EmployeeResult> UpdateEmployeeAsync(string accessToken, int employeeId, UpdateEmployeeRequest request, CancellationToken cancellationToken = default);
     Task<EmployeeResult> SetEmployeeStatusAsync(string accessToken, int employeeId, SetJobStatusRequest request, CancellationToken cancellationToken = default);
+    Task<EmployeeEditDto?> GetEmployeeAsync(string accessToken, int employeeId, CancellationToken cancellationToken = default);
+    Task<EmployeeResult> SaveEmployeeDetailAsync(string accessToken, int employeeId, EmployeeEditDto request, CancellationToken cancellationToken = default);
+    Task<EmployeeResult> SaveEmployeePhotoAsync(string accessToken, int employeeId, EmployeePhotoRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmployeeIdCardDto>> GetEmployeeIdCardsAsync(
         string accessToken, string? type, string? query, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<TeacherAccountDto>> GetTeacherAccountsAsync(
@@ -102,6 +116,7 @@ public interface ISyncApiClient
         string accessToken, int payorderNameId, string monthName, string? type, CancellationToken cancellationToken = default);
     Task<SalaryResult> UpdateBonusFineAsync(string accessToken, UpdateBonusFineRequest request, CancellationToken cancellationToken = default);
     Task<SalaryResult> DeleteMonthlyPayorderAsync(string accessToken, int employeePayorderId, CancellationToken cancellationToken = default);
+    Task<SalaryResult> DeleteMonthlyPayordersAsync(string accessToken, DeleteMonthlyPayordersRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AccountOptionDto>> GetSalaryAccountsAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<SalaryResult> PaySalaryAsync(string accessToken, PaySalaryRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PaidRecordDto>> GetPaidRecordsAsync(
@@ -127,6 +142,8 @@ public interface ISyncApiClient
         CancellationToken cancellationToken = default);
     Task<StudentInfoResult> CreateStudentUsersAsync(
         string accessToken, CreateStudentUsersRequest request, CancellationToken cancellationToken = default);
+    Task<SmsResult> SendStudentLoginSmsAsync(
+        string accessToken, StudentLoginSmsRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StudentAccountDto>> GetStudentAccountsAsync(
         string accessToken, int classId, int groupId, int sectionId, int shiftId, string? studentId,
         CancellationToken cancellationToken = default);
@@ -142,7 +159,7 @@ public interface ISyncApiClient
     Task<IReadOnlyList<StudentPhotoDto>> GetStudentPhotosAsync(
         string accessToken, CancellationToken cancellationToken = default);
     Task<StudentReportDto> GetStudentReportAsync(
-        string accessToken, string studentId, CancellationToken cancellationToken = default);
+        string accessToken, string studentId, string? part = null, CancellationToken cancellationToken = default);
     Task<StudentPlacementDto?> GetStudentPlacementAsync(
         string accessToken, string studentId, CancellationToken cancellationToken = default);
     Task<StudentInfoResult> SaveStudentPlacementAsync(
@@ -160,6 +177,8 @@ public interface ISyncApiClient
         string accessToken, int studentId, CancellationToken cancellationToken = default);
     Task<StudentInfoResult> ChangeClassAsync(
         string accessToken, ChangeClassRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> BulkChangeClassAsync(
+        string accessToken, BulkChangeClassRequest request, CancellationToken cancellationToken = default);
     Task<StudentInfoResult> SaveSmPlacementAsync(
         string accessToken, BulkPlacementRequest request, CancellationToken cancellationToken = default);
     Task<StudentInfoResult> SaveSmOneSubjectAsync(
@@ -316,7 +335,7 @@ public interface ISyncApiClient
     Task<AccountsResult> CreateExpenseSubCategoryAsync(string accessToken, int categoryId, string name, CancellationToken cancellationToken = default);
     Task<AccountsResult> UpdateExpenseSubCategoryAsync(string accessToken, int id, string name, CancellationToken cancellationToken = default);
     Task<AccountsResult> DeleteExpenseSubCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default);
-    Task<ExpenseListDto> GetExpenseAsync(string accessToken, int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo = null, CancellationToken cancellationToken = default);
+    Task<ExpenseListDto> GetExpenseAsync(string accessToken, int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo = null, int page = 1, int pageSize = 80, CancellationToken cancellationToken = default);
     Task<AccountsResult> CreateExpenseAsync(string accessToken, SaveExpenseRequest request, CancellationToken cancellationToken = default);
     Task<AccountsResult> UpdateExpenseAsync(string accessToken, SaveExpenseRequest request, CancellationToken cancellationToken = default);
     Task<AccountsResult> DeleteExpenseAsync(string accessToken, int id, CancellationToken cancellationToken = default);
@@ -334,6 +353,9 @@ public interface ISyncApiClient
     Task<PayorderReportDto> GetPayorderReportAsync(string accessToken, DateTime? from, DateTime? to, int roleId, CancellationToken cancellationToken = default);
     Task<PaidDetailsDto> GetPaidDetailsAsync(string accessToken, string? yearId, int classId, string? groupId, string? sectionId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
     Task<MyAccountsDto> GetMyAccountsAsync(string accessToken, int regId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<BalanceRemainingDto> GetMyBalanceRemainingAsync(string accessToken, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<AccountsResult> SendMyBalanceOtpAsync(string accessToken, BalanceSubmitOtpRequest request, CancellationToken cancellationToken = default);
+    Task<AccountsResult> SubmitMyBalanceAsync(string accessToken, BalanceSubmitRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AccountDetailDto>> GetAccountDetailsAsync(string accessToken, string? accountId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
     Task<AccountsLogDto> GetAccountsLogAsync(string accessToken, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<NameAmountDto>> GetReportIncomeCategoriesAsync(string accessToken, CancellationToken cancellationToken = default);
@@ -346,7 +368,7 @@ public interface ISyncApiClient
     Task<SessionStudentReportDto> GetSessionPaidAsync(string accessToken, int yearId, int classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
     Task<SessionStudentReportDto> GetSessionDueAsync(string accessToken, int yearId, int classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
     Task<SessionStudentReportDto> GetSessionConcessionAsync(string accessToken, int yearId, int classId, string? sectionId, string? roleId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
-    Task<SessionPaidDueDto> GetSessionPaidDueAsync(string accessToken, string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<SessionPaidDueDto> GetSessionPaidDueAsync(string accessToken, string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, int page = 1, int pageSize = 25, CancellationToken cancellationToken = default);
 
     Task<DashboardOverviewDto> GetDashboardOverviewAsync(string accessToken, CancellationToken cancellationToken = default);
 
@@ -404,9 +426,15 @@ public interface ISyncApiClient
     Task<IReadOnlyList<SmsContactDto>> GetSmsContactsAsync(string accessToken, int groupId, string? search, CancellationToken cancellationToken = default);
     Task<SmsResult> SaveSmsContactAsync(string accessToken, SaveSmsContactRequest request, CancellationToken cancellationToken = default);
     Task<SmsResult> DeleteSmsContactAsync(string accessToken, int numberId, CancellationToken cancellationToken = default);
-    Task<SmsRecordsDto> GetSmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, string? search, CancellationToken cancellationToken = default);
+    Task<SmsRecordsDto> GetSmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, string? search, string? kind = null, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default);
     Task<SmsRechargePageDto> GetSmsRechargeAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<SmsResult> StartSmsRechargeAsync(string accessToken, SmsRechargeRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SmsTemplateDto>> GetSmsTemplatesAsync(string accessToken, string? category, CancellationToken cancellationToken = default);
+    Task<SmsTemplateDto> GetSmsTemplateAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<SmsTemplateResult> SaveSmsTemplateAsync(string accessToken, SaveSmsTemplateRequest request, CancellationToken cancellationToken = default);
+    Task<SmsTemplateResult> DeleteSmsTemplateAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<CommitteePaymentSmsLangDto> GetCommitteePaymentSmsLangAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<SmsTemplateResult> SaveCommitteePaymentSmsLangAsync(string accessToken, CommitteePaymentSmsLangDto request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<RoutineNameDto>> GetRoutineNamesAsync(string accessToken, bool unusedOnly, CancellationToken cancellationToken = default);
     Task<RoutineResult> SaveRoutineNameAsync(string accessToken, SaveRoutineNameRequest request, CancellationToken cancellationToken = default);
@@ -428,6 +456,7 @@ public interface ISyncApiClient
     Task<CommitteeResult> SaveCommitteeTypeAsync(string accessToken, SaveCommitteeMemberTypeRequest request, CancellationToken cancellationToken = default);
     Task<CommitteeResult> DeleteCommitteeTypeAsync(string accessToken, int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CommitteeMemberDto>> GetCommitteeMembersAsync(string accessToken, int typeId, string? q, CancellationToken cancellationToken = default);
+    Task<string?> GetCommitteeMemberPhotoAsync(string accessToken, int memberId, CancellationToken cancellationToken = default);
     Task<CommitteeResult> SaveCommitteeMemberAsync(string accessToken, SaveCommitteeMemberRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DonationCategoryDto>> GetDonationCategoriesAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<CommitteeResult> SaveDonationCategoryAsync(string accessToken, SaveDonationCategoryRequest request, CancellationToken cancellationToken = default);
@@ -443,6 +472,53 @@ public interface ISyncApiClient
     Task<UnpaidReceiptDto> GetUnpaidReceiptAsync(string accessToken, string? sn, CancellationToken cancellationToken = default);
     Task<CommitteeResult> UnpaidReceiptAsync(string accessToken, string sn, CancellationToken cancellationToken = default);
     Task<DonationReceiptDto> GetDonationReceiptAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AccountsResult> SendDonorReceiptSmsAsync(string accessToken, int receiptId, DonorReceiptSmsRequest? request = null, CancellationToken cancellationToken = default);
+    Task<decimal?> GetDonationTemplateAmountAsync(string accessToken, int typeId, int categoryId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DonationPayOrderMonthDto>> GetDonationPayOrderMonthsAsync(string accessToken, string? q, CancellationToken cancellationToken = default);
+    Task<DonationPayOrderResult> CreateDonationPayOrdersAsync(string accessToken, CreateDonationPayOrdersRequest request, CancellationToken cancellationToken = default);
+    Task<DonationBulkEditListDto> GetDonationBulkEditAsync(string accessToken, int typeId, int memberId, string? name, string? phone, int categoryId, string? status, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DonorSuggestDto>> SearchDonorsBulkAsync(string accessToken, string? name, string? phone, CancellationToken cancellationToken = default);
+    Task<DonationBulkEditResult> BulkUpdateDonationsAsync(string accessToken, BulkEditDonationsRequest request, CancellationToken cancellationToken = default);
+    Task<DonationBulkEditResult> BulkDeleteDonationsAsync(string accessToken, BulkDeleteDonationsRequest request, CancellationToken cancellationToken = default);
+    Task<DonorDueSummaryDto> GetDonorDueSummaryAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CommitteeOptionDto>> GetDonorDueCategoriesAsync(string accessToken, int typeId, CancellationToken cancellationToken = default);
+    Task<DonorDueByTypeListDto> GetDonorDueByTypeAsync(string accessToken, int typeId, int categoryId, CancellationToken cancellationToken = default);
+    Task<DonorDueMemberDetailDto> GetDonorDueByNameAsync(string accessToken, string? q, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DonorDueViewBlockDto>> GetDonorDueViewAsync(string accessToken, DonorDueViewRequest request, CancellationToken cancellationToken = default);
+    Task<DonorDueSmsResult> SendDonorDueSmsAsync(string accessToken, DonorDueSmsRequest request, CancellationToken cancellationToken = default);
+    Task<DonorLoginPageDto> GetDonorLoginPageAsync(string accessToken, int typeId, string? q, CancellationToken cancellationToken = default);
+    Task<DonorLoginCreateResult> CreateDonorLoginsAsync(string accessToken, DonorLoginCreateRequest request, CancellationToken cancellationToken = default);
+    Task<DonorLoginSmsResult> SendDonorLoginSmsAsync(string accessToken, DonorLoginSmsRequest request, CancellationToken cancellationToken = default);
+
+    Task<InventoryLookupsDto> GetInventoryLookupsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventoryCategoryDto>> GetInventoryCategoriesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<InventoryResult> SaveInventoryCategoryAsync(string accessToken, SaveInventoryCategoryRequest request, CancellationToken cancellationToken = default);
+    Task<InventoryResult> DeleteInventoryCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventoryItemDto>> GetInventoryItemsAsync(string accessToken, int categoryId = 0, CancellationToken cancellationToken = default);
+    Task<InventoryResult> SaveInventoryItemAsync(string accessToken, SaveInventoryItemRequest request, CancellationToken cancellationToken = default);
+    Task<InventoryResult> DeleteInventoryItemAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventorySupplierDto>> GetInventorySuppliersAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<InventoryResult> SaveInventorySupplierAsync(string accessToken, SaveInventorySupplierRequest request, CancellationToken cancellationToken = default);
+    Task<InventoryResult> DeleteInventorySupplierAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<InventorySupplierLedgerDto> GetInventorySupplierLedgerAsync(string accessToken, int supplierId, CancellationToken cancellationToken = default);
+    Task<InventoryResult> SaveInventorySupplierPaymentAsync(string accessToken, SaveInventorySupplierPaymentRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventoryStudentHitDto>> SuggestInventorySaleStudentsAsync(string accessToken, string query, CancellationToken cancellationToken = default);
+    Task<InventoryCustomerDto> InventoryCustomerFromStudentAsync(string accessToken, string id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventoryCustomerDto>> SearchInventoryCustomersAsync(string accessToken, string? name, string? phone, CancellationToken cancellationToken = default);
+    Task<InventoryResult> SaveInventoryCustomerAsync(string accessToken, SaveInventoryCustomerRequest request, CancellationToken cancellationToken = default);
+    Task<InventoryDocListDto> GetInventoryPurchasesAsync(string accessToken, DateTime? from, DateTime? to, int itemId = 0, CancellationToken cancellationToken = default);
+    Task<InventoryDocDto> GetInventoryPurchaseAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<InventoryResult> SaveInventoryPurchaseAsync(string accessToken, SaveInventoryDocRequest request, CancellationToken cancellationToken = default);
+    Task<InventoryResult> DeleteInventoryPurchaseAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<InventoryDocListDto> GetInventorySalesAsync(string accessToken, DateTime? from, DateTime? to, int itemId = 0, CancellationToken cancellationToken = default);
+    Task<InventoryDocDto> GetInventorySaleAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<AccountsResult> SendInventorySaleSmsAsync(string accessToken, int saleId, CancellationToken cancellationToken = default);
+    Task<InventoryResult> SaveInventorySaleAsync(string accessToken, SaveInventoryDocRequest request, CancellationToken cancellationToken = default);
+    Task<InventoryResult> DeleteInventorySaleAsync(string accessToken, int id, CancellationToken cancellationToken = default);
+    Task<InventoryStockDto> GetInventoryStockAsync(string accessToken, int categoryId = 0, CancellationToken cancellationToken = default);
+
+    Task<SupportPageDto> GetSupportPageAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<SupportResult> SubmitSupportTicketAsync(string accessToken, SubmitSupportRequest request, CancellationToken cancellationToken = default);
 
     Task<DueInvoiceDto> GetDueInvoiceAsync(string accessToken, CancellationToken cancellationToken = default);
     Task<SubscriptionStatusDto> GetSubscriptionStatusAsync(string accessToken, CancellationToken cancellationToken = default);
@@ -575,10 +651,13 @@ public sealed class SyncApiClient : ISyncApiClient
     };
 
     private readonly IHttpClientFactory _httpFactory;
+    private readonly OfflineApiStore _offline;
+    public event Action? OfflineQueueChanged;
 
-    public SyncApiClient(IHttpClientFactory httpFactory)
+    public SyncApiClient(IHttpClientFactory httpFactory, IDbContextFactory<LocalDbContext> dbFactory)
     {
         _httpFactory = httpFactory;
+        _offline = new OfflineApiStore(dbFactory);
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -609,6 +688,182 @@ public sealed class SyncApiClient : ISyncApiClient
         catch (Exception)
         {
             return false;
+        }
+    }
+
+    public async Task<int> FlushQueuedWritesAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        var pending = await _offline.LoadQueuedAsync(cancellationToken);
+        var flushed = 0;
+        foreach (var entry in pending)
+        {
+            var call = OfflineApiStore.Parse(entry);
+            if (call is null || string.IsNullOrWhiteSpace(call.Url))
+            {
+                await _offline.RemoveAsync(entry.OutboxId, cancellationToken);
+                continue;
+            }
+
+            var body = call.BodyJson;
+            if (string.Equals(call.Url, "api/sync/accounts/payorder", StringComparison.OrdinalIgnoreCase))
+            {
+                var remapped = await _offline.RemapPayOrderBodyAsync(body, cancellationToken);
+                if (remapped is null)
+                {
+                    await _offline.MarkErrorAsync(entry.OutboxId, "Waiting for student sync", cancellationToken);
+                    continue;
+                }
+                body = remapped;
+            }
+            else if (string.Equals(call.Url, "api/sync/accounts/collect", StringComparison.OrdinalIgnoreCase))
+            {
+                var remapped = await _offline.RemapCollectBodyAsync(body, cancellationToken);
+                if (remapped is null)
+                {
+                    await _offline.MarkErrorAsync(entry.OutboxId, "Waiting for pay order sync", cancellationToken);
+                    continue;
+                }
+                body = remapped;
+            }
+            else if (string.Equals(call.Url, "api/sync/accounts/add-more", StringComparison.OrdinalIgnoreCase))
+            {
+                var remapped = await _offline.RemapAddMoreBodyAsync(body, cancellationToken);
+                if (remapped is null)
+                {
+                    await _offline.MarkErrorAsync(entry.OutboxId, "Waiting for student sync", cancellationToken);
+                    continue;
+                }
+                body = remapped;
+            }
+
+            try
+            {
+                using var message = new HttpRequestMessage(HttpMethod.Post, call.Url)
+                {
+                    Content = new StringContent(body ?? "{}", Encoding.UTF8, "application/json")
+                };
+                message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                using var response = await Http().SendAsync(message, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var err = await response.Content.ReadAsStringAsync(cancellationToken);
+                    await _offline.MarkErrorAsync(entry.OutboxId, ExtractApiError(err) ?? "sync.failed", cancellationToken);
+                    continue;
+                }
+
+                await _offline.RemoveAsync(entry.OutboxId, cancellationToken);
+                flushed++;
+                if (string.Equals(call.Url, "api/sync/accounts/payorder", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(call.Url, "api/sync/accounts/add-more", StringComparison.OrdinalIgnoreCase))
+                {
+                    var unpaid = await GetUnpaidPayOrdersAsync(accessToken, 0, 0, null, cancellationToken);
+                    await _offline.BindLocalPayOrdersAsync(unpaid, cancellationToken);
+                }
+            }
+            catch (Exception ex) when (OfflineApiStore.IsOffline(ex))
+            {
+                await _offline.MarkErrorAsync(entry.OutboxId, ex.Message, cancellationToken);
+                break;
+            }
+            catch (Exception ex)
+            {
+                await _offline.MarkErrorAsync(entry.OutboxId, ex.Message, cancellationToken);
+            }
+        }
+
+        flushed += await FlushPendingSmsAsync(accessToken, cancellationToken);
+        if (flushed > 0)
+            OfflineQueueChanged?.Invoke();
+        return flushed;
+    }
+
+    public Task QueueOfficeSmsAsync(string phones, string text, CancellationToken cancellationToken = default) =>
+        _offline.EnqueueOfficeSmsAsync(phones, text, cancellationToken);
+
+    private async Task<int> FlushPendingSmsAsync(string accessToken, CancellationToken cancellationToken)
+    {
+        var pending = await _offline.LoadPendingSmsAsync(cancellationToken);
+        var flushed = 0;
+        foreach (var entry in pending)
+        {
+            var sms = OfflineApiStore.ParseSms(entry);
+            if (sms is null || string.IsNullOrWhiteSpace(sms.Phones) || string.IsNullOrWhiteSpace(sms.Text))
+            {
+                await _offline.RemoveAsync(entry.OutboxId, cancellationToken);
+                continue;
+            }
+
+            try
+            {
+                var result = await SendOfficeSmsAsync(accessToken, new SendOfficeSmsRequest
+                {
+                    Mode = "numbers",
+                    Text = sms.Text,
+                    Phones = sms.Phones
+                }, cancellationToken);
+                if (!result.Succeeded)
+                {
+                    await _offline.MarkErrorAsync(entry.OutboxId, result.Error ?? "sms.fail", cancellationToken);
+                    continue;
+                }
+
+                await _offline.RemoveAsync(entry.OutboxId, cancellationToken);
+                flushed++;
+            }
+            catch (Exception ex) when (OfflineApiStore.IsOffline(ex))
+            {
+                await _offline.MarkErrorAsync(entry.OutboxId, ex.Message, cancellationToken);
+                break;
+            }
+            catch (Exception ex)
+            {
+                await _offline.MarkErrorAsync(entry.OutboxId, ex.Message, cancellationToken);
+            }
+        }
+
+        return flushed;
+    }
+
+    public async Task WarmOfflineCacheAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await GetPaymentRolesAsync(accessToken, cancellationToken);
+            await GetCashAccountsAsync(accessToken, cancellationToken);
+            await GetPaymentSmsSettingAsync(accessToken, cancellationToken);
+            await GetAttendanceSchedulesAsync(accessToken, cancellationToken);
+            await GetAttendanceLeaveTypesAsync(accessToken, cancellationToken);
+            await GetExamNamesAsync(accessToken, cancellationToken);
+            await GetSubExamsAsync(accessToken, cancellationToken);
+            await GetExamGradingAsync(accessToken, cancellationToken);
+            await GetExamFiltersAsync(accessToken, "input", cancellationToken: cancellationToken);
+            await GetExamFiltersAsync(accessToken, "admit", cancellationToken: cancellationToken);
+            await GetExamFiltersAsync(accessToken, "collect", cancellationToken: cancellationToken);
+            await GetExamFiltersAsync(accessToken, "seat", cancellationToken: cancellationToken);
+            await GetExamFiltersAsync(accessToken, "distribution", cancellationToken: cancellationToken);
+            await GetInventoryLookupsAsync(accessToken, cancellationToken);
+            await GetUnpaidPayOrdersAsync(accessToken, 0, 0, null, cancellationToken);
+            await GetClassStructureAsync(accessToken, cancellationToken);
+            var exams = await GetExamNamesAsync(accessToken, cancellationToken);
+            foreach (var classId in await _offline.LocalClassIdsAsync(cancellationToken))
+            {
+                await GetAssignedRolesAsync(accessToken, classId, 0, cancellationToken);
+                await GetPayOrderStudentsAsync(accessToken, classId, cancellationToken);
+                await GetExamFiltersAsync(accessToken, "input", classId, cancellationToken: cancellationToken);
+                await GetExamFiltersAsync(accessToken, "admit", classId, cancellationToken: cancellationToken);
+                await GetExamFiltersAsync(accessToken, "collect", classId, cancellationToken: cancellationToken);
+                await GetExamFiltersAsync(accessToken, "seat", classId, cancellationToken: cancellationToken);
+                await GetExamFiltersAsync(accessToken, "distribution", classId, cancellationToken: cancellationToken);
+                foreach (var exam in exams.Take(8))
+                {
+                    await GetExamFiltersAsync(accessToken, "input", classId, exam.ExamID, cancellationToken: cancellationToken);
+                    await GetExamFiltersAsync(accessToken, "collect", classId, exam.ExamID, cancellationToken: cancellationToken);
+                    await GetExamDistributionAsync(accessToken, classId, exam.ExamID, cancellationToken);
+                }
+            }
+        }
+        catch (Exception)
+        {
         }
     }
 
@@ -716,35 +971,23 @@ public sealed class SyncApiClient : ISyncApiClient
                ?? new StudentIdCheckResult();
     }
 
-    public async Task<IReadOnlyList<SchoolClassDto>> GetClassesAsync(string accessToken, CancellationToken cancellationToken = default)
-    {
-        using var message = new HttpRequestMessage(HttpMethod.Get, "api/sync/classes");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<SchoolClassDto>>(JsonOptions, cancellationToken)
-               ?? [];
-    }
+    public Task<IReadOnlyList<SchoolClassDto>> GetClassesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<SchoolClassDto>(accessToken, "api/sync/classes", cancellationToken);
 
     public async Task<ClassStructureDto> GetClassStructureAsync(string accessToken, CancellationToken cancellationToken = default)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, "api/sync/class-structure");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<ClassStructureDto>(JsonOptions, cancellationToken)
-               ?? new ClassStructureDto();
+        try
+        {
+            return await GetItemAsync<ClassStructureDto>(accessToken, "api/sync/class-structure", cancellationToken);
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex))
+        {
+            return await _offline.ReadClassStructureAsync(cancellationToken);
+        }
     }
 
-    public async Task<IReadOnlyList<EducationYearDto>> GetYearsAsync(string accessToken, CancellationToken cancellationToken = default)
-    {
-        using var message = new HttpRequestMessage(HttpMethod.Get, "api/sync/years");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<EducationYearDto>>(JsonOptions, cancellationToken)
-               ?? [];
-    }
+    public Task<IReadOnlyList<EducationYearDto>> GetYearsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<EducationYearDto>(accessToken, "api/sync/years", cancellationToken);
 
     public async Task<EducationYearResult> CreateYearAsync(
         string accessToken, SaveEducationYearRequest request, CancellationToken cancellationToken = default)
@@ -787,6 +1030,19 @@ public sealed class SyncApiClient : ISyncApiClient
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<OfficeProfileDto>(JsonOptions, cancellationToken)
                ?? new OfficeProfileDto();
+    }
+
+    public async Task<ProfileResult> SaveHeaderColorAsync(
+        string accessToken, HeaderColorRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/profile/header-color")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<ProfileResult>(JsonOptions, cancellationToken)
+               ?? new ProfileResult { Error = "subj.needOnline" };
     }
 
     public async Task<AdminInfoDto?> GetAdminInfoAsync(
@@ -1267,6 +1523,42 @@ public sealed class SyncApiClient : ISyncApiClient
         return await ReadEmployeeResultAsync(response, cancellationToken);
     }
 
+    public async Task<EmployeeEditDto?> GetEmployeeAsync(
+        string accessToken, int employeeId, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, $"api/sync/employees/{employeeId}");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<EmployeeEditDto>(JsonOptions, cancellationToken);
+    }
+
+    public async Task<EmployeeResult> SaveEmployeeDetailAsync(
+        string accessToken, int employeeId, EmployeeEditDto request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Put, $"api/sync/employees/{employeeId}/detail")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadEmployeeResultAsync(response, cancellationToken);
+    }
+
+    public async Task<EmployeeResult> SaveEmployeePhotoAsync(
+        string accessToken, int employeeId, EmployeePhotoRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, $"api/sync/employees/{employeeId}/photo")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadEmployeeResultAsync(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<EmployeeIdCardDto>> GetEmployeeIdCardsAsync(
         string accessToken, string? type, string? query, CancellationToken cancellationToken = default)
     {
@@ -1493,6 +1785,18 @@ public sealed class SyncApiClient : ISyncApiClient
         return await ReadSalaryResultAsync(response, cancellationToken);
     }
 
+    public async Task<SalaryResult> DeleteMonthlyPayordersAsync(
+        string accessToken, DeleteMonthlyPayordersRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/salary/monthly/delete")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadSalaryResultAsync(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<AccountOptionDto>> GetSalaryAccountsAsync(
         string accessToken, CancellationToken cancellationToken = default)
     {
@@ -1571,6 +1875,10 @@ public sealed class SyncApiClient : ISyncApiClient
         return await ReadStudentInfoResultAsync(response, cancellationToken);
     }
 
+    public Task<SmsResult> SendStudentLoginSmsAsync(
+        string accessToken, StudentLoginSmsRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/student-info/signup/sms", request, cancellationToken);
+
     public async Task<IReadOnlyList<StudentAccountDto>> GetStudentAccountsAsync(
         string accessToken, int classId, int groupId, int sectionId, int shiftId, string? studentId,
         CancellationToken cancellationToken = default)
@@ -1648,15 +1956,37 @@ public sealed class SyncApiClient : ISyncApiClient
     }
 
     public async Task<StudentReportDto> GetStudentReportAsync(
-        string accessToken, string studentId, CancellationToken cancellationToken = default)
+        string accessToken, string studentId, string? part = null, CancellationToken cancellationToken = default)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get,
-            $"api/sync/student-info/report?id={Uri.EscapeDataString(studentId)}");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<StudentReportDto>(JsonOptions, cancellationToken)
-               ?? new StudentReportDto();
+        var qs = $"api/sync/student-info/report?id={Uri.EscapeDataString(studentId)}";
+        if (!string.IsNullOrWhiteSpace(part))
+            qs += $"&part={Uri.EscapeDataString(part.Trim())}";
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Get, qs);
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var remote = await response.Content.ReadFromJsonAsync<StudentReportDto>(JsonOptions, cancellationToken)
+                         ?? new StudentReportDto();
+            if (string.Equals(part, "accounts", StringComparison.OrdinalIgnoreCase))
+            {
+                var local = await _offline.StudentAccountsFromLocalAsync(studentId, cancellationToken);
+                if (local is not null && (!remote.Found || remote.Accounts.AllPayOrders.Count == 0))
+                    return local;
+            }
+            return remote;
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
+        {
+            if (string.IsNullOrWhiteSpace(part) || string.Equals(part, "accounts", StringComparison.OrdinalIgnoreCase))
+            {
+                var local = await _offline.StudentAccountsFromLocalAsync(studentId, cancellationToken);
+                if (local is not null)
+                    return local;
+            }
+            throw;
+        }
     }
 
     public async Task<StudentPlacementDto?> GetStudentPlacementAsync(
@@ -1754,6 +2084,10 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<StudentInfoResult> ChangeClassAsync(
         string accessToken, ChangeClassRequest request, CancellationToken cancellationToken = default) =>
         PostStudentInfoAsync(accessToken, "api/sync/student-mgmt/class-change", request, cancellationToken);
+
+    public Task<StudentInfoResult> BulkChangeClassAsync(
+        string accessToken, BulkChangeClassRequest request, CancellationToken cancellationToken = default) =>
+        PostStudentInfoAsync(accessToken, "api/sync/student-mgmt/class-change/bulk", request, cancellationToken);
 
     public Task<StudentInfoResult> SaveSmPlacementAsync(
         string accessToken, BulkPlacementRequest request, CancellationToken cancellationToken = default) =>
@@ -1896,13 +2230,24 @@ public sealed class SyncApiClient : ISyncApiClient
         string accessToken, SaveEmployeeRfidRequest request, CancellationToken cancellationToken = default) =>
         PostAttendanceAsync(accessToken, "api/sync/attendance/employee/rfid", request, cancellationToken);
 
-    public Task<IReadOnlyList<StudentManualRowDto>> GetStudentManualAsync(
+    public async Task<IReadOnlyList<StudentManualRowDto>> GetStudentManualAsync(
         string accessToken, int scheduleId, int classId, int groupId, int sectionId, int shiftId, DateTime date,
-        CancellationToken cancellationToken = default) =>
-        GetListAsync<StudentManualRowDto>(
-            accessToken,
-            $"api/sync/attendance/student/manual?scheduleId={scheduleId}&classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&date={date:yyyy-MM-dd}",
-            cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/attendance/student/manual?scheduleId={scheduleId}&classId={classId}&groupId={groupId}&sectionId={sectionId}&shiftId={shiftId}&date={date:yyyy-MM-dd}";
+        IReadOnlyList<StudentManualRowDto> remote = [];
+        try
+        {
+            remote = await GetListAsync<StudentManualRowDto>(accessToken, url, cancellationToken);
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex))
+        {
+        }
+
+        if (remote.Count > 0)
+            return remote;
+        return await _offline.LocalManualRowsAsync(classId, groupId, sectionId, shiftId, cancellationToken);
+    }
 
     public Task<AttendanceResult> SaveStudentManualAsync(
         string accessToken, SaveStudentManualRequest request, CancellationToken cancellationToken = default) =>
@@ -1970,23 +2315,45 @@ public sealed class SyncApiClient : ISyncApiClient
     public async Task<StudentLeavePersonDto?> FindStudentLeaveAsync(
         string accessToken, string id, CancellationToken cancellationToken = default)
     {
-        using var message = new HttpRequestMessage(
-            HttpMethod.Get, $"api/sync/attendance/student/leave/find?id={Uri.EscapeDataString(id ?? "")}");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
-            return null;
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(payload) || payload == "null")
-            return null;
-        return JsonSerializer.Deserialize<StudentLeavePersonDto>(payload, JsonOptions);
+        var url = $"api/sync/attendance/student/leave/find?id={Uri.EscapeDataString(id ?? "")}";
+        StudentLeavePersonDto? found = null;
+        try
+        {
+            found = await GetItemAsync<StudentLeavePersonDto>(accessToken, url, cancellationToken);
+        }
+        catch (Exception)
+        {
+        }
+
+        if (!string.IsNullOrWhiteSpace(found?.ID))
+            return found;
+
+        var local = await _offline.FindLocalStudentAsync(id ?? "", cancellationToken);
+        return local is null ? found : _offline.ToLeavePerson(local);
     }
 
-    public Task<IReadOnlyList<StudentLeaveSuggestDto>> SuggestStudentLeaveAsync(
-        string accessToken, string query, CancellationToken cancellationToken = default) =>
-        GetListAsync<StudentLeaveSuggestDto>(
-            accessToken, $"api/sync/attendance/student/leave/suggest?q={Uri.EscapeDataString(query ?? "")}", cancellationToken);
+    public async Task<IReadOnlyList<StudentLeaveSuggestDto>> SuggestStudentLeaveAsync(
+        string accessToken, string query, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var remote = await GetListAsync<StudentLeaveSuggestDto>(
+                accessToken, $"api/sync/attendance/student/leave/suggest?q={Uri.EscapeDataString(query ?? "")}", cancellationToken);
+            if (remote.Count > 0)
+                return remote;
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex))
+        {
+        }
+
+        var local = await _offline.SuggestLocalAsync(query ?? "", cancellationToken);
+        return local.Select(x => new StudentLeaveSuggestDto
+        {
+            ID = x.ID,
+            Name = x.Name,
+            ClassName = x.ClassName
+        }).ToList();
+    }
 
     public async Task<StudentLeavePrintDto?> GetStudentLeavePrintAsync(
         string accessToken, int leaveId, CancellationToken cancellationToken = default)
@@ -2072,11 +2439,8 @@ public sealed class SyncApiClient : ISyncApiClient
         string accessToken, IReadOnlyList<int> classIds, CancellationToken cancellationToken = default)
     {
         var qs = string.Join(",", classIds.Where(x => x > 0).Distinct());
-        using var message = new HttpRequestMessage(HttpMethod.Get, $"api/sync/accounts/assigned/available?classIds={Uri.EscapeDataString(qs)}");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<AssignableRolesDto>(JsonOptions, cancellationToken) ?? new AssignableRolesDto();
+        return await GetItemAsync<AssignableRolesDto>(
+            accessToken, $"api/sync/accounts/assigned/available?classIds={Uri.EscapeDataString(qs)}", cancellationToken);
     }
 
     public Task<AccountsResult> UpdateAssignedRoleAsync(string accessToken, UpdateAssignedRoleRequest request, CancellationToken cancellationToken = default) =>
@@ -2085,11 +2449,46 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<AccountsResult> DeleteAssignedRoleAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
         PostAccountsAsync(accessToken, $"api/sync/accounts/assigned/{id}/delete", new { }, cancellationToken);
 
-    public Task<IReadOnlyList<PayOrderStudentDto>> GetPayOrderStudentsAsync(string accessToken, int classId, CancellationToken cancellationToken = default) =>
-        GetListAsync<PayOrderStudentDto>(accessToken, $"api/sync/accounts/payorder/students?classId={classId}", cancellationToken);
+    public async Task<IReadOnlyList<PayOrderStudentDto>> GetPayOrderStudentsAsync(string accessToken, int classId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<PayOrderStudentDto> remote = [];
+        try
+        {
+            remote = await GetListAsync<PayOrderStudentDto>(
+                accessToken, $"api/sync/accounts/payorder/students?classId={classId}", cancellationToken);
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex))
+        {
+        }
 
-    public Task<AccountsResult> CreatePayOrdersAsync(string accessToken, CreatePayOrdersRequest request, CancellationToken cancellationToken = default) =>
-        PostAccountsAsync(accessToken, "api/sync/accounts/payorder", request, cancellationToken);
+        var local = await _offline.LocalPayOrderStudentsAsync(classId, cancellationToken);
+        if (local.Count == 0)
+            return remote;
+        var seen = new HashSet<string>(remote.Select(x => x.ID), StringComparer.OrdinalIgnoreCase);
+        return remote.Concat(local.Where(x => seen.Add(x.ID))).ToList();
+    }
+
+    public async Task<AccountsResult> CreatePayOrdersAsync(string accessToken, CreatePayOrdersRequest request, CancellationToken cancellationToken = default)
+    {
+        var json = JsonSerializer.Serialize(request, JsonOptions);
+        var remapped = await _offline.RemapPayOrderBodyAsync(json, cancellationToken);
+        if (remapped is null)
+        {
+            await QueueWriteAsync("api/sync/accounts/payorder", "accounts", request, cancellationToken);
+            return new AccountsResult { Succeeded = true, Queued = true, Saved = request.Items.Count };
+        }
+
+        CreatePayOrdersRequest? body = request;
+        try
+        {
+            body = JsonSerializer.Deserialize<CreatePayOrdersRequest>(remapped, JsonOptions) ?? request;
+        }
+        catch (JsonException)
+        {
+        }
+
+        return await PostAccountsAsync(accessToken, "api/sync/accounts/payorder", body, cancellationToken);
+    }
 
     public Task<IReadOnlyList<UnpaidPayOrderDto>> GetUnpaidPayOrdersAsync(string accessToken, int classId, int roleId, DateTime? endDate, CancellationToken cancellationToken = default)
     {
@@ -2126,48 +2525,108 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<IReadOnlyList<AccountMoveDto>> GetCashWithdrawsAsync(string accessToken, int accountId, CancellationToken cancellationToken = default) =>
         GetListAsync<AccountMoveDto>(accessToken, $"api/sync/accounts/cash/{accountId}/withdraws", cancellationToken);
 
-    public Task<IReadOnlyList<FeeSuggestDto>> SuggestFeeStudentsAsync(string accessToken, string query, CancellationToken cancellationToken = default) =>
-        GetListAsync<FeeSuggestDto>(accessToken, $"api/sync/accounts/students/suggest?q={Uri.EscapeDataString(query ?? "")}", cancellationToken);
+    public async Task<IReadOnlyList<FeeSuggestDto>> SuggestFeeStudentsAsync(string accessToken, string query, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var remote = await GetListAsync<FeeSuggestDto>(
+                accessToken, $"api/sync/accounts/students/suggest?q={Uri.EscapeDataString(query ?? "")}", cancellationToken);
+            if (remote.Count > 0)
+                return remote;
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex))
+        {
+        }
+
+        return await _offline.SuggestLocalAsync(query ?? "", cancellationToken);
+    }
 
     public async Task<FeeStudentBundleDto> GetFeeStudentBundleAsync(string accessToken, string id, CancellationToken cancellationToken = default)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, $"api/sync/accounts/students/bundle?id={Uri.EscapeDataString(id ?? "")}");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<FeeStudentBundleDto>(JsonOptions, cancellationToken) ?? new FeeStudentBundleDto();
+        var url = $"api/sync/accounts/students/bundle?id={Uri.EscapeDataString(id ?? "")}";
+        FeeStudentBundleDto? remote = null;
+        try
+        {
+            remote = await GetItemAsync<FeeStudentBundleDto>(accessToken, url, cancellationToken);
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
+        {
+        }
+
+        var local = await _offline.BundleFromLocalAsync(id ?? "", cancellationToken);
+        if (local is null)
+            return remote ?? new FeeStudentBundleDto();
+        if (remote?.Student is null)
+            return local;
+
+        var seen = remote.CurrentDues.Select(x => x.PayOrderID).ToHashSet();
+        foreach (var due in local.CurrentDues)
+        {
+            if (seen.Add(due.PayOrderID))
+                remote.CurrentDues.Add(due);
+        }
+        remote.CurrentDue = remote.CurrentDues.Sum(x => x.Due);
+        if (remote.Student.StudentID <= 0)
+            remote.Student = local.Student;
+        return remote;
     }
 
-    public Task<AccountsResult> CollectPaymentAsync(string accessToken, CollectPaymentRequest request, CancellationToken cancellationToken = default) =>
-        PostAccountsAsync(accessToken, "api/sync/accounts/collect", request, cancellationToken);
+    public async Task<AccountsResult> CollectPaymentAsync(string accessToken, CollectPaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.StudentID <= 0 || request.Items.Any(x => x.PayOrderID < 0))
+        {
+            var queued = await QueueWriteAsync("api/sync/accounts/collect", "accounts", request, cancellationToken);
+            return new AccountsResult { Succeeded = true, Queued = true, Saved = 1, ReceiptNo = queued.ReceiptNo };
+        }
 
-    public Task<AccountsResult> AddMorePayOrderAsync(string accessToken, AddMorePayOrderRequest request, CancellationToken cancellationToken = default) =>
-        PostAccountsAsync(accessToken, "api/sync/accounts/add-more", request, cancellationToken);
+        return await PostAccountsAsync(accessToken, "api/sync/accounts/collect", request, cancellationToken);
+    }
+
+    public async Task<AccountsResult> AddMorePayOrderAsync(string accessToken, AddMorePayOrderRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.StudentID <= 0 || request.StudentClassID <= 0)
+        {
+            await QueueWriteAsync("api/sync/accounts/add-more", "accounts", request, cancellationToken);
+            return new AccountsResult { Succeeded = true, Queued = true, Saved = 1 };
+        }
+
+        return await PostAccountsAsync(accessToken, "api/sync/accounts/add-more", request, cancellationToken);
+    }
 
     public Task<AccountsResult> SaveConcessionAsync(string accessToken, SaveConcessionRequest request, CancellationToken cancellationToken = default) =>
         PostAccountsAsync(accessToken, "api/sync/accounts/concession", request, cancellationToken);
 
     public async Task<ReceiptDetailDto?> GetMoneyReceiptAsync(string accessToken, string receiptNo, CancellationToken cancellationToken = default)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, $"api/sync/accounts/receipt?no={Uri.EscapeDataString(receiptNo ?? "")}");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<ReceiptDetailDto>(JsonOptions, cancellationToken);
+        var url = $"api/sync/accounts/receipt?no={Uri.EscapeDataString(receiptNo ?? "")}";
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Get, url);
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return await _offline.ReadAsync<ReceiptDetailDto>(url, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(body) || body == "null")
+                return await _offline.ReadAsync<ReceiptDetailDto>(url, cancellationToken);
+            await _offline.SaveAsync(url, body, cancellationToken);
+            return System.Text.Json.JsonSerializer.Deserialize<ReceiptDetailDto>(body, JsonOptions);
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
+        {
+            if (ex is HttpRequestException http
+                && http.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw;
+            return await _offline.ReadAsync<ReceiptDetailDto>(url, cancellationToken);
+        }
     }
 
     public Task<AccountsResult> UpdatePrintedReceiptAsync(string accessToken, PrintedReceiptRequest request, CancellationToken cancellationToken = default) =>
         PostAccountsAsync(accessToken, "api/sync/accounts/receipt/printed", request, cancellationToken);
 
-    public async Task<PaymentSmsSettingDto> GetPaymentSmsSettingAsync(string accessToken, CancellationToken cancellationToken = default)
-    {
-        using var message = new HttpRequestMessage(HttpMethod.Get, "api/sync/accounts/sms");
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<PaymentSmsSettingDto>(JsonOptions, cancellationToken)
-               ?? new PaymentSmsSettingDto();
-    }
+    public Task<PaymentSmsSettingDto> GetPaymentSmsSettingAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<PaymentSmsSettingDto>(accessToken, "api/sync/accounts/sms", cancellationToken);
 
     public Task<AccountsResult> SavePaymentSmsSettingAsync(string accessToken, bool active, CancellationToken cancellationToken = default) =>
         PostAccountsAsync(accessToken, "api/sync/accounts/sms", new PaymentSmsSettingDto { Active = active }, cancellationToken);
@@ -2245,9 +2704,9 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<AccountsResult> DeleteExpenseSubCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
         PostAccountsAsync(accessToken, $"api/sync/accounts/expense/subcategories/{id}/delete", new { }, cancellationToken);
 
-    public async Task<ExpenseListDto> GetExpenseAsync(string accessToken, int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo = null, CancellationToken cancellationToken = default)
+    public async Task<ExpenseListDto> GetExpenseAsync(string accessToken, int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo = null, int page = 1, int pageSize = 80, CancellationToken cancellationToken = default)
     {
-        var url = $"api/sync/accounts/expense?categoryId={categoryId}&subCategoryId={subCategoryId}";
+        var url = $"api/sync/accounts/expense?categoryId={categoryId}&subCategoryId={subCategoryId}&page={page}&pageSize={pageSize}";
         if (from is not null) url += $"&from={from:yyyy-MM-dd}";
         if (to is not null) url += $"&to={to:yyyy-MM-dd}";
         if (!string.IsNullOrWhiteSpace(receiptNo)) url += $"&receiptNo={Uri.EscapeDataString(receiptNo.Trim())}";
@@ -2306,6 +2765,15 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<MyAccountsDto> GetMyAccountsAsync(string accessToken, int regId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
         GetItemAsync<MyAccountsDto>(accessToken, $"api/sync/accounts/reports/my?regId={regId}{QDates(from, to)}", cancellationToken);
 
+    public Task<BalanceRemainingDto> GetMyBalanceRemainingAsync(string accessToken, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
+        GetItemAsync<BalanceRemainingDto>(accessToken, $"api/sync/accounts/reports/my/remaining?{QDates(from, to).TrimStart('&')}", cancellationToken);
+
+    public Task<AccountsResult> SendMyBalanceOtpAsync(string accessToken, BalanceSubmitOtpRequest request, CancellationToken cancellationToken = default) =>
+        PostAccountsAsync(accessToken, "api/sync/accounts/reports/my/submit-otp", request, cancellationToken);
+
+    public Task<AccountsResult> SubmitMyBalanceAsync(string accessToken, BalanceSubmitRequest request, CancellationToken cancellationToken = default) =>
+        PostAccountsAsync(accessToken, "api/sync/accounts/reports/my/submit", request, cancellationToken);
+
     public Task<IReadOnlyList<AccountDetailDto>> GetAccountDetailsAsync(string accessToken, string? accountId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
         GetListAsync<AccountDetailDto>(accessToken, $"api/sync/accounts/reports/account?accountId={Uri.EscapeDataString(accountId ?? "%")}{QDates(from, to)}", cancellationToken);
 
@@ -2342,17 +2810,41 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<SessionStudentReportDto> GetSessionConcessionAsync(string accessToken, int yearId, int classId, string? sectionId, string? roleId, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
         GetItemAsync<SessionStudentReportDto>(accessToken, $"api/sync/accounts/reports/session/concession?yearId={yearId}&classId={classId}{Q("sectionId", sectionId)}{Q("roleId", roleId)}{QDates(from, to)}", cancellationToken);
 
-    public Task<SessionPaidDueDto> GetSessionPaidDueAsync(string accessToken, string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, CancellationToken cancellationToken = default) =>
-        GetItemAsync<SessionPaidDueDto>(accessToken, $"api/sync/accounts/reports/session/paid-due?{QDates(from, to).TrimStart('&')}{Q("status", status)}{Q("classId", classId)}{Q("sectionId", sectionId)}{Q("roleId", roleId)}{Q("payFor", payFor)}", cancellationToken);
+    public Task<SessionPaidDueDto> GetSessionPaidDueAsync(string accessToken, string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, int page = 1, int pageSize = 25, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SessionPaidDueDto>(accessToken, $"api/sync/accounts/reports/session/paid-due?{QDates(from, to).TrimStart('&')}{Q("status", status)}{Q("classId", classId)}{Q("sectionId", sectionId)}{Q("roleId", roleId)}{Q("payFor", payFor)}&page={page}&pageSize={pageSize}", cancellationToken);
 
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetItemAsync<DashboardOverviewDto>(accessToken, "api/sync/dashboard/overview", cancellationToken);
 
-    public Task<ExamFilterDto> GetExamFiltersAsync(string accessToken, string? kind, int classId = 0, int examId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, int subjectId = 0, CancellationToken cancellationToken = default) =>
-        GetItemAsync<ExamFilterDto>(accessToken, $"api/sync/exam/filters?kind={Uri.EscapeDataString(kind ?? "")}&classId={classId}&examId={examId}&subjectId={subjectId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}", cancellationToken);
+    public async Task<ExamFilterDto> GetExamFiltersAsync(string accessToken, string? kind, int classId = 0, int examId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, int subjectId = 0, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/exam/filters?kind={Uri.EscapeDataString(kind ?? "")}&classId={classId}&examId={examId}&subjectId={subjectId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}";
+        try
+        {
+            var remote = await GetItemAsync<ExamFilterDto>(accessToken, url, cancellationToken);
+            if (remote.Exams.Count > 0 && remote.Classes.Count > 0 && (classId <= 0 || remote.Subjects.Count > 0 || remote.Groups.Count > 0 || remote.Sections.Count > 0))
+                return remote;
+            var local = await _offline.ExamFiltersFromLocalAsync(kind, classId, examId, groupId, sectionId, shiftId, subjectId, cancellationToken);
+            MergeExamFilter(remote, local);
+            return remote;
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+            return await _offline.ExamFiltersFromLocalAsync(kind, classId, examId, groupId, sectionId, shiftId, subjectId, cancellationToken);
+        }
+    }
 
-    public Task<IReadOnlyList<ExamNameDto>> GetExamNamesAsync(string accessToken, CancellationToken cancellationToken = default) =>
-        GetListAsync<ExamNameDto>(accessToken, "api/sync/exam/names", cancellationToken);
+    public async Task<IReadOnlyList<ExamNameDto>> GetExamNamesAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await GetListAsync<ExamNameDto>(accessToken, "api/sync/exam/names", cancellationToken);
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+            return [];
+        }
+    }
 
     public Task<ExamResult> CreateExamNameAsync(string accessToken, SaveExamNameRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/names", request, cancellationToken);
@@ -2363,8 +2855,17 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<ExamResult> DeleteExamNameAsync(string accessToken, int examId, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, $"api/sync/exam/names/{examId}/delete", new { }, cancellationToken);
 
-    public Task<IReadOnlyList<SubExamDto>> GetSubExamsAsync(string accessToken, CancellationToken cancellationToken = default) =>
-        GetListAsync<SubExamDto>(accessToken, "api/sync/exam/sub-exams", cancellationToken);
+    public async Task<IReadOnlyList<SubExamDto>> GetSubExamsAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await GetListAsync<SubExamDto>(accessToken, "api/sync/exam/sub-exams", cancellationToken);
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+            return [];
+        }
+    }
 
     public Task<ExamResult> CreateSubExamAsync(string accessToken, SaveSubExamRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/sub-exams", request, cancellationToken);
@@ -2396,8 +2897,21 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<ExamResult> SaveExamPassMarksAsync(string accessToken, SavePassMarksRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/pass-marks", request, cancellationToken);
 
-    public Task<DistSheetDto> GetExamDistributionAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default) =>
-        GetItemAsync<DistSheetDto>(accessToken, $"api/sync/exam/distribution?classId={classId}&examId={examId}", cancellationToken);
+    public async Task<DistSheetDto> GetExamDistributionAsync(string accessToken, int classId, int examId, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/exam/distribution?classId={classId}&examId={examId}";
+        try
+        {
+            var remote = await GetItemAsync<DistSheetDto>(accessToken, url, cancellationToken);
+            if (remote.Subjects.Count > 0 || remote.Grades.Count > 0)
+                return remote;
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+        }
+
+        return await _offline.DistributionFromLocalAsync(classId, examId, cancellationToken);
+    }
 
     public Task<ExamResult> SaveExamDistributionAsync(string accessToken, SaveDistributionRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/distribution", request, cancellationToken);
@@ -2405,11 +2919,37 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<ExamResult> CopyExamDistributionAsync(string accessToken, CopyDistributionRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/distribution/copy", request, cancellationToken);
 
-    public Task<CollectPaperDto> GetExamCollectPaperAsync(string accessToken, int examId, int classId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default) =>
-        GetItemAsync<CollectPaperDto>(accessToken, $"api/sync/exam/collect-paper?examId={examId}&classId={classId}&subjectId={subjectId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}", cancellationToken);
+    public async Task<CollectPaperDto> GetExamCollectPaperAsync(string accessToken, int examId, int classId, int subjectId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/exam/collect-paper?examId={examId}&classId={classId}&subjectId={subjectId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}";
+        try
+        {
+            var remote = await GetItemAsync<CollectPaperDto>(accessToken, url, cancellationToken);
+            if (remote.Students.Count > 0)
+                return remote;
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+        }
 
-    public Task<InputSheetDto> GetExamInputSheetAsync(string accessToken, int examId, int classId, int subjectId, int subExamId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default) =>
-        GetItemAsync<InputSheetDto>(accessToken, $"api/sync/exam/input?examId={examId}&classId={classId}&subjectId={subjectId}&subExamId={subExamId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}", cancellationToken);
+        return await _offline.CollectPaperFromLocalAsync(examId, classId, subjectId, groupId, sectionId, shiftId, cancellationToken);
+    }
+
+    public async Task<InputSheetDto> GetExamInputSheetAsync(string accessToken, int examId, int classId, int subjectId, int subExamId, string? groupId, string? sectionId, string? shiftId, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/exam/input?examId={examId}&classId={classId}&subjectId={subjectId}&subExamId={subExamId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}";
+        try
+        {
+            var remote = await GetItemAsync<InputSheetDto>(accessToken, url, cancellationToken);
+            if (remote.Students.Count > 0)
+                return remote;
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+        }
+
+        return await _offline.InputSheetFromLocalAsync(examId, classId, subjectId, subExamId, groupId, sectionId, shiftId, cancellationToken);
+    }
 
     public Task<ExamResult> SaveExamInputMarksAsync(string accessToken, SaveInputMarksRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/input", request, cancellationToken);
@@ -2465,14 +3005,40 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<CumulativeResultCardSheetDto> GetCumulativeResultCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, CancellationToken cancellationToken = default) =>
         GetItemAsync<CumulativeResultCardSheetDto>(accessToken, $"api/sync/exam/cumulative/result-cards?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}", cancellationToken);
 
-    public Task<ExamSeatPlanSheetDto> GetExamSeatPlanAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? classIds = null, CancellationToken cancellationToken = default) =>
-        GetItemAsync<ExamSeatPlanSheetDto>(accessToken, $"api/sync/exam/seat-plan?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}{Q("classIds", classIds)}", cancellationToken);
+    public async Task<ExamSeatPlanSheetDto> GetExamSeatPlanAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? classIds = null, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/exam/seat-plan?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}{Q("classIds", classIds)}";
+        try
+        {
+            var remote = await GetItemAsync<ExamSeatPlanSheetDto>(accessToken, url, cancellationToken);
+            if (remote.Students.Count > 0)
+                return remote;
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+        }
+
+        return await _offline.SeatPlanFromLocalAsync(classId, examId, groupId, sectionId, shiftId, studentIds, classIds, cancellationToken);
+    }
 
     public Task<ExamResult> RandomizeExamSeatsAsync(string accessToken, RandomSeatRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/seat-plan/random", request, cancellationToken);
 
-    public Task<ExamAdmitCardSheetDto> GetExamAdmitCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? paymentStatus, CancellationToken cancellationToken = default) =>
-        GetItemAsync<ExamAdmitCardSheetDto>(accessToken, $"api/sync/exam/admit-cards?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}{Q("paymentStatus", paymentStatus)}", cancellationToken);
+    public async Task<ExamAdmitCardSheetDto> GetExamAdmitCardsAsync(string accessToken, int classId, int examId, string? groupId, string? sectionId, string? shiftId, string? studentIds, string? paymentStatus, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/sync/exam/admit-cards?classId={classId}&examId={examId}{Q("groupId", groupId)}{Q("sectionId", sectionId)}{Q("shiftId", shiftId)}{Q("studentIds", studentIds)}{Q("paymentStatus", paymentStatus)}";
+        try
+        {
+            var remote = await GetItemAsync<ExamAdmitCardSheetDto>(accessToken, url, cancellationToken);
+            if (remote.Students.Count > 0)
+                return remote;
+        }
+        catch (Exception ex) when (IsOfflineRead(ex))
+        {
+        }
+
+        return await _offline.AdmitCardsFromLocalAsync(classId, examId, groupId, sectionId, shiftId, studentIds, cancellationToken);
+    }
 
     public Task<ExamResult> SaveExamAdmitSignAsync(string accessToken, SaveExamSignRequest request, CancellationToken cancellationToken = default) =>
         PostExamAsync(accessToken, "api/sync/exam/admit-sign", request, cancellationToken);
@@ -2507,14 +3073,32 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<SmsResult> DeleteSmsContactAsync(string accessToken, int numberId, CancellationToken cancellationToken = default) =>
         PostSmsAsync(accessToken, $"api/sync/sms/contacts/{numberId}/delete", new { }, cancellationToken);
 
-    public Task<SmsRecordsDto> GetSmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, string? search, CancellationToken cancellationToken = default) =>
-        GetItemAsync<SmsRecordsDto>(accessToken, $"api/sync/sms/records?{(QDates(from, to) + Q("q", search)).TrimStart('&')}", cancellationToken);
+    public Task<SmsRecordsDto> GetSmsRecordsAsync(string accessToken, DateTime? from, DateTime? to, string? search, string? kind = null, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SmsRecordsDto>(accessToken, $"api/sync/sms/records?{(QDates(from, to) + Q("q", search) + Q("kind", kind)).TrimStart('&')}&page={page}&pageSize={pageSize}", cancellationToken);
 
     public Task<SmsRechargePageDto> GetSmsRechargeAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetItemAsync<SmsRechargePageDto>(accessToken, "api/sync/sms/recharge", cancellationToken);
 
     public Task<SmsResult> StartSmsRechargeAsync(string accessToken, SmsRechargeRequest request, CancellationToken cancellationToken = default) =>
         PostSmsAsync(accessToken, "api/sync/sms/recharge", request, cancellationToken);
+
+    public Task<IReadOnlyList<SmsTemplateDto>> GetSmsTemplatesAsync(string accessToken, string? category, CancellationToken cancellationToken = default) =>
+        GetListAsync<SmsTemplateDto>(accessToken, $"api/sync/sms/templates?{Q("category", category).TrimStart('&')}", cancellationToken);
+
+    public Task<SmsTemplateDto> GetSmsTemplateAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SmsTemplateDto>(accessToken, $"api/sync/sms/templates/{id}", cancellationToken);
+
+    public Task<SmsTemplateResult> SaveSmsTemplateAsync(string accessToken, SaveSmsTemplateRequest request, CancellationToken cancellationToken = default) =>
+        PostSmsTemplateAsync(accessToken, "api/sync/sms/templates", request, cancellationToken);
+
+    public Task<SmsTemplateResult> DeleteSmsTemplateAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostSmsTemplateAsync(accessToken, $"api/sync/sms/templates/{id}/delete", new { }, cancellationToken);
+
+    public Task<CommitteePaymentSmsLangDto> GetCommitteePaymentSmsLangAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<CommitteePaymentSmsLangDto>(accessToken, "api/sync/sms/templates/committee-payment-lang", cancellationToken);
+
+    public Task<SmsTemplateResult> SaveCommitteePaymentSmsLangAsync(string accessToken, CommitteePaymentSmsLangDto request, CancellationToken cancellationToken = default) =>
+        PostSmsTemplateAsync(accessToken, "api/sync/sms/templates/committee-payment-lang", request, cancellationToken);
 
     public Task<IReadOnlyList<RoutineNameDto>> GetRoutineNamesAsync(string accessToken, bool unusedOnly, CancellationToken cancellationToken = default) =>
         GetListAsync<RoutineNameDto>(accessToken, $"api/sync/routine/names?unusedOnly={unusedOnly}", cancellationToken);
@@ -2573,6 +3157,12 @@ public sealed class SyncApiClient : ISyncApiClient
     public Task<IReadOnlyList<CommitteeMemberDto>> GetCommitteeMembersAsync(string accessToken, int typeId, string? q, CancellationToken cancellationToken = default) =>
         GetListAsync<CommitteeMemberDto>(accessToken, $"api/sync/committee/members?typeId={typeId}{Q("q", q)}", cancellationToken);
 
+    public async Task<string?> GetCommitteeMemberPhotoAsync(string accessToken, int memberId, CancellationToken cancellationToken = default)
+    {
+        var row = await GetItemAsync<CommitteeMemberDto>(accessToken, $"api/sync/committee/members/{memberId}/photo", cancellationToken);
+        return row.PhotoDataUrl;
+    }
+
     public Task<CommitteeResult> SaveCommitteeMemberAsync(string accessToken, SaveCommitteeMemberRequest request, CancellationToken cancellationToken = default) =>
         PostCommitteeAsync(accessToken, "api/sync/committee/members", request, cancellationToken);
 
@@ -2617,6 +3207,143 @@ public sealed class SyncApiClient : ISyncApiClient
 
     public Task<DonationReceiptDto> GetDonationReceiptAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
         GetItemAsync<DonationReceiptDto>(accessToken, $"api/sync/committee/receipt/{id}", cancellationToken);
+
+    public Task<AccountsResult> SendDonorReceiptSmsAsync(string accessToken, int receiptId, DonorReceiptSmsRequest? request = null, CancellationToken cancellationToken = default) =>
+        PostAccountsAsync(accessToken, $"api/sync/committee/receipt/{receiptId}/sms", request ?? new DonorReceiptSmsRequest(), cancellationToken);
+
+    public Task<decimal?> GetDonationTemplateAmountAsync(string accessToken, int typeId, int categoryId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<decimal?>(accessToken, $"api/sync/committee/donation-pay-order/template?typeId={typeId}&categoryId={categoryId}", cancellationToken);
+
+    public Task<IReadOnlyList<DonationPayOrderMonthDto>> GetDonationPayOrderMonthsAsync(string accessToken, string? q, CancellationToken cancellationToken = default) =>
+        GetListAsync<DonationPayOrderMonthDto>(accessToken, $"api/sync/committee/donation-pay-order/months{Q("q", q)}", cancellationToken);
+
+    public Task<DonationPayOrderResult> CreateDonationPayOrdersAsync(string accessToken, CreateDonationPayOrdersRequest request, CancellationToken cancellationToken = default) =>
+        PostDonationPayOrderAsync(accessToken, "api/sync/committee/donation-pay-order", request, cancellationToken);
+
+    public Task<DonationBulkEditListDto> GetDonationBulkEditAsync(string accessToken, int typeId, int memberId, string? name, string? phone, int categoryId, string? status, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DonationBulkEditListDto>(accessToken,
+            $"api/sync/committee/donation-bulk-edit?typeId={typeId}&memberId={memberId}&categoryId={categoryId}{Q("name", name)}{Q("phone", phone)}{Q("status", status)}",
+            cancellationToken);
+
+    public Task<IReadOnlyList<DonorSuggestDto>> SearchDonorsBulkAsync(string accessToken, string? name, string? phone, CancellationToken cancellationToken = default) =>
+        GetListAsync<DonorSuggestDto>(accessToken, $"api/sync/committee/donation-bulk-edit/donors{Q("name", name)}{Q("phone", phone)}", cancellationToken);
+
+    public Task<DonationBulkEditResult> BulkUpdateDonationsAsync(string accessToken, BulkEditDonationsRequest request, CancellationToken cancellationToken = default) =>
+        PostDonationBulkEditAsync(accessToken, "api/sync/committee/donation-bulk-edit/update", request, cancellationToken);
+
+    public Task<DonationBulkEditResult> BulkDeleteDonationsAsync(string accessToken, BulkDeleteDonationsRequest request, CancellationToken cancellationToken = default) =>
+        PostDonationBulkEditAsync(accessToken, "api/sync/committee/donation-bulk-edit/delete", request, cancellationToken);
+
+    public Task<DonorDueSummaryDto> GetDonorDueSummaryAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DonorDueSummaryDto>(accessToken, "api/sync/committee/donor-due/summary", cancellationToken);
+
+    public Task<IReadOnlyList<CommitteeOptionDto>> GetDonorDueCategoriesAsync(string accessToken, int typeId, CancellationToken cancellationToken = default) =>
+        GetListAsync<CommitteeOptionDto>(accessToken, $"api/sync/committee/donor-due/categories?typeId={typeId}", cancellationToken);
+
+    public Task<DonorDueByTypeListDto> GetDonorDueByTypeAsync(string accessToken, int typeId, int categoryId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DonorDueByTypeListDto>(accessToken, $"api/sync/committee/donor-due/by-type?typeId={typeId}&categoryId={categoryId}", cancellationToken);
+
+    public Task<DonorDueMemberDetailDto> GetDonorDueByNameAsync(string accessToken, string? q, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DonorDueMemberDetailDto>(accessToken, $"api/sync/committee/donor-due/by-name{Q("q", q)}", cancellationToken);
+
+    public Task<IReadOnlyList<DonorDueViewBlockDto>> GetDonorDueViewAsync(string accessToken, DonorDueViewRequest request, CancellationToken cancellationToken = default) =>
+        PostDonorDueViewAsync(accessToken, "api/sync/committee/donor-due/view", request, cancellationToken);
+
+    public Task<DonorDueSmsResult> SendDonorDueSmsAsync(string accessToken, DonorDueSmsRequest request, CancellationToken cancellationToken = default) =>
+        PostDonorDueSmsAsync(accessToken, "api/sync/committee/donor-due/sms", request, cancellationToken);
+
+    public Task<DonorLoginPageDto> GetDonorLoginPageAsync(string accessToken, int typeId, string? q, CancellationToken cancellationToken = default) =>
+        GetItemAsync<DonorLoginPageDto>(accessToken, $"api/sync/committee/donor-login?typeId={typeId}{Q("q", q)}", cancellationToken);
+
+    public Task<DonorLoginCreateResult> CreateDonorLoginsAsync(string accessToken, DonorLoginCreateRequest request, CancellationToken cancellationToken = default) =>
+        PostDonorLoginCreateAsync(accessToken, "api/sync/committee/donor-login/create", request, cancellationToken);
+
+    public Task<DonorLoginSmsResult> SendDonorLoginSmsAsync(string accessToken, DonorLoginSmsRequest request, CancellationToken cancellationToken = default) =>
+        PostDonorLoginSmsAsync(accessToken, "api/sync/committee/donor-login/sms", request, cancellationToken);
+
+    public Task<InventoryLookupsDto> GetInventoryLookupsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventoryLookupsDto>(accessToken, "api/sync/inventory/lookups", cancellationToken);
+
+    public Task<IReadOnlyList<InventoryCategoryDto>> GetInventoryCategoriesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<InventoryCategoryDto>(accessToken, "api/sync/inventory/categories", cancellationToken);
+
+    public Task<InventoryResult> SaveInventoryCategoryAsync(string accessToken, SaveInventoryCategoryRequest request, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, "api/sync/inventory/categories", request, cancellationToken);
+
+    public Task<InventoryResult> DeleteInventoryCategoryAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, $"api/sync/inventory/categories/{id}/delete", new { }, cancellationToken);
+
+    public Task<IReadOnlyList<InventoryItemDto>> GetInventoryItemsAsync(string accessToken, int categoryId = 0, CancellationToken cancellationToken = default) =>
+        GetListAsync<InventoryItemDto>(accessToken, $"api/sync/inventory/items?categoryId={categoryId}", cancellationToken);
+
+    public Task<InventoryResult> SaveInventoryItemAsync(string accessToken, SaveInventoryItemRequest request, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, "api/sync/inventory/items", request, cancellationToken);
+
+    public Task<InventoryResult> DeleteInventoryItemAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, $"api/sync/inventory/items/{id}/delete", new { }, cancellationToken);
+
+    public Task<IReadOnlyList<InventorySupplierDto>> GetInventorySuppliersAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<InventorySupplierDto>(accessToken, "api/sync/inventory/suppliers", cancellationToken);
+
+    public Task<InventoryResult> SaveInventorySupplierAsync(string accessToken, SaveInventorySupplierRequest request, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, "api/sync/inventory/suppliers", request, cancellationToken);
+
+    public Task<InventoryResult> DeleteInventorySupplierAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, $"api/sync/inventory/suppliers/{id}/delete", new { }, cancellationToken);
+
+    public Task<InventorySupplierLedgerDto> GetInventorySupplierLedgerAsync(string accessToken, int supplierId, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventorySupplierLedgerDto>(accessToken, $"api/sync/inventory/suppliers/{supplierId}/ledger", cancellationToken);
+
+    public Task<InventoryResult> SaveInventorySupplierPaymentAsync(string accessToken, SaveInventorySupplierPaymentRequest request, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, "api/sync/inventory/supplier-payments", request, cancellationToken);
+
+    public Task<IReadOnlyList<InventoryStudentHitDto>> SuggestInventorySaleStudentsAsync(string accessToken, string query, CancellationToken cancellationToken = default) =>
+        GetListAsync<InventoryStudentHitDto>(accessToken, $"api/sync/inventory/customers/students?q={Uri.EscapeDataString(query ?? "")}", cancellationToken);
+
+    public Task<InventoryCustomerDto> InventoryCustomerFromStudentAsync(string accessToken, string id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventoryCustomerDto>(accessToken, $"api/sync/inventory/customers/from-student?id={Uri.EscapeDataString(id ?? "")}", cancellationToken);
+
+    public Task<IReadOnlyList<InventoryCustomerDto>> SearchInventoryCustomersAsync(string accessToken, string? name, string? phone, CancellationToken cancellationToken = default) =>
+        GetListAsync<InventoryCustomerDto>(accessToken, $"api/sync/inventory/customers?name={Uri.EscapeDataString(name ?? "")}&phone={Uri.EscapeDataString(phone ?? "")}", cancellationToken);
+
+    public Task<InventoryResult> SaveInventoryCustomerAsync(string accessToken, SaveInventoryCustomerRequest request, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, "api/sync/inventory/customers", request, cancellationToken);
+
+    public Task<InventoryDocListDto> GetInventoryPurchasesAsync(string accessToken, DateTime? from, DateTime? to, int itemId = 0, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventoryDocListDto>(accessToken, $"api/sync/inventory/purchases?itemId={itemId}{QDates(from, to)}", cancellationToken);
+
+    public Task<InventoryDocDto> GetInventoryPurchaseAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventoryDocDto>(accessToken, $"api/sync/inventory/purchases/{id}", cancellationToken);
+
+    public Task<InventoryResult> SaveInventoryPurchaseAsync(string accessToken, SaveInventoryDocRequest request, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, "api/sync/inventory/purchases", request, cancellationToken);
+
+    public Task<InventoryResult> DeleteInventoryPurchaseAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, $"api/sync/inventory/purchases/{id}/delete", new { }, cancellationToken);
+
+    public Task<InventoryDocListDto> GetInventorySalesAsync(string accessToken, DateTime? from, DateTime? to, int itemId = 0, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventoryDocListDto>(accessToken, $"api/sync/inventory/sales?itemId={itemId}{QDates(from, to)}", cancellationToken);
+
+    public Task<InventoryDocDto> GetInventorySaleAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventoryDocDto>(accessToken, $"api/sync/inventory/sales/{id}", cancellationToken);
+
+    public Task<AccountsResult> SendInventorySaleSmsAsync(string accessToken, int saleId, CancellationToken cancellationToken = default) =>
+        PostAccountsAsync(accessToken, $"api/sync/inventory/sales/{saleId}/sms", new { }, cancellationToken);
+
+    public Task<InventoryResult> SaveInventorySaleAsync(string accessToken, SaveInventoryDocRequest request, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, "api/sync/inventory/sales", request, cancellationToken);
+
+    public Task<InventoryResult> DeleteInventorySaleAsync(string accessToken, int id, CancellationToken cancellationToken = default) =>
+        PostInventoryAsync(accessToken, $"api/sync/inventory/sales/{id}/delete", new { }, cancellationToken);
+
+    public Task<InventoryStockDto> GetInventoryStockAsync(string accessToken, int categoryId = 0, CancellationToken cancellationToken = default) =>
+        GetItemAsync<InventoryStockDto>(accessToken, $"api/sync/inventory/stock?categoryId={categoryId}", cancellationToken);
+
+    public Task<SupportPageDto> GetSupportPageAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<SupportPageDto>(accessToken, "api/sync/support", cancellationToken);
+
+    public Task<SupportResult> SubmitSupportTicketAsync(string accessToken, SubmitSupportRequest request, CancellationToken cancellationToken = default) =>
+        PostSupportAsync(accessToken, "api/sync/support", request, cancellationToken);
 
     public Task<DueInvoiceDto> GetDueInvoiceAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetItemAsync<DueInvoiceDto>(accessToken, "api/sync/invoice/due", cancellationToken);
@@ -3021,6 +3748,32 @@ public sealed class SyncApiClient : ISyncApiClient
         return new AuthorityResult { Error = response.IsSuccessStatusCode ? "ab.failed" : body };
     }
 
+    private async Task<SupportResult> PostSupportAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<SupportResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return new SupportResult { Error = response.IsSuccessStatusCode ? "sup.fail" : body };
+    }
+
     private async Task<InvoiceResult> PostInvoiceAsync<T>(
         string accessToken, string url, T request, CancellationToken cancellationToken)
     {
@@ -3050,6 +3803,74 @@ public sealed class SyncApiClient : ISyncApiClient
     private async Task<CommitteeResult> PostCommitteeAsync<T>(
         string accessToken, string url, T request, CancellationToken cancellationToken)
     {
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(request)
+            };
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<CommitteeResult>(body, JsonOptions);
+                if (parsed is not null)
+                {
+                    if (!response.IsSuccessStatusCode)
+                        parsed.Succeeded = false;
+                    return parsed;
+                }
+            }
+            catch (JsonException)
+            {
+            }
+            return new CommitteeResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) && OfflineApiStore.CanQueue(url))
+        {
+            await QueueWriteAsync(url, "committee", request, cancellationToken);
+            return new CommitteeResult { Succeeded = true, Queued = true, Message = "sync.savedOffline" };
+        }
+    }
+
+    private async Task<InventoryResult> PostInventoryAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(request)
+            };
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<InventoryResult>(body, JsonOptions);
+                if (parsed is not null)
+                {
+                    if (!response.IsSuccessStatusCode)
+                        parsed.Succeeded = false;
+                    return parsed;
+                }
+            }
+            catch (JsonException)
+            {
+            }
+            return new InventoryResult { Error = response.IsSuccessStatusCode ? "inv.failed" : body };
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) && OfflineApiStore.CanQueue(url))
+        {
+            var queued = await QueueWriteAsync(url, "inventory", request, cancellationToken);
+            return new InventoryResult { Succeeded = true, Queued = true, Id = queued.Id, Message = "sync.savedOffline" };
+        }
+    }
+
+    private async Task<DonationPayOrderResult> PostDonationPayOrderAsync(
+        string accessToken, string url, CreateDonationPayOrdersRequest request, CancellationToken cancellationToken)
+    {
         using var message = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = JsonContent.Create(request)
@@ -3059,7 +3880,7 @@ public sealed class SyncApiClient : ISyncApiClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         try
         {
-            var parsed = JsonSerializer.Deserialize<CommitteeResult>(body, JsonOptions);
+            var parsed = JsonSerializer.Deserialize<DonationPayOrderResult>(body, JsonOptions);
             if (parsed is not null)
             {
                 if (!response.IsSuccessStatusCode)
@@ -3070,7 +3891,121 @@ public sealed class SyncApiClient : ISyncApiClient
         catch (JsonException)
         {
         }
-        return new CommitteeResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
+        return new DonationPayOrderResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
+    }
+
+    private async Task<DonationBulkEditResult> PostDonationBulkEditAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<DonationBulkEditResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return new DonationBulkEditResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
+    }
+
+    private async Task<IReadOnlyList<DonorDueViewBlockDto>> PostDonorDueViewAsync(
+        string accessToken, string url, DonorDueViewRequest request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<DonorDueViewBlockDto>>(body, JsonOptions);
+            if (parsed is not null) return parsed;
+        }
+        catch (JsonException) { }
+        return [];
+    }
+
+    private async Task<DonorDueSmsResult> PostDonorDueSmsAsync(
+        string accessToken, string url, DonorDueSmsRequest request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<DonorDueSmsResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode) parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException) { }
+        return new DonorDueSmsResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
+    }
+
+    private async Task<DonorLoginCreateResult> PostDonorLoginCreateAsync(
+        string accessToken, string url, DonorLoginCreateRequest request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<DonorLoginCreateResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode) parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException) { }
+        return new DonorLoginCreateResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
+    }
+
+    private async Task<DonorLoginSmsResult> PostDonorLoginSmsAsync(
+        string accessToken, string url, DonorLoginSmsRequest request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<DonorLoginSmsResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode) parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException) { }
+        return new DonorLoginSmsResult { Error = response.IsSuccessStatusCode ? "cm.fail" : body };
     }
 
     private async Task<RoutineResult> PostRoutineAsync<T>(
@@ -3134,6 +4069,32 @@ public sealed class SyncApiClient : ISyncApiClient
         };
     }
 
+    private async Task<SmsTemplateResult> PostSmsTemplateAsync<T>(
+        string accessToken, string url, T request, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<SmsTemplateResult>(body, JsonOptions);
+            if (parsed is not null)
+            {
+                if (!response.IsSuccessStatusCode)
+                    parsed.Succeeded = false;
+                return parsed;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return new SmsTemplateResult { Error = response.IsSuccessStatusCode ? "sms.tplFail" : body };
+    }
+
     public async Task<ExpenseDto?> GetExpenseOneAsync(string accessToken, int id, CancellationToken cancellationToken = default)
     {
         using var message = new HttpRequestMessage(HttpMethod.Get, $"api/sync/accounts/expense/{id}");
@@ -3146,22 +4107,30 @@ public sealed class SyncApiClient : ISyncApiClient
     private async Task<AccountsResult> PostAccountsAsync<T>(
         string accessToken, string url, T request, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Post, url)
-        {
-            Content = JsonContent.Create(request)
-        };
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
         try
         {
-            var parsed = await response.Content.ReadFromJsonAsync<AccountsResult>(JsonOptions, cancellationToken);
-            if (parsed is not null)
-                return parsed;
+            using var message = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(request)
+            };
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            try
+            {
+                var parsed = await response.Content.ReadFromJsonAsync<AccountsResult>(JsonOptions, cancellationToken);
+                if (parsed is not null)
+                    return parsed;
+            }
+            catch (JsonException)
+            {
+            }
+            return new AccountsResult { Error = "acc.failed" };
         }
-        catch (JsonException)
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) && OfflineApiStore.CanQueue(url))
         {
+            var queued = await QueueWriteAsync(url, "accounts", request, cancellationToken);
+            return new AccountsResult { Succeeded = true, Queued = true, Saved = 1, ReceiptNo = queued.ReceiptNo };
         }
-        return new AccountsResult { Error = "acc.failed" };
     }
 
     private static string QDates(DateTime? from, DateTime? to)
@@ -3175,17 +4144,60 @@ public sealed class SyncApiClient : ISyncApiClient
     private static string Q(string name, string? value) =>
         string.IsNullOrWhiteSpace(value) ? "" : $"&{name}={Uri.EscapeDataString(value.Trim())}";
 
+    private static bool IsOfflineRead(Exception ex)
+    {
+        if (ex is HttpRequestException http
+            && http.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return false;
+        return OfflineApiStore.IsOffline(ex) || ex is HttpRequestException;
+    }
+
+    private static void MergeExamFilter(ExamFilterDto target, ExamFilterDto extra)
+    {
+        if (target.Classes.Count == 0) target.Classes = extra.Classes;
+        if (target.Exams.Count == 0) target.Exams = extra.Exams;
+        if (target.SubExams.Count == 0) target.SubExams = extra.SubExams;
+        if (target.Groups.Count == 0) target.Groups = extra.Groups;
+        if (target.Sections.Count == 0) target.Sections = extra.Sections;
+        if (target.Shifts.Count == 0) target.Shifts = extra.Shifts;
+        if (target.Subjects.Count == 0) target.Subjects = extra.Subjects;
+        if (target.Grades.Count == 0) target.Grades = extra.Grades;
+        if (target.CopyToExams.Count == 0) target.CopyToExams = extra.CopyToExams;
+        if (target.CumulativeExams.Count == 0) target.CumulativeExams = extra.CumulativeExams;
+        if (target.Schedules.Count == 0) target.Schedules = extra.Schedules;
+    }
+
     private async Task<T> GetItemAsync<T>(string accessToken, string url, CancellationToken cancellationToken) where T : new()
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, url);
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
+            using var message = new HttpRequestMessage(HttpMethod.Get, url);
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new HttpRequestException(ExtractApiError(body) ?? $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    ExtractApiError(body) ?? $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                    null,
+                    response.StatusCode);
+            }
+
+            await _offline.SaveAsync(url, string.IsNullOrWhiteSpace(body) ? "{}" : body, cancellationToken);
+            if (string.IsNullOrWhiteSpace(body) || body == "null")
+                return new T();
+            return JsonSerializer.Deserialize<T>(body, JsonOptions) ?? new T();
         }
-        return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken) ?? new T();
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
+        {
+            if (ex is HttpRequestException http
+                && http.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw;
+            var cached = await _offline.ReadAsync<T>(url, cancellationToken);
+            if (cached is not null)
+                return cached;
+            throw;
+        }
     }
 
     private static string? ExtractApiError(string body)
@@ -3209,11 +4221,33 @@ public sealed class SyncApiClient : ISyncApiClient
     private async Task<IReadOnlyList<T>> GetListAsync<T>(
         string accessToken, string url, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, url);
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<T>>(JsonOptions, cancellationToken) ?? [];
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Get, url);
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    ExtractApiError(body) ?? $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                    null,
+                    response.StatusCode);
+            }
+
+            await _offline.SaveAsync(url, string.IsNullOrWhiteSpace(body) ? "[]" : body, cancellationToken);
+            return JsonSerializer.Deserialize<List<T>>(string.IsNullOrWhiteSpace(body) ? "[]" : body, JsonOptions) ?? [];
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) || ex is HttpRequestException)
+        {
+            if (ex is HttpRequestException http
+                && http.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw;
+            var cached = await _offline.ReadAsync<List<T>>(url, cancellationToken);
+            if (cached is not null)
+                return cached;
+            throw;
+        }
     }
 
     private async Task<IReadOnlyList<T>> GetListPostAsync<T>(
@@ -3237,42 +4271,74 @@ public sealed class SyncApiClient : ISyncApiClient
             Content = JsonContent.Create(request)
         };
         message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage response;
+        try
         {
-            try
-            {
-                using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.String)
-                {
-                    var detail = err.GetString();
-                    if (!string.IsNullOrWhiteSpace(detail))
-                        return new ExamResult { Succeeded = false, Error = detail };
-                }
-            }
-            catch (JsonException)
-            {
-            }
-            return new ExamResult { Succeeded = false, Error = "exam.failed" };
+            response = await Http().SendAsync(message, cancellationToken);
         }
-        return JsonSerializer.Deserialize<ExamResult>(body, JsonOptions)
-               ?? new ExamResult { Succeeded = false, Error = "exam.failed" };
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) && OfflineApiStore.CanQueue(url))
+        {
+            var queued = await QueueWriteAsync(url, "exam", request, cancellationToken);
+            return new ExamResult { Succeeded = true, Queued = true, Id = queued.Id };
+        }
+        catch (Exception ex)
+        {
+            return new ExamResult { Succeeded = false, Error = ex.Message };
+        }
+        using (response)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.String)
+                    {
+                        var detail = err.GetString();
+                        if (!string.IsNullOrWhiteSpace(detail))
+                            return new ExamResult { Succeeded = false, Error = detail };
+                    }
+                }
+                catch (JsonException)
+                {
+                }
+                return new ExamResult { Succeeded = false, Error = "exam.failed" };
+            }
+            return JsonSerializer.Deserialize<ExamResult>(body, JsonOptions)
+                   ?? new ExamResult { Succeeded = false, Error = "exam.failed" };
+        }
     }
 
     private async Task<AttendanceResult> PostAttendanceAsync<T>(
         string accessToken, string url, T request, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Post, url)
+        try
         {
-            Content = JsonContent.Create(request)
-        };
-        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        using var response = await Http().SendAsync(message, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            return new AttendanceResult { Succeeded = false, Error = "att.failed" };
-        return await response.Content.ReadFromJsonAsync<AttendanceResult>(JsonOptions, cancellationToken)
-               ?? new AttendanceResult { Succeeded = false, Error = "att.failed" };
+            using var message = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(request)
+            };
+            message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await Http().SendAsync(message, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return new AttendanceResult { Succeeded = false, Error = "att.failed" };
+            return await response.Content.ReadFromJsonAsync<AttendanceResult>(JsonOptions, cancellationToken)
+                   ?? new AttendanceResult { Succeeded = false, Error = "att.failed" };
+        }
+        catch (Exception ex) when (OfflineApiStore.IsOffline(ex) && OfflineApiStore.CanQueue(url))
+        {
+            await QueueWriteAsync(url, "attendance", request, cancellationToken);
+            return new AttendanceResult { Succeeded = true, Queued = true, Saved = 1 };
+        }
+    }
+
+    private async Task<OfflineQueueResult> QueueWriteAsync<T>(string url, string kind, T request, CancellationToken cancellationToken)
+    {
+        var json = JsonSerializer.Serialize(request, JsonOptions);
+        var queued = await _offline.EnqueueAsync(url, kind, json, cancellationToken);
+        OfflineQueueChanged?.Invoke();
+        return queued;
     }
 
     private async Task<AttendanceDownloadResult> DownloadAttendanceFileAsync(

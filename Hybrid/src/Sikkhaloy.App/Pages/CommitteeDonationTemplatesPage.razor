@@ -1,0 +1,13 @@
+@page "/committee/donation-templates"
+@inherits LocaleAwareComponent
+
+<div class="card structure-page committee-page">
+    <div class="cm-page-head no-print">
+        <h1>@Locale.T("cm.manageTemplates")</h1>
+        <div class="cm-head-actions">
+            <a class="cm-act cm-act-dark" href="/committee/donation-pay-order">@Locale.T("cm.bulkPayOrder")</a>
+        </div>
+    </div>
+    <p class="eyebrow" style="color: var(--teal);">@Locale.T("coming.title")</p>
+    <p>@Locale.T("coming.body")</p>
+</div>

@@ -4,154 +4,69 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page sal-page">
-    <h1>@Locale.T("sal.payorder")</h1>
-    <p class="muted no-print">@Locale.T("sal.crumb")</p>
-
-    @if (!string.IsNullOrWhiteSpace(error))
-    {
-        <div class="error no-print">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok no-print">@message</div>
-    }
-
-    <div class="structure-card no-print">
-        <div class="inline-add">
-            <input type="text" placeholder="@Locale.T("sal.payorderPlaceholder")" @bind="newPayorder" disabled="@busy" />
-            <button type="button" class="primary" disabled="@busy" @onclick="AddPayorderAsync">@Locale.T("sal.addName")</button>
+<div class="card sa-page emp-list-page sal-page sal-assign-page is-pay">
+    <header class="sa-head sj-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("sal.crumb")</p>
+            <h1>@Locale.T("sal.payorder")</h1>
+            <p class="sa-lead">@Locale.T("sal.payorderLead")</p>
         </div>
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th class="act">@Locale.T("sal.delete")</th>
-                    <th class="act">@Locale.T("sal.edit")</th>
-                    <th>@Locale.T("sal.payorderName")</th>
-                    <th>@Locale.T("sal.created")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (names.Count == 0 && !busy)
-            {
-                <tr><td colspan="4" class="empty-row">@Locale.T("sal.empty")</td></tr>
-            }
-            else
-            {
+        <div class="sal-head-acts">
+            <button type="button" class="sal-gen" disabled="@(busy || payorderId <= 0)" @onclick="OpenAssign">
+                @Locale.T("sal.assignPayorder")
+            </button>
+            <button type="button" class="btn-ghost" disabled="@busy" @onclick="OpenNames">
+                @Locale.T("sal.manageNames")
+            </button>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
+    {
+        <NetBanner Text="@error" />
+    }
+
+    <div class="sal-bar no-print">
+        <section class="sal-box is-names">
+            <span class="sal-box-h">@Locale.T("sal.payorderName")</span>
+            <select @bind="payorderId" @bind:after="OnFilterChangedAsync" disabled="@busy">
+                <option value="0">@Locale.T("sal.selectPayorder")</option>
                 @foreach (var row in names)
                 {
-                    <tr>
-                        <td class="act">
-                            <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeletePayorderAsync(row)">@Locale.T("sal.delete")</button>
-                        </td>
-                        <td class="act">
-                            @if (editingId == row.Id)
-                            {
-                                <button type="button" class="link-btn" disabled="@busy" @onclick="SavePayorderAsync">@Locale.T("sal.update")</button>
-                                <button type="button" class="link-btn" disabled="@busy" @onclick="CancelEdit">@Locale.T("sal.cancel")</button>
-                            }
-                            else
-                            {
-                                <button type="button" class="link-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("sal.edit")</button>
-                            }
-                        </td>
-                        <td>
-                            @if (editingId == row.Id)
-                            {
-                                <input type="text" @bind="editName" disabled="@busy" />
-                            }
-                            else
-                            {
-                                @row.Name
-                            }
-                        </td>
-                        <td>@(row.Created?.ToString("d MMM yyyy") ?? "—")</td>
-                    </tr>
+                    <option value="@row.Id">@row.Name</option>
                 }
-            }
-            </tbody>
-        </table>
-    </div>
-
-    <div class="filter-row no-print">
-        <select @bind="payorderId" @bind:after="OnFilterChangedAsync" disabled="@busy">
-            <option value="0">@Locale.T("sal.selectPayorder")</option>
-            @foreach (var row in names)
-            {
-                <option value="@row.Id">@row.Name</option>
-            }
-        </select>
-        <select @bind="monthName" @bind:after="LoadMonthlyAsync" disabled="@busy">
-            <option value="">@Locale.T("sal.selectMonth")</option>
-            @foreach (var month in months)
-            {
-                <option value="@month.Name">@month.Name</option>
-            }
-        </select>
-        <label class="choice-inline">
-            <input type="radio" name="po-type" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
-            <span>@Locale.T("emp.all")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="po-type" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
-            <span>@Locale.T("emp.teacher")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="po-type" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
-            <span>@Locale.T("emp.staff")</span>
-        </label>
-    </div>
-
-    <div class="structure-card no-print">
-        <h2 class="emp-list-title">@Locale.T("sal.assignPayorder")</h2>
-        <p class="muted">@Locale.T("sal.assignPayorderHint")</p>
-        <div class="sal-scroll">
-            <table class="mgrid">
-                <thead>
-                    <tr>
-                        <th class="act">
-                            <input type="checkbox" checked="@AllAssignChecked" disabled="@(busy || employees.Count == 0)"
-                                   @onchange="e => ToggleAssignAll(e)" />
-                        </th>
-                        <th>@Locale.T("emp.id")</th>
-                        <th>@Locale.T("emp.name")</th>
-                        <th>@Locale.T("emp.designation")</th>
-                        <th>@Locale.T("emp.type")</th>
-                        <th>@Locale.T("emp.phone")</th>
-                        <th>@Locale.T("sal.payorderName")</th>
-                        <th>@Locale.T("emp.bank")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (employees.Count == 0 && !busy)
+            </select>
+        </section>
+        <section class="sal-box is-month">
+            <span class="sal-box-h">@Locale.T("sal.month")</span>
+            <select @bind="monthName" @bind:after="LoadMonthlyAsync" disabled="@busy">
+                <option value="">@Locale.T("sal.selectMonth")</option>
+                @foreach (var month in months)
                 {
-                    <tr><td colspan="8" class="empty-row">@Locale.T("sal.empty")</td></tr>
+                    <option value="@month.Name">@month.Name</option>
                 }
-                else
-                {
-                    @foreach (var row in employees)
-                    {
-                        <tr>
-                            <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
-                            <td>@row.Emp.ID</td>
-                            <td>@row.Emp.Name</td>
-                            <td>@row.Emp.Designation</td>
-                            <td>@row.Emp.EmployeeType</td>
-                            <td>@row.Emp.Phone</td>
-                            <td>@(row.Emp.PayorderName ?? "—")</td>
-                            <td>@(row.Emp.BankAccNo ?? "—")</td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
-        <button type="button" class="btn-serial" disabled="@(busy || payorderId <= 0)" @onclick="AssignAsync">@Locale.T("sal.update")</button>
+            </select>
+        </section>
+        <section class="sal-box is-type">
+            <span class="sal-box-h">@Locale.T("sal.empType")</span>
+            <div class="sal-box-pills">
+                <button type="button" class="sal-chip @(type == "%" ? "is-on" : null)" disabled="@busy" @onclick="@(() => SetType("%"))">@Locale.T("emp.all")</button>
+                <button type="button" class="sal-chip @(type == "Teacher" ? "is-on" : null)" disabled="@busy" @onclick="@(() => SetType("Teacher"))">@Locale.T("emp.teacher")</button>
+                <button type="button" class="sal-chip @(type == "Staff" ? "is-on" : null)" disabled="@busy" @onclick="@(() => SetType("Staff"))">@Locale.T("emp.staff")</button>
+            </div>
+        </section>
+        <span class="el-count">@Locale.T("emp.count", generateRows.Count())</span>
     </div>
 
-    <div class="structure-card no-print">
-        <h2 class="emp-list-title">@Locale.T("sal.generateList")</h2>
-        <div class="sal-scroll">
+    <section class="sal-block">
+        <header class="sal-block-h no-print">
+            <div>
+                <h2>@Locale.T("sal.generateList")</h2>
+                <p>@Locale.T("emp.count", generateRows.Count())</p>
+            </div>
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="GenerateAsync">@Locale.T("sal.generate")</button>
+        </header>
+        <div class="sj-grid">
             <table class="mgrid">
                 <thead>
                     <tr>
@@ -177,7 +92,7 @@
                 {
                     @foreach (var row in generateRows)
                     {
-                        <tr>
+                        <tr class="@(row.Selected ? "is-on" : null)">
                             <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
                             <td>@row.Emp.ID</td>
                             <td>@row.Emp.Name</td>
@@ -192,161 +107,347 @@
                 </tbody>
             </table>
         </div>
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="GenerateAsync">@Locale.T("sal.generate")</button>
-    </div>
+    </section>
 
-    <div class="sal-scroll">
-        <table class="mgrid">
-            <thead>
-                <tr>
-                    <th>@Locale.T("emp.id")</th>
-                    <th>@Locale.T("emp.name")</th>
-                    <th class="num">@Locale.T("sal.basic")</th>
-                    <th>@Locale.T("sal.wd")</th>
-                    <th>@Locale.T("sal.present")</th>
-                    <th>@Locale.T("sal.abs")</th>
-                    <th>@Locale.T("sal.late")</th>
-                    <th>@Locale.T("sal.leave")</th>
-                    <th>@Locale.T("sal.fineCount")</th>
-                    <th>@Locale.T("sal.allowance")</th>
-                    <th>@Locale.T("sal.addBonus")</th>
-                    <th class="num">@Locale.T("sal.gross")</th>
-                    <th>@Locale.T("sal.deduction")</th>
-                    <th>@Locale.T("sal.addFine")</th>
-                    <th class="num">@Locale.T("sal.net")</th>
-                    <th class="act no-print">@Locale.T("sal.delete")</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (monthly.Count == 0 && !busy)
+    <section class="sal-block">
+        <header class="sal-block-h no-print">
+            <div>
+                <h2>@(string.IsNullOrWhiteSpace(monthName) ? Locale.T("sal.sheet") : monthName)</h2>
+                <p>@Locale.T("emp.count", monthly.Count)</p>
+            </div>
+            @if (monthly.Count > 0)
             {
-                <tr><td colspan="16" class="empty-row">@Locale.T("sal.empty")</td></tr>
+                <div class="sal-head-acts">
+                    <button type="button" class="sal-del" disabled="@(busy || selectedMonthly.Count == 0)"
+                            @onclick="DeleteSelectedMonthlyAsync">@Locale.T("sal.deleteSelected")</button>
+                    <button type="button" class="sal-bonus" disabled="@busy" @onclick="UpdateBonusFineAsync">@Locale.T("sal.bonusFineUpdate")</button>
+                </div>
             }
-            else
-            {
-                @foreach (var row in monthly)
-                {
+        </header>
+        <div class="sj-grid sal-month-grid">
+            <table class="mgrid">
+                <thead>
                     <tr>
-                        <td>@row.ID</td>
-                        <td>@row.Name</td>
-                        <td class="num">@Money(row.PayorderAmount)</td>
-                        <td>@row.WorkingDays</td>
-                        <td>@row.PresentDays</td>
-                        <td>@row.AbsDays</td>
-                        <td>@row.LateDays</td>
-                        <td>@row.LeaveDays</td>
-                        <td>@row.FineCountDays</td>
-                        <td class="sal-lines">
-                            @foreach (var line in row.Allowances)
-                            {
-                                <div>@line.Name: @Money(line.Amount)</div>
-                            }
-                        </td>
-                        <td class="sal-lines no-print">
-                            @foreach (var line in row.Bonuses)
-                            {
-                                <div class="sal-line">
-                                    <span>@line.Name</span>
-                                    <input type="number" step="0.01" @bind="line.Amount" disabled="@busy" />
-                                </div>
-                            }
-                        </td>
-                        <td class="num">@Money(row.GrossSalary)</td>
-                        <td class="sal-lines">
-                            @foreach (var line in row.Deductions)
-                            {
-                                <div>@line.Name: @Money(line.Amount)</div>
-                            }
-                        </td>
-                        <td class="sal-lines no-print">
-                            <div class="sal-line">
-                                <span>@Locale.T("sal.attendanceFine")</span>
-                                <input type="number" step="0.01" @bind="row.AttendanceFine" disabled="@busy" />
-                            </div>
-                            @foreach (var line in row.Fines)
-                            {
-                                <div class="sal-line">
-                                    <span>@line.Name</span>
-                                    <input type="number" step="0.01" @bind="line.Amount" disabled="@busy" />
-                                </div>
-                            }
-                        </td>
-                        <td class="num">@Money(row.NetSalary)</td>
-                        <td class="act no-print">
-                            @if (row.PaidAmount == 0)
-                            {
-                                <button type="button" class="link-btn danger" disabled="@busy" @onclick="() => DeleteMonthlyAsync(row)">@Locale.T("sal.delete")</button>
-                            }
-                        </td>
+                        <th class="act no-print">
+                            <input type="checkbox" checked="@AllMonthlyChecked" disabled="@(busy || !CanDeleteMonthly.Any())"
+                                   @onchange="ToggleMonthlyAll" />
+                        </th>
+                        <th>@Locale.T("emp.id")</th>
+                        <th>@Locale.T("emp.name")</th>
+                        <th class="num">@Locale.T("sal.basic")</th>
+                        <th>@Locale.T("sal.wd")</th>
+                        <th>@Locale.T("sal.present")</th>
+                        <th>@Locale.T("sal.abs")</th>
+                        <th>@Locale.T("sal.late")</th>
+                        <th>@Locale.T("sal.leave")</th>
+                        <th>@Locale.T("sal.fineCount")</th>
+                        <th>@Locale.T("sal.allowance")</th>
+                        <th>@Locale.T("sal.addBonus")</th>
+                        <th class="num">@Locale.T("sal.gross")</th>
+                        <th>@Locale.T("sal.deduction")</th>
+                        <th>@Locale.T("sal.addFine")</th>
+                        <th class="num">@Locale.T("sal.net")</th>
+                        <th class="act no-print">@Locale.T("sal.delete")</th>
                     </tr>
+                </thead>
+                <tbody>
+                @if (monthly.Count == 0 && !busy)
+                {
+                    <tr><td colspan="17" class="empty-row">@Locale.T("sal.empty")</td></tr>
                 }
-            }
-            </tbody>
-        </table>
-    </div>
-
-    @if (monthly.Count > 0)
-    {
-        <button type="button" class="btn-serial no-print" disabled="@busy" @onclick="UpdateBonusFineAsync">@Locale.T("sal.bonusFineUpdate")</button>
-    }
+                else
+                {
+                    @foreach (var row in monthly)
+                    {
+                        <tr class="@(IsMonthlySelected(row) ? "is-on" : null)">
+                            <td class="act no-print">
+                                <input type="checkbox" checked="@IsMonthlySelected(row)" disabled="@(busy || row.PaidAmount != 0)"
+                                       @onchange="e => SetMonthlySelected(row, e)" />
+                            </td>
+                            <td>@row.ID</td>
+                            <td>@row.Name</td>
+                            <td class="num">@Money(row.PayorderAmount)</td>
+                            <td>@row.WorkingDays</td>
+                            <td>@row.PresentDays</td>
+                            <td>@row.AbsDays</td>
+                            <td>@row.LateDays</td>
+                            <td>@row.LeaveDays</td>
+                            <td>@row.FineCountDays</td>
+                            <td class="sal-lines">
+                                @foreach (var line in VisibleAllowances(row))
+                                {
+                                    <div>@line.Name: @Money(line.Amount)</div>
+                                }
+                            </td>
+                            <td class="sal-lines no-print">
+                                @foreach (var line in row.Bonuses)
+                                {
+                                    <div class="sal-line">
+                                        <span>@line.Name</span>
+                                        <input type="number" step="0.01" @bind="line.Amount" disabled="@busy" />
+                                    </div>
+                                }
+                            </td>
+                            <td class="num">@Money(row.GrossSalary)</td>
+                            <td class="sal-lines">
+                                @foreach (var line in VisibleDeductions(row))
+                                {
+                                    <div>@line.Name: @Money(line.Amount)</div>
+                                }
+                            </td>
+                            <td class="sal-lines no-print">
+                                <div class="sal-line">
+                                    <span>@Locale.T("sal.attendanceFine")</span>
+                                    <input type="number" step="0.01" @bind="row.AttendanceFine" disabled="@busy" />
+                                </div>
+                                @foreach (var line in row.Fines)
+                                {
+                                    <div class="sal-line">
+                                        <span>@line.Name</span>
+                                        <input type="number" step="0.01" @bind="line.Amount" disabled="@busy" />
+                                    </div>
+                                }
+                            </td>
+                            <td class="num">@Money(row.NetSalary)</td>
+                            <td class="act no-print">
+                                @if (row.PaidAmount == 0)
+                                {
+                                    <button type="button" class="cls-act cls-act-del" disabled="@busy" @onclick="() => DeleteMonthlyAsync(row)">@Locale.T("sal.delete")</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
+
+@if (showAssign)
+{
+    <div class="modal-back cls-modal-back" @onclick="CloseAssign">
+        <div class="modal-panel cls-modal sal-name-modal sal-assign-emp-modal" @onclick:stopPropagation="true">
+            <div class="modal-head cls-modal-head">
+                <strong>@Locale.T("sal.assignPayorder")</strong>
+                <span class="el-count">@Locale.T("emp.count", employees.Count)</span>
+                <button type="button" class="cls-modal-x" aria-label="@Locale.T("sal.cancel")" @onclick="CloseAssign">×</button>
+            </div>
+            <p class="sal-assign-hint">@Locale.T("sal.assignPayorderHint")</p>
+            @if (!string.IsNullOrWhiteSpace(assignMessage))
+            {
+                <div class="@(assignError ? "error" : "ok") cls-modal-msg">@assignMessage</div>
+            }
+            <div class="cls-modal-body">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th class="act">
+                                <input type="checkbox" checked="@AllAssignChecked" disabled="@(busy || employees.Count == 0)"
+                                       @onchange="e => ToggleAssignAll(e)" />
+                            </th>
+                            <th>@Locale.T("emp.id")</th>
+                            <th>@Locale.T("emp.name")</th>
+                            <th>@Locale.T("emp.designation")</th>
+                            <th>@Locale.T("emp.type")</th>
+                            <th>@Locale.T("emp.phone")</th>
+                            <th>@Locale.T("sal.payorderName")</th>
+                            <th>@Locale.T("emp.bank")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (employees.Count == 0 && !busy)
+                    {
+                        <tr><td colspan="8" class="empty-row">@Locale.T("sal.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in employees)
+                        {
+                            <tr class="@(row.Selected ? "is-on" : null)">
+                                <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
+                                <td>@row.Emp.ID</td>
+                                <td>@row.Emp.Name</td>
+                                <td>@row.Emp.Designation</td>
+                                <td>@row.Emp.EmployeeType</td>
+                                <td>@row.Emp.Phone</td>
+                                <td>@(row.Emp.PayorderName ?? "—")</td>
+                                <td>@(row.Emp.BankAccNo ?? "—")</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="cls-modal-foot">
+                <button type="button" class="sal-save" disabled="@(busy || payorderId <= 0)" @onclick="AssignAsync">@Locale.T("sal.update")</button>
+                <button type="button" class="btn-serial" @onclick="CloseAssign">@Locale.T("acc.close")</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showNames)
+{
+    <div class="modal-back cls-modal-back" @onclick="CloseNames">
+        <div class="modal-panel cls-modal sal-name-modal" @onclick:stopPropagation="true">
+            <div class="modal-head cls-modal-head">
+                <strong>@Locale.T("sal.payorderNames")</strong>
+                <button type="button" class="cls-modal-x" aria-label="@Locale.T("sal.cancel")" @onclick="CloseNames">×</button>
+            </div>
+            <div class="inline-add cls-modal-add">
+                <input type="text" placeholder="@Locale.T("sal.payorderPlaceholder")"
+                       @bind="newPayorder" disabled="@busy" @onkeydown="OnAddKey" />
+                <button type="button" class="primary" disabled="@busy" @onclick="AddPayorderAsync">@Locale.T("sal.addName")</button>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(modalMessage))
+            {
+                <div class="@(modalError ? "error" : "ok") cls-modal-msg">@modalMessage</div>
+            }
+            <div class="cls-modal-body">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("sal.payorderName")</th>
+                            <th>@Locale.T("sal.created")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (names.Count == 0 && !busy)
+                    {
+                        <tr><td colspan="3" class="empty-row">@Locale.T("sal.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in names)
+                        {
+                            <tr class="@(row.Id == payorderId ? "is-on" : null)">
+                                <td>
+                                    @if (editingId == row.Id)
+                                    {
+                                        <input type="text" @bind="editName" disabled="@busy" />
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="link-btn" disabled="@busy" @onclick="() => SelectPayorderAsync(row.Id)">@row.Name</button>
+                                    }
+                                </td>
+                                <td>@(row.Created?.ToString("d MMM yyyy") ?? "—")</td>
+                                <td class="act">
+                                    @if (editingId == row.Id)
+                                    {
+                                        <button type="button" class="cls-act cls-act-save" disabled="@busy" @onclick="SavePayorderAsync">@Locale.T("sal.update")</button>
+                                        <button type="button" class="cls-act cls-act-cancel" disabled="@busy" @onclick="CancelEdit">@Locale.T("sal.cancel")</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="cls-act cls-act-edit" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("sal.edit")</button>
+                                        <button type="button" class="cls-act cls-act-del" disabled="@busy" @onclick="() => DeletePayorderAsync(row)">@Locale.T("sal.delete")</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="cls-modal-foot">
+                <button type="button" class="btn-serial" @onclick="CloseNames">@Locale.T("acc.close")</button>
+            </div>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<SalaryNameDto> names = [];
     private readonly List<SalaryMonthDto> months = [];
     private readonly List<Pick> employees = [];
     private readonly List<MonthlyPayorderDto> monthly = [];
+    private readonly HashSet<int> selectedMonthly = [];
     private string newPayorder = "";
     private string editName = "";
     private string type = "%";
     private string monthName = "";
+    private string busyTitle = "";
+    private string popupText = "";
+    private string? error;
+    private string? modalMessage;
     private int payorderId;
     private int editingId;
     private bool busy;
-    private string? error;
-    private string? message;
+    private bool popupError;
+    private bool modalError;
+    private bool showNames;
+    private bool showAssign;
+    private string? assignMessage;
+    private bool assignError;
 
     private IEnumerable<Pick> generateRows => employees.Where(x => x.Emp.PayorderNameId == payorderId);
+    private IEnumerable<MonthlyPayorderDto> CanDeleteMonthly => monthly.Where(x => x.PaidAmount == 0);
     private bool AllAssignChecked => employees.Count > 0 && employees.All(x => x.Selected);
     private bool AllGenerateChecked => generateRows.Any() && generateRows.All(x => x.Selected);
+    private bool AllMonthlyChecked => CanDeleteMonthly.Any() && CanDeleteMonthly.All(IsMonthlySelected);
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
-        error = message = null;
+        error = null;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.loading");
         busy = true;
         try
         {
-            names.Clear();
-            months.Clear();
-            names.AddRange(await Api.GetSalaryNamesAsync(Session.AccessToken, "payorder"));
-            months.AddRange(await Api.GetSalaryMonthsAsync(Session.AccessToken));
-            if (payorderId == 0 && names.Count > 0)
-                payorderId = names[0].Id;
-            if (string.IsNullOrWhiteSpace(monthName) && months.Count > 0)
-            {
-                var now = DateTime.Today;
-                monthName = months.FirstOrDefault(x => x.Date.Year == now.Year && x.Date.Month == now.Month)?.Name
-                            ?? months[0].Name;
-            }
-            await LoadEmployeesCoreAsync();
-            await LoadMonthlyCoreAsync();
+            await ReloadKeepBusyAsync();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
             busy = false;
         }
+    }
+
+    private async Task ReloadKeepBusyAsync()
+    {
+        names.Clear();
+        months.Clear();
+        names.AddRange(await Api.GetSalaryNamesAsync(Session.AccessToken, "payorder"));
+        months.AddRange(await Api.GetSalaryMonthsAsync(Session.AccessToken));
+        if (payorderId == 0 && names.Count > 0)
+            payorderId = names[0].Id;
+        if (payorderId > 0 && names.All(x => x.Id != payorderId))
+            payorderId = names.FirstOrDefault()?.Id ?? 0;
+        if (string.IsNullOrWhiteSpace(monthName) && months.Count > 0)
+        {
+            var now = DateTime.Today;
+            monthName = months.FirstOrDefault(x => x.Date.Year == now.Year && x.Date.Month == now.Month)?.Name
+                        ?? months[0].Name;
+        }
+        await LoadEmployeesCoreAsync();
+        await LoadMonthlyCoreAsync();
+    }
+
+    private async Task SelectPayorderAsync(int id)
+    {
+        if (payorderId == id)
+            return;
+        payorderId = id;
+        await OnFilterChangedAsync();
     }
 
     private async Task OnFilterChangedAsync()
@@ -359,9 +460,10 @@
     private async Task SetType(string value)
     {
         type = value;
-        error = message = null;
+        error = null;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.loading");
         busy = true;
         try
         {
@@ -370,11 +472,11 @@
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -384,9 +486,10 @@
 
     private async Task LoadMonthlyAsync()
     {
-        error = message = null;
+        error = null;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.loading");
         busy = true;
         try
         {
@@ -394,11 +497,11 @@
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -420,6 +523,7 @@
     private async Task LoadMonthlyCoreAsync()
     {
         monthly.Clear();
+        selectedMonthly.Clear();
         if (payorderId <= 0 || string.IsNullOrWhiteSpace(monthName))
             return;
         monthly.AddRange(await Api.GetMonthlyPayordersAsync(Session.AccessToken, payorderId, monthName, type));
@@ -439,6 +543,58 @@
             row.Selected = on;
     }
 
+    private bool IsMonthlySelected(MonthlyPayorderDto row) => selectedMonthly.Contains(row.EmployeePayorderID);
+
+    private void SetMonthlySelected(MonthlyPayorderDto row, ChangeEventArgs e)
+    {
+        if (row.PaidAmount != 0)
+            return;
+        if (e.Value is true || e.Value?.ToString() == "True")
+            selectedMonthly.Add(row.EmployeePayorderID);
+        else
+            selectedMonthly.Remove(row.EmployeePayorderID);
+    }
+
+    private void ToggleMonthlyAll(ChangeEventArgs e)
+    {
+        var on = e.Value is true || e.Value?.ToString() == "True";
+        selectedMonthly.Clear();
+        if (!on)
+            return;
+        foreach (var row in CanDeleteMonthly)
+            selectedMonthly.Add(row.EmployeePayorderID);
+    }
+
+    private void OpenAssign()
+    {
+        assignMessage = null;
+        assignError = false;
+        showAssign = true;
+    }
+
+    private void CloseAssign()
+    {
+        showAssign = false;
+        assignMessage = null;
+        assignError = false;
+    }
+
+    private void OpenNames()
+    {
+        modalMessage = null;
+        modalError = false;
+        CancelEdit();
+        showNames = true;
+    }
+
+    private void CloseNames()
+    {
+        showNames = false;
+        CancelEdit();
+        modalMessage = null;
+        modalError = false;
+    }
+
     private void StartEdit(SalaryNameDto row)
     {
         editingId = row.Id;
@@ -451,32 +607,41 @@
         editName = "";
     }
 
+    private async Task OnAddKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await AddPayorderAsync();
+    }
+
     private async Task AddPayorderAsync()
     {
-        error = message = null;
+        modalMessage = null;
+        modalError = false;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.saving");
         busy = true;
         try
         {
             var result = await Api.CreateSalaryNameAsync(Session.AccessToken, "payorder", new SaveSalaryNameRequest { Name = newPayorder });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
             newPayorder = "";
             payorderId = result.Id;
-            message = Locale.T("sal.okName");
-            await LoadAsync();
+            modalMessage = Locale.T("sal.okName");
+            modalError = false;
+            await ReloadKeepBusyAsync();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -486,29 +651,32 @@
 
     private async Task SavePayorderAsync()
     {
-        error = message = null;
+        modalMessage = null;
+        modalError = false;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.saving");
         busy = true;
         try
         {
             var result = await Api.UpdateSalaryNameAsync(Session.AccessToken, "payorder", editingId, new SaveSalaryNameRequest { Name = editName });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
             CancelEdit();
-            message = Locale.T("sal.okName");
-            await LoadAsync();
+            modalMessage = Locale.T("sal.okName");
+            modalError = false;
+            await ReloadKeepBusyAsync();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -520,30 +688,33 @@
     {
         if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sal.confirmDelete")))
             return;
-        error = message = null;
+        modalMessage = null;
+        modalError = false;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.saving");
         busy = true;
         try
         {
             var result = await Api.DeleteSalaryNameAsync(Session.AccessToken, "payorder", row.Id);
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
             if (payorderId == row.Id)
                 payorderId = 0;
-            message = Locale.T("sal.okDelete");
-            await LoadAsync();
+            modalMessage = Locale.T("sal.okDelete");
+            modalError = false;
+            await ReloadKeepBusyAsync();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -553,15 +724,16 @@
 
     private async Task AssignAsync()
     {
-        error = message = null;
+        error = null;
         if (payorderId <= 0)
         {
-            error = Locale.T("sal.needPayorder");
+            Show(Locale.T("sal.needPayorder"), true);
             return;
         }
         if (!await EnsureOnlineAsync())
             return;
         var ids = employees.Where(x => x.Selected).Select(x => x.Emp.EmployeeID).ToList();
+        busyTitle = Locale.T("sal.saving");
         busy = true;
         try
         {
@@ -572,19 +744,21 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
-            message = Locale.T("sal.okAssign");
             await LoadEmployeesCoreAsync();
+            showAssign = false;
+            assignMessage = null;
+            Show(Locale.T("sal.okAssign"));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -594,16 +768,17 @@
 
     private async Task GenerateAsync()
     {
-        error = message = null;
+        error = null;
         var month = months.FirstOrDefault(x => x.Name == monthName);
         var ids = generateRows.Where(x => x.Selected).Select(x => x.Emp.EmployeeID).ToList();
         if (payorderId <= 0 || month is null || ids.Count == 0)
         {
-            error = Locale.T("sal.needGenerate");
+            Show(Locale.T("sal.needGenerate"), true);
             return;
         }
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.saving");
         busy = true;
         try
         {
@@ -616,19 +791,19 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
-            message = Locale.T("sal.generated", result.Count);
             await LoadMonthlyCoreAsync();
+            Show(Locale.T("sal.generated", result.Count));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -638,9 +813,10 @@
 
     private async Task UpdateBonusFineAsync()
     {
-        error = message = null;
+        error = null;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.saving");
         busy = true;
         try
         {
@@ -657,19 +833,19 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
-            message = Locale.T("sal.okBonusFine");
             await LoadMonthlyCoreAsync();
+            Show(Locale.T("sal.okBonusFine"));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -681,28 +857,52 @@
     {
         if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sal.confirmPayorder")))
             return;
-        error = message = null;
+        await DeleteMonthlyIdsAsync([row.EmployeePayorderID]);
+    }
+
+    private async Task DeleteSelectedMonthlyAsync()
+    {
+        var ids = selectedMonthly.ToList();
+        if (ids.Count == 0)
+        {
+            Show(Locale.T("sal.needDelete"), true);
+            return;
+        }
+        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sal.confirmBulk", ids.Count)))
+            return;
+        await DeleteMonthlyIdsAsync(ids);
+    }
+
+    private async Task DeleteMonthlyIdsAsync(IReadOnlyList<int> ids)
+    {
+        error = null;
         if (!await EnsureOnlineAsync())
             return;
+        busyTitle = Locale.T("sal.saving");
         busy = true;
         try
         {
-            var result = await Api.DeleteMonthlyPayorderAsync(Session.AccessToken, row.EmployeePayorderID);
+            var result = ids.Count == 1
+                ? await Api.DeleteMonthlyPayorderAsync(Session.AccessToken, ids[0])
+                : await Api.DeleteMonthlyPayordersAsync(Session.AccessToken, new DeleteMonthlyPayordersRequest
+                {
+                    EmployeePayorderIds = ids.ToList()
+                });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
-            message = Locale.T("sal.okDelete");
             await LoadMonthlyCoreAsync();
+            Show(result.Count > 1 ? Locale.T("sal.okDeleteCount", result.Count) : Locale.T("sal.okDelete"));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -714,14 +914,53 @@
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
     }
 
+    private void ClosePopup() => popupText = "";
+
+    private void Show(string value, bool err = false)
+    {
+        if (showNames)
+        {
+            modalMessage = value;
+            modalError = err;
+            return;
+        }
+        if (showAssign)
+        {
+            assignMessage = value;
+            assignError = err;
+            return;
+        }
+        popupText = value;
+        popupError = err;
+        error = err ? value : null;
+    }
+
     private string Translate(string? key) =>
         string.IsNullOrWhiteSpace(key) ? Locale.T("sal.failed") : Locale.T(key);
+
+    private IEnumerable<SalaryLineDto> VisibleAllowances(MonthlyPayorderDto row)
+    {
+        foreach (var line in row.Allowances.Where(x => x.Amount != 0))
+            yield return line;
+        var extra = row.Allowance - row.Allowances.Sum(x => x.Amount);
+        if (Math.Abs(extra) >= 0.01m)
+            yield return new SalaryLineDto { Name = Locale.T("sal.other"), Amount = extra };
+    }
+
+    private IEnumerable<SalaryLineDto> VisibleDeductions(MonthlyPayorderDto row)
+    {
+        foreach (var line in row.Deductions.Where(x => x.Amount != 0))
+            yield return line;
+        var extra = row.Deduction - row.Deductions.Sum(x => x.Amount);
+        if (Math.Abs(extra) >= 0.01m)
+            yield return new SalaryLineDto { Name = Locale.T("sal.other"), Amount = extra };
+    }
 
     private static string Money(decimal value) => value.ToString("0.##");
 

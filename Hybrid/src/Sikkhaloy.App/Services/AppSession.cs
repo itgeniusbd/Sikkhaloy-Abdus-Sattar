@@ -16,14 +16,25 @@ public sealed class AppSession
     public string HomeHref => IsAuthority ? "authority" : "dashboard";
 
     public event Action? Changed;
+    public event Action? Mutated;
 
     public void Set(LoginResponse response, bool notify = true)
     {
         Current = response.Session;
         AccessToken = response.AccessToken ?? "";
         TokenExpiresAt = response.ExpiresAt;
+        Mutated?.Invoke();
         if (notify)
             Changed?.Invoke();
+    }
+
+    public void Restore(LoginResponse current, LoginResponse? authorityReturn)
+    {
+        AuthorityReturn = authorityReturn;
+        Current = current.Session;
+        AccessToken = current.AccessToken ?? "";
+        TokenExpiresAt = current.ExpiresAt;
+        Changed?.Invoke();
     }
 
     public void EnterSchool(LoginResponse office)
@@ -70,6 +81,7 @@ public sealed class AppSession
         if (Current is null)
             return;
         Current.EducationYearID = educationYearId;
+        Mutated?.Invoke();
         if (notify)
             Changed?.Invoke();
     }
@@ -83,6 +95,7 @@ public sealed class AppSession
         TokenExpiresAt = default;
         AuthorityReturn = null;
         Access = new();
+        Mutated?.Invoke();
         Changed?.Invoke();
     }
 

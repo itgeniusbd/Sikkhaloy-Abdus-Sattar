@@ -33,8 +33,10 @@ BEGIN
     END
     
     SET @MonthName = FORMAT(@MonthDate, 'MMM yyyy');
-    SET @IssueDate = DATEADD(DAY, 1, @MonthDate); -- Next month ?? ? ?????
-    SET @EndDate = DATEADD(DAY, 15, @IssueDate);  -- ?? ??? ???
+    SET @IssueDate = DATEADD(DAY, 1, @MonthDate); -- 1st of next month
+    SET @EndDate = DATEFROMPARTS(YEAR(@IssueDate), MONTH(@IssueDate), 15);
+    IF @EndDate < @IssueDate
+        SET @EndDate = DATEADD(MONTH, 1, @EndDate);
     
     PRINT 'Generating invoices for: ' + @MonthName;
     PRINT 'Issue Date: ' + CONVERT(NVARCHAR, @IssueDate, 106);
@@ -98,8 +100,7 @@ BEGIN
             FROM AAP_Invoice
             WHERE SchoolID = @SchoolID
                 AND InvoiceCategoryID = @InvoiceCategoryID
-                AND EOMONTH(MonthName) = @MonthDate
-                AND IsPaid = 0;
+                AND EOMONTH(MonthName) = @MonthDate;
             
             IF @InvoiceExists > 0
             BEGIN
@@ -108,8 +109,11 @@ BEGIN
             END
             ELSE
             BEGIN
-                SET @CommitteeCount = dbo.fn_GetBillableCommitteeCount(@SchoolID);
-                SET @BillableCount = @StudentCount + @CommitteeCount;
+                IF OBJECT_ID(N'dbo.fn_GetBillableCommitteeCount', N'FN') IS NOT NULL
+                    SET @CommitteeCount = dbo.fn_GetBillableCommitteeCount(@SchoolID);
+                ELSE
+                    SET @CommitteeCount = 0;
+                SET @BillableCount = ISNULL(@StudentCount, 0) + ISNULL(@CommitteeCount, 0);
 
                 -- Calculate total amount
                 IF @Fixed > 0

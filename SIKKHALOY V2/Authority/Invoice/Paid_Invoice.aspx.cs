@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Configuration;
 using System.Data.SqlClient;
 using System.Web.UI.WebControls;
@@ -50,29 +50,30 @@ namespace EDUCATION.COM.Authority.Invoice
                 }
             }
 
-            // Grace Period auto-cancel: offline payment holei AccessGraceUntil = NULL
-            ClearGracePeriodAfterPayment();
+            // Grace remains until the given date while any invoice is still unpaid.
+            // Only clear it when nothing is due anymore.
+            int schoolId = 0;
+            int.TryParse(School_DropDownList?.SelectedValue, out schoolId);
+            ClearGracePeriodIfNoDue(schoolId, connectionString);
 
             School_DropDownList.DataBind();
         }
 
-        private void ClearGracePeriodAfterPayment()
+        private void ClearGracePeriodIfNoDue(int schoolId, string connectionString)
         {
+            if (schoolId <= 0) return;
             try
             {
-                int schoolId = 0;
-                if (School_DropDownList != null && int.TryParse(School_DropDownList.SelectedValue, out schoolId) && schoolId > 0)
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
-                    using (SqlConnection conn = new SqlConnection(connStr))
+                    conn.Open();
+                    using (SqlCommand cmd = new SqlCommand(@"
+IF NOT EXISTS (SELECT 1 FROM AAP_Invoice WHERE SchoolID = @SID AND IsPaid = 0)
+    UPDATE SchoolInfo SET AccessGraceUntil = NULL
+    WHERE SchoolID = @SID AND AccessGraceUntil IS NOT NULL", conn))
                     {
-                        conn.Open();
-                        using (SqlCommand cmd = new SqlCommand(
-                            "UPDATE SchoolInfo SET AccessGraceUntil = NULL WHERE SchoolID = @SID AND AccessGraceUntil IS NOT NULL", conn))
-                        {
-                            cmd.Parameters.AddWithValue("@SID", schoolId);
-                            cmd.ExecuteNonQuery();
-                        }
+                        cmd.Parameters.AddWithValue("@SID", schoolId);
+                        cmd.ExecuteNonQuery();
                     }
                 }
             }

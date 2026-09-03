@@ -8,6 +8,8 @@ public static class EntityTypes
     public const string ClassSection = "ClassSection";
     public const string ClassShift = "ClassShift";
     public const string ClassJoin = "ClassJoin";
+    public const string ApiCall = "ApiCall";
+    public const string PendingSms = "PendingSms";
 
     public static readonly string[] ClassStructure =
     [

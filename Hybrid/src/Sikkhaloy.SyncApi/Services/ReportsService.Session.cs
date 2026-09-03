@@ -154,6 +154,13 @@ GROUP BY PayFor ORDER BY MAX(EndDate)
 """, session, yearId, from, to, classId, roleId, ct);
         }
 
+        await ApplyInventoryPosToClassReportAsync(con, session, yearId, from, to, classId, roleId, dto, ct);
+        if (dto.PayFors.Count > 0)
+        {
+            var labels = await LoadInventoryPayForLabelsAsync(con, session, dto.PayFors.Select(x => x.Name), ct);
+            foreach (var row in dto.PayFors)
+                row.Name = PayForWithItems(row.Name, labels);
+        }
         return dto;
     }
 
@@ -174,13 +181,21 @@ GROUP BY PayFor ORDER BY MAX(EndDate)
         GetSessionStudentCoreAsync(session, "concession", yearId, classId, sectionId, roleId, "%", from, to, ct);
 
     public async Task<SessionPaidDueDto> GetSessionPaidDueAsync(
-        SessionSnapshot session, string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, CancellationToken ct)
+        SessionSnapshot session, string? status, string? classId, string? sectionId, string? roleId, string? payFor,
+        DateTime? from, DateTime? to, int page, int pageSize, CancellationToken ct)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 10, 100);
+        var skip = (page - 1) * pageSize;
         var yearId = session.EducationYearID;
         var classLike = string.IsNullOrWhiteSpace(classId) ? "%" : classId.Trim();
+        var statusLike = Like(status);
+        var payForLike = Like(payFor);
+        var roleLike = Like(roleId);
+        var sectionLike = Like(sectionId);
         await using var con = _connections.Create();
         await con.OpenAsync(ct);
-        var dto = new SessionPaidDueDto();
+        var dto = new SessionPaidDueDto { Page = page, PageSize = pageSize };
         await using (var cmd = new SqlCommand("""
 SELECT COUNT(DISTINCT Income_PayOrder.StudentID) AS Total_Stu,
        SUM(Income_PayOrder.Amount) AS TotalFee,
@@ -200,13 +215,14 @@ WHERE Income_PayOrder.PayFor LIKE @PayFor AND Income_Roles.RoleID LIKE @RoleID
   AND Income_PayOrder.EndDate BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
 """, con))
         {
+            SetReportTimeout(cmd);
             AddSchool(cmd, session);
             BindYear(cmd, yearId);
             AddDates(cmd, from, to);
-            cmd.Parameters.AddWithValue("@PayFor", Like(payFor));
-            cmd.Parameters.AddWithValue("@RoleID", Like(roleId));
+            cmd.Parameters.AddWithValue("@PayFor", payForLike);
+            cmd.Parameters.AddWithValue("@RoleID", roleLike);
             cmd.Parameters.AddWithValue("@ClassID", classLike);
-            cmd.Parameters.AddWithValue("@SectionID", Like(sectionId));
+            cmd.Parameters.AddWithValue("@SectionID", sectionLike);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             if (await reader.ReadAsync(ct))
             {
@@ -218,6 +234,14 @@ WHERE Income_PayOrder.PayFor LIKE @PayFor AND Income_Roles.RoleID LIKE @RoleID
                 dto.Paid = ToDec(reader["TotalPaid"]);
                 dto.Unpaid = ToDec(reader["Unpaid"]);
             }
+        }
+
+        dto.TotalPages = dto.Students <= 0 ? 1 : (int)Math.Ceiling(dto.Students / (double)pageSize);
+        if (page > dto.TotalPages)
+        {
+            page = dto.TotalPages;
+            skip = (page - 1) * pageSize;
+            dto.Page = page;
         }
 
         var students = new List<SessionPaidDueStudentDto>();
@@ -238,16 +262,20 @@ WHERE Income_PayOrder.PayFor LIKE @PayFor AND Income_PayOrder.Status LIKE @Statu
 GROUP BY Income_PayOrder.StudentClassID, Student.ID, CreateClass.ClassID, CreateClass.Class, Student.StudentsName, StudentsClass.RollNo
 ORDER BY CreateClass.ClassID,
          CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 THEN CAST(REPLACE(REPLACE(StudentsClass.RollNo, '$', ''), ',', '') AS INT) ELSE 0 END
+OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY
 """, con))
         {
+            SetReportTimeout(cmd);
             AddSchool(cmd, session);
             BindYear(cmd, yearId);
             AddDates(cmd, from, to);
-            cmd.Parameters.AddWithValue("@PayFor", Like(payFor));
-            cmd.Parameters.AddWithValue("@Status", Like(status));
-            cmd.Parameters.AddWithValue("@SectionID", Like(sectionId));
-            cmd.Parameters.AddWithValue("@RoleID", Like(roleId));
+            cmd.Parameters.AddWithValue("@PayFor", payForLike);
+            cmd.Parameters.AddWithValue("@Status", statusLike);
+            cmd.Parameters.AddWithValue("@SectionID", sectionLike);
+            cmd.Parameters.AddWithValue("@RoleID", roleLike);
             cmd.Parameters.AddWithValue("@ClassID", classLike);
+            cmd.Parameters.AddWithValue("@Skip", skip);
+            cmd.Parameters.AddWithValue("@PageSize", pageSize);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             while (await reader.ReadAsync(ct))
             {
@@ -264,41 +292,176 @@ ORDER BY CreateClass.ClassID,
             }
         }
 
-        foreach (var row in students)
+        if (students.Count > 0)
+            await AttachPaidDueLinesAsync(con, students, session, yearId, from, to, statusLike, payForLike, roleLike, ct);
+
+        if (!string.Equals(statusLike, "Due", StringComparison.OrdinalIgnoreCase))
         {
-            await using var cmd = new SqlCommand("""
-SELECT Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.Amount, Income_PayOrder.LateFee,
-       Income_PayOrder.Total_Discount, Income_PayOrder.PaidAmount, Income_PayOrder.Receivable_Amount, Income_PayOrder.Status
-FROM Income_PayOrder INNER JOIN Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID
-WHERE Income_PayOrder.StudentClassID = @StudentClassID AND Income_PayOrder.RoleID LIKE @RoleID
-  AND Income_PayOrder.PayFor LIKE @PayFor AND Income_PayOrder.Status LIKE @Status
-  AND Income_PayOrder.EndDate BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
-ORDER BY EndDate
-""", con);
-            AddDates(cmd, from, to);
-            cmd.Parameters.AddWithValue("@StudentClassID", row.StudentClassID);
-            cmd.Parameters.AddWithValue("@RoleID", Like(roleId));
-            cmd.Parameters.AddWithValue("@PayFor", Like(payFor));
-            cmd.Parameters.AddWithValue("@Status", Like(status));
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
-            {
-                row.Lines.Add(new SessionPaidDueLineDto
-                {
-                    Role = Text(reader["Role"]),
-                    PayFor = Text(reader["PayFor"]),
-                    Amount = ToDec(reader["Amount"]),
-                    LateFee = ToDec(reader["LateFee"]),
-                    Concession = ToDec(reader["Total_Discount"]),
-                    Paid = ToDec(reader["PaidAmount"]),
-                    Due = ToDec(reader["Receivable_Amount"]),
-                    Status = Text(reader["Status"])
-                });
-            }
+            await AddInventoryPosPaidDueTotalsAsync(con, session, yearId, from, to, classLike, sectionLike, roleLike, payForLike, dto, ct);
+            if (students.Count > 0)
+                await AttachInventoryPosPaidDueLinesAsync(con, students, session, yearId, from, to, roleLike, payForLike, ct);
         }
 
         dto.Rows = students;
         return dto;
+    }
+
+    private async Task AttachPaidDueLinesAsync(
+        SqlConnection con, List<SessionPaidDueStudentDto> students, SessionSnapshot session, int yearId,
+        DateTime? from, DateTime? to, string statusLike, string payForLike, string roleLike, CancellationToken ct)
+    {
+        var byClass = students.ToDictionary(x => x.StudentClassID);
+        var inList = string.Join(",", students.Select((_, i) => $"@Sc{i}"));
+        await using var cmd = new SqlCommand($"""
+SELECT Income_PayOrder.StudentClassID, Income_Roles.Role, Income_PayOrder.PayFor, Income_PayOrder.Amount, Income_PayOrder.LateFee,
+       Income_PayOrder.Total_Discount, Income_PayOrder.PaidAmount, Income_PayOrder.Receivable_Amount, Income_PayOrder.Status
+FROM Income_PayOrder INNER JOIN Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID
+WHERE Income_PayOrder.SchoolID = @SchoolID AND Income_PayOrder.EducationYearID = @EducationYearID
+  AND Income_PayOrder.Is_Active = 1
+  AND Income_PayOrder.StudentClassID IN ({inList})
+  AND Income_PayOrder.RoleID LIKE @RoleID
+  AND Income_PayOrder.PayFor LIKE @PayFor AND Income_PayOrder.Status LIKE @Status
+  AND Income_PayOrder.EndDate BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
+ORDER BY Income_PayOrder.StudentClassID, Income_PayOrder.EndDate
+""", con);
+        SetReportTimeout(cmd);
+        AddSchool(cmd, session);
+        BindYear(cmd, yearId);
+        AddDates(cmd, from, to);
+        cmd.Parameters.AddWithValue("@RoleID", roleLike);
+        cmd.Parameters.AddWithValue("@PayFor", payForLike);
+        cmd.Parameters.AddWithValue("@Status", statusLike);
+        for (var i = 0; i < students.Count; i++)
+            cmd.Parameters.AddWithValue($"@Sc{i}", students[i].StudentClassID);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            var scId = ToInt(reader["StudentClassID"]);
+            if (!byClass.TryGetValue(scId, out var row)) continue;
+            row.Lines.Add(new SessionPaidDueLineDto
+            {
+                Role = Text(reader["Role"]),
+                PayFor = Text(reader["PayFor"]),
+                Amount = ToDec(reader["Amount"]),
+                LateFee = ToDec(reader["LateFee"]),
+                Concession = ToDec(reader["Total_Discount"]),
+                Paid = ToDec(reader["PaidAmount"]),
+                Due = ToDec(reader["Receivable_Amount"]),
+                Status = Text(reader["Status"])
+            });
+        }
+    }
+
+    private async Task AddInventoryPosPaidDueTotalsAsync(
+        SqlConnection con, SessionSnapshot session, int yearId, DateTime? from, DateTime? to,
+        string classLike, string sectionLike, string roleLike, string payForLike, SessionPaidDueDto dto, CancellationToken ct)
+    {
+        try
+        {
+            await using var cmd = new SqlCommand("""
+SELECT ISNULL(SUM(ei.Extra_IncomeAmount), 0)
+FROM dbo.Extra_Income ei
+INNER JOIN dbo.Inv_Sale s ON s.ExtraIncomeID = ei.Extra_IncomeID AND s.SchoolID = ei.SchoolID
+INNER JOIN dbo.Inv_Customer c ON c.CustomerID = s.CustomerID AND c.SchoolID = s.SchoolID
+INNER JOIN dbo.StudentsClass sc ON sc.StudentID = c.StudentID
+  AND sc.EducationYearID = s.EducationYearID AND sc.Class_Status IS NULL
+LEFT JOIN dbo.Income_Roles r ON r.SchoolID = s.SchoolID AND r.Role = N'Inventory Sale'
+WHERE ei.SchoolID = @SchoolID AND s.EducationYearID = @EducationYearID
+  AND CAST(ei.Extra_IncomeDate AS DATE) BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
+  AND ISNULL(c.StudentID, 0) > 0 AND ISNULL(ei.Extra_IncomeAmount, 0) > 0
+  AND CAST(ISNULL(r.RoleID, 0) AS nvarchar(20)) LIKE @RoleID
+  AND ISNULL(s.InvoiceNo, N'') LIKE @PayFor
+  AND (@ClassID = '%' OR CAST(sc.ClassID AS nvarchar(20)) LIKE @ClassID)
+  AND ISNULL(CAST(sc.SectionID AS nvarchar(20)), N'0') LIKE @SectionID
+""", con);
+            SetReportTimeout(cmd);
+            AddSchool(cmd, session);
+            BindYear(cmd, yearId);
+            AddDates(cmd, from, to);
+            cmd.Parameters.AddWithValue("@RoleID", roleLike);
+            cmd.Parameters.AddWithValue("@PayFor", payForLike);
+            cmd.Parameters.AddWithValue("@ClassID", classLike);
+            cmd.Parameters.AddWithValue("@SectionID", sectionLike);
+            var extra = ToDec(await cmd.ExecuteScalarAsync(ct));
+            if (extra <= 0) return;
+            dto.Fee += extra;
+            dto.Receivable += extra;
+            dto.Paid += extra;
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task AttachInventoryPosPaidDueLinesAsync(
+        SqlConnection con, List<SessionPaidDueStudentDto> students, SessionSnapshot session, int yearId,
+        DateTime? from, DateTime? to, string roleLike, string payForLike, CancellationToken ct)
+    {
+        try
+        {
+            var byClass = students.ToDictionary(x => x.StudentClassID);
+            var inList = string.Join(",", students.Select((_, i) => $"@Sc{i}"));
+            await using var cmd = new SqlCommand($"""
+SELECT sc.StudentClassID, ISNULL(r.Role, N'Inventory Sale') AS Role,
+       ISNULL(NULLIF(LTRIM(RTRIM(s.InvoiceNo)), N''), N'POS') AS PayFor,
+       SUM(ei.Extra_IncomeAmount) AS Amount
+FROM dbo.Extra_Income ei
+INNER JOIN dbo.Inv_Sale s ON s.ExtraIncomeID = ei.Extra_IncomeID AND s.SchoolID = ei.SchoolID
+INNER JOIN dbo.Inv_Customer c ON c.CustomerID = s.CustomerID AND c.SchoolID = s.SchoolID
+INNER JOIN dbo.StudentsClass sc ON sc.StudentID = c.StudentID
+  AND sc.EducationYearID = s.EducationYearID AND sc.Class_Status IS NULL
+LEFT JOIN dbo.Income_Roles r ON r.SchoolID = s.SchoolID AND r.Role = N'Inventory Sale'
+WHERE ei.SchoolID = @SchoolID AND s.EducationYearID = @EducationYearID
+  AND sc.StudentClassID IN ({inList})
+  AND CAST(ei.Extra_IncomeDate AS DATE) BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
+  AND ISNULL(c.StudentID, 0) > 0 AND ISNULL(ei.Extra_IncomeAmount, 0) > 0
+  AND CAST(ISNULL(r.RoleID, 0) AS nvarchar(20)) LIKE @RoleID
+  AND ISNULL(s.InvoiceNo, N'') LIKE @PayFor
+GROUP BY sc.StudentClassID, r.Role, s.InvoiceNo
+""", con);
+            SetReportTimeout(cmd);
+            AddSchool(cmd, session);
+            BindYear(cmd, yearId);
+            AddDates(cmd, from, to);
+            cmd.Parameters.AddWithValue("@RoleID", roleLike);
+            cmd.Parameters.AddWithValue("@PayFor", payForLike);
+            for (var i = 0; i < students.Count; i++)
+                cmd.Parameters.AddWithValue($"@Sc{i}", students[i].StudentClassID);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var scId = ToInt(reader["StudentClassID"]);
+                if (!byClass.TryGetValue(scId, out var row)) continue;
+                var role = Text(reader["Role"]);
+                var payFor = Text(reader["PayFor"]);
+                var amount = ToDec(reader["Amount"]);
+                if (amount <= 0) continue;
+                var line = row.Lines.FirstOrDefault(x =>
+                    string.Equals(x.Role, role, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(x.PayFor, payFor, StringComparison.OrdinalIgnoreCase));
+                if (line is null)
+                {
+                    row.Lines.Add(new SessionPaidDueLineDto
+                    {
+                        Role = role,
+                        PayFor = payFor,
+                        Amount = amount,
+                        Paid = amount,
+                        Due = 0,
+                        Status = "Paid"
+                    });
+                }
+                else
+                {
+                    line.Amount += amount;
+                    line.Paid += amount;
+                }
+                row.Paid += amount;
+            }
+        }
+        catch
+        {
+        }
     }
 
     private async Task<SessionStudentReportDto> GetSessionStudentCoreAsync(
@@ -470,6 +633,158 @@ ORDER BY Income_PayOrder.ClassID, StudentsClass.RollNo
             });
         }
         return items;
+    }
+
+    private async Task ApplyInventoryPosToClassReportAsync(
+        SqlConnection con, SessionSnapshot session, int yearId, DateTime? from, DateTime? to,
+        int classId, int roleId, SessionClassReportDto dto, CancellationToken ct)
+    {
+        try
+        {
+            // POS cash is Extra_Income; due is Income_PayOrder. Join via FeePayOrderID so class/role/pay-for
+            // match the due row. Do not use COUNT+NOT EXISTS (SQL Server error 130, previously swallowed).
+            var byClass = await ReadInvPosAddsAsync(con, """
+SELECT po.ClassID AS Id, cc.Class AS Name, po.RoleID AS RoleId,
+       SUM(ei.Extra_IncomeAmount) AS Amount, 0 AS ExtraStudents
+FROM dbo.Inv_Sale s
+INNER JOIN dbo.Extra_Income ei ON ei.Extra_IncomeID = s.ExtraIncomeID AND ei.SchoolID = s.SchoolID
+INNER JOIN dbo.Income_PayOrder po ON po.PayOrderID = s.FeePayOrderID AND po.SchoolID = s.SchoolID
+INNER JOIN dbo.CreateClass cc ON cc.ClassID = po.ClassID
+WHERE s.SchoolID = @SchoolID AND po.EducationYearID = @EducationYearID
+  AND po.Is_Active = 1 AND ISNULL(s.FeePayOrderID, 0) > 0
+  AND ISNULL(ei.Extra_IncomeAmount, 0) > 0
+  AND po.EndDate BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
+GROUP BY po.ClassID, cc.Class, po.RoleID
+""", session, yearId, from, to, 0, 0, ct);
+            var cashOnly = await ReadInvPosAddsAsync(con, """
+SELECT sc.ClassID AS Id, cc.Class AS Name, ISNULL(r.RoleID, 0) AS RoleId,
+       SUM(ei.Extra_IncomeAmount) AS Amount, COUNT(DISTINCT c.StudentID) AS ExtraStudents
+FROM dbo.Inv_Sale s
+INNER JOIN dbo.Extra_Income ei ON ei.Extra_IncomeID = s.ExtraIncomeID AND ei.SchoolID = s.SchoolID
+INNER JOIN dbo.Inv_Customer c ON c.CustomerID = s.CustomerID AND c.SchoolID = s.SchoolID
+INNER JOIN dbo.StudentsClass sc ON sc.StudentID = c.StudentID
+  AND sc.EducationYearID = s.EducationYearID AND sc.Class_Status IS NULL
+INNER JOIN dbo.CreateClass cc ON cc.ClassID = sc.ClassID
+LEFT JOIN dbo.Income_Roles r ON r.SchoolID = s.SchoolID AND r.Role = N'Inventory Sale'
+WHERE s.SchoolID = @SchoolID AND s.EducationYearID = @EducationYearID
+  AND ISNULL(s.FeePayOrderID, 0) = 0
+  AND ISNULL(c.StudentID, 0) > 0 AND ISNULL(ei.Extra_IncomeAmount, 0) > 0
+  AND CAST(ISNULL(ei.Extra_IncomeDate, s.DocDate) AS DATE) BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
+GROUP BY sc.ClassID, cc.Class, r.RoleID
+""", session, yearId, from, to, 0, 0, ct);
+            byClass.AddRange(cashOnly);
+            if (byClass.Count == 0) return;
+
+            dto.Payorder += byClass.Sum(x => x.Amount);
+            dto.Paid += byClass.Sum(x => x.Amount);
+            dto.Students += byClass.Sum(x => x.ExtraStudents);
+
+            foreach (var add in byClass)
+                AddInvPosToRow(dto.Classes, add.Id, add.Name, add.Amount, add.ExtraStudents);
+
+            if (classId > 0)
+            {
+                foreach (var add in byClass.Where(x => x.Id == classId))
+                    AddInvPosToRow(dto.Roles, add.RoleId, InventoryService.SaleCategory, add.Amount, add.ExtraStudents);
+            }
+
+            if (classId > 0 && roleId > 0 && byClass.Any(x => x.Id == classId && (x.RoleId == 0 || x.RoleId == roleId)))
+            {
+                var byInvoice = await ReadInvPosAddsAsync(con, """
+SELECT 0 AS Id, ISNULL(NULLIF(LTRIM(RTRIM(s.InvoiceNo)), N''), N'POS') AS Name, po.RoleID AS RoleId,
+       SUM(ei.Extra_IncomeAmount) AS Amount, 0 AS ExtraStudents
+FROM dbo.Inv_Sale s
+INNER JOIN dbo.Extra_Income ei ON ei.Extra_IncomeID = s.ExtraIncomeID AND ei.SchoolID = s.SchoolID
+INNER JOIN dbo.Income_PayOrder po ON po.PayOrderID = s.FeePayOrderID AND po.SchoolID = s.SchoolID
+WHERE s.SchoolID = @SchoolID AND po.EducationYearID = @EducationYearID
+  AND po.Is_Active = 1 AND ISNULL(s.FeePayOrderID, 0) > 0 AND po.ClassID = @ClassID
+  AND (@RoleID = 0 OR po.RoleID = @RoleID)
+  AND ISNULL(ei.Extra_IncomeAmount, 0) > 0
+  AND po.EndDate BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
+GROUP BY s.InvoiceNo, po.RoleID
+""", session, yearId, from, to, classId, roleId, ct);
+                byInvoice.AddRange(await ReadInvPosAddsAsync(con, """
+SELECT 0 AS Id, ISNULL(NULLIF(LTRIM(RTRIM(s.InvoiceNo)), N''), N'POS') AS Name, ISNULL(r.RoleID, 0) AS RoleId,
+       SUM(ei.Extra_IncomeAmount) AS Amount, COUNT(DISTINCT c.StudentID) AS ExtraStudents
+FROM dbo.Inv_Sale s
+INNER JOIN dbo.Extra_Income ei ON ei.Extra_IncomeID = s.ExtraIncomeID AND ei.SchoolID = s.SchoolID
+INNER JOIN dbo.Inv_Customer c ON c.CustomerID = s.CustomerID AND c.SchoolID = s.SchoolID
+INNER JOIN dbo.StudentsClass sc ON sc.StudentID = c.StudentID
+  AND sc.EducationYearID = s.EducationYearID AND sc.Class_Status IS NULL
+LEFT JOIN dbo.Income_Roles r ON r.SchoolID = s.SchoolID AND r.Role = N'Inventory Sale'
+WHERE s.SchoolID = @SchoolID AND s.EducationYearID = @EducationYearID
+  AND ISNULL(s.FeePayOrderID, 0) = 0 AND sc.ClassID = @ClassID
+  AND (@RoleID = 0 OR r.RoleID = @RoleID)
+  AND ISNULL(c.StudentID, 0) > 0 AND ISNULL(ei.Extra_IncomeAmount, 0) > 0
+  AND CAST(ISNULL(ei.Extra_IncomeDate, s.DocDate) AS DATE) BETWEEN ISNULL(@From, '1-1-1000') AND ISNULL(@To, '1-1-3000')
+GROUP BY s.InvoiceNo, r.RoleID
+""", session, yearId, from, to, classId, roleId, ct));
+                foreach (var add in byInvoice)
+                    AddInvPosToRow(dto.PayFors, 0, add.Name, add.Amount, add.ExtraStudents);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task<List<InvPosAdd>> ReadInvPosAddsAsync(
+        SqlConnection con, string sql, SessionSnapshot session, int yearId, DateTime? from, DateTime? to,
+        int classId, int roleId, CancellationToken ct)
+    {
+        var items = new List<InvPosAdd>();
+        await using var cmd = new SqlCommand(sql, con);
+        AddSchool(cmd, session);
+        BindYear(cmd, yearId);
+        AddDates(cmd, from, to);
+        if (sql.Contains("@ClassID", StringComparison.Ordinal))
+            cmd.Parameters.AddWithValue("@ClassID", classId);
+        if (sql.Contains("@RoleID", StringComparison.Ordinal))
+            cmd.Parameters.AddWithValue("@RoleID", roleId);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            items.Add(new InvPosAdd
+            {
+                Id = ToInt(reader["Id"]),
+                Name = Text(reader["Name"]),
+                RoleId = ToInt(reader["RoleId"]),
+                Amount = ToDec(reader["Amount"]),
+                ExtraStudents = ToInt(reader["ExtraStudents"])
+            });
+        }
+        return items;
+    }
+
+    private static void AddInvPosToRow(List<SessionClassRowDto> rows, int id, string name, decimal amount, int extraStudents)
+    {
+        var row = id > 0
+            ? rows.FirstOrDefault(x => x.Id == id)
+            : rows.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (row is null)
+        {
+            rows.Add(new SessionClassRowDto
+            {
+                Id = id,
+                Name = name,
+                Students = Math.Max(1, extraStudents),
+                Fee = amount,
+                Paid = amount
+            });
+            return;
+        }
+        row.Fee += amount;
+        row.Paid += amount;
+        row.Students += extraStudents;
+    }
+
+    private sealed class InvPosAdd
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public int RoleId { get; set; }
+        public decimal Amount { get; set; }
+        public int ExtraStudents { get; set; }
     }
 
     private void BindStudent(SqlCommand cmd, SessionSnapshot session, int yearId, int classId, string section, string role, string payFor, DateTime? from, DateTime? to, bool withPayFor)

@@ -2,20 +2,19 @@
 @inherits LocaleAwareComponent
 @inject AppSession Session
 @inject ISyncApiClient Api
-@inject IJSRuntime JS
 
-<div class="card structure-page emp-page notice-page">
-    <h1>@Locale.T("sm.notice")</h1>
-    <p class="muted">@Locale.T("sm.crumb")</p>
-    <p class="muted">@Locale.T("sm.noticeHint")</p>
+<div class="card sa-page si-info-page si-signup-page sm-cc-page sm-notice-page students-card notice-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("sm.crumb")</p>
+            <h1>@Locale.T("sm.notice")</h1>
+            <p class="sa-lead">@Locale.T("sm.noticeHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText) && !confirmDelete)
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
     <section class="notice-compose">
@@ -58,64 +57,106 @@
             <label>@Locale.T("sm.body")
                 <textarea @bind="body" disabled="@busy" placeholder="@Locale.T("sm.body")"></textarea>
             </label>
-            <button type="button" class="btn-serial" disabled="@busy" @onclick="PublishAsync">@Locale.T("sm.publish")</button>
+            <div class="si-signup-foot">
+                <div class="sal-actions">
+                    <button type="button" class="sal-gen" disabled="@busy" @onclick="PublishAsync">@Locale.T("sm.publish")</button>
+                </div>
+            </div>
         </div>
     </section>
 
     <div class="notice-history-head">
         <h2 class="emp-list-title">@Locale.T("sm.noticeList")</h2>
-        <button type="button" class="btn-serial notice-delete" disabled="@busy" @onclick="DeleteAsync">@Locale.T("si.delete")</button>
-    </div>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th class="act"><input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" /></th>
-                <th>@Locale.T("sm.date")</th>
-                <th>@Locale.T("sm.type")</th>
-                <th>@Locale.T("sm.title")</th>
-                <th>@Locale.T("sm.classes")</th>
-                <th>@Locale.T("sm.user")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (notices.Count == 0 && !busy)
-        {
-            <tr><td colspan="6" class="empty-row">@Locale.T("si.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in notices)
+        <span class="el-count">
+            @notices.Count
+            @if (SelectedCount > 0)
             {
-                <tr>
-                    <td class="act"><input type="checkbox" @bind="row.Selected" disabled="@busy" /></td>
-                    <td class="notice-date">@(row.InsertDate?.ToString("dd-MMM-yy h:mm tt") ?? "—")</td>
-                    <td>
-                        <span class="@(row.IsHomeWork ? "pill pill-old" : "pill pill-new")">
-                            @(row.IsHomeWork ? Locale.T("sm.homework") : Locale.T("sm.general"))
-                        </span>
-                    </td>
-                    <td>
-                        <div class="notice-title">@row.NoticeTitle</div>
-                        @if (!string.IsNullOrWhiteSpace(row.Notice))
-                        {
-                            <div class="muted notice-preview">@row.Notice</div>
-                        }
-                    </td>
-                    <td>
-                        <div class="notice-class-pills">
-                            @foreach (var name in ClassNames(row.Classes))
-                            {
-                                <span class="pill">@name</span>
-                            }
-                        </div>
-                    </td>
-                    <td>@row.UserName</td>
-                </tr>
+                <em>@Locale.T("si.picked", SelectedCount)</em>
             }
-        }
-        </tbody>
-    </table>
+        </span>
+        <div class="sal-actions">
+            <button type="button" class="sal-del" disabled="@(busy || SelectedCount == 0)" @onclick="AskDelete">@Locale.T("si.delete")</button>
+        </div>
+    </div>
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th class="act">
+                        <label class="si-check">
+                            <input type="checkbox" checked="@allSelected" disabled="@(busy || notices.Count == 0)" @onchange="ToggleAll" />
+                        </label>
+                    </th>
+                    <th>@Locale.T("sm.date")</th>
+                    <th>@Locale.T("sm.type")</th>
+                    <th>@Locale.T("sm.title")</th>
+                    <th>@Locale.T("sm.classes")</th>
+                    <th>@Locale.T("sm.user")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (notices.Count == 0 && !busy)
+            {
+                <tr><td colspan="6" class="empty-row">@Locale.T("si.empty")</td></tr>
+            }
+            else
+            {
+                @foreach (var row in notices)
+                {
+                    <tr class="@(row.Selected ? "is-on" : null)">
+                        <td class="act">
+                            <label class="si-check">
+                                <input type="checkbox" checked="@row.Selected" disabled="@busy"
+                                       @onchange="e => ToggleRow(row, e)" />
+                            </label>
+                        </td>
+                        <td class="notice-date">@(row.InsertDate?.ToString("dd-MMM-yy h:mm tt") ?? "—")</td>
+                        <td>
+                            <span class="@(row.IsHomeWork ? "pill pill-old" : "pill pill-new")">
+                                @(row.IsHomeWork ? Locale.T("sm.homework") : Locale.T("sm.general"))
+                            </span>
+                        </td>
+                        <td>
+                            <div class="notice-title">@row.NoticeTitle</div>
+                            @if (!string.IsNullOrWhiteSpace(row.Notice))
+                            {
+                                <div class="muted notice-preview">@row.Notice</div>
+                            }
+                        </td>
+                        <td>
+                            <div class="notice-class-pills">
+                                @foreach (var name in ClassNames(row.Classes))
+                                {
+                                    <span class="pill">@name</span>
+                                }
+                            </div>
+                        </td>
+                        <td>@row.UserName</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (confirmDelete)
+{
+    <div class="acc-result-back" @onclick="() => confirmDelete = false">
+        <div class="acc-result is-ok" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("si.delete")</h3>
+            <p>@Locale.T("sm.confirmNotice")</p>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="DeleteAsync">@Locale.T("si.delete")</button>
+            <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="() => confirmDelete = false">@Locale.T("cls.cancel")</button>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<SchoolClassDto> classes = [];
@@ -123,22 +164,42 @@
     private readonly List<NoticeDto> notices = [];
     private string title = "";
     private string body = "";
+    private string busyTitle = "";
+    private string popupText = "";
     private bool isHomeWork;
     private bool busy;
+    private bool popupError;
+    private bool confirmDelete;
     private bool allSelected;
     private string? error;
-    private string? message;
 
     private bool AllClassesSelected => classes.Count > 0 && classChecks.Count == classes.Count;
+    private int SelectedCount => notices.Count(x => x.Selected);
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        var structure = await Api.GetClassStructureAsync(Session.AccessToken);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
-        await LoadAsync();
+        await SetBusyAsync("si.loading");
+        try
+        {
+            if (!await EnsureOnlineAsync())
+                return;
+            var structure = await Api.GetClassStructureAsync(Session.AccessToken);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+            await LoadAsync();
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private void ToggleClass(int classId, ChangeEventArgs e)
@@ -168,6 +229,12 @@
             row.Selected = allSelected;
     }
 
+    private void ToggleRow(NoticeDto row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true or "true";
+        allSelected = notices.Count > 0 && notices.All(x => x.Selected);
+    }
+
     private static IEnumerable<string> ClassNames(string? text) =>
         (text ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -180,23 +247,24 @@
 
     private async Task PublishAsync()
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         if (string.IsNullOrWhiteSpace(title))
         {
-            error = Locale.T("sm.needTitle");
+            Show(Locale.T("sm.needTitle"), true);
             return;
         }
         if (classChecks.Count == 0)
         {
-            error = Locale.T("sm.needClass");
+            Show(Locale.T("sm.needClass"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
 
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.SaveNoticeAsync(Session.AccessToken, new SaveNoticeRequest
             {
                 NoticeTitle = title.Trim(),
@@ -206,22 +274,22 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
             title = body = "";
             classChecks.Clear();
             await LoadAsync();
-            message = Locale.T("sm.okNotice");
+            Show(Locale.T("sm.okNotice"), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -229,52 +297,70 @@
         }
     }
 
+    private void AskDelete()
+    {
+        if (SelectedCount == 0)
+        {
+            Show(Locale.T("sm.needNotice"), true);
+            return;
+        }
+        confirmDelete = true;
+    }
+
     private async Task DeleteAsync()
     {
-        error = message = null;
+        confirmDelete = false;
+        error = null;
+        popupText = "";
         var ids = notices.Where(x => x.Selected).Select(x => x.StudentNoticeId).ToList();
         if (ids.Count == 0)
         {
-            error = Locale.T("sm.needNotice");
+            Show(Locale.T("sm.needNotice"), true);
             return;
         }
-        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sm.confirmNotice")))
-            return;
-        if (!await EnsureOnlineAsync())
-            return;
 
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.DeleteNoticesAsync(Session.AccessToken, new DeleteNoticesRequest { NoticeIDs = ids });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
             await LoadAsync();
-            message = Locale.T("sm.okDeleteNotice");
+            Show(Locale.T("sm.okDeleteNotice"), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
             busy = false;
         }
+    }
+
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
     }
 
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
@@ -282,4 +368,13 @@
 
     private string Translate(string? key) =>
         string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
 }

@@ -1,0 +1,394 @@
+@page "/committee/donation-pay-order"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@using System.Globalization
+
+<div class="card structure-page emp-page acc-page committee-page po-page cm-payorder-page cm-po-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">Committee / @Locale.T("cm.donations")</p>
+            <h1>@Locale.T("cm.payOrderTitle")</h1>
+            <p class="cm-po-lead">@Locale.T("cm.payOrderSub")</p>
+        </div>
+        <a class="cm-act cm-act-dark" href="/committee/donations">@Locale.T("cm.donationsList")</a>
+    </header>
+
+    <div class="cm-po-filters no-print">
+        <label>
+            @Locale.T("cm.memberType")
+            <select @bind="typeId" @bind:after="OnTypeChangedAsync" disabled="@busy">
+                <option value="0">@Locale.T("cm.selectType")</option>
+                @foreach (var item in types)
+                {
+                    <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+                }
+            </select>
+        </label>
+        <label>
+            @Locale.T("cm.donationCategory")
+            <select @bind="categoryId" @bind:after="OnCategoryChangedAsync" disabled="@busy">
+                <option value="0">@Locale.T("cm.selectCategory")</option>
+                @foreach (var item in categories)
+                {
+                    <option value="@item.CommitteeDonationCategoryId">@item.DonationCategory</option>
+                }
+            </select>
+        </label>
+        @if (templateAmount.HasValue)
+        {
+            <span class="cm-template-badge">@Locale.T("cm.templateAmount"): <strong>@Tk(templateAmount.Value)</strong></span>
+        }
+        <a class="cm-act cm-act-secondary" href="/committee/donation-templates" target="_blank" rel="noopener">@Locale.T("cm.manageTemplates")</a>
+    </div>
+
+    @if (typeId > 0 && members.Count > 0)
+    {
+        <section class="cm-po-card no-print">
+            <div class="cm-po-card-head">
+                <h2>@Locale.T("cm.selectMembers") (@members.Count)</h2>
+                <input type="search" class="cm-po-search" placeholder="@Locale.T("cm.searchDonor")" @bind="memberSearch" @bind:event="oninput" disabled="@busy" />
+                <label class="acc-check">
+                    <input type="checkbox" checked="@allMembers" @onchange="ToggleAllMembers" disabled="@busy" />
+                    <span>@Locale.T("att.all")</span>
+                </label>
+            </div>
+            <div class="cm-po-member-grid">
+                @foreach (var row in VisibleMembers)
+                {
+                    <label class="cm-po-member @(row.Selected ? "is-on" : null)">
+                        <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetMember(row, e)" />
+                        <span>
+                            <strong>@row.MemberName</strong>
+                            <small>@row.SmsNumber@(string.IsNullOrWhiteSpace(row.Address) ? "" : " · " + row.Address)</small>
+                        </span>
+                    </label>
+                }
+            </div>
+        </section>
+
+        <div class="cm-po-stats no-print">
+            <article class="is-mem"><small>@Locale.T("cm.totalMembers")</small><b>@StatMembers.Count</b></article>
+            <article class="is-total"><small>@Locale.T("cm.totalDonation")</small><b>৳ @Money(StatMembers.Sum(x => x.TotalDonation))</b></article>
+            <article class="is-paid"><small>@Locale.T("cm.paidDonation")</small><b>৳ @Money(StatMembers.Sum(x => x.PaidDonation))</b></article>
+            <article class="is-due"><small>@Locale.T("cm.dueDonation")</small><b>৳ @Money(StatMembers.Sum(x => x.DueDonation))</b></article>
+        </div>
+    }
+
+    @if (typeId > 0)
+    {
+        <section class="cm-po-card no-print">
+            <div class="cm-po-card-head">
+                <h2>@Locale.T("cm.monthlyDonations")</h2>
+                <label class="acc-check">
+                    <input type="checkbox" @bind="monthlyOpen" @bind:after="OnMonthlyOpenChanged" disabled="@busy" />
+                    <span>@Locale.T("cm.addMonthlyDonations", MonthCount)</span>
+                </label>
+            </div>
+            <p class="cm-po-hint">@Locale.T("cm.payOrderYearHint")</p>
+            @if (monthlyOpen)
+            {
+                <div class="cm-po-month-tools">
+                    <label>
+                        @Locale.T("cm.amountSameAll")
+                        <input type="number" min="0" step="0.01" @bind="assignAmountAll" @bind:event="oninput" @bind:after="ApplyAmountAllToRows" disabled="@busy" />
+                    </label>
+                    <button type="button" class="cm-act cm-act-success" disabled="@busy" @onclick="AutoFillMonthsAsync">@Locale.T("cm.autoFillMonths")</button>
+                </div>
+                <div class="cm-po-month-wrap">
+                    <table class="mgrid cm-month-grid">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>@Locale.T("cm.payFor")</th>
+                                <th>@Locale.T("cm.amount")</th>
+                                <th>@Locale.T("cm.promise")</th>
+                                <th>@Locale.T("cm.desc")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var i = 0; i < monthRows.Count; i++)
+                        {
+                            var row = monthRows[i];
+                            var idx = i;
+                            <tr>
+                                <td class="act">
+                                    <input type="checkbox" @bind="row.Selected" disabled="@busy" />
+                                </td>
+                                <td>
+                                    <input type="text" list="@($"payfor-{idx}")" placeholder="@Locale.T("cm.payForHint")" @bind="row.PayFor" @bind:event="oninput" @bind:after="() => SuggestMonthsAsync(row)" disabled="@busy" autocomplete="off" />
+                                    <datalist id="@($"payfor-{idx}")">
+                                        @foreach (var hint in row.MonthHints)
+                                        {
+                                            <option value="@hint.MonthName"></option>
+                                        }
+                                    </datalist>
+                                </td>
+                                <td>
+                                    <input type="number" min="0" step="0.01" placeholder="@Locale.T("cm.amount")" @bind="row.Amount" disabled="@busy" />
+                                </td>
+                                <td>
+                                    <input type="date" @bind="row.PromiseDate" disabled="@busy" />
+                                </td>
+                                <td>
+                                    <input type="text" placeholder="@Locale.T("cm.desc")" @bind="row.Description" disabled="@busy" />
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <div class="cm-payorder-actions no-print">
+            <button type="button" class="cm-po-submit" disabled="@busy" @onclick="SaveAsync">@Locale.T("cm.createPayOrders")</button>
+        </div>
+    }
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private const int MonthCount = 12;
+
+    private readonly List<CommitteeMemberTypeDto> types = [];
+    private readonly List<DonationCategoryDto> categories = [];
+    private readonly List<CommitteeMemberDto> members = [];
+    private readonly List<MonthRow> monthRows = [];
+
+    private int typeId, categoryId;
+    private decimal? templateAmount;
+    private decimal assignAmountAll;
+    private bool monthlyOpen, allMembers, busy, popupError;
+    private string busyTitle = "", popupText = "", memberSearch = "";
+    private IEnumerable<CommitteeMemberDto> VisibleMembers
+    {
+        get
+        {
+            var q = memberSearch.Trim();
+            if (q.Length == 0) return members;
+            return members.Where(x =>
+                x.MemberName.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+                || x.SmsNumber.Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+    private List<CommitteeMemberDto> StatMembers
+    {
+        get
+        {
+            var picked = members.Where(x => x.Selected).ToList();
+            return picked.Count > 0 ? picked : members;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        for (var i = 0; i < MonthCount; i++)
+            monthRows.Add(new MonthRow());
+        await LoadLookupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            types.Clear();
+            types.AddRange(await Api.GetCommitteeTypesAsync(Session.AccessToken!));
+            categories.Clear();
+            categories.AddRange(await Api.GetDonationCategoriesAsync(Session.AccessToken!));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnTypeChangedAsync()
+    {
+        members.Clear();
+        allMembers = false;
+        templateAmount = null;
+        if (typeId <= 0) return;
+
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            members.AddRange(await Api.GetCommitteeMembersAsync(Session.AccessToken!, typeId, null));
+            await LoadTemplateAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnCategoryChangedAsync() => await LoadTemplateAsync();
+
+    private async Task LoadTemplateAsync()
+    {
+        templateAmount = null;
+        if (typeId <= 0 || categoryId <= 0 || !await OnlineAsync()) return;
+        try
+        {
+            templateAmount = await Api.GetDonationTemplateAmountAsync(Session.AccessToken!, typeId, categoryId);
+        }
+        catch
+        {
+            templateAmount = null;
+        }
+    }
+
+    private void ToggleAllMembers(ChangeEventArgs e)
+    {
+        allMembers = e.Value is true;
+        foreach (var row in members)
+            row.Selected = allMembers;
+    }
+
+    private void SetMember(CommitteeMemberDto row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true;
+        allMembers = members.Count > 0 && members.All(x => x.Selected);
+    }
+
+    private void OnMonthlyOpenChanged()
+    {
+        if (!monthlyOpen) return;
+        foreach (var row in monthRows)
+            row.Selected = true;
+    }
+
+    private void ApplyAmountAllToRows()
+    {
+        if (assignAmountAll <= 0) return;
+        foreach (var row in monthRows)
+            row.Amount = assignAmountAll;
+    }
+
+    private async Task SuggestMonthsAsync(MonthRow row)
+    {
+        if (!await OnlineAsync()) return;
+        var prefix = row.PayFor.Trim();
+        if (prefix.Length < 1) { row.MonthHints.Clear(); return; }
+        try
+        {
+            row.MonthHints.Clear();
+            row.MonthHints.AddRange(await Api.GetDonationPayOrderMonthsAsync(Session.AccessToken!, prefix));
+        }
+        catch
+        {
+            row.MonthHints.Clear();
+        }
+    }
+
+    private async Task AutoFillMonthsAsync()
+    {
+        if (!await OnlineAsync()) return;
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            var months = await Api.GetDonationPayOrderMonthsAsync(Session.AccessToken!, null);
+            var amount = assignAmountAll > 0 ? assignAmountAll : (templateAmount ?? 0);
+            for (var i = 0; i < monthRows.Count && i < months.Count; i++)
+            {
+                var m = months[i];
+                var row = monthRows[i];
+                row.Selected = true;
+                row.PayFor = m.MonthName;
+                if (DateTime.TryParseExact("10 " + m.MonthYearValue, "d MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var promise))
+                    row.PromiseDate = promise;
+                if (amount > 0) row.Amount = amount;
+            }
+            monthlyOpen = true;
+            Show(Locale.T("cm.autoFillDone"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (categoryId <= 0) { Show(Locale.T("cm.needCategory"), true); return; }
+        var picked = members.Where(x => x.Selected).ToList();
+        if (picked.Count == 0) { Show(Locale.T("cm.needMemberSelect"), true); return; }
+        if (!monthlyOpen) { Show(Locale.T("cm.payOrderNeedMonthly"), true); return; }
+
+        var selectedMonths = monthRows.Where(x => x.Selected && !string.IsNullOrWhiteSpace(x.PayFor) && x.Amount > 0).ToList();
+        if (selectedMonths.Count == 0) { Show(Locale.T("cm.payOrderNeedRows"), true); return; }
+
+        var lines = new List<DonationPayOrderLineRequest>();
+        foreach (var member in picked)
+        {
+            foreach (var month in selectedMonths)
+            {
+                lines.Add(new DonationPayOrderLineRequest
+                {
+                    CommitteeMemberId = member.CommitteeMemberId,
+                    PayFor = month.PayFor.Trim(),
+                    Amount = month.Amount,
+                    PromiseDate = month.PromiseDate,
+                    Description = string.IsNullOrWhiteSpace(month.Description) ? null : month.Description.Trim()
+                });
+            }
+        }
+
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.CreateDonationPayOrdersAsync(Session.AccessToken!, new CreateDonationPayOrdersRequest
+            {
+                CommitteeDonationCategoryId = categoryId,
+                Lines = lines
+            });
+
+            if (!result.Succeeded && result.SuccessCount == 0)
+            {
+                Show(result.DuplicateCount > 0 ? Locale.T("cm.payOrderYearExists") : FormatErr(result.Error), true);
+                return;
+            }
+
+            var msg = Locale.T("cm.payOrderCreated", result.SuccessCount);
+            if (result.DuplicateCount > 0) msg += Locale.T("cm.payOrderDup", result.DuplicateCount);
+            if (result.FailCount > 0) msg += Locale.T("cm.payOrderFail", result.FailCount);
+            Show(msg);
+            if (result.SuccessCount > 0)
+                Nav.NavigateTo("/committee/donations");
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private static string Money(decimal n) => n.ToString("N0");
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("cm.fail")
+        : error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase) ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private sealed class MonthRow
+    {
+        public bool Selected { get; set; }
+        public string PayFor { get; set; } = "";
+        public decimal Amount { get; set; }
+        public DateTime? PromiseDate { get; set; }
+        public string Description { get; set; } = "";
+        public List<DonationPayOrderMonthDto> MonthHints { get; } = [];
+    }
+}

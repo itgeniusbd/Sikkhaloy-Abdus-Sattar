@@ -3,127 +3,176 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page att-page">
-    <h1>@Locale.T("att.rfidStu")</h1>
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-rfid-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("nav.attendance")</p>
+            <h1>@Locale.T("att.rfidStu")</h1>
+            <p class="sa-lead">@Locale.T("att.scheduleHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row">
-        <select @bind="scheduleInput" @bind:after="LoadRowsAsync" disabled="@busy">
-            <option value="0">@Locale.T("att.selectSchedule")</option>
-            @foreach (var item in schedules)
-            {
-                <option value="@item.ScheduleID">@item.ScheduleName</option>
-            }
-        </select>
-        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupInput" @bind:after="LoadRowsAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allGroup")</option>
-                @foreach (var item in groups)
+    <div class="sal-bar no-print">
+        <section class="sal-box is-type">
+            <span class="sal-box-h">@Locale.T("att.selectSchedule")</span>
+            <select @bind="scheduleInput" @bind:after="LoadRowsAsync" disabled="@busy">
+                <option value="0">@Locale.T("att.selectSchedule")</option>
+                @foreach (var item in schedules)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item.ScheduleID">@item.ScheduleName</option>
                 }
             </select>
+        </section>
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        @if (groups.Count > 0)
+        {
+            <section class="sal-box is-group">
+                <span class="sal-box-h">@Locale.T("si.group")</span>
+                <select @bind="groupInput" @bind:after="LoadRowsAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (sections.Count > 0)
         {
-            <select @bind="sectionInput" @bind:after="LoadRowsAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allSection")</option>
-                @foreach (var item in sections)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-section">
+                <span class="sal-box-h">@Locale.T("si.section")</span>
+                <select @bind="sectionInput" @bind:after="LoadRowsAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (shifts.Count > 0)
         {
-            <select @bind="shiftInput" @bind:after="LoadRowsAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allShift")</option>
-                @foreach (var item in shifts)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-shift">
+                <span class="sal-box-h">@Locale.T("si.shift")</span>
+                <select @bind="shiftInput" @bind:after="LoadRowsAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
-        <button type="button" class="btn-serial" disabled="@(busy || rows.Count == 0)" @onclick="SaveAsync">@Locale.T("si.update")</button>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@(busy || rows.Count == 0)" @onclick="SaveAsync">@Locale.T("si.update")</button>
+            <button type="button" class="sal-del" disabled="@(busy || !rows.Any(x => x.Assigned))" @onclick="AskUnassign">@Locale.T("att.unassign")</button>
+        </div>
+        <span class="el-count">@rows.Count</span>
     </div>
 
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th class="act"><input type="checkbox" checked="@allAssigned" disabled="@busy" @onchange="ToggleAssign" /></th>
-                <th>@Locale.T("si.id")</th>
-                <th>@Locale.T("si.roll")</th>
-                <th>@Locale.T("si.name")</th>
-                <th>@Locale.T("att.deviceId")</th>
-                <th>@Locale.T("att.rfid")</th>
-                <th class="sms-col">
-                    <label>
-                        <span>@Locale.T("att.pre")</span>
-                        <input type="checkbox" checked="@allPre" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.PreSms = on)" />
-                    </label>
-                </th>
-                <th class="sms-col">
-                    <label>
-                        <span>@Locale.T("att.lateStatus")</span>
-                        <input type="checkbox" checked="@allLate" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.LateSms = on)" />
-                    </label>
-                </th>
-                <th class="sms-col">
-                    <label>
-                        <span>@Locale.T("att.abs")</span>
-                        <input type="checkbox" checked="@allAbs" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.AbsSms = on)" />
-                    </label>
-                </th>
-                <th class="sms-col">
-                    <label>
-                        <span>@Locale.T("att.exit")</span>
-                        <input type="checkbox" checked="@allExit" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.ExitSms = on)" />
-                    </label>
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0 && !busy)
-        {
-            <tr><td colspan="10" class="empty-row">@Locale.T("att.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in rows)
-            {
-                <tr class="@(row.Assigned ? "is-assigned" : "is-unassigned")">
-                    <td class="act"><input type="checkbox" @bind="row.Assigned" disabled="@busy" /></td>
-                    <td>@row.ID</td>
-                    <td>@row.RollNo</td>
-                    <td>@row.Name</td>
-                    <td>@row.DeviceID</td>
-                    <td><input type="text" @bind="row.RFID" disabled="@busy" /></td>
-                    <td class="act"><input type="checkbox" @bind="row.PreSms" disabled="@busy" /></td>
-                    <td class="act"><input type="checkbox" @bind="row.LateSms" disabled="@busy" /></td>
-                    <td class="act"><input type="checkbox" @bind="row.AbsSms" disabled="@busy" /></td>
-                    <td class="act"><input type="checkbox" @bind="row.ExitSms" disabled="@busy" /></td>
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th class="act">
+                        <label class="si-check">
+                            <input type="checkbox" checked="@allAssigned" disabled="@busy" @onchange="ToggleAssign" />
+                        </label>
+                    </th>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.roll")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("att.deviceId")</th>
+                    <th>@Locale.T("att.rfid")</th>
+                    <th class="sms-col">
+                        <label class="choice-inline">
+                            <span>@Locale.T("att.pre")</span>
+                            <input type="checkbox" checked="@allPre" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.PreSms = on)" />
+                        </label>
+                    </th>
+                    <th class="sms-col">
+                        <label class="choice-inline">
+                            <span>@Locale.T("att.lateStatus")</span>
+                            <input type="checkbox" checked="@allLate" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.LateSms = on)" />
+                        </label>
+                    </th>
+                    <th class="sms-col">
+                        <label class="choice-inline">
+                            <span>@Locale.T("att.abs")</span>
+                            <input type="checkbox" checked="@allAbs" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.AbsSms = on)" />
+                        </label>
+                    </th>
+                    <th class="sms-col">
+                        <label class="choice-inline">
+                            <span>@Locale.T("att.exit")</span>
+                            <input type="checkbox" checked="@allExit" disabled="@busy" @onchange="e => ToggleSms(e, (r, on) => r.ExitSms = on)" />
+                        </label>
+                    </th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="10" class="empty-row">@Locale.T("att.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr class="@(row.Assigned ? "is-assigned" : "is-unassigned")">
+                        <td class="act">
+                            <label class="si-check">
+                                <input type="checkbox" @bind="row.Assigned" disabled="@busy" />
+                            </label>
+                        </td>
+                        <td>@row.ID</td>
+                        <td>@row.RollNo</td>
+                        <td class="si-name">@row.Name</td>
+                        <td>@row.DeviceID</td>
+                        <td><input type="text" @bind="row.RFID" disabled="@busy" /></td>
+                        <td class="act"><input type="checkbox" @bind="row.PreSms" disabled="@busy" /></td>
+                        <td class="act"><input type="checkbox" @bind="row.LateSms" disabled="@busy" /></td>
+                        <td class="act"><input type="checkbox" @bind="row.AbsSms" disabled="@busy" /></td>
+                        <td class="act"><input type="checkbox" @bind="row.ExitSms" disabled="@busy" /></td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (confirmUnassign)
+{
+    <div class="acc-result-back" @onclick="() => confirmUnassign = false">
+        <div class="acc-result is-err" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("att.unassign")</h3>
+            <p>@Locale.T("att.unassignConfirm")</p>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="UnassignAsync">@Locale.T("att.unassign")</button>
+            <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="() => confirmUnassign = false">@Locale.T("cls.cancel")</button>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<AttendanceScheduleDto> schedules = [];
@@ -138,14 +187,17 @@
     private string groupInput = "0";
     private string sectionInput = "0";
     private string shiftInput = "0";
+    private string busyTitle = "";
+    private string popupText = "";
     private bool busy;
+    private bool popupError;
+    private bool confirmUnassign;
     private bool allAssigned;
     private bool allPre;
     private bool allLate;
     private bool allAbs;
     private bool allExit;
     private string? error;
-    private string? message;
 
     private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
     private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
@@ -155,13 +207,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        structure = await Api.GetClassStructureAsync(Session.AccessToken!);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
-        schedules.Clear();
-        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+        await SetBusyAsync("si.loading");
+        try
+        {
+            if (!await EnsureOnlineAsync())
+                return;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+            schedules.Clear();
+            schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private async Task OnClassChanged()
@@ -197,28 +265,29 @@
 
     private async Task LoadRowsAsync()
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         if (ScheduleId <= 0 || ClassId <= 0)
         {
             rows.Clear();
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             rows.Clear();
             rows.AddRange(await Api.GetStudentRfidAsync(Session.AccessToken!, ScheduleId, ClassId, GroupId, SectionId, ShiftId));
             SyncHeaderFlags();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -226,25 +295,48 @@
         }
     }
 
-    private async Task SaveAsync()
+    private void AskUnassign()
     {
-        error = message = null;
-        if (ScheduleId <= 0)
+        if (!rows.Any(x => x.Assigned))
         {
-            error = Locale.T("att.needSchedule");
+            Show(Locale.T("att.needUnassign"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
+        confirmUnassign = true;
+    }
+
+    private async Task UnassignAsync()
+    {
+        confirmUnassign = false;
+        foreach (var row in rows.Where(x => x.Assigned))
+            row.Assigned = false;
+        SyncHeaderFlags();
+        await SaveAsync(unassignOnly: true);
+    }
+
+    private Task SaveAsync() => SaveAsync(unassignOnly: false);
+
+    private async Task SaveAsync(bool unassignOnly)
+    {
+        error = null;
+        popupText = "";
+        if (ScheduleId <= 0)
+        {
+            Show(Locale.T("att.needSchedule"), true);
             return;
-        busy = true;
+        }
+        await SetBusyAsync("si.saving");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.SaveStudentRfidAsync(Session.AccessToken!, new SaveStudentRfidRequest
             {
                 ScheduleID = ScheduleId,
                 Rows = rows.Select(x => new StudentRfidSaveRow
                 {
                     StudentID = x.StudentID,
+                    Name = x.Name,
                     RFID = x.RFID,
                     Assigned = x.Assigned,
                     PreSms = x.PreSms,
@@ -253,27 +345,33 @@
                     ExitSms = x.ExitSms
                 }).ToList()
             });
-            if (!result.Succeeded)
-            {
-                error = Locale.T(result.Error ?? "att.failed");
-                return;
-            }
-            var ok = Locale.T("att.updated");
+            busy = false;
             await LoadRowsAsync();
-            message = ok;
+            Show(FormatAssignResult(result, unassignOnly), !result.Succeeded || result.Error is "att.overlap" or "att.overlapPartial");
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
             busy = false;
         }
+    }
+
+    private string FormatAssignResult(AttendanceResult result, bool unassignOnly)
+    {
+        if (unassignOnly && result.Succeeded && string.IsNullOrWhiteSpace(result.Message))
+            return Locale.T("att.unassignedOk");
+        if (!string.IsNullOrWhiteSpace(result.Message))
+            return $"{Locale.T(result.Error ?? "att.overlap")} {result.Message}";
+        if (!result.Succeeded)
+            return Locale.T(result.Error ?? "att.failed");
+        return Locale.T("att.updated");
     }
 
     private void SyncHeaderFlags()
@@ -285,13 +383,34 @@
         allExit = rows.Count > 0 && rows.All(x => x.ExitSms);
     }
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
+    }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup()
+    {
+        popupText = "";
+        error = null;
     }
 }

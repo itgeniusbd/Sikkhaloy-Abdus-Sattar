@@ -5,7 +5,13 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page acc-page exam-page inv-page">
+<style>
+    @@media print {
+        .layout-print-header, .print-header, .print-header-banner, .print-name-logo, .print-meta-row { display: none !important; }
+    }
+</style>
+
+<div class="card structure-page emp-page acc-page exam-page inv-page sl-invoice">
     <div class="filter-row no-print">
         <h1>@Locale.T("inv.dueTitle")</h1>
         @if (due.HasDue)
@@ -27,10 +33,6 @@
         <div class="inv-wraper">
             <div class="inv-inst">
                 <img src="_content/Sikkhaloy.App/img/sikkhaloy-logo.png" alt="SIKKHALOY" />
-                <div>
-                    <h2>SIKKHALOY</h2>
-                    <small>@Locale.T("inv.tagline")</small>
-                </div>
             </div>
             <div class="inv-title"><b>@Locale.T("inv.invoice")</b></div>
             <div class="inv-to">
@@ -162,14 +164,7 @@
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="() => popupText = null">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="() => popupText = null" />
 }
 
 @code {

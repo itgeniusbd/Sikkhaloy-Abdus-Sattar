@@ -78,14 +78,7 @@
 }
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -124,7 +117,7 @@
             var result = await Api.CreateExamNameAsync(Session.AccessToken!, new SaveExamNameRequest { ExamName = name, StartDate = start, EndDate = end });
             if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
             name = "";
-            Show(Locale.T("exam.saved"));
+            Show(Locale.T(result.Queued ? "sync.savedOffline" : "exam.saved"));
             await LoadAsync();
         }
         catch (Exception ex) { Show(ex.Message, true); }
@@ -148,7 +141,7 @@
             var result = await Api.UpdateExamNameAsync(Session.AccessToken!, row.ExamID, new SaveExamNameRequest { ExamName = editName, StartDate = editStart, EndDate = editEnd });
             if (!result.Succeeded) { Show(Locale.T(result.Error ?? "exam.failed"), true); return; }
             editId = 0;
-            Show(Locale.T("exam.saved"));
+            Show(Locale.T(result.Queued ? "sync.savedOffline" : "exam.saved"));
             await LoadAsync();
         }
         catch (Exception ex) { Show(ex.Message, true); }
@@ -174,13 +167,13 @@
     private static string Fmt(DateTime? d) => d is null ? "" : d.Value.ToString("d MMM yyyy");
     private void Show(string text, bool err = false) { popupText = text; popupError = err; }
     private void ClosePopup() => popupText = null;
-    private async Task<bool> OnlineAsync()
+    private Task<bool> OnlineAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             Show(Locale.T("subj.needOnline"), true);
-            return false;
+            return Task.FromResult(false);
         }
-        return true;
+        return Task.FromResult(true);
     }
 }

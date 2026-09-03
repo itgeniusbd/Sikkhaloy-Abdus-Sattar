@@ -3,28 +3,45 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page acc-page po-page">
-    <h1>@Locale.T("acc.changeDate")</h1>
+<div class="card sa-page si-info-page acc-page acc-mod-page po-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.changeDate")</p>
+            <h1>@Locale.T("acc.changeDate")</h1>
+            <p class="sa-lead">@Locale.T("acc.changeDateHint")</p>
+        </div>
+    </header>
 
-    <div class="filter-row">
-        <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        <select @bind="roleInput" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("acc.roleName")</option>
-            @foreach (var item in roles)
-            {
-                <option value="@item.RoleID">@item.Role</option>
-            }
-        </select>
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-role">
+            <span class="sal-box-h">@Locale.T("acc.roleName")</span>
+            <select @bind="roleInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("acc.roleName")</option>
+                @foreach (var item in roles)
+                {
+                    <option value="@item.RoleID">@item.Role</option>
+                }
+            </select>
+        </section>
+        @if (rows.Count > 0)
+        {
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.changeDateBtn")</button>
+        }
     </div>
 
-    <table class="mgrid">
-        <thead>
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
             <tr>
                 <th class="act">
                     <label class="acc-check">
@@ -62,14 +79,9 @@
                 </tr>
             }
         }
-        </tbody>
-    </table>
-    @if (rows.Count > 0)
-    {
-        <div class="po-action">
-            <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.changeDateBtn")</button>
-        </div>
-    }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 @if (busy)
@@ -99,16 +111,9 @@
     </div>
 }
 
-@if (!string.IsNullOrWhiteSpace(popupText))
+@if (!string.IsNullOrWhiteSpace(popupText) && !busy)
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="acc.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -163,6 +168,7 @@
         if (ClassId <= 0 || RoleId <= 0) return;
         if (!await OnlineAsync()) return;
         busy = true;
+        await PaintAsync();
         try { rows.AddRange(await Api.GetAssignedRolesAsync(Session.AccessToken!, ClassId, RoleId)); }
         catch (Exception ex) { ShowPopup(ex.Message, true); }
         finally { busy = false; }

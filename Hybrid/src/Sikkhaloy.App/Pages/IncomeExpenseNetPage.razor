@@ -18,123 +18,249 @@
         <span>.....</span>
         <a class="rpt-back" href="accounts/reports/my-accounts">@Locale.T("rpt.byUser")</a>
     </div>
-    <h1>@TitleText</h1>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
-        <div class="net-widgets">
-            <ReportWidget Css="in" Icon="line" Label="@Locale.T("rpt.income")" Amount="@($"{Tk(data.Income)} {Locale.T("acc.tk")}")" />
-            <ReportWidget Css="ex" Icon="area" Label="@Locale.T("rpt.expense")" Amount="@($"{Tk(data.Expense)} {Locale.T("acc.tk")}")" />
-            <ReportWidget Css="po" Icon="card" Label="@Locale.T("rpt.online")" Amount="@($"{Tk(data.Online)} {Locale.T("acc.tk")}")" />
-            <ReportWidget Css="net" Icon="bar" Label="@Locale.T("rpt.cashHand")" Amount="@($"{Tk(data.CashInHand)} {Locale.T("acc.tk")}")" />
+        <header class="net-report-head">
+            <div class="net-report-title">
+                <span class="net-title-line" aria-hidden="true"></span>
+                <h1>@Locale.T("rpt.incomeExpenseReport")</h1>
+                <span class="net-title-line" aria-hidden="true"></span>
+            </div>
+            <div class="net-date-pill">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                @DateBadgeText
+            </div>
+        </header>
+
+        <div class="net-kpis">
+            <div class="net-kpi net-kpi-in">
+                <span class="net-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C8.7 2 6 4.2 6 7v1.1C4.3 8.8 3 10.5 3 12.5V19c0 1.7 1.3 3 3 3h12c1.7 0 3-1.3 3-3v-6.5c0-2-1.3-3.7-3-4.4V7c0-2.8-2.7-5-6-5zm0 2c2.2 0 4 1.6 4 3.5V9H8V7.5C8 5.6 9.8 4 12 4zm-1.5 9h3c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5h-3A1.5 1.5 0 0 1 9 14.5c0-.8.7-1.5 1.5-1.5z"/></svg>
+                </span>
+                <div class="net-kpi-txt">
+                    <strong>@Tk(data.Income) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.income")</small>
+                </div>
+            </div>
+            <div class="net-kpi net-kpi-ex">
+                <span class="net-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 13-4-4h3V8h2v3h3l-4 4z"/></svg>
+                </span>
+                <div class="net-kpi-txt">
+                    <strong>@Tk(data.Expense) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.expense")</small>
+                </div>
+            </div>
+            <div class="net-kpi net-kpi-on">
+                <span class="net-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-5l2 3v1H7v-1l2-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm2 3v5h12V8H6z"/></svg>
+                </span>
+                <div class="net-kpi-txt">
+                    <strong>@Tk(data.Online) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.online")</small>
+                </div>
+            </div>
+            <div class="net-kpi net-kpi-cash">
+                <span class="net-kpi-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3C9.8 3 8 4.8 8 7v1H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2V7c0-2.2-1.8-4-4-4zm-2 4V7c0-1.1.9-2 2-2s2 .9 2 2v1h-4zm1 4.5A1.5 1.5 0 1 1 11 13a1.5 1.5 0 0 1 1.5-1.5z"/></svg>
+                </span>
+                <div class="net-kpi-txt">
+                    <strong>@Tk(data.CashInHand) @Locale.T("acc.tk")</strong>
+                    <small>@Locale.T("rpt.cashHand")</small>
+                </div>
+            </div>
         </div>
-        <div class="rpt-tabs no-print">
+
+        <div class="rpt-tabs net-tabs no-print">
             <button type="button" class="@(tab == 0 ? "active" : null)" @onclick="() => tab = 0">@Locale.T("rpt.catTab")</button>
             <button type="button" class="@(tab == 1 ? "active" : null)" @onclick="() => tab = 1">@Locale.T("rpt.income")</button>
             <button type="button" class="@(tab == 2 ? "active" : null)" @onclick="() => tab = 2">@Locale.T("rpt.expense")</button>
         </div>
+
         @if (tab == 0)
         {
             <div class="net-split">
-                <div>
-                    @if (data.IncomeCategories.Count > 0)
-                    {
-                        <div class="rpt-box in">@Locale.T("rpt.catIncome")</div>
-                        <table class="mgrid">
-                            <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.income")</th></tr></thead>
-                            <tbody>
-                            @foreach (var row in data.IncomeCategories)
-                            {
-                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
-                            }
-                            </tbody>
-                        </table>
-                    }
-                    @if (data.ClassIncome.Count > 0)
-                    {
-                        <div class="rpt-box in">@Locale.T("rpt.classIncome")</div>
-                        <table class="mgrid">
-                            <thead><tr><th>@Locale.T("rpt.class")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
-                            <tbody>
-                            @foreach (var row in data.ClassIncome)
-                            {
-                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
-                            }
-                            </tbody>
-                        </table>
-                    }
-                    @if (data.Donations.Count > 0)
-                    {
-                        <div class="rpt-box in">@Locale.T("rpt.donation")</div>
-                        <table class="mgrid">
-                            <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount")</th></tr></thead>
-                            <tbody>
-                            @foreach (var row in data.Donations)
-                            {
-                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
-                            }
-                            </tbody>
-                        </table>
-                    }
-                </div>
-                <div>
-                    @if (data.ExpenseCategories.Count > 0)
-                    {
-                        <div class="rpt-box ex">@Locale.T("rpt.expense")</div>
-                        <table class="mgrid">
-                            <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.expense")</th></tr></thead>
-                            <tbody>
-                            @foreach (var row in data.ExpenseCategories)
-                            {
-                                <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
-                            }
-                            </tbody>
-                        </table>
-                    }
-                </div>
+                <section class="net-col net-col-in">
+                    <header class="net-col-head">
+                        <span class="net-col-ico" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v12H3V6zm9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7-8h2v8H5v-8zm14 0h2v8h-2v-8z"/></svg>
+                        </span>
+                        <h2>@Locale.T("rpt.income")</h2>
+                    </header>
+                    <div class="net-col-body">
+                        @if (data.IncomeCategories.Count > 0)
+                        {
+                            <div class="net-block">
+                                <h3>
+                                    <span class="net-block-ico" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16v2H4zm0 5h10v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>
+                                    </span>
+                                    @Locale.T("rpt.catIncome")
+                                </h3>
+                                <table class="net-table">
+                                    <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.income") (@Locale.T("acc.tk"))</th></tr></thead>
+                                    <tbody>
+                                    @foreach (var row in data.IncomeCategories)
+                                    {
+                                        <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                                    }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="net-total"><td>@Locale.T("rpt.totalCatIncome")</td><td class="num">@Tk(IncomeCatTotal)</td></tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        }
+                        @if (data.ClassIncome.Count > 0)
+                        {
+                            <div class="net-block">
+                                <h3>
+                                    <span class="net-block-ico" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3 1 9l4 2.2V17h6v-5.8L21 9 12 3zm0 2.8L17.7 9 12 12.2 6.3 9 12 5.8zM6 19v-6.3l6 3.3 6-3.3V19H6z"/></svg>
+                                    </span>
+                                    @Locale.T("rpt.classIncome")
+                                </h3>
+                                <p class="net-block-note">@Locale.T("rpt.classIncomeHint")</p>
+                                <table class="net-table">
+                                    <thead><tr><th>@Locale.T("rpt.class")</th><th class="num">@Locale.T("rpt.amount") (@Locale.T("acc.tk"))</th></tr></thead>
+                                    <tbody>
+                                    @foreach (var row in data.ClassIncome)
+                                    {
+                                        <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                                    }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="net-total"><td>@Locale.T("rpt.totalClassIncome")</td><td class="num">@Tk(ClassIncomeTotal)</td></tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        }
+                        @if (data.Donations.Count > 0)
+                        {
+                            <div class="net-block">
+                                <h3>
+                                    <span class="net-block-ico" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7-4.4-9.5-8.8C.8 9.2 3.1 5 7 5c2.1 0 3.9 1.2 5 3 1.1-1.8 2.9-3 5-3 3.9 0 6.2 4.2 4.5 7.2C19 16.6 12 21 12 21z"/></svg>
+                                    </span>
+                                    @Locale.T("rpt.donation")
+                                </h3>
+                                <table class="net-table">
+                                    <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.amount") (@Locale.T("acc.tk"))</th></tr></thead>
+                                    <tbody>
+                                    @foreach (var row in data.Donations)
+                                    {
+                                        <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                                    }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="net-total"><td>@Locale.T("rpt.total")</td><td class="num">@Tk(DonationTotal)</td></tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </section>
+
+                <section class="net-col net-col-ex">
+                    <header class="net-col-head">
+                        <span class="net-col-ico" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 13-4-4h3V8h2v3h3l-4 4z"/></svg>
+                        </span>
+                        <h2>@Locale.T("rpt.expense")</h2>
+                    </header>
+                    <div class="net-col-body">
+                        @if (data.ExpenseCategories.Count > 0)
+                        {
+                            <div class="net-block">
+                                <h3>
+                                    <span class="net-block-ico" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16v2H4zm0 5h10v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>
+                                    </span>
+                                    @Locale.T("rpt.catExpense")
+                                </h3>
+                                <table class="net-table">
+                                    <thead><tr><th>@Locale.T("rpt.category")</th><th class="num">@Locale.T("rpt.expense") (@Locale.T("acc.tk"))</th></tr></thead>
+                                    <tbody>
+                                    @foreach (var row in data.ExpenseCategories)
+                                    {
+                                        <tr><td>@row.Name</td><td class="num">@Tk(row.Amount)</td></tr>
+                                    }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="net-total"><td>@Locale.T("rpt.totalCatExpense")</td><td class="num">@Tk(ExpenseCatTotal)</td></tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
+                        }
+                    </div>
+                </section>
             </div>
         }
         else if (tab == 1)
         {
-            <div class="rpt-box in">@Locale.T("rpt.income")</div>
-            @if (data.IncomeDetails.Count == 0)
-            {
-                <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
-            }
-            @foreach (var group in data.IncomeDetails)
-            {
-                <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total)</span></div>
-                <table class="mgrid">
-                    <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
-                    <tbody>
-                    @foreach (var line in group.Lines)
+            <section class="net-col net-col-in net-col-full">
+                <header class="net-col-head">
+                    <span class="net-col-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v12H3V6zm9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7-8h2v8H5v-8zm14 0h2v8h-2v-8z"/></svg>
+                    </span>
+                    <h2>@Locale.T("rpt.income")</h2>
+                </header>
+                <div class="net-col-body">
+                    @if (data.IncomeDetails.Count == 0)
                     {
-                        <tr><td>@line.UserName</td><td>@line.AccountName</td><td>@line.Details</td><td class="num">@Tk(line.Amount)</td><td>@line.Date.ToString("d MMM yyyy")</td></tr>
+                        <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
                     }
-                    </tbody>
-                </table>
-            }
+                    @foreach (var group in data.IncomeDetails)
+                    {
+                        <div class="net-detail-head"><span>@group.Category</span><span>৳@Tk(group.Total)</span></div>
+                        <table class="net-table net-table-detail">
+                            <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
+                            <tbody>
+                            @foreach (var line in group.Lines)
+                            {
+                                <tr><td>@line.UserName</td><td>@line.AccountName</td><td>@line.Details</td><td class="num">@Tk(line.Amount)</td><td>@line.Date.ToString("d MMM yyyy")</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </section>
         }
         else
         {
-            <div class="rpt-box ex">@Locale.T("rpt.expense")</div>
-            @if (data.ExpenseDetails.Count == 0)
-            {
-                <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
-            }
-            @foreach (var group in data.ExpenseDetails)
-            {
-                <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total)</span></div>
-                <table class="mgrid">
-                    <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
-                    <tbody>
-                    @foreach (var line in group.Lines)
+            <section class="net-col net-col-ex net-col-full">
+                <header class="net-col-head">
+                    <span class="net-col-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 13-4-4h3V8h2v3h3l-4 4z"/></svg>
+                    </span>
+                    <h2>@Locale.T("rpt.expense")</h2>
+                </header>
+                <div class="net-col-body">
+                    @if (data.ExpenseDetails.Count == 0)
                     {
-                        <tr><td>@line.UserName</td><td>@line.AccountName</td><td>@line.Details</td><td class="num">@Tk(line.Amount)</td><td>@line.Date.ToString("d MMM yyyy")</td></tr>
+                        <p class="rpt-empty-hint">@Locale.T("rpt.empty")</p>
                     }
-                    </tbody>
-                </table>
-            }
+                    @foreach (var group in data.ExpenseDetails)
+                    {
+                        <div class="net-detail-head"><span>@group.Category</span><span>৳@Tk(group.Total)</span></div>
+                        <table class="net-table net-table-detail">
+                            <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
+                            <tbody>
+                            @foreach (var line in group.Lines)
+                            {
+                                <tr><td>@line.UserName</td><td>@line.AccountName</td><td>@line.Details</td><td class="num">@Tk(line.Amount)</td><td>@line.Date.ToString("d MMM yyyy")</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </section>
         }
     }
 </div>
@@ -159,17 +285,21 @@
     private bool busy;
     private int tab;
 
-    private string TitleText
+    private decimal IncomeCatTotal => data?.IncomeCategories.Sum(x => x.Amount) ?? 0;
+    private decimal ClassIncomeTotal => data?.ClassIncome.Sum(x => x.Amount) ?? 0;
+    private decimal DonationTotal => data?.Donations.Sum(x => x.Amount) ?? 0;
+    private decimal ExpenseCatTotal => data?.ExpenseCategories.Sum(x => x.Amount) ?? 0;
+
+    private string DateBadgeText
     {
         get
         {
             var from = Parse(fromText);
             var to = Parse(toText);
-            var label = Locale.T("rpt.incomeExpense");
-            if (from is null || to is null) return label;
+            if (from is null || to is null) return "";
             var a = from.Value.ToString("d MMM yyyy").ToUpperInvariant();
             var b = to.Value.ToString("d MMM yyyy").ToUpperInvariant();
-            return from.Value == to.Value ? $"{a} {label}" : $"({a} TO {b}) {label}";
+            return from.Value == to.Value ? a : $"{a} — {b}";
         }
     }
 

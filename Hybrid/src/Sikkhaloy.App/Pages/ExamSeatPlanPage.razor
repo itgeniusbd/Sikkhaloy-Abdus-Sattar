@@ -172,14 +172,7 @@
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="() => popupText = null">
-        <div class="acc-result is-err" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">!</div>
-            <h3>@Locale.T("exam.loadFailed")</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => popupText = null">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="true" ErrorTitle="exam.loadFailed" OnClose="() => popupText = null" />
 }
 
 @code {
@@ -339,13 +332,13 @@
         await InvokeAsync(StateHasChanged);
         await Task.Delay(40);
     }
-    private async Task<bool> OnlineAsync()
+    private Task<bool> OnlineAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             popupText = Locale.T("subj.needOnline");
-            return false;
+            return Task.FromResult(false);
         }
-        return true;
+        return Task.FromResult(true);
     }
 }

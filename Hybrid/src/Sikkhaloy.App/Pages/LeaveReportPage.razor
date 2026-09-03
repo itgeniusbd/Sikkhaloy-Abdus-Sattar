@@ -5,43 +5,52 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 
-<div class="card structure-page emp-page att-page att-records-page leave-report-page">
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-records-page leave-report-page att-leave-report-page">
     <PrintHeader Subtitle="@Locale.T("att.leaveReport")" />
-    <div class="leave-title no-print">
-        <h1>@Locale.T("att.leaveReport")</h1>
-        <p>@Locale.T("att.leaveReportHint")</p>
-    </div>
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("att.scheduleHint")</p>
+            <h1>@Locale.T("att.leaveReport")</h1>
+            <p class="sa-lead">@Locale.T("att.leaveReportHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row no-print">
-        <label class="choice-inline">
-            <input type="radio" name="lr-type" checked="@(type == "Student")" @onchange='() => ChangeType("Student")' />
-            <span>@Locale.T("att.student")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="lr-type" checked="@(type == "Employee")" @onchange='() => ChangeType("Employee")' />
-            <span>@Locale.T("att.employee")</span>
-        </label>
-        <label>@Locale.T("att.from")
+    <div class="sal-bar no-print">
+        <section class="sal-box is-type">
+            <span class="sal-box-h">@Locale.T("att.type")</span>
+            <span class="readm-type">
+                <label class="choice-inline">
+                    <input type="radio" name="lr-type" checked="@(type == "Student")" @onchange='() => ChangeType("Student")' />
+                    <span>@Locale.T("att.student")</span>
+                </label>
+                <label class="choice-inline">
+                    <input type="radio" name="lr-type" checked="@(type == "Employee")" @onchange='() => ChangeType("Employee")' />
+                    <span>@Locale.T("att.employee")</span>
+                </label>
+            </span>
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.from")</span>
             <input type="date" @bind="from" disabled="@busy" />
-        </label>
-        <label>@Locale.T("att.to")
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.to")</span>
             <input type="date" @bind="to" disabled="@busy" />
-        </label>
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="FilterAsync">@Locale.T("si.find")</button>
-        <button type="button" class="link-btn" disabled="@busy" @onclick="LoadAllAsync">@Locale.T("att.all")</button>
-        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="FilterAsync">@Locale.T("si.find")</button>
+            <button type="button" class="link-btn" disabled="@busy" @onclick="LoadAllAsync">@Locale.T("att.all")</button>
+            <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </div>
+        <span class="el-count">@Locale.T("att.recordsCount", rows.Count)</span>
     </div>
 
-    <div class="summary-bar no-print">
-        <span class="badge-count">@Locale.T("att.recordsCount", rows.Count)</span>
-    </div>
-
-    <div class="att-table-wrap">
+    <div class="sj-grid att-table-wrap">
         <table class="mgrid">
             <thead>
                 <tr>
@@ -95,12 +104,21 @@
     </div>
 </div>
 
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
 @code {
     private readonly List<LeaveReportRowDto> rows = [];
     private string type = "Student";
+    private string busyTitle = "";
+    private string popupText = "";
     private DateTime? from;
     private DateTime? to;
     private bool busy;
+    private bool popupError;
     private string? error;
 
     protected override async Task OnInitializedAsync() => await LoadAsync(null, null);
@@ -123,21 +141,21 @@
     private async Task LoadAsync(DateTime? start, DateTime? end)
     {
         error = null;
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             rows.Clear();
             rows.AddRange(await Api.GetLeaveReportAsync(Session.AccessToken!, type, start, end));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -150,11 +168,32 @@
 
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup()
+    {
+        popupText = "";
+        error = null;
+    }
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;

@@ -4,81 +4,100 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page att-page">
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-fine-page">
     <PrintHeader Subtitle="@Locale.T("att.fine")" />
-    <h1 class="no-print">@Locale.T("att.fine")</h1>
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("nav.attendance")</p>
+            <h1>@Locale.T("att.fine")</h1>
+            <p class="sa-lead">@Locale.T("att.scheduleHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error no-print">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok no-print">@message</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row no-print">
-        <select @bind="classInput" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        <select @bind="monthInput" disabled="@busy">
-            <option value="">@Locale.T("att.selectMonth")</option>
-            @foreach (var item in months)
-            {
-                <option value="@item.Name">@item.Name</option>
-            }
-        </select>
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="GenerateAsync">@Locale.T("att.generate")</button>
-        <button type="button" class="link-btn" disabled="@(busy || rows.Count == 0)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-month">
+            <span class="sal-box-h">@Locale.T("att.selectMonth")</span>
+            <select @bind="monthInput" disabled="@busy">
+                <option value="">@Locale.T("att.selectMonth")</option>
+                @foreach (var item in months)
+                {
+                    <option value="@item.Name">@item.Name</option>
+                }
+            </select>
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="GenerateAsync">@Locale.T("att.generate")</button>
+            <button type="button" class="link-btn" disabled="@(busy || rows.Count == 0)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </div>
+        <span class="el-count">@rows.Count</span>
     </div>
 
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("si.id")</th>
-                <th>@Locale.T("si.name")</th>
-                <th>@Locale.T("att.selectMonth")</th>
-                <th>@Locale.T("att.working")</th>
-                <th>@Locale.T("att.pre")</th>
-                <th>@Locale.T("att.abs")</th>
-                <th>@Locale.T("att.lateAbs")</th>
-                <th>@Locale.T("att.lateStatus")</th>
-                <th>@Locale.T("att.leave")</th>
-                <th>@Locale.T("att.bunk")</th>
-                <th>@Locale.T("att.fineAmt")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0 && !busy)
-        {
-            <tr><td colspan="11" class="empty-row">@Locale.T("att.empty")</td></tr>
-        }
-        else
-        {
-            @foreach (var row in rows)
-            {
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
                 <tr>
-                    <td>@row.ID</td>
-                    <td>@row.Name</td>
-                    <td>@row.MonthName</td>
-                    <td>@row.WorkingDays</td>
-                    <td>@row.Present</td>
-                    <td>@row.Absent</td>
-                    <td>@row.LateAbs</td>
-                    <td>@row.Late</td>
-                    <td>@row.Leave</td>
-                    <td>@row.Bunk</td>
-                    <td>@row.FineAmount.ToString("0.##")</td>
+                    <th>@Locale.T("si.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("att.selectMonth")</th>
+                    <th>@Locale.T("att.working")</th>
+                    <th>@Locale.T("att.pre")</th>
+                    <th>@Locale.T("att.abs")</th>
+                    <th>@Locale.T("att.lateAbs")</th>
+                    <th>@Locale.T("att.lateStatus")</th>
+                    <th>@Locale.T("att.leave")</th>
+                    <th>@Locale.T("att.bunk")</th>
+                    <th>@Locale.T("att.fineAmt")</th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="11" class="empty-row">@Locale.T("att.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@row.ID</td>
+                        <td class="si-name">@row.Name</td>
+                        <td>@row.MonthName</td>
+                        <td>@row.WorkingDays</td>
+                        <td>@row.Present</td>
+                        <td>@row.Absent</td>
+                        <td>@row.LateAbs</td>
+                        <td>@row.Late</td>
+                        <td>@row.Leave</td>
+                        <td>@row.Bunk</td>
+                        <td>@row.FineAmount.ToString("0.##")</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<SchoolClassDto> classes = [];
@@ -86,41 +105,60 @@
     private readonly List<AttendanceFineRowDto> rows = [];
     private string classInput = "0";
     private string monthInput = "";
+    private string busyTitle = "";
+    private string popupText = "";
     private bool busy;
+    private bool popupError;
     private string? error;
-    private string? message;
     private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        var structure = await Api.GetClassStructureAsync(Session.AccessToken!);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
-        months.Clear();
-        months.AddRange(await Api.GetAttendanceFineMonthsAsync(Session.AccessToken!));
+        await SetBusyAsync("si.loading");
+        try
+        {
+            if (!await EnsureOnlineAsync())
+                return;
+            var structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+            months.Clear();
+            months.AddRange(await Api.GetAttendanceFineMonthsAsync(Session.AccessToken!));
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private async Task GenerateAsync()
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         if (ClassId <= 0)
         {
-            error = Locale.T("att.needClass");
+            Show(Locale.T("att.needClass"), true);
             return;
         }
         var month = months.FirstOrDefault(x => x.Name == monthInput);
         if (month is null)
         {
-            error = Locale.T("att.needMonth");
+            Show(Locale.T("att.needMonth"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             rows.Clear();
             rows.AddRange(await Api.GenerateAttendanceFineAsync(Session.AccessToken!, new GenerateFineRequest
             {
@@ -128,15 +166,15 @@
                 MonthDate = month.Date,
                 MonthName = month.Name
             }));
-            message = Locale.T("att.updated");
+            Show(Locale.T("att.updated"), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -146,13 +184,30 @@
 
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
     }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
 }

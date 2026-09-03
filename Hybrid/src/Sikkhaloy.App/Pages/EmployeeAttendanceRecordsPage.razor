@@ -4,45 +4,69 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page att-page att-records-page">
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-records-page att-emp-records-page">
     <PrintHeader Subtitle="@Locale.T("att.recordsEmp")" />
-    <h1 class="no-print">@Locale.T("att.recordsEmp")</h1>
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("att.scheduleHint")</p>
+            <h1>@Locale.T("att.recordsEmp")</h1>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row no-print">
-        <select @bind="scheduleInput" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("att.selectSchedule")</option>
-            @foreach (var item in schedules)
-            {
-                <option value="@item.ScheduleID">@item.ScheduleName</option>
-            }
-        </select>
-        <label class="choice-inline">
-            <input type="radio" name="erec-type" checked="@(type == "%")" @onchange="@(() => ChangeTypeAsync("%"))" />
-            <span>@Locale.T("emp.all")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="erec-type" checked="@(type == "Teacher")" @onchange="@(() => ChangeTypeAsync("Teacher"))" />
-            <span>@Locale.T("emp.teacher")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="erec-type" checked="@(type == "Staff")" @onchange="@(() => ChangeTypeAsync("Staff"))" />
-            <span>@Locale.T("emp.staff")</span>
-        </label>
-        <select @bind="status" @bind:after="LoadAsync" disabled="@busy">
-            <option value="%">@Locale.T("att.all")</option>
-            @foreach (var item in Statuses)
-            {
-                <option value="@item">@StatusLabel(item)</option>
-            }
-        </select>
-        <input type="date" @bind="from" @bind:after="LoadAsync" disabled="@busy" />
-        <input type="date" @bind="to" @bind:after="LoadAsync" disabled="@busy" />
-        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+    <div class="sal-bar no-print">
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.selectSchedule")</span>
+            <select @bind="scheduleInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("att.selectSchedule")</option>
+                @foreach (var item in schedules)
+                {
+                    <option value="@item.ScheduleID">@item.ScheduleName</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-type">
+            <span class="sal-box-h">@Locale.T("emp.type")</span>
+            <span class="readm-type">
+                <label class="choice-inline">
+                    <input type="radio" name="erec-type" checked="@(type == "%")" @onchange="@(() => ChangeTypeAsync("%"))" />
+                    <span>@Locale.T("emp.all")</span>
+                </label>
+                <label class="choice-inline">
+                    <input type="radio" name="erec-type" checked="@(type == "Teacher")" @onchange="@(() => ChangeTypeAsync("Teacher"))" />
+                    <span>@Locale.T("emp.teacher")</span>
+                </label>
+                <label class="choice-inline">
+                    <input type="radio" name="erec-type" checked="@(type == "Staff")" @onchange="@(() => ChangeTypeAsync("Staff"))" />
+                    <span>@Locale.T("emp.staff")</span>
+                </label>
+            </span>
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.status")</span>
+            <select @bind="status" @bind:after="LoadAsync" disabled="@busy">
+                <option value="%">@Locale.T("att.all")</option>
+                @foreach (var item in Statuses)
+                {
+                    <option value="@item">@StatusLabel(item)</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.from")</span>
+            <input type="date" @bind="from" @bind:after="LoadAsync" disabled="@busy" />
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.to")</span>
+            <input type="date" @bind="to" @bind:after="LoadAsync" disabled="@busy" />
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </div>
     </div>
 
     <div class="att-tabs no-print">
@@ -54,7 +78,7 @@
         </button>
     </div>
 
-    <div class="att-table-wrap">
+    <div class="sj-grid att-table-wrap">
     @if (tab == "records")
     {
         <table class="mgrid">
@@ -134,6 +158,12 @@
     </div>
 </div>
 
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
 @code {
     private static readonly string[] Statuses = ["Pre", "Abs", "Late", "Late Abs", "Leave", "Bunk"];
     private readonly List<AttendanceScheduleDto> schedules = [];
@@ -143,19 +173,38 @@
     private string type = "%";
     private string status = "%";
     private string tab = "records";
+    private string busyTitle = "";
+    private string popupText = "";
     private DateTime from = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateTime to = DateTime.Today;
     private bool busy;
+    private bool popupError;
     private string? error;
     private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        schedules.Clear();
-        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
-        await LoadAsync();
+        await SetBusyAsync("si.loading");
+        try
+        {
+            if (!await EnsureOnlineAsync())
+                return;
+            schedules.Clear();
+            schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+            await LoadCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private Task ChangeTypeAsync(string value)
@@ -167,30 +216,35 @@
     private async Task LoadAsync()
     {
         error = null;
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
-            records.Clear();
-            summary.Clear();
-            records.AddRange(await Api.GetEmployeeAttendanceRecordsAsync(
-                Session.AccessToken!, type, status, ScheduleId, 0, from, to));
-            summary.AddRange(await Api.GetEmployeeAttendanceSummaryAsync(
-                Session.AccessToken!, type, ScheduleId, 0, from, to));
+            await LoadCoreAsync();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
             busy = false;
         }
+    }
+
+    private async Task LoadCoreAsync()
+    {
+        if (!await EnsureOnlineAsync())
+            return;
+        records.Clear();
+        summary.Clear();
+        records.AddRange(await Api.GetEmployeeAttendanceRecordsAsync(
+            Session.AccessToken!, type, status, ScheduleId, 0, from, to));
+        summary.AddRange(await Api.GetEmployeeAttendanceSummaryAsync(
+            Session.AccessToken!, type, ScheduleId, 0, from, to));
     }
 
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
@@ -217,11 +271,28 @@
         _ => ""
     };
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;

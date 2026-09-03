@@ -5,6 +5,400 @@
 @inject ISyncApiClient Api
 @inject NavigationManager Nav
 
+<style>
+    .dash-page .dash-class-card .toolbar { margin-bottom: 0.35rem; }
+    .dash-page .dash-class-card h2 {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+    }
+    .dash-page .dash-class-card .toolbar a {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #0f766e;
+        white-space: nowrap;
+    }
+    .dash-page table.dash-class-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+    }
+    .dash-page table.dash-class-table th,
+    .dash-page table.dash-class-table td {
+        padding: 0.42rem 0.45rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+        text-align: left;
+        color: #0f172a;
+    }
+    .dash-page table.dash-class-table thead th {
+        color: #64748b;
+        font-weight: 700;
+        font-size: 0.8rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: transparent;
+    }
+    .dash-page table.dash-class-table tbody td:nth-child(n+2),
+    .dash-page table.dash-class-table thead th:nth-child(n+2),
+    .dash-page table.dash-class-table tfoot th:nth-child(n+2) {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+    .dash-page table.dash-class-table tbody tr:last-child td { border-bottom: none; }
+    .dash-page table.dash-class-table tfoot th {
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 0.9rem;
+        border-top: 1px solid #e2e8f0;
+        border-bottom: none;
+        padding-top: 0.5rem;
+    }
+    .dash-page .dash-sms-card h2 { margin-bottom: 0.65rem; }
+    .dash-page .dash-sms-card h2 a { color: inherit; text-decoration: none; }
+    .dash-page .dash-sms-card h2 a:hover { color: #0f766e; }
+    .dash-page .dash-sms {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+        margin-bottom: 0.9rem;
+    }
+    .dash-page .dash-sms div {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 0.55rem 0.65rem;
+        text-align: center;
+    }
+    .dash-page .dash-sms strong { display: block; font-size: 1.25rem; }
+    .dash-page .dash-sms span { color: #64748b; font-size: 0.72rem; font-weight: 700; }
+    .dash-sms-stack { margin-bottom: 0.85rem; }
+    .dash-sms-stack-labels {
+        display: flex;
+        align-items: flex-end;
+        min-height: 2.35rem;
+        margin-bottom: 0.28rem;
+    }
+    .dash-sms-stack-labels span {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 0;
+        overflow: hidden;
+        line-height: 1.15;
+        text-align: center;
+        color: #334155;
+        font-weight: 800;
+        font-size: 0.68rem;
+        font-variant-numeric: tabular-nums;
+    }
+    .dash-sms-stack-labels em {
+        font-style: normal;
+        font-weight: 600;
+        font-size: 0.6rem;
+        color: #64748b;
+    }
+    .dash-sms-stack-bar {
+        display: flex;
+        height: 18px;
+        border-radius: 5px;
+        overflow: hidden;
+        background: #e2e8f0;
+    }
+    .dash-sms-stack-bar i {
+        display: block;
+        height: 100%;
+        min-width: 0;
+        cursor: pointer;
+    }
+    .dash-sms-ring {
+        position: relative;
+        width: min(100%, 230px);
+        margin: 0.15rem auto 0;
+        aspect-ratio: 1;
+        overflow: visible;
+    }
+    .dash-page .dash-sms-card { overflow: visible; }
+    .dash-sms-ring svg { width: 100%; height: 100%; display: block; }
+    .dash-sms-ring path { cursor: pointer; transition: opacity 0.12s ease; }
+    .dash-sms-ring.is-hovering path { opacity: 0.38; }
+    .dash-sms-ring.is-hovering path.is-hot { opacity: 1; }
+    .dash-sms-ring circle { pointer-events: none; }
+    .dash-sms-tip {
+        position: absolute;
+        transform: translate(-50%, -125%);
+        background: var(--tip, #e11d48);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 0.18rem 0.42rem;
+        border-radius: 4px;
+        pointer-events: none;
+        white-space: nowrap;
+        z-index: 2;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+    }
+    .dash-sms-tip::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -5px;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: var(--tip, #e11d48);
+        border-bottom-width: 0;
+    }
+    .dash-sms-tip small {
+        display: block;
+        font-weight: 600;
+        opacity: 0.92;
+        font-size: 0.64rem;
+    }
+    .dash-page .dash-board {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+        margin-bottom: 0.85rem;
+        align-items: start;
+    }
+    .dash-page .dash-col {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        min-width: 0;
+    }
+    .dash-page .dash-charts,
+    .dash-page .dash-extra {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin: 0;
+    }
+    .dash-page .dash-class-card { min-width: 0; }
+    .dash-page table.dash-class-table th,
+    .dash-page table.dash-class-table td {
+        padding: 0.28rem 0.3rem;
+        font-size: 0.8rem;
+    }
+    .dash-page table.dash-class-table thead th { font-size: 0.72rem; }
+    .dash-page table.dash-class-table tfoot th { font-size: 0.8rem; padding-top: 0.38rem; }
+    .dash-page .dash-charts .dash-gender {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        padding: 0.25rem 0 0.1rem;
+        min-height: 240px;
+    }
+    .dash-page .dash-charts .dash-gender .dash-donut {
+        width: 196px;
+        height: 196px;
+        flex: 0 0 196px;
+        margin: 0 auto;
+    }
+    .dash-page .dash-charts .dash-gender .dash-donut-hole {
+        width: 126px;
+        height: 126px;
+    }
+    .dash-page .dash-charts .dash-gender .dash-donut-hole strong { font-size: 1.55rem; }
+    .dash-page .dash-charts .dash-gender .dash-donut-hole small { font-size: 0.78rem; }
+    .dash-page .dash-charts .dash-gender .dash-legend {
+        width: 100%;
+        max-width: 210px;
+        gap: 0.4rem;
+    }
+    .dash-page .dash-charts .dash-gender .dash-legend li {
+        justify-content: flex-start;
+        font-size: 0.88rem;
+    }
+    .dash-page .dash-charts .dash-sms {
+        margin-bottom: 0.45rem;
+        gap: 0.35rem;
+    }
+    .dash-page .dash-charts .dash-sms div { padding: 0.32rem 0.4rem; }
+    .dash-page .dash-charts .dash-sms strong { font-size: 0.98rem; }
+    .dash-page .dash-charts .dash-sms-ring { width: min(100%, 132px); }
+    .dash-page .dash-charts .dash-sms-stack-labels { min-height: 1.7rem; }
+    .dash-page .dash-extra .dash-emp {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7rem;
+        min-height: 220px;
+        padding: 0.15rem 0 0.1rem;
+    }
+    .dash-page .dash-extra .dash-pie {
+        width: min(100%, 210px);
+        height: auto;
+        display: block;
+        overflow: visible;
+        filter: drop-shadow(0 10px 12px rgba(15, 23, 42, 0.16));
+    }
+    .dash-page .dash-extra .dash-emp .dash-legend {
+        width: 100%;
+        max-width: 210px;
+        gap: 0.38rem;
+    }
+    .dash-page .dash-extra .dash-emp .dash-legend li { font-size: 0.86rem; }
+    .dash-cal .toolbar { margin-bottom: 0.45rem; }
+    .dash-cal .toolbar h2 { margin: 0; font-size: 1.02rem; font-weight: 800; }
+    .dash-cal .toolbar a { font-size: 0.8rem; font-weight: 700; color: #0f766e; }
+    .dash-cal-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.4rem;
+        margin-bottom: 0.45rem;
+    }
+    .dash-cal-nav strong { font-size: 0.92rem; }
+    .dash-cal-nav button {
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 8px;
+        background: #ecfdf5;
+        color: #0f766e;
+        font-size: 1.15rem;
+        font-weight: 800;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .dash-cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 3px;
+    }
+    .dash-cal-dow {
+        text-align: center;
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: #0f766e;
+        padding: 0.2rem 0;
+    }
+    .dash-cal-dow.is-off { color: #dc2626; }
+    .dash-cal-dow.is-friday { color: #dc2626; }
+    .dash-cal-cell {
+        min-height: 34px;
+        border-radius: 8px;
+        background: #f8fafc;
+        text-align: center;
+        padding: 0.22rem 0.1rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .dash-cal-cell.is-out { color: #cbd5e1; background: transparent; }
+    .dash-cal-cell.is-off { color: #dc2626; }
+    .dash-cal-cell.is-friday { background: #fecaca; color: #b91c1c; }
+    .dash-cal-cell.is-out.is-off { color: #fca5a5; }
+    .dash-cal-cell.is-out.is-friday { background: #fee2e2; }
+    .dash-cal-cell.is-holiday { background: #ffe4e6; color: #9f1239; }
+    .dash-cal-cell.is-today span {
+        display: inline-grid;
+        place-items: center;
+        min-width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 50%;
+        background: #0f766e;
+        color: #fff;
+    }
+    .dash-cal-cell.is-today.is-off span { background: #0f766e; color: #fff; }
+    .dash-cal-cell small {
+        display: block;
+        font-size: 0.52rem;
+        font-weight: 700;
+        color: #e11d48;
+        line-height: 1.15;
+        padding: 0 1px;
+        word-break: break-word;
+    }
+    .dash-session-card { margin: 0; }
+    .dash-session-card h2 { margin: 0 0 0.45rem; font-size: 1.02rem; font-weight: 800; }
+    .dash-line { position: relative; }
+    .dash-line svg { width: 100%; height: auto; aspect-ratio: 840 / 228; display: block; }
+    .dash-line-labels {
+        display: flex;
+        justify-content: space-between;
+        gap: 0;
+        margin-top: -0.15rem;
+        padding: 0 0.35rem;
+    }
+    .dash-line-labels span {
+        flex: 1 1 0;
+        min-width: 0;
+        text-align: center;
+        line-height: 1.15;
+    }
+    .dash-line-labels b {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .dash-line-labels em {
+        display: block;
+        font-style: normal;
+        font-size: 0.62rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+    @@media (max-width: 1100px) {
+        .dash-page .dash-board,
+        .dash-page .dash-charts,
+        .dash-page .dash-extra { grid-template-columns: 1fr; }
+    }
+    .dash-due-foot {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 18px 18px;
+    }
+    .dash-due-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .dash-due-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        margin: 0;
+        border: 0;
+        border-radius: 10px;
+        font: inherit;
+        font-weight: 800;
+        line-height: 1.25;
+        text-decoration: none;
+        cursor: pointer;
+        padding: 0.72rem 0.7rem;
+        box-sizing: border-box;
+    }
+    .dash-due-btn.is-due {
+        background: #0d9488;
+        color: #fff;
+        box-shadow: 0 6px 14px rgba(13, 148, 136, 0.28);
+    }
+    .dash-due-btn.is-later {
+        background: #f59e0b;
+        color: #1c1917;
+        box-shadow: 0 6px 14px rgba(245, 158, 11, 0.28);
+    }
+    .dash-due-btn.is-pay {
+        width: 100%;
+        min-height: 52px;
+        padding: 0.95rem 1rem;
+        font-size: 1.08rem;
+        background: #16a34a;
+        color: #fff;
+        box-shadow: 0 10px 20px rgba(22, 163, 74, 0.3);
+    }
+    .dash-due-btn:hover { filter: brightness(1.06); text-decoration: none; color: inherit; }
+    .dash-due-btn.is-due:hover, .dash-due-btn.is-pay:hover { color: #fff; }
+</style>
+
 <div class="dash-page">
     <div class="dash-hero">
         <div>
@@ -17,21 +411,45 @@
         </div>
     </div>
 
-    @if (ShowBillWarn)
+    @if (showDueModal && access.HasDue && !access.IsBlocked)
     {
-        <div class="dash-bill-warn">
-            <strong>@BillDaysText()</strong>
-            <p>@Locale.T("dash.billHint")</p>
-            <a href="invoice/due">@Locale.T("dash.billPay")</a>
+        <div class="inv-modal-back no-print" @onclick="() => showDueModal = false">
+            <div class="inv-modal is-warn" @onclick:stopPropagation="true">
+                <div class="inv-modal-head">
+                    <h4>@Locale.T("dash.dueNotice")</h4>
+                    <button type="button" class="inv-modal-x" @onclick="() => showDueModal = false">&times;</button>
+                </div>
+                <div class="inv-modal-body">
+                    @if (access.DaysUntilExpiry >= 0)
+                    {
+                        <p class="inv-days">@BillDaysText()</p>
+                        <p>@Locale.T("dash.billHint")</p>
+                    }
+                    <p>@Locale.T("dash.dueRecords", access.DueCount.ToString())</p>
+                    <div class="inv-due-box">@Locale.T("dash.dueAmount", access.Due.ToString("N2"))</div>
+                    <p>@Locale.T("dash.dueDetail")</p>
+                </div>
+                <div class="inv-modal-foot dash-due-foot">
+                    <div class="dash-due-row">
+                        <a class="dash-due-btn is-due" href="invoice/due">@Locale.T("dash.billPay")</a>
+                        <button type="button" class="dash-due-btn is-later" @onclick="() => showDueModal = false">@Locale.T("dash.dueLater")</button>
+                    </div>
+                    <a class="dash-due-btn is-pay" href="invoice/due">@Locale.T("inv.payOnline")</a>
+                </div>
+            </div>
         </div>
     }
 
-    @if (!string.IsNullOrWhiteSpace(message))
+    @if (Locale.IsNetNotice(message))
+    {
+        <ResultPopup Text="@message" Error="true" OnClose="() => message = null" />
+    }
+    else if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="@(messageError ? "error" : "ok")">@message</div>
     }
 
-    @if (stats.TotalStudents == 0)
+    @if (ShowSyncHint)
     {
         <div class="notice">@Locale.T("dash.needFirstSync")</div>
     }
@@ -72,27 +490,26 @@
         </div>
     </section>
 
-    <div class="dash-main">
-        <div class="dash-left">
-        <section class="card dash-panel">
+    <div class="dash-board">
+        <div class="dash-col">
+        <section class="card dash-panel dash-class-card">
             <div class="toolbar">
                 <h2>@Locale.T("dash.classTitle")</h2>
                 <a href="students">@Locale.T("dash.totalCol"): @stats.TotalStudents.ToString("N0")</a>
             </div>
             @if (stats.Classes.Count == 0)
             {
-                <p class="muted">@Locale.T(stats.PendingSync > 0 ? "dash.emptyQueued" : "dash.empty")</p>
+                <p class="muted">@EmptyStudentsText()</p>
             }
             else
             {
-                <table class="data-table dash-class-table">
+                <table class="dash-class-table">
                     <thead>
                         <tr>
                             <th>@Locale.T("dash.classCol")</th>
                             <th>@Locale.T("dash.newCol")</th>
                             <th>@Locale.T("dash.oldCol")</th>
                             <th>@Locale.T("dash.totalCol")</th>
-                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -102,13 +519,7 @@
                             <td>@row.ClassName</td>
                             <td>@row.NewCount.ToString("N0")</td>
                             <td>@row.OldCount.ToString("N0")</td>
-                            <td><b>@row.Total.ToString("N0")</b></td>
-                            <td>
-                                <div class="dash-stack">
-                                    <span class="is-new" style="width:@Pct(row.NewCount, row.Total)%"></span>
-                                    <span class="is-old" style="width:@Pct(row.OldCount, row.Total)%"></span>
-                                </div>
-                            </td>
+                            <td>@row.Total.ToString("N0")</td>
                         </tr>
                     }
                     </tbody>
@@ -118,7 +529,6 @@
                             <th>@stats.NewCount.ToString("N0")</th>
                             <th>@stats.OldCount.ToString("N0")</th>
                             <th>@stats.TotalStudents.ToString("N0")</th>
-                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -127,120 +537,255 @@
 
         @if (online.Sessions.Count > 0)
         {
-            <section class="card dash-panel dash-session">
+            var sessPts = BuildSessionPoints();
+            <section class="card dash-panel dash-session-card">
                 <h2>@Locale.T("dash.yearStudents")</h2>
-                <div class="dash-years">
-                    @foreach (var year in online.Sessions)
-                    {
-                        <div class="dash-year">
-                            <div class="dash-year-col" style="height:@Pct(year.Count, SessionMax)%"></div>
-                            <b>@year.Count.ToString("N0")</b>
-                            <span>@year.Name</span>
-                        </div>
-                    }
+                <div class="dash-line">
+                    <svg viewBox="0 0 840 228" preserveAspectRatio="none" aria-label="@Locale.T("dash.yearStudents")">
+                        <defs>
+                            <linearGradient id="dashSessFill" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#0f766e" stop-opacity="0.32" />
+                                <stop offset="100%" stop-color="#0f766e" stop-opacity="0.02" />
+                            </linearGradient>
+                        </defs>
+                        @foreach (var gy in SessionGridYs)
+                        {
+                            <line x1="@Inv(SessPadL)" y1="@Inv(gy)" x2="@Inv(SessW - SessPadR)" y2="@Inv(gy)" stroke="#e8eef5" stroke-width="1" />
+                        }
+                        <path d="@SessionArea(sessPts)" fill="url(#dashSessFill)" />
+                        <polyline points="@SessionLine(sessPts)" fill="none" stroke="#0f766e" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" />
+                        @foreach (var pt in sessPts)
+                        {
+                            <circle cx="@Inv(pt.X)" cy="@Inv(pt.Y)" r="4.2" fill="#0f766e" stroke="#fff" stroke-width="1.6" />
+                        }
+                    </svg>
+                    <div class="dash-line-labels">
+                        @foreach (var pt in sessPts)
+                        {
+                            <span>
+                                <b>@pt.Count.ToString("N0")</b>
+                                <em>@pt.Name</em>
+                            </span>
+                        }
+                    </div>
                 </div>
             </section>
         }
         </div>
 
-        <aside class="dash-side">
-            <section class="card dash-panel">
-                <h2>@Locale.T("dash.gender")</h2>
-                <div class="dash-gender">
-                    <div class="dash-donut" style="--male:@MalePct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;">
-                        <div class="dash-donut-hole">
-                            <strong>@stats.TotalStudents.ToString("N0")</strong>
-                            <small>@Locale.T("dash.total")</small>
-                        </div>
+        <div class="dash-col">
+        <section class="card dash-panel dash-cal">
+            <div class="toolbar">
+                <h2>@Locale.T("cal.title")</h2>
+                <a href="basic-settings/academic-calendar">@Locale.T("dash.viewAll")</a>
+            </div>
+            <div class="dash-cal-nav">
+                <button type="button" @onclick="PrevMonth" aria-label="Previous month">‹</button>
+                <strong>@calMonth.ToString("MMMM yyyy")</strong>
+                <button type="button" @onclick="NextMonth" aria-label="Next month">›</button>
+            </div>
+            <div class="dash-cal-grid">
+                @foreach (var day in CalWeekdays)
+                {
+                    <div class="dash-cal-dow @(day == "Friday" ? "is-friday" : null) @(IsOffDay(day) ? "is-off" : null)">@Locale.T($"cal.day.{day}")</div>
+                }
+                @foreach (var cell in MonthCells())
+                {
+                    var names = HolidayNames(cell.Date);
+                    <div class="@CalCellClass(cell, names.Count > 0)" title="@string.Join(", ", names)">
+                        @if (cell.InMonth)
+                        {
+                            <span>@cell.Date.Day</span>
+                            @if (names.Count > 0)
+                            {
+                                <small>@names[0]</small>
+                            }
+                        }
                     </div>
-                    <ul class="dash-legend">
-                        <li><i class="is-male"></i> @Locale.T("dash.boys") <b>@stats.MaleCount.ToString("N0")</b> <em>@MalePct.ToString("0")%</em></li>
-                        <li><i class="is-female"></i> @Locale.T("dash.girls") <b>@stats.FemaleCount.ToString("N0")</b> <em>@FemalePct.ToString("0")%</em></li>
-                    </ul>
-                </div>
-            </section>
+                }
+            </div>
+        </section>
 
-            @if (online.SmsRemaining > 0 || online.SmsSent > 0 || online.SmsByYear.Count > 0)
-            {
-                <section class="card dash-panel">
-                    <h2><a href="sms/send">@Locale.T("dash.sms")</a></h2>
-                    <div class="dash-sms">
-                        <div>
-                            <strong>@online.SmsRemaining.ToString("N0")</strong>
-                            <span>@Locale.T("dash.smsRemain")</span>
+        <div class="dash-charts">
+        <section class="card dash-panel">
+            <h2>@Locale.T("dash.gender")</h2>
+            <div class="dash-gender">
+                <div class="dash-donut" style="--male:@MalePct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;">
+                    <div class="dash-donut-hole">
+                        <strong>@stats.TotalStudents.ToString("N0")</strong>
+                        <small>@Locale.T("dash.total")</small>
+                    </div>
+                </div>
+                <ul class="dash-legend">
+                    <li><i class="is-male"></i> @Locale.T("dash.boys") <b>@stats.MaleCount.ToString("N0")</b> <em>@MalePct.ToString("0")%</em></li>
+                    <li><i class="is-female"></i> @Locale.T("dash.girls") <b>@stats.FemaleCount.ToString("N0")</b> <em>@FemalePct.ToString("0")%</em></li>
+                </ul>
+            </div>
+        </section>
+
+        @if (online.SmsRemaining > 0 || online.SmsSent > 0 || online.SmsByYear.Count > 0)
+        {
+            var smsSlices = BuildSmsSlices();
+            <section class="card dash-panel dash-sms-card">
+                <h2><a href="sms/send">@Locale.T("dash.smsBySession")</a></h2>
+                <div class="dash-sms">
+                    <div>
+                        <strong>@online.SmsRemaining.ToString("N0")</strong>
+                        <span>@Locale.T("dash.smsRemain")</span>
+                    </div>
+                    <div>
+                        <strong>@online.SmsSent.ToString("N0")</strong>
+                        <span>@Locale.T("dash.smsSent")</span>
+                    </div>
+                </div>
+                @if (smsSlices.Count > 0)
+                {
+                    <div class="dash-sms-stack">
+                        <div class="dash-sms-stack-labels">
+                            @foreach (var slice in smsSlices)
+                            {
+                                <span style="flex:0 0 @Inv(slice.Pct)%;max-width:@Inv(slice.Pct)%">
+                                    @if (slice.ShowBarLabel)
+                                    {
+                                        @slice.Count.ToString("N0")
+                                        <em>@slice.Name</em>
+                                    }
+                                </span>
+                            }
                         </div>
-                        <div>
-                            <strong>@online.SmsSent.ToString("N0")</strong>
-                            <span>@Locale.T("dash.smsSent")</span>
+                        <div class="dash-sms-stack-bar">
+                            @for (var i = 0; i < smsSlices.Count; i++)
+                            {
+                                var idx = i;
+                                var slice = smsSlices[i];
+                                <i style="flex:0 0 @Inv(slice.Pct)%;background:@slice.Color"
+                                   title="@($"{slice.Name}: {slice.Count:N0}")"
+                                   @onmouseenter="() => smsHover = idx"
+                                   @onmouseleave="() => smsHover = null"></i>
+                            }
                         </div>
                     </div>
-                    @if (online.SmsByYear.Count > 0)
-                    {
+                    <div class="dash-sms-ring @(smsHover is null ? "" : "is-hovering")"
+                         @onmouseleave="() => smsHover = null">
+                        <svg viewBox="0 0 200 200" aria-label="@Locale.T("dash.smsBySession")">
+                            @for (var i = 0; i < smsSlices.Count; i++)
+                            {
+                                var idx = i;
+                                var slice = smsSlices[i];
+                                <path d="@slice.Path"
+                                      fill="@slice.Color"
+                                      class="@(smsHover == idx ? "is-hot" : null)"
+                                      @onmouseenter="() => smsHover = idx">
+                                    <title>@slice.Name — @slice.Count.ToString("N0")</title>
+                                </path>
+                            }
+                            @foreach (var slice in smsSlices)
+                            {
+                                <circle cx="@Inv(slice.MarkerX)" cy="@Inv(slice.MarkerY)" r="5.2" fill="#fff" stroke="@slice.Color" stroke-width="2.2" />
+                            }
+                        </svg>
+                        @if (smsHover is int hi && hi >= 0 && hi < smsSlices.Count)
+                        {
+                            var tip = smsSlices[hi];
+                            <div class="dash-sms-tip"
+                                 style="left:@Inv(tip.MarkerX / 2)%;top:@Inv(tip.MarkerY / 2)%;--tip:@tip.Color">
+                                @tip.Name
+                                <small>@tip.Count.ToString("N0")</small>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    </div>
+
+        @if (online.Employees.Count > 0 || stats.BloodGroups.Count > 0)
+        {
+            <div class="dash-extra">
+                @if (online.Employees.Count > 0)
+                {
+                    <section class="card dash-panel">
+                        <h2>@Locale.T("dash.employees")</h2>
+                        <div class="dash-emp">
+                            @{
+                                var empSlices = BuildEmpSlices();
+                            }
+                            <svg class="dash-pie" viewBox="0 0 220 188" aria-label="@Locale.T("dash.employees")">
+                                @for (var depth = 12; depth >= 1; depth--)
+                                {
+                                    <g transform="translate(0,@depth)" class="dash-pie-side">
+                                        @foreach (var slice in empSlices)
+                                        {
+                                            <path d="@slice.Path" fill="@slice.Color" opacity="0.72" />
+                                        }
+                                    </g>
+                                }
+                                @foreach (var slice in empSlices)
+                                {
+                                    <path d="@slice.Path" fill="@slice.Color" stroke="#fff" stroke-width="1.2">
+                                        <title>@slice.Name — @slice.Count.ToString("N0") (@slice.Pct.ToString("0")%)</title>
+                                    </path>
+                                }
+                                @foreach (var slice in empSlices)
+                                {
+                                    @if (slice.Pct >= 10)
+                                    {
+                                        @((MarkupString)$"""<text x="{Inv(slice.LabelX)}" y="{Inv(slice.LabelY)}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="13" font-weight="800">{slice.Count.ToString("N0")}</text>""")
+                                    }
+                                }
+                            </svg>
+                            <ul class="dash-legend">
+                                @for (var i = 0; i < online.Employees.Count; i++)
+                                {
+                                    var item = online.Employees[i];
+                                    var color = EmpColor(i);
+                                    <li>
+                                        <i style="background:@color"></i>
+                                        @EmpLabel(item.Name)
+                                        <b>@item.Count.ToString("N0")</b>
+                                        <em>@EmpPct(item.Count).ToString("0")%</em>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </section>
+                }
+                @if (stats.BloodGroups.Count > 0)
+                {
+                    <section class="card dash-panel">
+                        <h2>@Locale.T("dash.blood")</h2>
                         <div class="dash-bars">
-                            @foreach (var year in online.SmsByYear)
+                            @foreach (var item in stats.BloodGroups)
                             {
                                 <div class="dash-bar-row">
-                                    <span>@year.Name</span>
-                                    <div class="dash-bar"><i style="width:@Pct(year.Count, SmsYearMax)%"></i></div>
-                                    <b>@year.Count.ToString("N0")</b>
+                                    <span>@item.Name</span>
+                                    <div class="dash-bar is-blood"><i style="width:@Pct(item.Count, BloodMax)%"></i></div>
+                                    <b>@item.Count.ToString("N0")</b>
                                 </div>
                             }
                         </div>
-                    }
-                </section>
-            }
-
-            @if (online.AttendanceToday.Count > 0)
-            {
-                <section class="card dash-panel">
-                    <h2>@Locale.T("dash.todayAtt")</h2>
-                    <ul class="dash-att">
-                        @foreach (var item in online.AttendanceToday)
-                        {
-                            <li class="@AttClass(item.Name)">
-                                <span>@AttLabel(item.Name)</span>
-                                <b>@item.Count.ToString("N0")</b>
-                            </li>
-                        }
-                    </ul>
-                </section>
-            }
-
-            @if (online.Employees.Count > 0)
-            {
-                <section class="card dash-panel">
-                    <h2>@Locale.T("dash.employees")</h2>
-                    <div class="dash-bars">
-                        @foreach (var item in online.Employees)
-                        {
-                            <div class="dash-bar-row">
-                                <span>@EmpLabel(item.Name)</span>
-                                <div class="dash-bar is-emp"><i style="width:@Pct(item.Count, EmpMax)%"></i></div>
-                                <b>@item.Count.ToString("N0")</b>
-                            </div>
-                        }
-                    </div>
-                </section>
-            }
-
-            @if (stats.BloodGroups.Count > 0)
-            {
-                <section class="card dash-panel">
-                    <h2>@Locale.T("dash.blood")</h2>
-                    <div class="dash-bars">
-                        @foreach (var item in stats.BloodGroups)
-                        {
-                            <div class="dash-bar-row">
-                                <span>@item.Name</span>
-                                <div class="dash-bar is-blood"><i style="width:@Pct(item.Count, BloodMax)%"></i></div>
-                                <b>@item.Count.ToString("N0")</b>
-                            </div>
-                        }
-                    </div>
-                </section>
-            }
-        </aside>
+                    </section>
+                }
+            </div>
+        }
+        </div>
     </div>
+
+    @if (online.AttendanceToday.Count > 0)
+    {
+        <section class="card dash-panel" style="margin-bottom:0.85rem">
+            <h2>@Locale.T("dash.todayAtt")</h2>
+            <ul class="dash-att">
+                @foreach (var item in online.AttendanceToday)
+                {
+                    <li class="@AttClass(item.Name)">
+                        <span>@AttLabel(item.Name)</span>
+                        <b>@item.Count.ToString("N0")</b>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
 
     <div class="dash-lists">
         <section class="card dash-panel">
@@ -296,7 +841,7 @@
         </div>
         @if (stats.Recent.Count == 0)
         {
-            <p class="muted">@Locale.T(stats.PendingSync > 0 ? "dash.emptyQueued" : "dash.empty")</p>
+            <p class="muted">@EmptyStudentsText()</p>
         }
         else
         {
@@ -344,18 +889,42 @@
     private DashboardStats stats = new();
     private DashboardOverviewDto online = new();
     private SubscriptionStatusDto access = new();
+    private readonly List<HolidayDto> holidays = [];
+    private DateTime calMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private bool busy;
     private bool autoTried;
     private bool messageError;
     private string? message;
 
+    private static readonly string[] CalWeekdays =
+        ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+    private const double SessW = 840;
+    private const double SessH = 228;
+    private const double SessPadL = 22;
+    private const double SessPadR = 22;
+    private const double SessPadT = 16;
+    private const double SessPadB = 20;
+
     private double MalePct => stats.TotalStudents == 0 ? 0 : 100.0 * stats.MaleCount / stats.TotalStudents;
     private double FemalePct => stats.TotalStudents == 0 ? 0 : 100.0 * stats.FemaleCount / stats.TotalStudents;
-    private int SmsYearMax => Math.Max(1, online.SmsByYear.Select(x => x.Count).DefaultIfEmpty(0).Max());
-    private int EmpMax => Math.Max(1, online.Employees.Select(x => x.Count).DefaultIfEmpty(0).Max());
+    private int? smsHover;
+    private int EmpTotal => online.Employees.Sum(x => x.Count);
     private int BloodMax => Math.Max(1, stats.BloodGroups.Select(x => x.Count).DefaultIfEmpty(0).Max());
-    private int SessionMax => Math.Max(1, online.Sessions.Select(x => x.Count).DefaultIfEmpty(0).Max());
-    private bool ShowBillWarn => access.HasDue && !access.IsBlocked && access.DaysUntilExpiry >= 0;
+    private static double Pct(int count, int max) => max <= 0 ? 0 : 100.0 * count / max;
+    private bool showDueModal;
+    private bool ShowSyncHint =>
+        stats.TotalStudents == 0
+        && (!string.IsNullOrWhiteSpace(Sync.LastError) || (!Sync.IsOnline && autoTried));
+    private IEnumerable<double> SessionGridYs
+    {
+        get
+        {
+            var plotH = SessH - SessPadT - SessPadB;
+            for (var i = 0; i <= 3; i++)
+                yield return SessPadT + plotH * i / 3.0;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -429,11 +998,20 @@
             online = await Api.GetDashboardOverviewAsync(Session.AccessToken);
             access = await Api.GetSubscriptionStatusAsync(Session.AccessToken);
             Session.SetAccess(access);
+            try
+            {
+                holidays.Clear();
+                holidays.AddRange(await Api.GetHolidaysAsync(Session.AccessToken));
+            }
+            catch
+            {
+            }
             if (access.IsBlocked)
             {
                 Nav.NavigateTo("/invoice/due", replace: true);
                 return;
             }
+            showDueModal = access.HasDue;
             StateHasChanged();
         }
         catch
@@ -484,7 +1062,199 @@
         await Task.Delay(40);
     }
 
-    private static int Pct(int part, int total) => total <= 0 ? 0 : (int)Math.Round(100.0 * part / total);
+    private string EmptyStudentsText()
+    {
+        if (stats.PendingSync > 0)
+            return Locale.T("dash.emptyQueued");
+        if (ShowSyncHint)
+            return Locale.T("dash.empty");
+        return Locale.T("dash.emptyNew");
+    }
+
+    private static readonly string[] SmsColors =
+    [
+        "#26a69a", "#42a5f5", "#ffca28", "#66bb6a", "#ef5350", "#ffa726",
+        "#7e57c2", "#26c6da", "#ec407a", "#8d6e63", "#9ccc65", "#5c6bc0",
+        "#26a69a", "#ff7043", "#ab47bc", "#29b6f6"
+    ];
+
+    private sealed class SmsSlice
+    {
+        public string Name { get; init; } = "";
+        public int Count { get; init; }
+        public string Color { get; init; } = "";
+        public double Pct { get; init; }
+        public string Path { get; init; } = "";
+        public double MarkerX { get; init; }
+        public double MarkerY { get; init; }
+        public bool ShowBarLabel { get; init; }
+    }
+
+    private List<SmsSlice> BuildSmsSlices()
+    {
+        var items = online.SmsByYear.Where(x => x.Count > 0).ToList();
+        var total = items.Sum(x => x.Count);
+        if (total <= 0)
+            return [];
+
+        var slices = new List<SmsSlice>(items.Count);
+        double start = 0;
+        for (var i = 0; i < items.Count; i++)
+        {
+            var pct = 100.0 * items[i].Count / total;
+            if (i == items.Count - 1)
+                pct = Math.Max(0, 100.0 - start);
+            var mid = start + pct / 2.0;
+            slices.Add(new SmsSlice
+            {
+                Name = items[i].Name,
+                Count = items[i].Count,
+                Color = SmsColors[i % SmsColors.Length],
+                Pct = pct,
+                Path = DonutPath(start, pct),
+                MarkerX = PolarX(mid),
+                MarkerY = PolarY(mid),
+                ShowBarLabel = pct >= 6.5 || items.Count <= 4
+            });
+            start += pct;
+        }
+        return slices;
+    }
+
+    private static string Inv(double value) =>
+        value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private void PrevMonth() => calMonth = calMonth.AddMonths(-1);
+    private void NextMonth() => calMonth = calMonth.AddMonths(1);
+
+    private IEnumerable<(DateTime Date, bool InMonth)> MonthCells()
+    {
+        var first = calMonth;
+        var offset = ((int)first.DayOfWeek + 1) % 7;
+        var start = first.AddDays(-offset);
+        for (var i = 0; i < 42; i++)
+        {
+            var date = start.AddDays(i);
+            yield return (date, date.Month == calMonth.Month);
+        }
+    }
+
+    private List<string> HolidayNames(DateTime date)
+    {
+        var names = holidays
+            .Where(x => x.HolidayDate.Date == date.Date)
+            .Select(x => x.HolidayName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (IsWeeklyOff(date.DayOfWeek)
+            && !names.Exists(n => n.Equals("Weekly Holiday", StringComparison.OrdinalIgnoreCase)))
+            names.Add("Weekly Holiday");
+        return names;
+    }
+
+    private bool IsWeeklyOff(DayOfWeek day) =>
+        holidays.Any(x => x.IsWeekly && x.HolidayDate.DayOfWeek == day);
+
+    private static bool IsOffDay(string day) =>
+        day is "Friday" or "Saturday";
+
+    private static bool IsOffDay(DayOfWeek day) =>
+        day is DayOfWeek.Friday or DayOfWeek.Saturday;
+
+    private static string CalCellClass((DateTime Date, bool InMonth) cell, bool holiday)
+    {
+        var cls = "dash-cal-cell";
+        if (!cell.InMonth) cls += " is-out";
+        if (IsOffDay(cell.Date.DayOfWeek)) cls += " is-off";
+        if (cell.Date.DayOfWeek == DayOfWeek.Friday) cls += " is-friday";
+        if (cell.Date.Date == DateTime.Today) cls += " is-today";
+        if (holiday) cls += " is-holiday";
+        return cls;
+    }
+
+    private sealed class SessPt
+    {
+        public string Name { get; init; } = "";
+        public int Count { get; init; }
+        public double X { get; init; }
+        public double Y { get; init; }
+    }
+
+    private List<SessPt> BuildSessionPoints()
+    {
+        var items = online.Sessions;
+        var n = items.Count;
+        var max = Math.Max(1, items.Select(x => x.Count).DefaultIfEmpty(0).Max());
+        var plotW = SessW - SessPadL - SessPadR;
+        var plotH = SessH - SessPadT - SessPadB;
+        var pts = new List<SessPt>(n);
+        for (var i = 0; i < n; i++)
+        {
+            var x = n <= 1 ? SessPadL + plotW / 2 : SessPadL + i * plotW / (n - 1);
+            var y = SessPadT + (1 - items[i].Count / (double)max) * plotH;
+            pts.Add(new SessPt { Name = items[i].Name, Count = items[i].Count, X = x, Y = y });
+        }
+        return pts;
+    }
+
+    private static string SessionArea(List<SessPt> pts)
+    {
+        if (pts.Count == 0)
+            return "";
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var bottom = SessH - SessPadB;
+        var sb = new System.Text.StringBuilder();
+        sb.Append(string.Create(inv, $"M {pts[0].X:0.##} {bottom:0.##}"));
+        foreach (var p in pts)
+            sb.Append(string.Create(inv, $" L {p.X:0.##} {p.Y:0.##}"));
+        sb.Append(string.Create(inv, $" L {pts[^1].X:0.##} {bottom:0.##} Z"));
+        return sb.ToString();
+    }
+
+    private static string SessionLine(List<SessPt> pts)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        return string.Join(" ", pts.Select(p => string.Create(inv, $"{p.X:0.##},{p.Y:0.##}")));
+    }
+
+    private static double PolarX(double midPct, double radius = 73, double cx = 100)
+    {
+        var rad = (midPct / 100.0 * 360.0 - 90.0) * Math.PI / 180.0;
+        return cx + radius * Math.Cos(rad);
+    }
+
+    private static double PolarY(double midPct, double radius = 73, double cy = 100)
+    {
+        var rad = (midPct / 100.0 * 360.0 - 90.0) * Math.PI / 180.0;
+        return cy + radius * Math.Sin(rad);
+    }
+
+    private static string DonutPath(double startPct, double pct, double cx = 100, double cy = 100, double rOuter = 90, double rInner = 56)
+    {
+        if (pct <= 0.001)
+            return "";
+        if (pct >= 99.999)
+        {
+            return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"M {cx + rOuter} {cy} A {rOuter} {rOuter} 0 1 1 {cx - rOuter} {cy} A {rOuter} {rOuter} 0 1 1 {cx + rOuter} {cy} M {cx + rInner} {cy} A {rInner} {rInner} 0 1 0 {cx - rInner} {cy} A {rInner} {rInner} 0 1 0 {cx + rInner} {cy}");
+        }
+
+        var start = startPct / 100.0 * 360.0 - 90.0;
+        var end = (startPct + pct) / 100.0 * 360.0 - 90.0;
+        var large = pct > 50 ? 1 : 0;
+        var (x1, y1) = Point(start, rOuter);
+        var (x2, y2) = Point(end, rOuter);
+        var (x3, y3) = Point(end, rInner);
+        var (x4, y4) = Point(start, rInner);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"M {x1:0.###} {y1:0.###} A {rOuter} {rOuter} 0 {large} 1 {x2:0.###} {y2:0.###} L {x3:0.###} {y3:0.###} A {rInner} {rInner} 0 {large} 0 {x4:0.###} {y4:0.###} Z");
+
+        (double X, double Y) Point(double deg, double radius)
+        {
+            var rad = deg * Math.PI / 180.0;
+            return (cx + radius * Math.Cos(rad), cy + radius * Math.Sin(rad));
+        }
+    }
 
     private string TypeLabel(bool? isNew) =>
         isNew == true ? Locale.T("dash.typeNew")
@@ -526,6 +1296,85 @@
             _ => name
         };
 
+    private static readonly string[] EmpColors =
+        ["#7c3aed", "#06b6d4", "#f59e0b", "#ec4899", "#22c55e"];
+
+    private static string EmpColor(int index) => EmpColors[index % EmpColors.Length];
+
+    private double EmpPct(int count) => EmpTotal <= 0 ? 0 : 100.0 * count / EmpTotal;
+
+    private sealed class EmpSlice
+    {
+        public string Name { get; init; } = "";
+        public int Count { get; init; }
+        public string Color { get; init; } = "";
+        public double Pct { get; init; }
+        public string Path { get; init; } = "";
+        public double LabelX { get; init; }
+        public double LabelY { get; init; }
+    }
+
+    private List<EmpSlice> BuildEmpSlices()
+    {
+        var items = online.Employees.Where(x => x.Count > 0).ToList();
+        var total = items.Sum(x => x.Count);
+        if (total <= 0)
+            return [];
+
+        const double cx = 110;
+        const double cy = 86;
+        const double radius = 78;
+        var explode = items.Count > 1 ? 7.0 : 0;
+        var slices = new List<EmpSlice>(items.Count);
+        double start = 0;
+        for (var i = 0; i < items.Count; i++)
+        {
+            var pct = 100.0 * items[i].Count / total;
+            if (i == items.Count - 1)
+                pct = Math.Max(0, 100.0 - start);
+            var mid = start + pct / 2.0;
+            slices.Add(new EmpSlice
+            {
+                Name = EmpLabel(items[i].Name),
+                Count = items[i].Count,
+                Color = EmpColor(i),
+                Pct = pct,
+                Path = PiePath(start, pct, cx, cy, radius, explode),
+                LabelX = PolarX(mid, radius * 0.58 + explode, cx),
+                LabelY = PolarY(mid, radius * 0.58 + explode, cy)
+            });
+            start += pct;
+        }
+        return slices;
+    }
+
+    private static string PiePath(double startPct, double pct, double cx, double cy, double radius, double explode)
+    {
+        if (pct <= 0.001)
+            return "";
+        var mid = startPct + pct / 2.0;
+        cx = PolarX(mid, explode, cx);
+        cy = PolarY(mid, explode, cy);
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        if (pct >= 99.999)
+        {
+            return string.Create(inv,
+                $"M {cx - radius:0.###} {cy:0.###} A {radius} {radius} 0 1 1 {cx + radius:0.###} {cy:0.###} A {radius} {radius} 0 1 1 {cx - radius:0.###} {cy:0.###} Z");
+        }
+
+        var start = startPct / 100.0 * 360.0 - 90.0;
+        var end = (startPct + pct) / 100.0 * 360.0 - 90.0;
+        var large = pct > 50 ? 1 : 0;
+        var rad1 = start * Math.PI / 180.0;
+        var rad2 = end * Math.PI / 180.0;
+        var x1 = cx + radius * Math.Cos(rad1);
+        var y1 = cy + radius * Math.Sin(rad1);
+        var x2 = cx + radius * Math.Cos(rad2);
+        var y2 = cy + radius * Math.Sin(rad2);
+        return string.Create(inv,
+            $"M {cx:0.###} {cy:0.###} L {x1:0.###} {y1:0.###} A {radius} {radius} 0 {large} 1 {x2:0.###} {y2:0.###} Z");
+    }
+
     private static int Age(DateTime? dob)
     {
         if (dob is null) return 0;
@@ -545,16 +1394,7 @@
         return Locale.T("dash.billDaysN", days);
     }
 
-    private string TranslateSyncError(string? error)
-    {
-        if (string.IsNullOrWhiteSpace(error))
-            return Locale.T("sync.failed");
-        if (error.StartsWith("login.", StringComparison.OrdinalIgnoreCase)
-            || error.StartsWith("sync.", StringComparison.OrdinalIgnoreCase)
-            || error.StartsWith("dash.", StringComparison.OrdinalIgnoreCase))
-            return Locale.T(error);
-        return error;
-    }
+    private string TranslateSyncError(string? error) => Locale.SyncError(error);
 
     private static readonly MarkupString NewIcon = Icon("M12 5v14M5 12h14");
     private static readonly MarkupString MoneyIcon = Icon("M4 7h16v10H4V7Zm0 4h16M12 9v6");

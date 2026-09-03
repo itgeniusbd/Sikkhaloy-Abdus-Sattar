@@ -30,24 +30,33 @@
     </section>
 
     <section class="land-stats">
-        <article>
-            <span class="land-stat-ico is-teal">@SchoolIcon</span>
+        <article class="is-teal">
+            <span class="land-stat-orb">
+                <span class="land-stat-ring" aria-hidden="true"></span>
+                <span class="land-stat-ico is-teal">@SchoolIcon</span>
+            </span>
             <div>
                 <strong class="land-stat-num">@_shownInst.ToString("N0")</strong>
                 <h3>@Locale.T("home.stat.inst")</h3>
                 <p>@Locale.T("home.stat.inst.desc")</p>
             </div>
         </article>
-        <article>
-            <span class="land-stat-ico is-blue">@StuIcon</span>
+        <article class="is-blue">
+            <span class="land-stat-orb">
+                <span class="land-stat-ring" aria-hidden="true"></span>
+                <span class="land-stat-ico is-blue">@StuIcon</span>
+            </span>
             <div>
                 <strong class="land-stat-num">@_shownStu.ToString("N0")</strong>
                 <h3>@Locale.T("home.stat.stu")</h3>
                 <p>@Locale.T("home.stat.stu.desc")</p>
             </div>
         </article>
-        <article>
-            <span class="land-stat-ico is-amber">@StaffIcon</span>
+        <article class="is-amber">
+            <span class="land-stat-orb">
+                <span class="land-stat-ring" aria-hidden="true"></span>
+                <span class="land-stat-ico is-amber">@StaffIcon</span>
+            </span>
             <div>
                 <strong class="land-stat-num">@_shownTea.ToString("N0")</strong>
                 <h3>@Locale.T("home.stat.tea")</h3>
@@ -142,34 +151,71 @@
         </div>
     </section>
 
-    <section class="land-quotes">
+    <section class="land-offline" id="offline">
         <div class="land-center-head">
-            <h2>@Locale.T("home.quote.title")</h2>
+            <h2>@Locale.T("home.off.title")</h2>
+            <p>@Locale.T("home.off.sub")</p>
         </div>
-        <div class="land-quote-grid">
-            <article>
-                <span class="land-quote-mark">“</span>
-                <p>@Locale.T("home.quote.1")</p>
-                <footer>
-                    <span class="land-quote-ico">@SchoolIcon</span>
-                    <b>@Locale.T("home.quote.1.who")</b>
-                </footer>
+        <div class="land-off-grid">
+            <article class="is-mint">
+                <span class="land-off-ico is-teal">@StuIcon</span>
+                <h3>@Locale.T("home.off.1")</h3>
+                <p>@Locale.T("home.off.1.desc")</p>
+                <ul>
+                    <li>@Locale.T("home.off.1.a")</li>
+                    <li>@Locale.T("home.off.1.b")</li>
+                    <li>@Locale.T("home.off.1.c")</li>
+                </ul>
             </article>
-            <article>
-                <span class="land-quote-mark">“</span>
-                <p>@Locale.T("home.quote.2")</p>
-                <footer>
-                    <span class="land-quote-ico">@SchoolIcon</span>
-                    <b>@Locale.T("home.quote.2.who")</b>
-                </footer>
+            <article class="is-gold">
+                <span class="land-off-ico is-amber">@FeeIcon</span>
+                <h3>@Locale.T("home.off.2")</h3>
+                <p>@Locale.T("home.off.2.desc")</p>
+                <ul>
+                    <li>@Locale.T("home.off.2.a")</li>
+                    <li>@Locale.T("home.off.2.b")</li>
+                    <li>@Locale.T("home.off.2.c")</li>
+                </ul>
             </article>
-            <article>
-                <span class="land-quote-mark">“</span>
-                <p>@Locale.T("home.quote.3")</p>
-                <footer>
-                    <span class="land-quote-ico">@SchoolIcon</span>
-                    <b>@Locale.T("home.quote.3.who")</b>
-                </footer>
+            <article class="is-sky">
+                <span class="land-off-ico is-blue">@AttIcon</span>
+                <h3>@Locale.T("home.off.3")</h3>
+                <p>@Locale.T("home.off.3.desc")</p>
+                <ul>
+                    <li>@Locale.T("home.off.3.a")</li>
+                    <li>@Locale.T("home.off.3.b")</li>
+                    <li>@Locale.T("home.off.3.c")</li>
+                </ul>
+            </article>
+            <article class="is-rose">
+                <span class="land-off-ico is-rose">@ExamIcon</span>
+                <h3>@Locale.T("home.off.4")</h3>
+                <p>@Locale.T("home.off.4.desc")</p>
+                <ul>
+                    <li>@Locale.T("home.off.4.a")</li>
+                    <li>@Locale.T("home.off.4.b")</li>
+                    <li>@Locale.T("home.off.4.c")</li>
+                </ul>
+            </article>
+            <article class="is-mint">
+                <span class="land-off-ico is-teal">@SchoolIcon</span>
+                <h3>@Locale.T("home.off.5")</h3>
+                <p>@Locale.T("home.off.5.desc")</p>
+                <ul>
+                    <li>@Locale.T("home.off.5.a")</li>
+                    <li>@Locale.T("home.off.5.b")</li>
+                    <li>@Locale.T("home.off.5.c")</li>
+                </ul>
+            </article>
+            <article class="is-sky">
+                <span class="land-off-ico is-blue">@UpdateIcon</span>
+                <h3>@Locale.T("home.off.6")</h3>
+                <p>@Locale.T("home.off.6.desc")</p>
+                <ul>
+                    <li>@Locale.T("home.off.6.a")</li>
+                    <li>@Locale.T("home.off.6.b")</li>
+                    <li>@Locale.T("home.off.6.c")</li>
+                </ul>
             </article>
         </div>
     </section>
@@ -278,9 +324,12 @@
 }
 
 @code {
-    private static readonly MarkupString SchoolIcon = Icon("M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z");
-    private static readonly MarkupString StuIcon = Icon("M4 19h16M4 19V7l8-4 8 4v12M8 19v-6h8v6");
-    private static readonly MarkupString StaffIcon = Icon("M8 7V5h8v2M4 7h16v12H4V7Z");
+    private static readonly MarkupString SchoolIcon = Icon("M14 22v-4a2 2 0 1 0-4 0v4M18 10h.01M6 10h.01M2 10h20M20 10v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8M4 10l8-6 8 6");
+    private static readonly MarkupString StuIcon = Icon("M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0zM22 10v6M6 12.5V16a6 3 0 0 0 12 0v-3.5");
+    private static readonly MarkupString StaffIcon = Icon("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75");
+    private static readonly MarkupString FeeIcon = Icon("M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 12h.01M18 12h.01");
+    private static readonly MarkupString AttIcon = Icon("M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 14l2 2 4-4");
+    private static readonly MarkupString ExamIcon = Icon("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 15l2 2 4-4");
     private static readonly MarkupString TeamIcon = Icon("M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM4 20a6 6 0 0 1 12 0M20 20a5 5 0 0 0-4-4.9");
     private static readonly MarkupString UpdateIcon = Icon("M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6");
     private static readonly MarkupString HybridIcon = Icon("M5 12.6A8.5 8.5 0 0 1 12 5c3.4 0 6.3 2 7.7 4.8M8.6 16a5 5 0 0 1 6.8 0M12 20h.01");

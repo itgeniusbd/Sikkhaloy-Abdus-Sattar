@@ -44,7 +44,7 @@
         <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
         <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
     </div>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
         <div class="rpt-banner">@RangeText @Locale.T("rpt.income"): @Tk(data.Total) @Locale.T("acc.tk")</div>

@@ -1,0 +1,440 @@
+@page "/sms/templates"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+
+<div class="card structure-page emp-page acc-page sms-page sms-tpl-page sms-mod sms-tpl-studio">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">SMS / @Locale.T("sms.tplTitle")</p>
+            <h1>@Locale.T("sms.tplTitle")</h1>
+            <p class="sms-tpl-lead">@Locale.T("sms.tplSub")</p>
+        </div>
+        <a class="mr-back" href="/sms/send">@Locale.T("sms.send")</a>
+    </header>
+
+    <div class="sms-tpl-stage">
+        <section class="sms-tpl-lang-card no-print">
+            <div class="sms-tpl-sec-head">
+                <div class="sms-tpl-sec-copy">
+                    <span class="sms-tpl-step">01</span>
+                    <div>
+                        <h2>@Locale.T("sms.cmPayLang")</h2>
+                        <p>@Locale.T("sms.cmPayLangHint")</p>
+                    </div>
+                </div>
+                <div class="sms-tpl-lang-pills">
+                    <button type="button" class="@(payLang == "bn" ? "is-on" : null)" disabled="@busy" @onclick='() => SetPayLang("bn")'>@Locale.T("sms.cmPayLangBn")</button>
+                    <button type="button" class="@(payLang == "en" ? "is-on" : null)" disabled="@busy" @onclick='() => SetPayLang("en")'>@Locale.T("sms.cmPayLangEn")</button>
+                </div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(langMsg))
+            {
+                <p class="sms-inline-ok">@langMsg</p>
+            }
+        </section>
+
+        <section class="sms-tpl-list-card">
+            <div class="sms-tpl-sec-head">
+                <div class="sms-tpl-sec-copy">
+                    <span class="sms-tpl-step">02</span>
+                    <div>
+                        <h2>@Locale.T("sms.tplTitle")</h2>
+                        <p>@Locale.T("sms.tplLangHint")</p>
+                    </div>
+                </div>
+                <button type="button" class="sms-tpl-add" disabled="@busy" @onclick="StartAdd">@Locale.T("sms.tplAdd")</button>
+            </div>
+
+            <div class="sms-tpl-tabs no-print">
+                @foreach (var tab in Tabs)
+                {
+                    <button type="button" class="@(category == tab.Key ? "is-on" : null)" disabled="@busy" @onclick="() => SwitchTab(tab.Key)">
+                        @Locale.T(tab.Label)
+                    </button>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(guide))
+            {
+                <div class="sms-tpl-guide no-print">@guide</div>
+            }
+
+            <div class="sms-tpl-table-wrap">
+                <table class="mgrid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("sms.tplName")</th>
+                            <th>@Locale.T("sms.tplType")</th>
+                            <th>@Locale.T("sms.tplPreview")</th>
+                            <th>@Locale.T("sms.tplActive")</th>
+                            <th class="act">@Locale.T("sms.tplActions")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (rows.Count == 0 && !busy)
+                    {
+                        <tr><td colspan="5" class="empty-row">@Locale.T("sms.empty")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in rows)
+                        {
+                            <tr>
+                                <td><strong>@row.TemplateName</strong></td>
+                                <td><span class="sms-tpl-type">@TypeLabel(row.TemplateType)</span></td>
+                                <td class="sms-tpl-preview">@Preview(row.MessageTemplate)</td>
+                                <td><span class="sms-status @(row.IsActive ? "is-on" : "is-off")">@(row.IsActive ? Locale.T("emp.active") : Locale.T("acc.inactive"))</span></td>
+                                <td class="act">
+                                    <button type="button" class="sms-tpl-act" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("sal.edit")</button>
+                                    <button type="button" class="sms-tpl-act is-danger" disabled="@busy" @onclick="() => confirmDeleteId = row.TemplateID">@Locale.T("sal.delete")</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div class="acc-result-back" @onclick="CloseModal">
+        <div class="sms-tpl-editor" @onclick:stopPropagation="true">
+            <header>
+                <span class="sms-tpl-step">@(editId > 0 ? "✎" : "+")</span>
+                <div>
+                    <h3>@(editId > 0 ? Locale.T("sal.edit") : Locale.T("sms.tplAdd"))</h3>
+                    <p>@Locale.T("sms.tplTapPh")</p>
+                </div>
+                <button type="button" class="sms-tpl-x" disabled="@busy" @onclick="CloseModal">×</button>
+            </header>
+            <div class="sms-tpl-editor-grid">
+                <label class="sms-tpl-field">
+                    <span>@Locale.T("sms.tplName")</span>
+                    <input type="text" @bind="formName" disabled="@busy" />
+                </label>
+                <label class="sms-tpl-field">
+                    <span>@Locale.T("sms.tplType")</span>
+                    <select @bind="formType" disabled="@busy">
+                        @foreach (var opt in TypeOptions(category))
+                        {
+                            <option value="@opt.Key">@opt.Value</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <label class="sms-tpl-field">
+                <span>@Locale.T("sms.tplMessage")</span>
+                <textarea rows="6" @bind="formMessage" disabled="@busy"></textarea>
+            </label>
+            <div class="sms-tpl-chips">
+                <small>@Locale.T("sms.tplPlaceholders")</small>
+                <div>
+                    @foreach (var ph in Placeholders(category, formType))
+                    {
+                        <button type="button" disabled="@busy" @onclick="() => InsertPh(ph)">@ph</button>
+                    }
+                </div>
+            </div>
+            <footer>
+                <label class="sms-tpl-active">
+                    <input type="checkbox" checked="@formActive" @onchange="OnActive" disabled="@busy" />
+                    <span>@Locale.T("sms.tplActive")</span>
+                </label>
+                <div class="sms-tpl-editor-actions">
+                    <button type="button" class="sms-tpl-ghost" disabled="@busy" @onclick="CloseModal">@Locale.T("cls.cancel")</button>
+                    <button type="button" class="sms-tpl-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("sms.tplSave")</button>
+                </div>
+            </footer>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (confirmDeleteId is int delId)
+{
+    <div class="acc-result-back" @onclick="() => confirmDeleteId = null">
+        <div class="acc-result is-ok" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("sal.delete")</h3>
+            <p>@Locale.T("acc.confirmDelete")</p>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="() => DeleteAsync(delId)">@Locale.T("sal.delete")</button>
+            <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="() => confirmDeleteId = null">@Locale.T("cls.cancel")</button>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(popupText) && !busy)
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private static readonly (string Key, string Label)[] Tabs =
+    [
+        ("Payment", "sms.tplTabPayment"),
+        ("Due", "sms.tplTabDue"),
+        ("Donor", "sms.tplTabDonor"),
+        ("ExamResult", "sms.tplTabExam"),
+        ("Attendance", "sms.tplTabAttendance"),
+        ("Admission", "sms.tplTabAdmission")
+    ];
+
+    private string category = "Payment";
+    private string payLang = "bn";
+    private string? langMsg, popupText, guide;
+    private string busyTitle = "";
+    private bool busy, popupError, showModal, formActive = true;
+    private int editId;
+    private int? confirmDeleteId;
+    private string formName = "", formType = "Payment", formMessage = "";
+    private List<SmsTemplateDto> rows = [];
+
+    protected override async Task OnInitializedAsync() => await LoadPageAsync();
+
+    private async Task LoadPageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            popupText = Locale.T("subj.needOnline");
+            popupError = true;
+            return;
+        }
+        busyTitle = Locale.T("sms.loadingList");
+        busy = true;
+        popupText = null;
+        try
+        {
+            try
+            {
+                var lang = await Api.GetCommitteePaymentSmsLangAsync(Session.AccessToken);
+                payLang = lang?.Lang == "en" ? "en" : "bn";
+            }
+            catch
+            {
+                payLang = "bn";
+            }
+            await LoadRowsAsync();
+        }
+        catch (Exception ex)
+        {
+            popupError = true;
+            popupText = FriendlyError(ex);
+        }
+        finally { busy = false; }
+    }
+
+    private async Task LoadRowsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        rows = (await Api.GetSmsTemplatesAsync(Session.AccessToken, category)).ToList();
+        guide = CategoryGuide(category);
+    }
+
+    private async Task SwitchTab(string cat)
+    {
+        category = cat;
+        formType = TypeOptions(cat).First().Key;
+        busyTitle = Locale.T("sms.loadingList");
+        busy = true;
+        popupText = null;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                popupText = Locale.T("subj.needOnline");
+                popupError = true;
+                return;
+            }
+            await LoadRowsAsync();
+        }
+        catch (Exception ex)
+        {
+            popupError = true;
+            popupText = FriendlyError(ex);
+            rows = [];
+        }
+        finally { busy = false; }
+    }
+
+    private string FriendlyError(Exception ex)
+    {
+        var key = FriendlyErrorKey(ex);
+        if (key == "subj.needOnline")
+            return Locale.T(key) + "\n" + ex.Message;
+        if (key == "sms.tplLoadFail")
+            return Locale.T(key) + "\n" + ex.Message;
+        return key;
+    }
+
+    private static string FriendlyErrorKey(Exception ex)
+    {
+        var msg = ex.Message ?? "";
+        if (ex is HttpRequestException)
+        {
+            if (msg.Contains("404", StringComparison.Ordinal))
+                return "sms.tplLoadFail";
+
+            if (msg.Contains("actively refused", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("No connection could be made", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("failed to connect", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("connection refused", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("no such host", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("timeout", StringComparison.OrdinalIgnoreCase))
+                return "subj.needOnline";
+        }
+        return msg;
+    }
+
+    private async Task SetPayLang(string lang)
+    {
+        if (payLang == lang || string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        payLang = lang;
+        langMsg = null;
+        try
+        {
+            var result = await Api.SaveCommitteePaymentSmsLangAsync(Session.AccessToken, new CommitteePaymentSmsLangDto { Lang = lang });
+            langMsg = result.Succeeded ? Locale.T("sms.cmPayLangSaved") : Locale.T(result.Error ?? "sms.tplFail");
+        }
+        catch (Exception ex) { langMsg = ex.Message; }
+    }
+
+    private void StartAdd()
+    {
+        editId = 0;
+        formName = "";
+        formType = TypeOptions(category).First().Key;
+        formMessage = "";
+        formActive = true;
+        showModal = true;
+    }
+
+    private void StartEdit(SmsTemplateDto row)
+    {
+        editId = row.TemplateID;
+        formName = row.TemplateName;
+        formType = row.TemplateType;
+        formMessage = row.MessageTemplate;
+        formActive = row.IsActive;
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+    private void ClosePopup() => popupText = "";
+    private void OnActive(ChangeEventArgs e) => formActive = e.Value is true or "true" or "True";
+    private void InsertPh(string token) => formMessage += token;
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        busyTitle = Locale.T("sms.saving");
+        busy = true;
+        popupText = null;
+        try
+        {
+            var result = await Api.SaveSmsTemplateAsync(Session.AccessToken, new SaveSmsTemplateRequest
+            {
+                TemplateID = editId,
+                TemplateName = formName,
+                TemplateCategory = category,
+                TemplateType = formType,
+                MessageTemplate = formMessage,
+                IsActive = formActive
+            });
+            if (!result.Succeeded)
+            {
+                popupError = true;
+                popupText = Locale.T(result.Error ?? "sms.tplFail");
+                return;
+            }
+            showModal = false;
+            await LoadRowsAsync();
+            popupError = false;
+            popupText = Locale.T("sms.saved");
+        }
+        catch (Exception ex) { popupError = true; popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        confirmDeleteId = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken)) return;
+        busyTitle = Locale.T("sms.saving");
+        busy = true;
+        try
+        {
+            var result = await Api.DeleteSmsTemplateAsync(Session.AccessToken, id);
+            popupError = !result.Succeeded;
+            popupText = Locale.T(result.Succeeded ? "sms.deleted" : result.Error ?? "sms.tplFail");
+            await LoadRowsAsync();
+        }
+        catch (Exception ex) { popupError = true; popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private static string Preview(string? text)
+    {
+        var t = (text ?? "").Replace('\n', ' ').Trim();
+        return t.Length <= 80 ? t : t[..80] + "…";
+    }
+
+    private static string TypeLabel(string type) => type switch
+    {
+        "Payment" => "Payment Receipt",
+        "Due" => "Due Notification",
+        "DonorDue" => "Donor Due",
+        "DonorPayment" => "Donor Payment",
+        "Passed" => "Passed",
+        "Failed" => "Failed",
+        "Entry" => "Entry",
+        "Exit" => "Exit",
+        "Late" => "Late",
+        "Absent" => "Absent",
+        "AdmissionConfirm" => "Admission Confirm",
+        _ => type
+    };
+
+    private static List<KeyValuePair<string, string>> TypeOptions(string category) => category switch
+    {
+        "Payment" => [new("Payment", "Payment Receipt")],
+        "Due" => [new("Due", "Due Notification")],
+        "Donor" => [new("DonorDue", "Donor Due"), new("DonorPayment", "Donor Payment")],
+        "ExamResult" => [new("Passed", "Passed"), new("Failed", "Failed")],
+        "Attendance" => [new("Entry", "Entry"), new("Exit", "Exit"), new("Late", "Late"), new("Absent", "Absent")],
+        "Admission" => [new("AdmissionConfirm", "Admission Confirm")],
+        _ => [new("Default", "Default")]
+    };
+
+    private static IReadOnlyList<string> Placeholders(string category, string type)
+    {
+        if (category == "Donor" && type == "DonorDue")
+            return ["{DonorName}", "{TotalDue}", "{DueDetails}", "{SchoolName}"];
+        if (category == "Donor" && type == "DonorPayment")
+            return ["{DonorName}", "{Amount}", "{ReceiptNo}", "{PaymentDetails}", "{CurrentDue}", "{SchoolName}"];
+        if (category == "Payment")
+            return ["{StudentName}", "{ID}", "{Amount}", "{ReceiptNo}", "{PaymentDetails}", "{Session}", "{CurrentDue}", "{SchoolName}"];
+        if (category == "Due")
+            return ["{StudentName}", "{ID}", "{TotalDue}", "{DueDetails}", "{SchoolName}"];
+        if (category == "ExamResult")
+            return ["{StudentName}", "{ID}", "{Class}", "{Roll}", "{ExamName}", "{Result}", "{SchoolName}"];
+        if (category == "Attendance")
+            return ["{StudentName}", "{ID}", "{EntryTime}", "{ExitTime}", "{Date}", "{SchoolName}", "{Class}", "{Roll}"];
+        if (category == "Admission")
+            return ["{StudentName}", "{ID}", "{Class}", "{RollNo}", "{AdmissionDate}", "{SchoolName}"];
+        return [];
+    }
+
+    private string CategoryGuide(string cat) => cat switch
+    {
+        "Donor" => Locale.IsBengali
+            ? "ডোনার Due = বকেয়া SMS (Donor Due পেজ)। Donor Payment = রিসিট SMS (কমিটি কালেক্ট/রিসিট)।"
+            : "Donor Due = due notice SMS. Donor Payment = receipt SMS after committee collection.",
+        "Payment" => Locale.IsBengali
+            ? "শিক্ষার্থীর ফি জমা হলে Money Receipt SMS।"
+            : "Student fee payment receipt SMS.",
+        _ => ""
+    };
+}

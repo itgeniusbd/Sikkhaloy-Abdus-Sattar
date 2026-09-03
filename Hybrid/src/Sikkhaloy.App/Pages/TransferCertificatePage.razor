@@ -2,34 +2,47 @@
 @inherits LocaleAwareComponent
 @inject AppSession Session
 @inject ISyncApiClient Api
-@inject SyncEngine Sync
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page">
-    <h1 class="no-print">@Locale.T("sm.tc")</h1>
-    <p class="muted no-print">@Locale.T("sm.crumb")</p>
-    <p class="muted no-print">@Locale.T("sm.tcHint")</p>
+<div class="card sa-page si-info-page si-id-page si-signup-page si-certs-page sm-cc-page sm-tc-page students-card @(hideIns ? "hide-ins" : null)">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("sm.crumb")</p>
+            <h1>@Locale.T("sm.tc")</h1>
+            <p class="sa-lead">@Locale.T("sm.tcHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText) && !confirmTc)
     {
-        <div class="error no-print">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok no-print">@message</div>
+        <NetBanner Text="@error" />
     }
 
     <div class="si-tabs no-print">
-        <button type="button" class="@(tab == "find" ? "active" : null)" @onclick="@(() => tab = "find")">@Locale.T("sm.findTab")</button>
-        <button type="button" class="@(tab == "list" ? "active" : null)" @onclick="ShowListAsync">@Locale.T("sm.listTab")</button>
+        <button type="button" class="@(tab == "find" ? "active" : null)" disabled="@busy" @onclick="@(() => tab = "find")">
+            @Locale.T("sm.findTab")
+        </button>
+        <button type="button" class="@(tab == "list" ? "active" : null)" disabled="@busy" @onclick="ShowListAsync">
+            @Locale.T("sm.listTab")
+            @if (list.Count > 0)
+            {
+                <b>@list.Count</b>
+            }
+        </button>
     </div>
 
     @if (tab == "find")
     {
-        <div class="filter-row no-print">
-            <input class="id-find" type="text" placeholder="@Locale.T("si.enterId")" @bind="findId" disabled="@busy" />
-            <button type="button" class="btn-serial" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
-            <button type="button" class="link-btn" disabled="@(busy || student is null)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        <div class="sal-bar no-print">
+            <section class="sal-box is-sid">
+                <span class="sal-box-h">@Locale.T("si.idBar")</span>
+                <input class="si-find-input" type="text" placeholder="@Locale.T("si.enterId")"
+                       @bind="findId" @bind:event="oninput" disabled="@busy" @onkeydown="OnIdKey" />
+            </section>
+            <div class="sal-actions">
+                <button type="button" class="sal-gen" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
+                <button type="button" class="stu-btn is-print" disabled="@(busy || student is null)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+            </div>
         </div>
 
         @if (student is not null)
@@ -39,185 +52,240 @@
                     <li><b>(@student.ID) @student.StudentsName</b></li>
                     <li><b>@Locale.T("si.father"):</b> @student.FathersName</li>
                     <li><b>@Locale.T("si.class"):</b> @student.ClassName, @Locale.T("si.roll"): @student.RollNo</li>
-                    <li><b>@Locale.T("sm.status"):</b> @(student.Status == "Rejected" ? Locale.T("sm.rejected") : Locale.T("sm.active"))</li>
+                    <li>
+                        <b>@Locale.T("sm.status"):</b>
+                        <span class="si-valid @(IsRejected ? "is-bad" : "is-ok")">@(IsRejected ? Locale.T("sm.rejected") : Locale.T("sm.active"))</span>
+                    </li>
                 </ul>
             </div>
 
-            @if (!string.Equals(student.Status, "Rejected", StringComparison.OrdinalIgnoreCase))
+            @if (!IsRejected)
             {
-                <div class="filter-row no-print tc-pay-opts">
-                    <label class="choice-inline">
-                        <input type="radio" name="tc-pay" checked="@deletePay" @onchange="@(() => deletePay = true)" />
-                        <span>@Locale.T("sm.deleteAllPay")</span>
-                    </label>
-                    <label class="choice-inline">
-                        <input type="radio" name="tc-pay" checked="@(!deletePay)" @onchange="@(() => deletePay = false)" />
-                        <span>@Locale.T("sm.keepDues")</span>
-                    </label>
-                    <button type="button" class="btn-serial" disabled="@busy" @onclick="GiveAsync">@Locale.T("sm.giveTc")</button>
+                <div class="sal-bar no-print sm-tc-actions">
+                    <section class="sal-box is-type">
+                        <span class="sal-box-h">@Locale.T("sm.payOrder")</span>
+                        <span class="readm-type">
+                            <label class="choice-inline">
+                                <input type="radio" name="tc-pay" checked="@deletePay" @onchange="@(() => deletePay = true)" />
+                                <span>@Locale.T("sm.deleteAllPay")</span>
+                            </label>
+                            <label class="choice-inline">
+                                <input type="radio" name="tc-pay" checked="@(!deletePay)" @onchange="@(() => deletePay = false)" />
+                                <span>@Locale.T("sm.keepDues")</span>
+                            </label>
+                        </span>
+                    </section>
+                    <div class="sal-actions">
+                        <button type="button" class="sal-gen" disabled="@busy" @onclick="AskGiveAsync">@Locale.T("sm.giveTc")</button>
+                    </div>
                 </div>
             }
             else
             {
-                <div class="filter-row no-print">
-                    <select @bind="yearInput" disabled="@busy">
-                        <option value="0">@Locale.T("sm.selectSession")</option>
-                        @foreach (var year in years)
-                        {
-                            <option value="@year.EducationYearID">@year.Name</option>
-                        }
-                    </select>
-                    <select @bind="classInput" @bind:after="ApplyParts" disabled="@busy">
-                        <option value="0">@Locale.T("si.selectClass")</option>
-                        @foreach (var item in classes)
-                        {
-                            <option value="@item.ClassID">@item.Name</option>
-                        }
-                    </select>
-                    @if (groups.Count > 0)
-                    {
-                        <select @bind="groupInput" disabled="@busy">
-                            <option value="0">@Locale.T("si.selectGroup")</option>
-                            @foreach (var item in groups)
+                <div class="sal-bar no-print sm-tc-actions">
+                    <section class="sal-box is-class">
+                        <span class="sal-box-h">@Locale.T("acc.session")</span>
+                        <select @bind="yearInput" disabled="@busy">
+                            <option value="0">@Locale.T("sm.selectSession")</option>
+                            @foreach (var year in years)
                             {
-                                <option value="@item.ServerId">@item.Name</option>
+                                <option value="@year.EducationYearID">@year.Name</option>
                             }
                         </select>
+                    </section>
+                    <section class="sal-box is-class">
+                        <span class="sal-box-h">@Locale.T("si.class")</span>
+                        <select @bind="classInput" @bind:after="ApplyParts" disabled="@busy">
+                            <option value="0">@Locale.T("si.selectClass")</option>
+                            @foreach (var item in classes)
+                            {
+                                <option value="@item.ClassID">@item.Name</option>
+                            }
+                        </select>
+                    </section>
+                    @if (groups.Count > 0)
+                    {
+                        <section class="sal-box is-group">
+                            <span class="sal-box-h">@Locale.T("si.group")</span>
+                            <select @bind="groupInput" disabled="@busy">
+                                <option value="0">@Locale.T("si.selectGroup")</option>
+                                @foreach (var item in groups)
+                                {
+                                    <option value="@item.ServerId">@item.Name</option>
+                                }
+                            </select>
+                        </section>
                     }
                     @if (sections.Count > 0)
                     {
-                        <select @bind="sectionInput" disabled="@busy">
-                            <option value="0">@Locale.T("si.selectSection")</option>
-                            @foreach (var item in sections)
-                            {
-                                <option value="@item.ServerId">@item.Name</option>
-                            }
-                        </select>
+                        <section class="sal-box is-section">
+                            <span class="sal-box-h">@Locale.T("si.section")</span>
+                            <select @bind="sectionInput" disabled="@busy">
+                                <option value="0">@Locale.T("si.selectSection")</option>
+                                @foreach (var item in sections)
+                                {
+                                    <option value="@item.ServerId">@item.Name</option>
+                                }
+                            </select>
+                        </section>
                     }
                     @if (shifts.Count > 0)
                     {
-                        <select @bind="shiftInput" disabled="@busy">
-                            <option value="0">@Locale.T("si.selectShift")</option>
-                            @foreach (var item in shifts)
-                            {
-                                <option value="@item.ServerId">@item.Name</option>
-                            }
-                        </select>
+                        <section class="sal-box is-shift">
+                            <span class="sal-box-h">@Locale.T("si.shift")</span>
+                            <select @bind="shiftInput" disabled="@busy">
+                                <option value="0">@Locale.T("si.selectShift")</option>
+                                @foreach (var item in shifts)
+                                {
+                                    <option value="@item.ServerId">@item.Name</option>
+                                }
+                            </select>
+                        </section>
                     }
-                    <button type="button" class="btn-serial" disabled="@busy" @onclick="ActivateAsync">@Locale.T("sm.activate")</button>
+                    <div class="sal-actions">
+                        <button type="button" class="sal-gen" disabled="@busy" @onclick="ActivateAsync">@Locale.T("sm.activate")</button>
+                    </div>
                 </div>
             }
 
-            <article class="cert-sheet tc-sheet">
-                <header class="tc-school">
-                    @if (!string.IsNullOrWhiteSpace(logoUrl))
-                    {
-                        <img src="@logoUrl" alt="" />
-                    }
-                    else
-                    {
-                        <span class="tc-logo-fallback">@(schoolName.Length == 0 ? "S" : schoolName[..1])</span>
-                    }
+            <div class="sm-tc-print no-print">
+                <div class="sm-tc-print-h">
+                    <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
                     <div>
-                        <h1>@schoolName</h1>
-                        <p>
-                            @if (!string.IsNullOrWhiteSpace(schoolAddress))
-                            {
-                                <span>@schoolAddress</span>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(schoolPhone))
-                            {
-                                <span>@schoolPhone</span>
-                            }
-                        </p>
+                        <h4>@Locale.T("att.printSettings")</h4>
+                        <p>@Locale.T("sm.tcPadHint")</p>
                     </div>
-                </header>
-                <h2>TRANSFER CERTIFICATE</h2>
-                <div class="cert-body">
-                    <p>
-                        It is hereby gladly declared that <strong>@student.StudentsName</strong>
-                        Student ID: <strong>@student.ID</strong>,
-                        @(IsMale ? "son of" : "daughter of") <strong>@student.FathersName</strong>
-                        @if (!string.IsNullOrWhiteSpace(student.Address))
+                </div>
+                <div class="sm-tc-print-b">
+                    <label class="choice-inline">
+                        <input type="checkbox" checked="@hideIns" @onchange="OnHideIns" />
+                        <span>@Locale.T("att.hideSchool")</span>
+                    </label>
+                    <label>@Locale.T("att.topSpace")
+                        <input type="number" min="0" @bind="topSpace" @bind:after="PersistOptsAsync" />
+                    </label>
+                </div>
+            </div>
+
+            <article class="cert-sheet tc-sheet" style="@SheetStyle">
+                <div class="cert-frame">
+                    <div class="cert-frame-inner">
+                        @if (!hideIns)
                         {
-                            <text> of residence- <strong>@student.Address</strong></text>
+                            <PrintHeader ShowDate="false" Centered="true" ShowInstitutionId="false" />
                         }
-                        had been reading in this institution in class <strong>@student.ClassName</strong>
-                        Roll No. <strong>@student.RollNo</strong>
-                        upto <strong>@(student.RejectedDate?.ToString("d MMM yyyy") ?? "—")</strong>.
-                        According to the admission register of the institution,
-                        @(IsMale ? "his" : "her") date of birth is:
-                        <strong>@(student.DateofBirth?.ToString("d MMM yyyy") ?? "—")</strong>.
-                        @(IsMale ? "He" : "She") has been full paid in this institution fee on session:
-                        <strong>@student.EducationYear</strong>.
-                    </p>
-                </div>
-                <div class="tc-causes">
-                    <b>CAUSES OF TRANSFER OF THE INSTITUTION:</b>
-                    <ul class="tc-cause-list">
-                        <li><label class="choice-inline"><input type="checkbox" /><span>Urgent transfer of resident</span></label></li>
-                        <li><label class="choice-inline"><input type="checkbox" /><span>Guardian's wish</span></label></li>
-                        <li><label class="choice-inline"><input type="checkbox" /><span>Has been completion of the session</span></label></li>
-                        <li><label class="choice-inline"><input type="checkbox" /><span>Reason for leaving institution</span></label></li>
-                        <li><label class="choice-inline"><input type="checkbox" /><span>Cause of personal</span></label></li>
-                    </ul>
-                    <ul class="tc-remarks">
-                        <li>Remarks on character and conduct of student : Good</li>
-                        <li>Remarks on caliber and mental aptitude of student : Wishing success</li>
-                    </ul>
-                </div>
-                <div class="cert-signs">
-                    <span></span>
-                    <span>Signature of Authority</span>
+                        <h2>TRANSFER CERTIFICATE</h2>
+                        <div class="cert-body">
+                            <p>
+                                It is hereby gladly declared that <strong>@student.StudentsName</strong>
+                                Student ID: <strong>@student.ID</strong>,
+                                @(IsMale ? "son of" : "daughter of") <strong>@student.FathersName</strong>
+                                @if (!string.IsNullOrWhiteSpace(student.Address))
+                                {
+                                    <text> of residence- <strong>@student.Address</strong></text>
+                                }
+                                had been reading in this institution in class <strong>@student.ClassName</strong>
+                                Roll No. <strong>@student.RollNo</strong>
+                                upto <input class="tc-upto" type="text" @bind="uptoDate" @bind:event="oninput" maxlength="32" />.
+                                According to the admission register of the institution,
+                                @(IsMale ? "his" : "her") date of birth is:
+                                <strong>@(student.DateofBirth?.ToString("d MMM yyyy") ?? "—")</strong>.
+                                @(IsMale ? "He" : "She") has been full paid in this institution fee on session:
+                                <strong>@student.EducationYear</strong>.
+                            </p>
+                        </div>
+                        <div class="tc-causes">
+                            <b>CAUSES OF TRANSFER OF THE INSTITUTION:</b>
+                            <ul class="tc-cause-list">
+                                <li><label class="choice-inline"><input type="checkbox" /><span>Urgent transfer of resident</span></label></li>
+                                <li><label class="choice-inline"><input type="checkbox" /><span>Guardian's wish</span></label></li>
+                                <li><label class="choice-inline"><input type="checkbox" /><span>Has been completion of the session</span></label></li>
+                                <li><label class="choice-inline"><input type="checkbox" /><span>Reason for leaving institution</span></label></li>
+                                <li><label class="choice-inline"><input type="checkbox" /><span>Cause of personal</span></label></li>
+                            </ul>
+                            <ul class="tc-remarks">
+                                <li>Remarks on character and conduct of student : Good</li>
+                                <li>Remarks on caliber and mental aptitude of student : Wishing success</li>
+                            </ul>
+                        </div>
+                        <div class="cert-signs">
+                            <span></span>
+                            <span>Signature of Authority</span>
+                        </div>
+                    </div>
                 </div>
             </article>
         }
     }
     else
     {
-        <div class="filter-row no-print">
-            <select @bind="listClassInput" @bind:after="LoadListAsync" disabled="@busy">
-                <option value="0">@Locale.T("students.allClass")</option>
-                @foreach (var item in classes)
-                {
-                    <option value="@item.ClassID">@item.Name</option>
-                }
-            </select>
+        <div class="sal-bar no-print">
+            <section class="sal-box is-class">
+                <span class="sal-box-h">@Locale.T("si.class")</span>
+                <select @bind="listClassInput" @bind:after="LoadListAsync" disabled="@busy">
+                    <option value="0">@Locale.T("students.allClass")</option>
+                    @foreach (var item in classes)
+                    {
+                        <option value="@item.ClassID">@item.Name</option>
+                    }
+                </select>
+            </section>
+            <span class="el-count">@Locale.T("si.stuCount", list.Count)</span>
         </div>
-        <table class="mgrid no-print">
-            <thead>
-                <tr>
-                    <th>@Locale.T("si.id")</th>
-                    <th>@Locale.T("si.name")</th>
-                    <th>@Locale.T("si.class")</th>
-                    <th>@Locale.T("si.roll")</th>
-                    <th>@Locale.T("sm.date")</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (list.Count == 0 && !busy)
-            {
-                <tr><td colspan="6" class="empty-row">@Locale.T("si.empty")</td></tr>
-            }
-            else
-            {
-                @foreach (var row in list)
-                {
+        <div class="sj-grid">
+            <table class="mgrid no-print">
+                <thead>
                     <tr>
-                        <td>@row.ID</td>
-                        <td>@row.StudentsName</td>
-                        <td>@row.ClassName</td>
-                        <td>@row.RollNo</td>
-                        <td>@(row.RejectedDate?.ToString("d") ?? "—")</td>
-                        <td><button type="button" class="link-btn" @onclick="() => OpenFromList(row)">@Locale.T("si.print")</button></td>
+                        <th>@Locale.T("si.id")</th>
+                        <th>@Locale.T("si.name")</th>
+                        <th>@Locale.T("si.class")</th>
+                        <th>@Locale.T("si.roll")</th>
+                        <th>@Locale.T("sm.date")</th>
+                        <th></th>
                     </tr>
+                </thead>
+                <tbody>
+                @if (list.Count == 0 && !busy)
+                {
+                    <tr><td colspan="6" class="empty-row">@Locale.T("si.empty")</td></tr>
                 }
-            }
-            </tbody>
-        </table>
+                else
+                {
+                    @foreach (var row in list)
+                    {
+                        <tr class="@(student?.StudentID == row.StudentID ? "is-on" : null)">
+                            <td>@row.ID</td>
+                            <td class="si-name">@row.StudentsName</td>
+                            <td>@row.ClassName</td>
+                            <td>@row.RollNo</td>
+                            <td>@(row.RejectedDate?.ToString("d") ?? "—")</td>
+                            <td><button type="button" class="link-btn" @onclick="() => OpenFromList(row)">@Locale.T("si.print")</button></td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
     }
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (confirmTc)
+{
+    <div class="acc-result-back" @onclick="() => confirmTc = false">
+        <div class="acc-result is-ok" @onclick:stopPropagation="true">
+            <div class="acc-result-icon">!</div>
+            <h3>@Locale.T("sm.giveTc")</h3>
+            <p>@Locale.T("sm.confirmTc")</p>
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="GiveAsync">@Locale.T("sm.giveTc")</button>
+            <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="() => confirmTc = false">@Locale.T("cls.cancel")</button>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<SchoolClassDto> classes = [];
@@ -236,15 +304,17 @@
     private string shiftInput = "0";
     private string yearInput = "0";
     private string listClassInput = "0";
+    private string busyTitle = "";
+    private string popupText = "";
     private bool deletePay = true;
     private bool busy;
+    private bool popupError;
+    private bool confirmTc;
+    private bool hideIns;
+    private bool optionsLoaded;
+    private int topSpace;
+    private string uptoDate = "";
     private string? error;
-    private string? message;
-    private string schoolName = "";
-    private string schoolAddress = "";
-    private string schoolPhone = "";
-    private string? logoUrl;
-    private int schoolId;
 
     private int ClassId => int.TryParse(classInput, out var n) ? n : 0;
     private int GroupId => int.TryParse(groupInput, out var n) ? n : 0;
@@ -253,27 +323,55 @@
     private int YearId => int.TryParse(yearInput, out var n) ? n : 0;
     private int ListClassId => int.TryParse(listClassInput, out var n) ? n : 0;
     private bool IsMale => string.Equals(student?.Gender, "Male", StringComparison.OrdinalIgnoreCase);
+    private bool IsRejected => string.Equals(student?.Status, "Rejected", StringComparison.OrdinalIgnoreCase);
+    private string SheetStyle => topSpace > 0 ? $"padding-top:{topSpace}px" : "";
 
     protected override async Task OnInitializedAsync()
     {
-        if (Session.Current is not null)
+        await SetBusyAsync("si.loading");
+        try
         {
-            schoolId = Session.Current.SchoolID;
-            var header = Sync.GetSchoolHeader(schoolId);
-            schoolName = string.IsNullOrWhiteSpace(header.SchoolName) ? Session.Current.SchoolName : header.SchoolName;
-            schoolAddress = header.Address ?? "";
-            schoolPhone = header.Phone ?? "";
-            logoUrl = Sync.GetSchoolLogoDataUrl(schoolId);
+            if (!await EnsureOnlineAsync())
+                return;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+            years.Clear();
+            years.AddRange(await Api.GetYearsAsync(Session.AccessToken));
+            yearInput = (Session.Current?.EducationYearID ?? 0).ToString();
         }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
 
-        if (!await EnsureOnlineAsync())
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || optionsLoaded)
             return;
-        structure = await Api.GetClassStructureAsync(Session.AccessToken);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
-        years.Clear();
-        years.AddRange(await Api.GetYearsAsync(Session.AccessToken));
-        yearInput = (Session.Current?.EducationYearID ?? 0).ToString();
+        optionsLoaded = true;
+        try
+        {
+            var saved = await JS.InvokeAsync<TcPrintOpts>("sikkhaloyTcPrintLoad");
+            if (saved is null)
+                return;
+            if (saved.TopSpace >= 0)
+                topSpace = saved.TopSpace;
+            hideIns = saved.HideIns;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
     }
 
     private void ApplyParts()
@@ -289,37 +387,45 @@
         shifts.AddRange(structure.Shifts.Where(x => x.ClassID == ClassId).OrderBy(x => x.Name));
     }
 
+    private async Task OnIdKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await FindAsync();
+    }
+
     private async Task FindAsync()
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         student = null;
         if (string.IsNullOrWhiteSpace(findId))
         {
-            error = Locale.T("si.needId");
+            Show(Locale.T("si.needId"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
 
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             student = await Api.FindTcStudentAsync(Session.AccessToken, findId.Trim());
             if (student is null)
-                error = Locale.T("sm.needStudent");
-            else
             {
-                classInput = student.ClassID.ToString();
-                ApplyParts();
+                Show(Locale.T("sm.needStudent"), true);
+                return;
             }
+            classInput = student.ClassID.ToString();
+            ApplyParts();
+            ApplyUptoDate();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -327,19 +433,25 @@
         }
     }
 
+    private void AskGiveAsync()
+    {
+        if (student is null)
+            return;
+        confirmTc = true;
+    }
+
     private async Task GiveAsync()
     {
         if (student is null)
             return;
-        error = message = null;
-        if (!await JS.InvokeAsync<bool>("confirm", Locale.T("sm.confirmTc")))
-            return;
-        if (!await EnsureOnlineAsync())
-            return;
-
-        busy = true;
+        confirmTc = false;
+        error = null;
+        popupText = "";
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.GiveTcAsync(Session.AccessToken, new GiveTcRequest
             {
                 StudentID = student.StudentID,
@@ -349,20 +461,22 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
             student = await Api.FindTcStudentAsync(Session.AccessToken, student.ID);
-            message = Locale.T("sm.okTc");
+            if (string.IsNullOrWhiteSpace(uptoDate))
+                ApplyUptoDate();
+            Show(Locale.T("sm.okTc"), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -374,18 +488,19 @@
     {
         if (student is null)
             return;
-        error = message = null;
+        error = null;
+        popupText = "";
         if (ClassId <= 0 || YearId <= 0)
         {
-            error = Locale.T("sm.needClass");
+            Show(Locale.T("sm.needClass"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
 
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.ActivateTcAsync(Session.AccessToken, new ActivateTcRequest
             {
                 StudentID = student.StudentID,
@@ -397,20 +512,20 @@
             });
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
             student = await Api.FindTcStudentAsync(Session.AccessToken, student.ID);
-            message = Locale.T("sm.okActivate");
+            Show(Locale.T("sm.okActivate"), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -426,23 +541,24 @@
 
     private async Task LoadListAsync()
     {
-        error = message = null;
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        error = null;
+        popupText = "";
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var data = await Api.ListTcStudentsAsync(Session.AccessToken, ListClassId);
             list.Clear();
             list.AddRange(data);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -457,16 +573,45 @@
         tab = "find";
         classInput = row.ClassID.ToString();
         ApplyParts();
+        ApplyUptoDate();
     }
 
-    private async Task PrintAsync() =>
-        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false);
+    private void ApplyUptoDate()
+    {
+        uptoDate = student?.RejectedDate?.ToString("d MMM yyyy")
+            ?? DateTime.Today.ToString("d MMM yyyy");
+    }
+
+    private async Task PrintAsync()
+    {
+        await PersistOptsAsync();
+        await JS.InvokeVoidAsync("sikkhaloyPrintTc", PrintOpts());
+    }
+
+    private Task OnHideIns(ChangeEventArgs e)
+    {
+        hideIns = e.Value is true or "true" or "True";
+        return PersistOptsAsync();
+    }
+
+    private Task PersistOptsAsync() =>
+        JS.InvokeVoidAsync("sikkhaloyTcPrintSave", PrintOpts()).AsTask();
+
+    private object PrintOpts() => new { topSpace, hideIns };
+
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
 
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
@@ -474,4 +619,19 @@
 
     private string Translate(string? key) =>
         string.IsNullOrWhiteSpace(key) ? Locale.T("si.failed") : Locale.T(key);
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
+
+    private sealed class TcPrintOpts
+    {
+        public int TopSpace { get; set; }
+        public bool HideIns { get; set; }
+    }
 }

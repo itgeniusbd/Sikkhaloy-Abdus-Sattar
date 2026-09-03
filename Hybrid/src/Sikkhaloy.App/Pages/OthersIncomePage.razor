@@ -6,112 +6,148 @@
 @inject IJSRuntime JS
 @inject SyncEngine Sync
 
-<div class="card structure-page emp-page acc-page oi-page mr-page @(hideIns ? "hide-ins" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
 @if (printItem is not null)
 {
-    <div class="no-print mr-top">
+<div class="card sa-page si-info-page acc-page acc-mod-page oi-page mr-page mr-check-page @(hideIns ? "hide-ins" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.others")</p>
+            <h1>@Locale.T("acc.othersReceipt")</h1>
+            <p class="sa-lead">@Locale.T("acc.othersReceiptHint")</p>
+        </div>
+    </header>
+
+    <div class="no-print mr-toolbar">
         <a class="mr-back" href="accounts/others">@Locale.T("acc.backOthers")</a>
-        <button type="button" class="acc-btn acc-btn-primary mr-print-top" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        <span class="mr-toolbar-meta">@Locale.T("acc.receiptNo"): <strong>@printItem.ExtraIncomeID</strong></span>
+        <button type="button" class="sal-gen" @onclick="PrintAsync">@Locale.T("si.print")</button>
     </div>
 
-    <div class="mr-sheet" style="@SheetStyle">
-        <div class="mr-ins">
-            @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
-            {
-                <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
-            }
-            else
-            {
-                <div class="mr-school">@schoolName</div>
-                <div class="mr-addr">
-                    @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
-                    @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
+    <div class="mr-layout">
+        <div class="mr-preview">
+            <div class="mr-sheet" style="@SheetStyle">
+                <div class="mr-ins">
+                    @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+                    {
+                        <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+                    }
+                    else
+                    {
+                        <div class="mr-school">@schoolName</div>
+                        <div class="mr-addr">
+                            @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
+                            @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
+                        </div>
+                    }
                 </div>
-            }
-        </div>
-        <div class="mr-head">@Locale.T("acc.othersReceipt")</div>
-        <table class="mgrid mr-grid">
-            <thead>
-                <tr>
-                    <th>@Locale.T("acc.receiptNo")</th>
-                    <th>@Locale.T("acc.category")</th>
-                    <th>@Locale.T("acc.description")</th>
-                    <th>@Locale.T("att.date")</th>
-                    <th>@Locale.T("acc.amount")</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>@printItem.ExtraIncomeID</td>
-                    <td>@printItem.Category</td>
-                    <td>@printItem.Details</td>
-                    <td>@printItem.Date.ToString("d MMM yyyy")</td>
-                    <td>@printItem.Amount.ToString("0.##") @Locale.T("acc.tk")</td>
-                </tr>
-            </tbody>
-        </table>
-        <p class="oi-total">@Locale.T("acc.total"): @printItem.Amount.ToString("0.##") @Locale.T("acc.tk")</p>
-        <p class="mr-words">@AmountInWords(printItem.Amount)</p>
-        <p class="mr-recv">@Locale.T("acc.recvByLine", printItem.ReceivedBy ?? "")</p>
-    </div>
-
-    <div class="no-print mr-print-opt">
-        <div class="mr-print-head">
-            <div>
-                <h4>@Locale.T("acc.printOptions")</h4>
-                <p>@Locale.T("acc.printSizeHint")</p>
+                <div class="mr-head">@Locale.T("acc.othersReceipt")</div>
+                <table class="mgrid mr-grid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("acc.receiptNo")</th>
+                            <th>@Locale.T("acc.category")</th>
+                            <th>@Locale.T("acc.description")</th>
+                            <th>@Locale.T("att.date")</th>
+                            <th>@Locale.T("acc.amount")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>@printItem.ExtraIncomeID</td>
+                            <td>@printItem.Category</td>
+                            <td>@printItem.Details</td>
+                            <td>@printItem.Date.ToString("d MMM yyyy")</td>
+                            <td class="mr-amt">@printItem.Amount.ToString("0.##")</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="mr-total-row">
+                            <td colspan="4" class="mr-fee mr-total-label">@Locale.T("acc.total"):</td>
+                            <td class="mr-amt mr-money">@printItem.Amount.ToString("0.##") @Locale.T("acc.tk")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <p class="mr-words">@AmountInWords(printItem.Amount)</p>
+                <p class="mr-recv">@Locale.T("acc.recvByLine", printItem.ReceivedBy ?? "")</p>
             </div>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("si.print")</button>
         </div>
-        <div class="mr-print-body">
-            <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
-            <label>@Locale.T("acc.printSize")
-                <select @bind="printSize" @bind:after="PersistOptsAsync">
-                    <option value="3">@Locale.T("acc.inch", "3")</option>
-                    <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
-                    <option value="4">@Locale.T("acc.inch", "4")</option>
-                    <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
-                    <option value="5">@Locale.T("acc.inch", "5")</option>
-                    <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
-                    <option value="6">@Locale.T("acc.inch", "6")</option>
-                </select>
-            </label>
-            <label>@Locale.T("acc.topSpace")
-                <input type="number" min="0" @bind="topSpace" @bind:after="PersistOptsAsync" />
-            </label>
-            <label>@Locale.T("acc.fontSize")
-                <input type="number" min="10" max="20" @bind="fontSize" @bind:after="PersistOptsAsync" />
-            </label>
-        </div>
+
+        <aside class="mr-tools no-print">
+            <section class="mr-tool-card">
+                <h3>@Locale.T("acc.printOptions")</h3>
+                <p class="mr-tool-hint">@Locale.T("acc.printSizeHint")</p>
+                <div class="mr-opt-checks">
+                    <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
+                </div>
+                <div class="mr-opt-grid">
+                    <label class="mr-opt-field">
+                        <span>@Locale.T("acc.printSize")</span>
+                        <select @bind="printSize" @bind:after="PersistOptsAsync">
+                            <option value="3">@Locale.T("acc.inch", "3")</option>
+                            <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
+                            <option value="4">@Locale.T("acc.inch", "4")</option>
+                            <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
+                            <option value="5">@Locale.T("acc.inch", "5")</option>
+                            <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
+                            <option value="6">@Locale.T("acc.inch", "6")</option>
+                        </select>
+                    </label>
+                    <label class="mr-opt-field">
+                        <span>@Locale.T("acc.topSpace")</span>
+                        <input type="number" class="pc-num" min="0" step="1" @bind="topSpace" @bind:after="PersistOptsAsync" />
+                    </label>
+                    <label class="mr-opt-field">
+                        <span>@Locale.T("acc.fontSize")</span>
+                        <input type="number" class="pc-num" min="10" max="20" step="1" @bind="fontSize" @bind:after="PersistOptsAsync" />
+                    </label>
+                </div>
+            </section>
+        </aside>
     </div>
+</div>
 }
 else
 {
-    <h1>@Locale.T("acc.othersDetails")</h1>
+<div class="card sa-page si-info-page acc-page acc-mod-page oi-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.others")</p>
+            <h1>@Locale.T("acc.othersDetails")</h1>
+            <p class="sa-lead">@Locale.T("acc.othersHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error no-print">@error</div> }
-    @if (!string.IsNullOrWhiteSpace(message)) { <div class="ok no-print">@message</div> }
-
-    <div class="filter-row no-print oi-filters">
-        <select @bind="catInput" disabled="@busy">
-            <option value="0">@Locale.T("acc.selectCategory")</option>
-            @foreach (var item in categories)
-            {
-                <option value="@item.ExtraIncomeCategoryID">@item.Name</option>
-            }
-        </select>
-        <input type="date" max="@MaxDate" value="@fromText" @onchange="OnFromChanged" disabled="@busy" />
-        <input type="date" max="@MaxDate" value="@toText" @onchange="OnToChanged" disabled="@busy" />
-        <input type="text" placeholder="@Locale.T("acc.receiptNo")" @bind="receiptNo" disabled="@busy" />
-        <button type="button" class="acc-btn oi-find" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
-        <span class="oi-spacer"></span>
-        <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="OpenAdd">@Locale.T("acc.addIncome")</button>
-        <button type="button" class="acc-btn oi-cat" disabled="@busy" @onclick="() => showCat = true">@Locale.T("acc.addCategory")</button>
+    <div class="sal-bar no-print oi-filters">
+        <section class="sal-box is-role">
+            <span class="sal-box-h">@Locale.T("acc.category")</span>
+            <select @bind="catInput" disabled="@busy">
+                <option value="0">@Locale.T("acc.selectCategory")</option>
+                @foreach (var item in categories)
+                {
+                    <option value="@item.ExtraIncomeCategoryID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-date">
+            <span class="sal-box-h">@Locale.T("att.from")</span>
+            <input type="date" max="@MaxDate" value="@fromText" @onchange="OnFromChanged" disabled="@busy" />
+        </section>
+        <section class="sal-box is-date">
+            <span class="sal-box-h">@Locale.T("att.to")</span>
+            <input type="date" max="@MaxDate" value="@toText" @onchange="OnToChanged" disabled="@busy" />
+        </section>
+        <section class="sal-box is-sid">
+            <span class="sal-box-h">@Locale.T("acc.receiptNo")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("acc.receiptNo")" @bind="receiptNo" disabled="@busy" />
+        </section>
+        <button type="button" class="sal-gen oi-find" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
+        <button type="button" class="sal-bonus" disabled="@busy" @onclick="OpenAdd">@Locale.T("acc.addIncome")</button>
+        <button type="button" class="sal-del oi-cat" disabled="@busy" @onclick="() => showCat = true">@Locale.T("acc.addCategory")</button>
     </div>
 
-    <p class="acc-total">@(total > 0 ? Locale.T("acc.totalTk", total.ToString("0.##")) : Locale.T("acc.noIncome"))</p>
+    <p class="acc-total oi-sum">@(total > 0 ? Locale.T("acc.totalTk", total.ToString("0.##")) : Locale.T("acc.noIncome"))</p>
 
-    <div class="table-responsive">
+    <div class="sj-grid">
         <table class="mgrid">
             <thead>
                 <tr>
@@ -183,8 +219,8 @@ else
             }
         </div>
     }
-}
 </div>
+}
 
 @if (showAdd)
 {

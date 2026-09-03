@@ -14,28 +14,31 @@
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
     <div class="gp-settings no-print">
         <div class="gp-settings-head">@Locale.T("att.printSettings")</div>
         <div class="gp-settings-body">
-            <label class="choice-inline">
-                <input type="checkbox" @bind="hideSchool" />
+            <label class="acc-check">
+                <input type="checkbox" @bind="hideSchool" @bind:after="ApplyPrintOptionsAsync" />
                 <span>@Locale.T("att.hideSchool")</span>
             </label>
             <label>@Locale.T("att.topSpace")
                 <input type="number" min="0" @bind="topSpace" @bind:after="ApplyPrintOptionsAsync" />
             </label>
             <label>@Locale.T("att.fontSize")
-                <input type="number" min="8" max="20" @bind="fontSize" />
+                <input type="number" min="8" max="20" @bind="fontSize" @bind:after="ApplyPrintOptionsAsync" />
             </label>
             <label>@Locale.T("att.pageSize")
-                <select @bind="pageSize" @bind:after="ApplyPrintOptionsAsync">
-                    <option value="A4">A4</option>
-                    <option value="A5">A5</option>
-                    <option value="A6">A6</option>
-                    <option value="letter">Letter</option>
+                <select @bind="printSize" @bind:after="ApplyPrintOptionsAsync">
+                    <option value="3">@Locale.T("acc.inch", "3")</option>
+                    <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
+                    <option value="4">@Locale.T("acc.inch", "4")</option>
+                    <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
+                    <option value="5">@Locale.T("acc.inch", "5")</option>
+                    <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
+                    <option value="6">@Locale.T("acc.inch", "6")</option>
                 </select>
             </label>
             <button type="button" class="btn-serial" disabled="@(busy || slip is null)" @onclick="PrintAsync">@Locale.T("si.print")</button>
@@ -44,26 +47,33 @@
 
     @if (slip is not null)
     {
-        <div class="gp-page-wrap" style="@WrapStyle">
+        <div class="gp-page-wrap @(IsNarrow ? "is-narrow" : null)" style="@WrapStyle">
             <div class="gp-card">
                 @if (!hideSchool)
                 {
-                    <div class="gp-header">
-                        @if (!string.IsNullOrWhiteSpace(logoUrl))
+                    <div class="gp-header @(useNameLogo ? "is-banner" : null)">
+                        @if (useNameLogo)
                         {
-                            <img class="logo" src="@logoUrl" alt="" />
+                            <img class="gp-name-logo" src="@nameLogoUrl" alt="@SchoolTitle" />
                         }
-                        <div class="school-info">
-                            <div class="school-name">@SchoolTitle</div>
-                            @if (!string.IsNullOrWhiteSpace(SchoolAddress))
+                        else
+                        {
+                            @if (!string.IsNullOrWhiteSpace(logoUrl))
                             {
-                                <div class="school-addr">@SchoolAddress</div>
+                                <img class="logo" src="@logoUrl" alt="" />
                             }
-                            @if (!string.IsNullOrWhiteSpace(SchoolPhone))
-                            {
-                                <div class="school-phone">@Locale.T("att.phoneLabel") @SchoolPhone</div>
-                            }
-                        </div>
+                            <div class="school-info">
+                                <div class="school-name">@SchoolTitle</div>
+                                @if (!string.IsNullOrWhiteSpace(SchoolAddress))
+                                {
+                                    <div class="school-addr">@SchoolAddress</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(SchoolPhone))
+                                {
+                                    <div class="school-phone">@Locale.T("att.phoneLabel") @SchoolPhone</div>
+                                }
+                            </div>
+                        }
                     </div>
                 }
                 <div class="gp-title-band">
@@ -171,34 +181,28 @@
 
     private StudentLeavePrintDto? slip;
     private string? logoUrl;
+    private string? nameLogoUrl;
     private string? error;
     private bool busy;
     private bool hideSchool;
+    private bool useNameLogo;
     private int topSpace;
-    private int fontSize = 12;
-    private string pageSize = "A4";
+    private int fontSize = 11;
+    private string printSize = "4";
 
     private string SchoolTitle =>
-        string.IsNullOrWhiteSpace(slip?.SchoolName) ? (Session.Current?.SchoolName ?? "") : slip!.SchoolName;
+        !string.IsNullOrWhiteSpace(Session.Current?.SchoolName)
+            ? Session.Current!.SchoolName
+            : (slip?.SchoolName ?? "");
     private string? SchoolAddress => slip?.SchoolAddress;
     private string? SchoolPhone => slip?.SchoolPhone;
     private string Approver =>
         string.IsNullOrWhiteSpace(slip?.ApproverName) ? (Session.Current?.DisplayName ?? "") : slip!.ApproverName!;
 
-    private string WrapStyle
-    {
-        get
-        {
-            var width = pageSize switch
-            {
-                "A5" => "148mm",
-                "A6" => "105mm",
-                "letter" => "216mm",
-                _ => "190mm"
-            };
-            return $"padding-top:0;width:{width};font-size:{fontSize}px;";
-        }
-    }
+    private bool IsNarrow => printSize is "3" or "3.5";
+
+    private string WrapStyle =>
+        $"padding-top:{Math.Max(0, topSpace)}px;width:{printSize}in;max-width:100%;font-size:{fontSize}px;margin:0 auto;";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -219,7 +223,11 @@
                 return;
             }
             if (Session.Current is not null)
+            {
                 logoUrl = Sync.GetSchoolLogoDataUrl(Session.Current.SchoolID);
+                nameLogoUrl = Sync.GetSchoolNameLogoDataUrl(Session.Current.SchoolID);
+                useNameLogo = !string.IsNullOrWhiteSpace(nameLogoUrl);
+            }
         }
         catch (HttpRequestException)
         {
@@ -249,12 +257,24 @@
     }
 
     private Task ApplyPrintOptionsAsync() =>
-        JS.InvokeVoidAsync("sikkhaloyApplyLeavePrint", pageSize, topSpace).AsTask();
+        JS.InvokeVoidAsync("sikkhaloyApplyLeavePrint", new
+        {
+            size = printSize,
+            topSpace,
+            fontSize,
+            hideSchool
+        }).AsTask();
 
     private async Task PrintAsync()
     {
         await ApplyPrintOptionsAsync();
-        await JS.InvokeVoidAsync("sikkhaloyPrintLeave", pageSize, topSpace);
+        await JS.InvokeVoidAsync("sikkhaloyPrintLeave", new
+        {
+            size = printSize,
+            topSpace,
+            fontSize,
+            hideSchool
+        });
     }
 
     private void GoBack()

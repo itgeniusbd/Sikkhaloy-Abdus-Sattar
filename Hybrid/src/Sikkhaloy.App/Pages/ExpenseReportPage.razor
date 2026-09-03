@@ -21,28 +21,32 @@
     </div>
 
     <a class="rpt-back no-print" href="accounts/reports/summary">@Locale.T("rpt.backSummary")</a>
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <NetBanner Text="@error" />
     @if (report is not null)
     {
         <div class="rpt-banner">@RangeText @Locale.T("rpt.expense"): @Tk(report.Total) @Locale.T("acc.tk")</div>
         @foreach (var group in report.Groups)
         {
-            <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total) @Locale.T("acc.tk")</span></div>
-            <table class="mgrid">
-                <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
-                <tbody>
-                @foreach (var line in group.Lines)
-                {
-                    <tr>
-                        <td>@line.UserName</td>
-                        <td>@line.AccountName</td>
-                        <td>@line.Details</td>
-                        <td class="num">@Tk(line.Amount)</td>
-                        <td>@line.Date.ToString("d MMM yyyy")</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+            <div class="ie-cat-block">
+                <div class="rpt-cat-head"><span>@group.Category</span><span>৳@Tk(group.Total) @Locale.T("acc.tk")</span></div>
+                <div class="rpt-table-wrap">
+                    <table class="mgrid">
+                        <thead><tr><th>@Locale.T("rpt.userName")</th><th>@Locale.T("rpt.account")</th><th>@Locale.T("rpt.details")</th><th class="num">@Locale.T("rpt.amount")</th><th>@Locale.T("rpt.date")</th></tr></thead>
+                        <tbody>
+                        @foreach (var line in group.Lines)
+                        {
+                            <tr>
+                                <td>@line.UserName</td>
+                                <td>@line.AccountName</td>
+                                <td>@line.Details</td>
+                                <td class="num">@Tk(line.Amount)</td>
+                                <td>@line.Date.ToString("d MMM yyyy")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         }
     }
 </div>

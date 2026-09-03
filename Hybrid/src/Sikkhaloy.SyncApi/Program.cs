@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddHttpLogging();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<EduConnectionFactory>();
 builder.Services.AddSingleton<LocalOfficeMode>();
@@ -26,16 +27,21 @@ builder.Services.AddScoped<SalaryService>();
 builder.Services.AddScoped<StudentInfoService>();
 builder.Services.AddScoped<StudentManagementService>();
 builder.Services.AddScoped<AttendanceService>();
+builder.Services.AddScoped<OfficeSmsGateway>();
 builder.Services.AddScoped<PaymentSmsService>();
 builder.Services.AddScoped<AccountsService>();
 builder.Services.AddScoped<ReportsService>();
+builder.Services.AddScoped<BalanceSubmissionService>();
 builder.Services.AddScoped<MasterDataService>();
 builder.Services.AddScoped<ExamService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<SmsOfficeService>();
+builder.Services.AddScoped<SmsTemplateService>();
 builder.Services.AddScoped<RoutineService>();
 builder.Services.AddScoped<CommitteeService>();
+builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<PlatformInvoiceService>();
+builder.Services.AddScoped<SupportService>();
 builder.Services.AddScoped<AuthorityService>();
 builder.Services.AddScoped<AuthorityBasicService>();
 builder.Services.AddScoped<AuthorityInvoiceService>();
@@ -68,6 +74,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+app.UseHttpLogging();
 
 app.UseExceptionHandler(errorApp =>
 {

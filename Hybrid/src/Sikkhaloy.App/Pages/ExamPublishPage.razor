@@ -173,33 +173,30 @@
     }
 </div>
 
-<ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingPublish")" />
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {
     private ExamFilterDto filters = new();
     private ExamPublishSettingDto setting = new();
     private int classId, examId;
-    private bool busy, popupError;
+    private bool busy, popupError, onlineOk;
     private string? popupText;
+    private string busyTitle = "";
 
     protected override Task OnInitializedAsync() => LoadFiltersAsync();
 
     private async Task LoadFiltersAsync()
     {
-        if (!await OnlineAsync()) return;
-        busy = true;
-        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "publish", classId, examId); }
+        await ShowBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "publish", classId, examId);
+        }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
     }
@@ -215,10 +212,10 @@
     {
         setting = new();
         if (classId <= 0 || examId <= 0) return;
-        if (!await OnlineAsync()) return;
-        busy = true;
+        await ShowBusyAsync(Locale.T("acc.loading"));
         try
         {
+            if (!await OnlineAsync()) return;
             filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "publish", classId, examId);
             setting = await Api.GetExamPublishSettingAsync(Session.AccessToken!, classId, examId);
             setting.EqualSubExam = true;
@@ -235,10 +232,10 @@
 
     private async Task PublishAsync()
     {
-        if (!await OnlineAsync()) return;
-        busy = true;
+        await ShowBusyAsync(Locale.T("exam.loadingPublish"));
         try
         {
+            if (!await OnlineAsync()) return;
             var request = new ExamPublishRequest
             {
                 ClassID = classId,
@@ -274,13 +271,27 @@
 
     private void Show(string text, bool err = false) { popupText = text; popupError = err; }
     private void ClosePopup() => popupText = null;
+    private async Task ShowBusyAsync(string title)
+    {
+        busyTitle = title;
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
     private async Task<bool> OnlineAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             Show(Locale.T("subj.needOnline"), true);
             return false;
         }
+        if (onlineOk) return true;
+        if (!await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        onlineOk = true;
         return true;
     }
 }

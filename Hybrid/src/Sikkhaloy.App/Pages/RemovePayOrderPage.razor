@@ -4,21 +4,32 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page acc-page po-page">
-    <h1>@Locale.T("acc.removeTitle")</h1>
-    <p class="acc-hint">@Locale.T("acc.removeHint")</p>
+<div class="card sa-page si-info-page acc-page acc-mod-page po-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.remove")</p>
+            <h1>@Locale.T("acc.removeTitle")</h1>
+            <p class="sa-lead">@Locale.T("acc.removeHint")</p>
+        </div>
+    </header>
 
-    <div class="po-filters">
-        <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("acc.selectClassOrAll")</option>
-            <option value="-1">@Locale.T("acc.allStudents")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        <input type="text" placeholder="@Locale.T("acc.idsHint")" @bind="idText" disabled="@busy" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindIds">@Locale.T("acc.findStudent")</button>
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("acc.selectClassOrAll")</option>
+                <option value="-1">@Locale.T("acc.allStudents")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-sid acc-grow">
+            <span class="sal-box-h">@Locale.T("acc.idsHint")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("acc.idsHint")" @bind="idText" disabled="@busy" />
+        </section>
+        <button type="button" class="sal-gen" disabled="@busy" @onclick="FindIds">@Locale.T("acc.findStudent")</button>
     </div>
 
     @if (students.Count > 0)
@@ -117,9 +128,12 @@
 
     @if (unpaid.Count > 0)
     {
-        <div class="po-filters">
-            <input type="date" @bind="end" disabled="@busy" />
-            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindRows">@Locale.T("acc.findInRoles")</button>
+        <div class="sal-bar no-print">
+            <section class="sal-box is-date">
+                <span class="sal-box-h">@Locale.T("acc.end")</span>
+                <input type="date" @bind="end" disabled="@busy" />
+            </section>
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="FindRows">@Locale.T("acc.findInRoles")</button>
         </div>
     }
 
@@ -179,8 +193,8 @@
         </section>
         @if (rows.Count > 0)
         {
-            <div class="po-action">
-                <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.removePayorder")</button>
+            <div class="sal-bar no-print po-action">
+                <button type="button" class="sal-del" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.removePayorder")</button>
             </div>
         }
     }
@@ -213,16 +227,9 @@
     </div>
 }
 
-@if (!string.IsNullOrWhiteSpace(popupText))
+@if (!string.IsNullOrWhiteSpace(popupText) && !busy)
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="acc.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -348,6 +355,7 @@
         if (classInput is "0") return;
         if (!await OnlineAsync()) return;
         busy = true;
+        await PaintAsync();
         try
         {
             var classId = ClassId < 0 ? 0 : ClassId;

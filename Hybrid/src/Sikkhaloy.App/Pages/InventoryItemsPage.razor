@@ -1,0 +1,663 @@
+@page "/inventory/items"
+@using System.Globalization
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<style>
+    .inv-items-page, .inv-items-page * { box-sizing: border-box; }
+    .inv-items-page { width: 100%; max-width: none; min-width: 0; }
+    .inv-items-page .ii-hero {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .inv-items-page .ii-hero > div { min-width: 0; flex: 1 1 240px; }
+    .inv-items-page .ii-hero h1 { margin: 0.12rem 0 0.3rem; font-size: 1.35rem; }
+    .inv-items-page .ii-art {
+        width: 72px; height: 72px; flex: 0 0 auto;
+        border-radius: 18px; display: grid; place-items: center;
+        background: linear-gradient(160deg, #ecfdf5, #ccfbf1);
+        color: #0f766e; border: 1px solid #99f6e4;
+    }
+    .inv-items-page .ii-art svg { width: 38px; height: 38px; }
+    .inv-items-page .ii-split {
+        display: flex; flex-wrap: wrap; gap: 1.1rem; align-items: stretch;
+        width: 100%;
+    }
+    .inv-items-page .ii-card {
+        background: #fff; border: 1px solid #d1fae5; border-radius: 16px;
+        overflow: hidden; min-width: 0; box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+    .inv-items-page .ii-card.is-cat { flex: 1 1 280px; }
+    .inv-items-page .ii-card.is-item { flex: 2 1 420px; }
+    .inv-items-page .ii-head {
+        display: flex; align-items: center; gap: 0.55rem;
+        padding: 0.78rem 1rem; color: #fff;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+    }
+    .inv-items-page .ii-card.is-item .ii-head { background: linear-gradient(135deg, #0f766e, #0e7490); }
+    .inv-items-page .ii-head h2 { margin: 0; font-size: 1.05rem; flex: 1; min-width: 0; }
+    .inv-items-page .ii-head small {
+        background: rgba(255,255,255,0.2); border-radius: 999px; min-width: 1.6rem;
+        text-align: center; font-weight: 800; padding: 0.12rem 0.55rem;
+    }
+    .inv-items-page .ii-ico-box {
+        width: 1.75rem; height: 1.75rem; border-radius: 8px; flex: 0 0 auto;
+        display: grid; place-items: center; background: rgba(255,255,255,0.16);
+    }
+    .inv-items-page .ii-ico-box svg { width: 1rem; height: 1rem; }
+    .inv-items-page .ii-body { padding: 0.95rem 1rem 1.1rem; min-width: 0; }
+    .inv-items-page .ii-toolbar {
+        display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: flex-end;
+        margin-bottom: 0.85rem;
+    }
+    .inv-items-page .ii-field {
+        display: flex; flex-direction: column; gap: 0.32rem;
+        flex: 1 1 150px; min-width: 140px; max-width: 100%;
+        font-size: 0.75rem; font-weight: 700; color: #475569;
+    }
+    .inv-items-page .ii-field.is-grow { flex: 1 1 180px; }
+    .inv-items-page .ii-field.is-sm { flex: 0 1 120px; }
+    .inv-items-page .ii-box { position: relative; width: 100%; }
+    .inv-items-page .ii-box.has-ico input,
+    .inv-items-page .ii-box.has-ico select { padding-left: 2.35rem; }
+    .inv-items-page .ii-box > i {
+        position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%);
+        width: 1rem; height: 1rem; color: #94a3b8; pointer-events: none; display: grid; place-items: center;
+    }
+    .inv-items-page .ii-box > i svg { width: 1rem; height: 1rem; }
+    .inv-items-page .ii-box input,
+    .inv-items-page .ii-box select {
+        width: 100%; height: 44px; min-height: 44px; max-width: 100%;
+        border: 1.5px solid #e2e8f0; border-radius: 12px;
+        background: #f8fafc; padding: 0 0.85rem;
+        font: inherit; font-size: 0.92rem; font-weight: 600; color: #0f172a;
+        outline: none; appearance: none; -webkit-appearance: none;
+    }
+    .inv-items-page .ii-box select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 0.7rem center;
+        padding-right: 2rem;
+    }
+    .inv-items-page .ii-box input::placeholder { color: #94a3b8; font-weight: 500; }
+    .inv-items-page .ii-box input:hover, .inv-items-page .ii-box select:hover { border-color: #99f6e4; background: #fff; }
+    .inv-items-page .ii-box input:focus, .inv-items-page .ii-box select:focus {
+        border-color: #0f766e; background: #fff;
+        box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14);
+    }
+    .inv-items-page .ii-box input:disabled, .inv-items-page .ii-box select:disabled { opacity: 0.6; }
+    .inv-items-page .ii-btn {
+        height: 44px; min-height: 44px; border: 0; border-radius: 12px;
+        padding: 0 1rem; color: #fff; font: inherit; font-weight: 800;
+        cursor: pointer; white-space: nowrap; flex: 0 0 auto;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+        box-shadow: 0 6px 16px rgba(15, 118, 110, 0.22);
+    }
+    .inv-items-page .ii-btn.is-item { background: linear-gradient(135deg, #0f766e, #0e7490); }
+    .inv-items-page .ii-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .inv-items-page .ii-btn-ghost {
+        height: 44px; border: 1px solid #cbd5e1; border-radius: 12px;
+        background: #fff; color: #334155; font: inherit; font-weight: 800;
+        padding: 0 0.9rem; cursor: pointer;
+    }
+    .inv-items-page .ii-form {
+        display: flex; flex-wrap: wrap; gap: 0.75rem 0.8rem;
+        margin-bottom: 1rem; padding: 0.9rem;
+        background: linear-gradient(180deg, #f8fffc, #f8fafc);
+        border: 1px solid #e2e8f0; border-radius: 14px;
+    }
+    .inv-items-page .ii-form-act {
+        flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 0.5rem;
+        justify-content: flex-end; align-items: center; margin-top: 0.15rem;
+    }
+    .inv-items-page .ii-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .inv-items-page .ii-table { width: 100%; min-width: 520px; border-collapse: collapse; margin: 0; }
+    .inv-items-page .ii-card.is-cat .ii-table { min-width: 0; }
+    .inv-items-page .ii-table th {
+        background: #0f766e; color: #fff; font-weight: 800; font-size: 0.78rem;
+        text-align: left; padding: 0.55rem 0.65rem; white-space: nowrap;
+    }
+    .inv-items-page .ii-card.is-item .ii-table th { background: #0e7490; }
+    .inv-items-page .ii-table td {
+        padding: 0.55rem 0.65rem; border-bottom: 1px solid #eef2f6;
+        color: #334155; vertical-align: middle;
+    }
+    .inv-items-page .ii-table tbody tr:hover td { background: #f8fafc; }
+    .inv-items-page .ii-table .empty-row { text-align: center; color: #94a3b8; padding: 1.4rem 0.6rem; }
+    .inv-items-page .ii-on td { background: #ecfdf5 !important; }
+    .inv-items-page .ii-low td { background: #fff7ed !important; }
+    .inv-items-page .ii-name {
+        border: 0; background: none; color: #0f766e; font: inherit; font-weight: 800;
+        cursor: pointer; padding: 0; text-align: left;
+    }
+    .inv-items-page .ii-sku { display: block; color: #64748b; font-weight: 600; font-size: 0.75rem; }
+    .inv-items-page .ii-stock-ok { color: #047857; font-weight: 800; }
+    .inv-items-page .ii-stock-low { color: #c2410c; font-weight: 800; }
+    .inv-items-page .ii-acts { white-space: nowrap; }
+    .inv-items-page .ii-act {
+        display: inline-grid; place-items: center; width: 30px; height: 30px;
+        border: 0; border-radius: 8px; cursor: pointer; margin-right: 0.2rem; padding: 0;
+    }
+    .inv-items-page .ii-act svg { width: 15px; height: 15px; }
+    .inv-items-page .ii-act.is-edit { background: #ecfdf5; color: #0f766e; }
+    .inv-items-page .ii-act.is-del { background: #fef2f2; color: #dc2626; }
+    .inv-items-page .ii-act.is-ok { background: #dbeafe; color: #1d4ed8; width: auto; padding: 0 0.5rem; font-size: 0.72rem; font-weight: 800; }
+    .inv-items-page .ii-act:disabled { opacity: 0.5; cursor: wait; }
+    .inv-items-page .ii-kpis {
+        display: flex; flex-wrap: wrap; gap: 0.85rem; margin-top: 1.1rem;
+    }
+    .inv-items-page .ii-kpi {
+        flex: 1 1 160px; min-width: 140px;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 0.6rem; padding: 0.95rem 1rem; border-radius: 16px; border: 1px solid transparent;
+    }
+    .inv-items-page .ii-kpi small { display: block; font-size: 0.76rem; font-weight: 800; }
+    .inv-items-page .ii-kpi strong { display: block; margin-top: 0.2rem; font-size: 1.4rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .inv-items-page .ii-kpi-ico {
+        width: 2.5rem; height: 2.5rem; border-radius: 12px; flex: 0 0 auto;
+        display: grid; place-items: center;
+    }
+    .inv-items-page .ii-kpi-ico svg { width: 1.25rem; height: 1.25rem; }
+    .inv-items-page .ii-kpi.is-cat { background: #ecfdf5; border-color: #a7f3d0; }
+    .inv-items-page .ii-kpi.is-cat small { color: #047857; }
+    .inv-items-page .ii-kpi.is-cat .ii-kpi-ico { background: #d1fae5; color: #059669; }
+    .inv-items-page .ii-kpi.is-item { background: #eff6ff; border-color: #bfdbfe; }
+    .inv-items-page .ii-kpi.is-item small { color: #1d4ed8; }
+    .inv-items-page .ii-kpi.is-item .ii-kpi-ico { background: #dbeafe; color: #2563eb; }
+    .inv-items-page .ii-kpi.is-low { background: #fff7ed; border-color: #fed7aa; }
+    .inv-items-page .ii-kpi.is-low small { color: #c2410c; }
+    .inv-items-page .ii-kpi.is-low .ii-kpi-ico { background: #ffedd5; color: #ea580c; }
+    .inv-items-page .ii-kpi.is-stock { background: #f5f3ff; border-color: #ddd6fe; }
+    .inv-items-page .ii-kpi.is-stock small { color: #6d28d9; }
+    .inv-items-page .ii-kpi.is-stock .ii-kpi-ico { background: #ede9fe; color: #7c3aed; }
+    @@media (max-width: 720px) {
+        .inv-items-page .ii-card.is-cat, .inv-items-page .ii-card.is-item { flex: 1 1 100%; }
+        .inv-items-page .ii-form-act { justify-content: stretch; }
+        .inv-items-page .ii-btn, .inv-items-page .ii-btn-ghost { width: 100%; }
+    }
+</style>
+
+<div class="card sa-page si-info-page acc-page inv-page inv-items-page">
+    <header class="sa-head ii-hero no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("inv.kicker")</p>
+            <h1>@Locale.T("inv.items")</h1>
+            <p class="sa-lead">@Locale.T("inv.itemsHint")</p>
+        </div>
+        <span class="ii-art" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 6h-2V4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M8 5h8v1H8zm12 14H4V8h16zm-3-8v2h-2v-2h-2v2h-2v-2H9v2H7v-2H5v6h14v-6z"/></svg>
+        </span>
+    </header>
+
+    <div class="ii-split">
+        <section class="ii-card is-cat">
+            <div class="ii-head">
+                <span class="ii-ico-box" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>
+                </span>
+                <h2>@Locale.T("inv.categories")</h2>
+                <small>@categories.Count</small>
+            </div>
+            <div class="ii-body">
+                <div class="ii-toolbar">
+                    <label class="ii-field is-grow">
+                        <span>@Locale.T("inv.searchCategory")</span>
+                        <span class="ii-box has-ico">
+                            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></i>
+                            <input type="text" placeholder="@Locale.T("inv.searchCategory")" @bind="catSearch" @bind:event="oninput" disabled="@busy" />
+                        </span>
+                    </label>
+                    <label class="ii-field is-grow">
+                        <span>@Locale.T("inv.categoryName")</span>
+                        <span class="ii-box">
+                            <input type="text" placeholder="@Locale.T("inv.categoryName")" @bind="catName" disabled="@busy" @onkeydown="OnCatKey" />
+                        </span>
+                    </label>
+                    <button type="button" class="ii-btn" disabled="@busy" @onclick="SaveCatAsync">+ @Locale.T("inv.addCategory")</button>
+                </div>
+                <div class="ii-table-wrap">
+                    <table class="ii-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>@Locale.T("inv.category")</th>
+                                <th>@Locale.T("inv.items")</th>
+                                <th class="no-print">@Locale.T("sms.tplActions")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (VisibleCats.Count == 0 && !busy)
+                        {
+                            <tr><td colspan="4" class="empty-row">@Locale.T("inv.empty")</td></tr>
+                        }
+                        @{ var cn = 0; }
+                        @foreach (var row in VisibleCats)
+                        {
+                            cn++;
+                            <tr class="@(catId == row.ItemCategoryID ? "ii-on" : null)">
+                                <td>@cn</td>
+                                <td>
+                                    @if (editCatId == row.ItemCategoryID)
+                                    {
+                                        <span class="ii-box"><input type="text" @bind="editCatName" disabled="@busy" /></span>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="ii-name" @onclick="() => catId = catId == row.ItemCategoryID ? 0 : row.ItemCategoryID">@row.Name</button>
+                                    }
+                                </td>
+                                <td>@row.ItemCount</td>
+                                <td class="no-print ii-acts">
+                                    @if (editCatId == row.ItemCategoryID)
+                                    {
+                                        <button type="button" class="ii-act is-ok" disabled="@busy" title="@Locale.T("si.update")" @onclick="UpdateCatAsync">@Locale.T("si.update")</button>
+                                        <button type="button" class="ii-act is-del" title="@Locale.T("sal.cancel")" @onclick="() => editCatId = 0">
+                                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="ii-act is-edit" disabled="@busy" title="@Locale.T("sal.edit")" @onclick="() => StartCat(row)">
+                                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>
+                                        </button>
+                                        <button type="button" class="ii-act is-del" disabled="@busy" title="@Locale.T("sal.delete")" @onclick="() => DeleteCatAsync(row)">
+                                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3-9h2v8H9zm4 0h2v8h-2zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="ii-card is-item">
+            <div class="ii-head">
+                <span class="ii-ico-box" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-2 10H7v-2h10zm0-4H7V7h10z"/></svg>
+                </span>
+                <h2>@(editItemId > 0 ? Locale.T("sal.edit") : Locale.T("inv.addItem"))</h2>
+                <small>@VisibleItems.Count</small>
+            </div>
+            <div class="ii-body">
+                <form class="ii-form" @onsubmit="SaveItemAsync" @onsubmit:preventDefault="true">
+                    <label class="ii-field">
+                        <span>@Locale.T("inv.category")</span>
+                        <span class="ii-box">
+                            <select id="inv-item-cat" @bind="itemCat" disabled="@busy">
+                                <option value="0">@Locale.T("inv.selectCategory")</option>
+                                @foreach (var cat in categories)
+                                {
+                                    <option value="@cat.ItemCategoryID">@cat.Name</option>
+                                }
+                            </select>
+                        </span>
+                    </label>
+                    <label class="ii-field is-grow">
+                        <span>@Locale.T("inv.itemName")</span>
+                        <span class="ii-box">
+                            <input id="inv-item-name" type="text" placeholder="@Locale.T("inv.enterItem")" @bind="itemName" disabled="@busy" />
+                        </span>
+                    </label>
+                    <label class="ii-field is-sm">
+                        <span>@Locale.T("inv.unit")</span>
+                        <span class="ii-box">
+                            <input id="inv-item-unit" type="text" placeholder="pcs" @bind="unit" disabled="@busy" />
+                        </span>
+                    </label>
+                    <label class="ii-field">
+                        <span>@Locale.T("inv.sku")</span>
+                        <span class="ii-box">
+                            <input id="inv-item-sku" type="text" placeholder="@Locale.T("inv.enterSku")" @bind="sku" disabled="@busy" />
+                        </span>
+                    </label>
+                    <label class="ii-field is-sm">
+                        <span>@Locale.T("inv.minStock")</span>
+                        <span class="ii-box">
+                            <input id="inv-min-stock" type="text" inputmode="decimal" placeholder="0" @bind="minStockText" disabled="@busy" />
+                        </span>
+                    </label>
+                    <label class="ii-field">
+                        <span>@Locale.T("inv.purchasePrice")</span>
+                        <span class="ii-box">
+                            <input id="inv-purchase" type="text" inputmode="decimal" placeholder="0" @bind="purchaseText" disabled="@busy" />
+                        </span>
+                    </label>
+                    <label class="ii-field">
+                        <span>@Locale.T("inv.salePrice")</span>
+                        <span class="ii-box">
+                            <input id="inv-sale" type="text" inputmode="decimal" placeholder="0" @bind="saleText" disabled="@busy" />
+                        </span>
+                    </label>
+                    <div class="ii-form-act">
+                        @if (editItemId > 0)
+                        {
+                            <button type="button" class="ii-btn-ghost" disabled="@busy" @onclick="ResetItem">@Locale.T("inv.new")</button>
+                        }
+                        <button type="submit" class="ii-btn is-item" disabled="@busy">
+                            + @(editItemId == 0 ? Locale.T("inv.addItem") : Locale.T("si.update"))
+                        </button>
+                    </div>
+                </form>
+
+                <div class="ii-table-wrap">
+                    <table class="ii-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>@Locale.T("inv.itemName")</th>
+                                <th>@Locale.T("inv.category")</th>
+                                <th>@Locale.T("inv.unit")</th>
+                                <th>@Locale.T("inv.stock")</th>
+                                <th>@Locale.T("inv.minStock")</th>
+                                <th>@Locale.T("inv.purchasePrice")</th>
+                                <th>@Locale.T("inv.salePrice")</th>
+                                <th class="no-print">@Locale.T("sms.tplActions")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (VisibleItems.Count == 0 && !busy)
+                        {
+                            <tr><td colspan="9" class="empty-row">@Locale.T("inv.empty")</td></tr>
+                        }
+                        @{ var n = 0; }
+                        @foreach (var row in VisibleItems)
+                        {
+                            n++;
+                            var low = row.MinStock > 0 && row.Stock <= row.MinStock;
+                            <tr class="@(low ? "ii-low" : null)">
+                                <td>@n</td>
+                                <td>
+                                    <strong>@row.Name</strong>
+                                    @if (!string.IsNullOrWhiteSpace(row.Sku)) { <small class="ii-sku">@row.Sku</small> }
+                                </td>
+                                <td>@row.Category</td>
+                                <td>@row.Unit</td>
+                                <td class="@(low ? "ii-stock-low" : row.Stock > 0 ? "ii-stock-ok" : null)">@row.Stock.ToString("0.##")</td>
+                                <td>@row.MinStock.ToString("0.##")</td>
+                                <td>@row.PurchasePrice.ToString("0.##")</td>
+                                <td>@row.SalePrice.ToString("0.##")</td>
+                                <td class="no-print ii-acts">
+                                    <button type="button" class="ii-act is-edit" disabled="@busy" title="@Locale.T("sal.edit")" @onclick="() => StartItem(row)">
+                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>
+                                    </button>
+                                    <button type="button" class="ii-act is-del" disabled="@busy" title="@Locale.T("sal.delete")" @onclick="() => DeleteItemAsync(row)">
+                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zm3-9h2v8H9zm4 0h2v8h-2zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="ii-kpis no-print">
+        <div class="ii-kpi is-cat">
+            <div>
+                <small>@Locale.T("inv.totalCategories")</small>
+                <strong>@categories.Count</strong>
+            </div>
+            <span class="ii-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>
+            </span>
+        </div>
+        <div class="ii-kpi is-item">
+            <div>
+                <small>@Locale.T("inv.totalItems")</small>
+                <strong>@items.Count</strong>
+            </div>
+            <span class="ii-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16"/></svg>
+            </span>
+        </div>
+        <div class="ii-kpi is-low">
+            <div>
+                <small>@Locale.T("inv.lowStockItems")</small>
+                <strong>@LowCount</strong>
+            </div>
+            <span class="ii-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M1 21h22L12 2zm12-3h-2v-2h2zm0-4h-2v-4h2z"/></svg>
+            </span>
+        </div>
+        <div class="ii-kpi is-stock">
+            <div>
+                <small>@Locale.T("inv.totalStock")</small>
+                <strong>@TotalStock.ToString("0.##")</strong>
+            </div>
+            <span class="ii-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 6h-2V4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M8 5h8v1H8zm12 14H4V8h16z"/></svg>
+            </span>
+        </div>
+    </div>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<InventoryCategoryDto> categories = [];
+    private readonly List<InventoryItemDto> items = [];
+    private string catName = "", catSearch = "", editCatName = "", itemName = "", unit = "pcs", sku = "", busyTitle = "", popupText = "";
+    private string minStockText = "0", purchaseText = "0", saleText = "0";
+    private int catId, editCatId, itemCat, editItemId;
+    private bool busy, popupError;
+
+    private IReadOnlyList<InventoryCategoryDto> VisibleCats =>
+        string.IsNullOrWhiteSpace(catSearch)
+            ? categories
+            : categories.Where(x => x.Name.Contains(catSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private IReadOnlyList<InventoryItemDto> VisibleItems =>
+        catId <= 0 ? items : items.Where(x => x.ItemCategoryID == catId).ToList();
+
+    private int LowCount => items.Count(x => x.MinStock > 0 && x.Stock <= x.MinStock);
+    private decimal TotalStock => items.Sum(x => x.Stock);
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var data = await Api.GetInventoryLookupsAsync(Session.AccessToken!);
+            categories.Clear();
+            categories.AddRange(data.Categories);
+            items.Clear();
+            items.AddRange(data.Items);
+            if (itemCat == 0 && categories.Count > 0)
+                itemCat = categories[0].ItemCategoryID;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static readonly string[] ItemFormIds =
+        ["inv-item-cat", "inv-item-name", "inv-item-unit", "inv-item-sku", "inv-min-stock", "inv-purchase", "inv-sale"];
+
+    private async Task CaptureFormAsync()
+    {
+        try
+        {
+            var vals = await JS.InvokeAsync<Dictionary<string, string>>("sikkhaloyFormValues", (object)ItemFormIds);
+            if (vals is null || vals.Count == 0) return;
+            if (vals.TryGetValue("inv-item-name", out var name)) itemName = name;
+            if (vals.TryGetValue("inv-item-unit", out var u)) unit = u;
+            if (vals.TryGetValue("inv-item-sku", out var s)) sku = s;
+            if (vals.TryGetValue("inv-min-stock", out var min)) minStockText = min;
+            if (vals.TryGetValue("inv-purchase", out var p)) purchaseText = p;
+            if (vals.TryGetValue("inv-sale", out var sale)) saleText = sale;
+            if (vals.TryGetValue("inv-item-cat", out var catText) && int.TryParse(catText, out var cat) && cat > 0)
+                itemCat = cat;
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private static decimal ParseDec(string? text)
+    {
+        var raw = (text ?? "").Trim()
+            .Replace("০", "0").Replace("১", "1").Replace("২", "2").Replace("৩", "3").Replace("৪", "4")
+            .Replace("৫", "5").Replace("৬", "6").Replace("৭", "7").Replace("৮", "8").Replace("৯", "9")
+            .Replace(",", "").Replace(" ", "");
+        if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var v))
+            return v < 0 ? 0 : v;
+        if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.CurrentCulture, out v))
+            return v < 0 ? 0 : v;
+        return 0;
+    }
+
+    private static string DecText(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private async Task OnCatKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SaveCatAsync();
+    }
+
+    private async Task SaveCatAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.SaveInventoryCategoryAsync(Session.AccessToken!, new SaveInventoryCategoryRequest { Name = catName });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            catName = "";
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "inv.categoryAdded"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void StartCat(InventoryCategoryDto row)
+    {
+        editCatId = row.ItemCategoryID;
+        editCatName = row.Name;
+    }
+
+    private async Task UpdateCatAsync()
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.SaveInventoryCategoryAsync(Session.AccessToken!, new SaveInventoryCategoryRequest
+            {
+                ItemCategoryID = editCatId,
+                Name = editCatName
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            editCatId = 0;
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "inv.categoryUpdated"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteCatAsync(InventoryCategoryDto row)
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.DeleteInventoryCategoryAsync(Session.AccessToken!, row.ItemCategoryID);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            if (catId == row.ItemCategoryID) catId = 0;
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "inv.deleted"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task SaveItemAsync()
+    {
+        await CaptureFormAsync();
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.SaveInventoryItemAsync(Session.AccessToken!, new SaveInventoryItemRequest
+            {
+                ItemID = editItemId,
+                ItemCategoryID = itemCat,
+                Name = itemName,
+                Unit = unit,
+                Sku = sku,
+                MinStock = ParseDec(minStockText),
+                PurchasePrice = ParseDec(purchaseText),
+                SalePrice = ParseDec(saleText),
+                IsActive = true
+            });
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            ResetItem();
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "inv.itemAdded"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void StartItem(InventoryItemDto row)
+    {
+        editItemId = row.ItemID;
+        itemCat = row.ItemCategoryID;
+        itemName = row.Name;
+        unit = row.Unit;
+        sku = row.Sku ?? "";
+        minStockText = DecText(row.MinStock);
+        purchaseText = DecText(row.PurchasePrice);
+        saleText = DecText(row.SalePrice);
+    }
+
+    private void ResetItem()
+    {
+        editItemId = 0;
+        itemName = "";
+        sku = "";
+        unit = "pcs";
+        minStockText = "0";
+        purchaseText = "0";
+        saleText = "0";
+    }
+
+    private async Task DeleteItemAsync(InventoryItemDto row)
+    {
+        await SetBusyAsync(Locale.T("acc.loading"));
+        try
+        {
+            var result = await Api.DeleteInventoryItemAsync(Session.AccessToken!, row.ItemID);
+            if (!result.Succeeded) { Show(FormatErr(result), true); return; }
+            if (editItemId == row.ItemID) ResetItem();
+            await LoadAsync();
+            Show(Locale.T(result.Message ?? "inv.deleted"));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatErr(InventoryResult result) =>
+        string.IsNullOrWhiteSpace(result.Error) ? Locale.T("inv.failed")
+        : result.Error.Contains('.', StringComparison.Ordinal) ? Locale.T(result.Error) : result.Error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

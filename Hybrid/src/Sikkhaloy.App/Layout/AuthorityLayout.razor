@@ -9,6 +9,89 @@
 @inject IJSRuntime JS
 @using Sikkhaloy.App.Pages
 
+<style>
+    .ad-user .sidebar-photo-link {
+        position: relative;
+        display: block;
+        width: 104px;
+        height: 104px;
+        margin: 0.1rem auto 0.45rem;
+        text-decoration: none;
+        color: inherit;
+    }
+    .ad-user .sidebar-photo-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, #2dd4bf, #38bdf8, #818cf8, #f0abfc, #2dd4bf);
+        animation: ad-photo-spin 5.5s linear infinite;
+    }
+    .ad-user .sidebar-photo-ring::after {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        background: #0c1f3a;
+    }
+    .ad-user .sidebar-photo-glow {
+        position: absolute;
+        inset: -7px;
+        border-radius: 50%;
+        border: 2px solid rgba(45, 212, 191, 0.55);
+        animation: ad-photo-pulse 2.4s ease-out infinite;
+        pointer-events: none;
+    }
+    .ad-user .sidebar-photo {
+        position: absolute;
+        inset: 6px;
+        width: auto;
+        height: auto;
+        margin: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid rgba(255,255,255,.9);
+        background: linear-gradient(135deg, #2dd4bf, #6366f1);
+        display: grid;
+        place-items: center;
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #fff;
+        z-index: 1;
+    }
+    .ad-user .sidebar-photo::after {
+        content: "";
+        position: absolute;
+        top: -30%;
+        left: -70%;
+        width: 42%;
+        height: 160%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+        transform: rotate(22deg);
+        animation: ad-photo-shine 3.6s ease-in-out infinite;
+        pointer-events: none;
+    }
+    .ad-user .sidebar-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    @@keyframes ad-photo-spin { to { transform: rotate(360deg); } }
+    @@keyframes ad-photo-pulse {
+        0% { transform: scale(1); opacity: 0.75; }
+        100% { transform: scale(1.22); opacity: 0; }
+    }
+    @@keyframes ad-photo-shine {
+        0% { left: -70%; }
+        55%, 100% { left: 130%; }
+    }
+    @@media (prefers-reduced-motion: reduce) {
+        .ad-user .sidebar-photo-ring,
+        .ad-user .sidebar-photo-glow,
+        .ad-user .sidebar-photo::after { animation: none; }
+    }
+</style>
+
 <CascadingValue Name="AppLang" Value="@Locale.Code" IsFixed="false">
 <div class="ad-shell">
     @if (menuOpen)
@@ -17,16 +100,20 @@
     }
     <aside class="ad-sidebar @(menuOpen ? "is-open" : null)">
         <div class="ad-user" @onclick:stopPropagation="true">
-            <div class="ad-avatar">
-                @if (!string.IsNullOrWhiteSpace(photoUrl))
-                {
-                    <img src="@photoUrl" alt="@displayName" />
-                }
-                else
-                {
-                    <span>@Initials</span>
-                }
-            </div>
+            <a class="sidebar-photo-link" href="authority" title="@Locale.T("auth.dash")">
+                <span class="sidebar-photo-ring" aria-hidden="true"></span>
+                <span class="sidebar-photo-glow" aria-hidden="true"></span>
+                <span class="sidebar-photo">
+                    @if (!string.IsNullOrWhiteSpace(photoUrl))
+                    {
+                        <img src="@photoUrl" alt="@displayName" />
+                    }
+                    else
+                    {
+                        <span>@Initials</span>
+                    }
+                </span>
+            </a>
             <button type="button" class="ad-name-btn" @onclick="ToggleProfile">
                 <span>@displayName</span>
                 <em>@role</em>
@@ -76,6 +163,7 @@
             </div>
         </header>
         <main class="ad-content" @onclick="CloseProfile">
+            <PrintHeader FromLayout="true" ShowDate="false" />
             @Body
         </main>
     </div>
@@ -152,14 +240,7 @@
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
 </CascadingValue>
 

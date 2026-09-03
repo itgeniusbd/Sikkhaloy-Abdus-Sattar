@@ -74,6 +74,11 @@ public sealed class GenerateSalaryRequest
     public List<int> EmployeeIDs { get; set; } = [];
 }
 
+public sealed class DeleteMonthlyPayordersRequest
+{
+    public List<int> EmployeePayorderIds { get; set; } = [];
+}
+
 public sealed class SalaryLineDto
 {
     public int Id { get; set; }
@@ -166,6 +171,7 @@ public sealed class PaidDueRowDto
     public string ID { get; set; } = "";
     public string Name { get; set; } = "";
     public string MonthName { get; set; } = "";
+    public DateTime MonthStartDate { get; set; }
     public decimal Paid { get; set; }
     public decimal Due { get; set; }
 }

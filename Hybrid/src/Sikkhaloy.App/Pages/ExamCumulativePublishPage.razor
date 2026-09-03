@@ -192,14 +192,7 @@
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -207,7 +200,7 @@
     private CumulativePublishSettingDto setting = new();
     private int classId, examId, editNameId;
     private double allMark;
-    private bool busy, popupError, showNames;
+    private bool busy, popupError, showNames, onlineOk;
     private string? popupText, newName, editName;
     private string busyTitle = "";
 
@@ -217,16 +210,15 @@
     {
         if (!await OnlineAsync()) return;
         await ShowBusyAsync(Locale.T("acc.loading"));
-        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "cumulative-publish", classId, examId); }
+        try { filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "cumulative-publish", 0, 0); }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
     }
 
-    private async Task OnClassAsync()
+    private void OnClassAsync()
     {
         examId = 0;
         setting = new();
-        await LoadFiltersAsync();
     }
 
     private async Task LoadSettingAsync()
@@ -237,7 +229,6 @@
         await ShowBusyAsync(Locale.T("acc.loading"));
         try
         {
-            filters = await Api.GetExamFiltersAsync(Session.AccessToken!, "cumulative-publish", classId, examId);
             setting = await Api.GetCumulativePublishSettingAsync(Session.AccessToken!, classId, examId);
             if (setting.GradeNameID <= 0 && filters.Grades.Count > 0)
                 setting.GradeNameID = filters.Grades[0].Id;
@@ -332,11 +323,18 @@
     }
     private async Task<bool> OnlineAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             Show(Locale.T("subj.needOnline"), true);
             return false;
         }
+        if (onlineOk) return true;
+        if (!await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        onlineOk = true;
         return true;
     }
 }

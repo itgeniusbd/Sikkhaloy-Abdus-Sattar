@@ -27,6 +27,7 @@ public sealed partial class StudentSyncService
     {
         var response = new PushResponse();
         var changes = request?.Changes ?? [];
+        var requestMap = new Dictionary<Guid, int>();
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
 
@@ -80,8 +81,11 @@ public sealed partial class StudentSyncService
                 dto.SchoolID = session.SchoolID;
                 dto.EducationYearID = session.EducationYearID;
                 dto.RegistrationID = session.RegistrationID;
+                if (dto.ServerId is null or <= 0 && change.ServerId is > 0)
+                    dto.ServerId = change.ServerId;
 
-                var serverId = await UpsertStudentAsync(con, session, dto, request.DeviceId, cancellationToken);
+                var serverId = await UpsertStudentAsync(con, session, dto, request?.DeviceId ?? "", change.Operation, requestMap, cancellationToken);
+                requestMap[change.LocalId] = serverId;
                 response.Results.Add(new PushItemResult
                 {
                     LocalId = change.LocalId,
@@ -191,22 +195,45 @@ ORDER BY ID";
         SessionSnapshot session,
         StudentDto dto,
         string deviceId,
+        SyncOperation operation,
+        Dictionary<Guid, int> requestMap,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(dto.StudentCode) || string.IsNullOrWhiteSpace(dto.StudentsName))
             throw new InvalidOperationException("Student ID and name are required.");
 
         var mappedId = await TryGetMappedServerIdAsync(con, dto.LocalId, cancellationToken);
-        var existingId = mappedId
-                         ?? dto.ServerId
-                         ?? await FindStudentIdByCodeAsync(con, session.SchoolID, dto.StudentCode, cancellationToken);
+        int? existingId = null;
+        if (requestMap.TryGetValue(dto.LocalId, out var fromBatch))
+            existingId = fromBatch;
+        existingId ??= mappedId;
+        if (dto.ServerId is > 0)
+            existingId ??= dto.ServerId;
 
-        if (existingId is int && mappedId is null && dto.ServerId is null)
+        if (existingId is int knownId)
+        {
+            var owner = await GetStudentCodeAsync(con, knownId, session.SchoolID, cancellationToken);
+            if (owner is null)
+                existingId = null;
+        }
+
+        if (existingId is null && operation != SyncOperation.Update)
+            existingId = await FindStudentIdByCodeAsync(con, session.SchoolID, dto.StudentCode, cancellationToken);
+
+        if (existingId is int && mappedId is null && dto.ServerId is not > 0 && !requestMap.ContainsKey(dto.LocalId)
+            && operation != SyncOperation.Update)
             throw new InvalidOperationException("sync.idExists");
 
         int serverId;
         if (existingId is null)
         {
+            if (operation == SyncOperation.Update)
+                throw new InvalidOperationException("Student to update was not found.");
+
+            var taken = await FindStudentIdByCodeAsync(con, session.SchoolID, dto.StudentCode, cancellationToken);
+            if (taken is int)
+                throw new InvalidOperationException("sync.idExists");
+
             serverId = await InsertStudentAsync(con, dto, cancellationToken);
         }
         else

@@ -66,6 +66,8 @@ public sealed class StudentReportAttendanceDto
     public int Leave { get; set; }
     public int Bunk { get; set; }
     public List<StudentReportAttendanceDayDto> Days { get; set; } = [];
+    public List<StudentReportHolidayDto> Holidays { get; set; } = [];
+    public List<StudentReportLeaveDto> Leaves { get; set; } = [];
 }
 
 public sealed class StudentReportAttendanceDayDto
@@ -73,6 +75,21 @@ public sealed class StudentReportAttendanceDayDto
     public DateTime Date { get; set; }
     public string Attendance { get; set; } = "";
     public string? EntryTime { get; set; }
+    public string? ExitTime { get; set; }
+}
+
+public sealed class StudentReportHolidayDto
+{
+    public DateTime Date { get; set; }
+    public string Name { get; set; } = "";
+}
+
+public sealed class StudentReportLeaveDto
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string? LeaveType { get; set; }
+    public string? Description { get; set; }
 }
 
 public sealed class StudentReportSubjectDto
@@ -117,6 +134,7 @@ public sealed class StudentReportPayOrderDto
 public sealed class StudentReportReceiptDto
 {
     public string ReceiptNo { get; set; } = "";
+    public string PrintedReceiptNo { get; set; } = "";
     public DateTime? PaidDate { get; set; }
     public decimal Amount { get; set; }
 }

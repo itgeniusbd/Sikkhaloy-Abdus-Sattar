@@ -1,0 +1,354 @@
+@page "/support"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sup-page">
+    <header class="sup-hero">
+        <div class="sup-hero-copy">
+            <span class="sup-hero-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 13.5v-2A8 8 0 0 1 12 3.5 8 8 0 0 1 20 11.5v2"/>
+                    <path d="M4 12.5v2.2A2.3 2.3 0 0 0 6.3 17H7v-5H6.3A2.3 2.3 0 0 0 4 14.3z"/>
+                    <path d="M20 12.5v2.2A2.3 2.3 0 0 1 17.7 17H17v-5h.7A2.3 2.3 0 0 1 20 14.3z"/>
+                    <path d="M17 17.2c0 2.2-2.2 3.8-5 3.8"/>
+                </svg>
+            </span>
+            <div>
+                <h1>@Locale.T("sup.center")</h1>
+                <p>@Locale.T("sup.lead")</p>
+            </div>
+        </div>
+        <div class="sup-hero-art" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/>
+                <path d="M4 7.5 12 12l8-4.5"/>
+                <path d="M12 12v9"/>
+            </svg>
+        </div>
+    </header>
+
+    <section class="sup-contact">
+        <article class="sup-c is-hot">
+            <span class="sup-c-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.2 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z"/></svg>
+            </span>
+            <small>@Locale.T("sup.hotline")</small>
+            <strong>09638669966</strong>
+            <em>@Locale.T("sup.officeHours")</em>
+            <a class="sup-c-btn" href="tel:09638669966">@Locale.T("sup.call")</a>
+        </article>
+        <article class="sup-c is-mob">
+            <span class="sup-c-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>
+            </span>
+            <small>@Locale.T("sup.mobile")</small>
+            <strong>01739144141</strong>
+            <em>@Locale.T("sup.mobileHours")</em>
+            <a class="sup-c-btn" href="https://wa.me/8801739144141?text=Hello,%20I%20need%20support" target="_blank" rel="noopener">@Locale.T("sup.sms")</a>
+        </article>
+        <article class="sup-c is-live">
+            <span class="sup-c-ico">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 3.1A8.86 8.86 0 0 0 3.2 12c0 1.56.41 3.08 1.2 4.42L3 21l4.7-1.23A8.9 8.9 0 0 0 12.04 21 8.86 8.86 0 0 0 21 12.1 8.86 8.86 0 0 0 12.04 3.1m4.96 12.56c-.2.58-1.2 1.1-1.66 1.17-.43.07-.97.1-1.57-.1-.36-.11-.83-.27-1.43-.53-2.52-1.09-4.16-3.63-4.29-3.8-.12-.17-1.02-1.36-1.02-2.6 0-1.23.64-1.84.87-2.09.22-.25.49-.31.65-.31h.47c.15 0 .35-.05.55.42.2.48.69 1.68.75 1.8.06.12.1.26.02.42-.08.16-.12.26-.24.4-.12.14-.25.31-.36.42-.12.12-.24.24-.1.47.14.23.62 1.02 1.33 1.65 1.07.94 1.86 1.26 2.16 1.4.22.1.44.09.6-.05.17-.16.7-.81.88-1.09.18-.28.37-.23.62-.14.25.1 1.58.75 1.85.88.27.14.45.2.52.31.06.12.06.68-.14 1.26"/></svg>
+            </span>
+            <small>@Locale.T("sup.whatsapp")</small>
+            <strong>@Locale.T("sup.live")</strong>
+            <em>01739144141</em>
+            <a class="sup-c-btn" href="https://wa.me/8801739144141?text=Hello,%20I%20need%20support" target="_blank" rel="noopener">@Locale.T("sup.live")</a>
+        </article>
+    </section>
+
+    <section class="sup-mid">
+        <div class="sup-box">
+            <div class="sup-box-head">
+                <span class="sup-lock" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                </span>
+                <h2>@Locale.T("sup.formTitle")</h2>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(ok)) { <div class="ok">@ok</div> }
+            <NetBanner Text="@error" />
+            <div class="sup-form-row">
+                <label class="sup-field">
+                    <span>@Locale.T("sup.subject") <i>*</i></span>
+                    <select @bind="titleId" disabled="@busy">
+                        <option value="0">@Locale.T("sup.select")</option>
+                        @foreach (var title in page.Titles)
+                        {
+                            <option value="@title.SupportTitleID">@title.SupportTitle</option>
+                        }
+                    </select>
+                </label>
+                <label class="sup-field">
+                    <span>@Locale.T("sup.dept") <i>*</i></span>
+                    <select @bind="dept" disabled="@busy">
+                        <option value="">@Locale.T("sup.selectDept")</option>
+                        @foreach (var item in Depts)
+                        {
+                            <option value="@item">@Locale.T(item)</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <label class="sup-field">
+                <span>@Locale.T("sup.message")</span>
+                <textarea rows="5" @bind="message" placeholder="@Locale.T("sup.placeholder")" disabled="@busy"></textarea>
+            </label>
+            <button type="button" class="sup-send" disabled="@busy" @onclick="SubmitAsync">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+                @(busy ? Locale.T("sup.sending") : Locale.T("sup.submit"))
+            </button>
+        </div>
+
+        <div class="sup-side">
+            <article class="sup-box sup-sched">
+                <div class="sup-sched-top">
+                    <div>
+                        <h3>@Locale.T("sup.schedule")</h3>
+                        <strong>@Locale.T("nav.helpHours")</strong>
+                        <em>@Locale.T("sup.fridayOff")</em>
+                    </div>
+                    <span class="sup-cal" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4.5" width="18" height="16" rx="2"/>
+                            <path d="M8 2.8v3.4M16 2.8v3.4M3 9.5h18"/>
+                        </svg>
+                    </span>
+                </div>
+                <ul>
+                    <li>
+                        <button type="button" class="sup-tip" @onclick='() => OpenTip("sup.urgent", "sup.urgent.desc")'>
+                            <span class="sup-li-ico">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M13 3 5 14h7l-1 7 8-11h-7z"/></svg>
+                            </span>
+                            @Locale.T("sup.urgent")
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="sup-tip" @onclick='() => OpenTip("sup.update", "sup.update.desc")'>
+                            <span class="sup-li-ico">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h11M8 12h11M8 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
+                            </span>
+                            @Locale.T("sup.update")
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="sup-tip" @onclick='() => OpenTip("sup.remote", "sup.remote.desc")'>
+                            <span class="sup-li-ico">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+                            </span>
+                            @Locale.T("sup.remote")
+                        </button>
+                    </li>
+                </ul>
+            </article>
+            <article class="sup-box">
+                <h3>@Locale.T("sup.quick")</h3>
+                <a class="sup-quick" href="https://www.facebook.com/Sikkhaloy24" target="_blank" rel="noopener">
+                    <span class="sup-li-ico">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 8.2h2.7V5h-2.7C11.9 5 10 6.9 10 9.3v1.5H7.5V14H10v8h3.3v-8H16l.6-3.2h-3.3V9.3c0-.6.5-1.1 1.1-1.1z"/></svg>
+                    </span>
+                    @Locale.T("sup.faq")
+                    <em>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
+                    </em>
+                </a>
+                <button type="button" class="sup-quick" @onclick='() => OpenTip("sup.guide", "sup.guide.desc")'>
+                    <span class="sup-li-ico">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    </span>
+                    @Locale.T("sup.guide")
+                    <em>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
+                    </em>
+                </button>
+                <a class="sup-quick" href="https://www.youtube.com/@@Sikkhaloycom" target="_blank" rel="noopener">
+                    <span class="sup-li-ico">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 6 4-6 4z"/></svg>
+                    </span>
+                    @Locale.T("sup.video")
+                    <em>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
+                    </em>
+                </a>
+                <article class="sup-c is-mail">
+                    <span class="sup-c-ico">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+                    </span>
+                    <small>@Locale.T("sup.email")</small>
+                    <strong>info.sikkhaloay@gmail.com</strong>
+                    <em>@Locale.T("sup.reply24")</em>
+                    <a class="sup-c-btn" href="mailto:info.sikkhaloay@gmail.com">@Locale.T("sup.mail")</a>
+                </article>
+            </article>
+        </div>
+    </section>
+
+    <section class="sup-box sup-hist" id="sup-history">
+        <div class="sup-hist-head">
+            <h2>@Locale.T("sup.history")</h2>
+            <button type="button" class="sup-all" @onclick="() => showAll = true">@Locale.T("sup.viewAll")</button>
+        </div>
+        <div class="sup-table-wrap">
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("sup.colSubject")</th>
+                        <th>@Locale.T("sup.colDept")</th>
+                        <th>@Locale.T("sup.colTicket")</th>
+                        <th>@Locale.T("sup.colStatus")</th>
+                        <th>@Locale.T("sup.colDate")</th>
+                        <th>@Locale.T("sup.colAction")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (page.Tickets.Count == 0 && !busy)
+                {
+                    <tr><td colspan="6" class="empty-row">@Locale.T("sup.empty")</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in ShownTickets)
+                    {
+                        <tr>
+                            <td><strong>@row.Subject</strong></td>
+                            <td>@DeptOf(row.Message)</td>
+                            <td>@TicketNo(row)</td>
+                            <td><span class="sup-st @(row.IsRead ? "is-ok" : "is-run")">@(row.IsRead ? Locale.T("sup.statusRead") : Locale.T("sup.statusNew"))</span></td>
+                            <td>@Fmt(row.SentDate)</td>
+                            <td><button type="button" class="sup-more" @onclick="() => open = row">@Locale.T("sup.details")</button></td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@if (open is not null)
+{
+    <div class="acc-result-back" @onclick="() => open = null">
+        <div class="acc-result is-ok" @onclick:stopPropagation="true">
+            <h3>@open.Subject</h3>
+            <p>@TicketNo(open) · @Fmt(open.SentDate)</p>
+            <p class="sup-msg">@BodyOf(open.Message)</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="() => open = null">@Locale.T("sup.close")</button>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(tipKey))
+{
+    <div class="acc-result-back" @onclick="CloseTip">
+        <div class="acc-result is-ok" @onclick:stopPropagation="true">
+            <h3>@Locale.T(tipKey)</h3>
+            <p>@Locale.T(tipKey + ".desc")</p>
+            <button type="button" class="acc-btn acc-btn-primary" @onclick="CloseTip">@Locale.T("sup.close")</button>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly string[] Depts = ["sup.d.accounts", "sup.d.admission", "sup.d.attendance", "sup.d.exam", "sup.d.sms", "sup.d.tech", "sup.d.other"];
+    private SupportPageDto page = new();
+    private SupportTicketDto? open;
+    private int titleId;
+    private string dept = "";
+    private string message = "";
+    private bool busy, showAll;
+    private string? error;
+    private string? ok;
+    private string? tipKey;
+
+    private IEnumerable<SupportTicketDto> ShownTickets =>
+        showAll ? page.Tickets : page.Tickets.Take(8);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+        busy = true;
+        try { page = await Api.GetSupportPageAsync(Session.AccessToken!); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task SubmitAsync()
+    {
+        error = null;
+        ok = null;
+        if (titleId <= 0) { error = Locale.T("sup.needSubject"); return; }
+        if (string.IsNullOrWhiteSpace(dept)) { error = Locale.T("sup.needDept"); return; }
+        if (string.IsNullOrWhiteSpace(message)) { error = Locale.T("sup.needMessage"); return; }
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            error = Locale.T("subj.needOnline");
+            return;
+        }
+        busy = true;
+        try
+        {
+            var result = await Api.SubmitSupportTicketAsync(Session.AccessToken!, new SubmitSupportRequest
+            {
+                SupportTitleID = titleId,
+                Message = "[" + Locale.T(dept) + "]\n" + message.Trim()
+            });
+            if (!result.Succeeded)
+            {
+                error = Locale.T(result.Error ?? "sup.fail");
+                return;
+            }
+            ok = Locale.T(result.Message ?? "sup.ok");
+            titleId = 0;
+            dept = "";
+            message = "";
+            page = await Api.GetSupportPageAsync(Session.AccessToken!);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void OpenTip(string titleKey, string _) => tipKey = titleKey;
+    private void CloseTip() => tipKey = null;
+
+    private static string TicketNo(SupportTicketDto row)
+    {
+        var year = row.SentDate?.Year ?? DateTime.Now.Year;
+        return $"#TK-{year}-{row.SupportID:D4}";
+    }
+
+    private static string DeptOf(string text)
+    {
+        if (text.StartsWith('[') && text.Contains(']'))
+            return text[1..text.IndexOf(']')];
+        return "—";
+    }
+
+    private static string BodyOf(string text)
+    {
+        if (text.StartsWith('[') && text.Contains(']'))
+        {
+            var i = text.IndexOf(']');
+            return text[(i + 1)..].Trim();
+        }
+        return text;
+    }
+
+    private static string Fmt(DateTime? value) => value is DateTime d ? d.ToString("d MMM yyyy") : "";
+}

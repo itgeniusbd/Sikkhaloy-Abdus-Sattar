@@ -23,6 +23,7 @@ public sealed class StudentCreatedUserDto
     public string UserName { get; set; } = "";
     public string Password { get; set; } = "";
     public DateTime? CreateDate { get; set; }
+    public bool Selected { get; set; }
 }
 
 public sealed class StudentSignupListsDto
@@ -32,6 +33,11 @@ public sealed class StudentSignupListsDto
 }
 
 public sealed class CreateStudentUsersRequest
+{
+    public List<int> StudentIDs { get; set; } = [];
+}
+
+public sealed class StudentLoginSmsRequest
 {
     public List<int> StudentIDs { get; set; } = [];
 }
@@ -173,5 +179,6 @@ public sealed class StudentInfoResult
 {
     public bool Succeeded { get; set; }
     public string? Error { get; set; }
+    public string? Detail { get; set; }
     public int Count { get; set; }
 }

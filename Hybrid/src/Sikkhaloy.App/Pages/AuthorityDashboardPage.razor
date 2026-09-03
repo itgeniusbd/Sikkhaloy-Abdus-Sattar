@@ -334,7 +334,7 @@
 
 @if (!string.IsNullOrWhiteSpace(message))
 {
-    <div class="error">@message</div>
+    <NetBanner Text="@message" />
 }
 
 <ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("auth.wait")" />

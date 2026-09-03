@@ -1,0 +1,379 @@
+@page "/committee/donor-due"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page committee-page rpt-page due-rpt cm-donor-due-page @(viewBlocks.Count > 0 ? "is-modal" : null)">
+    <div class="cm-page-head no-print">
+        <h1>@Locale.T("cm.donorDueList")</h1>
+        <div class="cm-head-actions">
+            <a class="cm-act cm-act-dark" href="/committee/donations">@Locale.T("cm.donations")</a>
+        </div>
+    </div>
+
+    <h2 class="cm-donor-due-total">@Locale.T("cm.donorDueTotal", Tk(summary.TotalDue))</h2>
+
+    <div class="rpt-filters rpt-radios no-print">
+        <label class="rpt-check">
+            <input type="radio" name="dueMode" checked="@byType" @onchange="() => SetMode(true)" />
+            @Locale.T("cm.findByDonorType")
+        </label>
+        <label class="rpt-check">
+            <input type="radio" name="dueMode" checked="@(!byType)" @onchange="() => SetMode(false)" />
+            @Locale.T("cm.findByMemberName")
+        </label>
+    </div>
+
+    @if (byType)
+    {
+        <div class="filter-row no-print">
+            <select @bind="typeId" @bind:after="OnTypeChangedAsync" disabled="@busy">
+                <option value="0">@Locale.T("cm.selectDonorType")</option>
+                @foreach (var item in types)
+                {
+                    <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+                }
+            </select>
+            <select @bind="categoryId" @bind:after="LoadByTypeAsync" disabled="@(busy || typeId <= 0)">
+                <option value="0">@Locale.T("cm.allCategories")</option>
+                @foreach (var item in dueCategories)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        </div>
+
+        @if (typeId > 0 && typeRows.Count > 0)
+        {
+            <div class="cm-donor-due-line">@TypeSummaryLine</div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th class="no-print due-check">
+                            <label class="rpt-check">
+                                <input type="checkbox" checked="@allType" @onchange="ToggleAllType" disabled="@busy" />
+                                @Locale.T("att.all")
+                            </label>
+                        </th>
+                        <th>@Locale.T("cm.donor")</th>
+                        <th>@Locale.T("cm.memberType")</th>
+                        <th>@Locale.T("cm.phone")</th>
+                        <th class="num">@Locale.T("cm.totalDue")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in typeRows)
+                {
+                    <tr class="@(row.Selected ? "is-sel" : null)">
+                        <td class="no-print due-check">
+                            <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetTypeRow(row, e)" />
+                        </td>
+                        <td>@row.MemberName</td>
+                        <td>@row.MemberType</td>
+                        <td>@row.SmsNumber</td>
+                        <td class="num due-amt">@Tk(row.Due)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="due-actions no-print">
+                <div class="due-sms-box">@Locale.T("cm.donorDueSmsTemplate")</div>
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SendTypeSmsAsync">@Locale.T("rpt.sendSms")</button>
+                <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="ViewTypeAsync">@Locale.T("rpt.viewBtn")</button>
+                <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+            </div>
+        }
+        else if (typeId > 0 && typeLoaded)
+        {
+            <p class="empty-row">@Locale.T("cm.emptyDonations")</p>
+        }
+    }
+    else
+    {
+        <div class="filter-row no-print">
+            <input type="text" placeholder="@Locale.T("cm.findDonorHint")" @bind="searchQ" disabled="@busy" @onkeydown="OnSearchKey" />
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindByNameAsync">@Locale.T("cm.find")</button>
+        </div>
+
+        @if (nameDetail.Found)
+        {
+            <div class="due-card cm-donor-info">
+                <ul>
+                    <li><b>@nameDetail.MemberName</b></li>
+                    <li><b>@Locale.T("cm.memberType"):</b> @nameDetail.MemberType</li>
+                    <li><b>@Locale.T("cm.phone"):</b> @nameDetail.SmsNumber</li>
+                    <li><b>@Locale.T("cm.address"):</b> @nameDetail.Address</li>
+                    <li class="due-total"><b>@Locale.T("cm.totalDue"):</b> @Tk(nameDetail.TotalDue) @Locale.T("acc.tk")</li>
+                </ul>
+            </div>
+            <table class="mgrid">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("cm.donationCategory")</th>
+                        <th>@Locale.T("cm.desc")</th>
+                        <th class="num">@Locale.T("cm.amount")</th>
+                        <th class="num">@Locale.T("cm.paid")</th>
+                        <th class="num">@Locale.T("cm.due")</th>
+                        <th>@Locale.T("cm.promise")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var line in nameDetail.Lines)
+                {
+                    <tr>
+                        <td>@line.DonationCategory</td>
+                        <td>@line.Description</td>
+                        <td class="num">@Tk(line.Amount)</td>
+                        <td class="num">@Tk(line.PaidAmount)</td>
+                        <td class="num due-amt">@Tk(line.Due)</td>
+                        <td>@(line.PromiseDate?.ToString("d MMM yyyy"))</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="due-actions no-print">
+                <div class="due-sms-box">@Locale.T("cm.donorDueSmsTemplate")</div>
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SendNameSmsAsync">@Locale.T("rpt.sendSms")</button>
+                <button type="button" class="acc-btn acc-btn-ghost" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
+            </div>
+        }
+        else if (nameSearched)
+        {
+            <p class="empty-row">@Locale.T("cm.emptyDonations")</p>
+        }
+    }
+</div>
+
+@if (viewBlocks.Count > 0)
+{
+    <div class="modal-back due-modal" @onclick="CloseView">
+        <div class="modal-panel due-modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <strong>@Locale.T("cm.donorDueDetails")</strong>
+                <button type="button" class="link-btn no-print" @onclick="CloseView">×</button>
+            </div>
+            <div class="due-modal-body" id="donor-due-export">
+                <PrintHeader Subtitle="@Locale.T("cm.donorDueList")" />
+                @foreach (var item in viewBlocks)
+                {
+                    <div class="due-print-block">
+                        <div class="due-head cm-donor-head">@item.MemberName, @Locale.T("cm.phone"): @item.SmsNumber</div>
+                        <table class="mgrid">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("cm.donationCategory")</th>
+                                    <th>@Locale.T("cm.desc")</th>
+                                    <th class="num">@Locale.T("cm.due")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var line in item.Lines)
+                            {
+                                <tr>
+                                    <td>@line.DonationCategory</td>
+                                    <td>@line.Description</td>
+                                    <td class="num due-amt">@Tk(line.Due)</td>
+                                </tr>
+                            }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="2">@Locale.T("cm.totalDue")</th>
+                                    <th class="num due-amt">@Tk(item.TotalDue)</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="due-modal-foot no-print">
+                <button type="button" class="acc-btn due-word-btn" @onclick="ExportWordAsync">@Locale.T("rpt.exportWord")</button>
+                <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintModalAsync">@Locale.T("rpt.print")</button>
+            </div>
+        </div>
+    </div>
+}
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<CommitteeMemberTypeDto> types = [];
+    private readonly List<CommitteeOptionDto> dueCategories = [];
+    private readonly List<DonorDueRowDto> typeRows = [];
+    private readonly List<DonorDueViewBlockDto> viewBlocks = [];
+
+    private DonorDueSummaryDto summary = new();
+    private DonorDueMemberDetailDto nameDetail = new();
+    private int typeId, categoryId;
+    private string searchQ = "", busyTitle = "", popupText = "";
+    private bool byType = true, allType, busy, popupError, typeLoaded, nameSearched;
+
+    private string TypeSummaryLine
+    {
+        get
+        {
+            var typeName = types.FirstOrDefault(x => x.CommitteeMemberTypeId == typeId)?.CommitteeMemberType ?? "";
+            var cat = categoryId > 0 ? dueCategories.FirstOrDefault(x => x.Id == categoryId)?.Name : null;
+            var catPart = string.IsNullOrWhiteSpace(cat) ? "" : Locale.T("cm.donorDueForCat", cat);
+            return Locale.T("cm.donorDueTypeLine", catPart, typeName, Tk(typeRows.Sum(x => x.Due)));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSummaryAsync();
+        if (!await OnlineAsync()) return;
+        types.Clear();
+        types.AddRange(await Api.GetCommitteeTypesAsync(Session.AccessToken!));
+    }
+
+    private void SetMode(bool value) => byType = value;
+
+    private async Task LoadSummaryAsync()
+    {
+        if (!await OnlineAsync()) return;
+        summary = await Api.GetDonorDueSummaryAsync(Session.AccessToken!);
+    }
+
+    private async Task OnTypeChangedAsync()
+    {
+        dueCategories.Clear();
+        typeRows.Clear();
+        typeLoaded = false;
+        categoryId = 0;
+        if (typeId <= 0) return;
+        dueCategories.AddRange(await Api.GetDonorDueCategoriesAsync(Session.AccessToken!, typeId));
+        await LoadByTypeAsync();
+    }
+
+    private async Task LoadByTypeAsync()
+    {
+        typeRows.Clear();
+        typeLoaded = false;
+        if (typeId <= 0 || !await OnlineAsync()) return;
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            var result = await Api.GetDonorDueByTypeAsync(Session.AccessToken!, typeId, categoryId);
+            typeRows.AddRange(result.Rows);
+            allType = false;
+            typeLoaded = true;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task FindByNameAsync()
+    {
+        nameSearched = true;
+        nameDetail = new();
+        if (string.IsNullOrWhiteSpace(searchQ) || !await OnlineAsync()) return;
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            nameDetail = await Api.GetDonorDueByNameAsync(Session.AccessToken!, searchQ);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FindByNameAsync();
+    }
+
+    private void ToggleAllType(ChangeEventArgs e)
+    {
+        allType = e.Value is true;
+        foreach (var row in typeRows) row.Selected = allType;
+    }
+
+    private void SetTypeRow(DonorDueRowDto row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true;
+        allType = typeRows.Count > 0 && typeRows.All(x => x.Selected);
+    }
+
+    private List<int> SelectedTypeIds() =>
+        typeRows.Where(x => x.Selected).Select(x => x.CommitteeMemberId).ToList();
+
+    private async Task SendTypeSmsAsync() => await SendSmsAsync(SelectedTypeIds(), categoryId);
+
+    private async Task SendNameSmsAsync()
+    {
+        if (nameDetail.CommitteeMemberId <= 0) return;
+        await SendSmsAsync([nameDetail.CommitteeMemberId], 0);
+    }
+
+    private async Task SendSmsAsync(List<int> ids, int catId)
+    {
+        if (ids.Count == 0) { Show(Locale.T("cm.bulkEditNeedSelect"), true); return; }
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.SendDonorDueSmsAsync(Session.AccessToken!, new DonorDueSmsRequest
+            {
+                CommitteeMemberIds = ids,
+                CategoryId = catId
+            });
+            if (!result.Succeeded && result.Sent == 0)
+            {
+                Show(FormatSmsErr(result.Error), true);
+                return;
+            }
+            Show(Locale.T("cm.donorDueSmsResult", result.Sent, result.Failed));
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ViewTypeAsync()
+    {
+        var ids = SelectedTypeIds();
+        if (ids.Count == 0) { Show(Locale.T("cm.bulkEditNeedSelect"), true); return; }
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            viewBlocks.Clear();
+            viewBlocks.AddRange(await Api.GetDonorDueViewAsync(Session.AccessToken!, new DonorDueViewRequest
+            {
+                CommitteeMemberIds = ids,
+                CategoryId = categoryId
+            }));
+            if (viewBlocks.Count == 0) Show(Locale.T("cm.emptyDonations"), true);
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task PrintModalAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false).AsTask();
+    private Task ExportWordAsync() =>
+        JS.InvokeVoidAsync("sikkhaloyExportWord", "Donor_Due.doc", "donor-due-export", Session.Current?.SchoolName ?? "", Locale.T("cm.donorDueList")).AsTask();
+
+    private void CloseView() => viewBlocks.Clear();
+    private static string Tk(decimal n) => n.ToString("0.##");
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private string FormatSmsErr(string? error) =>
+        string.IsNullOrWhiteSpace(error) ? Locale.T("cm.fail")
+        : error.StartsWith("acc.", StringComparison.OrdinalIgnoreCase) || error.StartsWith("cm.", StringComparison.OrdinalIgnoreCase)
+            ? Locale.T(error) : error;
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+}

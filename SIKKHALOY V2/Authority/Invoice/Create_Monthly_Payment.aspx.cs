@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -380,7 +380,9 @@ ORDER BY InvoiceID DESC";
                         cmd.Parameters.AddWithValue("@RegistrationID", registrationId);
                         cmd.Parameters.AddWithValue("@SchoolID", schoolId);
                         cmd.Parameters.AddWithValue("@IssuDate", issueDate.Date);
-                        cmd.Parameters.AddWithValue("@EndDate", issueDate.Date.AddDays(15));
+                        var payDue = new DateTime(issueDate.Year, issueDate.Month, 15);
+                        if (issueDate.Day > 15) payDue = payDue.AddMonths(1);
+                        cmd.Parameters.AddWithValue("@EndDate", payDue);
                         cmd.Parameters.AddWithValue("@Invoice_For", Month_DropDownList.SelectedItem.Text);
                         cmd.Parameters.AddWithValue("@TotalAmount", amount);
                         cmd.Parameters.AddWithValue("@Discount", discount);

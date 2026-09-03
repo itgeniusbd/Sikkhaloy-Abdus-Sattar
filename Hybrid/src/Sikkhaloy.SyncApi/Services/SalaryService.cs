@@ -468,35 +468,71 @@ WHERE Employee_PayorderID = @Employee_PayorderID AND EmployeeID = @EmployeeID AN
         return new SalaryResult { Succeeded = true, Count = request.Items.Count };
     }
 
-    public async Task<SalaryResult> DeletePayorderAsync(
-        SessionSnapshot session, int employeePayorderId, CancellationToken cancellationToken)
+    public Task<SalaryResult> DeletePayorderAsync(
+        SessionSnapshot session, int employeePayorderId, CancellationToken cancellationToken) =>
+        DeletePayordersAsync(session, new DeleteMonthlyPayordersRequest { EmployeePayorderIds = [employeePayorderId] }, cancellationToken);
+
+    public async Task<SalaryResult> DeletePayordersAsync(
+        SessionSnapshot session, DeleteMonthlyPayordersRequest? request, CancellationToken cancellationToken)
     {
-        if (employeePayorderId <= 0)
-            return Fail("sal.needItem");
+        var ids = (request?.EmployeePayorderIds ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+        if (ids.Count == 0)
+            return Fail("sal.needDelete");
 
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
-        await using var check = new SqlCommand("""
-SELECT 1 FROM dbo.Employee_Payorder
-WHERE Employee_PayorderID = @Id AND SchoolID = @SchoolID AND ISNULL(PaidAmount, 0) = 0
-""", con);
-        check.Parameters.AddWithValue("@Id", employeePayorderId);
-        check.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-        if (await check.ExecuteScalarAsync(cancellationToken) is null or DBNull)
-            return Fail("sal.paidLock");
+        await using var tx = (SqlTransaction)await con.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var inSql = string.Join(",", ids.Select((_, i) => "@P" + i));
+            var allowed = new List<int>();
+            await using (var check = new SqlCommand($"""
+SELECT Employee_PayorderID
+FROM dbo.Employee_Payorder
+WHERE SchoolID = @SchoolID AND ISNULL(PaidAmount, 0) = 0
+  AND Employee_PayorderID IN ({inSql})
+""", con, tx))
+            {
+                check.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                for (var i = 0; i < ids.Count; i++)
+                    check.Parameters.AddWithValue("@P" + i, ids[i]);
+                await using var reader = await check.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                    allowed.Add(Convert.ToInt32(reader[0]));
+            }
 
-        await using var cmd = new SqlCommand("""
-DELETE FROM dbo.Employee_Fine_Records WHERE Employee_PayorderID = @Id AND SchoolID = @SchoolID;
-DELETE FROM dbo.Employee_Deduction_Records WHERE Employee_PayorderID = @Id AND SchoolID = @SchoolID;
-DELETE FROM dbo.Employee_Bonus_Records WHERE Employee_PayorderID = @Id AND SchoolID = @SchoolID;
-DELETE FROM dbo.Employee_Allowance_Records WHERE Employee_PayorderID = @Id AND SchoolID = @SchoolID;
-DELETE FROM dbo.Employee_Payorder_Monthly WHERE Employee_PayorderID = @Id AND SchoolID = @SchoolID;
-DELETE FROM dbo.Employee_Payorder WHERE Employee_PayorderID = @Id AND SchoolID = @SchoolID;
-""", con);
-        cmd.Parameters.AddWithValue("@Id", employeePayorderId);
-        cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
-        return new SalaryResult { Succeeded = true, Id = employeePayorderId };
+            if (allowed.Count == 0)
+                return Fail(ids.Count == 1 ? "sal.paidLock" : "sal.needDelete");
+
+            var delIn = string.Join(",", allowed.Select((_, i) => "@D" + i));
+            await using var cmd = new SqlCommand($"""
+DELETE FROM dbo.Employee_Fine_Records WHERE SchoolID = @SchoolID AND Employee_PayorderID IN ({delIn});
+DELETE FROM dbo.Employee_Deduction_Records WHERE SchoolID = @SchoolID AND Employee_PayorderID IN ({delIn});
+DELETE FROM dbo.Employee_Bonus_Records WHERE SchoolID = @SchoolID AND Employee_PayorderID IN ({delIn});
+DELETE FROM dbo.Employee_Allowance_Records WHERE SchoolID = @SchoolID AND Employee_PayorderID IN ({delIn});
+DELETE FROM dbo.Employee_Payorder_Monthly WHERE SchoolID = @SchoolID AND Employee_PayorderID IN ({delIn});
+DELETE FROM dbo.Employee_Payorder WHERE SchoolID = @SchoolID AND Employee_PayorderID IN ({delIn});
+""", con, tx);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            for (var i = 0; i < allowed.Count; i++)
+                cmd.Parameters.AddWithValue("@D" + i, allowed[i]);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+            return new SalaryResult
+            {
+                Succeeded = true,
+                Count = allowed.Count,
+                Id = allowed.Count == 1 ? allowed[0] : 0
+            };
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<AccountOptionDto>> ListAccountsAsync(
@@ -696,7 +732,8 @@ WHERE Employee_Payorder_RecordID = @Id AND SchoolID = @SchoolID
         var sql = """
 SELECT p.EmployeeID, v.ID,
        LTRIM(RTRIM(ISNULL(v.FirstName, N'') + N' ' + ISNULL(v.LastName, N''))) AS Name,
-       m.MonthName, SUM(ISNULL(p.PaidAmount, 0)) AS Paid, SUM(ISNULL(p.Due, 0)) AS Due
+       m.MonthName, m.MonthStartDate,
+       SUM(ISNULL(p.PaidAmount, 0)) AS Paid, SUM(ISNULL(p.Due, 0)) AS Due
 FROM dbo.Employee_Payorder AS p
 INNER JOIN dbo.VW_Emp_Info AS v ON v.EmployeeID = p.EmployeeID
 INNER JOIN dbo.Employee_Payorder_Monthly AS m ON m.Employee_PayorderID = p.Employee_PayorderID
@@ -730,6 +767,9 @@ WHERE p.SchoolID = @SchoolID AND p.EducationYearID = @EducationYearID
                 ID = reader["ID"]?.ToString() ?? "",
                 Name = reader["Name"]?.ToString() ?? "",
                 MonthName = reader["MonthName"]?.ToString() ?? "",
+                MonthStartDate = reader["MonthStartDate"] is DBNull or null
+                    ? default
+                    : Convert.ToDateTime(reader["MonthStartDate"]),
                 Paid = ToDec(reader["Paid"]),
                 Due = ToDec(reader["Due"])
             });
@@ -887,33 +927,57 @@ INNER JOIN t ON t.Employee_PayorderID = p.Employee_PayorderID
         SqlConnection con, int schoolId, MonthlyPayorderDto row, CancellationToken cancellationToken)
     {
         row.Allowances = await ReadLinesAsync(con, """
-SELECT a.AllowanceID AS Id, a.AllowanceName AS Name, ISNULL(r.AllowanceAmount, 0) AS Amount
+SELECT ISNULL(r.AllowanceID, 0) AS Id,
+       ISNULL(NULLIF(LTRIM(RTRIM(a.AllowanceName)), N''), N'—') AS Name,
+       ISNULL(r.AllowanceAmount, 0) AS Amount
 FROM dbo.Employee_Allowance_Records AS r
-INNER JOIN dbo.Employee_Allowance AS a ON a.AllowanceID = r.AllowanceID
-WHERE r.Employee_PayorderID = @Id AND r.SchoolID = @SchoolID
+LEFT JOIN dbo.Employee_Allowance AS a ON a.AllowanceID = r.AllowanceID
+WHERE r.Employee_PayorderID = @Id
 """, schoolId, row.EmployeePayorderID, cancellationToken);
 
         row.Deductions = await ReadLinesAsync(con, """
-SELECT d.DeductionID AS Id, d.DeductionName AS Name, ISNULL(r.Deduction_Amount, 0) AS Amount
+SELECT ISNULL(r.DeductionID, 0) AS Id,
+       ISNULL(NULLIF(LTRIM(RTRIM(d.DeductionName)), N''), N'—') AS Name,
+       ISNULL(r.Deduction_Amount, 0) AS Amount
 FROM dbo.Employee_Deduction_Records AS r
-INNER JOIN dbo.Employee_Deduction AS d ON d.DeductionID = r.DeductionID
-WHERE r.Employee_PayorderID = @Id AND r.SchoolID = @SchoolID
+LEFT JOIN dbo.Employee_Deduction AS d ON d.DeductionID = r.DeductionID
+WHERE r.Employee_PayorderID = @Id
 """, schoolId, row.EmployeePayorderID, cancellationToken);
 
         row.Bonuses = await ReadLinesAsync(con, """
 SELECT b.BonusID AS Id, b.BonusName AS Name, ISNULL(t.Bonus_Amount, 0) AS Amount
 FROM dbo.Employee_Bonus AS b
 LEFT JOIN dbo.Employee_Bonus_Records AS t
-    ON t.BonusID = b.BonusID AND t.Employee_PayorderID = @Id AND t.SchoolID = @SchoolID
+    ON t.BonusID = b.BonusID AND t.Employee_PayorderID = @Id
 WHERE b.SchoolID = @SchoolID
+UNION ALL
+SELECT ISNULL(r.BonusID, 0) AS Id,
+       ISNULL(NULLIF(LTRIM(RTRIM(b.BonusName)), N''), N'—') AS Name,
+       ISNULL(r.Bonus_Amount, 0) AS Amount
+FROM dbo.Employee_Bonus_Records AS r
+LEFT JOIN dbo.Employee_Bonus AS b ON b.BonusID = r.BonusID
+WHERE r.Employee_PayorderID = @Id
+  AND NOT EXISTS (
+      SELECT 1 FROM dbo.Employee_Bonus AS x
+      WHERE x.BonusID = r.BonusID AND x.SchoolID = @SchoolID)
 """, schoolId, row.EmployeePayorderID, cancellationToken);
 
         row.Fines = await ReadLinesAsync(con, """
 SELECT f.FineID AS Id, f.FineName AS Name, ISNULL(t.Fine_Amount, 0) AS Amount
 FROM dbo.Employee_Fine AS f
 LEFT JOIN dbo.Employee_Fine_Records AS t
-    ON t.FineID = f.FineID AND t.Employee_PayorderID = @Id AND t.SchoolID = @SchoolID
+    ON t.FineID = f.FineID AND t.Employee_PayorderID = @Id
 WHERE f.SchoolID = @SchoolID
+UNION ALL
+SELECT ISNULL(r.FineID, 0) AS Id,
+       ISNULL(NULLIF(LTRIM(RTRIM(f.FineName)), N''), N'—') AS Name,
+       ISNULL(r.Fine_Amount, 0) AS Amount
+FROM dbo.Employee_Fine_Records AS r
+LEFT JOIN dbo.Employee_Fine AS f ON f.FineID = r.FineID
+WHERE r.Employee_PayorderID = @Id
+  AND NOT EXISTS (
+      SELECT 1 FROM dbo.Employee_Fine AS x
+      WHERE x.FineID = r.FineID AND x.SchoolID = @SchoolID)
 """, schoolId, row.EmployeePayorderID, cancellationToken);
     }
 

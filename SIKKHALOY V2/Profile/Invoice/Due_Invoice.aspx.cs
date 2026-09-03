@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -158,28 +158,54 @@ namespace EDUCATION.COM.Profile.Invoice
                 {
                     conn.Open();
 
-                    // ১. প্রথমে দেখো কোনো পুরনো (EndDate পার হয়ে গেছে) unpaid invoice আছে কিনা
-                    //    থাকলে সরাসরি blocked — grace period বা অন্য কিছু বিবেচনা নয়
+                    // Unpaid service invoice past EndDate blocks access unless a grace period is active.
                     using (SqlCommand expCmd = new SqlCommand(
-                        @"SELECT COUNT(*) FROM AAP_Invoice 
-                          WHERE SchoolID = @SID AND IsPaid = 0 
-                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) < CAST(GETDATE() AS DATE)", conn))
+                        @"SELECT COUNT(*) FROM AAP_Invoice i
+                          INNER JOIN AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+                          WHERE i.SchoolID = @SID AND i.IsPaid = 0
+                            AND c.InvoiceCategory <> N'SMS'
+                            AND i.IssuDate IS NOT NULL
+                            AND CASE
+                                  WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                                  ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                                END < CAST(GETDATE() AS DATE)", conn))
                     {
                         expCmd.Parameters.AddWithValue("@SID", schoolId);
                         int expiredCount = (int)expCmd.ExecuteScalar();
                         if (expiredCount > 0)
                         {
+                            using (SqlCommand graceCmd = new SqlCommand(
+                                "SELECT AccessGraceUntil FROM SchoolInfo WHERE SchoolID = @SID", conn))
+                            {
+                                graceCmd.Parameters.AddWithValue("@SID", schoolId);
+                                object graceVal = graceCmd.ExecuteScalar();
+                                if (graceVal != null && graceVal != DBNull.Value
+                                    && Convert.ToDateTime(graceVal).Date >= DateTime.Today)
+                                {
+                                    result.IsBlocked = false;
+                                    result.DaysUntilExpiry = (int)(Convert.ToDateTime(graceVal).Date - DateTime.Today).TotalDays;
+                                    return result;
+                                }
+                            }
                             result.IsBlocked = true;
                             result.DaysUntilExpiry = 0;
                             return result;
                         }
                     }
 
-                    // ২. Expired invoice নেই — unpaid invoice-এর সবচেয়ে কাছের EndDate কত দিন বাকি
                     using (SqlCommand futureCmd = new SqlCommand(
-                        @"SELECT MIN(CAST(EndDate AS DATE)) FROM AAP_Invoice 
-                          WHERE SchoolID = @SID AND IsPaid = 0 
-                          AND EndDate IS NOT NULL AND CAST(EndDate AS DATE) >= CAST(GETDATE() AS DATE)", conn))
+                        @"SELECT MIN(CASE
+                                  WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                                  ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                                END) FROM AAP_Invoice i
+                          INNER JOIN AAP_Invoice_Category c ON i.InvoiceCategoryID = c.InvoiceCategoryID
+                          WHERE i.SchoolID = @SID AND i.IsPaid = 0
+                            AND c.InvoiceCategory <> N'SMS'
+                            AND i.IssuDate IS NOT NULL
+                            AND CASE
+                                  WHEN DAY(i.IssuDate) <= 15 THEN DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15)
+                                  ELSE DATEADD(MONTH, 1, DATEFROMPARTS(YEAR(i.IssuDate), MONTH(i.IssuDate), 15))
+                                END >= CAST(GETDATE() AS DATE)", conn))
                     {
                         futureCmd.Parameters.AddWithValue("@SID", schoolId);
                         object futureEnd = futureCmd.ExecuteScalar();

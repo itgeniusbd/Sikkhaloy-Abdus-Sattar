@@ -4,8 +4,11 @@ public sealed class AttendanceResult
 {
     public bool Succeeded { get; set; }
     public string? Error { get; set; }
+    /// <summary>Free-form details (e.g. schedule overlap skips). Prefer this over Error when set.</summary>
+    public string? Message { get; set; }
     public int Saved { get; set; }
     public int Id { get; set; }
+    public bool Queued { get; set; }
 }
 
 public sealed class AttendanceLeaveTypeDto
@@ -110,6 +113,7 @@ public sealed class SaveStudentRfidRequest
 public sealed class StudentRfidSaveRow
 {
     public int StudentID { get; set; }
+    public string? Name { get; set; }
     public string? RFID { get; set; }
     public bool Assigned { get; set; }
     public bool PreSms { get; set; }
@@ -142,6 +146,7 @@ public sealed class SaveEmployeeRfidRequest
 public sealed class EmployeeRfidSaveRow
 {
     public int EmployeeID { get; set; }
+    public string? Name { get; set; }
     public string? RFID { get; set; }
     public bool Assigned { get; set; }
     public bool AbsSms { get; set; }
@@ -180,6 +185,10 @@ public sealed class StudentManualSaveRow
     public int StudentClassID { get; set; }
     public string Attendance { get; set; } = "Pre";
     public string? Reason { get; set; }
+    public bool SendSms { get; set; }
+    public string? ID { get; set; }
+    public string? Phone { get; set; }
+    public string? Name { get; set; }
 }
 
 public sealed class EmployeeManualRowDto

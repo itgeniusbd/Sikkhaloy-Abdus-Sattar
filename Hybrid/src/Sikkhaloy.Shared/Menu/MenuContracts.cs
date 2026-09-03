@@ -993,6 +993,15 @@ public static class HybridMenuRoutes
             return;
         }
 
+        if (lower.Contains("sms_template.aspx")
+            || title.Equals("SMS Template Management", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("SMS Template", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/sms/templates";
+            link.Ready = true;
+            return;
+        }
+
         if (lower.Contains("send_sms_to_others.aspx")
             || title.Equals("Send SMS From Contact List", StringComparison.OrdinalIgnoreCase)
             || title.Equals("Send SMS to Others", StringComparison.OrdinalIgnoreCase))
@@ -1103,6 +1112,38 @@ public static class HybridMenuRoutes
             return;
         }
 
+        if (lower.Contains("create_donor_username_password.aspx")
+            || title.Equals("Donor Login Management", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/donor-login";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("donor_present_due.aspx")
+            || title.Equals("Donor Present Due List", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/donor-due";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("donationbulkedit.aspx")
+            || title.Equals("Bulk Pay Order Edit", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/donation-bulk-edit";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("donationpayorder.aspx")
+            || title.Equals("Bulk Pay Order", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/committee/donation-pay-order";
+            link.Ready = true;
+            return;
+        }
+
         if (lower.Contains("donationcollect.aspx")
             || title.Equals("Collect Donation", StringComparison.OrdinalIgnoreCase)
             || title.Equals("Donation Collect", StringComparison.OrdinalIgnoreCase))
@@ -1148,6 +1189,67 @@ public static class HybridMenuRoutes
             return;
         }
 
+        if (lower.Contains("inventory/suppliers")
+            || lower.Contains("inventory/supplier-pay")
+            || title.Equals("Supplier", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Suppliers", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Supplier Payment", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Supplier Payments", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/inventory/suppliers";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("inventory/items")
+            || title.Equals("Item Add", StringComparison.OrdinalIgnoreCase)
+            || title.Equals("Add Item", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/inventory/items";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("inventory/purchase-report")
+            || title.Equals("Purchase Report", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/inventory/purchase-report";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("inventory/purchase")
+            || title.Equals("Purchase", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/inventory/purchase";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("inventory/sale-report")
+            || title.Equals("Sale Report", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/inventory/sale-report";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("inventory/sale")
+            || title.Equals("Sale", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/inventory/sale";
+            link.Ready = true;
+            return;
+        }
+
+        if (lower.Contains("inventory/stock")
+            || title.Equals("Stock Report", StringComparison.OrdinalIgnoreCase))
+        {
+            link.Route = "/inventory/stock";
+            link.Ready = true;
+            return;
+        }
+
         link.Route = $"/coming-soon/{link.LinkID}";
         link.Ready = false;
     }
@@ -1159,17 +1261,88 @@ public static class HybridMenuRoutes
             category.Links.RemoveAll(IsTemporarilyHidden);
             EnsureInputExamMarks(category.Links);
             Deduplicate(category.Links);
+            PutAssignBeforeSession(category.Links);
             category.Subs.RemoveAll(IsTemporarilyHiddenSub);
             foreach (var sub in category.Subs)
             {
                 sub.Links.RemoveAll(IsTemporarilyHidden);
                 EnsureInputExamMarks(sub.Links);
                 Deduplicate(sub.Links);
+                PutAssignBeforeSession(sub.Links);
             }
 
             category.Subs.RemoveAll(sub => sub.Links.Count == 0);
         }
+
+        EnsureInventory(tree);
     }
+
+    private static void EnsureInventory(MenuTreeDto tree)
+    {
+        var cat = tree.Categories.FirstOrDefault(c => NameIs(c.Name, "Inventory"));
+        if (cat is null)
+        {
+            cat = new MenuCategoryDto
+            {
+                CategoryID = -9200,
+                Name = "Inventory",
+                Sort = 85,
+                Links = []
+            };
+            var at = tree.Categories.FindIndex(c => NameIs(c.Name, "Routines"));
+            if (at >= 0)
+                tree.Categories.Insert(at + 1, cat);
+            else
+                tree.Categories.Add(cat);
+        }
+
+        cat.Links ??= [];
+        MenuLinkDto[] wanted =
+        [
+            Link(-9201, "Item Add", "/inventory/items"),
+            Link(-9208, "Supplier", "/inventory/suppliers"),
+            Link(-9202, "Purchase", "/inventory/purchase"),
+            Link(-9203, "Purchase Report", "/inventory/purchase-report"),
+            Link(-9204, "Sale", "/inventory/sale"),
+            Link(-9205, "Sale Report", "/inventory/sale-report"),
+            Link(-9206, "Stock Report", "/inventory/stock")
+        ];
+        foreach (var link in wanted)
+        {
+            if (cat.Links.Any(x => SameInvLink(x, link)))
+                continue;
+            cat.Links.Add(link);
+        }
+
+        var leftover = cat.Links.ToList();
+        cat.Links.Clear();
+        foreach (var link in wanted)
+        {
+            var found = leftover.FirstOrDefault(x => SameInvLink(x, link));
+            if (found is null) continue;
+            cat.Links.Add(found);
+            leftover.Remove(found);
+        }
+        leftover.RemoveAll(IsTemporarilyHidden);
+        cat.Links.AddRange(leftover);
+    }
+
+    private static bool SameInvLink(MenuLinkDto existing, MenuLinkDto wanted) =>
+        string.Equals((existing.Route ?? existing.PageUrl ?? "").Trim(), wanted.Route, StringComparison.OrdinalIgnoreCase)
+        || string.Equals((existing.Title ?? "").Trim(), wanted.Title, StringComparison.OrdinalIgnoreCase);
+
+    private static bool NameIs(string? value, string name) =>
+        string.Equals((value ?? "").Trim(), name, StringComparison.OrdinalIgnoreCase);
+
+    private static MenuLinkDto Link(int id, string title, string route) => new()
+    {
+        LinkID = id,
+        Title = title,
+        PageUrl = route,
+        Route = route,
+        Ready = true,
+        Sort = id
+    };
 
     private static void EnsureInputExamMarks(List<MenuLinkDto> links)
     {
@@ -1195,6 +1368,22 @@ public static class HybridMenuRoutes
     private static bool RouteIs(MenuLinkDto link, string route) =>
         (link.Route ?? "").Trim().Equals(route, StringComparison.OrdinalIgnoreCase);
 
+    private static void PutAssignBeforeSession(List<MenuLinkDto> links)
+    {
+        var assignAt = links.FindIndex(link => RouteIs(link, "/basic-settings/assign-subjects"));
+        var sessionAt = links.FindIndex(link => RouteIs(link, "/basic-settings/session"));
+        if (assignAt < 0 || sessionAt < 0 || assignAt < sessionAt)
+            return;
+
+        var assign = links[assignAt];
+        links.RemoveAt(assignAt);
+        sessionAt = links.FindIndex(link => RouteIs(link, "/basic-settings/session"));
+        if (sessionAt < 0)
+            links.Add(assign);
+        else
+            links.Insert(sessionAt, assign);
+    }
+
     private static readonly HashSet<string> HiddenSubs = new(StringComparer.OrdinalIgnoreCase)
     {
         "Weekly Exam",
@@ -1207,14 +1396,23 @@ public static class HybridMenuRoutes
     {
         "Weekly Exam",
         "Input Marks",
-        "Edit Marks"
+        "Edit Marks",
+        "Inventory Log",
+        "Supplier Payment",
+        "Supplier Payments"
     };
 
     private static bool IsTemporarilyHiddenSub(MenuSubDto sub) =>
         HiddenSubs.Contains((sub.Name ?? "").Trim());
 
-    private static bool IsTemporarilyHidden(MenuLinkDto link) =>
-        HiddenTitles.Contains((link.Title ?? "").Trim());
+    private static bool IsTemporarilyHidden(MenuLinkDto link)
+    {
+        if (HiddenTitles.Contains((link.Title ?? "").Trim()))
+            return true;
+        var route = (link.Route ?? link.PageUrl ?? "").Replace('\\', '/');
+        return route.Contains("/inventory/log", StringComparison.OrdinalIgnoreCase)
+            || route.Contains("/inventory/supplier-pay", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static void Deduplicate(List<MenuLinkDto> links)
     {

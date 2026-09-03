@@ -3,26 +3,40 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page acc-page po-page">
-    <h1>@Locale.T("acc.payOrderTitle")</h1>
-    <p class="acc-hint">@Locale.T("acc.payOrderHint")</p>
+<div class="card sa-page si-info-page acc-page acc-mod-page po-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.payOrder")</p>
+            <h1>@Locale.T("acc.payOrderTitle")</h1>
+            <p class="sa-lead">@Locale.T("acc.payOrderHint")</p>
+        </div>
+    </header>
 
-    <div class="po-filters">
-        <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("acc.selectClassOrAll")</option>
-            <option value="-1">@Locale.T("acc.allStudents")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        <select @bind="studentKind" disabled="@busy">
-            <option value="%">@Locale.T("acc.allStudentKind")</option>
-            <option value="1">@Locale.T("acc.newStudent")</option>
-            <option value="0">@Locale.T("acc.oldStudent")</option>
-        </select>
-        <input type="text" placeholder="@Locale.T("acc.idsHint")" @bind="idText" disabled="@busy" />
-        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="FindIdsAsync">@Locale.T("acc.findStudent")</button>
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("acc.selectClassOrAll")</option>
+                <option value="-1">@Locale.T("acc.allStudents")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-group">
+            <span class="sal-box-h">@Locale.T("acc.allStudentKind")</span>
+            <select @bind="studentKind" disabled="@busy">
+                <option value="%">@Locale.T("acc.allStudentKind")</option>
+                <option value="1">@Locale.T("acc.newStudent")</option>
+                <option value="0">@Locale.T("acc.oldStudent")</option>
+            </select>
+        </section>
+        <section class="sal-box is-sid acc-grow">
+            <span class="sal-box-h">@Locale.T("acc.idsHint")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("acc.idsHint")" @bind="idText" disabled="@busy" />
+        </section>
+        <button type="button" class="sal-gen" disabled="@busy" @onclick="FindIdsAsync">@Locale.T("acc.findStudent")</button>
     </div>
 
     @if (HasSelection)
@@ -87,8 +101,8 @@
 
     @if (HasSelection)
     {
-        <div class="po-action">
-            <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.payOrder")</button>
+        <div class="sal-bar no-print po-action">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("acc.payOrder")</button>
         </div>
     }
 
@@ -112,26 +126,10 @@
     }
 </div>
 
-@if (busy)
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText) && !busy)
 {
-    <div class="acc-loading-back">
-        <div class="acc-loading">
-            <div class="acc-spinner"></div>
-            <p>@Locale.T("acc.loading")</p>
-        </div>
-    </div>
-}
-
-@if (!string.IsNullOrWhiteSpace(popupText))
-{
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="acc.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -145,8 +143,11 @@
     private string classInput = "0";
     private string studentKind = "%";
     private string idText = "";
+    [SupplyParameterFromQuery(Name = "class")] public int QClass { get; set; }
+    [SupplyParameterFromQuery(Name = "id")] public string? QId { get; set; }
     private bool busy;
     private bool allStudents;
+    private string busyTitle = "";
     private string? popupText;
     private bool popupError;
     private bool HasSelection => classInput is not "0";
@@ -195,6 +196,21 @@
         if (!await OnlineAsync()) return;
         var structure = await Api.GetClassStructureAsync(Session.AccessToken!);
         classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+        if (QClass != 0)
+        {
+            classInput = QClass.ToString();
+            if (!string.IsNullOrWhiteSpace(QId))
+                idText = QId;
+            await LoadAsync();
+            if (!string.IsNullOrWhiteSpace(QId))
+            {
+                FindIdsAsync();
+                foreach (var row in VisibleStudents)
+                    row.Selected = true;
+                var list = VisibleStudents.ToList();
+                allStudents = list.Count > 0 && list.All(x => x.Selected);
+            }
+        }
     }
 
     private RenderFragment FeeTable(List<FeeRow> rows) => @<table class="mgrid">
@@ -345,7 +361,7 @@
         ClearLists();
         if (!HasSelection) return;
         if (!await OnlineAsync()) return;
-        busy = true;
+        await SetBusyAsync("si.loading");
         try
         {
             await FillAsync();
@@ -420,9 +436,15 @@
 
     private async Task SaveAsync()
     {
-        var picked = VisibleStudents.Where(x => x.Selected).Select(x => x.StudentClassID).ToList();
+        var selected = VisibleStudents.Where(x => x.Selected).ToList();
+        var picked = selected.Select(x => x.StudentClassID).Where(x => x > 0).ToList();
+        if (picked.Count == 0 && selected.All(x => string.IsNullOrWhiteSpace(x.ID)))
+        {
+            ShowPopup(Locale.T("acc.needStudents"), true);
+            return;
+        }
         var selectedFees = SelectedFees().ToList();
-        if (picked.Count == 0)
+        if (selected.Count == 0)
         {
             ShowPopup(Locale.T("acc.needStudents"), true);
             return;
@@ -439,15 +461,20 @@
             return;
         }
         if (!await OnlineAsync()) return;
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
             var result = await Api.CreatePayOrdersAsync(Session.AccessToken!, new CreatePayOrdersRequest
             {
                 StudentClassIDs = picked,
+                StudentIDs = selected.Select(x => x.ID).ToList(),
                 Items = items
             });
-            busy = false;
+            if (result.Queued)
+            {
+                ShowPopup(Locale.T("sync.savedOffline"), false);
+                return;
+            }
             if (!result.Succeeded)
             {
                 ShowPopup(Locale.T(result.Error ?? "acc.failed"), true);
@@ -461,7 +488,6 @@
         }
         catch (Exception ex)
         {
-            busy = false;
             ShowPopup(ex.Message, true);
         }
         finally { busy = false; }
@@ -488,13 +514,21 @@
     private static bool Ready(FeeRow row) =>
         row.Selected && !string.IsNullOrWhiteSpace(row.PayFor);
 
-    private async Task<bool> OnlineAsync()
+    private Task<bool> OnlineAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
             ShowPopup(Locale.T("subj.needOnline"), true);
-            return false;
+            return Task.FromResult(false);
         }
-        return true;
+        return Task.FromResult(true);
+    }
+
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
     }
 }

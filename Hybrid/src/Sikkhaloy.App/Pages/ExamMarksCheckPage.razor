@@ -40,7 +40,9 @@
             @foreach (var row in rows)
             {
                 <tr class="@RowClass(row)">
-                    <td>@row.SubjectName</td>
+                    <td>
+                        <a href="@InputHref(row)" class="exam-subject-link">@row.SubjectName</a>
+                    </td>
                     <td>@row.TotalStudent</td>
                     <td>
                         @foreach (var sub in row.Subs)
@@ -71,14 +73,7 @@
 }
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("exam.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -109,6 +104,9 @@
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
     }
+
+    private string InputHref(MarksCheckRowDto row) =>
+        $"/exam/input?examId={examId}&classId={classId}&subjectId={row.SubjectID}";
 
     private static string RowClass(MarksCheckRowDto row)
     {

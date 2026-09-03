@@ -3,76 +3,111 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page att-page">
-    <h1>@Locale.T("att.leaveEmp")</h1>
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-emp-leave-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("att.scheduleHint")</p>
+            <h1>@Locale.T("att.leaveEmp")</h1>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(message))
-    {
-        <div class="ok">@message</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row">
-        <label class="choice-inline">
-            <input type="radio" name="eleave-type" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
-            <span>@Locale.T("emp.all")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="eleave-type" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
-            <span>@Locale.T("emp.teacher")</span>
-        </label>
-        <label class="choice-inline">
-            <input type="radio" name="eleave-type" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
-            <span>@Locale.T("emp.staff")</span>
-        </label>
-        <input type="text" placeholder="@Locale.T("emp.search")" @bind="query" @bind:event="oninput" disabled="@busy" />
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadAsync">@Locale.T("si.find")</button>
+    <div class="sal-bar no-print">
+        <section class="sal-box is-type">
+            <span class="sal-box-h">@Locale.T("emp.type")</span>
+            <span class="readm-type">
+                <label class="choice-inline">
+                    <input type="radio" name="eleave-type" checked="@(type == "%")" @onchange="@(() => SetType("%"))" />
+                    <span>@Locale.T("emp.all")</span>
+                </label>
+                <label class="choice-inline">
+                    <input type="radio" name="eleave-type" checked="@(type == "Teacher")" @onchange="@(() => SetType("Teacher"))" />
+                    <span>@Locale.T("emp.teacher")</span>
+                </label>
+                <label class="choice-inline">
+                    <input type="radio" name="eleave-type" checked="@(type == "Staff")" @onchange="@(() => SetType("Staff"))" />
+                    <span>@Locale.T("emp.staff")</span>
+                </label>
+            </span>
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("emp.search")</span>
+            <input type="text" placeholder="@Locale.T("emp.search")" @bind="query" @bind:event="oninput" disabled="@busy" />
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="LoadAsync">@Locale.T("si.find")</button>
+        </div>
+        <span class="el-count">@rows.Count</span>
     </div>
 
-    <div class="filter-row">
-        <input type="date" @bind="start" disabled="@busy" />
-        <input type="date" @bind="end" disabled="@busy" />
-        <input type="text" placeholder="@Locale.T("att.reason")" @bind="reason" disabled="@busy" />
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submit")</button>
-    </div>
-
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th class="act"><input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" /></th>
-                <th>@Locale.T("emp.id")</th>
-                <th>@Locale.T("si.name")</th>
-                <th>@Locale.T("emp.designation")</th>
-                <th>@Locale.T("emp.phone")</th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (rows.Count == 0 && !busy)
+    <div class="sal-bar no-print">
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.from")</span>
+            <input type="date" @bind="start" disabled="@busy" />
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.to")</span>
+            <input type="date" @bind="end" disabled="@busy" />
+        </section>
+        <section class="sal-box">
+            <span class="sal-box-h">@Locale.T("att.reason")</span>
+            <input type="text" placeholder="@Locale.T("att.reason")" @bind="reason" disabled="@busy" />
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="SaveAsync">@Locale.T("att.submit")</button>
+        </div>
+        @if (selected.Count > 0)
         {
-            <tr><td colspan="5" class="empty-row">@Locale.T("att.empty")</td></tr>
+            <span class="el-count"><em>@Locale.T("si.picked", selected.Count)</em></span>
         }
-        else
-        {
-            @foreach (var row in rows)
-            {
+    </div>
+
+    <div class="sj-grid">
+        <table class="mgrid">
+            <thead>
                 <tr>
-                    <td class="act">
-                        <input type="checkbox" checked="@selected.Contains(row.EmployeeID)" disabled="@busy"
-                               @onchange="e => Toggle(row.EmployeeID, e)" />
-                    </td>
-                    <td>@row.ID</td>
-                    <td>@row.Name</td>
-                    <td>@row.Designation</td>
-                    <td>@row.Phone</td>
+                    <th class="act"><input type="checkbox" checked="@allSelected" disabled="@busy" @onchange="ToggleAll" /></th>
+                    <th>@Locale.T("emp.id")</th>
+                    <th>@Locale.T("si.name")</th>
+                    <th>@Locale.T("emp.designation")</th>
+                    <th>@Locale.T("emp.phone")</th>
                 </tr>
+            </thead>
+            <tbody>
+            @if (rows.Count == 0 && !busy)
+            {
+                <tr><td colspan="5" class="empty-row">@Locale.T("att.empty")</td></tr>
             }
-        }
-        </tbody>
-    </table>
+            else
+            {
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td class="act">
+                            <input type="checkbox" checked="@selected.Contains(row.EmployeeID)" disabled="@busy"
+                                   @onchange="e => Toggle(row.EmployeeID, e)" />
+                        </td>
+                        <td>@row.ID</td>
+                        <td>@row.Name</td>
+                        <td>@row.Designation</td>
+                        <td>@row.Phone</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private readonly List<EmployeeLeavePickDto> rows = [];
@@ -80,12 +115,14 @@
     private string type = "%";
     private string query = "";
     private string reason = "";
+    private string busyTitle = "";
+    private string popupText = "";
     private DateTime start = DateTime.Today;
     private DateTime end = DateTime.Today;
     private bool busy;
+    private bool popupError;
     private bool allSelected;
     private string? error;
-    private string? message;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -116,12 +153,12 @@
 
     private async Task LoadAsync()
     {
-        error = message = null;
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        error = null;
+        await SetBusyAsync("si.loading");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             rows.Clear();
             selected.Clear();
             allSelected = false;
@@ -129,11 +166,11 @@
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -143,22 +180,23 @@
 
     private async Task SaveAsync()
     {
-        error = message = null;
+        error = null;
+        popupText = "";
         if (selected.Count == 0)
         {
-            error = Locale.T("att.needRows");
+            Show(Locale.T("att.needRows"), true);
             return;
         }
         if (string.IsNullOrWhiteSpace(reason))
         {
-            error = Locale.T("att.needReason");
+            Show(Locale.T("att.needReason"), true);
             return;
         }
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        await SetBusyAsync("si.saving");
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var result = await Api.SaveEmployeeLeaveAsync(Session.AccessToken!, new SaveEmployeeLeaveRequest
             {
                 EmployeeIDs = selected.ToList(),
@@ -168,21 +206,21 @@
             });
             if (!result.Succeeded)
             {
-                error = Locale.T(result.Error ?? "att.failed");
+                Show(Locale.T(result.Error ?? "att.failed"), true);
                 return;
             }
             reason = "";
             selected.Clear();
             allSelected = false;
-            message = Locale.T("att.leaveSaved");
+            Show(Locale.T("att.leaveSaved"), false);
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
@@ -190,11 +228,28 @@
         }
     }
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;

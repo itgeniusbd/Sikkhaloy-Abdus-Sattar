@@ -10,12 +10,14 @@ using Sikkhaloy.Web.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options => options.MaximumReceiveMessageSize = 2 * 1024 * 1024);
 
 var baseUrl = SyncApiClient.NormalizeBaseUrl(builder.Configuration["SyncApi:BaseUrl"]);
 
 builder.Services.AddSingleton(AppHostInfo.Web);
 builder.Services.AddScoped<AppSession>();
+builder.Services.AddScoped<SessionPersist>();
 builder.Services.AddScoped<AppLocale>();
 builder.Services.AddScoped<OfflineAuthService>();
 builder.Services.AddScoped<ISyncApiClient, SyncApiClient>();

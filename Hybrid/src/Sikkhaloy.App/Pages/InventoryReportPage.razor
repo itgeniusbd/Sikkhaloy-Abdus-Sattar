@@ -1,0 +1,521 @@
+@page "/inventory/purchase-report"
+@page "/inventory/sale-report"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<style>
+    .inv-rpt-page, .inv-rpt-page * { box-sizing: border-box; }
+    .inv-rpt-page { width: 100%; max-width: none; min-width: 0; }
+    .inv-rpt-page .ir-hero { margin-bottom: 0.85rem; }
+    .inv-rpt-page .ir-hero h1 { margin: 0.12rem 0 0.3rem; font-size: 1.35rem; }
+    .inv-rpt-page .ir-bar {
+        display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: flex-end;
+        margin-bottom: 1rem;
+    }
+    .inv-rpt-page .ir-field {
+        display: flex; flex-direction: column; gap: 0.3rem;
+        flex: 1 1 150px; min-width: 140px; max-width: 100%;
+        font-size: 0.75rem; font-weight: 700; color: #475569;
+    }
+    .inv-rpt-page .ir-field.is-search { flex: 2 1 240px; }
+    .inv-rpt-page .ir-box { position: relative; width: 100%; }
+    .inv-rpt-page .ir-box.has-ico input { padding-right: 2.3rem; }
+    .inv-rpt-page .ir-box > i {
+        position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%);
+        width: 1rem; height: 1rem; color: #94a3b8; pointer-events: none; display: grid; place-items: center;
+    }
+    .inv-rpt-page .ir-box > i svg { width: 1rem; height: 1rem; }
+    .inv-rpt-page .ir-box input,
+    .inv-rpt-page .ir-box select {
+        width: 100%; height: 44px; min-height: 44px; max-width: 100%;
+        border: 1.5px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
+        padding: 0 0.85rem; font: inherit; font-size: 0.92rem; font-weight: 600; color: #0f172a;
+        outline: none; appearance: none; -webkit-appearance: none;
+    }
+    .inv-rpt-page .ir-box select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 0.7rem center; padding-right: 2rem;
+    }
+    .inv-rpt-page .ir-box input::placeholder { color: #94a3b8; font-weight: 500; }
+    .inv-rpt-page .ir-box input:hover, .inv-rpt-page .ir-box select:hover { border-color: #99f6e4; background: #fff; }
+    .inv-rpt-page .ir-box input:focus, .inv-rpt-page .ir-box select:focus {
+        border-color: #0f766e; background: #fff; box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14);
+    }
+    .inv-rpt-page .ir-btn {
+        height: 44px; min-height: 44px; border: 0; border-radius: 12px;
+        padding: 0 1.05rem; color: #fff; font: inherit; font-weight: 800;
+        cursor: pointer; white-space: nowrap; flex: 0 0 auto;
+        background: linear-gradient(135deg, #0f766e, #115e59);
+        box-shadow: 0 6px 16px rgba(15, 118, 110, 0.22);
+    }
+    .inv-rpt-page .ir-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .inv-rpt-page .ir-print {
+        height: 44px; border: 1px solid #cbd5e1; border-radius: 12px;
+        background: #fff; color: #334155; font: inherit; font-weight: 800;
+        padding: 0 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;
+        flex: 0 0 auto;
+    }
+    .inv-rpt-page .ir-print svg { width: 1rem; height: 1rem; }
+    .inv-rpt-page .ir-radios {
+        display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;
+        background: #f1f5f9; border-radius: 12px; padding: 0.22rem;
+        flex: 0 1 auto;
+    }
+    .inv-rpt-page .ir-radios label {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        min-height: 36px; padding: 0 0.75rem; border-radius: 9px;
+        font-size: 0.8rem; font-weight: 800; color: #475569; cursor: pointer; margin: 0;
+    }
+    .inv-rpt-page .ir-radios label.is-on { background: #fff; color: #0f766e; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08); }
+    .inv-rpt-page .ir-radios input { accent-color: #0f766e; }
+    .inv-rpt-page .ir-kpis {
+        display: flex; flex-wrap: wrap; gap: 0.85rem; margin-bottom: 1rem;
+    }
+    .inv-rpt-page .ir-kpi {
+        flex: 1 1 170px; min-width: 150px;
+        display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+        padding: 0.95rem 1rem; border-radius: 16px; border: 1px solid transparent;
+    }
+    .inv-rpt-page .ir-kpi small { display: block; font-size: 0.76rem; font-weight: 800; }
+    .inv-rpt-page .ir-kpi strong { display: block; margin-top: 0.2rem; font-size: 1.28rem; font-weight: 800; color: #0f172a; line-height: 1.15; }
+    .inv-rpt-page .ir-kpi em { display: block; font-style: normal; font-size: 0.72rem; font-weight: 650; color: #64748b; margin-top: 0.15rem; }
+    .inv-rpt-page .ir-kpi-ico {
+        width: 2.5rem; height: 2.5rem; border-radius: 12px; flex: 0 0 auto;
+        display: grid; place-items: center;
+    }
+    .inv-rpt-page .ir-kpi-ico svg { width: 1.25rem; height: 1.25rem; }
+    .inv-rpt-page .ir-kpi.is-count { background: #eff6ff; border-color: #bfdbfe; }
+    .inv-rpt-page .ir-kpi.is-count small { color: #1d4ed8; }
+    .inv-rpt-page .ir-kpi.is-count .ir-kpi-ico { background: #dbeafe; color: #2563eb; }
+    .inv-rpt-page .ir-kpi.is-total { background: #ecfdf5; border-color: #a7f3d0; }
+    .inv-rpt-page .ir-kpi.is-total small { color: #047857; }
+    .inv-rpt-page .ir-kpi.is-total .ir-kpi-ico { background: #d1fae5; color: #059669; }
+    .inv-rpt-page .ir-kpi.is-paid { background: #f0fdfa; border-color: #99f6e4; }
+    .inv-rpt-page .ir-kpi.is-paid small { color: #0f766e; }
+    .inv-rpt-page .ir-kpi.is-paid .ir-kpi-ico { background: #ccfbf1; color: #0f766e; }
+    .inv-rpt-page .ir-kpi.is-due { background: #fef2f2; border-color: #fecaca; }
+    .inv-rpt-page .ir-kpi.is-due small { color: #b91c1c; }
+    .inv-rpt-page .ir-kpi.is-due .ir-kpi-ico { background: #fee2e2; color: #dc2626; }
+    .inv-rpt-page .ir-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 14px; border: 1px solid #d1fae5; }
+    .inv-rpt-page .ir-table { width: 100%; min-width: 860px; border-collapse: collapse; margin: 0; }
+    .inv-rpt-page .ir-table th {
+        background: #0f766e; color: #fff; font-weight: 800; font-size: 0.78rem;
+        text-align: left; padding: 0.62rem 0.7rem; white-space: nowrap;
+    }
+    .inv-rpt-page .ir-table td {
+        padding: 0.58rem 0.7rem; border-bottom: 1px solid #eef2f6; color: #334155; vertical-align: middle;
+    }
+    .inv-rpt-page .ir-table tbody tr:nth-child(even) td { background: #f8fafc; }
+    .inv-rpt-page .ir-table tbody tr:hover td { background: #f1f5f9; }
+    .inv-rpt-page .ir-table .empty-row { text-align: center; color: #94a3b8; padding: 1.6rem 0.6rem; }
+    .inv-rpt-page .ir-table tfoot th, .inv-rpt-page .ir-table tfoot td {
+        background: #ecfdf5; color: #134e4a; font-weight: 800; border-bottom: 0;
+    }
+    .inv-rpt-page .ir-num { text-align: right !important; white-space: nowrap; font-weight: 700; }
+    .inv-rpt-page .ir-paid { color: #047857; }
+    .inv-rpt-page .ir-due { color: #b91c1c; }
+    .inv-rpt-page .ir-st {
+        display: inline-block; padding: 0.18rem 0.7rem; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 800;
+    }
+    .inv-rpt-page .ir-st.is-paid { background: #dcfce7; color: #166534; }
+    .inv-rpt-page .ir-st.is-due { background: #fee2e2; color: #b91c1c; }
+    .inv-rpt-page .ir-eye {
+        display: inline-grid; place-items: center; width: 2rem; height: 2rem;
+        border-radius: 8px; color: #0f766e; background: #ecfdf5; text-decoration: none;
+    }
+    .inv-rpt-page .ir-eye svg { width: 1.05rem; height: 1.05rem; }
+    .inv-rpt-page .ir-lines td { background: #f8fffc !important; padding: 0.35rem 0.7rem 0.7rem; border-bottom: 1px solid #d1fae5; }
+    .inv-rpt-page .ir-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .inv-rpt-page .ir-chip {
+        display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.55rem;
+        background: #fff; border: 1px solid #99f6e4; border-radius: 10px;
+        padding: 0.35rem 0.65rem; font-size: 0.78rem; color: #134e4a;
+    }
+    .inv-rpt-page .ir-chip b { color: #0f172a; }
+    .inv-rpt-page .ir-chip em { font-style: normal; color: #0f766e; font-weight: 800; }
+    .inv-rpt-page .ir-chip span { color: #64748b; font-weight: 650; }
+    .inv-rpt-page .ir-print-banner { display: none; }
+    @@media (max-width: 720px) {
+        .inv-rpt-page .ir-btn, .inv-rpt-page .ir-print { width: 100%; justify-content: center; }
+        .inv-rpt-page .ir-radios { width: 100%; }
+    }
+    @@media print {
+        @@page { size: A4 portrait; margin: 8mm 6mm; }
+        .inv-rpt-page .ir-hero, .inv-rpt-page .ir-bar, .inv-rpt-page .no-print { display: none !important; }
+        .inv-rpt-page .ir-print-banner {
+            display: block !important; text-align: center; margin: 0 0 0.45rem;
+        }
+        .inv-rpt-page .ir-print-banner p {
+            margin: 0.1rem 0 0; font-size: 10pt; font-weight: 700; color: #334155;
+        }
+        .inv-rpt-page .ir-kpis { gap: 0.4rem; margin-bottom: 0.5rem; }
+        .inv-rpt-page .ir-kpi {
+            flex: 1 1 22%; min-width: 0; padding: 0.35rem 0.45rem;
+            border: 1px solid #cbd5e1 !important; border-radius: 6px; background: #fff !important;
+        }
+        .inv-rpt-page .ir-kpi small { font-size: 7.5pt; color: #475569 !important; }
+        .inv-rpt-page .ir-kpi strong { font-size: 10pt; margin-top: 0.05rem; }
+        .inv-rpt-page .ir-kpi em, .inv-rpt-page .ir-kpi-ico { display: none !important; }
+        .inv-rpt-page .ir-table-wrap {
+            overflow: visible !important; border: 0; border-radius: 0;
+        }
+        .inv-rpt-page .ir-table {
+            min-width: 0 !important; width: 100% !important; table-layout: fixed;
+            font-size: 8pt;
+        }
+        .inv-rpt-page .ir-table th, .inv-rpt-page .ir-table td {
+            padding: 3px 4px !important; white-space: normal !important;
+            word-wrap: break-word; overflow-wrap: anywhere; vertical-align: top;
+        }
+        .inv-rpt-page .ir-num { white-space: nowrap !important; font-size: 8pt; }
+        .inv-rpt-page .ir-st { padding: 0; background: none !important; font-size: 8pt; }
+        .inv-rpt-page .ir-lines td { padding: 2px 4px 5px !important; }
+        .inv-rpt-page .ir-chip {
+            font-size: 7.5pt; padding: 0.12rem 0.35rem; border-radius: 4px;
+        }
+        .inv-rpt-page .ir-table col.ir-c-sn { width: 5%; }
+        .inv-rpt-page .ir-table col.ir-c-inv { width: 11%; }
+        .inv-rpt-page .ir-table col.ir-c-date { width: 10%; }
+        .inv-rpt-page .ir-table col.ir-c-party { width: 14%; }
+        .inv-rpt-page .ir-table col.ir-c-acc { width: 12%; }
+        .inv-rpt-page .ir-table col.ir-c-user { width: 10%; }
+        .inv-rpt-page .ir-table col.ir-c-amt { width: 10%; }
+        .inv-rpt-page .ir-table col.ir-c-st { width: 8%; }
+    }
+</style>
+
+<div class="card sa-page si-info-page acc-page rpt-page inv-page inv-rpt-page" @key="ReportKind">
+    <PrintHeader Subtitle="@(IsPurchase ? Locale.T("inv.purchaseReport") : Locale.T("inv.saleReport"))" />
+    <div class="ir-print-banner print-only">
+        <p>@Locale.T("inv.reportDates", from.ToString("d MMM yyyy"), to.ToString("d MMM yyyy"))</p>
+        @if (itemId > 0 && !string.IsNullOrWhiteSpace(SelectedItemName))
+        {
+            <p>@Locale.T("inv.reportItem", SelectedItemName)</p>
+        }
+    </div>
+    <header class="sa-head ir-hero no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("inv.kicker")</p>
+            <h1>@(IsPurchase ? Locale.T("inv.purchaseReport") : Locale.T("inv.saleReport"))</h1>
+            <p class="sa-lead">@(IsPurchase ? Locale.T("inv.purchaseReportHint") : Locale.T("inv.saleReportHint"))</p>
+        </div>
+    </header>
+
+    <div class="ir-bar no-print">
+        <label class="ir-field">
+            <span>@Locale.T("inv.items")</span>
+            <span class="ir-box">
+                <select @bind="itemId" disabled="@busy">
+                    <option value="0">@Locale.T("inv.allItems")</option>
+                    @foreach (var item in items)
+                    {
+                        <option value="@item.ItemID">@item.Name</option>
+                    }
+                </select>
+            </span>
+        </label>
+        <label class="ir-field">
+            <span>@Locale.T("att.date")</span>
+            <span class="ir-box">
+                <input type="date" @bind="from" @bind:format="yyyy-MM-dd" disabled="@busy" />
+            </span>
+        </label>
+        <label class="ir-field">
+            <span>@Locale.T("att.to")</span>
+            <span class="ir-box">
+                <input type="date" @bind="to" @bind:format="yyyy-MM-dd" disabled="@busy" />
+            </span>
+        </label>
+        <button type="button" class="ir-btn" disabled="@busy" @onclick="LoadAsync">@Locale.T("inv.load")</button>
+        <label class="ir-field is-search">
+            <span>@Locale.T("inv.searchReport")</span>
+            <span class="ir-box has-ico">
+                <input type="text" placeholder="@Locale.T("inv.searchReport")" @bind="search" @bind:event="oninput" />
+                <i aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></i>
+            </span>
+        </label>
+        <div class="ir-radios" role="radiogroup" aria-label="@Locale.T("inv.paid")">
+            <label class="@(payFilter == "all" ? "is-on" : null)">
+                <input type="radio" name="inv-pay-filter" checked="@(payFilter == "all")" @onchange='() => payFilter = "all"' />
+                @Locale.T("inv.filterAll")
+            </label>
+            <label class="@(payFilter == "paid" ? "is-on" : null)">
+                <input type="radio" name="inv-pay-filter" checked="@(payFilter == "paid")" @onchange='() => payFilter = "paid"' />
+                @Locale.T("inv.paid")
+            </label>
+            <label class="@(payFilter == "due" ? "is-on" : null)">
+                <input type="radio" name="inv-pay-filter" checked="@(payFilter == "due")" @onchange='() => payFilter = "due"' />
+                @Locale.T("inv.due")
+            </label>
+        </div>
+        <button type="button" class="ir-print" disabled="@busy" @onclick="PrintAsync">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3m-3 11H8v-5h8zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1m-1-9H6v4h12z"/></svg>
+            @Locale.T("si.print")
+        </button>
+    </div>
+
+    <div class="ir-kpis">
+        <div class="ir-kpi is-count">
+            <div>
+                <small>@Locale.T("inv.invoiceCount")</small>
+                <strong>@VisibleRows.Count</strong>
+                <em>@Locale.T("inv.invoicesFound")</em>
+            </div>
+            <span class="ir-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5z"/></svg>
+            </span>
+        </div>
+        <div class="ir-kpi is-total">
+            <div>
+                <small>@Locale.T("inv.totalAmt")</small>
+                <strong>৳ @VisibleTotal.ToString("N2")</strong>
+                <em>@Locale.T("inv.allInvoicesTotal")</em>
+            </div>
+            <span class="ir-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>
+            </span>
+        </div>
+        <div class="ir-kpi is-paid">
+            <div>
+                <small>@Locale.T("inv.totalPaid")</small>
+                <strong>৳ @VisiblePaid.ToString("N2")</strong>
+                <em>@Locale.T("inv.paidHint")</em>
+            </div>
+            <span class="ir-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2m0 14H4v-6h16zm0-10H4V6h16z"/></svg>
+            </span>
+        </div>
+        <div class="ir-kpi is-due">
+            <div>
+                <small>@Locale.T("inv.totalDue")</small>
+                <strong>৳ @VisibleDue.ToString("N2")</strong>
+                <em>@Locale.T("inv.dueHint")</em>
+            </div>
+            <span class="ir-kpi-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8m.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+            </span>
+        </div>
+    </div>
+
+    <div class="ir-table-wrap">
+        <table class="ir-table">
+            <colgroup>
+                <col class="ir-c-sn" />
+                <col class="ir-c-inv" />
+                <col class="ir-c-date" />
+                <col class="ir-c-party" />
+                <col class="ir-c-acc" />
+                <col class="ir-c-user" />
+                <col class="ir-c-amt" />
+                <col class="ir-c-amt" />
+                <col class="ir-c-amt" />
+                <col class="ir-c-st" />
+                <col class="no-print" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>@Locale.T("inv.invoice")</th>
+                    <th>@Locale.T("att.date")</th>
+                    <th>@(IsPurchase ? Locale.T("inv.supplier") : Locale.T("inv.customer"))</th>
+                    <th>@Locale.T("inv.account")</th>
+                    <th>@Locale.T("inv.user")</th>
+                    <th class="ir-num">@Locale.T("inv.totalAmt")</th>
+                    <th class="ir-num">@Locale.T("inv.paidAmount")</th>
+                    <th class="ir-num">@Locale.T("inv.dueAmount")</th>
+                    <th>@Locale.T("inv.status")</th>
+                    <th class="no-print">@Locale.T("si.print")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (VisibleRows.Count == 0 && !busy)
+            {
+                <tr><td colspan="11" class="empty-row">@Locale.T("inv.empty")</td></tr>
+            }
+            @{ var n = 0; }
+            @foreach (var row in VisibleRows)
+            {
+                n++;
+                var due = row.DueAmount > 0;
+                <tr>
+                    <td>@n</td>
+                    <td><strong>@row.InvoiceNo</strong></td>
+                    <td>@row.Date.ToString("d MMM yyyy")</td>
+                    <td>@row.Party</td>
+                    <td>@row.AccountName</td>
+                    <td>@row.UserName</td>
+                    <td class="ir-num">৳ @row.Total.ToString("N2")</td>
+                    <td class="ir-num ir-paid">৳ @row.PaidAmount.ToString("N2")</td>
+                    <td class="ir-num @(due ? "ir-due" : "ir-paid")">৳ @row.DueAmount.ToString("N2")</td>
+                    <td>
+                        <span class="ir-st @(due ? "is-due" : "is-paid")">@(due ? Locale.T("inv.due") : Locale.T("inv.paid"))</span>
+                    </td>
+                    <td class="no-print">
+                        <a class="ir-eye" href="@($"/inventory/receipt/{(IsPurchase ? "purchase" : "sale")}/{row.Id}")" title="@Locale.T("si.print")">
+                            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3m-3 11H8v-5h8zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1m-1-9H6v4h12z"/></svg>
+                        </a>
+                    </td>
+                </tr>
+                @if (row.Lines.Count > 0)
+                {
+                    <tr class="ir-lines">
+                        <td></td>
+                        <td colspan="10">
+                            <div class="ir-chips">
+                                @foreach (var line in row.Lines)
+                                {
+                                    <span class="ir-chip">
+                                        <b>@line.ItemName</b>
+                                        <em>@line.Qty.ToString("0.##") @line.Unit</em>
+                                        <span>@line.UnitPrice.ToString("N2") × @line.Qty.ToString("0.##") = ৳ @line.Amount.ToString("N2")</span>
+                                    </span>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="6">@Locale.T("inv.total")</th>
+                    <th class="ir-num">৳ @VisibleTotal.ToString("N2")</th>
+                    <th class="ir-num">৳ @VisiblePaid.ToString("N2")</th>
+                    <th class="ir-num">৳ @VisibleDue.ToString("N2")</th>
+                    <th></th>
+                    <th class="no-print"></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="true" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<InventoryItemDto> items = [];
+    private InventoryDocListDto list = new();
+    private DateTime from = DateTime.Today.AddMonths(-1);
+    private DateTime to = DateTime.Today;
+    private string busyTitle = "", popupText = "", search = "", payFilter = "all", lastPath = "";
+    private int itemId;
+    private bool busy;
+    private string ReportKind
+    {
+        get
+        {
+            var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0];
+            return path.Contains("purchase-report", StringComparison.OrdinalIgnoreCase) ? "purchase" : "sale";
+        }
+    }
+    private bool IsPurchase => ReportKind == "purchase";
+
+    private IReadOnlyList<InventoryDocDto> VisibleRows
+    {
+        get
+        {
+            IEnumerable<InventoryDocDto> rows = list.Items;
+            if (payFilter == "paid")
+                rows = rows.Where(x => x.DueAmount <= 0);
+            else if (payFilter == "due")
+                rows = rows.Where(x => x.DueAmount > 0);
+
+            var q = search.Trim();
+            if (q.Length > 0)
+            {
+                rows = rows.Where(x =>
+                    Hit(x.InvoiceNo, q) || Hit(x.Party, q) || Hit(x.AccountName, q) || Hit(x.UserName, q)
+                    || Hit(x.Date.ToString("d MMM yyyy"), q) || Hit(x.Date.ToString("dd-MMM-yyyy"), q)
+                    || Hit(x.Total.ToString("N2"), q) || Hit(x.PaidAmount.ToString("N2"), q) || Hit(x.DueAmount.ToString("N2"), q)
+                    || Hit(x.Note, q)
+                    || x.Lines.Any(l => Hit(l.ItemName, q) || Hit(l.Unit, q)));
+            }
+            return rows.ToList();
+        }
+    }
+
+    private decimal VisibleTotal => VisibleRows.Sum(x => x.Total);
+    private decimal VisiblePaid => VisibleRows.Sum(x => x.PaidAmount);
+    private decimal VisibleDue => VisibleRows.Sum(x => x.DueAmount);
+    private string SelectedItemName => items.FirstOrDefault(x => x.ItemID == itemId)?.Name ?? "";
+
+    private static bool Hit(string? value, string q) =>
+        !string.IsNullOrWhiteSpace(value) && value.Contains(q, StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnParametersSetAsync() => await ApplyRouteAsync(Nav.Uri);
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        try
+        {
+            await ApplyRouteAsync(e.Location);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            popupText = ex.Message;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ApplyRouteAsync(string location)
+    {
+        var path = Nav.ToBaseRelativePath(location).Split('?')[0];
+        if (!path.Contains("purchase-report", StringComparison.OrdinalIgnoreCase)
+            && !path.Contains("sale-report", StringComparison.OrdinalIgnoreCase))
+            return;
+        if (string.Equals(path, lastPath, StringComparison.OrdinalIgnoreCase))
+            return;
+        lastPath = path;
+        search = "";
+        payFilter = "all";
+        list = new();
+        await LoadAsync();
+    }
+
+    public override void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        base.Dispose();
+    }
+
+    private async Task LoadAsync()
+    {
+        busyTitle = Locale.T("acc.loading");
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+            {
+                popupText = Locale.T("subj.needOnline");
+                return;
+            }
+            if (items.Count == 0)
+                items.AddRange(await Api.GetInventoryItemsAsync(Session.AccessToken!));
+            list = IsPurchase
+                ? await Api.GetInventoryPurchasesAsync(Session.AccessToken!, from, to, itemId)
+                : await Api.GetInventorySalesAsync(Session.AccessToken!, from, to, itemId);
+        }
+        catch (Exception ex) { popupText = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private void ClosePopup() => popupText = "";
+    private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false, "8mm 6mm").AsTask();
+}

@@ -6,6 +6,54 @@
 @inject NavigationManager Nav
 @using System.Globalization
 
+<style>
+    .id-page .id-head { text-align: center; width: 100%; padding: 0.35rem 0.5rem 0.15rem; }
+    .id-page .id-head h1 {
+        margin: 0 0 0.55rem;
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: #2563eb;
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+    }
+    .id-page .id-meta {
+        display: grid;
+        justify-items: center;
+        gap: 0.32rem;
+        margin: 0 auto;
+        padding: 0;
+        list-style: none;
+        max-width: 52rem;
+        color: #334155;
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.45;
+    }
+    .id-page .id-meta li {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        text-align: center;
+    }
+    .id-page .id-ico {
+        width: 1rem;
+        height: 1rem;
+        color: #0f766e;
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 1rem;
+    }
+    .id-page .id-ico svg { width: 1rem; height: 1rem; display: block; }
+    .id-page .id-pass {
+        font-family: ui-monospace, Consolas, monospace;
+        font-weight: 700;
+        color: #0f172a;
+        white-space: nowrap;
+    }
+</style>
+
 <div class="id-page">
     <a class="id-back" href="authority/institutions">← @Locale.T("auth.m.instList")</a>
 
@@ -16,13 +64,28 @@
     else
     {
         <header class="id-head">
-            <p class="ui-kicker">ID @data.SchoolID</p>
             <h1>@data.SchoolName</h1>
             <ul class="id-meta">
-                @if (!string.IsNullOrWhiteSpace(data.Principal)) { <li>@data.Principal</li> }
-                @if (!string.IsNullOrWhiteSpace(data.Phone)) { <li>@data.Phone</li> }
-                @if (!string.IsNullOrWhiteSpace(data.Email)) { <li>@data.Email</li> }
-                @if (!string.IsNullOrWhiteSpace(data.Address)) { <li>@data.Address</li> }
+                <li>
+                    <span class="id-ico">@IdIcon</span>
+                    ID @data.SchoolID
+                </li>
+                @if (!string.IsNullOrWhiteSpace(data.Principal))
+                {
+                    <li><span class="id-ico">@UserIco</span> @data.Principal</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(data.Phone))
+                {
+                    <li><span class="id-ico">@PhoneIco</span> @data.Phone</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(data.Email))
+                {
+                    <li><span class="id-ico">@MailIco</span> @data.Email</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(data.Address))
+                {
+                    <li><span class="id-ico">@PinIco</span> @data.Address</li>
+                }
             </ul>
         </header>
 
@@ -179,6 +242,7 @@
                         <thead>
                             <tr>
                                 <th>@Locale.T("ab.userName")</th>
+                                <th>@Locale.T("ab.password")</th>
                                 <th>@Locale.T("auth.colValid")</th>
                                 <th>@Locale.T("ab.approved")</th>
                                 <th>@Locale.T("ab.locked")</th>
@@ -189,12 +253,13 @@
                         <tbody>
                             @if (users.Count == 0)
                             {
-                                <tr><td colspan="6" class="ad-empty">@Locale.T("ab.empty")</td></tr>
+                                <tr><td colspan="7" class="ad-empty">@Locale.T("ab.empty")</td></tr>
                             }
                             @foreach (var user in users)
                             {
                                 <tr>
                                     <td>@user.UserName</td>
+                                    <td class="id-pass">@(string.IsNullOrWhiteSpace(user.Password) ? "—" : user.Password)</td>
                                     <td>@user.Validation</td>
                                     <td>
                                         <input type="checkbox" checked="@user.IsApproved" disabled="@busy" @onchange="e => ApproveAsync(user, e)" />
@@ -316,14 +381,7 @@
 }
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
 
 @code {
@@ -602,4 +660,13 @@
         return true;
     }
     private static int ParseInt(ChangeEventArgs e) => int.TryParse(e.Value?.ToString(), out var n) ? n : 0;
+
+    private static readonly MarkupString IdIcon = Ico("M4 4h16v4H4V4Zm0 6h10v4H4v-4Zm0 6h16v4H4v-4Z");
+    private static readonly MarkupString UserIco = Ico("M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5Z");
+    private static readonly MarkupString PhoneIco = Ico("M6.5 3.5h3l1.2 3-1.6 1.6a12 12 0 0 0 6.8 6.8l1.6-1.6 3 1.2v3A16 16 0 0 1 6.5 3.5Z");
+    private static readonly MarkupString MailIco = Ico("M3 6h18v12H3V6Zm0 0 9 7 9-7");
+    private static readonly MarkupString PinIco = Ico("M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Zm0-8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z");
+
+    private static MarkupString Ico(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
 }

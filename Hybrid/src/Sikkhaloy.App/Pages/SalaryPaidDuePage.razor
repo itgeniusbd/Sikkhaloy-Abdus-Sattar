@@ -3,69 +3,104 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
+@using System.Globalization
 
-<div class="card structure-page emp-page sal-page">
+<div class="card sa-page emp-list-page sal-page sal-pd-page">
     <PrintHeader Subtitle="@Locale.T("sal.paidDue")" />
-    <h1 class="no-print">@Locale.T("sal.paidDue")</h1>
-    <p class="muted no-print">@Locale.T("sal.crumb")</p>
+    <header class="sa-head sj-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("sal.crumb")</p>
+            <h1>@Locale.T("sal.paidDue")</h1>
+            <p class="sa-lead">@Locale.T("sal.paidDueLead")</p>
+        </div>
+        <div class="sal-head-acts">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="LoadReportAsync">@Locale.T("sal.find")</button>
+            <button type="button" class="btn-ghost" disabled="@busy" @onclick="PrintAsync">@Locale.T("sal.print")</button>
+        </div>
+    </header>
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="structure-card no-print">
-        <div class="sal-checks">
-            @foreach (var name in names)
-            {
-                <label>
-                    <input type="checkbox" checked="@selected.Contains(name.Id)" disabled="@busy"
-                           @onchange="e => ToggleName(name.Id, e)" />
-                    <span>@name.Name</span>
-                </label>
-            }
-        </div>
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="LoadReportAsync">@Locale.T("sal.find")</button>
-        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("sal.print")</button>
+    <div class="sal-bar no-print">
+        <section class="sal-box is-names">
+            <span class="sal-box-h">@Locale.T("sal.payorderName")</span>
+            <div class="sal-box-pills">
+                @if (names.Count == 0 && !busy)
+                {
+                    <span class="sal-box-empty">@Locale.T("sal.empty")</span>
+                }
+                @foreach (var name in names)
+                {
+                    <label class="sal-chip @(selected.Contains(name.Id) ? "is-on" : null)">
+                        <input type="checkbox" checked="@selected.Contains(name.Id)" disabled="@busy"
+                               @onchange="e => ToggleName(name.Id, e)" />
+                        <span>@name.Name</span>
+                    </label>
+                }
+            </div>
+        </section>
+        <span class="el-count">@Locale.T("emp.count", report.Count)</span>
     </div>
 
-    <div class="sal-scroll">
-        <table class="mgrid">
+    <div class="sal-pd-wrap">
+        <table class="mgrid sal-pd-table">
             <thead>
                 <tr>
-                    <th>@Locale.T("emp.id")</th>
-                    <th>@Locale.T("emp.name")</th>
-                    <th>@Locale.T("sal.month")</th>
-                    <th class="num">@Locale.T("sal.paid")</th>
-                    <th class="num">@Locale.T("sal.due")</th>
+                    <th class="sal-emp" rowspan="2">@Locale.T("sal.empNameId")</th>
+                    @foreach (var month in months)
+                    {
+                        <th class="sal-month" colspan="2">@MonthTitle(month)</th>
+                    }
+                    <th class="sal-month" colspan="2">@Locale.T("sal.total")</th>
+                </tr>
+                <tr>
+                    @foreach (var month in months)
+                    {
+                        <th class="sal-paid">@Locale.T("sal.paid")</th>
+                        <th class="sal-due sal-month-end">@Locale.T("sal.due")</th>
+                    }
+                    <th class="sal-paid">@Locale.T("sal.paid")</th>
+                    <th class="sal-due sal-month-end">@Locale.T("sal.due")</th>
                 </tr>
             </thead>
             <tbody>
-            @if (rows.Count == 0 && !busy)
+            @if (report.Count == 0 && !busy)
             {
-                <tr><td colspan="5" class="empty-row">@Locale.T("sal.empty")</td></tr>
+                <tr><td colspan="@EmptyColspan" class="empty-row">@Locale.T("sal.empty")</td></tr>
             }
             else
             {
-                @foreach (var row in rows)
+                @foreach (var row in report)
                 {
                     <tr>
-                        <td>@row.ID</td>
-                        <td>@row.Name</td>
-                        <td>@row.MonthName</td>
-                        <td class="num">@Money(row.Paid)</td>
-                        <td class="num">@Money(row.Due)</td>
+                        <td class="sal-emp">@row.Name (@row.ID)</td>
+                        @foreach (var month in months)
+                        {
+                            var cell = row.Get(month);
+                            <td class="num sal-paid">@Money(cell?.Paid)</td>
+                            <td class="num sal-due sal-month-end">@Money(cell?.Due)</td>
+                        }
+                        <td class="num sal-paid">@Money(row.TotalPaid)</td>
+                        <td class="num sal-due sal-month-end">@Money(row.TotalDue)</td>
                     </tr>
                 }
             }
             </tbody>
-            @if (rows.Count > 0)
+            @if (report.Count > 0)
             {
                 <tfoot>
                     <tr>
-                        <td colspan="3">@Locale.T("sal.total")</td>
-                        <td class="num">@Money(rows.Sum(x => x.Paid))</td>
-                        <td class="num">@Money(rows.Sum(x => x.Due))</td>
+                        <td class="sal-emp">@Locale.T("sal.total")</td>
+                        @foreach (var month in months)
+                        {
+                            <td class="num sal-paid">@Money(MonthPaid(month))</td>
+                            <td class="num sal-due sal-month-end">@Money(MonthDue(month))</td>
+                        }
+                        <td class="num sal-paid">@Money(report.Sum(x => x.TotalPaid))</td>
+                        <td class="num sal-due sal-month-end">@Money(report.Sum(x => x.TotalDue))</td>
                     </tr>
                 </tfoot>
             }
@@ -73,21 +108,33 @@
     </div>
 </div>
 
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+
 @code {
     private readonly List<SalaryNameDto> names = [];
     private readonly HashSet<int> selected = [];
-    private readonly List<PaidDueRowDto> rows = [];
-    private bool busy;
+    private readonly List<DateTime> months = [];
+    private readonly List<EmpRow> report = [];
+    private bool busy = true;
+    private string busyTitle = "";
     private string? error;
+
+    private int EmptyColspan => Math.Max(3, 1 + months.Count * 2 + 2);
+
+    protected override void OnInitialized() => busyTitle = Locale.T("sal.loading");
 
     protected override async Task OnInitializedAsync() => await LoadNamesAsync();
 
     private async Task LoadNamesAsync()
     {
         error = null;
-        if (!await EnsureOnlineAsync())
-            return;
+        busyTitle = Locale.T("sal.loading");
         busy = true;
+        if (!await EnsureOnlineAsync())
+        {
+            busy = false;
+            return;
+        }
         try
         {
             names.Clear();
@@ -122,9 +169,13 @@
     private async Task LoadReportAsync()
     {
         error = null;
-        if (!await EnsureOnlineAsync())
-            return;
+        busyTitle = Locale.T("sal.loading");
         busy = true;
+        if (!await EnsureOnlineAsync())
+        {
+            busy = false;
+            return;
+        }
         try
         {
             await LoadReportCoreAsync();
@@ -145,12 +196,58 @@
 
     private async Task LoadReportCoreAsync()
     {
-        rows.Clear();
-        rows.AddRange(await Api.GetPaidDueAsync(Session.AccessToken, selected.ToList()));
+        var flat = await Api.GetPaidDueAsync(Session.AccessToken, selected.ToList());
+        BuildReport(flat);
     }
 
+    private void BuildReport(IReadOnlyList<PaidDueRowDto> flat)
+    {
+        months.Clear();
+        report.Clear();
+        months.AddRange(flat.Select(MonthKey).Where(x => x != default).Distinct().OrderBy(x => x));
+        foreach (var group in flat.GroupBy(x => x.EmployeeID).OrderBy(x => x.First().ID, StringComparer.OrdinalIgnoreCase))
+        {
+            var first = group.First();
+            var cells = new Dictionary<DateTime, Cell>();
+            foreach (var line in group)
+            {
+                var key = MonthKey(line);
+                if (key == default)
+                    continue;
+                if (cells.TryGetValue(key, out var prev))
+                    cells[key] = new Cell(prev.Paid + line.Paid, prev.Due + line.Due);
+                else
+                    cells[key] = new Cell(line.Paid, line.Due);
+            }
+            report.Add(new EmpRow
+            {
+                ID = first.ID,
+                Name = first.Name,
+                Cells = cells
+            });
+        }
+    }
+
+    private decimal MonthPaid(DateTime month) =>
+        report.Sum(x => x.Get(month)?.Paid ?? 0);
+
+    private decimal MonthDue(DateTime month) =>
+        report.Sum(x => x.Get(month)?.Due ?? 0);
+
+    private static DateTime MonthKey(PaidDueRowDto row)
+    {
+        if (row.MonthStartDate != default)
+            return new DateTime(row.MonthStartDate.Year, row.MonthStartDate.Month, 1);
+        if (DateTime.TryParse(row.MonthName, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+            return new DateTime(parsed.Year, parsed.Month, 1);
+        return default;
+    }
+
+    private static string MonthTitle(DateTime month) =>
+        month.ToString("MMM-yy", CultureInfo.InvariantCulture).ToUpperInvariant();
+
     private async Task PrintAsync() =>
-        await JS.InvokeVoidAsync("sikkhaloyPrint", "portrait", false);
+        await JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false, "8mm 4mm");
 
     private async Task<bool> EnsureOnlineAsync()
     {
@@ -162,5 +259,18 @@
         return true;
     }
 
-    private static string Money(decimal value) => value.ToString("0.##");
+    private static string Money(decimal? value) =>
+        value is null ? "" : value.Value.ToString("0.##");
+
+    private sealed record Cell(decimal Paid, decimal Due);
+
+    private sealed class EmpRow
+    {
+        public string ID { get; set; } = "";
+        public string Name { get; set; } = "";
+        public Dictionary<DateTime, Cell> Cells { get; set; } = [];
+        public decimal TotalPaid => Cells.Values.Sum(x => x.Paid);
+        public decimal TotalDue => Cells.Values.Sum(x => x.Due);
+        public Cell? Get(DateTime month) => Cells.TryGetValue(month, out var cell) ? cell : null;
+    }
 }

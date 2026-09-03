@@ -3,8 +3,12 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page access-page">
-    <h1>@Locale.T("access.title")</h1>
+<div class="card sa-page pa-page access-page">
+    <header class="sa-head">
+        <p class="sa-kicker">@Locale.T("sub.kicker")</p>
+        <h1>@Locale.T("access.title")</h1>
+        <p class="sa-lead">@Locale.T("access.hint")</p>
+    </header>
 
     @if (!isAdmin)
     {
@@ -12,37 +16,38 @@
     }
     else
     {
-        <p class="muted access-hint">@Locale.T("access.hint")</p>
-
         @if (!string.IsNullOrWhiteSpace(error))
         {
-            <div class="error">@error</div>
+            <NetBanner Text="@error" />
         }
         @if (!string.IsNullOrWhiteSpace(message))
         {
             <div class="ok">@message</div>
         }
 
-        <div class="access-bar">
-            <select class="access-select" @bind="userName" @bind:after="OnUserChanged" disabled="@busy">
-                <option value="">@Locale.T("access.select")</option>
-                @foreach (var item in subAdmins)
-                {
-                    <option value="@item.UserName">@item.Name</option>
-                }
-            </select>
+        <div class="pa-bar">
+            <label class="pa-user">
+                @Locale.T("access.select")
+                <select @bind="userName" @bind:after="OnUserChanged" disabled="@busy">
+                    <option value="">@Locale.T("access.select")</option>
+                    @foreach (var item in subAdmins)
+                    {
+                        <option value="@item.UserName">@item.Name</option>
+                    }
+                </select>
+            </label>
             @if (pages.Count > 0)
             {
-                <span class="access-count">@Locale.T("access.picked", selectedCount, pages.Count)</span>
+                <span class="pa-count">@Locale.T("access.picked", selectedCount, pages.Count)</span>
             }
-            <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("access.update")</button>
+            <button type="button" class="btn-primary pa-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("access.update")</button>
         </div>
-        @if (subAdmins.Count == 0 && !busy && string.IsNullOrWhiteSpace(error))
+        @if (subAdmins.Count == 0 && !busy)
         {
             <p class="muted">@Locale.T("access.noSubAdmins")</p>
         }
 
-        <div class="access-grid">
+        <div class="access-grid pa-grid">
             <table class="mgrid">
                 <thead>
                     <tr>
@@ -102,13 +107,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
-        {
-            error = Locale.T("access.needOnline");
-            return;
-        }
-
-        if (!isAdmin)
+        if (!isAdmin || Session.Current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
             return;
 
         await LoadAsync();
@@ -121,19 +120,9 @@
         message = null;
         try
         {
-            if (!await Api.PingAsync())
-            {
-                error = Locale.T("access.needOnline");
-                return;
-            }
-
             subAdmins.Clear();
-            subAdmins.AddRange(await Api.GetSubAdminsAsync(Session.AccessToken));
-            await LoadPagesAsync();
-        }
-        catch (HttpRequestException)
-        {
-            error = Locale.T("access.needOnline");
+            subAdmins.AddRange(await Api.GetSubAdminsAsync(Session.AccessToken!));
+            pages = [];
         }
         catch (Exception ex)
         {
@@ -147,23 +136,27 @@
 
     private async Task OnUserChanged()
     {
+        error = null;
         message = null;
         await LoadPagesAsync();
     }
 
     private async Task LoadPagesAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || string.IsNullOrWhiteSpace(userName))
+        {
+            pages = [];
             return;
+        }
 
         try
         {
             var data = await Api.GetPageAccessAsync(Session.AccessToken, userName);
             pages = BuildRows(data.Pages);
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            error = Locale.T("access.needOnline");
+            error = ex.Message;
         }
     }
 
@@ -189,11 +182,8 @@
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
-        {
-            error = Locale.T("access.needOnline");
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
             return;
-        }
 
         busy = true;
         try
@@ -205,16 +195,12 @@
             });
             if (!result.Succeeded)
             {
-                error = string.IsNullOrWhiteSpace(result.Error) ? Locale.T("access.needUser") : result.Error;
+                error = string.IsNullOrWhiteSpace(result.Error) ? Locale.T("access.needUser") : Locale.T(result.Error);
                 return;
             }
 
             message = Locale.T("access.saved");
             await LoadPagesAsync();
-        }
-        catch (HttpRequestException)
-        {
-            error = Locale.T("access.needOnline");
         }
         catch (Exception ex)
         {

@@ -1,0 +1,34 @@
+@inject AppLocale Locale
+
+@if (!string.IsNullOrWhiteSpace(Text))
+{
+    var offline = Locale.IsNetNotice(Text);
+    var kind = offline ? "is-offline" : (Error ? "is-err" : "is-ok");
+    <div class="acc-result-back" @onclick="Close">
+        <div class="acc-result @kind" @onclick:stopPropagation="true">
+            @if (offline)
+            {
+                <OfflineWifiIcon />
+                <h3>@Locale.T("net.title")</h3>
+                <p>@Locale.T("net.pageNeed")</p>
+                <button type="button" class="acc-btn acc-btn-primary" @onclick="Close">@Locale.T("net.ok")</button>
+            }
+            else
+            {
+                <div class="acc-result-icon">@(Error ? "!" : "✓")</div>
+                <h3>@(Error ? Locale.T(ErrorTitle) : Locale.T("acc.success"))</h3>
+                <p>@Text</p>
+                <button type="button" class="acc-btn acc-btn-primary" @onclick="Close">@Locale.T("acc.ok")</button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public bool Error { get; set; }
+    [Parameter] public string ErrorTitle { get; set; } = "acc.failed";
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Task Close() => OnClose.InvokeAsync();
+}

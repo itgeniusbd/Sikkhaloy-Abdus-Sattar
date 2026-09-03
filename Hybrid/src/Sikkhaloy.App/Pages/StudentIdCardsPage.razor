@@ -5,77 +5,112 @@
 @inject SyncEngine Sync
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page emp-id-page">
-    <h1>@Locale.T("si.idCards")</h1>
-    <p class="muted no-print">@Locale.T("si.crumb")</p>
+<div class="card sa-page si-info-page emp-id-page students-card sid-page">
+    <header class="sa-head sj-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("si.crumb")</p>
+            <h1>@Locale.T("si.idCards")</h1>
+        </div>
+        <div class="stu-head-acts">
+            <label class="stu-btn is-sync sid-file-btn">
+                @Locale.T("si.signBrowse")
+                <InputFile OnChange="OnSignFile" accept=".jpg,.jpeg,.png,.gif,.bmp" />
+            </label>
+            <button type="button" class="stu-btn is-print" disabled="@(busy || cards.Count == 0)" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </div>
+    </header>
 
     @if (!string.IsNullOrWhiteSpace(error))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row no-print">
-        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allGroup")</option>
-                @foreach (var item in groups)
+    <div class="sal-bar no-print">
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item.ClassID">@item.Name</option>
                 }
             </select>
+        </section>
+        @if (groups.Count > 0)
+        {
+            <section class="sal-box is-group">
+                <span class="sal-box-h">@Locale.T("si.group")</span>
+                <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (sections.Count > 0)
         {
-            <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allSection")</option>
-                @foreach (var item in sections)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-section">
+                <span class="sal-box-h">@Locale.T("si.section")</span>
+                <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (shifts.Count > 0)
         {
-            <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allShift")</option>
-                @foreach (var item in shifts)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-shift">
+                <span class="sal-box-h">@Locale.T("si.shift")</span>
+                <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
-        <input class="id-find" type="text" placeholder="@Locale.T("si.idsHint")" @bind="ids" disabled="@busy" />
-        <button type="button" class="btn-serial" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
-        <label class="sid-file-btn">
-            @Locale.T("si.signBrowse")
-            <InputFile OnChange="OnSignFile" accept=".jpg,.jpeg,.png,.gif,.bmp" />
-        </label>
-        <button type="button" class="btn-serial" disabled="@(busy || cards.Count == 0)" @onclick="PrintAsync">@Locale.T("si.print")</button>
-        <input class="id-find" type="text" placeholder="@Locale.T("si.changeTitle")" @bind="idTitle" @bind:event="oninput" @bind:after="SavePrefsAsync" />
-        <div class="sid-color-wrap">
-            <button type="button" class="btn-serial" @onclick="() => colorOpen = !colorOpen">@Locale.T("si.chooseColor")</button>
-            @if (colorOpen)
-            {
-                <div class="sid-color-menu">
-                    <p>@Locale.T("si.colorBg")</p>
-                    <label>@Locale.T("si.colorHead") <input type="color" value="@headBg" @oninput="e => SetColor(c => headBg = c, e)" /></label>
-                    <label>@Locale.T("si.colorName") <input type="color" value="@barBg" @oninput="e => SetColor(c => barBg = c, e)" /></label>
-                    <label>@Locale.T("si.colorAddress") <input type="color" value="@footBg" @oninput="e => SetColor(c => footBg = c, e)" /></label>
-                    <p>@Locale.T("si.colorFont")</p>
-                    <label>@Locale.T("si.colorHead") <input type="color" value="@headFg" @oninput="e => SetColor(c => headFg = c, e)" /></label>
-                    <label>@Locale.T("si.colorName") <input type="color" value="@barFg" @oninput="e => SetColor(c => barFg = c, e)" /></label>
-                    <label>@Locale.T("si.colorAddress") <input type="color" value="@footFg" @oninput="e => SetColor(c => footFg = c, e)" /></label>
-                </div>
-            }
+        <section class="sal-box is-sid">
+            <span class="sal-box-h">@Locale.T("si.idBar")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("si.idsHint")"
+                   @bind="ids" @bind:event="oninput" disabled="@busy" @onkeydown="OnIdKey" />
+        </section>
+        <section class="sal-box is-title">
+            <span class="sal-box-h">@Locale.T("si.changeTitle")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("si.idBar")"
+                   @bind="idTitle" @bind:event="oninput" @bind:after="SavePrefsAsync" disabled="@busy" />
+        </section>
+        <section class="sal-box is-color">
+            <span class="sal-box-h">@Locale.T("si.chooseColor")</span>
+            <div class="sid-color-wrap">
+                <button type="button" class="stu-btn is-add" @onclick="() => colorOpen = !colorOpen">@Locale.T("si.chooseColor")</button>
+                @if (colorOpen)
+                {
+                    <div class="sid-color-menu">
+                        <p>@Locale.T("si.colorBg")</p>
+                        <label>@Locale.T("si.colorHead") <input type="color" value="@headBg" @oninput="e => SetColor(c => headBg = c, e)" /></label>
+                        <label>@Locale.T("si.colorName") <input type="color" value="@barBg" @oninput="e => SetColor(c => barBg = c, e)" /></label>
+                        <label>@Locale.T("si.colorAddress") <input type="color" value="@footBg" @oninput="e => SetColor(c => footBg = c, e)" /></label>
+                        <p>@Locale.T("si.colorFont")</p>
+                        <label>@Locale.T("si.colorHead") <input type="color" value="@headFg" @oninput="e => SetColor(c => headFg = c, e)" /></label>
+                        <label>@Locale.T("si.colorName") <input type="color" value="@barFg" @oninput="e => SetColor(c => barFg = c, e)" /></label>
+                        <label>@Locale.T("si.colorAddress") <input type="color" value="@footFg" @oninput="e => SetColor(c => footFg = c, e)" /></label>
+                    </div>
+                }
+            </div>
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="FindAsync">@Locale.T("si.find")</button>
         </div>
+        @if (cards.Count > 0)
+        {
+            <span class="el-count">@Locale.T("si.stuCount", cards.Count)</span>
+        }
     </div>
 
     <div class="alert-info no-print">@Locale.T("si.printHint")</div>
@@ -143,9 +178,9 @@
                         </ul>
                     </div>
                     <footer class="sid-foot">
-                        <svg class="sid-foot-bg" viewBox="0 0 220 46" preserveAspectRatio="none" aria-hidden="true">
-                            <path class="sid-foot-purple" d="M0 16 C48 16 78 8 118 8 C142 8 154 22 176 30 C192 36 206 32 220 28 L220 46 L0 46 Z" />
-                            <path class="sid-foot-teal" d="M148 14 C172 4 196 24 220 22 L220 46 L170 46 C162 30 152 16 148 14 Z" />
+                        <svg class="sid-foot-bg" viewBox="0 0 220 48" preserveAspectRatio="none" aria-hidden="true">
+                            <path class="sid-foot-purple" d="M0 18 C42 18 72 8 112 8 C138 8 152 22 176 30 C194 36 208 32 220 30 L220 48 L0 48 Z" />
+                            <path class="sid-foot-teal" d="M132 22 C152 8 176 6 220 10 L220 48 L158 48 C146 40 136 28 132 22 Z" />
                         </svg>
                         <div class="sid-foot-phone">
                             @PhoneIcon
@@ -164,6 +199,8 @@
         </div>
     }
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
 
 @code {
     private const string PrefKey = "sikkhaloy.sid";
@@ -189,7 +226,8 @@
     private string schoolPhone = "";
     private string? signDataUrl;
     private bool colorOpen;
-    private bool busy;
+    private bool busy = true;
+    private string busyTitle = "";
     private bool prefsLoaded;
     private string? error;
 
@@ -203,16 +241,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        structure = await Api.GetClassStructureAsync(Session.AccessToken);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
-        if (Session.Current is not null)
+        busyTitle = Locale.T("si.loading");
+        busy = true;
+        try
         {
-            var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
-            schoolAddress = header.Address ?? "";
-            schoolPhone = header.Phone ?? "";
+            if (!await EnsureOnlineAsync())
+                return;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+            if (Session.Current is not null)
+            {
+                var header = Sync.GetSchoolHeader(Session.Current.SchoolID);
+                schoolAddress = header.Address ?? "";
+                schoolPhone = header.Phone ?? "";
+            }
+        }
+        finally
+        {
+            busy = false;
         }
     }
 
@@ -275,17 +322,19 @@
     private async Task LoadAsync()
     {
         error = null;
-        if (!await EnsureOnlineAsync())
-            return;
         if (string.IsNullOrWhiteSpace(ids) && ClassId <= 0)
         {
             cards.Clear();
             return;
         }
 
+        busyTitle = Locale.T("si.loading");
         busy = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
+            if (!await EnsureOnlineAsync())
+                return;
             var data = await Api.GetStudentIdCardsAsync(Session.AccessToken, ClassId, GroupId, SectionId, ShiftId, ids);
             cards.Clear();
             cards.AddRange(data);
@@ -302,6 +351,12 @@
         {
             busy = false;
         }
+    }
+
+    private async Task OnIdKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await FindAsync();
     }
 
     private async Task OnSignFile(InputFileChangeEventArgs e)
@@ -379,9 +434,22 @@
 
     private string FooterPhone(StudentIdCardDto card)
     {
-        if (!string.IsNullOrWhiteSpace(schoolPhone))
-            return schoolPhone.Trim();
-        return Dash(card.Phone);
+        var raw = !string.IsNullOrWhiteSpace(schoolPhone) ? schoolPhone : card.Phone;
+        return FirstPhone(raw);
+    }
+
+    private static string FirstPhone(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "-";
+        var text = value.Trim();
+        foreach (var sep in new[] { ',', '/', ';', '|', '\n' })
+        {
+            var i = text.IndexOf(sep);
+            if (i > 0)
+                text = text[..i].Trim();
+        }
+        return string.IsNullOrWhiteSpace(text) ? "-" : text;
     }
 
     private static string? StudentAddress(StudentIdCardDto card) =>

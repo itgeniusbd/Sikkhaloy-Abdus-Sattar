@@ -343,3 +343,9 @@ healthchecksdb
 Hybrid/**/*.db
 Hybrid/**/*.db-shm
 Hybrid/**/*.db-wal
+
+# Hybrid / device published output and setup EXEs
+Hybrid/dist/
+Hybrid/Installer/Output/
+Hybrid/**/_buildcheck/
+AttendanceDevice/Installer/Output/

@@ -8,122 +8,164 @@
 @inject SyncEngine Sync
 @inject NavigationManager Nav
 
-<div class="card structure-page emp-page acc-page oi-page ex-page mr-page @(hideIns ? "hide-ins" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
 @if (printItem is not null)
 {
-    <div class="no-print mr-top">
+<div class="card sa-page si-info-page acc-page acc-mod-page ex-page mr-page mr-check-page @(hideIns ? "hide-ins" : null) @(IsNarrow ? "mr-narrow" : null) @(printSize == "3" ? "mr-size-3" : printSize == "3.5" ? "mr-size-35" : null)">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.expenditure")</p>
+            <h1>@Locale.T("acc.expenseReceipt")</h1>
+            <p class="sa-lead">@Locale.T("acc.expenseReceiptHint")</p>
+        </div>
+    </header>
+
+    <div class="no-print mr-toolbar">
         <a class="mr-back" href="accounts/expense">@Locale.T("acc.backExpense")</a>
-        <button type="button" class="acc-btn acc-btn-primary mr-print-top" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        <span class="mr-toolbar-meta">@Locale.T("acc.voucher"): <strong>@printItem.ExpenseID</strong></span>
+        <button type="button" class="sal-gen" @onclick="PrintAsync">@Locale.T("si.print")</button>
     </div>
 
-    <div class="mr-sheet" style="@SheetStyle">
-        <div class="mr-ins">
-            @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
-            {
-                <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
-            }
-            else
-            {
-                <div class="mr-school">@schoolName</div>
-                <div class="mr-addr">
-                    @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
-                    @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
+    <div class="mr-layout">
+        <div class="mr-preview">
+            <div class="mr-sheet" style="@SheetStyle">
+                <div class="mr-ins">
+                    @if (!string.IsNullOrWhiteSpace(nameLogoUrl))
+                    {
+                        <img class="mr-name-logo" src="@nameLogoUrl" alt="@schoolName" />
+                    }
+                    else
+                    {
+                        <div class="mr-school">@schoolName</div>
+                        <div class="mr-addr">
+                            @if (!string.IsNullOrWhiteSpace(schoolAddr)) { <span>@schoolAddr</span> }
+                            @if (!string.IsNullOrWhiteSpace(schoolPhone)) { <span>@schoolPhone</span> }
+                        </div>
+                    }
                 </div>
-            }
-        </div>
-        <div class="mr-head">@Locale.T("acc.expenseReceipt")</div>
-        <table class="mgrid mr-grid">
-            <thead>
-                <tr>
-                    <th>@Locale.T("acc.voucher")</th>
-                    <th>@Locale.T("acc.category")</th>
-                    <th>@Locale.T("acc.description")</th>
-                    <th>@Locale.T("att.date")</th>
-                    <th>@Locale.T("acc.amount")</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>@printItem.ExpenseID</td>
-                    <td>@printItem.Category</td>
-                    <td>@printItem.Details</td>
-                    <td>@printItem.Date.ToString("d MMM yyyy")</td>
-                    <td>@printItem.Amount.ToString("0.##") @Locale.T("acc.tk")</td>
-                </tr>
-            </tbody>
-        </table>
-        <p class="oi-total">@Locale.T("acc.total"): @printItem.Amount.ToString("0.##") @Locale.T("acc.tk")</p>
-        <p class="mr-words">@AmountInWords(printItem.Amount)</p>
-        <p class="mr-recv">@Locale.T("acc.insertedBy", printItem.ReceivedBy ?? "")</p>
-    </div>
-
-    <div class="no-print mr-print-opt">
-        <div class="mr-print-head">
-            <div>
-                <h4>@Locale.T("acc.printOptions")</h4>
-                <p>@Locale.T("acc.printSizeHint")</p>
+                <div class="mr-head">@Locale.T("acc.expenseReceipt")</div>
+                <table class="mgrid mr-grid">
+                    <thead>
+                        <tr>
+                            <th>@Locale.T("acc.voucher")</th>
+                            <th>@Locale.T("acc.category")</th>
+                            <th>@Locale.T("acc.description")</th>
+                            <th>@Locale.T("att.date")</th>
+                            <th>@Locale.T("acc.amount")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>@printItem.ExpenseID</td>
+                            <td>@printItem.Category</td>
+                            <td>@printItem.Details</td>
+                            <td>@printItem.Date.ToString("d MMM yyyy")</td>
+                            <td class="mr-amt">@printItem.Amount.ToString("0.##")</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="mr-total-row">
+                            <td colspan="4" class="mr-fee mr-total-label">@Locale.T("acc.total"):</td>
+                            <td class="mr-amt mr-money">@printItem.Amount.ToString("0.##") @Locale.T("acc.tk")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <p class="mr-words">@AmountInWords(printItem.Amount)</p>
+                <p class="mr-recv">@Locale.T("acc.insertedBy", printItem.ReceivedBy ?? "")</p>
             </div>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="PrintAsync">@Locale.T("si.print")</button>
         </div>
-        <div class="mr-print-body">
-            <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
-            <label>@Locale.T("acc.printSize")
-                <select @bind="printSize" @bind:after="PersistOptsAsync">
-                    <option value="3">@Locale.T("acc.inch", "3")</option>
-                    <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
-                    <option value="4">@Locale.T("acc.inch", "4")</option>
-                    <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
-                    <option value="5">@Locale.T("acc.inch", "5")</option>
-                    <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
-                    <option value="6">@Locale.T("acc.inch", "6")</option>
-                </select>
-            </label>
-            <label>@Locale.T("acc.topSpace")
-                <input type="number" min="0" @bind="topSpace" @bind:after="PersistOptsAsync" />
-            </label>
-            <label>@Locale.T("acc.fontSize")
-                <input type="number" min="10" max="20" @bind="fontSize" @bind:after="PersistOptsAsync" />
-            </label>
-        </div>
+
+        <aside class="mr-tools no-print">
+            <section class="mr-tool-card">
+                <h3>@Locale.T("acc.printOptions")</h3>
+                <p class="mr-tool-hint">@Locale.T("acc.printSizeHint")</p>
+                <div class="mr-opt-checks">
+                    <label class="acc-check"><input type="checkbox" checked="@hideIns" @onchange="OnHideIns" /><span>@Locale.T("acc.hideIns")</span></label>
+                </div>
+                <div class="mr-opt-grid">
+                    <label class="mr-opt-field">
+                        <span>@Locale.T("acc.printSize")</span>
+                        <select @bind="printSize" @bind:after="PersistOptsAsync">
+                            <option value="3">@Locale.T("acc.inch", "3")</option>
+                            <option value="3.5">@Locale.T("acc.inch", "3.5")</option>
+                            <option value="4">@Locale.T("acc.inch", "4")</option>
+                            <option value="4.5">@Locale.T("acc.inch", "4.5")</option>
+                            <option value="5">@Locale.T("acc.inch", "5")</option>
+                            <option value="5.5">@Locale.T("acc.inch", "5.5")</option>
+                            <option value="6">@Locale.T("acc.inch", "6")</option>
+                        </select>
+                    </label>
+                    <label class="mr-opt-field">
+                        <span>@Locale.T("acc.topSpace")</span>
+                        <input type="number" class="pc-num" min="0" step="1" @bind="topSpace" @bind:after="PersistOptsAsync" />
+                    </label>
+                    <label class="mr-opt-field">
+                        <span>@Locale.T("acc.fontSize")</span>
+                        <input type="number" class="pc-num" min="10" max="20" step="1" @bind="fontSize" @bind:after="PersistOptsAsync" />
+                    </label>
+                </div>
+            </section>
+        </aside>
     </div>
+</div>
 }
 else
 {
-    <h1>@Locale.T("acc.expenditure")</h1>
+<div class="card sa-page si-info-page acc-page acc-mod-page ex-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("acc.expenditure")</p>
+            <h1>@(CanEdit ? Locale.T("acc.editExpense") : Locale.T("acc.expenseDetails"))</h1>
+            <p class="sa-lead">@(CanEdit ? Locale.T("acc.editExpenseHint") : Locale.T("acc.expenseHint"))</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error no-print">@error</div> }
+    <NetBanner Text="@error" />
     @if (!string.IsNullOrWhiteSpace(message)) { <div class="ok no-print">@message</div> }
 
-    <div class="filter-row no-print oi-filters">
-        <select @bind="catInput" @bind:after="OnFilterCatChanged" disabled="@busy">
-            <option value="0">@Locale.T("acc.allCategory")</option>
-            @foreach (var item in categories)
-            {
-                <option value="@item.ExpenseCategoryID">@item.Name</option>
-            }
-        </select>
-        <select @bind="subInput" disabled="@busy">
-            <option value="0">@Locale.T("acc.allSubCategory")</option>
-            @foreach (var item in filterSubs)
-            {
-                <option value="@item.ExpenseSubCategoryID">@item.Name</option>
-            }
-        </select>
-        <input type="date" max="@MaxDate" value="@fromText" @onchange="OnFromChanged" disabled="@busy" />
-        <input type="date" max="@MaxDate" value="@toText" @onchange="OnToChanged" disabled="@busy" />
-        <input type="text" placeholder="@Locale.T("acc.receiptNo")" @bind="receiptNo" disabled="@busy" />
-        <button type="button" class="acc-btn oi-find" disabled="@busy" @onclick="LoadAsync">@Locale.T("acc.find")</button>
-        <span class="oi-spacer"></span>
-        <button type="button" class="acc-btn acc-btn-assign" disabled="@busy" @onclick="OpenAdd">@Locale.T("acc.addExpense")</button>
-        <button type="button" class="acc-btn oi-cat-ok" disabled="@busy" @onclick="() => showCat = true">@Locale.T("acc.addCategory")</button>
+    <div class="sal-bar no-print oi-filters">
+        <section class="sal-box is-role">
+            <span class="sal-box-h">@Locale.T("acc.category")</span>
+            <select @bind="catInput" @bind:after="OnFilterCatChanged" disabled="@busy">
+                <option value="0">@Locale.T("acc.allCategory")</option>
+                @foreach (var item in categories)
+                {
+                    <option value="@item.ExpenseCategoryID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-role">
+            <span class="sal-box-h">@Locale.T("acc.subCategory")</span>
+            <select @bind="subInput" disabled="@busy">
+                <option value="0">@Locale.T("acc.allSubCategory")</option>
+                @foreach (var item in filterSubs)
+                {
+                    <option value="@item.ExpenseSubCategoryID">@item.Name</option>
+                }
+            </select>
+        </section>
+        <section class="sal-box is-date">
+            <span class="sal-box-h">@Locale.T("att.from")</span>
+            <input type="date" max="@MaxDate" value="@fromText" @onchange="OnFromChanged" disabled="@busy" />
+        </section>
+        <section class="sal-box is-date">
+            <span class="sal-box-h">@Locale.T("att.to")</span>
+            <input type="date" max="@MaxDate" value="@toText" @onchange="OnToChanged" disabled="@busy" />
+        </section>
+        <section class="sal-box is-sid">
+            <span class="sal-box-h">@Locale.T("acc.receiptNo")</span>
+            <input class="si-find-input" type="text" placeholder="@Locale.T("acc.receiptNo")" @bind="receiptNo" disabled="@busy" />
+        </section>
+        <button type="button" class="sal-gen oi-find" disabled="@busy" @onclick="() => LoadAsync()">@Locale.T("acc.find")</button>
+        <button type="button" class="sal-bonus" disabled="@busy" @onclick="OpenAdd">@Locale.T("acc.addExpense")</button>
+        <button type="button" class="sal-del oi-cat" disabled="@busy" @onclick="() => showCat = true">@Locale.T("acc.addCategory")</button>
     </div>
 
-    <div class="ex-total">
-        <span>@DateCaption</span>
+    <p class="acc-total ex-sum">
+        @if (!string.IsNullOrWhiteSpace(DateCaption)) { <span>@DateCaption</span> }
         @Locale.T("acc.totalExp", total.ToString("N0"))
-    </div>
+    </p>
 
-    <div class="table-responsive">
+    <div class="sj-grid">
         <table class="mgrid">
             <thead>
                 <tr>
@@ -142,14 +184,14 @@ else
                 </tr>
             </thead>
             <tbody>
-            @if (pageRows.Count == 0 && !busy)
+            @if (rows.Count == 0 && !busy)
             {
                 <tr><td colspan="@ColSpan" class="empty-row">@Locale.T("acc.empty")</td></tr>
             }
             else
             {
                 var n = (page - 1) * PageSize;
-                @foreach (var row in pageRows)
+                @foreach (var row in rows)
                 {
                     n++;
                     <tr>
@@ -226,20 +268,21 @@ else
             @for (var i = 1; i <= pageCount; i++)
             {
                 var p = i;
-                <button type="button" class="@(page == p ? "is-on" : null)" @onclick="() => page = p">@p</button>
+                <button type="button" class="@(page == p ? "is-on" : null)" @onclick="() => GoPageAsync(p)">@p</button>
             }
         </div>
     }
-}
 </div>
+}
 
 @if (showAdd)
 {
-    <div class="acc-result-back" @onclick="() => showAdd = false">
-        <div class="acc-result is-ok pc-modal oi-modal" @onclick:stopPropagation="true">
+    <div class="acc-result-back" @onclick="CloseAdd">
+        <div class="acc-result is-ok pc-modal oi-modal ex-add-modal" @onclick:stopPropagation="true">
             <h3>@Locale.T("acc.addExpense")</h3>
+            @if (!string.IsNullOrWhiteSpace(addError)) { <div class="error ex-add-error">@addError</div> }
             <label>@Locale.T("acc.category")
-                <select @bind="newCat" @bind:after="OnNewCatChanged" disabled="@busy">
+                <select @bind="newCat" @bind:after="OnNewCatChanged" disabled="@savingAdd">
                     <option value="0">@Locale.T("acc.selectCategory")</option>
                     @foreach (var item in categories)
                     {
@@ -248,7 +291,7 @@ else
                 </select>
             </label>
             <label>@Locale.T("acc.subCategory") <small>@Locale.T("acc.subOptional")</small>
-                <select @bind="newSub" disabled="@busy">
+                <select @bind="newSub" disabled="@savingAdd">
                     <option value="0">@Locale.T("acc.noSubCategory")</option>
                     @foreach (var item in addSubs)
                     {
@@ -257,19 +300,19 @@ else
                 </select>
             </label>
             <label>@Locale.T("acc.amount")
-                <input type="number" min="0" step="0.01" @bind="newAmount" disabled="@busy" />
+                <input type="number" min="0" step="0.01" @bind="newAmount" disabled="@savingAdd" />
             </label>
             @if (CanEdit)
             {
                 <label>@Locale.T("acc.expenseDate")
-                    <input type="date" max="@MaxDate" @bind="newDate" @bind:after="ClampNewDate" disabled="@busy" />
+                    <input type="date" max="@MaxDate" @bind="newDate" @bind:after="ClampNewDate" disabled="@savingAdd" />
                 </label>
             }
             <label>@Locale.T("acc.expenseReason")
-                <textarea rows="3" @bind="newDetails" disabled="@busy"></textarea>
+                <textarea rows="3" @bind="newDetails" disabled="@savingAdd"></textarea>
             </label>
             <label>@Locale.T("acc.expenseFrom")
-                <select @bind="accountInput" disabled="@busy">
+                <select @bind="accountInput" disabled="@savingAdd">
                     @foreach (var item in PayAccounts)
                     {
                         <option value="@item.AccountID">@item.AccountName (@item.Balance.ToString("0.##") @Locale.T("acc.tk"))</option>
@@ -277,8 +320,10 @@ else
                 </select>
             </label>
             <div class="pc-modal-btns">
-                <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="AddAsync">@Locale.T("acc.submit")</button>
-                <button type="button" class="acc-btn" @onclick="() => showAdd = false">@Locale.T("acc.close")</button>
+                <button type="button" class="acc-btn acc-btn-primary" disabled="@savingAdd" @onclick="AddAsync">
+                    @(savingAdd ? Locale.T("acc.savingExpense") : Locale.T("acc.submit"))
+                </button>
+                <button type="button" class="acc-btn" disabled="@savingAdd" @onclick="CloseAdd">@Locale.T("acc.close")</button>
             </div>
         </div>
     </div>
@@ -407,14 +452,7 @@ else
 
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("acc.failed") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="acc.failed" OnClose="ClosePopup" />
 }
 
 @code {
@@ -442,11 +480,12 @@ else
     private string toText = "";
     private string? newDetails, editDetails, editCatName, editSubName;
     private decimal newAmount, editAmount, total;
+    private int totalCount;
     private DateTime newDate = DateTime.Today;
-    private bool busy, showAdd, showCat, showSub, hideIns, optionsLoaded, popupError;
+    private bool busy, savingAdd, showAdd, showCat, showSub, hideIns, optionsLoaded, popupError;
     private int editId, editCatId, editSubId, page = 1, topSpace, fontSize = 11;
     private string printSize = "4";
-    private string? error, message, popupText, busyText, schoolName, schoolAddr, schoolPhone, nameLogoUrl;
+    private string? error, message, popupText, busyText, addError, schoolName, schoolAddr, schoolPhone, nameLogoUrl;
     private const int PageSize = 80;
     private static readonly string[] Widths = ["3", "3.5", "4", "4.5", "5", "5.5", "6"];
     private static string MaxDate => DateTime.Today.ToString("yyyy-MM-dd");
@@ -459,8 +498,7 @@ else
     private int EditSubId => int.TryParse(editSub, out var n) ? n : 0;
     private int AccountId => int.TryParse(accountInput, out var n) ? n : 0;
     private int ColSpan => CanEdit ? 9 : 7;
-    private int pageCount => Math.Max(1, (int)Math.Ceiling(rows.Count / (double)PageSize));
-    private List<ExpenseDto> pageRows => rows.Skip((page - 1) * PageSize).Take(PageSize).ToList();
+    private int pageCount => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
     private IEnumerable<CashAccountDto> PayAccounts => accounts.Where(x => x.Balance != 0);
     private string SheetStyle => $"width:{printSize}in;max-width:100%";
     private bool IsNarrow => printSize is "3" or "3.5";
@@ -476,6 +514,28 @@ else
             if (from == to) return from!.Value.ToString("d MMM yyyy");
             return Locale.T("acc.rangeDate", from!.Value.ToString("d MMM yyyy"), to!.Value.ToString("d MMM yyyy"));
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        if (!CanEdit)
+        {
+            editId = 0;
+            showAdd = false;
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public override void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        base.Dispose();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -497,6 +557,9 @@ else
         else
         {
             printItem = null;
+            var today = DateTime.Today;
+            fromText = new DateTime(today.Year, today.Month, 1).ToString("yyyy-MM-dd");
+            toText = today.ToString("yyyy-MM-dd");
             await LoadAsync();
         }
     }
@@ -528,10 +591,11 @@ else
         catch { }
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(bool keepPage = false)
     {
         error = null;
         if (!await OnlineAsync()) return;
+        if (!keepPage) page = 1;
         var ownBusy = !busy;
         if (ownBusy)
         {
@@ -543,11 +607,12 @@ else
         {
             if (ParseDay(fromText) is { } f && f.Date > DateTime.Today) fromText = MaxDate;
             if (ParseDay(toText) is { } t && t.Date > DateTime.Today) toText = MaxDate;
-            var data = await Api.GetExpenseAsync(Session.AccessToken!, CatId, SubId, ParseDay(fromText), ParseDay(toText), receiptNo);
+            var data = await Api.GetExpenseAsync(Session.AccessToken!, CatId, SubId, ParseDay(fromText), ParseDay(toText), receiptNo, page, PageSize);
             rows.Clear();
             rows.AddRange(data.Items);
             total = data.Total;
-            page = 1;
+            totalCount = data.TotalCount;
+            if (page > pageCount) page = pageCount;
             editId = 0;
         }
         catch (Exception ex) { Fail(ex.Message); }
@@ -581,9 +646,16 @@ else
         editSubs.AddRange(await Api.GetExpenseSubCategoriesAsync(Session.AccessToken!, EditCatId));
     }
 
+    private async Task GoPageAsync(int p)
+    {
+        if (p == page || p < 1 || p > pageCount) return;
+        page = p;
+        await LoadAsync(keepPage: true);
+    }
+
     private void OpenAdd()
     {
-        error = message = null;
+        error = message = addError = null;
         newAmount = 0;
         newDetails = null;
         newDate = DateTime.Today;
@@ -591,6 +663,13 @@ else
         newSub = "0";
         addSubs.Clear();
         showAdd = true;
+    }
+
+    private void CloseAdd()
+    {
+        if (savingAdd) return;
+        showAdd = false;
+        addError = null;
     }
 
     private void ClampNewDate()
@@ -601,35 +680,74 @@ else
 
     private async Task AddAsync()
     {
+        addError = null;
         error = message = null;
         ClampNewDate();
         if (NewCatId <= 0 || newAmount <= 0 || AccountId <= 0)
-        { Fail(Locale.T("acc.needAmount")); return; }
+        { addError = Locale.T("acc.needAmount"); return; }
         if (!await OnlineAsync()) return;
-        busy = true;
-        busyText = Locale.T("acc.savingExpense");
-        await PaintAsync();
+        savingAdd = true;
         try
         {
+            var expDate = CanEdit ? newDate : DateTime.Today;
             var result = await Api.CreateExpenseAsync(Session.AccessToken!, new SaveExpenseRequest
             {
                 ExpenseCategoryID = NewCatId,
                 ExpenseSubCategoryID = NewSubId <= 0 ? null : NewSubId,
                 Amount = newAmount,
-                Date = CanEdit ? newDate : DateTime.Today,
+                Date = expDate,
                 Details = newDetails,
                 AccountID = AccountId
             });
-            if (!result.Succeeded) { Fail(Locale.T(result.Error ?? "acc.failed")); return; }
+            if (!result.Succeeded) { addError = Locale.T(result.Error ?? "acc.failed"); return; }
+
+            total += newAmount;
+            totalCount++;
+            if (MatchesCurrentFilters(result.Id, expDate))
+            {
+                if (page != 1)
+                {
+                    page = 1;
+                    await LoadAsync(keepPage: true);
+                }
+                else
+                {
+                    var cat = categories.FirstOrDefault(c => c.ExpenseCategoryID == NewCatId);
+                    var sub = addSubs.FirstOrDefault(s => s.ExpenseSubCategoryID == NewSubId);
+                    rows.Insert(0, new ExpenseDto
+                    {
+                        ExpenseID = result.Id,
+                        ExpenseCategoryID = NewCatId,
+                        ExpenseSubCategoryID = NewSubId <= 0 ? null : NewSubId,
+                        Category = cat?.Name ?? "",
+                        SubCategory = sub?.Name,
+                        Amount = newAmount,
+                        Details = newDetails,
+                        Date = expDate
+                    });
+                    if (rows.Count > PageSize) rows.RemoveAt(rows.Count - 1);
+                }
+            }
+
+            var acc = accounts.FirstOrDefault(a => a.AccountID == AccountId);
+            if (acc is not null) acc.Balance -= newAmount;
+
             showAdd = false;
-            newAmount = 0;
-            newDetails = null;
             message = Locale.T("acc.expenseOk");
-            await LoadAsync();
-            ShowPopup(message, false);
         }
-        catch (Exception ex) { Fail(ex.Message); }
-        finally { busy = false; }
+        catch (Exception ex) { addError = ex.Message; }
+        finally { savingAdd = false; }
+    }
+
+    private bool MatchesCurrentFilters(int expenseId, DateTime expDate)
+    {
+        if (CatId > 0 && NewCatId != CatId) return false;
+        if (SubId > 0 && NewSubId != SubId) return false;
+        if (!string.IsNullOrWhiteSpace(receiptNo) && !expenseId.ToString().Contains(receiptNo.Trim(), StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (ParseDay(fromText) is { } from && expDate.Date < from.Date) return false;
+        if (ParseDay(toText) is { } to && expDate.Date > to.Date) return false;
+        return true;
     }
 
     private async Task StartEditAsync(ExpenseDto row)

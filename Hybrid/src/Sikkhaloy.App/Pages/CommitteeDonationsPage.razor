@@ -2,131 +2,184 @@
 @inherits LocaleAwareComponent
 @inject AppSession Session
 @inject ISyncApiClient Api
+@inject IJSRuntime JS
+@using System.Text
 
-<div class="card structure-page emp-page acc-page exam-page committee-page">
-    <h1 class="no-print">@Locale.T("cm.donations")</h1>
-    <div class="filter-row no-print">
-        <select @bind="memberId" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("cm.all")</option>
-            @foreach (var item in lookups.Members)
-            {
-                <option value="@item.Id">@item.Name</option>
-            }
-        </select>
+<div class="card structure-page emp-page acc-page exam-page committee-page sms-mod cm-dons-page">
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">Committee / @Locale.T("cm.donations")</p>
+            <h1>@Locale.T("cm.donations")</h1>
+            <p class="cm-dons-lead">@Locale.T("cm.donationsSub")</p>
+        </div>
+        <div class="cm-head-actions">
+            <a class="cm-act cm-act-primary" href="/committee/donor-login">+ @Locale.T("cm.createDonorLogin")</a>
+            <a class="cm-act cm-act-warning" href="/committee/donor-due">@Locale.T("cm.donorDueList")</a>
+            <a class="cm-act cm-act-info" href="/committee/donation-bulk-edit">@Locale.T("cm.bulkPayOrderEdit")</a>
+            <a class="cm-act cm-act-success" href="/committee/donation-pay-order">@Locale.T("cm.bulkPayOrder")</a>
+            <button type="button" class="cm-act cm-act-secondary" disabled="@busy" @onclick="ExportExcelAsync">@Locale.T("cm.exportExcel")</button>
+            <a class="cm-act cm-act-dark" href="/committee/donation-add">+ @Locale.T("cm.addDonation")</a>
+        </div>
+    </header>
+
+    <div class="cm-dons-stats no-print">
+        <article class="is-total">
+            <small>@Locale.T("cm.totalDonation")</small>
+            <b>৳ @Money(ViewTotal)</b>
+        </article>
+        <article class="is-paid">
+            <small>@Locale.T("cm.paidDonation")</small>
+            <b>৳ @Money(ViewPaid)</b>
+        </article>
+        <article class="is-due">
+            <small>@Locale.T("cm.dueDonation")</small>
+            <b>৳ @Money(ViewDue)</b>
+        </article>
+    </div>
+
+    <div class="cm-dons-filters no-print">
+        <input type="search" class="cm-dons-search" placeholder="@Locale.T("cm.searchDonor")" @bind="search" @bind:event="oninput" @bind:after="OnSearch" disabled="@busy" />
         <select @bind="categoryId" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("cm.all")</option>
+            <option value="0">@Locale.T("cm.allCat")</option>
             @foreach (var item in lookups.Categories)
             {
                 <option value="@item.Id">@item.Name</option>
             }
         </select>
-        <label class="choice-inline"><input type="radio" name="paid" checked="@(paid == "%")" @onchange="SetPaidAll" /> @Locale.T("cm.allPaid")</label>
-        <label class="choice-inline"><input type="radio" name="paid" checked="@(paid == "1")" @onchange="SetPaidOnly" /> @Locale.T("cm.paid")</label>
-        <label class="choice-inline"><input type="radio" name="paid" checked="@(paid == "0")" @onchange="SetDueOnly" /> @Locale.T("cm.due")</label>
-        <a class="acc-btn acc-btn-primary" href="committee/donation-add">@Locale.T("cm.addDonation")</a>
-    </div>
-    <div class="cm-totals">
-        <span>@Locale.T("cm.total"): ৳@Tk(list.Total)</span>
-        <span>@Locale.T("cm.paid"): ৳@Tk(list.Paid)</span>
-        <span>@Locale.T("cm.due"): ৳@Tk(list.Due)</span>
-    </div>
-    <table class="mgrid">
-        <thead>
-            <tr>
-                <th>@Locale.T("cm.name")</th>
-                <th>@Locale.T("cm.sms")</th>
-                <th>@Locale.T("cm.donationCategory")</th>
-                <th>@Locale.T("cm.donationAmount")</th>
-                <th>@Locale.T("cm.paidAmount")</th>
-                <th>@Locale.T("cm.due")</th>
-                <th>@Locale.T("cm.desc")</th>
-                <th>@Locale.T("cm.addDate")</th>
-                <th class="no-print"></th>
-            </tr>
-        </thead>
-        <tbody>
-        @if (list.Rows.Count == 0)
-        {
-            <tr><td colspan="9" class="empty-row">@Locale.T("cm.emptyDonations")</td></tr>
-        }
-        @foreach (var row in list.Rows)
-        {
-            <tr>
-                <td>
-                    <strong>@row.MemberName</strong>
-                    <small class="cm-sub">@row.MemberType</small>
-                </td>
-                <td>@row.SmsNumber</td>
-                <td>
-                    @if (editId == row.CommitteeDonationId)
-                    {
-                        <select @bind="editCatId" disabled="@busy">
-                            @foreach (var item in lookups.Categories)
-                            {
-                                <option value="@item.Id">@item.Name</option>
-                            }
-                        </select>
-                    }
-                    else { @row.DonationCategory }
-                </td>
-                <td>
-                    @if (editId == row.CommitteeDonationId)
-                    {
-                        <input type="number" step="0.01" @bind="editAmount" disabled="@busy" />
-                    }
-                    else { @Tk(row.Amount) }
-                </td>
-                <td>@Tk(row.PaidAmount)</td>
-                <td>@Tk(row.Due)</td>
-                <td>
-                    @if (editId == row.CommitteeDonationId)
-                    {
-                        <input type="text" @bind="editDesc" disabled="@busy" />
-                    }
-                    else { @row.Description }
-                </td>
-                <td>@(row.InsertDate?.ToString("d MMM yyyy"))</td>
-                <td class="no-print">
-                    @if (editId == row.CommitteeDonationId)
-                    {
-                        <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="UpdateAsync">@Locale.T("cm.update")</button>
-                        <button type="button" class="acc-btn" @onclick="() => editId = 0">@Locale.T("cm.cancel")</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="acc-btn" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("cm.edit")</button>
-                        @if (row.CanDelete)
-                        {
-                            <button type="button" class="acc-btn acc-btn-danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("cm.delete")</button>
-                        }
-                    }
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
-
-<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
-@if (!string.IsNullOrWhiteSpace(popupText))
-{
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result @(popupError ? "is-err" : "is-ok")" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">@(popupError ? "!" : "✓")</div>
-            <h3>@(popupError ? Locale.T("sms.errorTitle") : Locale.T("acc.success"))</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
+        <div class="cm-dons-paid">
+            <button type="button" class="@(paid == "%" ? "is-on" : null)" disabled="@busy" @onclick="SetPaidAll">@Locale.T("cm.allPaid")</button>
+            <button type="button" class="@(paid == "1" ? "is-on" : null)" disabled="@busy" @onclick="SetPaidOnly">@Locale.T("cm.paid")</button>
+            <button type="button" class="@(paid == "0" ? "is-on" : null)" disabled="@busy" @onclick="SetDueOnly">@Locale.T("cm.due")</button>
         </div>
     </div>
+
+    <div class="cm-dons-table">
+        <table class="mgrid">
+            <thead>
+                <tr>
+                    <th>@Locale.T("cm.name")</th>
+                    <th>@Locale.T("cm.sms")</th>
+                    <th>@Locale.T("cm.donationCategory")</th>
+                    <th>@Locale.T("cm.donationAmount")</th>
+                    <th>@Locale.T("cm.paidAmount")</th>
+                    <th>@Locale.T("cm.due")</th>
+                    <th>@Locale.T("cm.desc")</th>
+                    <th>@Locale.T("cm.addDate")</th>
+                    <th class="no-print">@Locale.T("sms.tplActions")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Visible.Count == 0)
+            {
+                <tr><td colspan="9" class="empty-row">@Locale.T("cm.emptyDonations")</td></tr>
+            }
+            @foreach (var row in PageRows)
+            {
+                <tr>
+                    <td>
+                        <strong>@row.MemberName</strong>
+                        <small class="cm-sub">@row.MemberType</small>
+                    </td>
+                    <td>@row.SmsNumber</td>
+                    <td>
+                        @if (editId == row.CommitteeDonationId)
+                        {
+                            <select @bind="editCatId" disabled="@busy">
+                                @foreach (var item in lookups.Categories)
+                                {
+                                    <option value="@item.Id">@item.Name</option>
+                                }
+                            </select>
+                        }
+                        else { @row.DonationCategory }
+                    </td>
+                    <td class="cm-dons-num">
+                        @if (editId == row.CommitteeDonationId && !editAmountLocked)
+                        {
+                            <input type="number" step="0.01" min="@editMinAmount" @bind="editAmount" disabled="@busy" />
+                        }
+                        else { <span>৳ @Tk(row.Amount)</span> }
+                    </td>
+                    <td class="cm-dons-num is-paid">৳ @Tk(row.PaidAmount)</td>
+                    <td class="cm-dons-num @(row.Due > 0 ? "is-due" : null)">৳ @Tk(row.Due)</td>
+                    <td>
+                        @if (editId == row.CommitteeDonationId)
+                        {
+                            <input type="text" @bind="editDesc" disabled="@busy" />
+                        }
+                        else { @row.Description }
+                    </td>
+                    <td>@(row.InsertDate?.ToString("d MMM yyyy"))</td>
+                    <td class="no-print cm-dons-acts">
+                        @if (editId == row.CommitteeDonationId)
+                        {
+                            <button type="button" class="sms-tpl-act" disabled="@busy" @onclick="UpdateAsync">@Locale.T("cm.update")</button>
+                            <button type="button" class="sms-tpl-ghost" @onclick="() => editId = 0">@Locale.T("cm.cancel")</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="sms-tpl-act" disabled="@busy" @onclick="() => StartEdit(row)">@Locale.T("cm.edit")</button>
+                            @if (row.CanDelete)
+                            {
+                                <button type="button" class="sms-tpl-act is-danger" disabled="@busy" @onclick="() => DeleteAsync(row)">@Locale.T("cm.delete")</button>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (Visible.Count > 0)
+        {
+            <footer class="cm-dons-pager">
+                <span>@string.Format(Locale.T("cm.showingRange"), PageFrom, PageTo, Visible.Count)</span>
+                @if (PageCount > 1)
+                {
+                    <div>
+                        <button type="button" disabled="@(page <= 1 || busy)" @onclick="() => GoPage(page - 1)">‹</button>
+                        @for (var i = 1; i <= PageCount; i++)
+                        {
+                            var n = i;
+                            if (n == 1 || n == PageCount || (n >= page - 1 && n <= page + 1))
+                            {
+                                <button type="button" class="@(n == page ? "is-on" : null)" disabled="@busy" @onclick="() => GoPage(n)">@n</button>
+                            }
+                            else if (n == page - 2 || n == page + 2)
+                            {
+                                <span>…</span>
+                            }
+                        }
+                        <button type="button" disabled="@(page >= PageCount || busy)" @onclick="() => GoPage(page + 1)">›</button>
+                    </div>
+                }
+            </footer>
+        }
+    </div>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("exam.pleaseWait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
 }
 
 @code {
     private CommitteeLookupsDto lookups = new();
     private DonationListDto list = new();
-    private int memberId, categoryId, editId, editCatId;
-    private string paid = "%", editDesc = "", busyTitle = "", popupText = "";
-    private decimal editAmount;
+    private int categoryId, editId, editCatId, page = 1;
+    private const int PageSize = 100;
+    private string paid = "%", search = "", editDesc = "", busyTitle = "", popupText = "";
+    private decimal editAmount, editMinAmount;
+    private bool editAmountLocked;
     private bool busy, popupError;
+    private List<DonationRowDto> Visible => FilterRows();
+    private IEnumerable<DonationRowDto> PageRows => Visible.Skip((page - 1) * PageSize).Take(PageSize);
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(Visible.Count / (double)PageSize));
+    private int PageFrom => Visible.Count == 0 ? 0 : (page - 1) * PageSize + 1;
+    private int PageTo => Math.Min(page * PageSize, Visible.Count);
+    private decimal ViewTotal => Visible.Sum(x => x.Amount);
+    private decimal ViewPaid => Visible.Sum(x => x.PaidAmount);
+    private decimal ViewDue => Visible.Sum(x => x.Due);
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -137,7 +190,29 @@
     private async Task SetPaid(string value)
     {
         paid = value;
+        page = 1;
         await LoadAsync();
+    }
+
+    private void OnSearch()
+    {
+        page = 1;
+        if (editId > 0) editId = 0;
+    }
+
+    private void GoPage(int value)
+    {
+        page = Math.Clamp(value, 1, PageCount);
+        editId = 0;
+    }
+
+    private List<DonationRowDto> FilterRows()
+    {
+        var q = search.Trim();
+        if (q.Length == 0) return list.Rows;
+        return list.Rows.Where(row =>
+            row.MemberName.Contains(q, StringComparison.CurrentCultureIgnoreCase)
+            || row.SmsNumber.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     private async Task LoadAsync()
@@ -147,7 +222,8 @@
         {
             if (!await OnlineAsync()) return;
             lookups = await Api.GetCommitteeLookupsAsync(Session.AccessToken!);
-            list = await Api.GetDonationsAsync(Session.AccessToken!, memberId, categoryId, paid);
+            list = await Api.GetDonationsAsync(Session.AccessToken!, 0, categoryId, paid);
+            page = 1;
         }
         catch (Exception ex) { Show(ex.Message, true); }
         finally { busy = false; }
@@ -158,6 +234,8 @@
         editId = row.CommitteeDonationId;
         editCatId = row.CommitteeDonationCategoryId;
         editAmount = row.Amount;
+        editMinAmount = row.PaidAmount > 0 ? row.PaidAmount : 0.01m;
+        editAmountLocked = row.Due <= 0;
         editDesc = row.Description;
     }
 
@@ -196,7 +274,83 @@
         finally { busy = false; }
     }
 
+    private async Task ExportExcelAsync()
+    {
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var exportList = Visible;
+            if (exportList.Count == 0)
+            {
+                Show(Locale.T("cm.emptyDonations"), true);
+                return;
+            }
+
+            var sb = new StringBuilder();
+            sb.Append("<html><head><meta charset='utf-8'></head><body><table border='1'><tr>");
+            AppendHeader(sb, Locale.T("cm.name"));
+            AppendHeader(sb, Locale.T("cm.memberType"));
+            AppendHeader(sb, Locale.T("cm.phone"));
+            AppendHeader(sb, Locale.T("cm.donationCategory"));
+            AppendHeader(sb, Locale.T("cm.desc"));
+            AppendHeader(sb, Locale.T("cm.donationAmount"));
+            AppendHeader(sb, Locale.T("cm.paidAmount"));
+            AppendHeader(sb, Locale.T("cm.due"));
+            AppendHeader(sb, Locale.T("cm.promise"));
+            AppendHeader(sb, Locale.T("cm.addDate"));
+            AppendHeader(sb, Locale.T("cm.status"));
+            sb.Append("</tr>");
+
+            foreach (var row in exportList)
+            {
+                sb.Append("<tr>");
+                AppendCell(sb, row.MemberName);
+                AppendCell(sb, row.MemberType);
+                AppendCell(sb, row.SmsNumber);
+                AppendCell(sb, row.DonationCategory);
+                AppendCell(sb, row.Description);
+                AppendCell(sb, row.Amount.ToString("0.##"));
+                AppendCell(sb, row.PaidAmount.ToString("0.##"));
+                AppendCell(sb, row.Due.ToString("0.##"));
+                AppendCell(sb, row.PromiseDate?.ToString("d MMM yyyy") ?? "");
+                AppendCell(sb, row.InsertDate?.ToString("d MMM yyyy") ?? "");
+                AppendCell(sb, row.Due <= 0 ? Locale.T("cm.paid") : Locale.T("cm.due"));
+                sb.Append("</tr>");
+            }
+
+            sb.Append("</table></body></html>");
+
+            var fileName = $"Donations_{DateTime.Now:yyyyMMdd_HHmmss}.xls";
+            var bytes = Encoding.UTF8.GetBytes("\uFEFF" + sb);
+            await using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            await JS.InvokeVoidAsync("sikkhaloyDownloadStream", fileName, "application/vnd.ms-excel", streamRef);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static void AppendHeader(StringBuilder sb, string value) =>
+        sb.Append("<th>").Append(Html(value)).Append("</th>");
+
+    private static void AppendCell(StringBuilder sb, string value) =>
+        sb.Append("<td>").Append(Html(value)).Append("</td>");
+
+    private static string Html(string value) =>
+        value.Replace("&", "&amp;", StringComparison.Ordinal)
+            .Replace("<", "&lt;", StringComparison.Ordinal)
+            .Replace(">", "&gt;", StringComparison.Ordinal)
+            .Replace("\"", "&quot;", StringComparison.Ordinal);
+
     private static string Tk(decimal n) => n.ToString("0.##");
+    private static string Money(decimal n) => n.ToString("N0");
     private void Show(string value, bool err = false) { popupText = value; popupError = err; }
     private void ClosePopup() => popupText = "";
     private string FormatErr(CommitteeResult result) =>

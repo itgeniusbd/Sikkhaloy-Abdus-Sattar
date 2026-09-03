@@ -1054,12 +1054,16 @@ SELECT IsApproved, IsLockedOut FROM dbo.aspnet_Membership WHERE UserId = @UserId
     };
 
     public async Task<StudentReportDto> GetReportAsync(
-        SessionSnapshot session, string? studentCode, CancellationToken cancellationToken)
+        SessionSnapshot session, string? studentCode, string? part, CancellationToken cancellationToken)
     {
         var dto = new StudentReportDto();
         var code = (studentCode ?? "").Trim();
         if (code.Length == 0)
             return dto;
+
+        var section = (part ?? "all").Trim().ToLowerInvariant();
+        if (section.Length == 0)
+            section = "all";
 
         await using var con = _connections.Create();
         await con.OpenAsync(cancellationToken);
@@ -1085,11 +1089,17 @@ WHERE StudentsClass.EducationYearID = @EducationYearID
             dto.ClassID = ToInt(reader["ClassID"]);
         }
 
-        dto.PhotoDataUrl = await QueryPhotoAsync(con, dto.StudentID, cancellationToken);
-        await FillResultAsync(con, session, dto, cancellationToken);
-        await FillAttendanceAsync(con, session, dto, cancellationToken);
-        await FillSubjectsAsync(con, session, dto, cancellationToken);
-        await FillAccountsAsync(con, session, dto, cancellationToken);
+        var wantAll = section is "all";
+        if (wantAll)
+            dto.PhotoDataUrl = await QueryPhotoAsync(con, dto.StudentID, cancellationToken);
+        if (wantAll || section is "result")
+            await FillResultAsync(con, session, dto, cancellationToken);
+        if (wantAll || section is "attendance")
+            await FillAttendanceAsync(con, session, dto, cancellationToken);
+        if (wantAll || section is "subjects")
+            await FillSubjectsAsync(con, session, dto, cancellationToken);
+        if (wantAll || section is "accounts")
+            await FillAccountsAsync(con, session, dto, cancellationToken);
         return dto;
     }
 
@@ -1117,61 +1127,7 @@ WHERE s.StudentID = @StudentID
     private static async Task FillResultAsync(
         SqlConnection con, SessionSnapshot session, StudentReportDto dto, CancellationToken cancellationToken)
     {
-        if (!await TableExistsAsync(con, "Exam_Result_of_Student", cancellationToken)
-            || !await TableExistsAsync(con, "Exam_Result_of_Subject", cancellationToken))
-            return;
-
         const string pub = "N'Pub'";
-        try
-        {
-            await using var best = new SqlCommand($"""
-SELECT TOP (1) ROUND(AVG(Exam_Result_of_Subject.ObtainedPercentage_ofSubject), 2, 0) AS Top_Sub,
-       Subject.SubjectName
-FROM Exam_Result_of_Subject
-INNER JOIN Exam_Result_of_Student ON Exam_Result_of_Subject.StudentResultID = Exam_Result_of_Student.StudentResultID
-INNER JOIN Subject ON Exam_Result_of_Subject.SubjectID = Subject.SubjectID
-WHERE Exam_Result_of_Subject.StudentID = @StudentID
-  AND Exam_Result_of_Student.StudentPublishStatus = {pub}
-GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN
-ORDER BY Top_Sub DESC
-""", con);
-            best.Parameters.AddWithValue("@StudentID", dto.StudentID);
-            await using var reader = await best.ExecuteReaderAsync(cancellationToken);
-            if (await reader.ReadAsync(cancellationToken))
-            {
-                dto.Result.BestSubject = NullString(reader["SubjectName"]);
-                dto.Result.BestAvg = ToDecN(reader["Top_Sub"]);
-            }
-        }
-        catch (SqlException)
-        {
-        }
-
-        try
-        {
-            await using var worst = new SqlCommand($"""
-SELECT TOP (1) ROUND(AVG(Exam_Result_of_Subject.ObtainedPercentage_ofSubject), 2, 0) AS Worst_Sub,
-       Subject.SubjectName
-FROM Exam_Result_of_Subject
-INNER JOIN Exam_Result_of_Student ON Exam_Result_of_Subject.StudentResultID = Exam_Result_of_Student.StudentResultID
-INNER JOIN Subject ON Exam_Result_of_Subject.SubjectID = Subject.SubjectID
-WHERE Exam_Result_of_Subject.StudentID = @StudentID
-  AND Exam_Result_of_Student.StudentPublishStatus = {pub}
-GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN
-ORDER BY Worst_Sub ASC
-""", con);
-            worst.Parameters.AddWithValue("@StudentID", dto.StudentID);
-            await using var reader = await worst.ExecuteReaderAsync(cancellationToken);
-            if (await reader.ReadAsync(cancellationToken))
-            {
-                dto.Result.WorstSubject = NullString(reader["SubjectName"]);
-                dto.Result.WorstAvg = ToDecN(reader["Worst_Sub"]);
-            }
-        }
-        catch (SqlException)
-        {
-        }
-
         try
         {
             await using var avgs = new SqlCommand($"""
@@ -1196,6 +1152,14 @@ ORDER BY Sub_Avg DESC
                     AvgMark = ToDec(reader["Sub_Avg"]),
                     Position = ToDec(reader["Sub_Position"])
                 });
+            }
+            if (dto.Result.SubjectAvgs.Count > 0)
+            {
+                dto.Result.BestSubject = dto.Result.SubjectAvgs[0].SubjectName;
+                dto.Result.BestAvg = dto.Result.SubjectAvgs[0].AvgMark;
+                var worst = dto.Result.SubjectAvgs[^1];
+                dto.Result.WorstSubject = worst.SubjectName;
+                dto.Result.WorstAvg = worst.AvgMark;
             }
         }
         catch (SqlException)
@@ -1356,102 +1320,59 @@ ORDER BY Exam_Name.ExamID
     private static async Task FillAttendanceAsync(
         SqlConnection con, SessionSnapshot session, StudentReportDto dto, CancellationToken cancellationToken)
     {
-        var filled = false;
-        if (await ObjectExistsAsync(con, "dbo.F_Stu_WorkingDay", cancellationToken)
-            && await ObjectExistsAsync(con, "dbo.F_Stu_Attendance_Summary", cancellationToken))
+        try
         {
-            try
-            {
-                await using var cmd = new SqlCommand("""
-SELECT dbo.F_Stu_WorkingDay(@SchoolID, @EducationYearID, @ClassID, NULL, NULL) AS WorkingDay,
-       dbo.F_Stu_Attendance_Summary(@SchoolID, @EducationYearID, @StudentClassID, 'Pre', NULL, NULL) AS Pre,
-       dbo.F_Stu_Attendance_Summary(@SchoolID, @EducationYearID, @StudentClassID, 'Abs', NULL, NULL) AS Abs,
-       dbo.F_Stu_Attendance_Summary(@SchoolID, @EducationYearID, @StudentClassID, 'Late', NULL, NULL) AS Late,
-       dbo.F_Stu_Attendance_Summary(@SchoolID, @EducationYearID, @StudentClassID, 'Leave', NULL, NULL) AS Leave,
-       dbo.F_Stu_Attendance_Summary(@SchoolID, @EducationYearID, @StudentClassID, 'Bunk', NULL, NULL) AS Bunk,
-       dbo.F_Stu_Attendance_Summary(@SchoolID, @EducationYearID, @StudentClassID, 'Late Abs', NULL, NULL) AS LateAbs
-""", con);
-                cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                cmd.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
-                cmd.Parameters.AddWithValue("@ClassID", dto.ClassID);
-                cmd.Parameters.AddWithValue("@StudentClassID", dto.StudentClassID);
-                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-                if (await reader.ReadAsync(cancellationToken))
-                {
-                    dto.Attendance.WorkingDays = ToInt(reader["WorkingDay"]);
-                    dto.Attendance.Present = ToInt(reader["Pre"]);
-                    dto.Attendance.Absent = ToInt(reader["Abs"]);
-                    dto.Attendance.Late = ToInt(reader["Late"]);
-                    dto.Attendance.Leave = ToInt(reader["Leave"]);
-                    dto.Attendance.Bunk = ToInt(reader["Bunk"]);
-                    dto.Attendance.LateAbsent = ToInt(reader["LateAbs"]);
-                    filled = true;
-                }
-            }
-            catch (SqlException)
-            {
-            }
-        }
-
-        if (!filled && await TableExistsAsync(con, "Attendance_Record", cancellationToken))
-        {
-            try
-            {
-                await using var work = new SqlCommand("""
+            await using var work = new SqlCommand("""
 SELECT COUNT(DISTINCT CAST(AttendanceDate AS date))
 FROM dbo.Attendance_Record
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND ClassID = @ClassID
 """, con);
-                work.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                work.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
-                work.Parameters.AddWithValue("@ClassID", dto.ClassID);
-                dto.Attendance.WorkingDays = ToInt(await work.ExecuteScalarAsync(cancellationToken));
+            work.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            work.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
+            work.Parameters.AddWithValue("@ClassID", dto.ClassID);
+            dto.Attendance.WorkingDays = ToInt(await work.ExecuteScalarAsync(cancellationToken));
 
-                await using var counts = new SqlCommand("""
+            await using var counts = new SqlCommand("""
 SELECT LTRIM(RTRIM(ISNULL(Attendance, N''))) AS Attendance, COUNT(*) AS Cnt
 FROM dbo.Attendance_Record
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND StudentClassID = @StudentClassID
 GROUP BY LTRIM(RTRIM(ISNULL(Attendance, N'')))
 """, con);
-                counts.Parameters.AddWithValue("@SchoolID", session.SchoolID);
-                counts.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
-                counts.Parameters.AddWithValue("@StudentClassID", dto.StudentClassID);
-                await using var reader = await counts.ExecuteReaderAsync(cancellationToken);
-                while (await reader.ReadAsync(cancellationToken))
-                {
-                    var key = (NullString(reader["Attendance"]) ?? "").Trim();
-                    var n = ToInt(reader["Cnt"]);
-                    if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase))
-                        dto.Attendance.Present = n;
-                    else if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase))
-                        dto.Attendance.Absent = n;
-                    else if (key.Equals("Late", StringComparison.OrdinalIgnoreCase))
-                        dto.Attendance.Late = n;
-                    else if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase))
-                        dto.Attendance.Leave = n;
-                    else if (key.Equals("Bunk", StringComparison.OrdinalIgnoreCase))
-                        dto.Attendance.Bunk = n;
-                    else if (key.Equals("Late Abs", StringComparison.OrdinalIgnoreCase)
-                             || key.Equals("LateAbs", StringComparison.OrdinalIgnoreCase)
-                             || key.Equals("Late_Abs", StringComparison.OrdinalIgnoreCase))
-                        dto.Attendance.LateAbsent = n;
-                }
-            }
-            catch (SqlException)
+            counts.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            counts.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
+            counts.Parameters.AddWithValue("@StudentClassID", dto.StudentClassID);
+            await using var reader = await counts.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
             {
+                var key = (NullString(reader["Attendance"]) ?? "").Trim();
+                var n = ToInt(reader["Cnt"]);
+                if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase))
+                    dto.Attendance.Present = n;
+                else if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase))
+                    dto.Attendance.Absent = n;
+                else if (key.Equals("Late", StringComparison.OrdinalIgnoreCase))
+                    dto.Attendance.Late = n;
+                else if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase))
+                    dto.Attendance.Leave = n;
+                else if (key.Equals("Bunk", StringComparison.OrdinalIgnoreCase))
+                    dto.Attendance.Bunk = n;
+                else if (key.Equals("Late Abs", StringComparison.OrdinalIgnoreCase)
+                         || key.Equals("LateAbs", StringComparison.OrdinalIgnoreCase)
+                         || key.Equals("Late_Abs", StringComparison.OrdinalIgnoreCase))
+                    dto.Attendance.LateAbsent = n;
             }
         }
-
-        if (!await TableExistsAsync(con, "Attendance_Record", cancellationToken))
-            return;
+        catch (SqlException)
+        {
+        }
 
         try
         {
             await using var days = new SqlCommand("""
-SELECT TOP 400 CAST(AttendanceDate AS date) AS AttendanceDate, Attendance, EntryTime
+SELECT CAST(AttendanceDate AS date) AS AttendanceDate, Attendance, EntryTime, ExitTime
 FROM dbo.Attendance_Record
 WHERE SchoolID = @SchoolID AND EducationYearID = @EducationYearID AND StudentClassID = @StudentClassID
-ORDER BY AttendanceDate DESC
+ORDER BY AttendanceDate
 """, con);
             days.Parameters.AddWithValue("@SchoolID", session.SchoolID);
             days.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
@@ -1464,9 +1385,65 @@ ORDER BY AttendanceDate DESC
                     continue;
                 dto.Attendance.Days.Add(new StudentReportAttendanceDayDto
                 {
-                    Date = date.Value,
+                    Date = date.Value.Date,
                     Attendance = NullString(reader["Attendance"]) ?? "",
-                    EntryTime = ReadTime(reader["EntryTime"])
+                    EntryTime = ReadTime(reader["EntryTime"]),
+                    ExitTime = ReadTime(reader["ExitTime"])
+                });
+            }
+        }
+        catch (SqlException)
+        {
+        }
+
+        try
+        {
+            await using var hol = new SqlCommand("""
+SELECT CAST(HolidayDate AS date) AS HolidayDate, HolidayName
+FROM dbo.Employee_Holiday
+WHERE SchoolID = @SchoolID
+""", con);
+            hol.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            await using var reader = await hol.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var date = ReadDate(reader["HolidayDate"]);
+                if (date is null)
+                    continue;
+                dto.Attendance.Holidays.Add(new StudentReportHolidayDto
+                {
+                    Date = date.Value.Date,
+                    Name = NullString(reader["HolidayName"]) ?? ""
+                });
+            }
+        }
+        catch (SqlException)
+        {
+        }
+
+        try
+        {
+            await using var leave = new SqlCommand("""
+SELECT CAST(StartDate AS date) AS StartDate, CAST(EndDate AS date) AS EndDate,
+       ISNULL(LeaveType, N'') AS LeaveType, ISNULL(Description, N'') AS Description
+FROM dbo.Attendance_Leave
+WHERE SchoolID = @SchoolID AND StudentID = @StudentID
+""", con);
+            leave.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            leave.Parameters.AddWithValue("@StudentID", dto.StudentID);
+            await using var reader = await leave.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var start = ReadDate(reader["StartDate"]);
+                var end = ReadDate(reader["EndDate"]);
+                if (start is null || end is null)
+                    continue;
+                dto.Attendance.Leaves.Add(new StudentReportLeaveDto
+                {
+                    StartDate = start.Value.Date,
+                    EndDate = end.Value.Date,
+                    LeaveType = NullString(reader["LeaveType"]),
+                    Description = NullString(reader["Description"])
                 });
             }
         }
@@ -1557,8 +1534,14 @@ ORDER BY Income_PayOrder.EndDate
         dto.Accounts.CurrentDue = await QueryPayOrdersAsync(con, $"""
 SELECT {payCols}
 WHERE Income_PayOrder.Status = N'Due'
-  AND Income_PayOrder.EndDate < GETDATE()
   AND Income_PayOrder.StudentID = @StudentID
+  AND (
+    Income_PayOrder.EndDate < GETDATE()
+    OR EXISTS (
+      SELECT 1 FROM dbo.Income_Roles AS invr
+      WHERE invr.RoleID = Income_PayOrder.RoleID AND invr.Role = N'Inventory Sale'
+    )
+  )
 ORDER BY Income_PayOrder.EndDate
 """, session.SchoolID, dto.StudentID, 0, 0, cancellationToken);
 
@@ -1566,7 +1549,6 @@ ORDER BY Income_PayOrder.EndDate
 SELECT {payCols}
 WHERE Income_PayOrder.StudentID = @StudentID
   AND Income_PayOrder.EducationYearID = @EducationYearID
-  AND Income_PayOrder.StudentClassID = @StudentClassID
   AND Income_PayOrder.PaidAmount <> 0
 ORDER BY Income_PayOrder.LastPaidDate DESC
 """, session.SchoolID, dto.StudentID, session.EducationYearID, dto.StudentClassID, cancellationToken);
@@ -1575,7 +1557,6 @@ ORDER BY Income_PayOrder.LastPaidDate DESC
 SELECT {payCols}
 WHERE Income_PayOrder.StudentID = @StudentID
   AND Income_PayOrder.EducationYearID = @EducationYearID
-  AND Income_PayOrder.StudentClassID = @StudentClassID
 ORDER BY Income_PayOrder.StartDate
 """, session.SchoolID, dto.StudentID, session.EducationYearID, dto.StudentClassID, cancellationToken);
 
@@ -1589,20 +1570,20 @@ ORDER BY Income_PayOrder.StartDate
         try
         {
             await using var rec = new SqlCommand("""
-SELECT MoneyReceipt_SN, PaidDate, TotalAmount
+SELECT MoneyReceipt_SN, PaidDate, TotalAmount, ISNULL(PrintedReceiptNo, N'') AS PrintedReceiptNo
 FROM dbo.Income_MoneyReceipt
-WHERE StudentID = @StudentID AND EducationYearID = @EducationYearID AND StudentClassID = @StudentClassID
+WHERE StudentID = @StudentID AND EducationYearID = @EducationYearID
 ORDER BY PaidDate DESC
 """, con);
             rec.Parameters.AddWithValue("@StudentID", dto.StudentID);
             rec.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
-            rec.Parameters.AddWithValue("@StudentClassID", dto.StudentClassID);
             await using var reader = await rec.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
                 dto.Accounts.Receipts.Add(new StudentReportReceiptDto
                 {
                     ReceiptNo = NullString(reader["MoneyReceipt_SN"]) ?? "",
+                    PrintedReceiptNo = NullString(reader["PrintedReceiptNo"]) ?? "",
                     PaidDate = ReadDate(reader["PaidDate"]),
                     Amount = ToDec(reader["TotalAmount"])
                 });
@@ -1610,6 +1591,31 @@ ORDER BY PaidDate DESC
         }
         catch (SqlException)
         {
+            dto.Accounts.Receipts.Clear();
+            try
+            {
+                await using var rec = new SqlCommand("""
+SELECT MoneyReceipt_SN, PaidDate, TotalAmount
+FROM dbo.Income_MoneyReceipt
+WHERE StudentID = @StudentID AND EducationYearID = @EducationYearID
+ORDER BY PaidDate DESC
+""", con);
+                rec.Parameters.AddWithValue("@StudentID", dto.StudentID);
+                rec.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
+                await using var reader = await rec.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    dto.Accounts.Receipts.Add(new StudentReportReceiptDto
+                    {
+                        ReceiptNo = NullString(reader["MoneyReceipt_SN"]) ?? "",
+                        PaidDate = ReadDate(reader["PaidDate"]),
+                        Amount = ToDec(reader["TotalAmount"])
+                    });
+                }
+            }
+            catch (SqlException)
+            {
+            }
         }
 
         try
@@ -1621,13 +1627,11 @@ FROM dbo.Income_PayOrder
 INNER JOIN dbo.Income_Roles ON Income_PayOrder.RoleID = Income_Roles.RoleID
 WHERE Income_PayOrder.StudentID = @StudentID
   AND Income_PayOrder.EducationYearID = @EducationYearID
-  AND Income_PayOrder.StudentClassID = @StudentClassID
   AND Income_PayOrder.Total_Discount <> 0
 ORDER BY Income_PayOrder.StartDate
 """, con);
             conc.Parameters.AddWithValue("@StudentID", dto.StudentID);
             conc.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
-            conc.Parameters.AddWithValue("@StudentClassID", dto.StudentClassID);
             await using var reader = await conc.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
@@ -1749,9 +1753,9 @@ ORDER BY Income_PayOrder.StartDate
         if (value is null or DBNull)
             return null;
         if (value is TimeSpan span)
-            return span.ToString(@"hh\:mm");
+            return DateTime.Today.Add(span).ToString("h:mm tt");
         if (value is DateTime date)
-            return date.ToString("HH:mm");
+            return date.ToString("h:mm tt");
         var text = Convert.ToString(value);
         return string.IsNullOrWhiteSpace(text) ? null : text;
     }
@@ -1762,15 +1766,6 @@ ORDER BY Income_PayOrder.StartDate
         await using var cmd = new SqlCommand(
             "SELECT CASE WHEN OBJECT_ID(@Name, 'U') IS NULL THEN 0 ELSE 1 END", con);
         cmd.Parameters.AddWithValue("@Name", "dbo." + tableName);
-        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) == 1;
-    }
-
-    private static async Task<bool> ObjectExistsAsync(
-        SqlConnection con, string name, CancellationToken cancellationToken)
-    {
-        await using var cmd = new SqlCommand(
-            "SELECT CASE WHEN OBJECT_ID(@Name) IS NULL THEN 0 ELSE 1 END", con);
-        cmd.Parameters.AddWithValue("@Name", name);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) == 1;
     }
 

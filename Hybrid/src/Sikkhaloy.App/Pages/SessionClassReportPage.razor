@@ -17,18 +17,19 @@
         </select>
     </div>
 
-    <div class="sess-head">
-        <div>
-            <div class="sess-name">@Locale.T("rpt.classPayTitle")</div>
+    <header class="sess-report-head">
+        <div class="sess-report-title">
+            <span class="sess-title-line" aria-hidden="true"></span>
+            <h1>
+                @Locale.T("rpt.classPayTitle")
+                @if (!string.IsNullOrWhiteSpace(YearRange)) { <small>@YearRange</small> }
+            </h1>
+            <span class="sess-title-line" aria-hidden="true"></span>
         </div>
-        <div class="sess-right">
-            <div class="sess-name">@Locale.T("rpt.sessionLabel") @YearName</div>
-            @if (!string.IsNullOrWhiteSpace(YearRange))
-            {
-                <div class="sess-date">@YearRange</div>
-            }
+        <div class="sess-meta-pills no-print">
+            <div class="sess-meta-pill"><strong>@Locale.T("rpt.sessionLabel")</strong> @YearName</div>
         </div>
-    </div>
+    </header>
 
     <div class="rpt-filters no-print">
         <input type="date" value="@fromText" @onchange="OnFrom" title="@Locale.T("rpt.from")" />
@@ -37,7 +38,7 @@
         <button type="button" class="acc-btn rpt-print" disabled="@busy" @onclick="PrintAsync">@Locale.T("rpt.print")</button>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(error)) { <div class="error">@error</div> }
+    <NetBanner Text="@error" />
     @if (data is not null)
     {
         <div class="sess-tiles">
@@ -68,8 +69,9 @@
         </div>
         @if (data.Classes.Count > 0)
         {
-            <div class="rpt-box class-tle">@Locale.T("rpt.classSummary")</div>
-            <table class="mgrid">
+            <div class="sess-section is-class">
+                <div class="sess-section-head">@Locale.T("rpt.classSummary")</div>
+                <table class="mgrid sess-table">
                 <thead>
                     <tr>
                         <th>@Locale.T("rpt.class")</th>
@@ -95,12 +97,14 @@
                     </tr>
                 }
                 </tbody>
-            </table>
+                </table>
+            </div>
         }
         @if (data.Roles.Count > 0)
         {
-            <div class="rpt-box pay">@Locale.T("rpt.roleSummary") @ClassName</div>
-            <table class="mgrid">
+            <div class="sess-section is-role">
+                <div class="sess-section-head">@Locale.T("rpt.roleSummary") @ClassName</div>
+                <table class="mgrid sess-table">
                 <thead>
                     <tr>
                         <th>@Locale.T("acc.role")</th>
@@ -126,12 +130,14 @@
                     </tr>
                 }
                 </tbody>
-            </table>
+                </table>
+            </div>
         }
         @if (data.PayFors.Count > 0)
         {
-            <div class="rpt-box for-tle">@Locale.T("rpt.forSummary") @RoleName</div>
-            <table class="mgrid">
+            <div class="sess-section is-for">
+                <div class="sess-section-head">@Locale.T("rpt.forSummary") @RoleName</div>
+                <table class="mgrid sess-table">
                 <thead>
                     <tr>
                         <th>@Locale.T("rpt.payFor")</th>
@@ -157,7 +163,8 @@
                     </tr>
                 }
                 </tbody>
-            </table>
+                </table>
+            </div>
         }
     }
 </div>

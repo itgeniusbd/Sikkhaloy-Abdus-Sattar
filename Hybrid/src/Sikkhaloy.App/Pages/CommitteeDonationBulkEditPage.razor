@@ -1,0 +1,374 @@
+@page "/committee/donation-bulk-edit"
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject IJSRuntime JS
+
+<div class="card structure-page committee-page cm-bulk-edit-page">
+    <div class="cm-page-head no-print">
+        <h1>@Locale.T("cm.bulkEditTitle")</h1>
+        <div class="cm-head-actions">
+            <a class="cm-act cm-act-dark" href="/committee/donations">@Locale.T("cm.donations")</a>
+        </div>
+    </div>
+
+    <section class="cm-bulk-filter no-print">
+        <h2>@Locale.T("cm.searchFilter")</h2>
+        <div class="cm-bulk-filter-grid">
+            <label>
+                @Locale.T("cm.donorType")
+                <select @bind="typeId" @bind:after="SearchAsync" disabled="@busy">
+                    <option value="0">@Locale.T("cm.allTypes")</option>
+                    @foreach (var item in types)
+                    {
+                        <option value="@item.CommitteeMemberTypeId">@item.CommitteeMemberType</option>
+                    }
+                </select>
+            </label>
+            <label class="cm-suggest">
+                @Locale.T("cm.searchByName")
+                <input type="text" placeholder="@Locale.T("cm.searchByNameHint")" @bind="searchName" @bind:event="oninput" @bind:after="SuggestByNameAsync" disabled="@busy" autocomplete="off" />
+                @if (nameSuggests.Count > 0)
+                {
+                    <ul>
+                        @foreach (var item in nameSuggests)
+                        {
+                            <li @onclick="() => PickDonor(item)">@item.MemberName (@item.SmsNumber)</li>
+                        }
+                    </ul>
+                }
+            </label>
+            <label class="cm-suggest">
+                @Locale.T("cm.searchByPhone")
+                <input type="text" placeholder="@Locale.T("cm.searchByPhoneHint")" @bind="searchPhone" @bind:event="oninput" @bind:after="SuggestByPhoneAsync" disabled="@busy" autocomplete="off" />
+                @if (phoneSuggests.Count > 0)
+                {
+                    <ul>
+                        @foreach (var item in phoneSuggests)
+                        {
+                            <li @onclick="() => PickDonor(item)">@item.SmsNumber - @item.MemberName</li>
+                        }
+                    </ul>
+                }
+            </label>
+            <label>
+                @Locale.T("cm.donationCategory")
+                <select @bind="categoryId" @bind:after="SearchAsync" disabled="@busy">
+                    <option value="0">@Locale.T("cm.allCategories")</option>
+                    @foreach (var item in categories)
+                    {
+                        <option value="@item.CommitteeDonationCategoryId">@item.DonationCategory</option>
+                    }
+                </select>
+            </label>
+            <label>
+                @Locale.T("cm.status")
+                <select @bind="status" @bind:after="SearchAsync" disabled="@busy">
+                    <option value="">@Locale.T("cm.allPaid")</option>
+                    <option value="0">@Locale.T("cm.dueOnly")</option>
+                    <option value="1">@Locale.T("cm.paidOnly")</option>
+                </select>
+            </label>
+        </div>
+        <div class="cm-bulk-filter-actions">
+            <button type="button" class="acc-btn acc-btn-primary" disabled="@busy" @onclick="SearchAsync">@Locale.T("cm.find")</button>
+            <button type="button" class="acc-btn" disabled="@busy" @onclick="ClearFiltersAsync">@Locale.T("cm.clearFilters")</button>
+            <span class="cm-bulk-count">@Locale.T("cm.bulkEditCount", rows.Count)</span>
+        </div>
+    </section>
+
+    <section class="cm-bulk-actions no-print">
+        <button type="button" class="cm-act cm-act-success" disabled="@busy" @onclick="UpdateSelectedAsync">@Locale.T("cm.updateSelected")</button>
+        <button type="button" class="cm-act cm-act-danger" disabled="@busy" @onclick="DeleteSelectedAsync">@Locale.T("cm.deleteSelected")</button>
+        <small>@Locale.T("cm.bulkEditHint")</small>
+    </section>
+
+    <table class="mgrid cm-bulk-grid">
+        <thead>
+            <tr>
+                <th class="act no-print">
+                    <label class="acc-check">
+                        <input type="checkbox" checked="@allSelected" @onchange="ToggleAll" disabled="@busy" />
+                        <span>@Locale.T("att.all")</span>
+                    </label>
+                </th>
+                <th>@Locale.T("cm.donor")</th>
+                <th>@Locale.T("cm.donationCategory")</th>
+                <th>@Locale.T("cm.desc")</th>
+                <th>@Locale.T("cm.amount")</th>
+                <th>@Locale.T("cm.paid")</th>
+                <th>@Locale.T("cm.due")</th>
+                <th>@Locale.T("cm.promise")</th>
+                <th>@Locale.T("cm.status")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (rows.Count == 0)
+        {
+            <tr><td colspan="9" class="empty-row">@Locale.T("cm.emptyDonations")</td></tr>
+        }
+        @foreach (var row in rows)
+        {
+            <tr class="@(row.Selected ? "is-picked" : null)">
+                <td class="act no-print">
+                    @if (row.CanEdit)
+                    {
+                        <label class="acc-check acc-check-only">
+                            <input type="checkbox" checked="@row.Selected" disabled="@busy" @onchange="e => SetRow(row, e)" />
+                        </label>
+                    }
+                </td>
+                <td>
+                    <strong>@row.MemberName</strong>
+                    <small class="cm-sub">@row.SmsNumber</small>
+                </td>
+                <td>@row.DonationCategory</td>
+                <td>@row.Description</td>
+                <td class="num">
+                    @if (row.Selected && row.CanEdit)
+                    {
+                        <input type="number" min="0.01" step="0.01" @bind="row.EditAmount" disabled="@busy" />
+                    }
+                    else
+                    {
+                        @Tk(row.Amount)
+                    }
+                </td>
+                <td class="num">@Tk(row.PaidAmount)</td>
+                <td class="num">@Tk(row.Due)</td>
+                <td>
+                    @if (row.Selected && row.CanEdit)
+                    {
+                        <input type="date" @bind="row.EditPromiseDate" disabled="@busy" />
+                    }
+                    else
+                    {
+                        @(row.PromiseDate?.ToString("d MMM yyyy"))
+                    }
+                </td>
+                <td>
+                    <span class="cm-status @(row.IsPaid ? "is-on" : "is-off")">@(row.IsPaid ? Locale.T("cm.paid") : Locale.T("cm.due"))</span>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
+
+@code {
+    private readonly List<CommitteeMemberTypeDto> types = [];
+    private readonly List<DonationCategoryDto> categories = [];
+    private readonly List<EditRow> rows = [];
+    private readonly List<DonorSuggestDto> nameSuggests = [];
+    private readonly List<DonorSuggestDto> phoneSuggests = [];
+
+    private int typeId, categoryId, memberId;
+    private string searchName = "", searchPhone = "", status = "0", busyTitle = "", popupText = "";
+    private bool busy, popupError, allSelected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupsAsync();
+        await SearchAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        if (!await OnlineAsync()) return;
+        types.Clear();
+        types.AddRange(await Api.GetCommitteeTypesAsync(Session.AccessToken!));
+        categories.Clear();
+        categories.AddRange(await Api.GetDonationCategoriesAsync(Session.AccessToken!));
+    }
+
+    private async Task SearchAsync()
+    {
+        nameSuggests.Clear();
+        phoneSuggests.Clear();
+        await SetBusyAsync(Locale.T("cm.loading"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.GetDonationBulkEditAsync(
+                Session.AccessToken!, typeId, memberId, searchName, searchPhone, categoryId, status);
+            rows.Clear();
+            foreach (var item in result.Rows)
+            {
+                rows.Add(new EditRow(item));
+            }
+            allSelected = false;
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        typeId = 0;
+        categoryId = 0;
+        memberId = 0;
+        searchName = "";
+        searchPhone = "";
+        status = "0";
+        nameSuggests.Clear();
+        phoneSuggests.Clear();
+        await SearchAsync();
+    }
+
+    private async Task SuggestByNameAsync()
+    {
+        memberId = 0;
+        nameSuggests.Clear();
+        if (searchName.Trim().Length < 2 || !await OnlineAsync()) return;
+        try
+        {
+            nameSuggests.AddRange(await Api.SearchDonorsBulkAsync(Session.AccessToken!, searchName, null));
+        }
+        catch { nameSuggests.Clear(); }
+    }
+
+    private async Task SuggestByPhoneAsync()
+    {
+        memberId = 0;
+        phoneSuggests.Clear();
+        if (searchPhone.Trim().Length < 3 || !await OnlineAsync()) return;
+        try
+        {
+            phoneSuggests.AddRange(await Api.SearchDonorsBulkAsync(Session.AccessToken!, null, searchPhone));
+        }
+        catch { phoneSuggests.Clear(); }
+    }
+
+    private async Task PickDonor(DonorSuggestDto donor)
+    {
+        memberId = donor.CommitteeMemberId;
+        searchName = donor.MemberName;
+        searchPhone = donor.SmsNumber;
+        nameSuggests.Clear();
+        phoneSuggests.Clear();
+        await SearchAsync();
+    }
+
+    private void ToggleAll(ChangeEventArgs e)
+    {
+        allSelected = e.Value is true;
+        foreach (var row in rows.Where(x => x.CanEdit))
+            row.Selected = allSelected;
+    }
+
+    private void SetRow(EditRow row, ChangeEventArgs e)
+    {
+        row.Selected = e.Value is true;
+        if (row.Selected)
+        {
+            row.EditAmount = row.Amount;
+            row.EditPromiseDate = row.PromiseDate;
+        }
+        allSelected = rows.Where(x => x.CanEdit).All(x => x.Selected);
+    }
+
+    private async Task UpdateSelectedAsync()
+    {
+        var picked = rows.Where(x => x.Selected && x.CanEdit).ToList();
+        if (picked.Count == 0) { Show(Locale.T("cm.bulkEditNeedSelect"), true); return; }
+
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.BulkUpdateDonationsAsync(Session.AccessToken!, new BulkEditDonationsRequest
+            {
+                Lines = picked.Select(x => new DonationBulkEditUpdateLine
+                {
+                    CommitteeDonationId = x.CommitteeDonationId,
+                    Amount = x.EditAmount,
+                    PromiseDate = x.EditPromiseDate
+                }).ToList()
+            });
+
+            var msg = Locale.T("cm.bulkEditUpdated", result.UpdatedCount);
+            if (result.SkipCount > 0) msg += Locale.T("cm.bulkEditSkipped", result.SkipCount);
+            Show(msg, !result.Succeeded && result.UpdatedCount == 0);
+            await SearchAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteSelectedAsync()
+    {
+        var ids = rows.Where(x => x.Selected && x.CanEdit).Select(x => x.CommitteeDonationId).ToList();
+        if (ids.Count == 0) { Show(Locale.T("cm.bulkEditNeedSelect"), true); return; }
+
+        var ok = await JS.InvokeAsync<bool>("confirm", Locale.T("cm.bulkDeleteConfirm", ids.Count));
+        if (!ok) return;
+
+        await SetBusyAsync(Locale.T("cm.saving"));
+        try
+        {
+            if (!await OnlineAsync()) return;
+            var result = await Api.BulkDeleteDonationsAsync(Session.AccessToken!, new BulkDeleteDonationsRequest { DonationIds = ids });
+            var msg = Locale.T("cm.bulkEditDeleted", result.DeletedCount);
+            if (result.SkipCount > 0) msg += Locale.T("cm.bulkEditPaidSkipped", result.SkipCount);
+            Show(msg, !result.Succeeded && result.DeletedCount == 0);
+            await SearchAsync();
+        }
+        catch (Exception ex) { Show(ex.Message, true); }
+        finally { busy = false; }
+    }
+
+    private static string Tk(decimal n) => n.ToString("N2");
+    private void Show(string value, bool err = false) { popupText = value; popupError = err; }
+    private void ClosePopup() => popupText = "";
+    private async Task SetBusyAsync(string title) { busyTitle = title; busy = true; await InvokeAsync(StateHasChanged); await Task.Delay(40); }
+    private async Task<bool> OnlineAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
+        {
+            Show(Locale.T("subj.needOnline"), true);
+            return false;
+        }
+        return true;
+    }
+
+    private sealed class EditRow
+    {
+        public EditRow(DonationBulkEditRowDto dto)
+        {
+            CommitteeDonationId = dto.CommitteeDonationId;
+            MemberName = dto.MemberName;
+            SmsNumber = dto.SmsNumber;
+            DonationCategory = dto.DonationCategory;
+            Description = dto.Description;
+            Amount = dto.Amount;
+            PaidAmount = dto.PaidAmount;
+            Due = dto.Due;
+            PromiseDate = dto.PromiseDate;
+            IsPaid = dto.IsPaid;
+            CanEdit = dto.CanEdit;
+            EditAmount = dto.Amount;
+            EditPromiseDate = dto.PromiseDate;
+        }
+
+        public int CommitteeDonationId { get; }
+        public string MemberName { get; }
+        public string SmsNumber { get; }
+        public string DonationCategory { get; }
+        public string Description { get; }
+        public decimal Amount { get; }
+        public decimal PaidAmount { get; }
+        public decimal Due { get; }
+        public DateTime? PromiseDate { get; }
+        public bool IsPaid { get; }
+        public bool CanEdit { get; }
+        public bool Selected { get; set; }
+        public decimal EditAmount { get; set; }
+        public DateTime? EditPromiseDate { get; set; }
+    }
+}

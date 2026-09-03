@@ -46,6 +46,9 @@ public partial class App : System.Windows.Application
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+#if DEBUG
+            .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
+#endif
             .Build();
 
         var baseUrl = SyncApiClient.NormalizeBaseUrl(configuration["SyncApi:BaseUrl"]);

@@ -3,199 +3,294 @@
 @inject AppSession Session
 @inject ISyncApiClient Api
 
-<div class="card structure-page emp-page">
-    <h1>@Locale.T("emp.addTeacher")</h1>
-    <p class="muted">@Locale.T("emp.crumb")</p>
+<div class="card sa-page emp-add-page emp-teacher-page">
+    <header class="sa-head">
+        <h1>@Locale.T("emp.addTeacher")</h1>
+        <p class="sa-lead">@Locale.T("emp.lead")</p>
+    </header>
 
-    <div class="wizard-steps">
-        <span class="@(step == 1 ? "on" : null)">1. @Locale.T("emp.step1")</span>
-        <span class="@(step == 2 ? "on" : null)">2. @Locale.T("emp.step2")</span>
-        <span class="@(step == 3 ? "on" : null)">3. @Locale.T("emp.step3")</span>
-        <span class="@(step == 4 ? "on" : null)">4. @Locale.T("emp.step4")</span>
-    </div>
+    <nav class="et-steps" aria-label="@Locale.T("emp.addTeacher")">
+        <span class="@(step == 1 ? "is-on" : step > 1 ? "is-done" : null)"><i>@(step > 1 ? "✓" : "1")</i>@Locale.T("emp.step1")</span>
+        <b class="et-line @(step >= 2 ? "is-fill" : step == 1 ? "is-partial" : null)"></b>
+        <span class="@(step == 2 ? "is-on" : step > 2 ? "is-done" : null)"><i>@(step > 2 ? "✓" : "2")</i>@Locale.T("emp.step2")</span>
+        <b class="et-line @(step >= 3 ? "is-fill" : null)"></b>
+        <span class="@(step == 3 ? "is-on" : null)"><i>3</i>@Locale.T("emp.step3")</span>
+    </nav>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error">@error</div>
+        <NetBanner Text="@error" />
     }
 
     @if (step == 1)
     {
-        <div class="form-grid">
-            <label>@Locale.T("emp.firstName")
-                <input @bind="form.FirstName" placeholder="@Locale.T("sub.ph.first")" />
-            </label>
-            <label>@Locale.T("emp.lastName")
-                <input @bind="form.LastName" placeholder="@Locale.T("sub.ph.last")" />
-            </label>
-            <label>@Locale.T("emp.father")
-                <input @bind="form.FatherName" />
-            </label>
-            <label>@Locale.T("emp.designation")
-                <input @bind="form.Designation" placeholder="@Locale.T("sub.ph.designation")" />
-            </label>
-            <label>@Locale.T("emp.phone")
-                <input @bind="form.Phone" />
-            </label>
-            <label>@Locale.T("emp.gender")
-                <span class="readm-type">
-                    <label class="choice-inline">
-                        <input type="radio" name="gender" checked="@(form.Gender == "Male")" @onchange="@(() => form.Gender = "Male")" />
-                        <span>@Locale.T("emp.male")</span>
+        <section class="et-block">
+            <h3 class="et-sec"><span class="et-sec-ico">@IcoUser</span>@Locale.T("emp.step1")</h3>
+            <div class="sa-form">
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.firstName")<em>*</em></span>
+                    <span class="et-ctrl">
+                        <input @bind="form.FirstName" placeholder="@Locale.T("emp.ph.first")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoUser</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.lastName")<em>*</em></span>
+                    <span class="et-ctrl">
+                        <input @bind="form.LastName" placeholder="@Locale.T("emp.ph.last")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoUser</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.father")</span>
+                    <span class="et-ctrl">
+                        <input @bind="form.FatherName" placeholder="@Locale.T("emp.ph.father")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoUser</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.designation")<em>*</em></span>
+                    <span class="et-ctrl">
+                        <input @bind="form.Designation" placeholder="@Locale.T("emp.ph.designation")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoBrief</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.phone")<em>*</em></span>
+                    <span class="et-ctrl">
+                        <input @bind="form.Phone" placeholder="@Locale.T("emp.ph.phone")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoPhone</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.gender")<em>*</em></span>
+                    <span class="et-ctrl et-radios">
+                        <span class="aj-type">
+                            <label class="aj-chip">
+                                <input type="radio" name="gender" checked="@(form.Gender == "Male")" disabled="@busy" @onchange="@(() => form.Gender = "Male")" />
+                                <span>@Locale.T("emp.male")</span>
+                            </label>
+                            <label class="aj-chip">
+                                <input type="radio" name="gender" checked="@(form.Gender == "Female")" disabled="@busy" @onchange="@(() => form.Gender = "Female")" />
+                                <span>@Locale.T("emp.female")</span>
+                            </label>
+                        </span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.age")</span>
+                    <span class="et-ctrl">
+                        <input @bind="form.Age" placeholder="@Locale.T("emp.ph.age")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoHash</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.dob")</span>
+                    <span class="et-ctrl">
+                        <input type="date" @bind="dob" disabled="@busy" />
+                        <span class="et-f-ico">@IcoCal</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.religion")</span>
+                    <span class="et-ctrl">
+                        <select @bind="form.Religion" disabled="@busy">
+                            <option>Islam</option>
+                            <option>Hinduism</option>
+                            <option>Buddhism</option>
+                            <option>Christianity</option>
+                        </select>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.nationality")</span>
+                    <span class="et-ctrl">
+                        <input @bind="form.Nationality" placeholder="@Locale.T("emp.ph.nationality")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoFlag</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.city")</span>
+                    <span class="et-ctrl">
+                        <input @bind="form.City" placeholder="@Locale.T("emp.ph.city")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoPin</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.state")</span>
+                    <span class="et-ctrl">
+                        <input @bind="form.State" placeholder="@Locale.T("emp.ph.state")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoMap</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.postal")</span>
+                    <span class="et-ctrl">
+                        <input @bind="form.PostalCode" placeholder="@Locale.T("emp.ph.postal")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoHash</span>
+                    </span>
+                </label>
+                <label class="sa-field span-all">
+                    <span class="et-lab">@Locale.T("emp.address")</span>
+                    <span class="et-ctrl is-area">
+                        <textarea @bind="form.Address" placeholder="@Locale.T("emp.ph.address")" rows="2" disabled="@busy"></textarea>
+                        <span class="et-f-ico">@IcoPin</span>
+                    </span>
+                </label>
+            </div>
+        </section>
+
+        <section class="et-block is-job">
+            <h3 class="et-sec"><span class="et-sec-ico">@IcoBrief</span>@Locale.T("emp.jobInfo")</h3>
+            <div class="sa-form">
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.jobType")</span>
+                    <span class="et-ctrl et-radios">
+                        <span class="aj-type">
+                            <label class="aj-chip">
+                                <input type="radio" name="job" checked="@(form.PermanentTemporary == "Permanent")" disabled="@busy" @onchange="@(() => form.PermanentTemporary = "Permanent")" />
+                                <span>@Locale.T("emp.permanent")</span>
+                            </label>
+                            <label class="aj-chip">
+                                <input type="radio" name="job" checked="@(form.PermanentTemporary == "Temporary")" disabled="@busy" @onchange="@(() => form.PermanentTemporary = "Temporary")" />
+                                <span>@Locale.T("emp.temporary")</span>
+                            </label>
+                        </span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.salary")</span>
+                    <span class="et-ctrl">
+                        <input type="number" min="0" step="0.01" @bind="form.Salary" placeholder="@Locale.T("emp.ph.salary")" disabled="@busy" />
+                        <span class="et-f-ico">@IcoCash</span>
+                    </span>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.absDeduct")</span>
+                    <span class="et-ctrl et-radios">
+                        <span class="aj-type">
+                            <label class="aj-chip">
+                                <input type="radio" name="abs" checked="@form.AbsDeducted" disabled="@busy" @onchange="@(() => form.AbsDeducted = true)" />
+                                <span>@Locale.T("emp.yes")</span>
+                            </label>
+                            <label class="aj-chip">
+                                <input type="radio" name="abs" checked="@(!form.AbsDeducted)" disabled="@busy" @onchange="@(() => form.AbsDeducted = false)" />
+                                <span>@Locale.T("emp.no")</span>
+                            </label>
+                        </span>
+                    </span>
+                </label>
+                @if (form.AbsDeducted)
+                {
+                    <label class="sa-field">
+                        <span class="et-lab">@Locale.T("emp.absAmount")</span>
+                        <span class="et-ctrl">
+                            <input type="number" min="0" step="0.01" @bind="form.AbsDeduction" disabled="@busy" />
+                            <span class="et-f-ico">@IcoCash</span>
+                        </span>
                     </label>
-                    <label class="choice-inline">
-                        <input type="radio" name="gender" checked="@(form.Gender == "Female")" @onchange="@(() => form.Gender = "Female")" />
-                        <span>@Locale.T("emp.female")</span>
+                }
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("emp.lateAbs")</span>
+                    <span class="et-ctrl et-radios">
+                        <span class="aj-type">
+                            <label class="aj-chip">
+                                <input type="radio" name="late" checked="@form.LateCountAsAbs" disabled="@busy" @onchange="@(() => form.LateCountAsAbs = true)" />
+                                <span>@Locale.T("emp.yes")</span>
+                            </label>
+                            <label class="aj-chip">
+                                <input type="radio" name="late" checked="@(!form.LateCountAsAbs)" disabled="@busy" @onchange="@(() => form.LateCountAsAbs = false)" />
+                                <span>@Locale.T("emp.no")</span>
+                            </label>
+                        </span>
+                    </span>
+                </label>
+                @if (form.LateCountAsAbs)
+                {
+                    <label class="sa-field">
+                        <span class="et-lab">@Locale.T("emp.lateDays")</span>
+                        <span class="et-ctrl">
+                            <input type="number" min="1" @bind="lateDays" disabled="@busy" />
+                            <span class="et-f-ico">@IcoHash</span>
+                        </span>
                     </label>
-                </span>
-            </label>
-            <label>@Locale.T("emp.age")
-                <input @bind="form.Age" />
-            </label>
-            <label>@Locale.T("emp.dob")
-                <input type="date" @bind="dob" />
-            </label>
-            <label>@Locale.T("emp.religion")
-                <select @bind="form.Religion">
-                    <option>Islam</option>
-                    <option>Hinduism</option>
-                    <option>Buddhism</option>
-                    <option>Christianity</option>
-                </select>
-            </label>
-            <label>@Locale.T("emp.nationality")
-                <input @bind="form.Nationality" />
-            </label>
-            <label class="span-2">@Locale.T("emp.address")
-                <textarea @bind="form.Address"></textarea>
-            </label>
-            <label>@Locale.T("emp.city")
-                <input @bind="form.City" />
-            </label>
-            <label>@Locale.T("emp.state")
-                <input @bind="form.State" />
-            </label>
-            <label>@Locale.T("emp.postal")
-                <input @bind="form.PostalCode" />
-            </label>
-        </div>
-        <div class="access-bar" style="margin-top: 0.7rem;">
-            <button type="button" class="btn-primary access-save" @onclick="GoJob">@Locale.T("emp.next")</button>
+                }
+            </div>
+        </section>
+        <div class="sa-foot">
+            <button type="button" class="btn-primary" disabled="@busy" @onclick="GoLogin">
+                @Locale.T("emp.next")
+                <span class="et-btn-ico">@IcoNext</span>
+            </button>
+            <button type="button" class="et-reset" disabled="@busy" @onclick="Reset">
+                <span class="et-btn-ico">@IcoReset</span>
+                @Locale.T("emp.reset")
+            </button>
         </div>
     }
     else if (step == 2)
     {
-        <div class="form-grid">
-            <label>@Locale.T("emp.jobType")
-                <span class="readm-type">
-                    <label class="choice-inline">
-                        <input type="radio" name="job" checked="@(form.PermanentTemporary == "Permanent")" @onchange="@(() => form.PermanentTemporary = "Permanent")" />
-                        <span>@Locale.T("emp.permanent")</span>
-                    </label>
-                    <label class="choice-inline">
-                        <input type="radio" name="job" checked="@(form.PermanentTemporary == "Temporary")" @onchange="@(() => form.PermanentTemporary = "Temporary")" />
-                        <span>@Locale.T("emp.temporary")</span>
-                    </label>
-                </span>
-            </label>
-            <label>@Locale.T("emp.salary")
-                <input type="number" min="0" step="0.01" @bind="form.Salary" />
-            </label>
-            <label>@Locale.T("emp.absDeduct")
-                <span class="readm-type">
-                    <label class="choice-inline">
-                        <input type="radio" name="abs" checked="@form.AbsDeducted" @onchange="@(() => form.AbsDeducted = true)" />
-                        <span>@Locale.T("emp.yes")</span>
-                    </label>
-                    <label class="choice-inline">
-                        <input type="radio" name="abs" checked="@(!form.AbsDeducted)" @onchange="@(() => form.AbsDeducted = false)" />
-                        <span>@Locale.T("emp.no")</span>
-                    </label>
-                </span>
-            </label>
-            @if (form.AbsDeducted)
-            {
-                <label>@Locale.T("emp.absAmount")
-                    <input type="number" min="0" step="0.01" @bind="form.AbsDeduction" />
+        <section class="et-block et-login">
+            <h3 class="et-sec"><span class="et-sec-ico">@IcoLock</span>@Locale.T("emp.step2")</h3>
+            <div class="sa-form">
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("sub.user")<em>*</em></span>
+                    <span class="et-ctrl">
+                        <input value="@form.UserName" @oninput="OnUserInput" placeholder="@Locale.T("sub.ph.user")" autocomplete="off" disabled="@busy" />
+                        <span class="et-f-ico">@IcoUser</span>
+                    </span>
+                    <small>@Locale.T("sub.userHint")</small>
                 </label>
-            }
-            <label>@Locale.T("emp.lateAbs")
-                <span class="readm-type">
-                    <label class="choice-inline">
-                        <input type="radio" name="late" checked="@form.LateCountAsAbs" @onchange="@(() => form.LateCountAsAbs = true)" />
-                        <span>@Locale.T("emp.yes")</span>
-                    </label>
-                    <label class="choice-inline">
-                        <input type="radio" name="late" checked="@(!form.LateCountAsAbs)" @onchange="@(() => form.LateCountAsAbs = false)" />
-                        <span>@Locale.T("emp.no")</span>
-                    </label>
-                </span>
-            </label>
-            @if (form.LateCountAsAbs)
-            {
-                <label>@Locale.T("emp.lateDays")
-                    <input type="number" min="1" @bind="lateDays" />
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("sub.email")<em>*</em></span>
+                    <span class="et-ctrl">
+                        <input @bind="form.Email" placeholder="@Locale.T("sub.ph.email")" autocomplete="off" disabled="@busy" />
+                        <span class="et-f-ico">@IcoMail</span>
+                    </span>
                 </label>
-            }
-        </div>
-        <div class="access-bar" style="margin-top: 0.7rem;">
-            <button type="button" class="link-btn" @onclick="@(() => step = 1)">@Locale.T("emp.back")</button>
-            <button type="button" class="btn-primary access-save" @onclick="GoLogin">@Locale.T("emp.next")</button>
-        </div>
-    }
-    else if (step == 3)
-    {
-        <div class="form-grid">
-            <label>@Locale.T("sub.user")
-                <input value="@form.UserName" @oninput="OnUserInput" placeholder="@Locale.T("sub.ph.user")" autocomplete="off" />
-            </label>
-            <label>@Locale.T("sub.email")
-                <input @bind="form.Email" placeholder="@Locale.T("sub.ph.email")" autocomplete="off" />
-            </label>
-            <label>@Locale.T("sub.password")
-                <input type="password" @bind="form.Password" placeholder="@Locale.T("sub.ph.password")" autocomplete="new-password" />
-            </label>
-            <label>@Locale.T("sub.confirm")
-                <input type="password" @bind="form.ConfirmPassword" placeholder="@Locale.T("sub.ph.confirm")" autocomplete="new-password" />
-            </label>
-            <label class="span-2">@Locale.T("sub.question")
-                <select @bind="form.Question">
-                    <option value="">@Locale.T("sub.questionSelect")</option>
-                    @foreach (var q in questions)
-                    {
-                        <option value="@q">@Locale.T(q)</option>
-                    }
-                </select>
-            </label>
-            <label class="span-2">@Locale.T("sub.answer")
-                <input @bind="form.Answer" placeholder="@Locale.T("sub.ph.answer")" />
-            </label>
-        </div>
-        <div class="access-bar" style="margin-top: 0.7rem;">
-            <button type="button" class="link-btn" @onclick="@(() => step = 2)">@Locale.T("emp.back")</button>
-            <button type="button" class="btn-primary access-save" disabled="@busy" @onclick="SaveAsync">@Locale.T("emp.submit")</button>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("sub.password")<em>*</em></span>
+                    <span class="sa-pass">
+                        <input type="@(_showPass ? "text" : "password")" @bind="form.Password" placeholder="@Locale.T("sub.ph.password")" autocomplete="new-password" disabled="@busy" />
+                        <button type="button" class="sa-eye" tabindex="-1" @onclick="() => _showPass = !_showPass">@(_showPass ? EyeOffIcon : EyeIcon)</button>
+                    </span>
+                    <small>@Locale.T("sub.passHint")</small>
+                </label>
+                <label class="sa-field">
+                    <span class="et-lab">@Locale.T("sub.confirm")<em>*</em></span>
+                    <span class="sa-pass">
+                        <input type="@(_showConfirm ? "text" : "password")" @bind="form.ConfirmPassword" placeholder="@Locale.T("sub.ph.confirm")" autocomplete="new-password" disabled="@busy" />
+                        <button type="button" class="sa-eye" tabindex="-1" @onclick="() => _showConfirm = !_showConfirm">@(_showConfirm ? EyeOffIcon : EyeIcon)</button>
+                    </span>
+                </label>
+            </div>
+        </section>
+        <div class="sa-foot">
+            <button type="button" class="et-reset" disabled="@busy" @onclick="@(() => step = 1)">@Locale.T("emp.back")</button>
+            <button type="button" class="btn-primary" disabled="@busy" @onclick="SaveAsync">@Locale.T("emp.submit")</button>
         </div>
     }
     else
     {
-        <div class="success-box">
+        <div class="sa-done">
+            <span class="sa-done-ico">✓</span>
             <h2>@Locale.T("sub.successTitle")</h2>
             <p>@Locale.T("emp.okTeacher")</p>
             <div class="success-actions">
                 <button type="button" class="btn-primary" @onclick="Reset">@Locale.T("sub.another")</button>
-                <a class="btn-primary" href="/staff/employees">@Locale.T("emp.list")</a>
+                <a class="btn-ghost" href="/staff/employees">@Locale.T("emp.list")</a>
             </div>
         </div>
     }
 </div>
 
-@code {
-    private static readonly string[] questions =
-    [
-        "sub.q1", "sub.q2", "sub.q3", "sub.q4", "sub.q5", "sub.q6",
-        "sub.q7", "sub.q8", "sub.q9", "sub.q10", "sub.q11", "sub.q12"
-    ];
+<ExamBusyOverlay Busy="saving" Title="@Locale.T("emp.saving")" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
+@code {
     private readonly CreateTeacherRequest form = new()
     {
         Religion = "Islam",
@@ -207,50 +302,73 @@
     private int lateDays = 3;
     private int step = 1;
     private bool busy;
+    private bool saving;
+    private bool _showPass;
+    private bool _showConfirm;
     private string? error;
+    private string popupText = "";
+    private bool popupError;
+
+    private static readonly MarkupString EyeIcon = Icon("M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z");
+    private static readonly MarkupString EyeOffIcon = Icon("M3 3l18 18M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-4.4M9.9 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3.2 3.9M6.1 6.1A18 18 0 0 0 2 12s3.5 7 10 7c1.5 0 2.9-.3 4.1-.8");
+    private static readonly MarkupString IcoUser = Svg("<path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/>");
+    private static readonly MarkupString IcoPhone = Svg("<path d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.58 2.81.7A2 2 0 0 1 22 16.92z'/>");
+    private static readonly MarkupString IcoCal = Svg("<rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/>");
+    private static readonly MarkupString IcoBrief = Svg("<rect x='2' y='7' width='20' height='14' rx='2'/><path d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M2 13h20'/>");
+    private static readonly MarkupString IcoPin = Svg("<path d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z'/><circle cx='12' cy='10' r='3'/>");
+    private static readonly MarkupString IcoMap = Svg("<path d='M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z'/><path d='M9 3v15M15 6v15'/>");
+    private static readonly MarkupString IcoHash = Svg("<path d='M4 9h16M4 15h16M10 3 8 21M16 3l-2 18'/>");
+    private static readonly MarkupString IcoFlag = Svg("<path d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'/><path d='M4 22V15'/>");
+    private static readonly MarkupString IcoCash = Svg("<rect x='2' y='6' width='20' height='12' rx='2'/><circle cx='12' cy='12' r='2.4'/><path d='M6 12h.01M18 12h.01'/>");
+    private static readonly MarkupString IcoLock = Svg("<rect x='5' y='11' width='14' height='10' rx='2'/><path d='M8 11V7a4 4 0 0 1 8 0v4'/>");
+    private static readonly MarkupString IcoMail = Svg("<rect x='2' y='4' width='20' height='16' rx='2'/><path d='m22 7-10 6L2 7'/>");
+    private static readonly MarkupString IcoNext = Svg("<path d='M5 12h14M13 6l6 6-6 6'/>");
+    private static readonly MarkupString IcoReset = Svg("<path d='M3 12a9 9 0 1 0 3-6.7'/><path d='M3 4v5h5'/>");
 
     private void OnUserInput(ChangeEventArgs e) =>
         form.UserName = (e.Value?.ToString() ?? "").Replace(" ", "");
 
-    private void GoJob()
+    private void GoLogin()
     {
         error = null;
+        popupText = "";
         if (string.IsNullOrWhiteSpace(form.FirstName) || string.IsNullOrWhiteSpace(form.LastName)
             || string.IsNullOrWhiteSpace(form.Designation) || string.IsNullOrWhiteSpace(form.Phone)
             || string.IsNullOrWhiteSpace(form.Gender))
         {
-            error = Locale.T("emp.needInfo");
+            Show(Locale.T("emp.needInfo"), true);
+            return;
+        }
+        if (form.AbsDeducted && form.AbsDeduction <= 0)
+        {
+            Show(Locale.T("emp.needAbsAmount"), true);
             return;
         }
         step = 2;
     }
 
-    private void GoLogin()
-    {
-        error = null;
-        if (form.AbsDeducted && form.AbsDeduction <= 0)
-        {
-            error = Locale.T("emp.needAbsAmount");
-            return;
-        }
-        step = 3;
-    }
-
     private async Task SaveAsync()
     {
         error = null;
+        popupText = "";
+        if (string.IsNullOrWhiteSpace(form.UserName) || string.IsNullOrWhiteSpace(form.Password)
+            || string.IsNullOrWhiteSpace(form.Email))
+        {
+            Show(Locale.T("emp.needLogin"), true);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(Session.AccessToken))
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return;
         }
 
-        busy = true;
+        await BeginSaveAsync();
         try
         {
             if (!await Api.PingAsync())
             {
-                error = Locale.T("subj.needOnline");
+                Show(Locale.T("subj.needOnline"), true);
                 return;
             }
 
@@ -281,31 +399,49 @@
                 UserName = form.UserName,
                 Password = form.Password,
                 ConfirmPassword = form.ConfirmPassword,
-                Email = form.Email,
-                Question = string.IsNullOrWhiteSpace(form.Question) ? "" : Locale.T(form.Question),
-                Answer = form.Answer
+                Email = form.Email
             };
             var result = await Api.CreateTeacherAsync(Session.AccessToken, request);
             if (!result.Succeeded)
             {
-                error = Translate(result.Error);
+                Show(Translate(result.Error), true);
                 return;
             }
 
-            step = 4;
+            step = 3;
+            Show(Locale.T("emp.okTeacher"));
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
+            saving = false;
             busy = false;
         }
+    }
+
+    private async Task BeginSaveAsync()
+    {
+        saving = true;
+        busy = true;
+        popupText = "";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
+    private void ClosePopup() => popupText = "";
+
+    private void Show(string value, bool err = false)
+    {
+        popupText = value;
+        popupError = err;
+        error = err ? value : null;
     }
 
     private void Reset()
@@ -323,6 +459,8 @@
         dob = null;
         lateDays = 3;
         error = null;
+        popupText = "";
+        _showPass = _showConfirm = false;
         step = 1;
     }
 
@@ -332,4 +470,10 @@
             return Locale.T("emp.failed");
         return Locale.T(key);
     }
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+
+    private static MarkupString Svg(string inner) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>""";
 }

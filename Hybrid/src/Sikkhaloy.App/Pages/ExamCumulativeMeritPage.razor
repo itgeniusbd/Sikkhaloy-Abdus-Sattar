@@ -203,14 +203,7 @@
 <ExamBusyOverlay Busy="busy" Title="@Locale.T("exam.loadingCuMerit")" />
 @if (!string.IsNullOrWhiteSpace(popupText))
 {
-    <div class="acc-result-back" @onclick="ClosePopup">
-        <div class="acc-result is-err" @onclick:stopPropagation="true">
-            <div class="acc-result-icon">!</div>
-            <h3>@Locale.T("exam.failed")</h3>
-            <p>@popupText</p>
-            <button type="button" class="acc-btn acc-btn-primary" @onclick="ClosePopup">@Locale.T("acc.ok")</button>
-        </div>
-    </div>
+    <ResultPopup Text="@popupText" Error="true" ErrorTitle="exam.failed" OnClose="ClosePopup" />
 }
 
 @code {

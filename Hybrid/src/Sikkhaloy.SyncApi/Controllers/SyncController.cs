@@ -13,7 +13,9 @@ using Sikkhaloy.Shared.Menu;
 using Sikkhaloy.Shared.Students;
 using Sikkhaloy.Shared.Routine;
 using Sikkhaloy.Shared.Committee;
+using Sikkhaloy.Shared.Inventory;
 using Sikkhaloy.Shared.Invoice;
+using Sikkhaloy.Shared.Support;
 using Sikkhaloy.Shared.Sms;
 using Sikkhaloy.Shared.Authority;
 using Sikkhaloy.Shared.Subjects;
@@ -44,13 +46,17 @@ public sealed class SyncController : ControllerBase
     private readonly AttendanceService _attendance;
     private readonly AccountsService _accounts;
     private readonly ReportsService _reports;
+    private readonly BalanceSubmissionService _balanceSubmit;
     private readonly PaymentSmsService _sms;
     private readonly ExamService _exams;
     private readonly DashboardService _dashboard;
     private readonly SmsOfficeService _officeSms;
+    private readonly SmsTemplateService _smsTemplates;
     private readonly RoutineService _routines;
     private readonly CommitteeService _committee;
+    private readonly InventoryService _inventory;
     private readonly PlatformInvoiceService _invoice;
+    private readonly SupportService _support;
     private readonly AuthorityService _authority;
     private readonly AuthorityBasicService _authorityBasic;
     private readonly AuthorityInvoiceService _authorityInvoice;
@@ -74,13 +80,17 @@ public sealed class SyncController : ControllerBase
         AttendanceService attendance,
         AccountsService accounts,
         ReportsService reports,
+        BalanceSubmissionService balanceSubmit,
         PaymentSmsService sms,
         ExamService exams,
         DashboardService dashboard,
         SmsOfficeService officeSms,
+        SmsTemplateService smsTemplates,
         RoutineService routines,
         CommitteeService committee,
+        InventoryService inventory,
         PlatformInvoiceService invoice,
+        SupportService support,
         AuthorityService authority,
         AuthorityBasicService authorityBasic,
         AuthorityInvoiceService authorityInvoice,
@@ -103,13 +113,17 @@ public sealed class SyncController : ControllerBase
         _attendance = attendance;
         _accounts = accounts;
         _reports = reports;
+        _balanceSubmit = balanceSubmit;
         _sms = sms;
         _exams = exams;
         _dashboard = dashboard;
         _officeSms = officeSms;
+        _smsTemplates = smsTemplates;
         _routines = routines;
         _committee = committee;
+        _inventory = inventory;
         _invoice = invoice;
+        _support = support;
         _authority = authority;
         _authorityBasic = authorityBasic;
         _authorityInvoice = authorityInvoice;
@@ -400,6 +414,14 @@ public sealed class SyncController : ControllerBase
         return Ok(await _masters.GetProfileAsync(session, cancellationToken));
     }
 
+    [HttpPost("profile/header-color")]
+    public async Task<ActionResult<ProfileResult>> SaveHeaderColor(
+        [FromBody] HeaderColorRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _masters.SaveHeaderColorAsync(session, request, cancellationToken));
+    }
+
     [HttpGet("profile/admin")]
     public async Task<ActionResult<AdminInfoDto?>> AdminInfo(CancellationToken cancellationToken)
     {
@@ -546,6 +568,31 @@ public sealed class SyncController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _employees.SetJobStatusAsync(session, employeeId, request, cancellationToken));
+    }
+
+    [HttpGet("employees/{employeeId:int}")]
+    public async Task<ActionResult<EmployeeEditDto>> EmployeeDetail(
+        int employeeId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        var data = await _employees.GetAsync(session, employeeId, cancellationToken);
+        return data is null ? NotFound() : Ok(data);
+    }
+
+    [HttpPut("employees/{employeeId:int}/detail")]
+    public async Task<ActionResult<EmployeeResult>> SaveEmployeeDetail(
+        int employeeId, [FromBody] EmployeeEditDto request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _employees.SaveDetailAsync(session, employeeId, request, cancellationToken));
+    }
+
+    [HttpPost("employees/{employeeId:int}/photo")]
+    public async Task<ActionResult<EmployeeResult>> SaveEmployeePhoto(
+        int employeeId, [FromBody] EmployeePhotoRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _employees.SavePhotoAsync(session, employeeId, request, cancellationToken));
     }
 
     [HttpGet("employees/id-cards")]
@@ -709,6 +756,14 @@ public sealed class SyncController : ControllerBase
         return Ok(await _salary.DeletePayorderAsync(session, employeePayorderId, cancellationToken));
     }
 
+    [HttpPost("salary/monthly/delete")]
+    public async Task<ActionResult<SalaryResult>> DeleteMonthlyPayorders(
+        [FromBody] DeleteMonthlyPayordersRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _salary.DeletePayordersAsync(session, request, cancellationToken));
+    }
+
     [HttpGet("salary/accounts")]
     public async Task<ActionResult<IReadOnlyList<AccountOptionDto>>> SalaryAccounts(CancellationToken cancellationToken)
     {
@@ -770,6 +825,14 @@ public sealed class SyncController : ControllerBase
         return Ok(await _studentInfo.CreateUsersAsync(session, request, cancellationToken));
     }
 
+    [HttpPost("student-info/signup/sms")]
+    public async Task<ActionResult<SmsResult>> StudentLoginSms(
+        [FromBody] StudentLoginSmsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.SendStudentLoginSmsAsync(session, request, cancellationToken));
+    }
+
     [HttpGet("student-info/accounts")]
     public async Task<ActionResult<IReadOnlyList<StudentAccountDto>>> StudentAccounts(
         [FromQuery] int classId, [FromQuery] int groupId, [FromQuery] int sectionId, [FromQuery] int shiftId,
@@ -821,10 +884,10 @@ public sealed class SyncController : ControllerBase
 
     [HttpGet("student-info/report")]
     public async Task<ActionResult<StudentReportDto>> StudentReport(
-        [FromQuery] string? id, CancellationToken cancellationToken)
+        [FromQuery] string? id, [FromQuery] string? part, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        return Ok(await _studentInfo.GetReportAsync(session, id, cancellationToken));
+        return Ok(await _studentInfo.GetReportAsync(session, id, part, cancellationToken));
     }
 
     [HttpGet("student-info/placement")]
@@ -891,6 +954,14 @@ public sealed class SyncController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _studentMgmt.ChangeClassAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("student-mgmt/class-change/bulk")]
+    public async Task<ActionResult<StudentInfoResult>> SmBulkChangeClass(
+        [FromBody] BulkChangeClassRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _studentMgmt.BulkChangeClassAsync(session, request, cancellationToken));
     }
 
     [HttpPost("student-mgmt/group-section-shift")]
@@ -1495,7 +1566,8 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<ReceiptDetailDto?>> AccReceipt(string no, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        return Ok(await _accounts.GetReceiptAsync(session, no, cancellationToken));
+        var dto = await _accounts.GetReceiptAsync(session, no, cancellationToken);
+        return dto is null ? NotFound() : Ok(dto);
     }
 
     [HttpGet("accounts/sms")]
@@ -1655,11 +1727,11 @@ public sealed class SyncController : ControllerBase
     }
 
     [HttpGet("accounts/expense")]
-    public async Task<ActionResult<ExpenseListDto>> AccExpense(int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo, CancellationToken cancellationToken)
+    public async Task<ActionResult<ExpenseListDto>> AccExpense(int categoryId, int subCategoryId, DateTime? from, DateTime? to, string? receiptNo, int page = 1, int pageSize = 80, CancellationToken cancellationToken = default)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        var (items, total) = await _accounts.ListExpenseAsync(session, categoryId, subCategoryId, from, to, receiptNo, cancellationToken);
-        return Ok(new ExpenseListDto { Items = items.ToList(), Total = total });
+        var (items, total, totalCount) = await _accounts.ListExpenseAsync(session, categoryId, subCategoryId, from, to, receiptNo, page, pageSize, cancellationToken);
+        return Ok(new ExpenseListDto { Items = items.ToList(), Total = total, TotalCount = totalCount });
     }
 
     [HttpPost("accounts/expense")]
@@ -1783,6 +1855,27 @@ public sealed class SyncController : ControllerBase
         return Ok(await _reports.GetMyAccountsAsync(session, regId, from, to, cancellationToken));
     }
 
+    [HttpGet("accounts/reports/my/remaining")]
+    public async Task<ActionResult<BalanceRemainingDto>> AccReportMyRemaining(DateTime? from, DateTime? to, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _balanceSubmit.GetRemainingAsync(session, from, to, cancellationToken));
+    }
+
+    [HttpPost("accounts/reports/my/submit-otp")]
+    public async Task<ActionResult<AccountsResult>> AccReportMySubmitOtp([FromBody] BalanceSubmitOtpRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _balanceSubmit.SendOtpAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("accounts/reports/my/submit")]
+    public async Task<ActionResult<AccountsResult>> AccReportMySubmit([FromBody] BalanceSubmitRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _balanceSubmit.SubmitAsync(session, request, cancellationToken));
+    }
+
     [HttpGet("accounts/reports/account")]
     public async Task<ActionResult<List<AccountDetailDto>>> AccReportAccount(string? accountId, DateTime? from, DateTime? to, CancellationToken cancellationToken)
     {
@@ -1868,10 +1961,10 @@ public sealed class SyncController : ControllerBase
     }
 
     [HttpGet("accounts/reports/session/paid-due")]
-    public async Task<ActionResult<SessionPaidDueDto>> AccSessionPaidDue(string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, CancellationToken cancellationToken)
+    public async Task<ActionResult<SessionPaidDueDto>> AccSessionPaidDue(string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, int page = 1, int pageSize = 25, CancellationToken cancellationToken = default)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        return Ok(await _reports.GetSessionPaidDueAsync(session, status, classId, sectionId, roleId, payFor, from, to, cancellationToken));
+        return Ok(await _reports.GetSessionPaidDueAsync(session, status, classId, sectionId, roleId, payFor, from, to, page, pageSize, cancellationToken));
     }
 
     [HttpGet("dashboard/overview")]
@@ -2254,10 +2347,11 @@ public sealed class SyncController : ControllerBase
     }
 
     [HttpGet("sms/records")]
-    public async Task<ActionResult<SmsRecordsDto>> SmsRecords(DateTime? from, DateTime? to, string? q, CancellationToken cancellationToken)
+    public async Task<ActionResult<SmsRecordsDto>> SmsRecords(
+        DateTime? from, DateTime? to, string? q, string? kind, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        return Ok(await _officeSms.GetRecordsAsync(session, from, to, q, cancellationToken));
+        return Ok(await _officeSms.GetRecordsAsync(session, from, to, q, kind, page, pageSize, cancellationToken));
     }
 
     [HttpGet("sms/recharge")]
@@ -2272,6 +2366,50 @@ public sealed class SyncController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _officeSms.StartRechargeAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("sms/templates")]
+    public async Task<ActionResult<IReadOnlyList<SmsTemplateDto>>> SmsTemplates(string? category, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _smsTemplates.ListAsync(session, category, cancellationToken));
+    }
+
+    [HttpGet("sms/templates/committee-payment-lang")]
+    public async Task<ActionResult<CommitteePaymentSmsLangDto>> CommitteePaymentSmsLang(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _smsTemplates.GetDonorPaymentLangAsync(session, cancellationToken));
+    }
+
+    [HttpPost("sms/templates/committee-payment-lang")]
+    public async Task<ActionResult<SmsTemplateResult>> CommitteePaymentSmsLangSave(
+        [FromBody] CommitteePaymentSmsLangDto request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _smsTemplates.SaveDonorPaymentLangAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("sms/templates/{id:int}")]
+    public async Task<ActionResult<SmsTemplateDto>> SmsTemplate(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        var dto = await _smsTemplates.GetAsync(session, id, cancellationToken);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpPost("sms/templates")]
+    public async Task<ActionResult<SmsTemplateResult>> SmsTemplateSave([FromBody] SaveSmsTemplateRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _smsTemplates.SaveAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("sms/templates/{id:int}/delete")]
+    public async Task<ActionResult<SmsTemplateResult>> SmsTemplateDelete(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _smsTemplates.DeleteAsync(session, id, cancellationToken));
     }
 
     [HttpGet("routine/names")]
@@ -2473,6 +2611,13 @@ public sealed class SyncController : ControllerBase
         return Ok(await _committee.DeleteDonationAsync(session, id, cancellationToken));
     }
 
+    [HttpGet("committee/members/{id:int}/photo")]
+    public async Task<ActionResult<CommitteeMemberDto>> CommitteeMemberPhoto(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(new CommitteeMemberDto { PhotoDataUrl = await _committee.GetMemberPhotoAsync(session, id, cancellationToken) });
+    }
+
     [HttpGet("committee/collect")]
     public async Task<ActionResult<CollectPageDto>> CommitteeCollect(int memberId, CancellationToken cancellationToken)
     {
@@ -2484,7 +2629,10 @@ public sealed class SyncController : ControllerBase
     public async Task<ActionResult<CommitteeResult>> CommitteeCollectSave([FromBody] CollectDonationRequest request, CancellationToken cancellationToken)
     {
         var session = JwtTokenService.FromPrincipal(User);
-        return Ok(await _committee.CollectAsync(session, request, cancellationToken));
+        var result = await _committee.CollectAsync(session, request, cancellationToken);
+        if (result.Succeeded && request.SendSms && result.ReceiptId > 0)
+            _ = _committee.SendDonorReceiptSmsAsync(session, result.ReceiptId, cancellationToken);
+        return Ok(result);
     }
 
     [HttpGet("committee/payments")]
@@ -2515,6 +2663,326 @@ public sealed class SyncController : ControllerBase
         var session = JwtTokenService.FromPrincipal(User);
         var dto = await _committee.GetReceiptAsync(session, id, cancellationToken);
         return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpPost("committee/receipt/{id:int}/sms")]
+    public async Task<ActionResult<AccountsResult>> CommitteeReceiptSms(int id, [FromBody] DonorReceiptSmsRequest? request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SendDonorReceiptSmsAsync(session, id, request, cancellationToken));
+    }
+
+    [HttpGet("committee/donation-pay-order/template")]
+    public async Task<ActionResult<decimal?>> CommitteeDonationTemplate(int typeId, int categoryId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonationTemplateAmountAsync(session, typeId, categoryId, cancellationToken));
+    }
+
+    [HttpGet("committee/donation-pay-order/months")]
+    public async Task<ActionResult<IReadOnlyList<DonationPayOrderMonthDto>>> CommitteePayOrderMonths(string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetPayOrderMonthsAsync(session, q, cancellationToken));
+    }
+
+    [HttpPost("committee/donation-pay-order")]
+    public async Task<ActionResult<DonationPayOrderResult>> CommitteeCreatePayOrders([FromBody] CreateDonationPayOrdersRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.CreateDonationPayOrdersAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("committee/donation-bulk-edit")]
+    public async Task<ActionResult<DonationBulkEditListDto>> CommitteeDonationBulkEdit(
+        int typeId, int memberId, string? name, string? phone, int categoryId, string? status, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonationBulkEditAsync(session, typeId, memberId, name, phone, categoryId, status, cancellationToken));
+    }
+
+    [HttpGet("committee/donation-bulk-edit/donors")]
+    public async Task<ActionResult<IReadOnlyList<DonorSuggestDto>>> CommitteeBulkEditDonors(string? name, string? phone, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SearchDonorsBulkAsync(session, name, phone, cancellationToken));
+    }
+
+    [HttpPost("committee/donation-bulk-edit/update")]
+    public async Task<ActionResult<DonationBulkEditResult>> CommitteeBulkUpdateDonations([FromBody] BulkEditDonationsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.BulkUpdateDonationsAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("committee/donation-bulk-edit/delete")]
+    public async Task<ActionResult<DonationBulkEditResult>> CommitteeBulkDeleteDonations([FromBody] BulkDeleteDonationsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.BulkDeleteDonationsAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("committee/donor-due/summary")]
+    public async Task<ActionResult<DonorDueSummaryDto>> CommitteeDonorDueSummary(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonorDueSummaryAsync(session, cancellationToken));
+    }
+
+    [HttpGet("committee/donor-due/categories")]
+    public async Task<ActionResult<IReadOnlyList<CommitteeOptionDto>>> CommitteeDonorDueCategories(int typeId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonorDueCategoriesAsync(session, typeId, cancellationToken));
+    }
+
+    [HttpGet("committee/donor-due/by-type")]
+    public async Task<ActionResult<DonorDueByTypeListDto>> CommitteeDonorDueByType(int typeId, int categoryId, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonorDueByTypeAsync(session, typeId, categoryId, cancellationToken));
+    }
+
+    [HttpGet("committee/donor-due/by-name")]
+    public async Task<ActionResult<DonorDueMemberDetailDto>> CommitteeDonorDueByName(string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonorDueByNameAsync(session, q, cancellationToken));
+    }
+
+    [HttpPost("committee/donor-due/view")]
+    public async Task<ActionResult<IReadOnlyList<DonorDueViewBlockDto>>> CommitteeDonorDueView([FromBody] DonorDueViewRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonorDueViewAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("committee/donor-due/sms")]
+    public async Task<ActionResult<DonorDueSmsResult>> CommitteeDonorDueSms([FromBody] DonorDueSmsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SendDonorDueSmsAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("committee/donor-login")]
+    public async Task<ActionResult<DonorLoginPageDto>> CommitteeDonorLogin(int typeId, string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.GetDonorLoginPageAsync(session, typeId, q, cancellationToken));
+    }
+
+    [HttpPost("committee/donor-login/create")]
+    public async Task<ActionResult<DonorLoginCreateResult>> CommitteeDonorLoginCreate([FromBody] DonorLoginCreateRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.CreateDonorLoginsAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("committee/donor-login/sms")]
+    public async Task<ActionResult<DonorLoginSmsResult>> CommitteeDonorLoginSms([FromBody] DonorLoginSmsRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _committee.SendDonorLoginSmsAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("inventory/lookups")]
+    public async Task<ActionResult<InventoryLookupsDto>> InvLookups(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.GetLookupsAsync(session, cancellationToken));
+    }
+
+    [HttpGet("inventory/categories")]
+    public async Task<ActionResult<IReadOnlyList<InventoryCategoryDto>>> InvCategories(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.ListCategoriesAsync(session, cancellationToken));
+    }
+
+    [HttpPost("inventory/categories")]
+    public async Task<ActionResult<InventoryResult>> InvSaveCategory([FromBody] SaveInventoryCategoryRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SaveCategoryAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("inventory/categories/{id:int}/delete")]
+    public async Task<ActionResult<InventoryResult>> InvDeleteCategory(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.DeleteCategoryAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("inventory/items")]
+    public async Task<ActionResult<IReadOnlyList<InventoryItemDto>>> InvItems(int categoryId = 0, CancellationToken cancellationToken = default)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.ListItemsAsync(session, categoryId, cancellationToken));
+    }
+
+    [HttpPost("inventory/items")]
+    public async Task<ActionResult<InventoryResult>> InvSaveItem([FromBody] SaveInventoryItemRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SaveItemAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("inventory/items/{id:int}/delete")]
+    public async Task<ActionResult<InventoryResult>> InvDeleteItem(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.DeleteItemAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("inventory/suppliers")]
+    public async Task<ActionResult<IReadOnlyList<InventorySupplierDto>>> InvSuppliers(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.ListSuppliersAsync(session, cancellationToken));
+    }
+
+    [HttpPost("inventory/suppliers")]
+    public async Task<ActionResult<InventoryResult>> InvSaveSupplier([FromBody] SaveInventorySupplierRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SaveSupplierAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("inventory/suppliers/{id:int}/delete")]
+    public async Task<ActionResult<InventoryResult>> InvDeleteSupplier(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.DeleteSupplierAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("inventory/suppliers/{id:int}/ledger")]
+    public async Task<ActionResult<InventorySupplierLedgerDto>> InvSupplierLedger(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.GetSupplierLedgerAsync(session, id, cancellationToken));
+    }
+
+    [HttpPost("inventory/supplier-payments")]
+    public async Task<ActionResult<InventoryResult>> InvSaveSupplierPayment([FromBody] SaveInventorySupplierPaymentRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SaveSupplierPaymentAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("inventory/customers/students")]
+    public async Task<ActionResult<IReadOnlyList<InventoryStudentHitDto>>> InvSaleStudents(string? q, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SuggestSaleStudentsAsync(session, q, cancellationToken));
+    }
+
+    [HttpGet("inventory/customers/from-student")]
+    public async Task<ActionResult<InventoryCustomerDto>> InvCustomerFromStudent(string? id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.CustomerFromStudentAsync(session, id, cancellationToken) ?? new InventoryCustomerDto());
+    }
+
+    [HttpGet("inventory/customers")]
+    public async Task<ActionResult<IReadOnlyList<InventoryCustomerDto>>> InvCustomers(string? name, string? phone, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SearchCustomersAsync(session, name, phone, cancellationToken));
+    }
+
+    [HttpPost("inventory/customers")]
+    public async Task<ActionResult<InventoryResult>> InvSaveCustomer([FromBody] SaveInventoryCustomerRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SaveWalkInCustomerAsync(session, request, cancellationToken));
+    }
+
+    [HttpGet("inventory/purchases")]
+    public async Task<ActionResult<InventoryDocListDto>> InvPurchases(DateTime? from, DateTime? to, int itemId = 0, CancellationToken cancellationToken = default)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.ListPurchasesAsync(session, from, to, itemId, cancellationToken));
+    }
+
+    [HttpGet("inventory/purchases/{id:int}")]
+    public async Task<ActionResult<InventoryDocDto>> InvPurchase(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.GetPurchaseAsync(session, id, cancellationToken) ?? new InventoryDocDto());
+    }
+
+    [HttpPost("inventory/purchases")]
+    public async Task<ActionResult<InventoryResult>> InvSavePurchase([FromBody] SaveInventoryDocRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.SavePurchaseAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("inventory/purchases/{id:int}/delete")]
+    public async Task<ActionResult<InventoryResult>> InvDeletePurchase(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.DeletePurchaseAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("inventory/sales")]
+    public async Task<ActionResult<InventoryDocListDto>> InvSales(DateTime? from, DateTime? to, int itemId = 0, CancellationToken cancellationToken = default)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.ListSalesAsync(session, from, to, itemId, cancellationToken));
+    }
+
+    [HttpGet("inventory/sales/{id:int}")]
+    public async Task<ActionResult<InventoryDocDto>> InvSale(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.GetSaleAsync(session, id, cancellationToken) ?? new InventoryDocDto());
+    }
+
+    [HttpPost("inventory/sales")]
+    public async Task<ActionResult<InventoryResult>> InvSaveSale([FromBody] SaveInventoryDocRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        var result = await _inventory.SaveSaleAsync(session, request, cancellationToken);
+        if (result.Succeeded && request.SendSms && result.Id > 0)
+            _ = _sms.SendInventorySaleAsync(session, result.Id, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("inventory/sales/{id:int}/delete")]
+    public async Task<ActionResult<InventoryResult>> InvDeleteSale(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.DeleteSaleAsync(session, id, cancellationToken));
+    }
+
+    [HttpPost("inventory/sales/{id:int}/sms")]
+    public async Task<ActionResult<AccountsResult>> InvSaleSms(int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _sms.SendInventorySaleAsync(session, id, cancellationToken));
+    }
+
+    [HttpGet("inventory/stock")]
+    public async Task<ActionResult<InventoryStockDto>> InvStock(int categoryId = 0, CancellationToken cancellationToken = default)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _inventory.GetStockAsync(session, categoryId, cancellationToken));
+    }
+
+    [HttpGet("support")]
+    public async Task<ActionResult<SupportPageDto>> SupportPage(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _support.GetPageAsync(session, cancellationToken));
+    }
+
+    [HttpPost("support")]
+    public async Task<ActionResult<SupportResult>> SubmitSupport(
+        [FromBody] SubmitSupportRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _support.SubmitAsync(session, request, cancellationToken));
     }
 
     [HttpGet("invoice/status")]

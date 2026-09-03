@@ -4,70 +4,103 @@
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
 
-<div class="card structure-page emp-page att-page att-records-page">
+<div class="card sa-page si-info-page si-id-page sm-cc-page students-card att-records-page">
     <PrintHeader Subtitle="@Locale.T("att.recordsStu")" />
-    <h1 class="no-print">@Locale.T("att.recordsStu")</h1>
+    <header class="sa-head no-print">
+        <div>
+            <p class="sa-kicker">@Locale.T("nav.attendance")</p>
+            <h1>@Locale.T("att.recordsStu")</h1>
+            <p class="sa-lead">@Locale.T("att.scheduleHint")</p>
+        </div>
+    </header>
 
-    @if (!string.IsNullOrWhiteSpace(error))
+    @if (!string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(popupText))
     {
-        <div class="error no-print">@error</div>
+        <NetBanner Text="@error" />
     }
 
-    <div class="filter-row no-print">
-        <select @bind="scheduleInput" @bind:after="LoadAsync" disabled="@busy">
-            <option value="0">@Locale.T("att.selectSchedule")</option>
-            @foreach (var item in schedules)
-            {
-                <option value="@item.ScheduleID">@item.ScheduleName</option>
-            }
-        </select>
-        <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
-            <option value="0">@Locale.T("si.selectClass")</option>
-            @foreach (var item in classes)
-            {
-                <option value="@item.ClassID">@item.Name</option>
-            }
-        </select>
-        @if (groups.Count > 0)
-        {
-            <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allGroup")</option>
-                @foreach (var item in groups)
+    <div class="sal-bar no-print">
+        <section class="sal-box is-type">
+            <span class="sal-box-h">@Locale.T("att.selectSchedule")</span>
+            <select @bind="scheduleInput" @bind:after="LoadAsync" disabled="@busy">
+                <option value="0">@Locale.T("att.selectSchedule")</option>
+                @foreach (var item in schedules)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item.ScheduleID">@item.ScheduleName</option>
                 }
             </select>
+        </section>
+        <section class="sal-box is-class">
+            <span class="sal-box-h">@Locale.T("si.class")</span>
+            <select @bind="classInput" @bind:after="OnClassChanged" disabled="@busy">
+                <option value="0">@Locale.T("si.selectClass")</option>
+                @foreach (var item in classes)
+                {
+                    <option value="@item.ClassID">@item.Name</option>
+                }
+            </select>
+        </section>
+        @if (groups.Count > 0)
+        {
+            <section class="sal-box is-group">
+                <span class="sal-box-h">@Locale.T("si.group")</span>
+                <select @bind="groupInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allGroup")</option>
+                    @foreach (var item in groups)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (sections.Count > 0)
         {
-            <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allSection")</option>
-                @foreach (var item in sections)
-                {
-                    <option value="@item.ServerId">@item.Name</option>
-                }
-            </select>
+            <section class="sal-box is-section">
+                <span class="sal-box-h">@Locale.T("si.section")</span>
+                <select @bind="sectionInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allSection")</option>
+                    @foreach (var item in sections)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
         }
         @if (shifts.Count > 0)
         {
-            <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
-                <option value="0">@Locale.T("si.allShift")</option>
-                @foreach (var item in shifts)
+            <section class="sal-box is-shift">
+                <span class="sal-box-h">@Locale.T("si.shift")</span>
+                <select @bind="shiftInput" @bind:after="LoadAsync" disabled="@busy">
+                    <option value="0">@Locale.T("si.allShift")</option>
+                    @foreach (var item in shifts)
+                    {
+                        <option value="@item.ServerId">@item.Name</option>
+                    }
+                </select>
+            </section>
+        }
+        <section class="sal-box is-names">
+            <span class="sal-box-h">@Locale.T("att.status")</span>
+            <select @bind="status" @bind:after="LoadAsync" disabled="@busy">
+                <option value="%">@Locale.T("att.all")</option>
+                @foreach (var item in Statuses)
                 {
-                    <option value="@item.ServerId">@item.Name</option>
+                    <option value="@item">@StatusLabel(item)</option>
                 }
             </select>
-        }
-        <select @bind="status" @bind:after="LoadAsync" disabled="@busy">
-            <option value="%">@Locale.T("att.all")</option>
-            @foreach (var item in Statuses)
-            {
-                <option value="@item">@StatusLabel(item)</option>
-            }
-        </select>
-        <input type="date" @bind="from" @bind:after="LoadAsync" disabled="@busy" />
-        <input type="date" @bind="to" @bind:after="LoadAsync" disabled="@busy" />
-        <button type="button" class="link-btn" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </section>
+        <section class="sal-box is-date">
+            <span class="sal-box-h">@Locale.T("att.from")</span>
+            <input type="date" @bind="from" @bind:after="LoadAsync" disabled="@busy" />
+        </section>
+        <section class="sal-box is-date">
+            <span class="sal-box-h">@Locale.T("att.to")</span>
+            <input type="date" @bind="to" @bind:after="LoadAsync" disabled="@busy" />
+        </section>
+        <div class="sal-actions">
+            <button type="button" class="sal-gen" disabled="@busy" @onclick="PrintAsync">@Locale.T("si.print")</button>
+        </div>
+        <span class="el-count">@(tab == "records" ? records.Count : summary.Count)</span>
     </div>
 
     <div class="att-tabs no-print">
@@ -79,7 +112,7 @@
         </button>
     </div>
 
-    <div class="att-table-wrap">
+    <div class="att-table-wrap sj-grid">
     @if (tab == "records")
     {
         <table class="mgrid">
@@ -108,7 +141,7 @@
                     <tr>
                         <td>@row.AttendanceDate.ToString("dd MMM yyyy")</td>
                         <td>@row.ID</td>
-                        <td>@row.Name</td>
+                        <td class="si-name">@row.Name</td>
                         <td>@row.ClassName</td>
                         <td>@row.RollNo</td>
                         <td><span class="att-pill @Pill(row.Attendance)">@StatusLabel(row.Attendance)</span></td>
@@ -148,7 +181,7 @@
                 {
                     <tr>
                         <td>@row.ID</td>
-                        <td>@row.Name</td>
+                        <td class="si-name">@row.Name</td>
                         <td>@row.RollNo</td>
                         <td>@row.Present</td>
                         <td>@row.Absent</td>
@@ -164,6 +197,12 @@
     }
     </div>
 </div>
+
+<ExamBusyOverlay Busy="busy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (!string.IsNullOrWhiteSpace(popupText))
+{
+    <ResultPopup Text="@popupText" Error="popupError" ErrorTitle="sms.errorTitle" OnClose="ClosePopup" />
+}
 
 @code {
     private static readonly string[] Statuses = ["Pre", "Abs", "Late", "Late Abs", "Leave", "Bunk"];
@@ -182,9 +221,12 @@
     private string shiftInput = "0";
     private string status = "%";
     private string tab = "records";
+    private string busyTitle = "";
+    private string popupText = "";
     private DateTime from = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateTime to = DateTime.Today;
     private bool busy;
+    private bool popupError;
     private string? error;
 
     private int ScheduleId => int.TryParse(scheduleInput, out var n) ? n : 0;
@@ -195,17 +237,33 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await EnsureOnlineAsync())
-            return;
-        structure = await Api.GetClassStructureAsync(Session.AccessToken!);
-        classes.Clear();
-        classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
-        schedules.Clear();
-        schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
-        await LoadAsync();
+        await SetBusyAsync("si.loading");
+        try
+        {
+            if (!await EnsureOnlineAsync())
+                return;
+            structure = await Api.GetClassStructureAsync(Session.AccessToken!);
+            classes.Clear();
+            classes.AddRange(structure.Classes.OrderBy(x => x.SortOrder).ThenBy(x => x.Name));
+            schedules.Clear();
+            schedules.AddRange(await Api.GetAttendanceSchedulesAsync(Session.AccessToken!));
+            await LoadCoreAsync();
+        }
+        catch (HttpRequestException)
+        {
+            Show(Locale.T("subj.needOnline"), true);
+        }
+        catch (Exception ex)
+        {
+            Show(ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
-    private Task OnClassChanged()
+    private async Task OnClassChanged()
     {
         groupInput = sectionInput = shiftInput = "0";
         groups.Clear();
@@ -218,36 +276,42 @@
             sections.AddRange(parts.Sections);
             shifts.AddRange(parts.Shifts);
         }
-        return LoadAsync();
+        await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         error = null;
-        if (!await EnsureOnlineAsync())
-            return;
-        busy = true;
+        popupText = "";
+        await SetBusyAsync("si.loading");
         try
         {
-            records.Clear();
-            summary.Clear();
-            records.AddRange(await Api.GetStudentAttendanceRecordsAsync(
-                Session.AccessToken!, status, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
-            summary.AddRange(await Api.GetStudentAttendanceSummaryAsync(
-                Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
+            if (!await EnsureOnlineAsync())
+                return;
+            await LoadCoreAsync();
         }
         catch (HttpRequestException)
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Show(ex.Message, true);
         }
         finally
         {
             busy = false;
         }
+    }
+
+    private async Task LoadCoreAsync()
+    {
+        records.Clear();
+        summary.Clear();
+        records.AddRange(await Api.GetStudentAttendanceRecordsAsync(
+            Session.AccessToken!, status, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
+        summary.AddRange(await Api.GetStudentAttendanceSummaryAsync(
+            Session.AccessToken!, ClassId, GroupId, SectionId, ShiftId, ScheduleId, from, to));
     }
 
     private Task PrintAsync() => JS.InvokeVoidAsync("sikkhaloyPrint", "landscape", false).AsTask();
@@ -274,13 +338,30 @@
         _ => ""
     };
 
+    private async Task SetBusyAsync(string key)
+    {
+        busyTitle = Locale.T(key);
+        busy = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(40);
+    }
+
     private async Task<bool> EnsureOnlineAsync()
     {
         if (string.IsNullOrWhiteSpace(Session.AccessToken) || !await Api.PingAsync())
         {
-            error = Locale.T("subj.needOnline");
+            Show(Locale.T("subj.needOnline"), true);
             return false;
         }
         return true;
     }
+
+    private void Show(string text, bool isError)
+    {
+        popupError = isError;
+        popupText = text;
+        error = isError ? text : null;
+    }
+
+    private void ClosePopup() => popupText = "";
 }
