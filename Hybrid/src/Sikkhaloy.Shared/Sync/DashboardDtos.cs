@@ -8,6 +8,7 @@ public sealed class DashboardNamedCountDto
 
 public sealed class DashboardClassRowDto
 {
+    public int ClassID { get; set; }
     public string ClassName { get; set; } = "";
     public int NewCount { get; set; }
     public int OldCount { get; set; }

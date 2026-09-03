@@ -72,59 +72,67 @@
         </div>
     </section>
 
-    <div class="dash-main">
-        <div class="dash-left">
-        <section class="card dash-panel">
-            <div class="toolbar">
-                <h2>@Locale.T("dash.classTitle")</h2>
-                <a href="students">@Locale.T("dash.totalCol"): @stats.TotalStudents.ToString("N0")</a>
-            </div>
-            @if (stats.Classes.Count == 0)
-            {
-                <p class="muted">@Locale.T(stats.PendingSync > 0 ? "dash.emptyQueued" : "dash.empty")</p>
-            }
-            else
-            {
-                <table class="data-table dash-class-table">
-                    <thead>
-                        <tr>
-                            <th>@Locale.T("dash.classCol")</th>
-                            <th>@Locale.T("dash.newCol")</th>
-                            <th>@Locale.T("dash.oldCol")</th>
-                            <th>@Locale.T("dash.totalCol")</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var row in stats.Classes)
-                    {
-                        <tr>
-                            <td>@row.ClassName</td>
-                            <td>@row.NewCount.ToString("N0")</td>
-                            <td>@row.OldCount.ToString("N0")</td>
-                            <td><b>@row.Total.ToString("N0")</b></td>
-                            <td>
-                                <div class="dash-stack">
-                                    <span class="is-new" style="width:@Pct(row.NewCount, row.Total)%"></span>
-                                    <span class="is-old" style="width:@Pct(row.OldCount, row.Total)%"></span>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th>@Locale.T("dash.totalCol")</th>
-                            <th>@stats.NewCount.ToString("N0")</th>
-                            <th>@stats.OldCount.ToString("N0")</th>
-                            <th>@stats.TotalStudents.ToString("N0")</th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                </table>
-            }
-        </section>
+    <section class="card dash-panel dash-class-panel">
+        <div class="toolbar">
+            <h2>@Locale.T("dash.classTitle")</h2>
+            <a href="students">@Locale.T("dash.totalCol"): @stats.TotalStudents.ToString("N0")</a>
+        </div>
+        @if (stats.Classes.Count == 0)
+        {
+            <p class="muted">@Locale.T(stats.PendingSync > 0 ? "dash.emptyQueued" : "dash.empty")</p>
+        }
+        else
+        {
+            <table class="data-table dash-class-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("dash.classCol")</th>
+                        <th>@Locale.T("dash.newCol")</th>
+                        <th>@Locale.T("dash.oldCol")</th>
+                        <th>@Locale.T("dash.totalCol")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in stats.Classes)
+                {
+                    <tr>
+                        <td>
+                            @if (row.ClassID > 0)
+                            {
+                                <a class="dash-class-link" href="@($"students?class={row.ClassID}")">@row.ClassName</a>
+                            }
+                            else
+                            {
+                                @row.ClassName
+                            }
+                        </td>
+                        <td>@row.NewCount.ToString("N0")</td>
+                        <td>@row.OldCount.ToString("N0")</td>
+                        <td><b>@row.Total.ToString("N0")</b></td>
+                        <td>
+                            <div class="dash-stack">
+                                <span class="is-new" style="width:@Pct(row.NewCount, row.Total)%"></span>
+                                <span class="is-old" style="width:@Pct(row.OldCount, row.Total)%"></span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>@Locale.T("dash.totalCol")</th>
+                        <th>@stats.NewCount.ToString("N0")</th>
+                        <th>@stats.OldCount.ToString("N0")</th>
+                        <th>@stats.TotalStudents.ToString("N0")</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    </section>
 
+    <div class="dash-main">
         @if (online.Sessions.Count > 0)
         {
             <section class="card dash-panel dash-session">
@@ -141,10 +149,9 @@
                 </div>
             </section>
         }
-        </div>
 
         <aside class="dash-side">
-            <section class="card dash-panel">
+            <section class="card dash-panel dash-mini">
                 <h2>@Locale.T("dash.gender")</h2>
                 <div class="dash-gender">
                     <div class="dash-donut" style="--male:@MalePct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;">
@@ -162,7 +169,7 @@
 
             @if (online.SmsRemaining > 0 || online.SmsSent > 0 || online.SmsByYear.Count > 0)
             {
-                <section class="card dash-panel">
+                <section class="card dash-panel dash-mini">
                     <h2><a href="sms/send">@Locale.T("dash.sms")</a></h2>
                     <div class="dash-sms">
                         <div>
@@ -208,7 +215,7 @@
 
             @if (online.Employees.Count > 0)
             {
-                <section class="card dash-panel">
+                <section class="card dash-panel dash-mini">
                     <h2>@Locale.T("dash.employees")</h2>
                     <div class="dash-bars">
                         @foreach (var item in online.Employees)
@@ -225,7 +232,7 @@
 
             @if (stats.BloodGroups.Count > 0)
             {
-                <section class="card dash-panel">
+                <section class="card dash-panel dash-mini">
                     <h2>@Locale.T("dash.blood")</h2>
                     <div class="dash-bars">
                         @foreach (var item in stats.BloodGroups)

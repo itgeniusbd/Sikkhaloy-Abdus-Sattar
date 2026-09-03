@@ -732,6 +732,7 @@ public sealed partial class SyncEngine
                 .ThenBy(g => g.Key.Name)
                 .Select(g => new DashboardClassRowDto
                 {
+                    ClassID = g.Key.ClassID ?? 0,
                     ClassName = g.Key.Name,
                     NewCount = g.Count(x => x.IsNew == true),
                     OldCount = g.Count(x => x.IsNew != true)
