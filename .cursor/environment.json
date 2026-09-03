@@ -1,0 +1,10 @@
+{
+  "name": "SIKKHALOY-V3 (Mono / .NET Framework 4.7.2)",
+  "install": "bash .cursor/install.sh",
+  "ports": [
+    {
+      "name": "web",
+      "port": 8080
+    }
+  ]
+}
