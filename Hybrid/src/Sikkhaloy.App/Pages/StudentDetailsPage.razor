@@ -72,6 +72,7 @@
             <button type="button" class="@(tab == "attendance" ? "active" : null)" @onclick='() => SelectTabAsync("attendance")'>@Locale.T("report.attendance")</button>
             <button type="button" class="@(tab == "subjects" ? "active" : null)" @onclick='() => SelectTabAsync("subjects")'>@Locale.T("report.subjects")</button>
             <button type="button" class="@(tab == "accounts" ? "active" : null)" @onclick='() => SelectTabAsync("accounts")'>@Locale.T("report.accounts")</button>
+            <button type="button" class="@(tab == "studentreport" ? "active" : null)" @onclick='() => SelectTabAsync("studentreport")'>@Locale.T("report.studentReport")</button>
         </div>
 
         @if (tab != "profile")
@@ -239,11 +240,11 @@
                 </div>
             </div>
         }
-        else if (reportBusy)
+        else if (reportBusy && tab != "studentreport")
         {
             <p class="muted no-print">@Locale.T("report.loading")</p>
         }
-        else if (!string.IsNullOrWhiteSpace(reportError))
+        else if (!string.IsNullOrWhiteSpace(reportError) && tab != "studentreport")
         {
             <NetBanner Text="@reportError" />
         }
@@ -564,10 +565,169 @@
                 </div>
             </div>
         }
+        else if (tab == "studentreport")
+        {
+            <div class="report-panel fault-panel">
+                <p class="fault-hint no-print">@Locale.T("report.faultHint")</p>
+                <div class="fault-toolbar no-print">
+                    <button type="button" class="fault-add" @onclick="OpenFaultModal" disabled="@faultBusy">@Locale.T("report.addReport")</button>
+                    <button type="button" class="fault-bulk" @onclick="OpenFaultBulkModalAsync" disabled="@faultBusy">@Locale.T("report.bulkAdd")</button>
+                    <label>
+                        <span>@Locale.T("stu.fromDate")</span>
+                        <input type="date" @bind="faultFrom" disabled="@faultBusy" />
+                    </label>
+                    <label>
+                        <span>@Locale.T("stu.toDate")</span>
+                        <input type="date" @bind="faultTo" disabled="@faultBusy" />
+                    </label>
+                    <button type="button" class="fault-go" disabled="@faultBusy" @onclick="LoadFaultReportsAsync">
+                        @(faultBusy ? Locale.T("report.loading") : Locale.T("stu.submit"))
+                    </button>
+                    <button type="button" class="fault-print" @onclick="PrintAsync" disabled="@(faultRows.Count == 0)">@Locale.T("stu.print")</button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(faultError))
+                {
+                    <div class="error no-print">@faultError</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(faultOk))
+                {
+                    <div class="ok no-print">@faultOk</div>
+                }
+                @if (faultBusy)
+                {
+                    <p class="muted">@Locale.T("report.loading")</p>
+                }
+                else if (faultRows.Count == 0)
+                {
+                    <p class="muted">@Locale.T("stu.reportEmpty")</p>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="mgrid fault-grid">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("stu.reportTitle")</th>
+                                    <th>@Locale.T("stu.reportBody")</th>
+                                    <th>@Locale.T("report.date")</th>
+                                    <th>@Locale.T("report.addedBy")</th>
+                                    <th class="no-print">@Locale.T("stu.actions")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in faultRows)
+                                {
+                                    <tr>
+                                        <td>@row.Title</td>
+                                        <td class="fault-body">@row.Body</td>
+                                        <td>@FmtFaultDate(row.Date)</td>
+                                        <td>@OrDash(row.PostBy)</td>
+                                        <td class="fault-acts no-print">
+                                            <button type="button" class="fault-edit" @onclick="() => EditFault(row)">@Locale.T("students.edit")</button>
+                                            <button type="button" class="fault-del" @onclick="() => ConfirmDeleteFault(row.StudentFaultID)">@Locale.T("cls.delete")</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
     }
 </div>
 
-<ExamBusyOverlay Busy="reportBusy" Title="@busyTitle" Message="@Locale.T("emp.wait")" />
+@if (showFaultBulkModal)
+{
+    <div class="acc-result-back no-print" @onclick="CloseFaultBulkModal">
+        <div class="fault-modal fault-bulk-modal" @onclick:stopPropagation="true">
+            <header class="fault-modal-head">
+                <h3>@Locale.T("report.bulkAdd")</h3>
+                <button type="button" class="fault-modal-x" @onclick="CloseFaultBulkModal">×</button>
+            </header>
+            <p class="fault-bulk-hint">@Locale.T("report.bulkHint")</p>
+            <label class="fault-field">
+                <span>@Locale.T("report.date")</span>
+                <input type="date" @bind="faultBulkDate" disabled="@faultSaving" />
+            </label>
+            <div class="fault-bulk-rows">
+                @for (var i = 0; i < faultBulkRows.Count; i++)
+                {
+                    var index = i;
+                    <div class="fault-bulk-row">
+                        <div class="fault-bulk-title">
+                            <span class="fault-bulk-num">@(index + 1).</span>
+                            <input type="text" placeholder="@Locale.T("stu.reportTitle")" @bind="faultBulkRows[index].Title" disabled="@faultSaving" />
+                        </div>
+                        <textarea class="fault-bulk-body" rows="2" placeholder="@Locale.T("stu.reportBody")" @bind="faultBulkRows[index].Body" disabled="@faultSaving"></textarea>
+                        @if (faultBulkRows.Count > 1)
+                        {
+                            <button type="button" class="fault-bulk-remove" disabled="@faultSaving" @onclick="() => RemoveFaultBulkRow(index)">×</button>
+                        }
+                    </div>
+                }
+            </div>
+            <button type="button" class="fault-bulk-more" disabled="@faultSaving" @onclick="AddFaultBulkRow">+ @Locale.T("report.bulkAddRow")</button>
+            @if (!string.IsNullOrWhiteSpace(faultModalError))
+            {
+                <div class="error">@faultModalError</div>
+            }
+            <footer class="fault-modal-foot">
+                <button type="button" class="fault-cancel" disabled="@faultSaving" @onclick="CloseFaultBulkModal">@Locale.T("cls.cancel")</button>
+                <button type="button" class="fault-save" disabled="@faultSaving" @onclick="SaveFaultBulkAsync">
+                    @(faultSaving ? Locale.T("report.loading") : Locale.T("report.bulkSave"))
+                </button>
+            </footer>
+        </div>
+    </div>
+}
+
+@if (showFaultModal)
+{
+    <div class="acc-result-back no-print" @onclick="CloseFaultModal">
+        <div class="fault-modal" @onclick:stopPropagation="true">
+            <header class="fault-modal-head">
+                <h3>@(faultEditId > 0 ? Locale.T("students.edit") : Locale.T("report.addReport"))</h3>
+                <button type="button" class="fault-modal-x" @onclick="CloseFaultModal">×</button>
+            </header>
+            <label class="fault-field">
+                <span>@Locale.T("stu.reportTitle")</span>
+                <input type="text" @bind="faultTitle" disabled="@faultSaving" />
+            </label>
+            <label class="fault-field">
+                <span>@Locale.T("stu.reportBody")</span>
+                <textarea rows="5" @bind="faultBody" disabled="@faultSaving"></textarea>
+            </label>
+            <label class="fault-field">
+                <span>@Locale.T("report.date")</span>
+                <input type="date" @bind="faultDate" disabled="@faultSaving" />
+            </label>
+            @if (!string.IsNullOrWhiteSpace(faultModalError))
+            {
+                <div class="error">@faultModalError</div>
+            }
+            <footer class="fault-modal-foot">
+                <button type="button" class="fault-cancel" disabled="@faultSaving" @onclick="CloseFaultModal">@Locale.T("cls.cancel")</button>
+                <button type="button" class="fault-save" disabled="@faultSaving" @onclick="SaveFaultAsync">
+                    @(faultSaving ? Locale.T("report.loading") : (faultEditId > 0 ? Locale.T("report.saveReport") : Locale.T("report.addReport")))
+                </button>
+            </footer>
+        </div>
+    </div>
+}
+
+@if (confirmFaultDeleteId is int delFaultId)
+{
+    <div class="acc-result-back no-print" @onclick="() => confirmFaultDeleteId = null">
+        <div class="fault-confirm" @onclick:stopPropagation="true">
+            <p>@Locale.T("report.faultDelete")</p>
+            <div class="fault-confirm-acts">
+                <button type="button" class="fault-cancel" @onclick="() => confirmFaultDeleteId = null">@Locale.T("cls.cancel")</button>
+                <button type="button" class="fault-del" @onclick="() => DeleteFaultAsync(delFaultId)">@Locale.T("cls.delete")</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     [Parameter] public Guid LocalId { get; set; }
@@ -587,6 +747,24 @@
     private bool attLoaded;
     private bool subLoaded;
     private bool accLoaded;
+    private bool faultLoaded;
+    private bool faultBusy;
+    private bool faultSaving;
+    private bool showFaultModal;
+    private bool showFaultBulkModal;
+    private int faultEditId;
+    private int? confirmFaultDeleteId;
+    private string faultTitle = "";
+    private string faultBody = "";
+    private DateTime? faultDate = DateTime.Today;
+    private DateTime? faultBulkDate = DateTime.Today;
+    private List<FaultBulkRow> faultBulkRows = [];
+    private DateTime? faultFrom;
+    private DateTime? faultTo;
+    private string? faultError;
+    private string? faultOk;
+    private string? faultModalError;
+    private IReadOnlyList<StudentPortalFaultReportDto> faultRows = [];
     private bool idInvalid;
     private string idErrorKey = "report.needId";
     private DateTime calMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -606,6 +784,7 @@
         "attendance" => Locale.T("report.attendance"),
         "subjects" => Locale.T("report.subjects"),
         "accounts" => Locale.T("report.payorder"),
+        "studentreport" => Locale.T("report.studentReport"),
         _ => ""
     };
 
@@ -646,7 +825,9 @@
         idInvalid = false;
         if (student.ServerId is int sid && sid > 0)
             student.PhotoDataUrl ??= Sync.GetStudentPhotoDataUrl(Session.Current.SchoolID, sid);
-        if (tab != "profile")
+        if (tab == "studentreport")
+            await LoadFaultReportsAsync();
+        else if (tab != "profile")
             await LoadPartAsync(tab);
     }
 
@@ -654,7 +835,9 @@
     {
         report = null;
         reportError = null;
-        resultLoaded = attLoaded = subLoaded = accLoaded = false;
+        resultLoaded = attLoaded = subLoaded = accLoaded = faultLoaded = false;
+        faultRows = [];
+        faultError = faultOk = faultModalError = null;
     }
 
     private async Task SelectTabAsync(string name)
@@ -662,6 +845,12 @@
         tab = name;
         if (name == "profile")
             return;
+        if (name == "studentreport")
+        {
+            if (!faultLoaded)
+                await LoadFaultReportsAsync();
+            return;
+        }
         await LoadPartAsync(name);
     }
 
@@ -686,7 +875,6 @@
         reportError = null;
         busyTitle = Locale.T("report.loading");
         reportBusy = true;
-        await InvokeAsync(StateHasChanged);
         try
         {
             var chunk = await Api.GetStudentReportAsync(Session.AccessToken, student.StudentCode, part);
@@ -999,4 +1187,384 @@
             </tbody>
         </table>
     </div>;
+
+    private async Task LoadFaultReportsAsync()
+    {
+        if (student is null || string.IsNullOrWhiteSpace(student.StudentCode))
+            return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            faultError = Locale.T("report.needOnline");
+            return;
+        }
+
+        faultBusy = true;
+        faultError = null;
+        faultOk = null;
+        try
+        {
+            faultRows = await Api.GetStudentFaultReportsAsync(Session.AccessToken, student.StudentCode, faultFrom, faultTo);
+            faultLoaded = true;
+        }
+        catch (HttpRequestException ex)
+        {
+            faultError = FaultErrorMessage(ex);
+            faultRows = [];
+        }
+        catch (Exception ex)
+        {
+            faultError = FaultErrorMessage(ex);
+            faultRows = [];
+        }
+        finally
+        {
+            faultBusy = false;
+        }
+    }
+
+    private void OpenFaultModal()
+    {
+        faultEditId = 0;
+        faultTitle = "";
+        faultBody = "";
+        faultDate = DateTime.Today;
+        faultModalError = null;
+        showFaultBulkModal = false;
+        showFaultModal = true;
+    }
+
+    private async Task OpenFaultBulkModalAsync()
+    {
+        faultBulkDate = DateTime.Today;
+        faultBulkRows =
+        [
+            new() { Key = "sabak", Title = Locale.T("report.faultPreset1") },
+            new() { Key = "sat-sabak", Title = Locale.T("report.faultPreset2") },
+            new() { Key = "amukhta", Title = Locale.T("report.faultPreset3") },
+            new() { Key = "tilawat", Title = Locale.T("report.faultPreset4") },
+            new() { Key = "mistake", Title = Locale.T("report.faultPreset5") }
+        ];
+        faultModalError = null;
+        showFaultModal = false;
+        showFaultBulkModal = true;
+        await LoadFaultBulkDraftsAsync();
+    }
+
+    private void CloseFaultBulkModal()
+    {
+        if (faultSaving)
+            return;
+        showFaultBulkModal = false;
+        faultModalError = null;
+    }
+
+    private void AddFaultBulkRow() => faultBulkRows.Add(new FaultBulkRow());
+
+    private void RemoveFaultBulkRow(int index)
+    {
+        if (index < 0 || index >= faultBulkRows.Count)
+            return;
+        faultBulkRows.RemoveAt(index);
+    }
+
+    private async Task SaveFaultBulkAsync()
+    {
+        if (student is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            faultModalError = Locale.T("report.needOnline");
+            return;
+        }
+
+        var items = faultBulkRows
+            .Select(x => new StudentFaultReportLineRequest
+            {
+                Title = x.Title.Trim(),
+                Body = x.Body.Trim()
+            })
+            .Where(x => x.Title.Length > 0 && x.Body.Length > 0)
+            .ToList();
+        if (items.Count == 0)
+        {
+            faultModalError = Locale.T("report.faultNeedBody");
+            return;
+        }
+
+        faultSaving = true;
+        faultModalError = null;
+        try
+        {
+            var result = await Api.SaveStudentFaultReportsBulkAsync(Session.AccessToken, new SaveStudentFaultReportsBulkRequest
+            {
+                StudentCode = student.StudentCode,
+                Date = faultBulkDate,
+                Items = items
+            });
+            if (!result.Succeeded)
+            {
+                faultModalError = FaultResultMessage(result.Error);
+                return;
+            }
+
+            showFaultBulkModal = false;
+            faultOk = Locale.T("report.bulkSaved", result.Count > 0 ? result.Count : items.Count);
+            faultLoaded = false;
+            await SaveFaultBulkDraftsAsync();
+            await LoadFaultReportsAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            faultModalError = FaultErrorMessage(ex);
+        }
+        catch (Exception ex)
+        {
+            faultModalError = FaultErrorMessage(ex);
+        }
+        finally
+        {
+            faultSaving = false;
+        }
+    }
+
+    private void EditFault(StudentPortalFaultReportDto row)
+    {
+        faultEditId = row.StudentFaultID;
+        faultTitle = row.Title;
+        faultBody = row.Body;
+        faultDate = row.Date?.Date ?? DateTime.Today;
+        faultModalError = null;
+        showFaultModal = true;
+    }
+
+    private void CloseFaultModal()
+    {
+        if (faultSaving)
+            return;
+        showFaultModal = false;
+        faultModalError = null;
+    }
+
+    private void ConfirmDeleteFault(int id) => confirmFaultDeleteId = id;
+
+    private async Task SaveFaultAsync()
+    {
+        if (student is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            faultModalError = Locale.T("report.needOnline");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(faultTitle.Trim()))
+        {
+            faultModalError = Locale.T("report.faultNeedTitle");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(faultBody.Trim()))
+        {
+            faultModalError = Locale.T("report.faultNeedBody");
+            return;
+        }
+
+        faultSaving = true;
+        faultModalError = null;
+        try
+        {
+            StudentInfoResult result;
+            if (faultEditId > 0)
+            {
+                result = await Api.UpdateStudentFaultReportAsync(Session.AccessToken, new UpdateStudentFaultReportRequest
+                {
+                    StudentFaultID = faultEditId,
+                    Title = faultTitle.Trim(),
+                    Body = faultBody.Trim(),
+                    Date = faultDate
+                });
+            }
+            else
+            {
+                result = await Api.SaveStudentFaultReportAsync(Session.AccessToken, new SaveStudentFaultReportRequest
+                {
+                    StudentCode = student.StudentCode,
+                    Title = faultTitle.Trim(),
+                    Body = faultBody.Trim(),
+                    Date = faultDate
+                });
+            }
+
+            if (!result.Succeeded)
+            {
+                faultModalError = FaultResultMessage(result.Error);
+                return;
+            }
+
+            showFaultModal = false;
+            faultOk = Locale.T("report.faultSaved");
+            faultLoaded = false;
+            await LoadFaultReportsAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            faultModalError = FaultErrorMessage(ex);
+        }
+        catch (Exception ex)
+        {
+            faultModalError = FaultErrorMessage(ex);
+        }
+        finally
+        {
+            faultSaving = false;
+        }
+    }
+
+    private async Task DeleteFaultAsync(int id)
+    {
+        confirmFaultDeleteId = null;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            faultError = Locale.T("report.needOnline");
+            return;
+        }
+
+        faultBusy = true;
+        faultError = null;
+        try
+        {
+            var result = await Api.DeleteStudentFaultReportAsync(Session.AccessToken, id);
+            if (!result.Succeeded)
+            {
+                faultError = FaultResultMessage(result.Error);
+                return;
+            }
+            faultOk = Locale.T("report.faultSaved");
+            faultLoaded = false;
+            await LoadFaultReportsAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            faultError = FaultErrorMessage(ex);
+        }
+        catch (Exception ex)
+        {
+            faultError = FaultErrorMessage(ex);
+        }
+        finally
+        {
+            faultBusy = false;
+        }
+    }
+
+    private static string FmtFaultDate(DateTime? value) =>
+        value is DateTime d ? d.ToString("d MMM yyyy") : "—";
+
+    private string FaultResultMessage(string? errorKey)
+    {
+        if (string.IsNullOrWhiteSpace(errorKey))
+            return Locale.T("report.faultFailed");
+        if (errorKey.Equals("si.failed", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("report.faultFailed");
+        return Locale.T(errorKey);
+    }
+
+    private string FaultErrorMessage(Exception ex)
+    {
+        if (ex is HttpRequestException http)
+        {
+            if (http.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return Locale.T("report.faultApiMissing");
+            if (http.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                return Locale.T("login.expired");
+            if (!Sync.IsOnline)
+                return Locale.T("report.needOnline");
+        }
+        else if (ex is TaskCanceledException && !Sync.IsOnline)
+        {
+            return Locale.T("report.needOnline");
+        }
+
+        return Locale.T("report.faultFailed");
+    }
+
+    private string FaultBulkDraftKey()
+    {
+        if (student is null || Session.Current is null || string.IsNullOrWhiteSpace(student.StudentCode))
+            return "";
+        return $"{Session.Current.SchoolID}:{Session.Current.EducationYearID}:{student.StudentCode.Trim()}";
+    }
+
+    private async Task LoadFaultBulkDraftsAsync()
+    {
+        var key = FaultBulkDraftKey();
+        if (key.Length == 0)
+            return;
+
+        try
+        {
+            var draft = await JS.InvokeAsync<FaultBulkDraft?>("sikkhaloyFaultBulkLoad", key);
+            if (draft?.Rows is { Count: > 0 } savedRows)
+            {
+                faultBulkRows = savedRows.Select(x => new FaultBulkRow
+                {
+                    Key = x.Key ?? "",
+                    Title = x.Title ?? "",
+                    Body = x.Body ?? ""
+                }).ToList();
+                return;
+            }
+
+            if (draft?.Bodies is { Count: > 0 } legacyBodies)
+            {
+                foreach (var row in faultBulkRows)
+                {
+                    if (row.Key.Length > 0 && legacyBodies.TryGetValue(row.Key, out var body))
+                        row.Body = body;
+                }
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SaveFaultBulkDraftsAsync()
+    {
+        var key = FaultBulkDraftKey();
+        if (key.Length == 0)
+            return;
+
+        var draft = new FaultBulkDraft
+        {
+            Rows = faultBulkRows.Select(x => new FaultBulkDraftRow
+            {
+                Key = x.Key,
+                Title = x.Title ?? "",
+                Body = x.Body ?? ""
+            }).ToList()
+        };
+
+        try
+        {
+            await JS.InvokeVoidAsync("sikkhaloyFaultBulkSave", key, draft);
+        }
+        catch
+        {
+        }
+    }
+
+    private sealed class FaultBulkRow
+    {
+        public string Key { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+    }
+
+    private sealed class FaultBulkDraft
+    {
+        public List<FaultBulkDraftRow> Rows { get; set; } = [];
+        public Dictionary<string, string> Bodies { get; set; } = new(StringComparer.Ordinal);
+    }
+
+    private sealed class FaultBulkDraftRow
+    {
+        public string Key { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+    }
 }

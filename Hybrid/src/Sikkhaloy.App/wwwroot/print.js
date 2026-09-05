@@ -21,7 +21,7 @@ window.sikkhaloyReplaceEdgeBackground = function (ctx, w, h, fillHex) {
     var img = ctx.getImageData(0, 0, w, h);
     var d = img.data;
     var nPix = w * h;
-    var patch = Math.max(3, Math.min(12, (Math.min(w, h) / 22) | 0));
+    var patch = Math.max(2, Math.min(6, (Math.min(w, h) / 40) | 0));
     function samplePatch(x0, y0) {
         var r = 0, g = 0, b = 0, n = 0;
         for (var y = y0; y < y0 + patch && y < h; y++) {
@@ -46,7 +46,7 @@ window.sikkhaloyReplaceEdgeBackground = function (ctx, w, h, fillHex) {
         var votes = 0;
         for (var j = 0; j < 4; j++) {
             if (window.sikkhaloyColorDist(corners[i][0], corners[i][1], corners[i][2],
-                corners[j][0], corners[j][1], corners[j][2]) <= 52)
+                corners[j][0], corners[j][1], corners[j][2]) <= 36)
                 votes++;
         }
         if (votes > bestCount) {
@@ -54,62 +54,36 @@ window.sikkhaloyReplaceEdgeBackground = function (ctx, w, h, fillHex) {
             best = i;
         }
     }
-    var br = 0, bgc = 0, bb = 0, cn = 0, vsum = 0;
+    if (bestCount < 3)
+        return;
+    var br = 0, bgc = 0, bb = 0, cn = 0;
     for (var j = 0; j < 4; j++) {
         var dist = window.sikkhaloyColorDist(corners[best][0], corners[best][1], corners[best][2],
             corners[j][0], corners[j][1], corners[j][2]);
-        if (dist > 52) continue;
+        if (dist > 36) continue;
         br += corners[j][0];
         bgc += corners[j][1];
         bb += corners[j][2];
-        vsum += dist * dist;
         cn++;
     }
-    if (cn < 1) return;
+    if (cn < 3) return;
     br /= cn;
     bgc /= cn;
     bb /= cn;
-    var std = Math.sqrt(vsum / cn);
-    var tol = Math.max(36, Math.min(64, 40 + std * 1.8));
-    var fringeTol = Math.max(tol + 16, Math.min(88, tol * 1.55));
+    var tol = 28;
     var lumaBg = window.sikkhaloyLuma(br, bgc, bb);
-    var cbBg = -0.168736 * br - 0.331264 * bgc + 0.5 * bb;
-    var crBg = 0.5 * br - 0.418688 * bgc - 0.081312 * bb;
-
-    function chromaDist(r, g, b) {
-        var cb = -0.168736 * r - 0.331264 * g + 0.5 * b;
-        var cr = 0.5 * r - 0.418688 * g - 0.081312 * b;
-        return Math.hypot(cb - cbBg, cr - crBg);
+    var cx = (w - 1) / 2, cy = (h - 1) / 2;
+    var rx = w * 0.38, ry = h * 0.44;
+    function inSubject(x, y) {
+        var nx = (x - cx) / rx, ny = (y - cy) / ry;
+        return nx * nx + ny * ny <= 1;
     }
-    function spillOf(r, g, b) {
-        var rgbSim = 1 - Math.min(1, window.sikkhaloyColorDist(r, g, b, br, bgc, bb) / Math.max(fringeTol, 48));
-        var c = 1 - Math.min(1, chromaDist(r, g, b) / 44);
-        if (c < 0.1) c = 0;
-        var chan = 0;
-        var spread = Math.max(br, bgc, bb) - Math.min(br, bgc, bb);
-        if (spread >= 12) {
-            var px, bgDom;
-            if (bb >= br && bb >= bgc) {
-                px = b - Math.max(r, g);
-                bgDom = bb - Math.max(br, bgc);
-            } else if (bgc >= br && bgc >= bb) {
-                px = g - Math.max(r, b);
-                bgDom = bgc - Math.max(br, bb);
-            } else {
-                px = r - Math.max(g, b);
-                bgDom = br - Math.max(bgc, bb);
-            }
-            if (bgDom > 6 && px > 1)
-                chan = Math.max(0, Math.min(1, px / bgDom));
-        }
-        return Math.max(chan, rgbSim * 0.88, c * 0.8);
-    }
-
-    function isBgPixel(idx) {
+    function isBgPixel(idx, x, y) {
+        if (x != null && inSubject(x, y)) return false;
         if (d[idx + 3] < 40) return true;
         var r = d[idx], g = d[idx + 1], b = d[idx + 2];
         var L = window.sikkhaloyLuma(r, g, b);
-        if (L < lumaBg - 48 && chromaDist(r, g, b) > 14) return false;
+        if (Math.abs(L - lumaBg) > 38) return false;
         return window.sikkhaloyColorDist(r, g, b, br, bgc, bb) <= tol;
     }
 
@@ -118,38 +92,31 @@ window.sikkhaloyReplaceEdgeBackground = function (ctx, w, h, fillHex) {
     function seed(x, y) {
         if (x < 0 || y < 0 || x >= w || y >= h) return;
         var p = y * w + x;
-        if (seen[p] || !isBgPixel(p * 4)) return;
+        if (seen[p] || inSubject(x, y) || !isBgPixel(p * 4, x, y)) return;
         seen[p] = 1;
         q.push(p);
     }
-    function seedCorner(x0, y0) {
-        for (var y = y0; y < y0 + patch && y < h; y++)
-            for (var x = x0; x < x0 + patch && x < w; x++)
-                seed(x, y);
+    for (var x = 0; x < w; x++) {
+        seed(x, 0);
+        seed(x, h - 1);
     }
-    seedCorner(0, 0);
-    seedCorner(w - patch, 0);
-    seedCorner(0, h - patch);
-    seedCorner(w - patch, h - patch);
-    if (q.length < 6) return;
+    for (var y = 0; y < h; y++) {
+        seed(0, y);
+        seed(w - 1, y);
+    }
+    if (q.length < 8) return;
     var qs = 0;
     while (qs < q.length) {
         var p = q[qs++];
         var px = p % w;
         var py = (p / w) | 0;
-        var fromL = window.sikkhaloyLuma(d[p * 4], d[p * 4 + 1], d[p * 4 + 2]);
         for (var dy = -1; dy <= 1; dy++) {
             for (var dx = -1; dx <= 1; dx++) {
                 if (!dx && !dy) continue;
                 var nx = px + dx, ny = py + dy;
                 if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
                 var np = ny * w + nx;
-                if (seen[np]) continue;
-                var ni = np * 4;
-                var toL = window.sikkhaloyLuma(d[ni], d[ni + 1], d[ni + 2]);
-                if (toL < fromL - 24 && toL < lumaBg - 30 && chromaDist(d[ni], d[ni + 1], d[ni + 2]) > 18)
-                    continue;
-                if (!isBgPixel(ni)) continue;
+                if (seen[np] || inSubject(nx, ny) || !isBgPixel(np * 4, nx, ny)) continue;
                 seen[np] = 1;
                 q.push(np);
             }
@@ -158,145 +125,46 @@ window.sikkhaloyReplaceEdgeBackground = function (ctx, w, h, fillHex) {
     var marked = 0;
     for (var n = 0; n < seen.length; n++)
         if (seen[n]) marked++;
-    if (marked < nPix * 0.02 || marked > nPix * 0.9)
+    if (marked < nPix * 0.02 || marked > nPix * 0.62)
         return;
 
-    var expand = new Uint8Array(seen);
-    for (var pass = 0; pass < 6; pass++) {
-        var next = new Uint8Array(expand);
-        for (var y = 0; y < h; y++) {
-            for (var x = 0; x < w; x++) {
-                var p = y * w + x;
-                if (expand[p]) continue;
-                var i = p * 4;
-                if (spillOf(d[i], d[i + 1], d[i + 2]) < 0.16) continue;
-                var touch = false;
-                for (var dy = -1; dy <= 1 && !touch; dy++) {
-                    for (var dx = -1; dx <= 1; dx++) {
-                        var nx = x + dx, ny = y + dy;
-                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-                        if (expand[ny * w + nx]) { touch = true; break; }
-                    }
+    var fringe = new Uint8Array(nPix);
+    for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+            var p = y * w + x;
+            if (seen[p] || inSubject(x, y)) continue;
+            var i = p * 4;
+            if (window.sikkhaloyColorDist(d[i], d[i + 1], d[i + 2], br, bgc, bb) > tol + 10)
+                continue;
+            var touch = false;
+            for (var dy = -1; dy <= 1 && !touch; dy++) {
+                for (var dx = -1; dx <= 1; dx++) {
+                    var nx = x + dx, ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                    if (seen[ny * w + nx]) { touch = true; break; }
                 }
-                if (touch) next[p] = 1;
             }
-        }
-        expand = next;
-    }
-    seen = expand;
-
-    var nearDist = new Uint8Array(nPix);
-    for (var n = 0; n < nPix; n++)
-        nearDist[n] = seen[n] ? 0 : 12;
-    for (var pass = 0; pass < 8; pass++) {
-        for (var y = 0; y < h; y++) {
-            for (var x = 0; x < w; x++) {
-                var p = y * w + x;
-                var bestD = nearDist[p];
-                if (bestD === 0) continue;
-                for (var dy = -1; dy <= 1; dy++) {
-                    for (var dx = -1; dx <= 1; dx++) {
-                        if (!dx && !dy) continue;
-                        var nx = x + dx, ny = y + dy;
-                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-                        var nd = nearDist[ny * w + nx] + 1;
-                        if (nd < bestD) bestD = nd;
-                    }
-                }
-                nearDist[p] = bestD;
-            }
+            if (touch) fringe[p] = 1;
         }
     }
-
-    var alpha = new Float32Array(nPix);
-    for (var n = 0; n < nPix; n++) {
-        if (seen[n]) { alpha[n] = 0; continue; }
-        var i = n * 4;
-        var r = d[i], g = d[i + 1], b = d[i + 2];
-        var nd = nearDist[n];
-        var spill = spillOf(r, g, b);
-        if (nd > 8 && spill < 0.55) { alpha[n] = 1; continue; }
-        if (spill >= 0.38) { alpha[n] = 0; continue; }
-        var spat = Math.min(1, nd / 6);
-        var keep = (1 - spill * 1.15) * (0.2 + 0.8 * spat);
-        if (keep < 0) keep = 0;
-        if (keep > 1) keep = 1;
-        alpha[n] = keep;
-    }
-
-    function blurAlpha() {
-        var out = new Float32Array(nPix);
-        for (var y = 0; y < h; y++) {
-            for (var x = 0; x < w; x++) {
-                var s = 0, c = 0;
-                for (var dy = -1; dy <= 1; dy++) {
-                    for (var dx = -1; dx <= 1; dx++) {
-                        var nx = x + dx, ny = y + dy;
-                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-                        s += alpha[ny * w + nx];
-                        c++;
-                    }
-                }
-                out[y * w + x] = s / c;
-            }
-        }
-        alpha = out;
-    }
-    blurAlpha();
-    blurAlpha();
 
     for (var n = 0; n < nPix; n++) {
         var i = n * 4;
-        var a = alpha[n];
-        var r = d[i], g = d[i + 1], b = d[i + 2];
-        var spill = spillOf(r, g, b);
-        if (a <= 0.06 || spill >= 0.34 && nearDist[n] <= 8) {
+        if (seen[n]) {
             d[i] = fill[0];
             d[i + 1] = fill[1];
             d[i + 2] = fill[2];
             d[i + 3] = 255;
             continue;
         }
-        if (a >= 0.97 && spill < 0.12) {
+        if (!fringe[n]) {
             d[i + 3] = 255;
             continue;
         }
-        var bgAmt = Math.max(1 - a, spill * 1.05);
-        if (bgAmt > 1) bgAmt = 1;
-        var fgAmt = 1 - bgAmt;
-        if (fgAmt < 0.08) {
-            d[i] = fill[0];
-            d[i + 1] = fill[1];
-            d[i + 2] = fill[2];
-            d[i + 3] = 255;
-            continue;
-        }
-        var fr = (r - br * bgAmt) / fgAmt;
-        var fg = (g - bgc * bgAmt) / fgAmt;
-        var fb = (b - bb * bgAmt) / fgAmt;
-        if (bb >= br && bb >= bgc) {
-            var extra = fb - Math.max(fr, fg);
-            if (extra > 0) fb -= extra;
-        } else if (bgc >= br && bgc >= bb) {
-            var extra = fg - Math.max(fr, fb);
-            if (extra > 0) fg -= extra;
-        } else {
-            var extra = fr - Math.max(fg, fb);
-            if (extra > 0) fr -= extra;
-        }
-        if (fr < 0) fr = 0; else if (fr > 255) fr = 255;
-        if (fg < 0) fg = 0; else if (fg > 255) fg = 255;
-        if (fb < 0) fb = 0; else if (fb > 255) fb = 255;
-        if (spill > 0.08) {
-            var L = window.sikkhaloyLuma(fr, fg, fb);
-            var k = Math.min(1, spill * 1.25);
-            fr = fr * (1 - k) + L * k;
-            fg = fg * (1 - k) + L * k;
-            fb = fb * (1 - k) + L * k;
-        }
-        d[i] = Math.round(fr * a + fill[0] * (1 - a));
-        d[i + 1] = Math.round(fg * a + fill[1] * (1 - a));
-        d[i + 2] = Math.round(fb * a + fill[2] * (1 - a));
+        var a = 0.45;
+        d[i] = Math.round(d[i] * a + fill[0] * (1 - a));
+        d[i + 1] = Math.round(d[i + 1] * a + fill[1] * (1 - a));
+        d[i + 2] = Math.round(d[i + 2] * a + fill[2] * (1 - a));
         d[i + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
@@ -1101,4 +969,19 @@ window.sikkhaloyFormValues = function (ids) {
         o[id] = el ? String(el.value || "") : "";
     }
     return o;
+};
+
+window.sikkhaloyFaultBulkLoad = function (userKey) {
+    try {
+        var raw = localStorage.getItem("sikkhaloy-fault-bulk-" + (userKey || "0"));
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+window.sikkhaloyFaultBulkSave = function (userKey, data) {
+    try {
+        localStorage.setItem("sikkhaloy-fault-bulk-" + (userKey || "0"), JSON.stringify(data || {}));
+    } catch (e) { }
 };

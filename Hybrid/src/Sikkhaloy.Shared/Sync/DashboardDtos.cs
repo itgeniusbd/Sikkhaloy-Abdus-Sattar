@@ -23,6 +23,7 @@ public sealed class DashboardOverviewDto
     public int EmployeeCount { get; set; }
     public List<DashboardNamedCountDto> Employees { get; set; } = [];
     public List<DashboardNamedCountDto> AttendanceToday { get; set; } = [];
+    public bool BirthdaySmsSent { get; set; }
     public decimal Paid { get; set; }
     public decimal PresentDue { get; set; }
     public decimal Unpaid { get; set; }

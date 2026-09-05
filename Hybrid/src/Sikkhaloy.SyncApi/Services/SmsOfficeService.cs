@@ -396,6 +396,151 @@ VALUES (@ID, @SchoolID, @SID, NULL, @YearID)
         }
     }
 
+    public async Task<SmsResult> SendBirthdaySmsAsync(SessionSnapshot session, CancellationToken ct)
+    {
+        try
+        {
+            await using var con = _connections.Create();
+            await con.OpenAsync(ct);
+
+            await using (var check = new SqlCommand("""
+SELECT TOP (1) SMS_Send_Record.SMS_Send_ID
+FROM dbo.SMS_Send_Record
+INNER JOIN dbo.SMS_OtherInfo ON SMS_Send_Record.SMS_Send_ID = SMS_OtherInfo.SMS_Send_ID
+WHERE SMS_OtherInfo.SchoolID = @SchoolID
+  AND SMS_Send_Record.PurposeOfSMS = N'Birthday'
+  AND CONVERT(date, SMS_Send_Record.Date) = CONVERT(date, GETDATE())
+""", con))
+            {
+                check.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                if (await check.ExecuteScalarAsync(ct) is not null)
+                    return Fail("dash.bdayAlready");
+            }
+
+            var school = await SessionSchool.ResolveNameAsync(session, con, ct);
+            await using var cmd = new SqlCommand("""
+SELECT Student.StudentID, Student.StudentsName, ISNULL(Student.SMSPhoneNo, N'') AS SMSPhoneNo
+FROM dbo.Student
+INNER JOIN dbo.StudentsClass ON Student.StudentID = StudentsClass.StudentID
+WHERE Student.DateofBirth IS NOT NULL
+  AND MONTH(Student.DateofBirth) = MONTH(GETDATE())
+  AND DAY(Student.DateofBirth) = DAY(GETDATE())
+  AND Student.Status = N'Active'
+  AND StudentsClass.SchoolID = @SchoolID
+  AND StudentsClass.EducationYearID = @EducationYearID
+""", con);
+            cmd.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+            cmd.Parameters.AddWithValue("@EducationYearID", session.EducationYearID);
+
+            var jobs = new List<(int StudentId, string Phone, string Text, int Count)>();
+            await using (var reader = await cmd.ExecuteReaderAsync(ct))
+            {
+                while (await reader.ReadAsync(ct))
+                {
+                    var name = (reader["StudentsName"]?.ToString() ?? "").Trim();
+                    var phone = reader["SMSPhoneNo"]?.ToString() ?? "";
+                    var text = "Happy birthday to you, " + name
+                        + ". I wish you a successful future. Study hard and don't forget your ambitions in life. You'll certainly go places. Regards, "
+                        + school;
+                    jobs.Add((
+                        Convert.ToInt32(reader["StudentID"]),
+                        phone,
+                        text,
+                        IsValidBdMobile(phone) ? SmsCount(text) : 0));
+                }
+            }
+
+            if (jobs.Count == 0)
+                return Fail("dash.noBirthday");
+
+            var valid = jobs.Where(x => x.Count > 0).ToList();
+            if (valid.Count == 0)
+                return Fail("sms.needPhone");
+
+            var needed = valid.Sum(x => x.Count);
+            var balance = await ReadBalanceAsync(con, session.SchoolID, ct);
+            if (balance < needed)
+                return new SmsResult { Error = "sms.low", Balance = balance };
+
+            var sent = 0;
+            var failed = 0;
+            string? lastError = null;
+            foreach (var job in jobs)
+            {
+                if (job.Count <= 0 || string.IsNullOrWhiteSpace(job.Phone))
+                {
+                    failed++;
+                    continue;
+                }
+
+                var call = _local.IsLocal
+                    ? new OfficeSmsGateway.GatewayCall("Localhost - not sent to mobile", null)
+                    : await _gateway.SendAsync(job.Phone, job.Text, ct);
+                if (string.IsNullOrWhiteSpace(call.Body))
+                {
+                    failed++;
+                    lastError = call.Error;
+                    continue;
+                }
+
+                try
+                {
+                    var smsId = Guid.NewGuid();
+                    await using (var ins = new SqlCommand("""
+INSERT INTO dbo.SMS_Send_Record
+    (SMS_Send_ID, PhoneNumber, TextSMS, TextCount, SMSCount, PurposeOfSMS, Status, Date, SMS_Response)
+VALUES
+    (@ID, @Phone, @Text, @Len, @Count, N'Birthday', @Status, GETDATE(), @Resp)
+""", con))
+                    {
+                        ins.Parameters.AddWithValue("@ID", smsId);
+                        ins.Parameters.AddWithValue("@Phone", job.Phone);
+                        ins.Parameters.AddWithValue("@Text", job.Text);
+                        ins.Parameters.AddWithValue("@Len", job.Text.Length);
+                        ins.Parameters.AddWithValue("@Count", job.Count);
+                        ins.Parameters.AddWithValue("@Status", _local.IsLocal ? "Local" : "Sent");
+                        ins.Parameters.AddWithValue("@Resp", call.Body);
+                        await ins.ExecuteNonQueryAsync(ct);
+                    }
+
+                    await using (var other = new SqlCommand("""
+INSERT INTO dbo.SMS_OtherInfo (SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID)
+VALUES (@ID, @SchoolID, @SID, NULL, @YearID)
+""", con))
+                    {
+                        other.Parameters.AddWithValue("@ID", smsId);
+                        other.Parameters.AddWithValue("@SchoolID", session.SchoolID);
+                        other.Parameters.AddWithValue("@SID", job.StudentId);
+                        other.Parameters.AddWithValue("@YearID", session.EducationYearID);
+                        await other.ExecuteNonQueryAsync(ct);
+                    }
+
+                    sent++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    lastError = ex.Message;
+                }
+            }
+
+            return new SmsResult
+            {
+                Succeeded = sent > 0,
+                Sent = sent,
+                Failed = failed,
+                Balance = await ReadBalanceAsync(con, session.SchoolID, ct),
+                Error = sent > 0 ? null : (lastError ?? "sms.fail"),
+                Message = sent > 0 && _local.IsLocal ? "sms.localSent" : lastError,
+                LocalMode = _local.IsLocal
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SmsResult { Error = ex.Message, LocalMode = _local.IsLocal };
+        }
+    }
+
     public async Task<IReadOnlyList<SmsGroupDto>> GetGroupsAsync(SessionSnapshot session, CancellationToken ct)
     {
         await using var con = _connections.Create();

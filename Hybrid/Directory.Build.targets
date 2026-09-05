@@ -1,0 +1,16 @@
+<Project>
+  <!-- Stop local SyncApi before rebuild so apphost/DLL copies are not locked (MSB3021/MSB3027). -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Sikkhaloy.SyncApi'">
+    <CopyRetryCount>12</CopyRetryCount>
+    <CopyRetryDelayMilliseconds>300</CopyRetryDelayMilliseconds>
+  </PropertyGroup>
+
+  <Target Name="StopRunningSyncApi"
+          BeforeTargets="BeforeBuild;BeforeRebuild;ResolveAssemblyReferences"
+          Condition="'$(MSBuildProjectName)' == 'Sikkhaloy.SyncApi' and '$(OS)' == 'Windows_NT'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Stop-Process -Name 'Sikkhaloy.SyncApi' -Force -ErrorAction SilentlyContinue; $p = @(Get-NetTCPConnection -LocalPort 5135 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique); foreach ($id in $p) { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 700&quot;"
+          IgnoreExitCode="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
+  </Target>
+</Project>

@@ -182,3 +182,32 @@ public sealed class StudentInfoResult
     public string? Detail { get; set; }
     public int Count { get; set; }
 }
+
+public sealed class SaveStudentFaultReportRequest
+{
+    public string StudentCode { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+    public DateTime? Date { get; set; }
+}
+
+public sealed class UpdateStudentFaultReportRequest
+{
+    public int StudentFaultID { get; set; }
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+    public DateTime? Date { get; set; }
+}
+
+public sealed class StudentFaultReportLineRequest
+{
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+}
+
+public sealed class SaveStudentFaultReportsBulkRequest
+{
+    public string StudentCode { get; set; } = "";
+    public DateTime? Date { get; set; }
+    public List<StudentFaultReportLineRequest> Items { get; set; } = [];
+}

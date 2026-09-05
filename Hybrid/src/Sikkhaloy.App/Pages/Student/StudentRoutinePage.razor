@@ -1,0 +1,49 @@
+@page "/student/routine"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("stu.classRoutine")</h1>
+    <article class="sp-card">
+        @if (loading)
+        {
+            <p class="sp-empty">@Locale.T("stu.loading")</p>
+        }
+        else if (rows.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+        else
+        {
+            @for (var i = 0; i < rows.Count; i++)
+            {
+                var period = rows[i];
+                <div class="sp-period">
+                    <span class="sp-num">@(i + 1)</span>
+                    <b>@period.Period @period.Subject</b>
+                    <span>@period.Time</span>
+                </div>
+            }
+        }
+    </article>
+</div>
+
+@code {
+    private IReadOnlyList<StudentPortalPeriodDto> rows = [];
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                rows = await Api.GetStudentPortalRoutineAsync(Session.AccessToken);
+        }
+        catch { }
+        loading = false;
+    }
+}

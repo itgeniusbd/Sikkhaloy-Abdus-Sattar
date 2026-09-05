@@ -1,0 +1,59 @@
+@page "/student/exam"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("stu.individual")</h1>
+    <article class="sp-card">
+        @if (loading)
+        {
+            <p class="sp-empty">@Locale.T("stu.loading")</p>
+        }
+        else if (rows.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+        else
+        {
+            <table class="sp-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("stu.exam")</th>
+                        <th>@Locale.T("stu.point")</th>
+                        <th>@Locale.T("stu.grade")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <td>@row.Name</td>
+                            <td>@row.Point.ToString("0.##")</td>
+                            <td><span class="sp-grade">@row.Grade</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </article>
+</div>
+
+@code {
+    private IReadOnlyList<StudentPortalExamDto> rows = [];
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                rows = await Api.GetStudentPortalExamsAsync(Session.AccessToken);
+        }
+        catch { }
+        loading = false;
+    }
+}

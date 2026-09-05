@@ -15,6 +15,12 @@ public sealed class JwtTokenService
     public const string DeviceIdClaim = "device_id";
     public const string SchoolNameClaim = "school_name";
     public const string DisplayNameClaim = "display_name";
+    public const string StudentIdClaim = "student_id";
+    public const string StudentClassIdClaim = "student_class_id";
+    public const string ClassIdClaim = "class_id";
+    public const string StudentCodeClaim = "student_code";
+    public const string ClassNameClaim = "class_name";
+    public const string SectionNameClaim = "section_name";
 
     private readonly IConfiguration _configuration;
 
@@ -40,7 +46,13 @@ public sealed class JwtTokenService
             new Claim(RoleClaim, session.Role),
             new Claim(DeviceIdClaim, session.DeviceId),
             new Claim(SchoolNameClaim, session.SchoolName ?? ""),
-            new Claim(DisplayNameClaim, session.DisplayName ?? "")
+            new Claim(DisplayNameClaim, session.DisplayName ?? ""),
+            new Claim(StudentIdClaim, session.StudentID.ToString()),
+            new Claim(StudentClassIdClaim, session.StudentClassID.ToString()),
+            new Claim(ClassIdClaim, session.ClassID.ToString()),
+            new Claim(StudentCodeClaim, session.StudentCode ?? ""),
+            new Claim(ClassNameClaim, session.ClassName ?? ""),
+            new Claim(SectionNameClaim, session.SectionName ?? "")
         };
 
         var credentials = new SigningCredentials(
@@ -68,7 +80,13 @@ public sealed class JwtTokenService
             EducationYearID = ParseInt(user.FindFirstValue(EducationYearIdClaim)),
             DeviceId = user.FindFirstValue(DeviceIdClaim) ?? "",
             SchoolName = user.FindFirstValue(SchoolNameClaim) ?? "",
-            DisplayName = user.FindFirstValue(DisplayNameClaim) ?? ""
+            DisplayName = user.FindFirstValue(DisplayNameClaim) ?? "",
+            StudentID = ParseInt(user.FindFirstValue(StudentIdClaim)),
+            StudentClassID = ParseInt(user.FindFirstValue(StudentClassIdClaim)),
+            ClassID = ParseInt(user.FindFirstValue(ClassIdClaim)),
+            StudentCode = user.FindFirstValue(StudentCodeClaim) ?? "",
+            ClassName = user.FindFirstValue(ClassNameClaim) ?? "",
+            SectionName = user.FindFirstValue(SectionNameClaim) ?? ""
         };
     }
 

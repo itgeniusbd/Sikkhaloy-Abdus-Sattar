@@ -199,7 +199,7 @@
             {
                 @if (!string.IsNullOrWhiteSpace(photoPreview))
                 {
-                    <img class="sm-photo-preview" src="@photoPreview" alt="" />
+                    <img class="sm-photo-preview" src="@photoPreview" alt="" style="background:@photoBg" />
                 }
                 <div class="sm-bg-row">
                     <span>@Locale.T("sm.photoBg")</span>

@@ -7,6 +7,7 @@
 @inject OfflineAuthService OfflineAuth
 @inject ISyncApiClient Api
 @inject IJSRuntime JS
+@inject SyncLoopService SyncLoop
 
 @if (Session.IsAuthority)
 {
@@ -213,6 +214,7 @@ else
     </div>
     <GoToTop />
 </div>
+<ExamBusyOverlay Busy="@SyncOverlay" Title="@Locale.T("sync.loginTitle")" Message="@Locale.T("sync.loginWait")" />
 @if (showAdminNotice)
 {
     <div class="acc-result-back" @onclick="CloseAdminNotice">
@@ -300,6 +302,7 @@ else
 
     private string role => Session.Current?.Role ?? "";
     private bool hasNameLogo => !string.IsNullOrWhiteSpace(nameLogoUrl);
+    private bool SyncOverlay => Session.AwaitInitialSync || SyncLoop.ShowLoginSync;
     private string ColorKey => $"headerColor_school_{Session.Current?.SchoolID ?? 0}";
     private string LegacyColorKey => $"headerColor_{Session.Current?.RegistrationID ?? 0}";
 
@@ -342,6 +345,12 @@ else
             return;
         }
 
+        if (Session.IsStudent)
+        {
+            Nav.NavigateTo("/student", replace: true);
+            return;
+        }
+
         if (Session.IsAuthority)
         {
             Nav.NavigateTo("/authority", replace: true);
@@ -351,6 +360,7 @@ else
         Sync.StateChanged += OnSyncState;
         Locale.Changed += OnLocale;
         Session.Changed += OnSession;
+        SyncLoop.Changed += OnLoginSync;
         Nav.LocationChanged += OnLocation;
         RefreshStatus();
         await LoadOfficeAsync();
@@ -361,6 +371,9 @@ else
     {
         if (!firstRender)
             return;
+        Session.MarkSyncOverlaySeen();
+        if (!Session.AwaitInitialSync && !SyncLoop.ShowLoginSync)
+            StateHasChanged();
         await LoadHeaderColorAsync();
     }
 
@@ -371,6 +384,7 @@ else
     });
 
     private void OnLocale() => _ = InvokeAsync(StateHasChanged);
+    private void OnLoginSync() => _ = InvokeAsync(StateHasChanged);
     private void OnSession() => _ = InvokeAsync(async () =>
     {
         await LoadOfficeAsync();
@@ -450,16 +464,24 @@ else
         if (Session.Current is null)
             return;
 
-        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
-            await Sync.RefreshOfficeAsync(Session.Current, Session.AccessToken);
+        try
+        {
+            years = await Sync.ListYearsAsync(Session.Current.SchoolID);
+            menu = await Sync.GetMenuAsync(Session.Current.UserName) ?? new();
+            menu.Categories ??= [];
+            selectedYearId = Session.Current.EducationYearID.ToString();
+            photoUrl = Sync.GetProfilePhotoDataUrl(Session.Current.RegistrationID);
+            LoadSchoolHeader();
+            await RefreshAccessAsync();
+            _ = LoadAdminNoticesAsync();
+        }
+        catch
+        {
+            years ??= [];
+            menu ??= new();
+            menu.Categories ??= [];
+        }
 
-        years = await Sync.ListYearsAsync(Session.Current.SchoolID);
-        menu = await Sync.GetMenuAsync(Session.Current.UserName);
-        selectedYearId = Session.Current.EducationYearID.ToString();
-        photoUrl = Sync.GetProfilePhotoDataUrl(Session.Current.RegistrationID);
-        LoadSchoolHeader();
-        await RefreshAccessAsync();
-        await LoadAdminNoticesAsync();
         StateHasChanged();
     }
 
@@ -695,6 +717,7 @@ else
         Sync.StateChanged -= OnSyncState;
         Locale.Changed -= OnLocale;
         Session.Changed -= OnSession;
+        SyncLoop.Changed -= OnLoginSync;
         Nav.LocationChanged -= OnLocation;
     }
 }

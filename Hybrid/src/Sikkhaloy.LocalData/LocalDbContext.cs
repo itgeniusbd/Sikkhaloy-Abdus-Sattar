@@ -254,11 +254,20 @@ public sealed class LocalDbContext : DbContext
         added |= await EnsureColumnAsync(db, "Students", "GuardianRelationshipwithStudent", "TEXT", cancellationToken);
         added |= await EnsureColumnAsync(db, "Students", "GuardianPhoneNumber", "TEXT", cancellationToken);
         added |= await EnsureColumnAsync(db, "Sessions", "DisplayName", "TEXT", cancellationToken);
+        added |= await EnsureColumnAsync(db, "Sessions", "StudentID", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+        added |= await EnsureColumnAsync(db, "Sessions", "StudentClassID", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+        added |= await EnsureColumnAsync(db, "Sessions", "ClassID", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+        added |= await EnsureColumnAsync(db, "Sessions", "StudentCode", "TEXT", cancellationToken);
+        added |= await EnsureColumnAsync(db, "Sessions", "ClassName", "TEXT", cancellationToken);
+        added |= await EnsureColumnAsync(db, "Sessions", "SectionName", "TEXT", cancellationToken);
         added |= await EnsureColumnAsync(db, "Classes", "LocalId", "TEXT", cancellationToken);
         added |= await EnsureColumnAsync(db, "Classes", "SyncStatus", "INTEGER", cancellationToken);
 
         await db.Database.ExecuteSqlRawAsync("""
             UPDATE Sessions SET DisplayName = COALESCE(DisplayName, UserName, '') WHERE DisplayName IS NULL;
+            UPDATE Sessions SET StudentID = COALESCE(StudentID, 0);
+            UPDATE Sessions SET StudentClassID = COALESCE(StudentClassID, 0);
+            UPDATE Sessions SET ClassID = COALESCE(ClassID, 0);
             """, cancellationToken);
 
         await db.Database.ExecuteSqlRawAsync("""

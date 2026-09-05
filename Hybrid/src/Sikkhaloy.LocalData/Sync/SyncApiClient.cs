@@ -31,6 +31,7 @@ public interface ISyncApiClient
 {
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<bool> PingAsync(CancellationToken cancellationToken = default);
+    string ApiHost { get; }
     event Action? OfflineQueueChanged;
     Task<int> FlushQueuedWritesAsync(string accessToken, CancellationToken cancellationToken = default);
     Task QueueOfficeSmsAsync(string phones, string text, CancellationToken cancellationToken = default);
@@ -160,6 +161,16 @@ public interface ISyncApiClient
         string accessToken, CancellationToken cancellationToken = default);
     Task<StudentReportDto> GetStudentReportAsync(
         string accessToken, string studentId, string? part = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalFaultReportDto>> GetStudentFaultReportsAsync(
+        string accessToken, string studentId, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> SaveStudentFaultReportAsync(
+        string accessToken, SaveStudentFaultReportRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> SaveStudentFaultReportsBulkAsync(
+        string accessToken, SaveStudentFaultReportsBulkRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> UpdateStudentFaultReportAsync(
+        string accessToken, UpdateStudentFaultReportRequest request, CancellationToken cancellationToken = default);
+    Task<StudentInfoResult> DeleteStudentFaultReportAsync(
+        string accessToken, int studentFaultId, CancellationToken cancellationToken = default);
     Task<StudentPlacementDto?> GetStudentPlacementAsync(
         string accessToken, string studentId, CancellationToken cancellationToken = default);
     Task<StudentInfoResult> SaveStudentPlacementAsync(
@@ -371,6 +382,25 @@ public interface ISyncApiClient
     Task<SessionPaidDueDto> GetSessionPaidDueAsync(string accessToken, string? status, string? classId, string? sectionId, string? roleId, string? payFor, DateTime? from, DateTime? to, int page = 1, int pageSize = 25, CancellationToken cancellationToken = default);
 
     Task<DashboardOverviewDto> GetDashboardOverviewAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<DashboardOverviewDto?> PeekDashboardOverviewAsync(CancellationToken cancellationToken = default);
+    Task<SmsResult> SendBirthdaySmsAsync(string accessToken, CancellationToken cancellationToken = default);
+
+    Task<StudentPortalDashboardDto> GetStudentPortalDashboardAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentPortalDashboardDto?> PeekStudentPortalDashboardAsync(CancellationToken cancellationToken = default);
+    Task<StudentPortalDetailsDto> GetStudentPortalDetailsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<EducationYearDto>> GetStudentPortalSessionsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentPortalAttendanceDto> GetStudentPortalAttendanceAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalSmsDto>> GetStudentPortalSmsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<StudentPortalAccountsBundleDto> GetStudentPortalAccountsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalReceiptLineDto>> GetStudentPortalReceiptAsync(string accessToken, int moneyReceiptId, CancellationToken cancellationToken = default);
+    Task<StudentPortalPayStartResult> StartStudentPortalPayAsync(string accessToken, StudentPortalPayStartRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalNoticeDto>> GetStudentPortalNoticesAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalExamsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalCumulativeAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalPeriodDto>> GetStudentPortalRoutineAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalUpcomingExamsAsync(string accessToken, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StudentPortalFaultReportDto>> GetStudentPortalReportAsync(
+        string accessToken, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default);
 
     Task<ExamFilterDto> GetExamFiltersAsync(string accessToken, string? kind, int classId = 0, int examId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, int subjectId = 0, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExamNameDto>> GetExamNamesAsync(string accessToken, CancellationToken cancellationToken = default);
@@ -653,6 +683,7 @@ public sealed class SyncApiClient : ISyncApiClient
     private readonly IHttpClientFactory _httpFactory;
     private readonly OfflineApiStore _offline;
     public event Action? OfflineQueueChanged;
+    public string ApiHost => Http().BaseAddress?.Host ?? "";
 
     public SyncApiClient(IHttpClientFactory httpFactory, IDbContextFactory<LocalDbContext> dbFactory)
     {
@@ -662,8 +693,10 @@ public sealed class SyncApiClient : ISyncApiClient
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        using var response = await Http().PostAsJsonAsync("api/auth/login", request, cancellationToken);
-        var payload = await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, cancellationToken);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(60));
+        using var response = await Http().PostAsJsonAsync("api/auth/login", request, cts.Token);
+        var payload = await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions, cts.Token);
         if (payload is null)
         {
             return new LoginResponse
@@ -1989,6 +2022,80 @@ public sealed class SyncApiClient : ISyncApiClient
         }
     }
 
+    public Task<IReadOnlyList<StudentPortalFaultReportDto>> GetStudentFaultReportsAsync(
+        string accessToken, string studentId, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default)
+    {
+        var qs = $"api/sync/student-info/fault-reports?id={Uri.EscapeDataString(studentId)}";
+        if (from is DateTime f)
+            qs += $"&from={f:yyyy-MM-dd}";
+        if (to is DateTime t)
+            qs += $"&to={t:yyyy-MM-dd}";
+        return GetFaultReportsAsync(accessToken, qs, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<StudentPortalFaultReportDto>> GetFaultReportsAsync(
+        string accessToken, string url, CancellationToken cancellationToken)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Get, url);
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                ExtractApiError(body) ?? response.ReasonPhrase,
+                null,
+                response.StatusCode);
+        }
+
+        return JsonSerializer.Deserialize<List<StudentPortalFaultReportDto>>(string.IsNullOrWhiteSpace(body) ? "[]" : body, JsonOptions) ?? [];
+    }
+
+    public async Task<StudentInfoResult> SaveStudentFaultReportAsync(
+        string accessToken, SaveStudentFaultReportRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/student-info/fault-reports")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadFaultInfoResultAsync(response, cancellationToken);
+    }
+
+    public async Task<StudentInfoResult> SaveStudentFaultReportsBulkAsync(
+        string accessToken, SaveStudentFaultReportsBulkRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/student-info/fault-reports/bulk")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadFaultInfoResultAsync(response, cancellationToken);
+    }
+
+    public async Task<StudentInfoResult> UpdateStudentFaultReportAsync(
+        string accessToken, UpdateStudentFaultReportRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Put, "api/sync/student-info/fault-reports")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadFaultInfoResultAsync(response, cancellationToken);
+    }
+
+    public async Task<StudentInfoResult> DeleteStudentFaultReportAsync(
+        string accessToken, int studentFaultId, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Delete, $"api/sync/student-info/fault-reports/{studentFaultId}");
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        return await ReadFaultInfoResultAsync(response, cancellationToken);
+    }
+
     public async Task<StudentPlacementDto?> GetStudentPlacementAsync(
         string accessToken, string studentId, CancellationToken cancellationToken = default)
     {
@@ -2815,6 +2922,77 @@ public sealed class SyncApiClient : ISyncApiClient
 
     public Task<DashboardOverviewDto> GetDashboardOverviewAsync(string accessToken, CancellationToken cancellationToken = default) =>
         GetItemAsync<DashboardOverviewDto>(accessToken, "api/sync/dashboard/overview", cancellationToken);
+
+    public Task<DashboardOverviewDto?> PeekDashboardOverviewAsync(CancellationToken cancellationToken = default) =>
+        _offline.ReadAsync<DashboardOverviewDto>("api/sync/dashboard/overview", cancellationToken);
+
+    public Task<SmsResult> SendBirthdaySmsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        PostSmsAsync(accessToken, "api/sync/dashboard/birthday-sms", new { }, cancellationToken);
+
+    public Task<StudentPortalDashboardDto> GetStudentPortalDashboardAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentPortalDashboardDto>(accessToken, "api/sync/student-portal/dashboard", cancellationToken);
+
+    public Task<StudentPortalDashboardDto?> PeekStudentPortalDashboardAsync(CancellationToken cancellationToken = default) =>
+        _offline.ReadAsync<StudentPortalDashboardDto>("api/sync/student-portal/dashboard", cancellationToken);
+
+    public Task<StudentPortalDetailsDto> GetStudentPortalDetailsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentPortalDetailsDto>(accessToken, "api/sync/student-portal/details", cancellationToken);
+
+    public Task<IReadOnlyList<EducationYearDto>> GetStudentPortalSessionsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<EducationYearDto>(accessToken, "api/sync/student-portal/sessions", cancellationToken);
+
+    public Task<StudentPortalAttendanceDto> GetStudentPortalAttendanceAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentPortalAttendanceDto>(accessToken, "api/sync/student-portal/attendance", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalSmsDto>> GetStudentPortalSmsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalSmsDto>(accessToken, "api/sync/student-portal/sms", cancellationToken);
+
+    public Task<StudentPortalAccountsBundleDto> GetStudentPortalAccountsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetItemAsync<StudentPortalAccountsBundleDto>(accessToken, "api/sync/student-portal/accounts", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalReceiptLineDto>> GetStudentPortalReceiptAsync(string accessToken, int moneyReceiptId, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalReceiptLineDto>(accessToken, $"api/sync/student-portal/accounts/receipt/{moneyReceiptId}", cancellationToken);
+
+    public async Task<StudentPortalPayStartResult> StartStudentPortalPayAsync(string accessToken, StudentPortalPayStartRequest request, CancellationToken cancellationToken = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "api/sync/student-portal/accounts/pay")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await Http().SendAsync(message, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return new StudentPortalPayStartResult { Error = ExtractApiError(body) ?? "stu.payFailed" };
+        return JsonSerializer.Deserialize<StudentPortalPayStartResult>(body, JsonOptions)
+               ?? new StudentPortalPayStartResult { Error = "stu.payFailed" };
+    }
+
+    public Task<IReadOnlyList<StudentPortalNoticeDto>> GetStudentPortalNoticesAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalNoticeDto>(accessToken, "api/sync/student-portal/notices", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalExamsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalExamDto>(accessToken, "api/sync/student-portal/exams", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalCumulativeAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalExamDto>(accessToken, "api/sync/student-portal/cumulative", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalPeriodDto>> GetStudentPortalRoutineAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalPeriodDto>(accessToken, "api/sync/student-portal/routine", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalExamDto>> GetStudentPortalUpcomingExamsAsync(string accessToken, CancellationToken cancellationToken = default) =>
+        GetListAsync<StudentPortalExamDto>(accessToken, "api/sync/student-portal/upcoming-exams", cancellationToken);
+
+    public Task<IReadOnlyList<StudentPortalFaultReportDto>> GetStudentPortalReportAsync(
+        string accessToken, DateTime? from = null, DateTime? to = null, CancellationToken cancellationToken = default)
+    {
+        var qs = "api/sync/student-portal/report";
+        var parts = new List<string>();
+        if (from is DateTime f) parts.Add($"from={Uri.EscapeDataString(f.ToString("yyyy-MM-dd"))}");
+        if (to is DateTime t) parts.Add($"to={Uri.EscapeDataString(t.ToString("yyyy-MM-dd"))}");
+        if (parts.Count > 0) qs += "?" + string.Join("&", parts);
+        return GetListAsync<StudentPortalFaultReportDto>(accessToken, qs, cancellationToken);
+    }
 
     public async Task<ExamFilterDto> GetExamFiltersAsync(string accessToken, string? kind, int classId = 0, int examId = 0, string? groupId = null, string? sectionId = null, string? shiftId = null, int subjectId = 0, CancellationToken cancellationToken = default)
     {
@@ -4381,6 +4559,16 @@ public sealed class SyncApiClient : ISyncApiClient
             return new StudentInfoResult { Succeeded = false, Error = "si.failed" };
         return await response.Content.ReadFromJsonAsync<StudentInfoResult>(JsonOptions, cancellationToken)
                ?? new StudentInfoResult { Succeeded = false, Error = "si.failed" };
+    }
+
+    private async Task<StudentInfoResult> ReadFaultInfoResultAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return new StudentInfoResult { Succeeded = false, Error = "report.faultApiMissing" };
+        if (!response.IsSuccessStatusCode)
+            return new StudentInfoResult { Succeeded = false, Error = "report.faultFailed" };
+        return await response.Content.ReadFromJsonAsync<StudentInfoResult>(JsonOptions, cancellationToken)
+               ?? new StudentInfoResult { Succeeded = false, Error = "report.faultFailed" };
     }
 
     private async Task<SalaryResult> ReadSalaryResultAsync(HttpResponseMessage response, CancellationToken cancellationToken)

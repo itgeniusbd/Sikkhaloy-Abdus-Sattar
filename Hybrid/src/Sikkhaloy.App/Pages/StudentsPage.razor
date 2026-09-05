@@ -257,19 +257,19 @@
         new("id", "students.id"),
         new("name", "students.name"),
         new("father", "students.father"),
-        new("mother", "students.mother"),
+        new("mother", "students.mother") { Visible = false },
         new("blood", "students.blood"),
         new("roll", "students.roll"),
         new("gender", "students.gender"),
         new("phone", "students.phone"),
-        new("address", "students.address"),
-        new("religion", "students.religion"),
+        new("address", "students.address") { Visible = false },
+        new("religion", "students.religion") { Visible = false },
         new("class", "students.class"),
-        new("group", "students.group"),
+        new("group", "students.group") { Visible = false },
         new("section", "students.section"),
-        new("shift", "students.shift"),
+        new("shift", "students.shift") { Visible = false },
         new("dob", "students.dob"),
-        new("admission", "students.admissionDate"),
+        new("admission", "students.admissionDate") { Visible = false },
         new("sync", "students.syncCol") { Visible = false }
     ];
 
@@ -301,18 +301,11 @@
             return;
         }
 
+        Sync.StateChanged += OnSyncStateChanged;
         Session.Changed += OnSessionChanged;
         ApplyClassFromQuery();
-        busyTitle = Locale.T("si.loading");
-        busy = true;
-        try
-        {
-            await LoadAsync();
-        }
-        finally
-        {
-            busy = false;
-        }
+        await LoadLocalAsync();
+        _ = RefreshRemoteAsync();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -334,22 +327,23 @@
         appliedClass = classInput;
     }
 
-    private void OnSessionChanged() => _ = InvokeAsync(LoadAsync);
+    private void OnSessionChanged() => _ = InvokeAsync(LoadLocalAsync);
+
+    private void OnSyncStateChanged() => _ = InvokeAsync(LoadLocalAsync);
 
     public override void Dispose()
     {
+        Sync.StateChanged -= OnSyncStateChanged;
         Session.Changed -= OnSessionChanged;
         base.Dispose();
     }
 
-    private async Task LoadAsync()
+    private async Task LoadLocalAsync()
     {
         var current = Session.Current;
         if (current is null)
             return;
 
-        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
-            await Sync.RefreshClassesAsync(current, Session.AccessToken);
         classes = await Sync.ListClassesAsync(current.SchoolID);
         structure = await Sync.GetClassStructureAsync(current.SchoolID);
         students = await Sync.ListStudentsAsync(current.SchoolID, current.EducationYearID);
@@ -357,34 +351,21 @@
         await LoadClassPartsAsync();
         ApplyFilter();
         StateHasChanged();
-        await RefreshPhotosAsync(current);
     }
 
-    private async Task RefreshPhotosAsync(SessionSnapshot current)
+    private async Task RefreshRemoteAsync()
     {
-        if (string.IsNullOrWhiteSpace(Session.AccessToken) || students.Count == 0)
+        var current = Session.Current;
+        if (current is null || string.IsNullOrWhiteSpace(Session.AccessToken))
             return;
+
         try
         {
-            if (!await Api.PingAsync())
-                return;
-            var photos = await Api.GetStudentPhotosAsync(Session.AccessToken);
-            if (photos.Count == 0)
-                return;
-
-            var byId = students.Where(x => x.ServerId is > 0)
-                .GroupBy(x => x.ServerId!.Value)
-                .ToDictionary(g => g.Key, g => g.First());
-            foreach (var photo in photos)
-            {
-                if (string.IsNullOrWhiteSpace(photo.PhotoDataUrl))
-                    continue;
-                Sync.SaveStudentPhoto(current.SchoolID, photo.StudentID, photo.PhotoDataUrl);
-                if (byId.TryGetValue(photo.StudentID, out var student))
-                    student.PhotoDataUrl = photo.PhotoDataUrl;
-            }
-
-            StateHasChanged();
+            await Sync.RefreshClassesAsync(current, Session.AccessToken);
+            await LoadLocalAsync();
+            var classId = ParseId(classInput);
+            if (classId > 0)
+                await RefreshPlacementsAsync(current, classId);
         }
         catch (HttpRequestException)
         {
@@ -753,8 +734,11 @@
         try
         {
             await Sync.RunOnceAsync(Session.Current, Session.AccessToken, force: true);
-            await RefreshPlacementsAsync(Session.Current);
-            await LoadAsync();
+            await Sync.PullStudentsNowAsync(Session.Current, Session.AccessToken);
+            var classId = ParseId(classInput);
+            if (classId > 0)
+                await RefreshPlacementsAsync(Session.Current, classId);
+            await LoadLocalAsync();
             message = !string.IsNullOrWhiteSpace(Sync.LastError)
                 ? Locale.SyncError(Sync.LastError)
                 : Sync.IsOnline ? Locale.T("students.synced") : Locale.T("students.offlineQueued");

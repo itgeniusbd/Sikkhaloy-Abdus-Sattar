@@ -5,7 +5,6 @@
 @inject OfflineAuthService OfflineAuth
 @inject AppSession Session
 @inject NavigationManager Nav
-@inject SyncEngine Sync
 @inject IJSRuntime JS
 
 <div class="login-split">
@@ -64,7 +63,7 @@
             <h2>@Locale.T("login.signIn")</h2>
             <p class="login-server">
                 <i class="@(apiChecked ? (apiUp ? "is-on" : "is-off") : null)"></i>
-                @Locale.T("login.server", apiChecked ? (apiUp ? Locale.T("online") : Locale.T("offline")) : Locale.T("login.checking"))
+                @Locale.T("login.server", ServerLabel)
             </p>
             <EditForm Model="model" OnValidSubmit="LoginAsync">
                 <label class="auth-field">
@@ -107,6 +106,7 @@
         <footer class="login-copy">@Locale.T("login.copy")</footer>
     </section>
 </div>
+<ExamBusyOverlay Busy="busy" Title="@Locale.T("login.busy")" Message="@Locale.T("sync.loginWait")" />
 
 @code {
     private const string RememberKey = "sikkhaloy.rememberUser";
@@ -117,6 +117,17 @@
     private bool _remember;
     private bool _showPass;
     private string? message;
+    private string ServerLabel
+    {
+        get
+        {
+            if (!apiChecked)
+                return Locale.T("login.checking");
+            var status = apiUp ? Locale.T("online") : Locale.T("offline");
+            var host = Api.ApiHost;
+            return string.IsNullOrWhiteSpace(host) ? status : $"{status} · {host}";
+        }
+    }
 
     private static readonly MarkupString ShieldIcon = Icon("M12 3l8 4v5c0 5-3.4 8.4-8 9.5C7.4 20.4 4 17 4 12V7l8-4Z");
     private static readonly MarkupString SyncIcon = Icon("M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6");
@@ -168,15 +179,36 @@
         busy = true;
         message = null;
         model.DeviceId = OfflineAuthService.GetOrCreateDeviceId();
+        StateHasChanged();
+        await Task.Yield();
         try
         {
+            var userName = model.UserName.Trim();
+            LoginResponse cached;
+            try
+            {
+                cached = await OfflineAuth.TryOfflineLoginAsync(userName, model.Password);
+            }
+            catch
+            {
+                cached = new LoginResponse { Succeeded = false, Error = "login.firstOnline" };
+            }
+
+            if (cached.Succeeded && cached.Session is not null)
+            {
+                Session.Set(cached, notify: false);
+                _ = SaveRememberAsync();
+                busy = false;
+                Nav.NavigateTo(Session.HomePath);
+                _ = CompleteOnlineLoginAsync();
+                return;
+            }
+
             LoginResponse result;
             try
             {
                 result = await Api.LoginAsync(model);
                 apiUp = true;
-                if (result.Succeeded)
-                    await OfflineAuth.CacheOnlineLoginAsync(result, model.Password);
             }
             catch (Exception)
             {
@@ -192,7 +224,7 @@
                     return;
                 }
 
-                result = await OfflineAuth.TryOfflineLoginAsync(model.UserName.Trim(), model.Password);
+                result = cached.Succeeded ? cached : await OfflineAuth.TryOfflineLoginAsync(userName, model.Password);
                 if (!result.Succeeded && result.Error == "login.firstOnline")
                     result.Error = "login.needOnline";
             }
@@ -203,32 +235,59 @@
                 return;
             }
 
-            await SaveRememberAsync();
-            Session.Set(result);
-            if (!Session.IsAuthority && !string.IsNullOrWhiteSpace(Session.AccessToken))
-                await Sync.RunOnceAsync(result.Session, Session.AccessToken, force: true);
-
-            Nav.NavigateTo(Session.HomePath);
+            EnterApp(result);
+            if (apiUp)
+                _ = OfflineAuth.CacheOnlineLoginAsync(result, model.Password);
         }
         catch (Exception ex)
         {
-            var offline = await OfflineAuth.TryOfflineLoginAsync(model.UserName.Trim(), model.Password);
-            if (offline.Succeeded && offline.Session is not null)
+            try
             {
-                await SaveRememberAsync();
-                Session.Set(offline);
-                if (!Session.IsAuthority && !string.IsNullOrWhiteSpace(Session.AccessToken))
-                    await Sync.RunOnceAsync(offline.Session, Session.AccessToken, force: true);
-                Nav.NavigateTo(Session.HomePath);
-                return;
+                var offline = await OfflineAuth.TryOfflineLoginAsync(model.UserName?.Trim() ?? "", model.Password);
+                if (offline.Succeeded && offline.Session is not null)
+                {
+                    EnterApp(offline);
+                    return;
+                }
+            }
+            catch
+            {
             }
 
             message = TranslateError(ex.Message);
         }
         finally
         {
-            busy = false;
+            if (!Session.IsAuthenticated)
+                busy = false;
         }
+    }
+
+    private void EnterApp(LoginResponse result)
+    {
+        Session.Set(result);
+        _ = SaveRememberAsync();
+        busy = false;
+        Nav.NavigateTo(Session.HomePath);
+    }
+
+    private async Task CompleteOnlineLoginAsync()
+    {
+        try
+        {
+            var result = await Api.LoginAsync(model);
+            if (result.Succeeded && result.Session is not null)
+            {
+                apiUp = true;
+                Session.ApplyServerLogin(result);
+                await OfflineAuth.CacheOnlineLoginAsync(result, model.Password);
+            }
+        }
+        catch
+        {
+        }
+
+        Session.NotifyChanged();
     }
 
     private async Task SaveRememberAsync()
@@ -251,6 +310,9 @@
             return Locale.T("login.failed");
         if (error.StartsWith("login.", StringComparison.OrdinalIgnoreCase))
             return Locale.T(error);
+        if (error.Contains("NULL at ordinal", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("IsDBNull", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("login.failed");
         return error;
     }
 

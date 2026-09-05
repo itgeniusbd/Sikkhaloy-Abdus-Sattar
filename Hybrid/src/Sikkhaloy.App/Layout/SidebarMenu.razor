@@ -8,12 +8,12 @@
         <span>@Locale.T("nav.dashboard")</span>
     </NavLink>
 
-    @if (Menu.Categories.Count == 0)
+    @if ((Menu.Categories ?? []).Count == 0)
     {
         <p class="menu-empty">@Locale.T("menu.syncHint")</p>
     }
 
-    @foreach (var category in Menu.Categories)
+    @foreach (var category in Menu.Categories ?? [])
     {
         <details class="menu-group" open="@IsGroupOpen(category)">
             <summary @onclick="() => ToggleGroup(category)" @onclick:preventDefault="true">
@@ -104,14 +104,14 @@
 
     private void FollowCurrentPath()
     {
-        var match = Menu.Categories.FirstOrDefault(ContainsPath);
+        var match = (Menu.Categories ?? []).FirstOrDefault(ContainsPath);
         openGroup = match?.Name;
         if (match is null)
         {
             openSubKey = null;
             return;
         }
-        var sub = match.Subs.FirstOrDefault(s => ContainsPath(s.Links));
+        var sub = (match.Subs ?? []).FirstOrDefault(s => ContainsPath(s.Links ?? []));
         openSubKey = sub is null ? null : SubKey(match, sub);
     }
 
@@ -165,7 +165,7 @@
     private static string? LinkClass(MenuLinkDto link) => link.Ready ? null : "soon-link";
 
     private bool ContainsPath(MenuCategoryDto category) =>
-        ContainsPath(category.Links) || category.Subs.Any(sub => ContainsPath(sub.Links));
+        ContainsPath(category.Links ?? []) || (category.Subs ?? []).Any(sub => ContainsPath(sub.Links ?? []));
 
     private bool ContainsPath(IEnumerable<MenuLinkDto> links)
     {

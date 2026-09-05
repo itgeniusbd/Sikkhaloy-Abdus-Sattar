@@ -1,0 +1,208 @@
+@page "/student/attendance"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("stu.attendance")</h1>
+    <article class="sp-card">
+        @if (loading)
+        {
+            <p class="sp-empty">@Locale.T("stu.loading")</p>
+        }
+        else
+        {
+            <div class="sp-att-sum">
+                <span><b class="is-pre">@data.Present</b> @Locale.T("stu.present")</span>
+                <span><b class="is-abs">@data.Absent</b> @Locale.T("stu.absent")</span>
+                <span><b class="is-late">@data.Late</b> @Locale.T("stu.late")</span>
+                <span><b class="is-lateabs">@data.LateAbsent</b> @Locale.T("stu.lateAbs")</span>
+                <span><b class="is-leave">@data.Leave</b> @Locale.T("stu.leave")</span>
+            </div>
+            <div class="sp-cal-legend">
+                <span><i class="is-pre"></i>@Locale.T("stu.present")</span>
+                <span><i class="is-abs"></i>@Locale.T("stu.absent")</span>
+                <span><i class="is-late"></i>@Locale.T("stu.late")</span>
+                <span><i class="is-lateabs"></i>@Locale.T("stu.lateAbs")</span>
+                <span><i class="is-leave"></i>@Locale.T("stu.leave")</span>
+                <span><i class="is-hol"></i>@Locale.T("stu.holidays")</span>
+            </div>
+            <div class="sp-cal-nav">
+                <button type="button" @onclick="PrevMonth" aria-label="@Locale.T("stu.prevMonth")">‹</button>
+                <strong>@MonthTitle</strong>
+                <button type="button" @onclick="NextMonth" aria-label="@Locale.T("stu.nextMonth")">›</button>
+            </div>
+            <div class="sp-cal">
+                <div class="sp-cal-head">
+                    @foreach (var day in WeekDays)
+                    {
+                        <span class="@(day is "শুক্র" or "Fri" ? "is-friday" : null)">@day</span>
+                    }
+                </div>
+                <div class="sp-cal-grid">
+                    @foreach (var cell in CalendarCells)
+                    {
+                        @if (cell.Date is null)
+                        {
+                            <div class="sp-cal-cell is-empty"></div>
+                        }
+                        else
+                        {
+                            <div class="sp-cal-cell @cell.Css" title="@cell.Title">
+                                <span class="sp-cal-num">@cell.Date.Value.Day</span>
+                                @if (!string.IsNullOrWhiteSpace(cell.Status))
+                                {
+                                    <span class="sp-cal-st">@cell.Status</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(cell.Entry))
+                                {
+                                    <small>@cell.Entry</small>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(cell.Exit))
+                                {
+                                    <small>@cell.Exit</small>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(cell.Note))
+                                {
+                                    <small>@cell.Note</small>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </article>
+</div>
+
+@code {
+    private StudentPortalAttendanceDto data = new();
+    private bool loading = true;
+    private DateTime calMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                data = await Api.GetStudentPortalAttendanceAsync(Session.AccessToken);
+                var last = data.Days.LastOrDefault()?.Date;
+                calMonth = last is DateTime d && d > DateTime.MinValue
+                    ? new DateTime(d.Year, d.Month, 1)
+                    : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            }
+        }
+        catch { }
+        loading = false;
+    }
+
+    private void PrevMonth() => calMonth = calMonth.AddMonths(-1);
+    private void NextMonth() => calMonth = calMonth.AddMonths(1);
+
+    private string MonthTitle =>
+        calMonth.ToString("MMMM yyyy", Locale.IsBengali
+            ? new System.Globalization.CultureInfo("bn-BD")
+            : System.Globalization.CultureInfo.InvariantCulture);
+
+    private string[] WeekDays => Locale.IsBengali
+        ? ["শনি", "রবি", "সোম", "মঙ্গল", "বুধ", "বৃহস্পতি", "শুক্র"]
+        : ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+
+    private List<CalCell> CalendarCells
+    {
+        get
+        {
+            var first = new DateTime(calMonth.Year, calMonth.Month, 1);
+            var startOffset = ((int)first.DayOfWeek - (int)DayOfWeek.Saturday + 7) % 7;
+            var daysInMonth = DateTime.DaysInMonth(calMonth.Year, calMonth.Month);
+            var att = data.Days
+                .Where(x => x.Date > DateTime.MinValue)
+                .GroupBy(x => x.Date.Date)
+                .ToDictionary(g => g.Key, g => g.Last());
+            var hol = data.Holidays
+                .Where(x => x.Date > DateTime.MinValue)
+                .GroupBy(x => x.Date.Date)
+                .ToDictionary(g => g.Key, g => g.First());
+            var cells = new List<CalCell>(42);
+            for (var i = 0; i < startOffset; i++)
+                cells.Add(new CalCell());
+            for (var d = 1; d <= daysInMonth; d++)
+            {
+                var date = new DateTime(calMonth.Year, calMonth.Month, d);
+                var cell = new CalCell { Date = date };
+                var css = date.Date == DateTime.Today ? "is-today" : "";
+                if (att.TryGetValue(date, out var day) && !string.IsNullOrWhiteSpace(day.Status))
+                {
+                    cell.Status = day.Status;
+                    cell.Entry = CompactTime(day.EntryTime);
+                    cell.Exit = CompactTime(day.ExitTime);
+                    css = $"{css} {Css(day.Status)}".Trim();
+                }
+                if (hol.TryGetValue(date, out var holiday))
+                {
+                    css = $"{(date.Date == DateTime.Today ? "is-today " : "")}is-hol";
+                    cell.Note = holiday.Name;
+                }
+                else if (string.IsNullOrWhiteSpace(cell.Status))
+                {
+                    var lv = data.Leaves.FirstOrDefault(x =>
+                        x.StartDate > DateTime.MinValue && date >= x.StartDate.Date && date <= x.EndDate.Date);
+                    if (lv is not null)
+                    {
+                        css = $"{(date.Date == DateTime.Today ? "is-today " : "")}is-leave";
+                        var note = Locale.T("stu.leave");
+                        if (!string.IsNullOrWhiteSpace(lv.LeaveType))
+                            note += ": " + lv.LeaveType;
+                        cell.Note = note;
+                    }
+                }
+                if (date.DayOfWeek == DayOfWeek.Friday)
+                    css = $"{css} is-friday".Trim();
+                cell.Css = css.Trim();
+                cell.Title = string.Join(" · ", new[] { date.ToString("d MMM yyyy"), cell.Status, cell.Entry, cell.Exit, cell.Note }
+                    .Where(x => !string.IsNullOrWhiteSpace(x)));
+                cells.Add(cell);
+            }
+            while (cells.Count % 7 != 0)
+                cells.Add(new CalCell());
+            return cells;
+        }
+    }
+
+    private static string Css(string status)
+    {
+        var key = (status ?? "").Trim();
+        if (key.Equals("Pre", StringComparison.OrdinalIgnoreCase) || key.Equals("Present", StringComparison.OrdinalIgnoreCase))
+            return "is-pre";
+        if (key.Equals("Abs", StringComparison.OrdinalIgnoreCase))
+            return "is-abs";
+        if (key.Equals("Late", StringComparison.OrdinalIgnoreCase))
+            return "is-late";
+        if (key.Equals("Leave", StringComparison.OrdinalIgnoreCase))
+            return "is-leave";
+        if (key.Contains("Late", StringComparison.OrdinalIgnoreCase))
+            return "is-lateabs";
+        return "";
+    }
+
+    private sealed class CalCell
+    {
+        public DateTime? Date { get; set; }
+        public string Css { get; set; } = "";
+        public string? Status { get; set; }
+        public string? Entry { get; set; }
+        public string? Exit { get; set; }
+        public string? Note { get; set; }
+        public string Title { get; set; } = "";
+    }
+
+    private static string? CompactTime(string? value)
+    {
+        var text = (value ?? "").Trim();
+        return text.Length == 0 ? null : text;
+    }
+}

@@ -28,6 +28,8 @@
     <link href="/CSS/student_teacher/sidebar-style.css" rel="stylesheet" />
     <!-- Custom -->
     <link href="/CSS/student_teacher/basic-style.css" rel="stylesheet" />
+    <!-- Student portal -->
+    <link href="/CSS/student/student-portal.css?v=1" rel="stylesheet" />
     <!-- Print -->
     <link type="text/css" href="/CSS/Print.css?v=17" media="print" rel="stylesheet" />
 
@@ -40,22 +42,23 @@
     <asp:ContentPlaceHolder ID="head" runat="server" />
 </head>
 
-<body>
+<body class="st-portal">
     <form id="Form1" runat="server">
         <asp:ScriptManager ID="ScriptManager" runat="server"></asp:ScriptManager>
         <div id="sidedrawer" class="d-print-none z-depth-1">
             <asp:FormView ID="UserInfoFormView" runat="server" DataSourceID="UserInfoSQL" Width="100%">
                 <ItemTemplate>
-                    <div class="Admin-p">
-                        <a href="/Profile_Redirect.aspx" class="Dash_b">
-                            <img class="rounded-circle img-thumbnail" title="Go Profile" src="/Handeler/Student_Photo.ashx?SID=<%#Eval("StudentImageID") %>" />
+                    <div class="Admin-p st-user">
+                        <a href="/Student/Student_Profile.aspx" class="Dash_b" title="Dashboard">
+                            <img class="rounded-circle img-thumbnail" alt="" src="/Handeler/Student_Photo.ashx?SID=<%#Eval("StudentImageID") %>" />
                         </a>
-                        <p class="dropdown-toggle  mb-0 mt-2 p-0 U_Name" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <p class="dropdown-toggle mb-0 mt-2 p-0 U_Name" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <%# Eval("StudentsName") %>
                         </p>
-                        <p class="m-0 U_Name">ID: <%# Eval("ID") %></p>
+                        <p class="m-0 U_Name st-id">ID: <%# Eval("ID") %></p>
                         <ul class="dropdown-menu pull-right">
                             <li><a href="/Student/Change_Password.aspx" class="dropdown-item"><i class="fa fa-lock"></i>Change Password</a></li>
+                            <li><a href="/Student/Student_Profile.aspx" class="dropdown-item"><i class="fa fa-th-large"></i>Dashboard</a></li>
                         </ul>
 
                         <asp:LoginView ID="CustomerLoginView" runat="server">
@@ -89,6 +92,7 @@ WHERE        (Education_Year_User.SchoolID = @SchoolID) AND (Education_Year_User
 
             <ul class="my_Manu">
                 <li></li>
+                <li id="_0"><a href="/Student/Student_Profile.aspx"><i class="fa fa-th-large"></i>Dashboard</a></li>
                 <li id="_1"><a href="/Student/Exam/Individual_Exam.aspx"><i class="fa fa-file-o"></i>Individual Exam</a></li>
                 <li id="_2"><a href="/Student/Exam/Cumulative_Exam.aspx"><i class="fa fa-file"></i>Cumulative Exam</a></li>
                 <li id="_3"><a href="/Student/Exam/Weekly_Exam.aspx"><i class="fa fa-calendar-check-o"></i>Weekly Merit Exam</a></li>
@@ -102,6 +106,10 @@ WHERE        (Education_Year_User.SchoolID = @SchoolID) AND (Education_Year_User
                 <li id="_11"><a href="/Student/Notice.aspx"><i class="fa fa-bullhorn"></i>Notice/Homework</a></li>
                 <li></li>
             </ul>
+            <div class="st-side-foot">
+                <a href="/Student/Change_Password.aspx"><i class="fa fa-lock mr-1"></i>Change Password</a>
+                <a href="/Student/Student_Edit_Profile.aspx"><i class="fa fa-edit mr-1"></i>Edit Profile</a>
+            </div>
         </div>
 
         <div id="header">
@@ -237,6 +245,15 @@ WHERE        (Education_Year_User.SchoolID = @SchoolID) AND (Education_Year_User
                 });
 
                 $("#CurrentYear").text((new Date).getFullYear());
+
+                var path = (location.pathname || "").toLowerCase();
+                $(".my_Manu a").each(function () {
+                    var href = ($(this).attr("href") || "").toLowerCase();
+                    if (href && path.indexOf(href) !== -1)
+                        $(this).closest("li").addClass("is-on");
+                });
+                if (!$(".my_Manu li.is-on").length && path.indexOf("/student/student_profile.aspx") !== -1)
+                    $("#_0").addClass("is-on");
             });
 
             //Change Session

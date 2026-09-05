@@ -34,6 +34,12 @@ public sealed class OfflineAuthService
             DisplayName = string.IsNullOrWhiteSpace(response.Session.DisplayName)
                 ? response.Session.UserName
                 : response.Session.DisplayName,
+            StudentID = response.Session.StudentID,
+            StudentClassID = response.Session.StudentClassID,
+            ClassID = response.Session.ClassID,
+            StudentCode = response.Session.StudentCode,
+            ClassName = response.Session.ClassName,
+            SectionName = response.Session.SectionName,
             AccessToken = response.AccessToken,
             TokenExpiresAt = response.ExpiresAt,
             VerifierSalt = salt,
@@ -65,6 +71,12 @@ public sealed class OfflineAuthService
         existing.DisplayName = string.IsNullOrWhiteSpace(response.Session.DisplayName)
             ? existing.DisplayName
             : response.Session.DisplayName;
+        existing.StudentID = response.Session.StudentID;
+        existing.StudentClassID = response.Session.StudentClassID;
+        existing.ClassID = response.Session.ClassID;
+        existing.StudentCode = response.Session.StudentCode;
+        existing.ClassName = response.Session.ClassName;
+        existing.SectionName = response.Session.SectionName;
         if (!string.IsNullOrWhiteSpace(response.AccessToken))
         {
             existing.AccessToken = response.AccessToken;
@@ -91,11 +103,55 @@ public sealed class OfflineAuthService
 
     public async Task<LoginResponse> TryOfflineLoginAsync(string userName, string password, CancellationToken cancellationToken = default)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var cached = await db.Sessions.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken);
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            var cached = await db.Sessions.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken);
 
-        if (cached is null)
+            if (cached is null)
+            {
+                return new LoginResponse
+                {
+                    Succeeded = false,
+                    Error = "login.firstOnline"
+                };
+            }
+
+            if (!FixedEquals(cached.PasswordVerifier, HashPassword(password, cached.VerifierSalt)))
+            {
+                return new LoginResponse
+                {
+                    Succeeded = false,
+                    Error = "login.badPassword"
+                };
+            }
+
+            return new LoginResponse
+            {
+                Succeeded = true,
+                AccessToken = cached.AccessToken,
+                ExpiresAt = cached.TokenExpiresAt,
+                Session = new SessionSnapshot
+                {
+                    UserName = cached.UserName,
+                    Role = cached.Role,
+                    SchoolID = cached.SchoolID,
+                    SchoolName = cached.SchoolName,
+                    RegistrationID = cached.RegistrationID,
+                    EducationYearID = cached.EducationYearID,
+                    DeviceId = cached.DeviceId,
+                    DisplayName = string.IsNullOrWhiteSpace(cached.DisplayName) ? cached.UserName : cached.DisplayName,
+                    StudentID = cached.StudentID,
+                    StudentClassID = cached.StudentClassID,
+                    ClassID = cached.ClassID,
+                    StudentCode = cached.StudentCode ?? "",
+                    ClassName = cached.ClassName ?? "",
+                    SectionName = cached.SectionName ?? ""
+                }
+            };
+        }
+        catch
         {
             return new LoginResponse
             {
@@ -103,33 +159,6 @@ public sealed class OfflineAuthService
                 Error = "login.firstOnline"
             };
         }
-
-        if (!FixedEquals(cached.PasswordVerifier, HashPassword(password, cached.VerifierSalt)))
-        {
-            return new LoginResponse
-            {
-                Succeeded = false,
-                Error = "login.badPassword"
-            };
-        }
-
-        return new LoginResponse
-        {
-            Succeeded = true,
-            AccessToken = cached.AccessToken,
-            ExpiresAt = cached.TokenExpiresAt,
-            Session = new SessionSnapshot
-            {
-                UserName = cached.UserName,
-                Role = cached.Role,
-                SchoolID = cached.SchoolID,
-                SchoolName = cached.SchoolName,
-                RegistrationID = cached.RegistrationID,
-                EducationYearID = cached.EducationYearID,
-                DeviceId = cached.DeviceId,
-                DisplayName = string.IsNullOrWhiteSpace(cached.DisplayName) ? cached.UserName : cached.DisplayName
-            }
-        };
     }
 
     public static string GetOrCreateDeviceId()

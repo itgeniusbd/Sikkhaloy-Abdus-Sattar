@@ -9,6 +9,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHttpLogging();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 builder.Services.AddSingleton<EduConnectionFactory>();
 builder.Services.AddSingleton<LocalOfficeMode>();
 builder.Services.AddSingleton<JwtTokenService>();
@@ -35,6 +36,7 @@ builder.Services.AddScoped<BalanceSubmissionService>();
 builder.Services.AddScoped<MasterDataService>();
 builder.Services.AddScoped<ExamService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<StudentPortalService>();
 builder.Services.AddScoped<SmsOfficeService>();
 builder.Services.AddScoped<SmsTemplateService>();
 builder.Services.AddScoped<RoutineService>();
@@ -94,5 +96,24 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var role = context.User.FindFirst(JwtTokenService.RoleClaim)?.Value;
+        var path = context.Request.Path.Value ?? "";
+        if (string.Equals(role, "Student", StringComparison.OrdinalIgnoreCase)
+            && path.StartsWith("/api/sync", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/api/sync/student-portal", StringComparison.OrdinalIgnoreCase)
+            && !path.Equals("/api/sync/profile/password", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new { error = "auth.forbidden" });
+            return;
+        }
+    }
+
+    await next();
+});
 app.MapControllers();
 app.Run();

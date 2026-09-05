@@ -1,0 +1,274 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppSession Session
+@inject NavigationManager Nav
+@inject AppLocale Locale
+@inject ISyncApiClient Api
+@inject OfflineAuthService OfflineAuth
+
+@if (!ready)
+{
+    <div class="year-loading">@Locale.T("stu.loading")</div>
+}
+else
+{
+<CascadingValue Name="AppLang" Value="@Locale.Code" IsFixed="false">
+<div class="sp-app @(menuOpen ? "is-open" : null)">
+    <header class="sp-top">
+        <button type="button" class="sp-menu-btn" aria-label="@Locale.T("nav.menu")" @onclick="ToggleMenu">
+            <span></span><span></span><span></span>
+        </button>
+        <a class="sp-brand" href="student">
+            <strong>@Locale.T("stu.brand")</strong>
+            <small>@SchoolLine</small>
+        </a>
+        <div class="sp-top-actions">
+            <select class="sp-year" @bind="selectedYearId" @bind:after="OnYearChanged" disabled="@yearBusy" title="@Locale.T("stu.session")">
+                @if (years.Count == 0)
+                {
+                    <option value="0">@Locale.T("sidebar.session", "—")</option>
+                }
+                @foreach (var year in years)
+                {
+                    <option value="@year.EducationYearID">@Locale.T("sidebar.session", year.Name)</option>
+                }
+            </select>
+            <LanguageSwitch />
+            <a class="sp-avatar" href="student/profile" title="@Locale.T("stu.profile")">
+                @if (!string.IsNullOrWhiteSpace(photoUrl))
+                {
+                    <img src="@photoUrl" alt="" />
+                }
+                else
+                {
+                    @Initials
+                }
+            </a>
+        </div>
+    </header>
+    <div class="sp-body">
+        @if (menuOpen)
+        {
+            <div class="sp-back" @onclick="CloseMenu"></div>
+        }
+        <aside class="sp-side">
+            <label class="sp-year-side">
+                <span>@Locale.T("stu.session")</span>
+                <select @bind="selectedYearId" @bind:after="OnYearChanged" disabled="@yearBusy">
+                    @if (years.Count == 0)
+                    {
+                        <option value="0">—</option>
+                    }
+                    @foreach (var year in years)
+                    {
+                        <option value="@year.EducationYearID">@year.Name</option>
+                    }
+                </select>
+            </label>
+            <NavLink href="student" Match="NavLinkMatch.All" @onclick="CloseMenu">@DashIco @Locale.T("stu.navDash")</NavLink>
+            <NavLink href="student/profile" @onclick="CloseMenu">@UserIco @Locale.T("stu.details")</NavLink>
+            <NavLink href="student/exam" @onclick="CloseMenu">@ExamIco @Locale.T("stu.individual")</NavLink>
+            <NavLink href="student/result" @onclick="CloseMenu">@ResultIco @Locale.T("stu.cumulative")</NavLink>
+            <NavLink href="student/report" @onclick="CloseMenu">@AcadIco @Locale.T("stu.report")</NavLink>
+            <NavLink href="student/accounts" @onclick="CloseMenu">@AccIco @Locale.T("stu.accounts")</NavLink>
+            <NavLink href="student/attendance" @onclick="CloseMenu">@CalIco @Locale.T("stu.attendance")</NavLink>
+            <NavLink href="student/routine" @onclick="CloseMenu">@TimeIco @Locale.T("stu.classRoutine")</NavLink>
+            <NavLink href="student/exam-routine" @onclick="CloseMenu">@ExamIco @Locale.T("stu.examRoutine")</NavLink>
+            <NavLink href="student/sms" @onclick="CloseMenu">@MailIco @Locale.T("stu.sms")</NavLink>
+            <NavLink href="student/notice" @onclick="CloseMenu">@BellIco @Locale.T("stu.notice")</NavLink>
+            <NavLink href="student/password" @onclick="CloseMenu">@LockIco @Locale.T("stu.password")</NavLink>
+        </aside>
+        <main class="sp-main">
+            <div @key="Session.Current?.EducationYearID ?? 0">
+                @Body
+            </div>
+        </main>
+    </div>
+    <nav class="sp-bottom">
+        <NavLink href="student" Match="NavLinkMatch.All">@DashIco @Locale.T("stu.navDash")</NavLink>
+        <NavLink href="student/profile">@UserIco @Locale.T("stu.details")</NavLink>
+        <NavLink href="student/accounts">@AccIco @Locale.T("stu.accounts")</NavLink>
+        <NavLink href="student/attendance">@CalIco @Locale.T("stu.attendance")</NavLink>
+        <NavLink href="student/more">@MoreIco @Locale.T("stu.navMore")</NavLink>
+    </nav>
+</div>
+</CascadingValue>
+}
+
+@code {
+    private bool ready;
+    private bool menuOpen;
+    private bool yearBusy;
+    private string selectedYearId = "0";
+    private string? photoUrl;
+    private string? yearName;
+    private IReadOnlyList<EducationYearDto> years = [];
+
+    private static readonly MarkupString DashIco = Icon("M4 4h7v7H4V4Zm9 0h7v4h-7V4ZM4 13h7v7H4v-7Zm9 6h7v4h-7v-4Zm0-6h7v4h-7v-4Z");
+    private static readonly MarkupString UserIco = Icon("M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z");
+    private static readonly MarkupString AcadIco = Icon("M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z");
+    private static readonly MarkupString ExamIco = Icon("M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4");
+    private static readonly MarkupString ResultIco = Icon("M4 19V5m4 14V9m4 10v-6m4 6V7m4 12V4");
+    private static readonly MarkupString AccIco = Icon("M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6");
+    private static readonly MarkupString CalIco = Icon("M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z");
+    private static readonly MarkupString TimeIco = Icon("M4 6h16M4 12h16M4 18h10");
+    private static readonly MarkupString MailIco = Icon("M4 4h16v16H4V4Zm0 0 8 7 8-7");
+    private static readonly MarkupString BellIco = Icon("M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0");
+    private static readonly MarkupString LockIco = Icon("M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6V11Z");
+    private static readonly MarkupString MoreIco = Icon("M5 12h.01M12 12h.01M19 12h.01");
+
+    private string SchoolLine
+    {
+        get
+        {
+            var school = Session.Current?.SchoolName ?? "";
+            if (string.IsNullOrWhiteSpace(school))
+                return Locale.T("stu.brand");
+            var year = years.FirstOrDefault(x => x.EducationYearID.ToString() == selectedYearId)?.Name
+                       ?? yearName;
+            return string.IsNullOrWhiteSpace(year) ? school : $"{school} ({year})";
+        }
+    }
+
+    private string Initials
+    {
+        get
+        {
+            var name = (Session.Current?.DisplayName ?? "").Trim();
+            if (name.Length == 0) return "S";
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+            return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (!Session.IsStudent)
+        {
+            Nav.NavigateTo(Session.HomePath, replace: true);
+            return;
+        }
+
+        Locale.Changed += OnChanged;
+        Session.Changed += OnChanged;
+        selectedYearId = (Session.Current?.EducationYearID ?? 0).ToString();
+        ready = true;
+        try
+        {
+            var cached = await Api.PeekStudentPortalDashboardAsync();
+            photoUrl = cached?.PhotoDataUrl;
+            yearName = cached?.YearName;
+        }
+        catch
+        {
+        }
+
+        if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            _ = LoadPhotoAsync();
+            _ = LoadYearsAsync();
+        }
+    }
+
+    private async Task LoadYearsAsync()
+    {
+        try
+        {
+            years = await Api.GetStudentPortalSessionsAsync(Session.AccessToken);
+            if (years.Count == 0 && Session.Current is not null)
+            {
+                years =
+                [
+                    new EducationYearDto
+                    {
+                        EducationYearID = Session.Current.EducationYearID,
+                        Name = yearName ?? Session.Current.EducationYearID.ToString(),
+                        IsCurrent = true
+                    }
+                ];
+            }
+            selectedYearId = (Session.Current?.EducationYearID ?? 0).ToString();
+            yearName = years.FirstOrDefault(x => x.EducationYearID.ToString() == selectedYearId)?.Name ?? yearName;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task OnYearChanged()
+    {
+        if (Session.Current is null || yearBusy)
+            return;
+        if (!int.TryParse(selectedYearId, out var yearId) || yearId <= 0)
+            return;
+        if (yearId == Session.Current.EducationYearID)
+            return;
+
+        yearBusy = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                selectedYearId = Session.Current.EducationYearID.ToString();
+                return;
+            }
+
+            var result = await Api.SwitchYearAsync(Session.AccessToken, yearId);
+            if (!result.Succeeded || result.Session is null)
+            {
+                selectedYearId = Session.Current.EducationYearID.ToString();
+                return;
+            }
+
+            result.Session.DeviceId = Session.Current.DeviceId;
+            Session.Set(result, notify: false);
+            await OfflineAuth.UpdateCachedSessionAsync(result);
+            yearName = years.FirstOrDefault(x => x.EducationYearID == yearId)?.Name ?? yearName;
+            selectedYearId = Session.Current.EducationYearID.ToString();
+            Session.NotifyChanged();
+        }
+        catch
+        {
+            selectedYearId = Session.Current?.EducationYearID.ToString() ?? "0";
+        }
+        finally
+        {
+            yearBusy = false;
+        }
+    }
+
+    private async Task LoadPhotoAsync()
+    {
+        try
+        {
+            var dash = await Api.GetStudentPortalDashboardAsync(Session.AccessToken);
+            photoUrl = dash.PhotoDataUrl;
+            yearName = dash.YearName;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+        }
+    }
+
+    private void ToggleMenu() => menuOpen = !menuOpen;
+    private void CloseMenu() => menuOpen = false;
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Locale.Changed -= OnChanged;
+        Session.Changed -= OnChanged;
+    }
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+}

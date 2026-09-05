@@ -1256,8 +1256,11 @@ public static class HybridMenuRoutes
 
     public static void Deduplicate(MenuTreeDto tree)
     {
+        tree.Categories ??= [];
         foreach (var category in tree.Categories)
         {
+            category.Links ??= [];
+            category.Subs ??= [];
             category.Links.RemoveAll(IsTemporarilyHidden);
             EnsureInputExamMarks(category.Links);
             Deduplicate(category.Links);
@@ -1265,6 +1268,7 @@ public static class HybridMenuRoutes
             category.Subs.RemoveAll(IsTemporarilyHiddenSub);
             foreach (var sub in category.Subs)
             {
+                sub.Links ??= [];
                 sub.Links.RemoveAll(IsTemporarilyHidden);
                 EnsureInputExamMarks(sub.Links);
                 Deduplicate(sub.Links);

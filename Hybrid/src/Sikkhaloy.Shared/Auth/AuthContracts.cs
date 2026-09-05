@@ -26,8 +26,17 @@ public sealed class SessionSnapshot
     public int EducationYearID { get; set; }
     public string DeviceId { get; set; } = "";
     public string DisplayName { get; set; } = "";
+    public int StudentID { get; set; }
+    public int StudentClassID { get; set; }
+    public int ClassID { get; set; }
+    public string StudentCode { get; set; } = "";
+    public string ClassName { get; set; } = "";
+    public string SectionName { get; set; } = "";
 
     public bool IsAuthority =>
         string.Equals(Role, "Authority", StringComparison.OrdinalIgnoreCase)
         || string.Equals(Role, "Sub-Authority", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsStudent =>
+        string.Equals(Role, "Student", StringComparison.OrdinalIgnoreCase);
 }

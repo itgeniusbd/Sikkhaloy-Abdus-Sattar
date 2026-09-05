@@ -1,0 +1,102 @@
+@page "/student/profile"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page sp-details">
+    <h1>@Locale.T("stu.details")</h1>
+    @if (row is null)
+    {
+        <p class="sp-empty">@(loading ? Locale.T("stu.loading") : Locale.T("stu.empty"))</p>
+    }
+    else
+    {
+        <article class="sp-id-card">
+            <div class="sp-id-photo">
+                @if (!string.IsNullOrWhiteSpace(row.PhotoDataUrl))
+                {
+                    <img src="@row.PhotoDataUrl" alt="" />
+                }
+                else
+                {
+                    @Initials(row.StudentsName)
+                }
+            </div>
+            <div>
+                <p class="sp-id-name">@row.StudentsName</p>
+                <span class="sp-id-badge">@Locale.T("stu.id"): @row.StudentCode</span>
+            </div>
+        </article>
+
+        <article class="sp-card sp-detail-card">
+            @DetailRow("stu.gender", row.Gender)
+            @DetailRow("stu.phone", row.Phone)
+            @DetailRow("stu.dob", row.DateOfBirth?.ToString("d MMM yyyy"))
+            @DetailRow("stu.blood", row.BloodGroup, unknownIfEmpty: true)
+            @DetailRow("stu.religion", row.Religion)
+            @DetailRow("stu.email", row.Email)
+            @DetailRow("stu.father", row.FathersName)
+            @DetailRow("stu.mother", row.MothersName)
+            @DetailRow("stu.guardian", GuardianLine(row))
+            @DetailRow("stu.presentAddr", row.PresentAddress)
+            @DetailRow("stu.permanentAddr", row.PermanentAddress)
+        </article>
+    }
+</div>
+
+@code {
+    private StudentPortalDetailsDto? row;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                row = await Api.GetStudentPortalDetailsAsync(Session.AccessToken);
+        }
+        catch { }
+        loading = false;
+    }
+
+    private RenderFragment DetailRow(string labelKey, string? value, bool unknownIfEmpty = false) => __builder =>
+    {
+        var empty = IsMissing(value, unknownIfEmpty);
+        var text = empty
+            ? Locale.T(unknownIfEmpty ? "stu.unknown" : "stu.notAdded")
+            : value!.Trim();
+        <div class="sp-detail-row">
+            <span class="sp-detail-dot" aria-hidden="true"></span>
+            <span>@Locale.T(labelKey)</span>
+            <b class="@(empty ? "is-empty" : null)">@text</b>
+        </div>
+    };
+
+    private static bool IsMissing(string? value, bool treatUnknown)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var text = value.Trim();
+        if (text is "-" or "—" or "N/A" or "n/a") return true;
+        return treatUnknown && text.Equals("Unknown", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? GuardianLine(StudentPortalDetailsDto student)
+    {
+        var name = student.GuardianName?.Trim() ?? "";
+        if (name.Length == 0) return null;
+        var relation = student.GuardianRelation?.Trim() ?? "";
+        return relation.Length == 0 ? name : $"{name} ({relation})";
+    }
+
+    private static string Initials(string name)
+    {
+        var text = (name ?? "").Trim();
+        if (text.Length == 0) return "S";
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+    }
+}

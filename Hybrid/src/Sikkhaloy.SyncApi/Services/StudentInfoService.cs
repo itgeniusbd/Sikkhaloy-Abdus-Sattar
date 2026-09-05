@@ -5,7 +5,7 @@ using Sikkhaloy.Shared.Students;
 
 namespace Sikkhaloy.SyncApi.Services;
 
-public sealed class StudentInfoService
+public sealed partial class StudentInfoService
 {
     private readonly EduConnectionFactory _connections;
 

@@ -1,0 +1,381 @@
+@page "/student/accounts"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page sp-acc">
+    <h1>@Locale.T("stu.accounts")</h1>
+    <p class="sp-acc-hint">@Locale.T("stu.payHint")</p>
+
+    @if (!string.IsNullOrWhiteSpace(banner))
+    {
+        <div class="sp-acc-banner @(bannerError ? "is-err" : "is-ok")">@banner</div>
+    }
+
+    @if (loading)
+    {
+        <p class="sp-empty">@Locale.T("stu.loading")</p>
+    }
+    else if (data is null)
+    {
+        <p class="sp-empty">@Locale.T("stu.empty")</p>
+    }
+    else
+    {
+        <div class="sp-tabs">
+            <button type="button" class="@(tab == 0 ? "is-on" : null)" @onclick="() => tab = 0">@Locale.T("stu.tabDue")</button>
+            <button type="button" class="@(tab == 1 ? "is-on" : null)" @onclick="() => tab = 1">@Locale.T("stu.tabCurrent")</button>
+            <button type="button" class="@(tab == 2 ? "is-on" : null)" @onclick="() => tab = 2">@Locale.T("stu.tabPaid")</button>
+            <button type="button" class="@(tab == 3 ? "is-on" : null)" @onclick="() => tab = 3">@Locale.T("stu.tabReceipt")</button>
+            <button type="button" class="@(tab == 4 ? "is-on" : null)" @onclick="() => tab = 4">@Locale.T("stu.tabConc")</button>
+            <button type="button" class="@(tab == 5 ? "is-on" : null)" @onclick="() => tab = 5">@Locale.T("stu.tabAll")</button>
+        </div>
+
+        @if (tab == 0)
+        {
+            <div class="sp-acc-sum">@WalletIco <strong>@Locale.T("stu.totalDue", Money(data.TotalDue))</strong></div>
+            <article class="sp-card">
+                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.tabDue")</h3></div>
+                @FeeTable(data.TotalDues, pick: true)
+            </article>
+        }
+        else if (tab == 1)
+        {
+            <div class="sp-acc-sum">@WalletIco <strong>@Locale.T("stu.currentDue", Money(data.CurrentDue))</strong></div>
+            <article class="sp-card">
+                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.tabCurrent")</h3></div>
+                @FeeTable(data.CurrentDues, pick: false)
+            </article>
+        }
+        else if (tab == 2)
+        {
+            <div class="sp-acc-sum">@WalletIco <strong>@Locale.T("stu.totalPaid", Money(data.TotalPaid))</strong></div>
+            <article class="sp-card">
+                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.tabPaid")</h3></div>
+                @FeeTable(data.Paid, pick: false)
+            </article>
+        }
+        else if (tab == 3)
+        {
+            <div class="sp-acc-sum">@WalletIco <strong>@Locale.T("stu.totalPaid", Money(data.Receipts.Sum(x => x.TotalAmount)))</strong></div>
+            <article class="sp-card">
+                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.payHistory")</h3></div>
+                @if (data.Receipts.Count == 0)
+                {
+                    <p class="sp-empty">@Locale.T("stu.empty")</p>
+                }
+                else
+                {
+                    <div class="sp-table-wrap">
+                        <table class="sp-table sp-table-fit">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("stu.receipt")</th>
+                                    <th>@Locale.T("stu.date")</th>
+                                    <th>@Locale.T("stu.paid")</th>
+                                    <th>@Locale.T("stu.actions")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in VisibleReceipts)
+                                {
+                                    <tr>
+                                        <td>@row.ReceiptNo</td>
+                                        <td>@Date(row.PaidDate)</td>
+                                        <td>@Money(row.TotalAmount)</td>
+                                        <td>
+                                            <button type="button" class="sp-detail" @onclick="() => OpenReceipt(row.MoneyReceiptID)">
+                                                @Locale.T("stu.viewDetails")
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (data.Receipts.Count > 5)
+                    {
+                        <button type="button" class="sp-view-all" @onclick="() => receiptShowAll = !receiptShowAll">
+                            @Locale.T("stu.viewAll") <span>@(receiptShowAll ? "▴" : "▾")</span>
+                        </button>
+                    }
+                }
+            </article>
+            @if (receiptLines.Count > 0)
+            {
+                <article class="sp-card" style="margin-top:0.75rem">
+                    <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.receiptLines")</h3></div>
+                    <div class="sp-table-wrap">
+                        <table class="sp-table sp-table-fit">
+                            <thead>
+                                <tr>
+                                    <th>@Locale.T("stu.role")</th>
+                                    <th>@Locale.T("stu.payFor")</th>
+                                    <th>@Locale.T("stu.paid")</th>
+                                    <th>@Locale.T("stu.date")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in receiptLines)
+                                {
+                                    <tr>
+                                        <td>@line.Role</td>
+                                        <td>@line.PayFor</td>
+                                        <td>@Money(line.Paid)</td>
+                                        <td>@Date(line.PaidDate)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            }
+        }
+        else if (tab == 4)
+        {
+            <div class="sp-acc-sum">@WalletIco <strong>@Locale.T("stu.totalConc", Money(data.TotalConcession))</strong></div>
+            <article class="sp-card">
+                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.tabConc")</h3></div>
+                @FeeTable(data.Concessions, pick: false, concession: true)
+            </article>
+            @if (data.LateFeeConcessions.Count > 0)
+            {
+                <article class="sp-card" style="margin-top:0.75rem">
+                    <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.lateConc")</h3></div>
+                    @LateTable(data.LateFeeConcessions, true)
+                </article>
+            }
+            @if (data.LateFeeCharges.Count > 0)
+            {
+                <article class="sp-card" style="margin-top:0.75rem">
+                    <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.lateCharge")</h3></div>
+                    @LateTable(data.LateFeeCharges, false)
+                </article>
+            }
+        }
+        else
+        {
+            <div class="sp-acc-sum">
+                @WalletIco
+                <strong>@Locale.T("stu.due"): @Money(data.Summary.Unpaid) Tk</strong>
+            </div>
+            <div class="sp-acc-badges">
+                <span>@Locale.T("stu.sumFee"): @Money(data.Summary.TotalFee)</span>
+                <span>@Locale.T("stu.tabConc"): @Money(data.Summary.TotalDiscount)</span>
+                <span>@Locale.T("stu.lateFee"): @Money(data.Summary.TotalLateFee)</span>
+                <span>@Locale.T("stu.paid"): @Money(data.Summary.TotalPaid)</span>
+            </div>
+            <article class="sp-card">
+                <div class="sp-card-h"><h3>@DocIco @Locale.T("stu.tabAll")</h3></div>
+                @FeeTable(data.AllPayOrders, pick: false)
+            </article>
+        }
+
+        @if (tab == 0)
+        {
+            <div class="sp-paybar">
+                <strong>@Locale.T("stu.payTotal", Money(SelectedTotal))</strong>
+                <button type="button" class="sp-pay-go" disabled="@busy" @onclick="PayAsync">
+                    @(busy ? Locale.T("stu.payBusy") : Locale.T("stu.paySubmit"))
+                </button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private StudentPortalAccountsBundleDto? data;
+    private IReadOnlyList<StudentPortalReceiptLineDto> receiptLines = [];
+    private readonly HashSet<int> selected = [];
+    private int tab;
+    private bool loading = true;
+    private bool busy;
+    private bool bannerError;
+    private bool receiptShowAll;
+    private string? banner;
+    private IEnumerable<StudentPortalReceiptDto> VisibleReceipts =>
+        receiptShowAll ? data?.Receipts ?? [] : (data?.Receipts ?? []).Take(5);
+
+    private static readonly MarkupString WalletIco = Icon("M3 7h18v12H3V7Zm0 0V5h14M16 13h2");
+    private static readonly MarkupString DocIco = Icon("M8 3h7l5 5v13H8V3Zm7 0v5h5");
+
+    private decimal SelectedTotal =>
+        data?.TotalDues.Where(x => selected.Contains(x.PayOrderID)).Sum(x => x.Due) ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        ReadPayQuery();
+        await LoadAsync();
+    }
+
+    private void ReadPayQuery()
+    {
+        var query = new Uri(Nav.Uri).Query;
+        var tabMatch = System.Text.RegularExpressions.Regex.Match(query, @"(?:^|&)tab=(\d+)");
+        if (tabMatch.Success && int.TryParse(tabMatch.Groups[1].Value, out var t) && t >= 0 && t <= 5)
+            tab = t;
+
+        if (query.Contains("paid=1", StringComparison.OrdinalIgnoreCase))
+            banner = Locale.T("stu.payOk");
+        else if (query.Contains("pay=fail", StringComparison.OrdinalIgnoreCase)
+                 || query.Contains("pay=cancel", StringComparison.OrdinalIgnoreCase))
+        {
+            banner = Locale.T("stu.payNo");
+            bannerError = true;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                data = await Api.GetStudentPortalAccountsAsync(Session.AccessToken);
+        }
+        catch { }
+        loading = false;
+    }
+
+    private void Toggle(int id, bool on)
+    {
+        if (on) selected.Add(id);
+        else selected.Remove(id);
+    }
+
+    private async Task PayAsync()
+    {
+        if (data is null || string.IsNullOrWhiteSpace(Session.AccessToken))
+            return;
+        if (SelectedTotal <= 0)
+        {
+            banner = Locale.T("stu.payPick");
+            bannerError = true;
+            return;
+        }
+        if (!data.OnlinePaymentEnabled)
+        {
+            banner = Locale.T("stu.payOff");
+            bannerError = true;
+            return;
+        }
+
+        busy = true;
+        banner = null;
+        try
+        {
+            var result = await Api.StartStudentPortalPayAsync(Session.AccessToken, new StudentPortalPayStartRequest
+            {
+                PayOrderIDs = selected.ToList(),
+                ReturnUrl = Nav.ToAbsoluteUri("student/accounts").ToString()
+            });
+            if (!result.Succeeded || string.IsNullOrWhiteSpace(result.PaymentUrl))
+            {
+                banner = Locale.T(result.Error ?? "stu.payFailed");
+                bannerError = true;
+                return;
+            }
+
+            Nav.NavigateTo(result.PaymentUrl, forceLoad: true);
+        }
+        catch (Exception)
+        {
+            banner = Locale.T("stu.payFailed");
+            bannerError = true;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task OpenReceipt(int id)
+    {
+        try
+        {
+            receiptLines = await Api.GetStudentPortalReceiptAsync(Session.AccessToken, id);
+        }
+        catch
+        {
+            receiptLines = [];
+        }
+    }
+
+    private RenderFragment FeeTable(IReadOnlyList<StudentPortalDueRowDto> rows, bool pick, bool concession = false) => __builder =>
+    {
+        if (rows.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+            return;
+        }
+        <div class="sp-table-wrap">
+            <table class="sp-table sp-table-fit">
+                <thead>
+                    <tr>
+                        @if (pick) { <th></th> }
+                        <th>@Locale.T("stu.role")</th>
+                        <th>@Locale.T("stu.payFor")</th>
+                        <th>@Locale.T("stu.fee")</th>
+                        <th>@(concession ? Locale.T("stu.tabConc") : Locale.T("stu.paid"))</th>
+                        @if (!concession) { <th>@Locale.T("stu.due")</th> }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        var on = pick && selected.Contains(row.PayOrderID);
+                        <tr class="@(on ? "is-pick" : null)">
+                            @if (pick)
+                            {
+                                <td>
+                                    <input type="checkbox" checked="@on" disabled="@(row.Due <= 0)"
+                                           @onchange="e => Toggle(row.PayOrderID, (bool)(e.Value ?? false))" />
+                                </td>
+                            }
+                            <td>@row.Role</td>
+                            <td>@row.PayFor</td>
+                            <td>@Money(row.Amount)</td>
+                            <td>@Money(concession ? row.Discount : row.Paid)</td>
+                            @if (!concession) { <td>@Money(row.Due)</td> }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private RenderFragment LateTable(IReadOnlyList<StudentPortalLateFeeDto> rows, bool reason) => __builder =>
+    {
+        <div class="sp-table-wrap">
+            <table class="sp-table sp-table-fit">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("stu.prevConc")</th>
+                        <th>@Locale.T("stu.postConc")</th>
+                        @if (reason) { <th>@Locale.T("stu.reason")</th> }
+                        <th>@Locale.T("stu.date")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <td>@Money(row.PreviousAmount)</td>
+                            <td>@Money(row.PostAmount)</td>
+                            @if (reason) { <td>@row.Reason</td> }
+                            <td>@Date(row.Date)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private static string Money(decimal value) => value.ToString("N0");
+    private static string Date(DateTime? value) => value is DateTime d ? d.ToString("dd-MMM-yy") : "";
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+}

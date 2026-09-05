@@ -1,0 +1,76 @@
+@page "/student/result"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("stu.result")</h1>
+    <article class="sp-card">
+        <div class="sp-card-h"><h3>@Locale.T("stu.subjects")</h3></div>
+        @if (dash?.Subjects.Count > 0)
+        {
+            @foreach (var row in dash.Subjects)
+            {
+                <div class="sp-sub">
+                    <b>@row.Name</b>
+                    <em>@row.Avg.ToString("0.##")%</em>
+                    <span class="sp-grade">@row.Grade</span>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+    </article>
+    <article class="sp-card" style="margin-top:0.85rem">
+        <div class="sp-card-h"><h3>@Locale.T("stu.cumulative")</h3></div>
+        @if (rows.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+        else
+        {
+            <table class="sp-table">
+                <thead>
+                    <tr>
+                        <th>@Locale.T("stu.exam")</th>
+                        <th>@Locale.T("stu.point")</th>
+                        <th>@Locale.T("stu.grade")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr>
+                            <td>@row.Name</td>
+                            <td>@row.Point.ToString("0.##")</td>
+                            <td><span class="sp-grade">@row.Grade</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </article>
+</div>
+
+@code {
+    private StudentPortalDashboardDto? dash;
+    private IReadOnlyList<StudentPortalExamDto> rows = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+            {
+                dash = await Api.GetStudentPortalDashboardAsync(Session.AccessToken);
+                rows = await Api.GetStudentPortalCumulativeAsync(Session.AccessToken);
+            }
+        }
+        catch { }
+    }
+}

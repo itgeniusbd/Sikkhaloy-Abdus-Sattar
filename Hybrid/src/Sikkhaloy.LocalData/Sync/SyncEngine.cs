@@ -22,6 +22,7 @@ public sealed partial class SyncEngine
     private readonly SemaphoreSlim _runLock = new(1, 1);
     private int _failureCount;
     private int _pendingCount;
+    private int _warmCacheRunning;
     private DateTime _nextAttemptUtc = DateTime.MinValue;
     private bool _online;
 
@@ -57,7 +58,7 @@ public sealed partial class SyncEngine
         await _runLock.WaitAsync(cancellationToken);
         try
         {
-            await RunOnceCoreAsync(session, accessToken, cancellationToken);
+            await RunOnceCoreAsync(session, accessToken, force, cancellationToken);
         }
         finally
         {
@@ -65,10 +66,10 @@ public sealed partial class SyncEngine
         }
     }
 
-    private async Task RunOnceCoreAsync(SessionSnapshot session, string accessToken, CancellationToken cancellationToken)
+    private async Task RunOnceCoreAsync(SessionSnapshot session, string accessToken, bool force, CancellationToken cancellationToken)
     {
         LastError = null;
-        if (session.IsAuthority || session.SchoolID <= 0)
+        if (session.IsAuthority || session.IsStudent || session.SchoolID <= 0)
         {
             _online = await _api.PingAsync(cancellationToken);
             await RefreshPendingAsync(cancellationToken);
@@ -77,6 +78,7 @@ public sealed partial class SyncEngine
         }
 
         _online = await _api.PingAsync(cancellationToken);
+        StateChanged?.Invoke();
         if (!_online)
         {
             LastError = "sync.needOnline";
@@ -89,13 +91,20 @@ public sealed partial class SyncEngine
         try
         {
             await PushAsync(session, accessToken, cancellationToken);
-            await PullAsync(session, accessToken, cancellationToken);
             await PullClassStructureAsync(session, accessToken, cancellationToken);
             await PullYearsAsync(session, accessToken, cancellationToken);
             await PullProfileAsync(session, accessToken, cancellationToken);
             await PullMenuAsync(session, accessToken, cancellationToken);
             await _api.FlushQueuedWritesAsync(accessToken, cancellationToken);
-            await _api.WarmOfflineCacheAsync(accessToken, cancellationToken);
+            if (force)
+            {
+                QueueWarmOfflineCache(accessToken);
+                QueueStudentPull(session, accessToken);
+            }
+            else
+            {
+                await PullAsync(session, accessToken, cancellationToken);
+            }
             _failureCount = 0;
             _nextAttemptUtc = DateTime.MinValue;
             LastError = null;
@@ -115,6 +124,70 @@ public sealed partial class SyncEngine
         if (string.IsNullOrWhiteSpace(LastError))
             LastError = await ReadOutboxErrorAsync(cancellationToken);
         StateChanged?.Invoke();
+    }
+
+    private void QueueStudentPull(SessionSnapshot session, string accessToken)
+    {
+        _ = PullStudentsBackgroundAsync(session, accessToken);
+    }
+
+    private async Task PullStudentsBackgroundAsync(SessionSnapshot session, string accessToken)
+    {
+        try
+        {
+            await _runLock.WaitAsync();
+            try
+            {
+                await PullAsync(session, accessToken, CancellationToken.None);
+            }
+            finally
+            {
+                _runLock.Release();
+            }
+
+            StateChanged?.Invoke();
+        }
+        catch
+        {
+        }
+    }
+
+    public async Task PullStudentsNowAsync(
+        SessionSnapshot session, string accessToken, CancellationToken cancellationToken = default)
+    {
+        await _runLock.WaitAsync(cancellationToken);
+        try
+        {
+            await PullAsync(session, accessToken, cancellationToken);
+            StateChanged?.Invoke();
+        }
+        finally
+        {
+            _runLock.Release();
+        }
+    }
+
+    private void QueueWarmOfflineCache(string accessToken)
+    {
+        if (Interlocked.CompareExchange(ref _warmCacheRunning, 1, 0) != 0)
+            return;
+        _ = WarmOfflineCacheBackgroundAsync(accessToken);
+    }
+
+    private async Task WarmOfflineCacheBackgroundAsync(string accessToken)
+    {
+        try
+        {
+            await _api.WarmOfflineCacheAsync(accessToken, CancellationToken.None);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _warmCacheRunning, 0);
+            StateChanged?.Invoke();
+        }
     }
 
     public async Task MergeStudentPlacementsAsync(
@@ -598,13 +671,25 @@ public sealed partial class SyncEngine
         if (row is null || string.IsNullOrWhiteSpace(row.PayloadJson))
             return new MenuTreeDto();
 
-        var tree = JsonSerializer.Deserialize<MenuTreeDto>(row.PayloadJson, JsonOptions) ?? new MenuTreeDto();
+        MenuTreeDto tree;
+        try
+        {
+            tree = JsonSerializer.Deserialize<MenuTreeDto>(row.PayloadJson, JsonOptions) ?? new MenuTreeDto();
+        }
+        catch (JsonException)
+        {
+            return new MenuTreeDto();
+        }
+        tree.Categories ??= [];
         foreach (var category in tree.Categories)
         {
+            category.Links ??= [];
+            category.Subs ??= [];
             foreach (var link in category.Links)
                 HybridMenuRoutes.Apply(link);
             foreach (var sub in category.Subs)
             {
+                sub.Links ??= [];
                 foreach (var link in sub.Links)
                     HybridMenuRoutes.Apply(link);
             }
@@ -768,6 +853,8 @@ public sealed partial class SyncEngine
 
     public async Task<DashboardStats> GetDashboardAsync(int schoolId, int educationYearId, CancellationToken cancellationToken = default)
     {
+        try
+        {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         var query = db.Students.AsNoTracking()
             .Where(x => x.SchoolID == schoolId && x.EducationYearID == educationYearId)
@@ -776,7 +863,7 @@ public sealed partial class SyncEngine
 
         var students = await query.ToListAsync(cancellationToken);
         var today = DateTime.Today;
-        return new DashboardStats
+        var stats = new DashboardStats
         {
             TotalStudents = students.Count,
             MaleCount = students.Count(IsMale),
@@ -826,6 +913,14 @@ public sealed partial class SyncEngine
                 .Select(Map)
                 .ToList()
         };
+        ApplyCachedStudentPhotos(schoolId, stats.BirthdaysToday);
+        ApplyCachedStudentPhotos(schoolId, stats.BirthdaysUpcoming);
+        return stats;
+        }
+        catch
+        {
+            return new DashboardStats();
+        }
     }
 
     private async Task PushAsync(SessionSnapshot session, string accessToken, CancellationToken cancellationToken)
@@ -1085,9 +1180,9 @@ public sealed partial class SyncEngine
         row.SchoolID = dto.SchoolID;
         row.EducationYearID = dto.EducationYearID;
         row.RegistrationID = dto.RegistrationID;
-        row.StudentCode = dto.StudentCode.Trim();
-        row.StudentsName = dto.StudentsName.Trim();
-        row.SMSPhoneNo = dto.SMSPhoneNo.Trim();
+        row.StudentCode = (dto.StudentCode ?? "").Trim();
+        row.StudentsName = (dto.StudentsName ?? "").Trim();
+        row.SMSPhoneNo = (dto.SMSPhoneNo ?? "").Trim();
         row.Gender = dto.Gender;
         row.DateofBirth = dto.DateofBirth;
         row.FathersName = dto.FathersName;

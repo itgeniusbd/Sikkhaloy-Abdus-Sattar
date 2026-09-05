@@ -46,12 +46,13 @@ public partial class App : System.Windows.Application
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-#if DEBUG
             .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
-#endif
             .Build();
 
         var baseUrl = SyncApiClient.NormalizeBaseUrl(configuration["SyncApi:BaseUrl"]);
+#if DEBUG
+        baseUrl = "http://127.0.0.1:5135/";
+#endif
         var collection = new ServiceCollection();
         collection.AddWpfBlazorWebView();
 #if DEBUG

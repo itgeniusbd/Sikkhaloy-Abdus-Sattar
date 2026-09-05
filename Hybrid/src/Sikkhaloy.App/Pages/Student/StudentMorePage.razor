@@ -1,0 +1,34 @@
+@page "/student/more"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("stu.more")</h1>
+    <article class="sp-card sp-more">
+        <a href="student/report">@Locale.T("stu.report") <span>→</span></a>
+        <a href="student/notice">@Locale.T("stu.notice") <span>→</span></a>
+        <a href="student/sms">@Locale.T("stu.sms") <span>→</span></a>
+        <a href="student/exam">@Locale.T("stu.individual") <span>→</span></a>
+        <a href="student/result">@Locale.T("stu.cumulative") <span>→</span></a>
+        <a href="student/routine">@Locale.T("stu.classRoutine") <span>→</span></a>
+        <a href="student/exam-routine">@Locale.T("stu.examRoutine") <span>→</span></a>
+        <a href="student/password">@Locale.T("stu.password") <span>→</span></a>
+    </article>
+    <button type="button" class="sp-out" @onclick="Logout">@Locale.T("stu.logout")</button>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!Session.IsStudent)
+            Nav.NavigateTo(Session.HomePath, replace: true);
+    }
+
+    private void Logout()
+    {
+        Session.Clear();
+        Nav.NavigateTo("/login", replace: true);
+    }
+}

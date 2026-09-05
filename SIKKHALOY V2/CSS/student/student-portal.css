@@ -1,0 +1,390 @@
+/* Student portal shell — loaded only from Basic_Student.Master */
+
+body.st-portal {
+    background: #f1f5f9;
+    color: #0f172a;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+body.st-portal h3 {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.85rem 1.1rem;
+    margin: 0 0 1.1rem !important;
+    border-radius: 14px;
+    text-transform: none;
+    color: #0f172a;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+body.st-portal #sidedrawer {
+    background: linear-gradient(180deg, #0f3d2e 0%, #123524 55%, #0c291e 100%);
+    padding: 1rem 0.85rem 1.4rem;
+    width: 260px;
+    left: -260px;
+    box-shadow: 8px 0 28px rgba(15, 23, 42, 0.18);
+}
+
+body.st-portal #sidedrawer.active {
+    transform: translate(260px);
+}
+
+body.st-portal .st-user {
+    text-align: center;
+    padding: 0.35rem 0.4rem 0.9rem;
+}
+
+body.st-portal .st-user .Dash_b img {
+    height: 88px;
+    width: 88px;
+    object-fit: cover;
+    border: 3px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+body.st-portal .st-user .U_Name {
+    color: #ecfdf5;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+body.st-portal .st-user .st-id {
+    color: #99f6e4;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+body.st-portal .Logout {
+    color: #6ee7b7;
+    display: inline-block;
+    margin-top: 0.35rem;
+}
+
+body.st-portal .Logout:before {
+    color: #6ee7b7;
+}
+
+body.st-portal .Session_DDL {
+    width: 100%;
+    margin: 0 0 0.85rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 10px;
+    background: #ecfdf5;
+    color: #064e3b;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+body.st-portal .my_Manu {
+    margin: 0;
+}
+
+body.st-portal .my_Manu li {
+    border: 0;
+    padding: 0;
+    margin: 0 0 0.28rem;
+    border-radius: 10px;
+}
+
+body.st-portal .my_Manu li:first-child,
+body.st-portal .my_Manu li:last-child {
+    display: none;
+}
+
+body.st-portal .my_Manu li a {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.62rem 0.75rem;
+    color: #d1fae5;
+    font-size: 0.86rem;
+    font-weight: 600;
+    border-radius: 10px;
+}
+
+body.st-portal .my_Manu li a i {
+    width: 1.15rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #5eead4;
+}
+
+body.st-portal .my_Manu li a:hover,
+body.st-portal .my_Manu li.is-on a {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    text-decoration: none;
+}
+
+body.st-portal .st-side-foot {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.st-portal .st-side-foot a {
+    display: block;
+    color: #99f6e4;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+}
+
+body.st-portal .st-side-foot a:hover {
+    color: #fff;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.st-portal .bg-main {
+    background: linear-gradient(90deg, #059669, #00a12a) !important;
+    padding: 0.7rem 0;
+}
+
+body.st-portal .InsInfo #InstitutionName {
+    font-size: 1.28rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+body.st-portal .InsInfo p {
+    font-size: 0.82rem;
+    opacity: 0.92;
+    margin-bottom: 0;
+}
+
+body.st-portal #content-wrapper {
+    min-height: calc(100vh - 180px);
+    padding: 1rem 0 2rem;
+}
+
+body.st-portal #footer.page-footer {
+    background: #0f172a !important;
+    margin-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    body.st-portal #header,
+    body.st-portal #content-wrapper,
+    body.st-portal #footer {
+        margin-left: 260px;
+    }
+
+    body.st-portal #sidedrawer {
+        transform: translate(260px);
+    }
+
+    body.st-portal.hide-sidedrawer #header,
+    body.st-portal.hide-sidedrawer #content-wrapper,
+    body.st-portal.hide-sidedrawer #footer {
+        margin-left: 0;
+    }
+
+    body.st-portal.hide-sidedrawer #sidedrawer {
+        transform: translate(0);
+    }
+}
+
+/* Dashboard */
+.st-dash-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    background: #fff;
+    border-radius: 14px;
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.st-dash-bar h3 {
+    margin: 0 !important;
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+    font-size: 1.2rem;
+}
+
+.st-dash-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.st-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 40px;
+    padding: 0 1.05rem;
+    border: 0;
+    border-radius: 10px;
+    font-size: 0.86rem;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none !important;
+    color: #fff !important;
+}
+
+.st-btn-edit { background: #2563eb; }
+.st-btn-pay { background: #dc2626; }
+.st-btn-edit:hover { background: #1d4ed8; color: #fff !important; }
+.st-btn-pay:hover { background: #b91c1c; color: #fff !important; }
+
+.st-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    margin-bottom: 0.9rem;
+    overflow: hidden;
+}
+
+.st-card-h {
+    padding: 0.75rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.st-card-b { padding: 0.9rem 1rem 1rem; }
+
+.st-guardian { text-align: center; }
+.st-guardian img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin: 0 auto 0.65rem;
+    display: block;
+    background: #f1f5f9;
+}
+.st-guardian h6 { margin: 0; font-weight: 800; color: #0f172a; }
+.st-rel { color: #059669; font-weight: 700; margin-left: 0.35rem; }
+
+.st-subchip {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: #fff;
+    border-radius: 14px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.7rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+.st-subchip .icon,
+.st-kpi .icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    line-height: 40px;
+    text-align: center;
+    border-radius: 12px;
+    color: #fff;
+}
+.st-subchip strong { display: block; font-size: 0.92rem; color: #0f172a; }
+.st-subchip small { color: #64748b; font-weight: 700; }
+
+.st-table { width: 100%; margin: 0; }
+.st-table th {
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    border-top: 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+.st-table td {
+    font-size: 0.88rem;
+    color: #0f172a;
+    vertical-align: middle;
+}
+
+.st-fees { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 0.9rem; }
+.st-fee {
+    border-radius: 16px;
+    color: #fff;
+    padding: 0.95rem 1rem 0.85rem;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    min-height: 108px;
+}
+.st-fee h4 { font-size: 0.82rem; font-weight: 700; margin: 0 0 0.35rem; color: #fff; }
+.st-fee label { font-size: 1.35rem; font-weight: 800; margin: 0.2rem 0 0; color: #fff; display: block; }
+.st-fee-due { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.st-fee-paid { background: linear-gradient(135deg, #334155, #475569); }
+.st-fee-view { background: linear-gradient(135deg, #ea580c, #f97316); }
+.st-fee-view h4 { cursor: pointer; }
+.st-fee .st-btn-pay {
+    height: 28px;
+    padding: 0 0.7rem;
+    font-size: 0.72rem;
+    margin-bottom: 0.25rem;
+}
+
+.st-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7rem; margin-bottom: 0.9rem; }
+.st-kpi {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: #fff;
+    border-radius: 14px;
+    padding: 0.85rem 0.9rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+.st-kpi .icon { margin-right: 0; border-radius: 12px; }
+.st-kpi strong { display: block; font-size: 1.25rem; color: #0f172a; }
+.st-kpi small { color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 0.7rem; }
+
+.st-chart-tabs.nav-tabs {
+    background: #0f766e;
+    margin: 0;
+    padding: 0.45rem;
+    border-radius: 14px 14px 0 0;
+}
+.st-chart-box {
+    background: #fff;
+    border-radius: 0 0 16px 16px;
+    padding: 1rem 1.1rem 1.2rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    margin-bottom: 1rem;
+}
+.st-year {
+    max-width: 320px;
+    margin: 0 auto 0.85rem;
+}
+
+body.st-portal .progressbar { width: 100%; position: relative; }
+body.st-portal .percentCount { color: #fff; font-size: 0.78rem; font-weight: 800; }
+
+@media (max-width: 991.98px) {
+    .st-fees,
+    .st-kpis { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 575.98px) {
+    .st-fees,
+    .st-kpis { grid-template-columns: 1fr; }
+    .st-dash-bar { align-items: stretch; }
+    .st-dash-actions { width: 100%; }
+    .st-btn { flex: 1; justify-content: center; }
+}
+
+@media print {
+    body.st-portal #sidedrawer,
+    body.st-portal .st-dash-actions,
+    body.st-portal #footer { display: none !important; }
+    body.st-portal #header,
+    body.st-portal #content-wrapper { margin-left: 0 !important; }
+}

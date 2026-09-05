@@ -1,0 +1,320 @@
+@page "/student"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-dash">
+    @if (dash is null && loading)
+    {
+        <p class="sp-empty">@Locale.T("stu.loading")</p>
+    }
+    else if (dash is not null)
+    {
+        @* ── 1. Slim payment banner ── *@
+        @if (accounts is not null && accounts.TotalDue > 0)
+        {
+            <section class="sp-bill">
+                <div class="sp-bill-row">
+                    <div class="sp-bill-info">
+                        <span class="sp-bill-label">@Locale.T("stu.tabDue")</span>
+                        <strong class="sp-bill-amount">@accounts.TotalDue.ToString("N2") <small>Tk</small></strong>
+                    </div>
+                    <button type="button" class="sp-bill-pay"
+                            disabled="@(!accounts.OnlinePaymentEnabled)"
+                            @onclick="GoToAccountsDue">
+                        @PayIco @Locale.T("dash.studentPayOnline") <span class="sp-bill-chevron">›</span>
+                    </button>
+                </div>
+                <a class="sp-bill-detail" href="student/accounts?tab=0">@InfoIco @Locale.T("dash.studentPayDetails") <span class="sp-bill-chevron">›</span></a>
+            </section>
+        }
+
+        @* ── 2. Hero: photo + info side-by-side ── *@
+        <section class="sp-hero">
+            <div class="sp-hero-photo">
+                @if (!string.IsNullOrWhiteSpace(dash.PhotoDataUrl))
+                {
+                    <img src="@dash.PhotoDataUrl" alt="" />
+                }
+                else
+                {
+                    @Initials(dash.StudentsName)
+                }
+            </div>
+            <div class="sp-hero-info">
+                <small class="sp-hero-hi">@Locale.T("stu.welcome", FirstName(dash.StudentsName)) 👋</small>
+                <p class="sp-hero-name">@dash.StudentsName</p>
+                <p class="sp-hero-meta">@Locale.T("stu.id"): @dash.StudentCode • @Locale.T("stu.class"): @ClassLine(dash)</p>
+                <p class="sp-hero-motto">@Locale.T("stu.motto")</p>
+            </div>
+            <span class="sp-hero-badge">@ShortClass(dash)</span>
+        </section>
+
+        @* ── 3. Quick-action icons ── *@
+        <div class="sp-actions">
+            <a class="sp-act" href="student/profile"><i class="is-green">@UserIco</i><span>@Locale.T("stu.profile")</span></a>
+            <a class="sp-act" href="student/report"><i class="is-purple">@BookIco</i><span>@Locale.T("stu.academic")</span></a>
+            <a class="sp-act" href="student/attendance"><i class="is-blue">@CalIco</i><span>@Locale.T("stu.attendance")</span></a>
+            <a class="sp-act" href="student/exam"><i class="is-orange">@ClipIco</i><span>@Locale.T("stu.exam")</span></a>
+            <a class="sp-act" href="student/result"><i class="is-pink">@ChartIco</i><span>@Locale.T("stu.result")</span></a>
+        </div>
+
+        @* ── 4. Subject Performance (full-width) ── *@
+        <article class="sp-card">
+            <div class="sp-card-h">
+                <h3>@SubIco @Locale.T("stu.subjects")</h3>
+                <a href="student/result">@Locale.T("stu.viewAll")</a>
+            </div>
+            @if (dash.Subjects.Count == 0)
+            {
+                <p class="sp-empty">@Locale.T("stu.empty")</p>
+            }
+            else
+            {
+                @foreach (var row in dash.Subjects.Take(5))
+                {
+                    <div class="sp-sub">
+                        <b>@row.Name</b>
+                        <em>@row.Avg.ToString("0.##")%</em>
+                        <span class="sp-grade @GradeClass(row.Grade)">@row.Grade</span>
+                    </div>
+                }
+            }
+            <a class="sp-card-go" href="student/result">@Locale.T("stu.fullResult") →</a>
+        </article>
+
+        @* ── 5. Attendance donut (left) + 4 KPI tiles (right 2×2) ── *@
+        <div class="sp-att-kpi">
+            <article class="sp-card sp-att-card">
+                <div class="sp-card-h">
+                    <h3>@AttIco @Locale.T("stu.attOverview")</h3>
+                    <a href="student/attendance">@Locale.T("stu.viewAll")</a>
+                </div>
+                <div class="sp-donut-wrap">
+                    <div class="sp-donut" style="--pct:@dash.AttendancePct.ToString("0.##")%">
+                        <span>
+                            <strong>@dash.AttendancePct.ToString("0.##")%</strong>
+                            <small>@Locale.T("stu.overall")</small>
+                        </span>
+                    </div>
+                </div>
+                <div class="sp-legend">
+                    <span><i class="is-pre"></i>@Locale.T("stu.present") (@dash.PresentDays/@dash.AttendancePct.ToString("0.##")%)</span>
+                    <span><i class="is-abs"></i>@Locale.T("stu.absent") (@dash.AbsentDays/@AbsentPct.ToString("0.##")%)</span>
+                </div>
+                <a class="sp-card-go" href="student/attendance">@Locale.T("stu.history") →</a>
+            </article>
+
+            <div class="sp-kpi-grid">
+                <div class="sp-kpi">
+                    <div class="sp-kpi-ico is-green">@CapIco</div>
+                    <span>@Locale.T("stu.attendance").ToUpperInvariant()</span>
+                    <strong>@dash.AttendancePct.ToString("0.##")%</strong>
+                    <small>@Locale.T("stu.presentOf", dash.PresentDays, dash.AttendanceTotal)</small>
+                    <div class="sp-spark" style="background:linear-gradient(90deg,#bbf7d0,#22c55e);width:@dash.AttendancePct.ToString("0.##")%"></div>
+                </div>
+                <div class="sp-kpi">
+                    <div class="sp-kpi-ico is-blue">@BookIco</div>
+                    <span>@Locale.T("stu.avgMarks").ToUpperInvariant()</span>
+                    <strong>@dash.AvgMarks.ToString("0.##")%</strong>
+                    <small>@Locale.T("stu.gpa", dash.AvgPoint.ToString("0.##"))</small>
+                    <div class="sp-spark" style="background:linear-gradient(90deg,#bfdbfe,#2563eb);width:@dash.AvgMarks.ToString("0.##")%"></div>
+                </div>
+                <div class="sp-kpi">
+                    <div class="sp-kpi-ico is-amber">@TrophyIco</div>
+                    <span>@Locale.T("stu.position").ToUpperInvariant()</span>
+                    <strong>@Ordinal(dash.AvgPosition)</strong>
+                    <small>@(dash.ClassSize > 0 ? Locale.T("stu.outOf", dash.ClassSize) : "")</small>
+                    <div class="sp-spark" style="background:linear-gradient(90deg,#fde68a,#f59e0b);width:@PositionBarPct(dash).ToString("0.##")%"></div>
+                </div>
+                <div class="sp-kpi">
+                    <div class="sp-kpi-ico is-pink">@StarIco</div>
+                    <span>@Locale.T("stu.points").ToUpperInvariant()</span>
+                    <strong>@dash.AvgPoint.ToString("0.##")</strong>
+                    <small>@Locale.T("stu.excellent")</small>
+                    <div class="sp-spark" style="background:linear-gradient(90deg,#fbcfe8,#db2777)"></div>
+                </div>
+            </div>
+        </div>
+
+        @* ── 6. Upcoming Exams (full-width) ── *@
+        <article class="sp-card" style="margin-top:0.85rem">
+            <div class="sp-card-h">
+                <h3>@Locale.T("stu.upcoming")</h3>
+                <a href="student/exam-routine">@Locale.T("stu.viewAll")</a>
+            </div>
+            @if (dash.UpcomingExams.Count == 0)
+            {
+                <p class="sp-empty">@Locale.T("stu.empty")</p>
+            }
+            else
+            {
+                @foreach (var exam in dash.UpcomingExams.Take(5))
+                {
+                    <div class="sp-exam">
+                        <div class="sp-exam-date">
+                            <strong>@(exam.Date?.Day.ToString() ?? "—")</strong>
+                            <span>@(exam.Date?.ToString("MMM")?.ToUpperInvariant() ?? "")</span>
+                        </div>
+                        <div>
+                            <b>@exam.Name</b>
+                            <small>@(string.IsNullOrWhiteSpace(exam.Subject) ? exam.Grade : exam.Subject)</small>
+                        </div>
+                    </div>
+                }
+            }
+        </article>
+
+        @* ── 7. Today's Routine ── *@
+        <article class="sp-card" style="margin-top:0.85rem">
+            <div class="sp-card-h">
+                <h3>@Locale.T("stu.routine")</h3>
+                <a href="student/routine">@Locale.T("stu.viewAll")</a>
+            </div>
+            @if (dash.TodayRoutine.Count == 0)
+            {
+                <p class="sp-empty">@Locale.T("stu.empty")</p>
+            }
+            else
+            {
+                @for (var i = 0; i < dash.TodayRoutine.Count && i < 6; i++)
+                {
+                    var period = dash.TodayRoutine[i];
+                    <div class="sp-period">
+                        <span class="sp-num">@(i + 1)</span>
+                        <b>@period.Period @period.Subject</b>
+                        <span>@period.Time</span>
+                    </div>
+                }
+            }
+        </article>
+
+        @* ── 8. Notices ── *@
+        <article class="sp-card" style="margin-top:0.85rem">
+            <div class="sp-card-h">
+                <h3>@Locale.T("stu.notices")</h3>
+                <a href="student/notice">@Locale.T("stu.viewAll")</a>
+            </div>
+            @if (dash.Notices.Count == 0)
+            {
+                <p class="sp-empty">@Locale.T("stu.empty")</p>
+            }
+            else
+            {
+                var notice = dash.Notices[0];
+                <div class="sp-notice">
+                    <b>@notice.Title</b>
+                    <small>@(notice.Date?.ToString("d MMM yyyy") ?? "")</small>
+                    <p>@TrimBody(notice.Body)</p>
+                </div>
+            }
+        </article>
+
+        <p class="sp-quote">@Locale.T("stu.quote")</p>
+    }
+</div>
+
+@code {
+    private StudentPortalDashboardDto? dash;
+    private StudentPortalAccountsBundleDto? accounts;
+    private bool loading = true;
+
+    private static readonly MarkupString CapIco = Icon("M22 10 12 5 2 10l10 5 10-5Zm-6.5 3.3v4.2L12 20l-3.5-2.5v-4.2");
+    private static readonly MarkupString BookIco = Icon("M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z");
+    private static readonly MarkupString TrophyIco = Icon("M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM4 8h3M17 8h3");
+    private static readonly MarkupString StarIco = Icon("M12 3 14.6 9H21l-5.2 3.8L18 19l-6-4.2L6 19l2.2-6.2L3 9h6.4L12 3Z");
+    private static readonly MarkupString UserIco = Icon("M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z");
+    private static readonly MarkupString CalIco = Icon("M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z");
+    private static readonly MarkupString ClipIco = Icon("M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2");
+    private static readonly MarkupString ChartIco = Icon("M4 19V5m4 14V9m4 10v-6m4 6V7m4 12V4");
+    private static readonly MarkupString PayIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>""";
+    private static readonly MarkupString InfoIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>""";
+    private static readonly MarkupString SubIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>""";
+    private static readonly MarkupString AttIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>""";
+
+    private decimal AbsentPct => dash is null || dash.AttendanceTotal <= 0 ? 0 : Math.Round(100m - dash.AttendancePct, 2);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsAuthenticated) { Nav.NavigateTo("/login", replace: true); return; }
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+
+        dash = await Api.PeekStudentPortalDashboardAsync();
+        if (dash is not null) loading = false;
+
+        if (string.IsNullOrWhiteSpace(Session.AccessToken)) { loading = false; return; }
+
+        try
+        {
+            var dashTask = Api.GetStudentPortalDashboardAsync(Session.AccessToken);
+            var accountsTask = Api.GetStudentPortalAccountsAsync(Session.AccessToken);
+            dash = await dashTask;
+            try { accounts = await accountsTask; } catch { accounts = null; }
+        }
+        catch { }
+        finally { loading = false; }
+    }
+
+    private static string FirstName(string name)
+    {
+        var text = (name ?? "").Trim();
+        if (text.Length == 0) return "";
+        var space = text.IndexOf(' ');
+        return space < 0 ? text : text[..space];
+    }
+
+    private static string ClassLine(StudentPortalDashboardDto row) =>
+        string.IsNullOrWhiteSpace(row.SectionName) ? row.ClassName : $"{row.ClassName} - {row.SectionName}";
+
+    private static string ShortClass(StudentPortalDashboardDto row)
+    {
+        var name = (row.ClassName ?? "").Trim();
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 0 ? parts[^1] : name;
+    }
+
+    private static string Initials(string name)
+    {
+        var text = (name ?? "").Trim();
+        if (text.Length == 0) return "S";
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpperInvariant();
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+    }
+
+    private static string Ordinal(decimal value)
+    {
+        var n = (int)Math.Round(value, MidpointRounding.AwayFromZero);
+        if (n <= 0) return "—";
+        var mod = n % 100;
+        if (mod is 11 or 12 or 13) return n + "th";
+        return (n % 10) switch { 1 => n + "st", 2 => n + "nd", 3 => n + "rd", _ => n + "th" };
+    }
+
+    private static string TrimBody(string body) { var t = (body ?? "").Trim(); return t.Length <= 140 ? t : t[..140] + "…"; }
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+
+    private void GoToAccountsDue() => Nav.NavigateTo("student/accounts?tab=0");
+
+    private static string GradeClass(string? grade)
+    {
+        var g = (grade ?? "").Trim().ToUpperInvariant();
+        if (g.StartsWith("A")) return "is-a";
+        if (g.StartsWith("B")) return "is-b";
+        if (g.StartsWith("C")) return "is-c";
+        if (g.StartsWith("D")) return "is-d";
+        return "";
+    }
+
+    private static decimal PositionBarPct(StudentPortalDashboardDto d)
+    {
+        if (d.ClassSize <= 0) return 100;
+        var t = 1m - ((d.AvgPosition - 1m) / Math.Max(1m, d.ClassSize - 1m));
+        var pct = t * 100m;
+        return pct < 10m ? 10m : pct;
+    }
+}

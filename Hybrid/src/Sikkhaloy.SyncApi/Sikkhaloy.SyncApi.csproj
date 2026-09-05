@@ -17,4 +17,14 @@
     <ProjectReference Include="..\Sikkhaloy.Shared\Sikkhaloy.Shared.csproj" />
   </ItemGroup>
 
+  <!-- Fallback if Directory.Build.targets is not imported -->
+  <Target Name="StopLocalSyncApi"
+          BeforeTargets="BeforeBuild;BeforeRebuild"
+          Condition="'$(OS)' == 'Windows_NT'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Stop-Process -Name 'Sikkhaloy.SyncApi' -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500&quot;"
+          IgnoreExitCode="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
+  </Target>
+
 </Project>

@@ -216,7 +216,7 @@ namespace Attendance_API.Helpers
 
 
 
-                var attendanceType = record.Attendance ?? string.Empty;
+                var attendanceType = ResolveSmsAttendanceType(record);
 
                 if (!ShouldSend(settings, stuSetting, record, attendanceType))
 
@@ -520,7 +520,7 @@ namespace Attendance_API.Helpers
 
 
 
-            var attendanceType = record.Attendance ?? string.Empty;
+            var attendanceType = ResolveSmsAttendanceType(record);
 
             var eligible = candidates.FirstOrDefault(s => ShouldSend(settings, s, record, attendanceType));
 
@@ -603,6 +603,14 @@ namespace Attendance_API.Helpers
         }
 
 
+
+        private static string ResolveSmsAttendanceType(Attendance_Record record)
+        {
+            if (record != null && record.Is_OUT)
+                return "Exit";
+
+            return record?.Attendance ?? string.Empty;
+        }
 
         private static TimeSpan GetScheduleTime(
 

@@ -10,22 +10,59 @@ public sealed class AppSession
     public DateTimeOffset TokenExpiresAt { get; private set; }
     public bool IsAuthenticated => Current is not null;
     public bool IsAuthority => Current?.IsAuthority == true;
+    public bool IsStudent => Current?.IsStudent == true;
     public bool IsImpersonating => AuthorityReturn is not null;
     public LoginResponse? AuthorityReturn { get; private set; }
-    public string HomePath => IsAuthority ? "/authority" : "/dashboard";
-    public string HomeHref => IsAuthority ? "authority" : "dashboard";
+    public string HomePath => IsAuthority ? "/authority" : IsStudent ? "/student" : "/dashboard";
+    public string HomeHref => IsAuthority ? "authority" : IsStudent ? "student" : "dashboard";
 
     public event Action? Changed;
     public event Action? Mutated;
+    public bool AwaitInitialSync { get; private set; }
+    private bool _initialSyncFinished;
+    private bool _syncOverlaySeen;
 
     public void Set(LoginResponse response, bool notify = true)
     {
         Current = response.Session;
         AccessToken = response.AccessToken ?? "";
         TokenExpiresAt = response.ExpiresAt;
+        AwaitInitialSync = Current is not null && !IsAuthority && !IsStudent;
+        _initialSyncFinished = false;
+        _syncOverlaySeen = false;
         Mutated?.Invoke();
         if (notify)
             Changed?.Invoke();
+    }
+
+    public void ApplyServerLogin(LoginResponse response)
+    {
+        if (response.Session is null)
+            return;
+        Current = response.Session;
+        if (!string.IsNullOrWhiteSpace(response.AccessToken))
+            AccessToken = response.AccessToken;
+        TokenExpiresAt = response.ExpiresAt;
+        Mutated?.Invoke();
+    }
+
+    public void FinishInitialSync()
+    {
+        _initialSyncFinished = true;
+        TryClearInitialSync();
+    }
+
+    public void MarkSyncOverlaySeen()
+    {
+        _syncOverlaySeen = true;
+        TryClearInitialSync();
+    }
+
+    private void TryClearInitialSync()
+    {
+        if (!AwaitInitialSync || !_initialSyncFinished || !_syncOverlaySeen)
+            return;
+        AwaitInitialSync = false;
     }
 
     public void Restore(LoginResponse current, LoginResponse? authorityReturn)
@@ -34,6 +71,9 @@ public sealed class AppSession
         Current = current.Session;
         AccessToken = current.AccessToken ?? "";
         TokenExpiresAt = current.ExpiresAt;
+        AwaitInitialSync = false;
+        _initialSyncFinished = true;
+        _syncOverlaySeen = true;
         Changed?.Invoke();
     }
 
@@ -73,7 +113,13 @@ public sealed class AppSession
         RegistrationID = source.RegistrationID,
         EducationYearID = source.EducationYearID,
         DeviceId = source.DeviceId,
-        DisplayName = source.DisplayName
+        DisplayName = source.DisplayName,
+        StudentID = source.StudentID,
+        StudentClassID = source.StudentClassID,
+        ClassID = source.ClassID,
+        StudentCode = source.StudentCode,
+        ClassName = source.ClassName,
+        SectionName = source.SectionName
     };
 
     public void UpdateYear(int educationYearId, bool notify = true)
@@ -94,6 +140,9 @@ public sealed class AppSession
         AccessToken = "";
         TokenExpiresAt = default;
         AuthorityReturn = null;
+        AwaitInitialSync = false;
+        _initialSyncFinished = true;
+        _syncOverlaySeen = true;
         Access = new();
         Mutated?.Invoke();
         Changed?.Invoke();

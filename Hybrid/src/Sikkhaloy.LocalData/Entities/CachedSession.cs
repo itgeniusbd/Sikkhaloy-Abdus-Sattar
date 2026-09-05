@@ -9,6 +9,12 @@ public sealed class CachedSession
     public int RegistrationID { get; set; }
     public int EducationYearID { get; set; }
     public string? DisplayName { get; set; }
+    public int StudentID { get; set; }
+    public int StudentClassID { get; set; }
+    public int ClassID { get; set; }
+    public string? StudentCode { get; set; }
+    public string? ClassName { get; set; }
+    public string? SectionName { get; set; }
     public string DeviceId { get; set; } = "";
     public string AccessToken { get; set; } = "";
     public DateTimeOffset TokenExpiresAt { get; set; }

@@ -1,0 +1,48 @@
+@page "/student/notice"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("stu.notices")</h1>
+    @if (loading)
+    {
+        <p class="sp-empty">@Locale.T("stu.loading")</p>
+    }
+    else if (rows.Count == 0)
+    {
+        <article class="sp-card"><p class="sp-empty">@Locale.T("stu.empty")</p></article>
+    }
+    else
+    {
+        @foreach (var row in rows)
+        {
+            <article class="sp-card" style="margin-bottom:0.7rem">
+                <div class="sp-notice">
+                    <b>@row.Title</b>
+                    <small>@(row.IsHomeWork ? Locale.T("stu.homework") : Locale.T("stu.notice")) • @(row.Date?.ToString("d MMM yyyy") ?? "")</small>
+                    <p>@row.Body</p>
+                </div>
+            </article>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<StudentPortalNoticeDto> rows = [];
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                rows = await Api.GetStudentPortalNoticesAsync(Session.AccessToken);
+        }
+        catch { }
+        loading = false;
+    }
+}

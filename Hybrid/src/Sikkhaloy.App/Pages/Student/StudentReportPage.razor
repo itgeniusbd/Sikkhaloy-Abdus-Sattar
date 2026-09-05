@@ -1,0 +1,166 @@
+@page "/student/report"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="sp-page sp-report">
+    <h1>@Locale.T("stu.report")</h1>
+    <p class="sp-report-note no-print">@Locale.T("report.faultHint")</p>
+
+    <div class="sp-report-filters no-print">
+        <label>
+            <span>@Locale.T("stu.fromDate")</span>
+            <input type="date" @bind="fromDate" />
+        </label>
+        <label>
+            <span>@Locale.T("stu.toDate")</span>
+            <input type="date" @bind="toDate" />
+        </label>
+        <button type="button" class="sp-report-go" disabled="@loading" @onclick="LoadAsync">
+            @(loading ? Locale.T("stu.loading") : Locale.T("stu.submit"))
+        </button>
+        <div class="sp-report-view">
+            <button type="button" class="@(viewMode == "daily" ? "is-on" : null)" @onclick='() => viewMode = "daily"'>
+                @Locale.T("report.viewDaily")
+            </button>
+            <button type="button" class="@(viewMode == "detail" ? "is-on" : null)" @onclick='() => viewMode = "detail"'>
+                @Locale.T("report.viewDetail")
+            </button>
+        </div>
+        <button type="button" class="sp-report-print" @onclick="PrintAsync" disabled="@(rows.Count == 0)">
+            @PrintIco @Locale.T("stu.print")
+        </button>
+    </div>
+
+    @if (loading)
+    {
+        <div class="sp-report-loading">
+            <span class="sp-report-spin"></span>
+            <p>@Locale.T("stu.loading")</p>
+        </div>
+    }
+    else if (rows.Count == 0)
+    {
+        <article class="sp-card sp-report-empty">
+            <div class="sp-report-empty-ico">@DocIco</div>
+            <p>@Locale.T("stu.reportEmpty")</p>
+        </article>
+    }
+    else if (viewMode == "daily")
+    {
+        <div class="sp-report-daily">
+            @foreach (var group in DailyGroups)
+            {
+                <article class="sp-report-daily-item">
+                    <header>
+                        <time>@FmtDate(group.Day)</time>
+                        @if (!string.IsNullOrWhiteSpace(group.PostBy))
+                        {
+                            <span class="sp-report-by">@Locale.T("stu.postBy"): <b>@group.PostBy</b></span>
+                        }
+                    </header>
+                    <div class="sp-report-table-wrap">
+                        <table class="sp-report-table">
+                            <thead>
+                                <tr>
+                                    @foreach (var item in group.Items)
+                                    {
+                                        <th>@DisplayTitle(item.Title)</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    @foreach (var item in group.Items)
+                                    {
+                                        <td>@DisplayBody(item.Body)</td>
+                                    }
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="sp-report-list">
+            @foreach (var row in rows)
+            {
+                <article class="sp-report-item">
+                    <div class="sp-report-item-h">
+                        <h3>@row.Title</h3>
+                        <time>@FmtDate(row.Date)</time>
+                    </div>
+                    <p class="sp-report-body">@row.Body</p>
+                    <footer>
+                        <span class="sp-report-by">@Locale.T("stu.postBy"): <b>@DisplayPostBy(row.PostBy)</b></span>
+                    </footer>
+                </article>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<StudentPortalFaultReportDto> rows = [];
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private bool loading = true;
+    private string viewMode = "daily";
+
+    private static readonly MarkupString DocIco = Icon("M8 3h7l5 5v13H8V3Zm7 0v5h5");
+    private static readonly MarkupString PrintIco = (MarkupString)"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>""";
+
+    private IEnumerable<DailyFaultGroup> DailyGroups =>
+        rows
+            .GroupBy(x => x.Date?.Date ?? DateTime.MinValue)
+            .OrderByDescending(x => x.Key)
+            .Select(g => new DailyFaultGroup(
+                g.Key,
+                g.OrderBy(x => x.StudentFaultID).ToList()));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                rows = await Api.GetStudentPortalReportAsync(Session.AccessToken, fromDate, toDate);
+        }
+        catch { rows = []; }
+        loading = false;
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("sikkhaloyPrint");
+
+    private static string FmtDate(DateTime? value) =>
+        value is DateTime d && d != DateTime.MinValue ? d.ToString("d MMM yyyy") : "—";
+
+    private static string DisplayPostBy(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? "—" : name.Trim();
+
+    private static string DisplayTitle(string? title) =>
+        string.IsNullOrWhiteSpace(title) ? "—" : title.Trim();
+
+    private static string DisplayBody(string? body) =>
+        string.IsNullOrWhiteSpace(body) ? "—" : body.Trim();
+
+    private static MarkupString Icon(string d) =>
+        (MarkupString)$"""<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>""";
+
+    private sealed record DailyFaultGroup(DateTime Day, IReadOnlyList<StudentPortalFaultReportDto> Items)
+    {
+        public string PostBy => Items.Select(x => x.PostBy).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? "";
+    }
+}

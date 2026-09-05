@@ -1,65 +1,25 @@
 ﻿<%@ Page Title="Dashboard" Language="C#" MasterPageFile="~/Basic_Student.Master" AutoEventWireup="true" CodeBehind="Student_Profile.aspx.cs" Inherits="EDUCATION.COM.Student.Student_Profile" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <style>
-        body { background-color: #f0f1f3; }
-        .stats-left {white-space:nowrap; float: left; width: 60%; background-color: #4F52BA; padding: 1.20rem 0; }
-        .stats-right { float: right; width: 40%; text-align: center; padding: 1.79rem 0; background-color: rgba(79, 82, 186, 0.88); }
-
-        .states-mdl .stats-left { background-color: #585858; }
-        .states-mdl .stats-right { background-color: rgba(88, 88, 88, 0.88); }
-
-        .states-last .stats-left { background-color: #e94e02; }
-        .states-last .stats-right { background-color: rgba(233, 78, 2, 0.84); }
-
-        .stats-left h4 { font-size: 0.9rem; color: #fff; font-weight: 500; padding-left: 7px; }
-        .stats-right label { font-size: 1rem; color: #fff; font-weight: bold; }
-
-        /** Progressbar class css*/
-        .progressbar { width: 100%; position: relative; }
-        .proggress { height: 8px; width: 10px; background-color: #3498db; }
-        .percentCount { margin-right: 5px; float: right; clear: both; font-weight: bold; font-size: 0.9rem; color: #fff; }
-
-        .card-header { background-color: #fff; }
-        .Relation { color: #00a12a; }
-        .gimg { width: 160px; display: block; margin: auto; }
-
-        /*Allover report*/
-        .statistic { white-space: nowrap; overflow: hidden; padding: 20px 2px 20px 10px; margin-bottom: 15px; margin-right: 8px; }
-        .has-shadow { -webkit-box-shadow: 2px 2px 2px rgba(0,0,0,0.1),-1px 0 2px rgba(0,0,0,0.05); box-shadow: 2px 2px 2px rgba(0,0,0,0.1),-1px 0 2px rgba(0,0,0,0.05); }
-        .icon { width: 40px; height: 40px; line-height: 40px; text-align: center; min-width: 40px; max-width: 40px; color: #fff; border-radius: 50%; margin-right: 10px; }
-        .statistic strong { font-size: 1.5em; color: #333; font-weight: 700; line-height: 1; }
-        .statistic small { color: #707070; text-transform: uppercase; }
-
-        .statistic2 { white-space: nowrap; overflow: hidden; padding: 20px 2px 20px 10px; margin-bottom: 15px; }
-        .statistic2 strong { font-size: 1.1em; color: #333; font-weight: 700; line-height: 1; }
-        .statistic2 small { color: #818181; font-size: 1rem; text-transform: uppercase; }
-
-        .nav-tabs { background-color: #25b79d; }
-    </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
-<div class="row" style="display:flex; margin:0">
-    <h3 style="height: 55px; padding: 0; width: 100%; padding-left: 16px;">Dashboard
-<%--    <span id="spanBankingMsg" style="margin-left: 2%; font-weight: bold;"> আমরা সকল মোবাইল ব্যাংকিংসহ ন্যাশনাল এবং ইন্টারন্যাশনাল কার্ড পেমেন্ট গ্রহন করি</span>--%>
-    <a href="Student_Edit_Profile.aspx" class="btn btn-primary mr-2" style="height: 42px; font-size: 14px; border-radius: 5px; font-weight: bold; padding: 10px 25px;">
-        <i class="fa fa-edit mr-1"></i>Edit Profile
-    </a>
-    <button id="btnPayOnline" type="button" class="btn btn-danger" style="height: 42px; font-size: 14px; border-radius: 5px; font-weight: bold; padding: 0 25px;"
-        OnClick="ViewDueClick()">
-        Pay Online</button>
-    </h3>
+<div class="st-dash-bar">
+    <h3>Dashboard</h3>
+    <div class="st-dash-actions">
+        <a href="Student_Edit_Profile.aspx" class="st-btn st-btn-edit"><i class="fa fa-edit"></i>Edit Profile</a>
+        <button id="btnPayOnline" type="button" class="st-btn st-btn-pay" onclick="ViewDueClick()"><i class="fa fa-credit-card"></i>Pay Online</button>
+    </div>
 </div>
     <div class="row">
         <div class="col-lg-3">
-            <div class="card mb-3">
+            <div class="st-card">
                 <asp:FormView ID="GuardianFormView" Width="100%" runat="server" DataSourceID="GuardianSQL">
                     <ItemTemplate>
-                        <div class="card-header text-center"><i class="fa fa-user-o mr-1" aria-hidden="true"></i>Guardian
-                            <small class="Relation"><%# Eval("GuardianRelationshipwithStudent") %></small></div>
-                        <div class="card-body">
-                            <img class="gimg img-thumbnail mb-2 z-depth-1" src="/Handeler/Guardian_Photo.ashx?SID=<%# Eval("StudentImageID") %>" />
-                            <h6 class="text-center"><%# Eval("GuardianName") %></h6>
+                        <div class="st-card-h"><i class="fa fa-user-o mr-1"></i>Guardian
+                            <small class="st-rel"><%# Eval("GuardianRelationshipwithStudent") %></small></div>
+                        <div class="st-card-b st-guardian">
+                            <img src="/Handeler/Guardian_Photo.ashx?SID=<%# Eval("StudentImageID") %>" alt="" />
+                            <h6><%# Eval("GuardianName") %></h6>
                         </div>
                     </ItemTemplate>
                 </asp:FormView>
@@ -72,10 +32,10 @@
 
             <asp:FormView ID="BestSubFormView" Width="100%" DataSourceID="BestSubSQL" runat="server">
                 <ItemTemplate>
-                    <div class="statistic2 d-flex align-items-center bg-white has-shadow mr-0">
+                    <div class="st-subchip">
                         <div class="icon bg-success"><i class="fa fa-thumbs-up"></i></div>
-                        <div class="text">
-                            <strong><%# Eval("SubjectName") %></strong><br>
+                        <div>
+                            <strong><%# Eval("SubjectName") %></strong>
                             <small><%# Eval("Top_Sub") %>%</small>
                         </div>
                     </div>
@@ -91,10 +51,10 @@ GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN ORDER
 
             <asp:FormView ID="WeakFormView" Width="100%" DataSourceID="WeakSQL" runat="server">
                 <ItemTemplate>
-                    <div class="statistic2 d-flex align-items-center bg-white has-shadow mr-0">
+                    <div class="st-subchip">
                         <div class="icon bg-danger"><i class="fa fa-thumbs-down"></i></div>
-                        <div class="text">
-                            <strong><%# Eval("SubjectName") %></strong><br>
+                        <div>
+                            <strong><%# Eval("SubjectName") %></strong>
                             <small><%# Eval("Worst_Sub") %>%</small>
                         </div>
                     </div>
@@ -108,15 +68,13 @@ GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN ORDER
                 </SelectParameters>
             </asp:SqlDataSource>
 
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fa fa-bar-chart mr-1" aria-hidden="true"></i>MY SUBJECT AVG.
-                </div>
-                <div class="card-body">
+            <div class="st-card">
+                <div class="st-card-h"><i class="fa fa-bar-chart mr-1"></i>My subject avg.</div>
+                <div class="st-card-b">
                     <div class="table-responsive">
                         <asp:Repeater ID="SubjectAvgRepeater" runat="server" DataSourceID="SubjectAvgSQL">
                             <HeaderTemplate>
-                                <table class="table">
+                                <table class="table st-table">
                                     <thead>
                                         <tr>
                                             <th>Subject</th>
@@ -134,8 +92,8 @@ GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN ORDER
                                 </tr>
                             </ItemTemplate>
                             <FooterTemplate>
-                                </tbody>
-                             </table>
+                                    </tbody>
+                                </table>
                             </FooterTemplate>
                         </asp:Repeater>
                         <asp:SqlDataSource ID="SubjectAvgSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Exam_Result_of_Subject.SubjectID, Subject.SN, Subject.SubjectName, ROUND(AVG(Exam_Result_of_Subject.ObtainedPercentage_ofSubject), 2, 0) AS Sub_Avg, 
@@ -151,10 +109,10 @@ GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN ORDER
                 </div>
             </div>
 
-            <div class="card mb-3">
-                <div class="card-body text-center">
+            <div class="st-card">
+                <div class="st-card-h"><i class="fa fa-pie-chart mr-1"></i>Attendance</div>
+                <div class="st-card-b text-center">
                     <canvas id="doughnutChart"></canvas>
-
                     <asp:FormView ID="LastStatusFormView" runat="server" DataSourceID="LastStatusSQL" Width="100%">
                         <ItemTemplate>
                             <small>Last <%# Eval("Attendance") %>:  <%# Eval("AttendanceDate","{0:d MMM yyyy}") %></small>
@@ -175,52 +133,25 @@ GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN ORDER
                 <ItemTemplate>
                     <input id="TotalFee" type="hidden" value='<%# Eval("TotalFee") %>' />
                     <input id="Current_Fee" type="hidden" value='<%# Eval("Current_Fee") %>' />
-                    <div class="row">
-                        <div class="col-lg-4">
-                            <div class="z-depth-2 mb-3">
-                                <div class="stats-left">
-                                    <h4><i class="fa fa-pie-chart mr-1" aria-hidden="true"></i>Current Due</h4>
-                                    <div id="CurrentDue_p"></div>
-                                </div>
-                                <div class="stats-right" style="padding-bottom: 0px; padding-top: 7%;">
-                                    <button type="button" id="btnPayNow" class="btn btn-danger" 
-                                                style="height: 30px; font-size: 12px; font-weight: bold; padding: 0px 10px;"
-                                                OnClick="ViewDueClick()"> Pay Now</button>
-                                    <input id="C_D" type="hidden" value='<%# Eval("CurrentDue") %>' />
-                                    <label><%# Eval("CurrentDue","{0:N0}") %>৳</label>
-                                </div>
-                                <div class="clearfix"></div>
-                            </div>
+                    <div class="st-fees">
+                        <div class="st-fee st-fee-due">
+                            <h4><i class="fa fa-pie-chart mr-1"></i>Current Due</h4>
+                            <div id="CurrentDue_p"></div>
+                            <button type="button" id="btnPayNow" class="st-btn st-btn-pay" onclick="ViewDueClick()">Pay Now</button>
+                            <input id="C_D" type="hidden" value='<%# Eval("CurrentDue") %>' />
+                            <label><%# Eval("CurrentDue","{0:N0}") %>৳</label>
                         </div>
-                        <div class="col-lg-4">
-                            <div class="states-mdl mb-3">
-                                <div class="z-depth-2">
-                                    <div class="stats-left">
-                                        <h4><i class="fa fa-check-circle mr-1" aria-hidden="true"></i>Paid</h4>
-                                        <div id="Paid_p"></div>
-                                    </div>
-                                    <div class="stats-right">
-                                        <input id="Paid" type="hidden" value='<%# Eval("Paid") %>' />
-                                        <label><%# Eval("Paid","{0:N0}") %>৳</label>
-                                    </div>
-                                    <div class="clearfix"></div>
-                                </div>
-                            </div>
+                        <div class="st-fee st-fee-paid">
+                            <h4><i class="fa fa-check-circle mr-1"></i>Paid</h4>
+                            <div id="Paid_p"></div>
+                            <input id="Paid" type="hidden" value='<%# Eval("Paid") %>' />
+                            <label><%# Eval("Paid","{0:N0}") %>৳</label>
                         </div>
-                        <div class="col-lg-4">
-                            <div class="mb-3 states-last">
-                                <div class="z-depth-2">
-                                    <div class="stats-left">
-                                        <h4 OnClick="ViewDueClick()" style="cursor:pointer"><i class="fa fa-hourglass-half mr-1" aria-hidden="true"></i>View Due</h4>
-                                        <div id="Due_p"></div>
-                                    </div>
-                                    <div class="stats-right">
-                                        <input id="Due" type="hidden" value='<%# Eval("Due") %>' />
-                                        <label><%# Eval("Due","{0:N0}") %>৳</label>
-                                    </div>
-                                    <div class="clearfix"></div>
-                                </div>
-                            </div>
+                        <div class="st-fee st-fee-view">
+                            <h4 onclick="ViewDueClick()"><i class="fa fa-hourglass-half mr-1"></i>View Due</h4>
+                            <div id="Due_p"></div>
+                            <input id="Due" type="hidden" value='<%# Eval("Due") %>' />
+                            <label><%# Eval("Due","{0:N0}") %>৳</label>
                         </div>
                     </div>
                 </ItemTemplate>
@@ -235,41 +166,33 @@ GROUP BY Exam_Result_of_Subject.SubjectID, Subject.SubjectName, Subject.SN ORDER
 
             <asp:FormView ID="StdentAvgFormView" runat="server" Width="100%" DataSourceID="StudentAvgSQL">
                 <ItemTemplate>
-                    <div class="row no-gutters">
-                        <div class="col-lg-3">
-                            <div class="statistic d-flex align-items-center bg-white has-shadow">
-                                <div class="icon bg-danger"><i class="fa fa-list-ol"></i></div>
-                                <div class="text">
-                                    <strong><%# Eval("Average_Position_Class") %></strong><br>
-                                    <small>Avg. Position</small>
-                                </div>
+                    <div class="st-kpis">
+                        <div class="st-kpi">
+                            <div class="icon bg-danger"><i class="fa fa-list-ol"></i></div>
+                            <div>
+                                <strong><%# Eval("Average_Position_Class") %></strong>
+                                <small>Avg. Position</small>
                             </div>
                         </div>
-                        <div class="col-lg-3">
-                            <div class="statistic d-flex align-items-center bg-white has-shadow">
-                                <div class="icon bg-warning darken-3"><i class="fa fa-star"></i></div>
-                                <div class="text">
-                                    <strong><%# Eval("Average_Point") %></strong><br>
-                                    <small>Avg. Point</small>
-                                </div>
+                        <div class="st-kpi">
+                            <div class="icon bg-warning darken-3"><i class="fa fa-star"></i></div>
+                            <div>
+                                <strong><%# Eval("Average_Point") %></strong>
+                                <small>Avg. Point</small>
                             </div>
                         </div>
-                        <div class="col-lg-3">
-                            <div class="statistic d-flex align-items-center bg-white has-shadow">
-                                <div class="icon bg-primary"><i class="fa fa-pie-chart"></i></div>
-                                <div class="text">
-                                    <strong><%# Eval("Average_ObtainedMarkofSubject") %>%</strong><br>
-                                    <small>Avg. Mark</small>
-                                </div>
+                        <div class="st-kpi">
+                            <div class="icon bg-primary"><i class="fa fa-pie-chart"></i></div>
+                            <div>
+                                <strong><%# Eval("Average_ObtainedMarkofSubject") %>%</strong>
+                                <small>Avg. Mark</small>
                             </div>
                         </div>
-                        <div class="col-lg-3">
-                            <div class="statistic d-flex align-items-center bg-white has-shadow" style="margin-right: 0;">
-                                <div class="icon bg-success"><i class="fa fa-line-chart"></i></div>
-                                <div class="text">
-                                    <strong><%# Eval("Success_Percentage") %>%</strong><br>
-                                    <small>Pass %</small>
-                                </div>
+                        <div class="st-kpi">
+                            <div class="icon bg-success"><i class="fa fa-line-chart"></i></div>
+                            <div>
+                                <strong><%# Eval("Success_Percentage") %>%</strong>
+                                <small>Pass %</small>
                             </div>
                         </div>
                     </div>
@@ -283,15 +206,13 @@ FROM Exam_Result_of_Student WHERE (StudentPublishStatus = N'Pub') AND (StudentID
                 </SelectParameters>
             </asp:SqlDataSource>
 
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fa fa-bar-chart mr-1" aria-hidden="true"></i>SESSION BASED EXAM REPORT
-                </div>
-                <div class="card-body">
+            <div class="st-card">
+                <div class="st-card-h"><i class="fa fa-bar-chart mr-1"></i>Session based exam report</div>
+                <div class="st-card-b">
                     <div class="table-responsive">
                         <asp:Repeater ID="SessionSuccessRepeater" runat="server" DataSourceID="SessionSuccessSQL">
                             <HeaderTemplate>
-                                <table class="table">
+                                <table class="table st-table">
                                     <thead>
                                         <tr>
                                             <th>Session</th>
@@ -313,8 +234,8 @@ FROM Exam_Result_of_Student WHERE (StudentPublishStatus = N'Pub') AND (StudentID
                                 </tr>
                             </ItemTemplate>
                             <FooterTemplate>
-                                </tbody>
-                             </table>
+                                    </tbody>
+                                </table>
                             </FooterTemplate>
                         </asp:Repeater>
                         <asp:SqlDataSource ID="SessionSuccessSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT T_AP.EducationYearID, Education_Year.EducationYear, T_AP.Average_Position_Class, T_AP.Average_Point, T_S.Success_Percentage, T_B.Average_ObtainedMarkofSubject
@@ -335,17 +256,17 @@ Education_Year ON T_AP.EducationYearID = Education_Year.EducationYearID ORDER BY
                 </div>
             </div>
 
-            <ul class="nav nav-tabs nav-justified">
+            <ul class="nav nav-tabs nav-justified st-chart-tabs">
                 <li class="nav-item">
-                    <a class="nav-link active" data-toggle="tab" href="#panel1" role="tab">INDIVIDUAL RESULT</a>
+                    <a class="nav-link active" data-toggle="tab" href="#panel1" role="tab">Individual result</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-toggle="tab" href="#panel2" role="tab">CUMULATIVE RESULT</a>
+                    <a class="nav-link" data-toggle="tab" href="#panel2" role="tab">Cumulative result</a>
                 </li>
             </ul>
 
-            <div class="tab-content card">
-                <div class="mb-3 px-5">
+            <div class="tab-content st-chart-box">
+                <div class="st-year">
                     <asp:DropDownList ID="EduYearDropDownList" runat="server" CssClass="form-control" DataSourceID="EduYearSQL" DataTextField="EducationYear" DataValueField="EducationYearID"></asp:DropDownList>
                     <asp:SqlDataSource ID="EduYearSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT Education_Year.EducationYearID, 'Class: ' + CreateClass.Class+ ' - ' + Education_Year.EducationYear  AS EducationYear, CreateClass.Class FROM Education_Year INNER JOIN StudentsClass ON Education_Year.EducationYearID = StudentsClass.EducationYearID INNER JOIN CreateClass ON StudentsClass.ClassID = CreateClass.ClassID WHERE (Education_Year.SchoolID = @SchoolID) AND (StudentsClass.StudentID = @StudentID)">
                         <SelectParameters>
@@ -364,37 +285,41 @@ Education_Year ON T_AP.EducationYearID = Education_Year.EducationYearID ORDER BY
             </div>
         </div>
     </div>
-
     <script src="/JS/ProgressBar/jquery.lineProgressbar.js"></script>
     <script>
         $(function () {
-            var TotalFee = $('#TotalFee').val();
-            var Current_Fee = $('#Current_Fee').val();
+            var TotalFee = parseFloat($('#TotalFee').val()) || 0;
+            var Current_Fee = parseFloat($('#Current_Fee').val()) || 0;
+            var CurrentDue = parseFloat($('#C_D').val()) || 0;
+            var Paid = parseFloat($('#Paid').val()) || 0;
+            var Due = parseFloat($('#Due').val()) || 0;
 
-            var CurrentDue = $('#C_D').val();
-            var Paid = $('#Paid').val();
-            var Due = $('#Due').val();
+            if ($('#CurrentDue_p').length && $.fn.LineProgressbar) {
+            var duePct = Current_Fee > 0 ? (CurrentDue * 100) / Current_Fee : 0;
+            var paidPct = TotalFee > 0 ? (Paid * 100) / TotalFee : 0;
+            var viewPct = TotalFee > 0 ? (Due * 100) / TotalFee : 0;
 
             $('#CurrentDue_p').LineProgressbar({
-                percentage: (CurrentDue * 100) / Current_Fee,
+                percentage: duePct,
                 fillBackgroundColor: '#fff',
                 backgroundColor: '#7376d1',
                 height: '4px',
             });
 
             $('#Paid_p').LineProgressbar({
-                percentage: (Paid * 100) / TotalFee,
+                percentage: paidPct,
                 fillBackgroundColor: '#fff',
                 backgroundColor: '#828282',
                 height: '4px',
             });
 
             $('#Due_p').LineProgressbar({
-                percentage: (Due * 100) / TotalFee,
+                percentage: viewPct,
                 fillBackgroundColor: '#fff',
                 backgroundColor: '#f97738',
                 height: '4px',
             });
+            }
 
 
             //Chart
@@ -411,7 +336,9 @@ Education_Year ON T_AP.EducationYearID = Education_Year.EducationYearID ORDER BY
                 dataType: "json",
                 success: function (r) {
                     var Ch_data = r.d;
-                    var ctxD = document.getElementById("doughnutChart").getContext('2d');
+                    var el = document.getElementById("doughnutChart");
+                    if (!el || !Ch_data || !Ch_data[0]) return;
+                    var ctxD = el.getContext('2d');
                     var myLineChart = new Chart(ctxD, {
                         type: 'doughnut',
                         data: {

@@ -1,0 +1,53 @@
+@page "/student/exam-routine"
+@layout StudentLayout
+@inherits LocaleAwareComponent
+@inject AppSession Session
+@inject ISyncApiClient Api
+@inject NavigationManager Nav
+
+<div class="sp-page">
+    <h1>@Locale.T("stu.examRoutine")</h1>
+    <article class="sp-card">
+        @if (loading)
+        {
+            <p class="sp-empty">@Locale.T("stu.loading")</p>
+        }
+        else if (rows.Count == 0)
+        {
+            <p class="sp-empty">@Locale.T("stu.empty")</p>
+        }
+        else
+        {
+            @foreach (var exam in rows)
+            {
+                <div class="sp-exam">
+                    <div class="sp-exam-date">
+                        <strong>@(exam.Date?.Day.ToString() ?? "—")</strong>
+                        <span>@(exam.Date?.ToString("MMM")?.ToUpperInvariant() ?? "")</span>
+                    </div>
+                    <div>
+                        <b>@exam.Name</b>
+                        <small>@(exam.Date?.ToString("d MMM yyyy") ?? "")</small>
+                    </div>
+                </div>
+            }
+        }
+    </article>
+</div>
+
+@code {
+    private IReadOnlyList<StudentPortalExamDto> rows = [];
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsStudent) { Nav.NavigateTo(Session.HomePath, replace: true); return; }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Session.AccessToken))
+                rows = await Api.GetStudentPortalUpcomingExamsAsync(Session.AccessToken);
+        }
+        catch { }
+        loading = false;
+    }
+}

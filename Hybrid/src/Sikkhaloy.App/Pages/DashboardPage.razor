@@ -118,6 +118,7 @@
         margin: 0.15rem auto 0;
         aspect-ratio: 1;
         overflow: visible;
+        flex-shrink: 0;
     }
     .dash-page .dash-sms-card { overflow: visible; }
     .dash-sms-ring svg { width: 100%; height: 100%; display: block; }
@@ -160,20 +161,52 @@
         grid-template-columns: 1fr 1fr;
         gap: 0.85rem;
         margin-bottom: 0.85rem;
-        align-items: start;
+        align-items: stretch;
     }
     .dash-page .dash-col {
         display: flex;
         flex-direction: column;
         gap: 0.85rem;
         min-width: 0;
+        min-height: 0;
     }
-    .dash-page .dash-charts,
-    .dash-page .dash-extra {
+    .dash-page .dash-panel h2,
+    .dash-page .dash-session-card h2,
+    .dash-page .dash-quick h2 {
+        text-align: center;
+    }
+    .dash-page .dash-class-card .toolbar,
+    .dash-page .dash-cal .toolbar {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .dash-page .dash-class-card .toolbar h2,
+    .dash-page .dash-cal .toolbar h2 {
+        grid-column: 2;
+        text-align: center;
+    }
+    .dash-page .dash-class-card .toolbar a,
+    .dash-page .dash-cal .toolbar a {
+        grid-column: 3;
+        justify-self: end;
+    }
+    .dash-page .dash-quad {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+        grid-template-rows: auto 1fr;
+        gap: 0.85rem;
         margin: 0;
+        flex: 1 1 auto;
+        min-height: 0;
+        align-items: stretch;
+    }
+    .dash-page .dash-quad > .dash-panel {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
     }
     .dash-page .dash-class-card { min-width: 0; }
     .dash-page table.dash-class-table th,
@@ -183,65 +216,83 @@
     }
     .dash-page table.dash-class-table thead th { font-size: 0.72rem; }
     .dash-page table.dash-class-table tfoot th { font-size: 0.8rem; padding-top: 0.38rem; }
-    .dash-page .dash-charts .dash-gender {
+    .dash-page table.dash-class-table a.dash-class-link {
+        color: #0f766e;
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .dash-page table.dash-class-table a.dash-class-link:hover { text-decoration: underline; }
+    .dash-page .dash-quad .dash-panel { padding: 0.55rem 0.7rem 0.55rem; }
+    .dash-page .dash-quad .dash-gender {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.8rem;
-        padding: 0.25rem 0 0.1rem;
-        min-height: 240px;
+        gap: 0.45rem;
+        padding: 0.1rem 0 0;
+        min-height: 0;
     }
-    .dash-page .dash-charts .dash-gender .dash-donut {
-        width: 196px;
-        height: 196px;
-        flex: 0 0 196px;
+    .dash-page .dash-quad .dash-gender .dash-donut {
+        width: 118px;
+        height: 118px;
+        flex: 0 0 118px;
         margin: 0 auto;
     }
-    .dash-page .dash-charts .dash-gender .dash-donut-hole {
-        width: 126px;
-        height: 126px;
+    .dash-page .dash-quad .dash-gender .dash-donut-hole {
+        width: 76px;
+        height: 76px;
     }
-    .dash-page .dash-charts .dash-gender .dash-donut-hole strong { font-size: 1.55rem; }
-    .dash-page .dash-charts .dash-gender .dash-donut-hole small { font-size: 0.78rem; }
-    .dash-page .dash-charts .dash-gender .dash-legend {
+    .dash-page .dash-quad .dash-gender .dash-donut-hole strong { font-size: 1.15rem; }
+    .dash-page .dash-quad .dash-gender .dash-donut-hole small { font-size: 0.68rem; }
+    .dash-page .dash-quad .dash-gender .dash-legend {
         width: 100%;
         max-width: 210px;
         gap: 0.4rem;
     }
-    .dash-page .dash-charts .dash-gender .dash-legend li {
+    .dash-page .dash-quad .dash-gender .dash-legend li {
         justify-content: flex-start;
         font-size: 0.88rem;
     }
-    .dash-page .dash-charts .dash-sms {
-        margin-bottom: 0.45rem;
-        gap: 0.35rem;
+    .dash-page .dash-quad .dash-sms {
+        margin-bottom: 0.28rem;
+        gap: 0.28rem;
     }
-    .dash-page .dash-charts .dash-sms div { padding: 0.32rem 0.4rem; }
-    .dash-page .dash-charts .dash-sms strong { font-size: 0.98rem; }
-    .dash-page .dash-charts .dash-sms-ring { width: min(100%, 132px); }
-    .dash-page .dash-charts .dash-sms-stack-labels { min-height: 1.7rem; }
-    .dash-page .dash-extra .dash-emp {
+    .dash-page .dash-quad .dash-sms div { padding: 0.22rem 0.32rem; }
+    .dash-page .dash-quad .dash-sms strong { font-size: 0.92rem; }
+    .dash-page .dash-quad .dash-sms-ring { width: min(100%, 92px); flex-shrink: 0; }
+    .dash-page .dash-quad .dash-sms-stack { margin-bottom: 0.4rem; flex-shrink: 0; }
+    .dash-page .dash-quad .dash-sms-stack-labels { min-height: 1.35rem; }
+    .dash-page .dash-quad .dash-sms-stack-bar { height: 12px; }
+    .dash-page .dash-quad .dash-emp {
+        flex: 1 1 auto;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.7rem;
-        min-height: 220px;
-        padding: 0.15rem 0 0.1rem;
+        gap: 0.55rem;
+        min-height: 0;
+        padding: 0.15rem 0 0;
     }
-    .dash-page .dash-extra .dash-pie {
-        width: min(100%, 210px);
+    .dash-page .dash-quad .dash-pie {
+        width: min(100%, 168px);
         height: auto;
         display: block;
         overflow: visible;
-        filter: drop-shadow(0 10px 12px rgba(15, 23, 42, 0.16));
+        filter: drop-shadow(0 8px 10px rgba(15, 23, 42, 0.14));
     }
-    .dash-page .dash-extra .dash-emp .dash-legend {
+    .dash-page .dash-quad .dash-emp .dash-legend {
         width: 100%;
         max-width: 210px;
         gap: 0.38rem;
     }
-    .dash-page .dash-extra .dash-emp .dash-legend li { font-size: 0.86rem; }
+    .dash-page .dash-quad .dash-emp .dash-legend li { font-size: 0.86rem; }
+    .dash-page .dash-quad .dash-bars {
+        flex: 1 1 auto;
+        align-content: center;
+        min-height: 0;
+        gap: 0.45rem;
+    }
+    .dash-page .dash-quad .dash-bar { height: 8px; }
+    .dash-page .dash-quad .dash-bar-row { font-size: 0.84rem; }
     .dash-cal .toolbar { margin-bottom: 0.45rem; }
     .dash-cal .toolbar h2 { margin: 0; font-size: 1.02rem; font-weight: 800; }
     .dash-cal .toolbar a { font-size: 0.8rem; font-weight: 700; color: #0f766e; }
@@ -314,10 +365,29 @@
         padding: 0 1px;
         word-break: break-word;
     }
-    .dash-session-card { margin: 0; }
+    .dash-session-card {
+        margin: 0;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 300px;
+    }
     .dash-session-card h2 { margin: 0 0 0.45rem; font-size: 1.02rem; font-weight: 800; }
-    .dash-line { position: relative; }
-    .dash-line svg { width: 100%; height: auto; aspect-ratio: 840 / 228; display: block; }
+    .dash-line {
+        position: relative;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 260px;
+    }
+    .dash-line svg {
+        width: 100%;
+        flex: 1 1 auto;
+        height: 100%;
+        min-height: 260px;
+        aspect-ratio: 840 / 340;
+        display: block;
+    }
     .dash-line-labels {
         display: flex;
         justify-content: space-between;
@@ -346,8 +416,7 @@
     }
     @@media (max-width: 1100px) {
         .dash-page .dash-board,
-        .dash-page .dash-charts,
-        .dash-page .dash-extra { grid-template-columns: 1fr; }
+        .dash-page .dash-quad { grid-template-columns: 1fr; }
     }
     .dash-due-foot {
         display: flex;
@@ -397,6 +466,153 @@
     }
     .dash-due-btn:hover { filter: brightness(1.06); text-decoration: none; color: inherit; }
     .dash-due-btn.is-due:hover, .dash-due-btn.is-pay:hover { color: #fff; }
+    .dash-page { overflow-x: hidden; }
+    .dash-page .dash-lists > .dash-bday {
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    .dash-page .dash-bday-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.55rem;
+        margin-bottom: 0.5rem;
+        min-width: 0;
+    }
+    .dash-page .dash-bday-head h2 {
+        margin: 0;
+        text-align: left;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .dash-page .dash-bday-sms {
+        flex-shrink: 0;
+        height: 32px;
+        padding: 0 0.75rem;
+        border: 0;
+        border-radius: 8px;
+        background: #0f766e;
+        color: #fff;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(15, 118, 110, 0.22);
+    }
+    .dash-page .dash-bday-sms:hover { filter: brightness(1.06); }
+    .dash-page .dash-bday-sms:disabled {
+        background: #94a3b8;
+        box-shadow: none;
+        cursor: not-allowed;
+        filter: none;
+    }
+    .dash-page .dash-bday-viewport,
+    .dash-page .dash-bday-empty {
+        height: 232px;
+    }
+    .dash-page .dash-bday-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        text-align: center;
+    }
+    .dash-page .dash-bday-viewport {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+    }
+    .dash-page .dash-bday-track {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: flex;
+        gap: 0.7rem;
+        height: 100%;
+        width: max-content;
+        animation: dash-bday-slide var(--dash-bday-secs, 24s) linear infinite;
+    }
+    .dash-page .dash-bday-track:hover { animation-play-state: paused; }
+    .dash-page .dash-bday-card {
+        flex: 0 0 168px;
+        width: 168px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0.7rem 0.55rem 0.6rem;
+        border-radius: 14px;
+        text-decoration: none;
+        color: inherit;
+        box-sizing: border-box;
+        background: linear-gradient(180deg, #f0fdfa 0%, #fff 55%);
+        border: 1px solid #ccfbf1;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+    .dash-page .dash-bday-card.is-soon {
+        background: linear-gradient(180deg, #fff7ed 0%, #fff 55%);
+        border-color: #fed7aa;
+    }
+    .dash-page .dash-bday-card:hover { text-decoration: none; transform: translateY(-2px); }
+    .dash-page .dash-bday-card img,
+    .dash-page .dash-bday-ph {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        object-fit: cover;
+        object-position: center top;
+        flex-shrink: 0;
+        margin-bottom: 0.45rem;
+        background: #e2e8f0;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+    }
+    .dash-page .dash-bday-ph {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: #0f766e;
+        background: #ccfbf1;
+    }
+    .dash-page .dash-bday-card.is-soon .dash-bday-ph {
+        color: #9a3412;
+        background: #ffedd5;
+    }
+    .dash-page .dash-bday-card strong {
+        display: block;
+        font-size: 0.86rem;
+        line-height: 1.25;
+        max-width: 100%;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    .dash-page .dash-bday-card span,
+    .dash-page .dash-bday-card em {
+        display: block;
+        margin-top: 0.18rem;
+        font-size: 0.72rem;
+        color: #64748b;
+        font-style: normal;
+    }
+    .dash-page .dash-bday-card em { color: #0f766e; font-weight: 800; }
+    .dash-page .dash-bday-card.is-soon em { color: #c2410c; }
+    @@keyframes dash-bday-slide {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+    }
+    @@media (prefers-reduced-motion: reduce) {
+        .dash-page .dash-bday-track { animation: none; }
+    }
 </style>
 
 <div class="dash-page">
@@ -550,7 +766,7 @@
             <section class="card dash-panel dash-session-card">
                 <h2>@Locale.T("dash.yearStudents")</h2>
                 <div class="dash-line">
-                    <svg viewBox="0 0 840 228" preserveAspectRatio="none" aria-label="@Locale.T("dash.yearStudents")">
+                    <svg viewBox="0 0 840 340" preserveAspectRatio="none" aria-label="@Locale.T("dash.yearStudents")">
                         <defs>
                             <linearGradient id="dashSessFill" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stop-color="#0f766e" stop-opacity="0.32" />
@@ -615,7 +831,7 @@
             </div>
         </section>
 
-        <div class="dash-charts">
+        <div class="dash-quad">
         <section class="card dash-panel">
             <h2>@Locale.T("dash.gender")</h2>
             <div class="dash-gender">
@@ -706,11 +922,7 @@
                 }
             </section>
         }
-    </div>
 
-        @if (online.Employees.Count > 0 || stats.BloodGroups.Count > 0)
-        {
-            <div class="dash-extra">
                 @if (online.Employees.Count > 0)
                 {
                     <section class="card dash-panel">
@@ -775,8 +987,7 @@
                         </div>
                     </section>
                 }
-            </div>
-        }
+        </div>
         </div>
     </div>
 
@@ -797,48 +1008,74 @@
     }
 
     <div class="dash-lists">
-        <section class="card dash-panel">
-            <h2>@Locale.T("dash.birthday")</h2>
+        <section class="card dash-panel dash-bday">
+            <div class="dash-bday-head">
+                <h2>@Locale.T("dash.birthday")</h2>
+                @if (stats.BirthdaysToday.Count > 0)
+                {
+                    <button type="button" class="dash-bday-sms" disabled="@BirthdaySmsDisabled" @onclick="SendBirthdaySmsAsync">
+                        @BirthdaySmsLabel
+                    </button>
+                }
+            </div>
             @if (stats.BirthdaysToday.Count == 0)
             {
-                <p class="muted">@Locale.T("dash.noBirthday")</p>
+                <p class="muted dash-bday-empty">@Locale.T("dash.noBirthday")</p>
             }
             else
             {
-                <ul class="dash-people">
-                    @foreach (var student in stats.BirthdaysToday)
-                    {
-                        <li>
-                            <a href="@($"students/details/{student.LocalId}")">
+                <div class="dash-bday-viewport">
+                    <div class="dash-bday-track" style="@BdayTrackStyle(stats.BirthdaysToday.Count)">
+                        @foreach (var student in BdayLoop(stats.BirthdaysToday))
+                        {
+                            <a class="dash-bday-card" href="@($"students/details/{student.LocalId}")">
+                                @if (!string.IsNullOrWhiteSpace(PhotoOf(student)))
+                                {
+                                    <img src="@PhotoOf(student)" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="dash-bday-ph">@Initials(student.StudentsName)</span>
+                                }
                                 <strong>@student.StudentsName</strong>
-                                <span>ID @student.StudentCode · @student.ClassName</span>
+                                <span>ID @student.StudentCode · @(student.ClassName ?? "—")</span>
+                                <em>@Locale.T("dash.age", Age(student.DateofBirth).ToString())</em>
                             </a>
-                            <em>@Locale.T("dash.age", Age(student.DateofBirth).ToString())</em>
-                        </li>
-                    }
-                </ul>
+                        }
+                    </div>
+                </div>
             }
         </section>
-        <section class="card dash-panel">
-            <h2>@Locale.T("dash.upcoming")</h2>
+        <section class="card dash-panel dash-bday">
+            <div class="dash-bday-head">
+                <h2>@Locale.T("dash.upcoming")</h2>
+            </div>
             @if (stats.BirthdaysUpcoming.Count == 0)
             {
-                <p class="muted">@Locale.T("dash.noBirthday")</p>
+                <p class="muted dash-bday-empty">@Locale.T("dash.noBirthday")</p>
             }
             else
             {
-                <ul class="dash-people">
-                    @foreach (var student in stats.BirthdaysUpcoming)
-                    {
-                        <li>
-                            <a href="@($"students/details/{student.LocalId}")">
+                <div class="dash-bday-viewport">
+                    <div class="dash-bday-track" style="@BdayTrackStyle(stats.BirthdaysUpcoming.Count)">
+                        @foreach (var student in BdayLoop(stats.BirthdaysUpcoming))
+                        {
+                            <a class="dash-bday-card is-soon" href="@($"students/details/{student.LocalId}")">
+                                @if (!string.IsNullOrWhiteSpace(PhotoOf(student)))
+                                {
+                                    <img src="@PhotoOf(student)" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="dash-bday-ph">@Initials(student.StudentsName)</span>
+                                }
                                 <strong>@student.StudentsName</strong>
-                                <span>ID @student.StudentCode · @student.ClassName</span>
+                                <span>ID @student.StudentCode · @(student.ClassName ?? "—")</span>
+                                <em>@(student.DateofBirth?.ToString("d MMM")) · @Locale.T("dash.ageWill", AgeWillBe(student.DateofBirth).ToString())</em>
                             </a>
-                            <em>@(student.DateofBirth?.ToString("d MMM")) · @Locale.T("dash.ageWill", AgeWillBe(student.DateofBirth).ToString())</em>
-                        </li>
-                    }
-                </ul>
+                        }
+                    </div>
+                </div>
             }
         </section>
     </div>
@@ -901,15 +1138,27 @@
     private readonly List<HolidayDto> holidays = [];
     private DateTime calMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private bool busy;
+    private bool birthdaySmsBusy;
     private bool autoTried;
     private bool messageError;
     private string? message;
+    private bool BirthdaySmsDisabled =>
+        birthdaySmsBusy
+        || online.BirthdaySmsSent
+        || stats.BirthdaysToday.Count == 0
+        || string.IsNullOrWhiteSpace(Session.AccessToken);
+    private string BirthdaySmsLabel =>
+        online.BirthdaySmsSent
+            ? Locale.T("dash.bdaySent")
+            : birthdaySmsBusy
+                ? Locale.T("sms.sending")
+                : Locale.T("dash.bdaySms");
 
     private static readonly string[] CalWeekdays =
         ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
     private const double SessW = 840;
-    private const double SessH = 228;
+    private const double SessH = 340;
     private const double SessPadL = 22;
     private const double SessPadR = 22;
     private const double SessPadT = 16;
@@ -943,6 +1192,12 @@
             return;
         }
 
+        if (Session.IsStudent)
+        {
+            Nav.NavigateTo("/student", replace: true);
+            return;
+        }
+
         if (Session.IsAuthority)
         {
             Nav.NavigateTo("/authority", replace: true);
@@ -951,16 +1206,27 @@
 
         Session.Changed += OnSessionChanged;
         Sync.StateChanged += OnSyncChanged;
+        autoTried = true;
         await LoadAsync();
-        if (!autoTried && stats.TotalStudents == 0 && !string.IsNullOrWhiteSpace(Session.AccessToken))
-        {
-            autoTried = true;
-            await SyncNow();
-        }
     }
 
     private void OnSessionChanged() => _ = InvokeAsync(LoadAsync);
-    private void OnSyncChanged() => _ = InvokeAsync(RefreshLocalAsync);
+    private void OnSyncChanged() => _ = InvokeAsync(async () =>
+    {
+        await RefreshLocalAsync();
+        try
+        {
+            var cached = await Api.PeekDashboardOverviewAsync();
+            if (cached is not null)
+            {
+                online = cached;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+        }
+    });
 
     public override void Dispose()
     {
@@ -975,16 +1241,29 @@
         if (current is null)
             return;
 
-        var localTask = Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
-        var onlineTask = LoadOnlineAsync();
-        stats = await localTask;
-        if (!busy && !string.IsNullOrWhiteSpace(Sync.LastError) && stats.TotalStudents == 0)
+        try
         {
-            message = TranslateSyncError(Sync.LastError);
+            var localTask = Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
+            var cachedTask = Api.PeekDashboardOverviewAsync();
+            stats = await localTask;
+            var cached = await cachedTask;
+            if (cached is not null
+                && (cached.Sessions.Count > 0 || cached.SmsByYear.Count > 0 || cached.Employees.Count > 0))
+                online = cached;
+            if (!busy && !string.IsNullOrWhiteSpace(Sync.LastError) && stats.TotalStudents == 0)
+            {
+                message = TranslateSyncError(Sync.LastError);
+                messageError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = TranslateSyncError(ex.Message);
             messageError = true;
         }
+
         StateHasChanged();
-        await onlineTask;
+        _ = LoadOnlineAsync();
     }
 
     private async Task RefreshLocalAsync()
@@ -992,7 +1271,13 @@
         var current = Session.Current;
         if (current is null)
             return;
-        stats = await Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
+        try
+        {
+            stats = await Sync.GetDashboardAsync(current.SchoolID, current.EducationYearID);
+        }
+        catch
+        {
+        }
         StateHasChanged();
     }
 
@@ -1004,7 +1289,13 @@
         {
             if (!await Api.PingAsync())
                 return;
-            online = await Api.GetDashboardOverviewAsync(Session.AccessToken);
+            var fresh = await Api.GetDashboardOverviewAsync(Session.AccessToken);
+            if (fresh.SmsByYear.Count == 0 && online.SmsByYear.Count > 0)
+            {
+                fresh.SmsByYear = [.. online.SmsByYear];
+                fresh.SmsSent = fresh.SmsByYear.Sum(x => x.Count);
+            }
+            online = fresh;
             access = await Api.GetSubscriptionStatusAsync(Session.AccessToken);
             Session.SetAccess(access);
             try
@@ -1382,6 +1673,103 @@
         var y2 = cy + radius * Math.Sin(rad2);
         return string.Create(inv,
             $"M {cx:0.###} {cy:0.###} L {x1:0.###} {y1:0.###} A {radius} {radius} 0 {large} 1 {x2:0.###} {y2:0.###} Z");
+    }
+
+    private async Task SendBirthdaySmsAsync()
+    {
+        if (BirthdaySmsDisabled)
+            return;
+        if (string.IsNullOrWhiteSpace(Session.AccessToken))
+        {
+            message = Locale.T("dash.bdayNeedOnline");
+            messageError = true;
+            return;
+        }
+
+        birthdaySmsBusy = true;
+        message = null;
+        await PaintAsync();
+        try
+        {
+            var result = await Api.SendBirthdaySmsAsync(Session.AccessToken);
+            if (!result.Succeeded)
+            {
+                if (string.Equals(result.Error, "dash.bdayAlready", StringComparison.OrdinalIgnoreCase))
+                    online.BirthdaySmsSent = true;
+                message = FormatSmsError(result.Error, result.Balance, result.Message);
+                messageError = true;
+                return;
+            }
+
+            online.BirthdaySmsSent = true;
+            online.SmsRemaining = result.Balance;
+            var msg = result.Failed > 0
+                ? Locale.T("sms.sentFail", result.Sent, result.Failed)
+                : Locale.T("sms.sentOne");
+            if (result.LocalMode)
+                msg += " " + Locale.T("sms.localSent");
+            message = msg;
+            messageError = false;
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            messageError = true;
+        }
+        finally
+        {
+            birthdaySmsBusy = false;
+        }
+    }
+
+    private string FormatSmsError(string? error, int balance, string? fallback)
+    {
+        if (string.Equals(error, "sms.low", StringComparison.OrdinalIgnoreCase))
+            return Locale.T("sms.low", balance);
+        if (!string.IsNullOrWhiteSpace(error) && error.StartsWith("dash.", StringComparison.OrdinalIgnoreCase))
+            return Locale.T(error);
+        if (!string.IsNullOrWhiteSpace(error) && error.StartsWith("sms.", StringComparison.OrdinalIgnoreCase))
+            return Locale.T(error);
+        return string.IsNullOrWhiteSpace(fallback) ? Locale.T("sms.fail") : fallback;
+    }
+
+    private string? PhotoOf(StudentDto student)
+    {
+        if (!string.IsNullOrWhiteSpace(student.PhotoDataUrl))
+            return student.PhotoDataUrl;
+        if (Session.Current is null || student.ServerId is not int id || id <= 0)
+            return null;
+        return Sync.GetStudentPhotoDataUrl(Session.Current.SchoolID, id);
+    }
+
+    private static IReadOnlyList<StudentDto> BdayLoop(IReadOnlyList<StudentDto> students)
+    {
+        if (students.Count == 0)
+            return [];
+        var group = new List<StudentDto>();
+        while (group.Count < 6)
+            group.AddRange(students);
+        group.AddRange(group);
+        return group;
+    }
+
+    private static string BdayTrackStyle(int count)
+    {
+        var n = Math.Max(1, count);
+        var group = 0;
+        while (group < 6)
+            group += n;
+        return $"--dash-bday-secs:{Math.Max(18, group * 4)}s";
+    }
+
+    private static string Initials(string? name)
+    {
+        var parts = (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return "S";
+        if (parts.Length == 1)
+            return parts[0][..Math.Min(2, parts[0].Length)].ToUpperInvariant();
+        return string.Concat(parts[0][0], parts[^1][0]).ToUpperInvariant();
     }
 
     private static int Age(DateTime? dob)

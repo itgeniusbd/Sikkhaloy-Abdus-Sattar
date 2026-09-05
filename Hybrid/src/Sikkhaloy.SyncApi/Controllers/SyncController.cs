@@ -890,6 +890,46 @@ public sealed class SyncController : ControllerBase
         return Ok(await _studentInfo.GetReportAsync(session, id, part, cancellationToken));
     }
 
+    [HttpGet("student-info/fault-reports")]
+    public async Task<ActionResult<List<StudentPortalFaultReportDto>>> StudentFaultReports(
+        [FromQuery] string? id, [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _studentInfo.ListFaultReportsAsync(session, id, from, to, cancellationToken));
+    }
+
+    [HttpPost("student-info/fault-reports")]
+    public async Task<ActionResult<StudentInfoResult>> SaveStudentFaultReport(
+        [FromBody] SaveStudentFaultReportRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _studentInfo.SaveFaultReportAsync(session, request, cancellationToken));
+    }
+
+    [HttpPost("student-info/fault-reports/bulk")]
+    public async Task<ActionResult<StudentInfoResult>> SaveStudentFaultReportsBulk(
+        [FromBody] SaveStudentFaultReportsBulkRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _studentInfo.SaveFaultReportsBulkAsync(session, request, cancellationToken));
+    }
+
+    [HttpPut("student-info/fault-reports")]
+    public async Task<ActionResult<StudentInfoResult>> UpdateStudentFaultReport(
+        [FromBody] UpdateStudentFaultReportRequest request, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _studentInfo.UpdateFaultReportAsync(session, request, cancellationToken));
+    }
+
+    [HttpDelete("student-info/fault-reports/{id:int}")]
+    public async Task<ActionResult<StudentInfoResult>> DeleteStudentFaultReport(
+        int id, CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _studentInfo.DeleteFaultReportAsync(session, id, cancellationToken));
+    }
+
     [HttpGet("student-info/placement")]
     public async Task<ActionResult<StudentPlacementDto?>> StudentPlacement(
         [FromQuery] string? id, CancellationToken cancellationToken)
@@ -1972,6 +2012,13 @@ public sealed class SyncController : ControllerBase
     {
         var session = JwtTokenService.FromPrincipal(User);
         return Ok(await _dashboard.GetOverviewAsync(session, cancellationToken));
+    }
+
+    [HttpPost("dashboard/birthday-sms")]
+    public async Task<ActionResult<SmsResult>> DashboardBirthdaySms(CancellationToken cancellationToken)
+    {
+        var session = JwtTokenService.FromPrincipal(User);
+        return Ok(await _officeSms.SendBirthdaySmsAsync(session, cancellationToken));
     }
 
     [HttpGet("exam/filters")]
