@@ -516,7 +516,16 @@
                     @foreach (var row in stats.Classes)
                     {
                         <tr>
-                            <td>@row.ClassName</td>
+                            <td>
+                                @if (row.ClassID > 0)
+                                {
+                                    <a class="dash-class-link" href="@($"students?class={row.ClassID}")">@row.ClassName</a>
+                                }
+                                else
+                                {
+                                    @row.ClassName
+                                }
+                            </td>
                             <td>@row.NewCount.ToString("N0")</td>
                             <td>@row.OldCount.ToString("N0")</td>
                             <td>@row.Total.ToString("N0")</td>

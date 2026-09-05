@@ -2687,6 +2687,12 @@ th { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.04em; }
 }
 .dash-panel { padding: 0.8rem 0.9rem 0.85rem; }
 .dash-class-table th, .dash-class-table td { font-size: 0.9rem; padding: 0.42rem 0.45rem; }
+.dash-class-link {
+    color: var(--teal-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+.dash-class-link:hover { text-decoration: underline; }
 .dash-class-table thead th { color: #64748b; font-weight: 700; font-size: 0.8rem; }
 .dash-class-table tfoot th { color: var(--ink); font-size: 0.9rem; font-weight: 800; }
 .dash-stack {

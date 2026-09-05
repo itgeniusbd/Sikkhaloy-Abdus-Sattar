@@ -230,6 +230,8 @@
     private string busyTitle = "";
     private bool printing;
     private string? message;
+    [SupplyParameterFromQuery] public int Class { get; set; }
+
     private string classInput = "0";
     private string groupInput = "0";
     private string sectionInput = "0";
@@ -300,6 +302,7 @@
         }
 
         Session.Changed += OnSessionChanged;
+        ApplyClassFromQuery();
         busyTitle = Locale.T("si.loading");
         busy = true;
         try
@@ -310,6 +313,25 @@
         {
             busy = false;
         }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Class <= 0 || appliedClass == Class.ToString())
+            return;
+        ApplyClassFromQuery();
+        if (classes.Count == 0)
+            return;
+        await LoadClassPartsAsync();
+        ApplyFilter();
+    }
+
+    private void ApplyClassFromQuery()
+    {
+        if (Class <= 0)
+            return;
+        classInput = Class.ToString();
+        appliedClass = classInput;
     }
 
     private void OnSessionChanged() => _ = InvokeAsync(LoadAsync);
