@@ -86,6 +86,14 @@
                     Orientation="Horizontal">
 
                     <Button
+                        x:Name="BtnDownloadTodayLogs"
+                        Margin="0,0,10,0"
+                        Background="#FF43B900"
+                        BorderBrush="{x:Null}"
+                        Click="BtnDownloadTodayLogs_Click"
+                        Content="Download Today's Attendance"
+                        ToolTip="Read today's punches from the device and save them on this PC" />
+                    <Button
                         Click="BtnRefresh_Click"
                         Style="{StaticResource MaterialDesignFloatingActionMiniDarkButton}"
                         ToolTip="Refresh Device">

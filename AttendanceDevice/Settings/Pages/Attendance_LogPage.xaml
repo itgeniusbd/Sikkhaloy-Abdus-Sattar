@@ -59,6 +59,13 @@
                 <Button
                     Margin="15,0,0,0"
                     VerticalAlignment="Center"
+                    Click="BtnSendWebsite_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}">
+                    Send to Website
+                </Button>
+                <Button
+                    Margin="15,0,0,0"
+                    VerticalAlignment="Center"
                     Click="BtnResetSync_Click"
                     Style="{StaticResource MaterialDesignOutlinedButton}">
                     Mark For Resend

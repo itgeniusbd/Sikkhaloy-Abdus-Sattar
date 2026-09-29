@@ -267,15 +267,20 @@ namespace AttendanceDevice.Settings
                 //Update Local PC information update time
                 ins.LastUpdateDate = schoolInfo.LastUpdateDate;
                 await LocalData.Instance.InstitutionUpdate(ins);
+            }
 
+            var logsImported = await StartupHelper.ImportTodayDeviceLogsAsync(
+                deviceConnections, LocalData.Instance.institution);
 
-                //Get Today attendance data form server
+            if (ins != null && !string.IsNullOrWhiteSpace(ins.Token))
+            {
+                var todayClient = new RestClient(ApiUrl.EndPoint);
                 var todayAttendanceRequest = new RestRequest("api/Attendance/{id}/GetTodayAttendance", Method.GET);
                 todayAttendanceRequest.AddUrlSegment("id", ins.SchoolID);
                 todayAttendanceRequest.AddHeader("Authorization", "Bearer " + ins.Token);
 
                 var todayAttendanceResponse =
-                    await client.ExecuteTaskAsync(todayAttendanceRequest);
+                    await todayClient.ExecuteTaskAsync(todayAttendanceRequest);
 
                 if (todayAttendanceResponse.StatusCode == HttpStatusCode.OK &&
                     !string.IsNullOrWhiteSpace(todayAttendanceResponse.Content))
@@ -286,27 +291,7 @@ namespace AttendanceDevice.Settings
                 }
             }
 
-            //try connection to device successfully
-            var isDeviceConnected = false;
-            foreach (var device in deviceConnections)
-            {
-                var status = await Task.Run(() => device.ConnectDevice());
-                if (!status.IsSuccess) continue;
-
-                isDeviceConnected = true;
-
-                var deviceTime = device.GetDateTime();
-                if (deviceTime.ToString("dd-MM-yyyy hh:mm tt") != DateTime.Now.ToString("dd-MM-yyyy hh:mm tt"))
-                {
-                    //Set server time to device
-                    await Task.Run(() => device.SetDateTime());
-                }
-
-                var prevLog = device.DownloadPrevLogs();
-                var todayLog = device.DownloadTodayLogs();
-
-                await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, LocalData.Instance.institution, device.Device);
-            }
+            var isDeviceConnected = logsImported || deviceConnections.Any(d => d.IsConnected());
 
             if (!isDeviceConnected)
             {

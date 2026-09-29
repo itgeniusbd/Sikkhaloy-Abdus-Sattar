@@ -299,6 +299,25 @@ namespace AttendanceDevice.Settings.Pages
 
             var button = sender as Button;
             _deviceCon.FingerprintMessage = MessageTB;
+            _deviceCon.FingerEnrollCompleted = (fingerIndex, success) =>
+            {
+                if (!success)
+                {
+                    MessageBox.Show("Fingerprint registration failed. Try again.", "Fingerprint", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                Button enrolled = null;
+                if (fingerIndex == 3) enrolled = LI;
+                else if (fingerIndex == 4) enrolled = LT;
+                else if (fingerIndex == 5) enrolled = RI;
+                else if (fingerIndex == 6) enrolled = RT;
+
+                if (enrolled != null)
+                    enrolled.Background = Brushes.GreenYellow;
+
+                MessageBox.Show("Fingerprint registration successful.", "Fingerprint", MessageBoxButton.OK, MessageBoxImage.Information);
+            };
             var index = Convert.ToInt32(button?.CommandParameter);
 
             if (button?.Background != Brushes.GreenYellow)

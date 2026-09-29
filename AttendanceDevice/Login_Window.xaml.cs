@@ -65,6 +65,9 @@ namespace AttendanceDevice
                     return;
                 }
 
+                if (await AppAutoUpdate.CheckAndPromptAsync(this))
+                    return;
+
                 //get user token
                 var client = new RestClient(ApiUrl.EndPoint);
                 var loginRequest = ApiLoginHelper.CreateTokenRequest(
@@ -263,28 +266,14 @@ namespace AttendanceDevice
                     return;
                 }
 
-                //try connection to device successfully
+                // Device punches first, then fill any remaining rows from the server.
                 #region Device data send to server
-                var isDeviceConnected = false;
-                foreach (var device in deviceConnections)
-                {
-                    var status = await Task.Run(() => device.ConnectDevice());
-                    if (!status.IsSuccess) continue;
+                var isDeviceConnected = await StartupHelper.ImportTodayDeviceLogsAsync(deviceConnections, ins)
+                    || deviceConnections.Any(d => d.IsConnected());
 
-                    isDeviceConnected = true;
-
-                    var deviceTime = device.GetDateTime();
-                    if (deviceTime.ToString("dd-MM-yyyy hh:mm tt") != DateTime.Now.ToString("dd-MM-yyyy hh:mm tt"))
-                    {
-                        //Set server time to device
-                        await Task.Run(() => device.SetDateTime());
-                    }
-
-
-                    //Get Today attendance data form server
-                    var todayAttendanceRequest = new RestRequest("api/Attendance/{id}/GetTodayAttendance", Method.GET);
-                    todayAttendanceRequest.AddUrlSegment("id", ins.SchoolID);
-                    todayAttendanceRequest.AddHeader("Authorization", "Bearer " + token);
+                var todayAttendanceRequest = new RestRequest("api/Attendance/{id}/GetTodayAttendance", Method.GET);
+                todayAttendanceRequest.AddUrlSegment("id", ins.SchoolID);
+                todayAttendanceRequest.AddHeader("Authorization", "Bearer " + token);
 
                 var todayAttendanceResponse =
                     await client.ExecuteTaskAsync(todayAttendanceRequest);
@@ -295,14 +284,6 @@ namespace AttendanceDevice
                     var todayRecords = AttendanceRecordMapper.FromTodayAttendanceJson(todayAttendanceResponse.Content);
                     if (todayRecords.Any())
                         await LocalData.Instance.GetTodayAttendanceRecords(todayRecords);
-                }
-
-                    //log to attendance
-                    var prevLog = device.DownloadPrevLogs();
-                    var todayLog = device.DownloadTodayLogs();
-
-
-                    await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, ins, device.Device);
                 }
                 #endregion Device data send to server
 

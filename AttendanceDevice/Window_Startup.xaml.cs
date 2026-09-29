@@ -57,6 +57,14 @@ namespace AttendanceDevice
                     return;
                 }
 
+                // Check for newer installer before device work (device offline must not block updates).
+                if (!await ApiUrl.IsNoNetConnection())
+                {
+                    StartupLogger.LogStage($"{stagePrefix}: auto-update check");
+                    if (await AppAutoUpdate.CheckAndPromptAsync(this))
+                        return;
+                }
+
                 //No user in local database
                 if (!LocalData.Instance.IsUserExist())
                 {
@@ -124,6 +132,9 @@ namespace AttendanceDevice
 
                 var initDevice = new DeviceDisplay(deviceConnections);
 
+                StartupLogger.LogStage($"{stagePrefix}: device logs");
+                await StartupHelper.ImportTodayDeviceLogsAsync(deviceConnections, ins);
+
                 //Check Internet connection || Server connection
                 if (await ApiUrl.IsNoNetConnection() || await ApiUrl.IsServerUnavailable())
                 {
@@ -133,9 +144,6 @@ namespace AttendanceDevice
                     this.Close();
                     return;
                 }
-
-
-
 
                 //Date update to Local Machine 
 
@@ -361,7 +369,6 @@ namespace AttendanceDevice
                 var displayWindow = new DisplayWindow(initDevice);
                 displayWindow.Show();
                 _ = StartupHelper.RunPostScheduleMaintenanceAsync();
-                _ = StartupHelper.DownloadDeviceLogsInBackgroundAsync(deviceConnections, ins);
                 this.Close();
             }
             catch (Exception ex)

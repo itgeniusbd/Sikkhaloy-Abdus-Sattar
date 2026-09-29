@@ -192,23 +192,7 @@ namespace AttendanceDevice
             //Device data send to server
             #region Device data send to server
 
-            foreach (var device in deviceConnections)
-            {
-                var status = await Task.Run(() => device.ConnectDevice());
-                if (!status.IsSuccess) continue;
-
-                var deviceTime = device.GetDateTime();
-                if (deviceTime.ToString("dd-MM-yyyy hh:mm tt") != DateTime.Now.ToString("dd-MM-yyyy hh:mm tt"))
-                {
-                    //Set server time to device
-                    await Task.Run(() => device.SetDateTime());
-                }
-
-                var prevLog = device.DownloadPrevLogs();
-                var todayLog = device.DownloadTodayLogs();
-
-                await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, ins, device.Device);
-            }
+            await StartupHelper.ImportTodayDeviceLogsAsync(deviceConnections, ins);
 
             #endregion Device data send to server
             //show display

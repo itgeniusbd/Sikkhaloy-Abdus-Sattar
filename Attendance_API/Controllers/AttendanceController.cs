@@ -3,7 +3,9 @@ using Attendance_API.Helpers;
 using Attendance_API.Models;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Entity;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -37,7 +39,7 @@ namespace Attendance_API.Controllers
                     if (!attSetting.Is_Device_Attendance_Enable && !attSetting.Is_Student_Attendance_Enable)
                         return Ok(new AttendanceSyncResult { Message = "Student attendance is disabled." });
 
-                    var attendanceRecords = db.VW_Attendance_Stus.Where(a => a.SchoolID == id).ToList();
+                    var attendanceRecords = LoadStudentsForDeviceMatch(db, id);
 
                     var allRecords = (from s in attendanceRecords
                                       join a in logRecord
@@ -59,6 +61,9 @@ namespace Attendance_API.Controllers
                                           Is_OUT = a.Is_OUT
                                       }).ToList();
 
+                    SanitizeIncomingStudentRecords(allRecords);
+                    foreach (var row in allRecords) ReclassifyStudentFromSchedule(db, row);
+
                     try
                     {
                         BackfillStudentScheduleRows(db, allRecords);
@@ -70,20 +75,23 @@ namespace Attendance_API.Controllers
 
                     var newRecords = FilterNewStudentRecords(db, id, allRecords);
 
-                    var insertedCount = 0;
-                    if (newRecords.Count > 0)
-                    {
-                        db.Attendance_Records.AddRange(newRecords);
-                        insertedCount = SaveAfterInsteadOfInsertTrigger(db, newRecords.Count);
-                    }
+                    // One duplicate row used to roll back the whole batch while the device was told it was saved.
+                    var failedRecords = InsertRowsWithFallback(
+                        db, db.Attendance_Records, newRecords, row => MergeStudentIntoExisting(db, row));
+                    var savedNewRecords = newRecords.Except(failedRecords).ToList();
+                    var insertedCount = savedNewRecords.Count;
+                    var failedDeviceIds = new HashSet<int>(attendanceRecords
+                        .Where(s => failedRecords.Any(f => f.StudentID == s.StudentID))
+                        .Select(s => s.DeviceID));
 
                     var smsQueued = 0;
                     if (attSetting != null)
                     {
-                        if (newRecords.Count > 0)
+                        var smsRows = OnlyToday(savedNewRecords, r => r.AttendanceDate);
+                        if (smsRows.Count > 0)
                         {
                             smsQueued += AttendanceStudentSmsService.QueueStudentSms(
-                                db, id, attSetting, schoolName, newRecords);
+                                db, id, attSetting, schoolName, smsRows);
                         }
                     }
 
@@ -91,13 +99,14 @@ namespace Attendance_API.Controllers
                         ? logRecord
                             .Where(a => attendanceRecords.Any(s => s.DeviceID == a.DeviceID && s.SchoolID == id))
                             .Select(a => a.DeviceID)
+                            .Where(d => !failedDeviceIds.Contains(d))
                             .Distinct()
                             .ToArray()
                         : new int[0];
 
                     return Ok(new AttendanceSyncResult
                     {
-                        Matched = allRecords.Count,
+                        Matched = allRecords.Count - failedRecords.Count,
                         Inserted = insertedCount,
                         SmsQueued = smsQueued,
                         MatchedDeviceIds = matchedDeviceIds,
@@ -303,9 +312,9 @@ namespace Attendance_API.Controllers
                     var schoolName = db.SchoolInfos.Find(id)?.SchoolName;
 
                     //var logForSms = new List<Attendance_Record>();
-                    if (attSetting != null && attSetting.Is_Device_Attendance_Enable && attSetting.Is_Student_Attendance_Enable)
+                    if (attSetting != null && attSetting.Is_Device_Attendance_Enable)
                     {
-                        var studentList = db.VW_Attendance_Stus.Where(a => a.SchoolID == id).ToList();
+                        var studentList = LoadStudentsForDeviceMatch(db, id);
 
                         var updatedRecords = from s in studentList
                                              join a in logRecords
@@ -327,26 +336,13 @@ namespace Attendance_API.Controllers
                                                  Is_OUT = a.Is_OUT
                                              };
 
-                        foreach (var log in updatedRecords.ToList())
-                        {
-                            var updateLog = db.Attendance_Records.FirstOrDefault(u =>
-                                u.SchoolID == log.SchoolID &&
-                                u.StudentID == log.StudentID &&
-                                u.AttendanceDate == log.AttendanceDate &&
-                                (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
-                                 (u.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)));
+                        var updateList = updatedRecords.ToList();
+                        SanitizeIncomingStudentRecords(updateList);
+                        foreach (var row in updateList) ReclassifyStudentFromSchedule(db, row);
 
-                            if (updateLog == null && log.EntryTime.HasValue)
-                            {
-                                updateLog = db.Attendance_Records.FirstOrDefault(u =>
-                                    u.SchoolID == log.SchoolID &&
-                                    u.StudentID == log.StudentID &&
-                                    u.AttendanceDate == log.AttendanceDate &&
-                                    string.Equals(u.Attendance, "Abs", StringComparison.OrdinalIgnoreCase) &&
-                                    !u.EntryTime.HasValue &&
-                                    (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
-                                     u.Attendance_ScheduleID == null));
-                            }
+                        foreach (var log in updateList)
+                        {
+                            var updateLog = FindStudentUpdateRow(db, log);
 
                             if (updateLog == null) continue;
 
@@ -356,11 +352,8 @@ namespace Attendance_API.Controllers
                             if (updateLog.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)
                                 updateLog.Attendance_ScheduleID = log.Attendance_ScheduleID;
 
-                            updateLog.Attendance = log.Attendance;
-                            updateLog.ExitStatus = log.ExitStatus;
-                            updateLog.ExitTime = log.ExitTime;
-                            updateLog.Is_OUT = log.Is_OUT;
-                            updateLog.EntryTime = log.EntryTime;
+                            ApplyStudentUpdate(updateLog, log);
+                            ReclassifyStudentFromSchedule(db, updateLog);
 
                             db.Entry(updateLog).State = EntityState.Modified;
                             try
@@ -397,6 +390,7 @@ namespace Attendance_API.Controllers
                         }
                     }
 
+                    smsCandidates = OnlyToday(smsCandidates, r => r.AttendanceDate);
                     if (attSetting != null && smsCandidates.Count > 0)
                     {
                         smsQueued += AttendanceStudentSmsService.QueueStudentSms(
@@ -606,6 +600,9 @@ namespace Attendance_API.Controllers
                                           Is_OUT = a.Is_OUT
                                       }).ToList();
 
+                    SanitizeIncomingEmployeeRecords(allEmpRecords);
+                    foreach (var row in allEmpRecords) ReclassifyEmployeeFromSchedule(db, row);
+
                     try
                     {
                         BackfillEmployeeScheduleRows(db, allEmpRecords);
@@ -617,17 +614,20 @@ namespace Attendance_API.Controllers
 
                     var newRecords = FilterNewEmployeeRecords(db, id, allEmpRecords);
 
-                    var insertedCount = 0;
-                    if (newRecords.Count > 0)
-                    {
-                        db.Employee_Attendance_Records.AddRange(newRecords);
-                        insertedCount = SaveAfterInsteadOfInsertTrigger(db, newRecords.Count);
-                    }
+                    // One duplicate row used to roll back the whole batch while the device was told it was saved.
+                    var failedRecords = InsertRowsWithFallback(
+                        db, db.Employee_Attendance_Records, newRecords, row => MergeEmployeeIntoExisting(db, row));
+                    var savedNewRecords = newRecords.Except(failedRecords).ToList();
+                    var insertedCount = savedNewRecords.Count;
+                    var failedEmpDeviceIds = new HashSet<int>(empList
+                        .Where(e => failedRecords.Any(f => f.EmployeeID == e.EmployeeID))
+                        .Select(e => e.DeviceID));
 
                     var matchedEmpDeviceIds = allEmpRecords.Count > 0
                         ? logRecord
                             .Where(a => empList.Any(e => e.DeviceID == a.DeviceID && e.SchoolID == id))
                             .Select(a => a.DeviceID)
+                            .Where(d => !failedEmpDeviceIds.Contains(d))
                             .Distinct()
                             .ToArray()
                         : new int[0];
@@ -636,16 +636,17 @@ namespace Attendance_API.Controllers
                     if (attSetting != null)
                     {
                         var schoolName = db.SchoolInfos.Find(id)?.SchoolName;
-                        if (newRecords.Count > 0)
+                        var smsRows = OnlyToday(savedNewRecords, r => r.AttendanceDate);
+                        if (smsRows.Count > 0)
                         {
                             smsQueued += AttendanceEmployeeSmsService.QueueEmployeeSms(
-                                db, id, attSetting, schoolName, newRecords);
+                                db, id, attSetting, schoolName, smsRows);
                         }
                     }
 
                     return Ok(new AttendanceSyncResult
                     {
-                        Matched = allEmpRecords.Count,
+                        Matched = allEmpRecords.Count - failedRecords.Count,
                         Inserted = insertedCount,
                         SmsQueued = smsQueued,
                         MatchedDeviceIds = matchedEmpDeviceIds,
@@ -799,24 +800,7 @@ namespace Attendance_API.Controllers
 
                     foreach (var log in updatedRecords)
                     {
-                        var updateLog = db.Employee_Attendance_Records.FirstOrDefault(u =>
-                            u.SchoolID == log.SchoolID &&
-                            u.EmployeeID == log.EmployeeID &&
-                            u.AttendanceDate == log.AttendanceDate &&
-                            (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
-                             (u.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)));
-
-                        if (updateLog == null && log.EntryTime.HasValue)
-                        {
-                            updateLog = db.Employee_Attendance_Records.FirstOrDefault(u =>
-                                u.SchoolID == log.SchoolID &&
-                                u.EmployeeID == log.EmployeeID &&
-                                u.AttendanceDate == log.AttendanceDate &&
-                                string.Equals(u.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) &&
-                                !u.EntryTime.HasValue &&
-                                (u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
-                                 u.Attendance_ScheduleID == null));
-                        }
+                        var updateLog = FindEmployeeUpdateRow(db, log);
 
                         if (updateLog == null) continue;
 
@@ -825,12 +809,8 @@ namespace Attendance_API.Controllers
                         if (updateLog.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null)
                             updateLog.Attendance_ScheduleID = log.Attendance_ScheduleID;
 
-                        updateLog.AttendanceStatus = log.AttendanceStatus;
-                        updateLog.ExitStatus = log.ExitStatus;
-
-                        updateLog.ExitTime = log.ExitTime;
-                        updateLog.Is_OUT = log.Is_OUT;
-                        updateLog.EntryTime = log.EntryTime;
+                        ApplyEmployeeUpdate(updateLog, log);
+                            ReclassifyEmployeeFromSchedule(db, updateLog);
 
                         db.Entry(updateLog).State = EntityState.Modified;
                         try
@@ -863,6 +843,7 @@ namespace Attendance_API.Controllers
                     }
                 }
 
+                smsCandidates = OnlyToday(smsCandidates, r => r.AttendanceDate);
                 if (attSetting != null && smsCandidates.Count > 0)
                 {
                     smsQueued += AttendanceEmployeeSmsService.QueueEmployeeSms(
@@ -891,6 +872,10 @@ namespace Attendance_API.Controllers
                     // Student Attendance Enabl
                     if (attSetting.Is_Student_Attendance_Enable)
                     {
+                        var studentsByDevice = LoadStudentsForDeviceMatch(db, id)
+                            .GroupBy(s => s.DeviceID)
+                            .ToDictionary(g => g.Key, g => g.First());
+
                         foreach (var data in backupData.Where(b => b.Is_Student).OrderBy(b => b.EntryDate).OrderBy(b => b.EntryTime))
                         {
                             var dt = data.EntryDate;
@@ -898,8 +883,8 @@ namespace Attendance_API.Controllers
 
                             var sDate = dt.ToShortDateString();
 
-                            var sInfo = db.VW_Attendance_Stus.FirstOrDefault(a =>
-                                a.SchoolID == id && a.DeviceID == data.DeviceID);
+                            VW_Attendance_Stu sInfo;
+                            studentsByDevice.TryGetValue(data.DeviceID, out sInfo);
 
 
                             var schedule = db.Attendance_Schedule_Days.FirstOrDefault(s =>
@@ -980,12 +965,16 @@ namespace Attendance_API.Controllers
                                 }
                                 else
                                 {
-                                    if (attRecord.Attendance == "Abs")
+                                    if (IsOverwritablePlaceholderRow(attRecord))
                                     {
-                                        if (time < sEndTime)
-                                        {
+                                        if (time <= sStartTime)
+                                            attRecord.Attendance = "Pre";
+                                        else if (time <= sLateTime)
+                                            attRecord.Attendance = "Late";
+                                        else if (time <= sEndTime)
                                             attRecord.Attendance = "Late Abs";
-                                        }
+                                        else
+                                            attRecord.Attendance = "Late Abs";
 
                                         attRecord.EntryTime = time;
                                     }
@@ -1122,12 +1111,16 @@ namespace Attendance_API.Controllers
                                 }
                                 else
                                 {
-                                    if (attRecord.AttendanceStatus == "Abs")
+                                    if (IsOverwritablePlaceholderEmployeeRow(attRecord))
                                     {
-                                        if (time < sEndTime)
-                                        {
+                                        if (time <= sStartTime)
+                                            attRecord.AttendanceStatus = "Pre";
+                                        else if (time <= sLateTime)
+                                            attRecord.AttendanceStatus = "Late";
+                                        else if (time <= sEndTime)
                                             attRecord.AttendanceStatus = "Late Abs";
-                                        }
+                                        else
+                                            attRecord.AttendanceStatus = "Late Abs";
 
                                         attRecord.EntryTime = time;
                                     }
@@ -1192,7 +1185,7 @@ namespace Attendance_API.Controllers
                     var sAttendances = await db.Attendance_Records
                         .Where(a => a.SchoolID == id && a.AttendanceDate == today).ToListAsync();
 
-                    var sUsers = await db.VW_Attendance_Stus.Where(a => a.SchoolID == id).ToListAsync();
+                    var sUsers = LoadStudentsForDeviceMatch(db, id);
 
                     var sAttendanceRecords = (from a in sAttendances
                                               join u in sUsers
@@ -1206,8 +1199,8 @@ namespace Attendance_API.Controllers
                                                   AttendanceStatus = a.Attendance,
                                                   ExitStatus = a.ExitStatus,
                                                   Is_OUT = a.Is_OUT,
-                                                  EntryTime = a.EntryTime,
-                                                  ExitTime = a.ExitTime,
+                                                  EntryTime = a.EntryTime == _clearTime ? (TimeSpan?)null : a.EntryTime,
+                                                  ExitTime = a.ExitTime == _clearTime ? (TimeSpan?)null : a.ExitTime,
                                                   Is_Sent = true,
                                                   Is_Updated = true
                                               }).ToList();
@@ -1232,8 +1225,8 @@ namespace Attendance_API.Controllers
                                                   AttendanceStatus = a.AttendanceStatus,
                                                   ExitStatus = a.ExitStatus,
                                                   Is_OUT = a.Is_OUT,
-                                                  EntryTime = a.EntryTime,
-                                                  ExitTime = a.ExitTime,
+                                                  EntryTime = a.EntryTime == _clearTime ? (TimeSpan?)null : a.EntryTime,
+                                                  ExitTime = a.ExitTime == _clearTime ? (TimeSpan?)null : a.ExitTime,
                                                   Is_Sent = true,
                                                   Is_Updated = true
                                               }).ToList();
@@ -1419,6 +1412,33 @@ namespace Attendance_API.Controllers
             return false;
         }
 
+        /// <summary>
+        /// One row per DeviceID. The SQL view joins every StudentsClass year, so EF
+        /// [Key]=DeviceID throws (or drops students) when a pupil has more than one session.
+        /// </summary>
+        private static List<VW_Attendance_Stu> LoadStudentsForDeviceMatch(EduContext db, int schoolId)
+        {
+            const string sql = @"
+SELECT SchoolID, DeviceID, StudentID, StudentClassID, ClassID, EducationYearID
+FROM (
+    SELECT v.SchoolID, v.DeviceID, v.StudentID, v.StudentClassID, v.ClassID, v.EducationYearID,
+           ROW_NUMBER() OVER (
+               PARTITION BY v.DeviceID
+               ORDER BY CASE WHEN ey.Status = N'True' THEN 0 ELSE 1 END,
+                        v.EducationYearID DESC
+           ) AS rn
+    FROM VW_Attendance_Stu v
+    LEFT JOIN Education_Year ey
+        ON ey.EducationYearID = v.EducationYearID AND ey.SchoolID = v.SchoolID
+    WHERE v.SchoolID = @SchoolID AND ISNULL(v.DeviceID, 0) > 0
+) d
+WHERE rn = 1";
+
+            return db.Database.SqlQuery<VW_Attendance_Stu>(
+                    sql, new SqlParameter("@SchoolID", schoolId))
+                .ToList();
+        }
+
         private static List<Attendance_Record> FilterNewStudentRecords(
             EduContext db, int schoolId, List<Attendance_Record> incoming)
         {
@@ -1444,6 +1464,454 @@ namespace Attendance_API.Controllers
                 ek.StudentID == na.StudentID &&
                 ek.AttendanceDate == na.AttendanceDate &&
                 ek.ScheduleId == (na.Attendance_ScheduleID ?? 0))).ToList();
+        }
+
+        private static bool IsPlaceholderAttendanceStatus(string status)
+        {
+            return string.Equals(status, "Abs", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(status, "Late Abs", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsPresentLikeStatus(string status)
+        {
+            return string.Equals(status, "Pre", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(status, "Late", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(status, "Late Abs", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsPlaceholderTime(TimeSpan? time)
+        {
+            return !time.HasValue || time.Value == TimeSpan.Zero;
+        }
+
+        private static bool IsOverwritablePlaceholderRow(Attendance_Record row)
+        {
+            return row != null
+                   && !string.Equals(row.Attendance, "Leave", StringComparison.OrdinalIgnoreCase)
+                   && IsPlaceholderTime(row.EntryTime);
+        }
+
+        private static bool IsOverwritablePlaceholderEmployeeRow(Employee_Attendance_Record row)
+        {
+            return row != null
+                   && !string.Equals(row.AttendanceStatus, "Leave", StringComparison.OrdinalIgnoreCase)
+                   && IsPlaceholderTime(row.EntryTime);
+        }
+
+        // Rows inserted or edited on a manual web page carry the login RegistrationID; device/API writes use 0.
+        // Such rows may only be overwritten by a real punch, never by a device Abs/placeholder push or backfill.
+        private static bool IsManualRow(Attendance_Record row)
+        {
+            return row != null && row.RegistrationID != 0;
+        }
+
+        private static bool IsManualEmployeeRow(Employee_Attendance_Record row)
+        {
+            return row != null && row.RegistrationID != 0;
+        }
+
+        private static bool HasRealPunch(Attendance_Record row)
+        {
+            return row != null
+                   && (!IsPlaceholderTime(row.EntryTime) || (row.Is_OUT && !IsPlaceholderTime(row.ExitTime)));
+        }
+
+        private static bool HasRealEmployeePunch(Employee_Attendance_Record row)
+        {
+            return row != null
+                   && (!IsPlaceholderTime(row.EntryTime) || (row.Is_OUT && !IsPlaceholderTime(row.ExitTime)));
+        }
+
+        /// <summary>Placeholder row that <paramref name="incoming"/> may take over (manual rows only for a real punch).</summary>
+        private static bool CanTakeOverPlaceholderRow(Attendance_Record row, Attendance_Record incoming)
+        {
+            return IsOverwritablePlaceholderRow(row) && (HasRealPunch(incoming) || !IsManualRow(row));
+        }
+
+        private static bool CanTakeOverPlaceholderEmployeeRow(Employee_Attendance_Record row, Employee_Attendance_Record incoming)
+        {
+            return IsOverwritablePlaceholderEmployeeRow(row) && (HasRealEmployeePunch(incoming) || !IsManualEmployeeRow(row));
+        }
+
+
+        private static string ClassifyEntryStatus(TimeSpan time, TimeSpan start, TimeSpan late, TimeSpan end)
+        {
+            if (late < start)
+                late = start;
+            if (time <= start)
+                return "Pre";
+            if (time <= late)
+                return "Late";
+            return "Late Abs";
+        }
+
+        private static void ReclassifyStudentFromSchedule(EduContext db, Attendance_Record row)
+        {
+            if (db == null || row == null || row.Is_OUT)
+                return;
+            if (IsPlaceholderTime(row.EntryTime) || !row.Attendance_ScheduleID.HasValue)
+                return;
+            if (string.Equals(row.Attendance, "Leave", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(row.Attendance, "Abs", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var dayName = row.AttendanceDate.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture);
+            var schedule = db.Attendance_Schedule_Days.FirstOrDefault(s =>
+                s.SchoolID == row.SchoolID &&
+                s.ScheduleID == row.Attendance_ScheduleID.Value &&
+                s.Day == dayName);
+            if (schedule == null)
+            {
+                schedule = db.Attendance_Schedule_Days.FirstOrDefault(s =>
+                    s.SchoolID == row.SchoolID &&
+                    s.ScheduleID == row.Attendance_ScheduleID.Value);
+            }
+            if (schedule == null)
+                return;
+
+            var time = row.EntryTime.GetValueOrDefault();
+            row.Attendance = ClassifyEntryStatus(time, schedule.StartTime, schedule.LateEntryTime, schedule.EndTime);
+        }
+
+        private static void ReclassifyEmployeeFromSchedule(EduContext db, Employee_Attendance_Record row)
+        {
+            if (db == null || row == null || row.Is_OUT)
+                return;
+            if (IsPlaceholderTime(row.EntryTime) || !row.Attendance_ScheduleID.HasValue)
+                return;
+            if (string.Equals(row.AttendanceStatus, "Leave", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(row.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var dayName = row.AttendanceDate.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture);
+            var schedule = db.Attendance_Schedule_Days.FirstOrDefault(s =>
+                s.SchoolID == row.SchoolID &&
+                s.ScheduleID == row.Attendance_ScheduleID.Value &&
+                s.Day == dayName);
+            if (schedule == null)
+            {
+                schedule = db.Attendance_Schedule_Days.FirstOrDefault(s =>
+                    s.SchoolID == row.SchoolID &&
+                    s.ScheduleID == row.Attendance_ScheduleID.Value);
+            }
+            if (schedule == null)
+                return;
+
+            var time = row.EntryTime.GetValueOrDefault();
+            row.AttendanceStatus = ClassifyEntryStatus(time, schedule.StartTime, schedule.LateEntryTime, schedule.EndTime);
+        }
+
+        private static void SanitizeIncomingStudentRecords(List<Attendance_Record> records)
+        {
+            if (records == null)
+                return;
+
+            foreach (var row in records)
+            {
+                if (row.Is_OUT)
+                    continue;
+
+                if (IsPlaceholderTime(row.EntryTime) && IsPresentLikeStatus(row.Attendance))
+                {
+                    row.Attendance = "Abs";
+                    row.EntryTime = null;
+                }
+            }
+        }
+
+        private static void SanitizeIncomingEmployeeRecords(List<Employee_Attendance_Record> records)
+        {
+            if (records == null)
+                return;
+
+            foreach (var row in records)
+            {
+                if (row.Is_OUT)
+                    continue;
+
+                if (IsPlaceholderTime(row.EntryTime) && IsPresentLikeStatus(row.AttendanceStatus))
+                {
+                    row.AttendanceStatus = "Abs";
+                    row.EntryTime = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Real punch wins over a placeholder / manual row, but merging is monotonic: the earliest real entry
+        /// is kept and an existing real exit is never wiped or moved earlier. A re-sent or out-of-order device
+        /// state (retry after a power cut, recovered previous-day punches) can therefore never lose data.
+        /// </summary>
+        private static void ApplyStudentUpdate(Attendance_Record target, Attendance_Record source)
+        {
+            if (target == null || source == null)
+                return;
+
+            var incomingHasRealTime = !IsPlaceholderTime(source.EntryTime);
+
+            if (incomingHasRealTime)
+            {
+                if (ShouldTakeIncomingEntry(target.EntryTime, target.Attendance, source.EntryTime))
+                {
+                    target.Attendance = source.Attendance;
+                    target.EntryTime = source.EntryTime;
+                }
+
+                if (source.Is_OUT && !IsPlaceholderTime(source.ExitTime) &&
+                    ShouldTakeIncomingExit(target.Is_OUT, target.ExitTime, target.EntryTime, source.ExitTime))
+                {
+                    target.ExitStatus = source.ExitStatus;
+                    target.ExitTime = source.ExitTime;
+                    target.Is_OUT = true;
+                }
+                return;
+            }
+
+            if (IsOverwritablePlaceholderRow(target) && !IsManualRow(target) &&
+                string.Equals(source.Attendance, "Abs", StringComparison.OrdinalIgnoreCase))
+            {
+                target.Attendance = "Abs";
+                target.EntryTime = null;
+            }
+
+            if (source.Is_OUT && !IsPlaceholderTime(source.ExitTime))
+            {
+                target.ExitStatus = source.ExitStatus;
+                target.ExitTime = source.ExitTime;
+                target.Is_OUT = true;
+            }
+        }
+
+        private static void ApplyEmployeeUpdate(Employee_Attendance_Record target, Employee_Attendance_Record source)
+        {
+            if (target == null || source == null)
+                return;
+
+            var incomingHasRealTime = !IsPlaceholderTime(source.EntryTime);
+
+            if (incomingHasRealTime)
+            {
+                if (ShouldTakeIncomingEntry(target.EntryTime, target.AttendanceStatus, source.EntryTime))
+                {
+                    target.AttendanceStatus = source.AttendanceStatus;
+                    target.EntryTime = source.EntryTime;
+                }
+
+                if (source.Is_OUT && !IsPlaceholderTime(source.ExitTime) &&
+                    ShouldTakeIncomingExit(target.Is_OUT, target.ExitTime, target.EntryTime, source.ExitTime))
+                {
+                    target.ExitStatus = source.ExitStatus;
+                    target.ExitTime = source.ExitTime;
+                    target.Is_OUT = true;
+                }
+                return;
+            }
+
+            if (IsOverwritablePlaceholderEmployeeRow(target) && !IsManualEmployeeRow(target) &&
+                string.Equals(source.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase))
+            {
+                target.AttendanceStatus = "Abs";
+                target.EntryTime = null;
+            }
+
+            if (source.Is_OUT && !IsPlaceholderTime(source.ExitTime))
+            {
+                target.ExitStatus = source.ExitStatus;
+                target.ExitTime = source.ExitTime;
+                target.Is_OUT = true;
+            }
+        }
+
+        private static bool ShouldTakeIncomingEntry(TimeSpan? currentEntry, string currentStatus, TimeSpan? incomingEntry)
+        {
+            if (IsPlaceholderTime(incomingEntry))
+                return false;
+            if (IsPlaceholderTime(currentEntry))
+                return true;
+            // Abs/Leave with a time is inconsistent - the punch decides.
+            if (string.Equals(currentStatus, "Abs", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(currentStatus, "Leave", StringComparison.OrdinalIgnoreCase))
+                return true;
+            // Same entry: take the device status (schedule may have been re-classified); earlier entry wins.
+            return incomingEntry.Value <= currentEntry.Value;
+        }
+
+        private static bool ShouldTakeIncomingExit(bool currentIsOut, TimeSpan? currentExit, TimeSpan? currentEntry, TimeSpan? incomingExit)
+        {
+            if (IsPlaceholderTime(incomingExit))
+                return false;
+            if (!IsPlaceholderTime(currentEntry) && incomingExit.Value < currentEntry.Value)
+                return false;
+            if (!currentIsOut || IsPlaceholderTime(currentExit))
+                return true;
+            return incomingExit.Value >= currentExit.Value;
+        }
+
+        private static List<T> OnlyToday<T>(IEnumerable<T> rows, Func<T, DateTime> dateOf)
+        {
+            // Recovered previous-day punches are saved but must not send "reached school at ..." SMS a day late.
+            var today = DateTime.Today;
+            return (rows ?? Enumerable.Empty<T>()).Where(r => dateOf(r).Date == today).ToList();
+        }
+
+        /// <summary>
+        /// Inserts new rows. If the batch hits a unique-index duplicate (EF rolls back every row of the batch),
+        /// retries row by row and merges each duplicate into the existing row. Returns rows NOT saved.
+        /// </summary>
+        private static List<T> InsertRowsWithFallback<T>(
+            EduContext db, DbSet<T> set, List<T> rows, Func<T, bool> mergeIntoExisting) where T : class
+        {
+            var failed = new List<T>();
+            if (rows == null || rows.Count == 0)
+                return failed;
+
+            set.AddRange(rows);
+            try
+            {
+                db.SaveChanges();
+                return failed;
+            }
+            catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+            {
+                DetachAllTrackedEntities(db);
+                return failed;
+            }
+            catch (Exception ex) when (IsDuplicateKeyViolation(ex))
+            {
+                DetachAllTrackedEntities(db);
+            }
+
+            foreach (var row in rows)
+            {
+                set.Add(row);
+                try
+                {
+                    db.SaveChanges();
+                }
+                catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+                {
+                    DetachAllTrackedEntities(db);
+                }
+                catch (Exception ex) when (IsDuplicateKeyViolation(ex))
+                {
+                    DetachAllTrackedEntities(db);
+                    if (!mergeIntoExisting(row))
+                        failed.Add(row);
+                }
+                catch (Exception)
+                {
+                    DetachAllTrackedEntities(db);
+                    failed.Add(row);
+                }
+            }
+
+            return failed;
+        }
+
+        private bool MergeStudentIntoExisting(EduContext db, Attendance_Record row)
+        {
+            try
+            {
+                var existing = FindStudentUpdateRow(db, row);
+                if (existing == null)
+                    return false;
+                if (IsManualRow(existing) && !HasRealPunch(row))
+                    return true; // manual row protected; nothing to add
+                if (existing.Attendance_ScheduleID == null && row.Attendance_ScheduleID != null)
+                    existing.Attendance_ScheduleID = row.Attendance_ScheduleID;
+                ApplyStudentUpdate(existing, row);
+                ReclassifyStudentFromSchedule(db, existing);
+                db.SaveChanges();
+                return true;
+            }
+            catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+            {
+                DetachAllTrackedEntities(db);
+                return true;
+            }
+            catch (Exception)
+            {
+                DetachAllTrackedEntities(db);
+                return false;
+            }
+        }
+
+        private bool MergeEmployeeIntoExisting(EduContext db, Employee_Attendance_Record row)
+        {
+            try
+            {
+                var existing = FindEmployeeUpdateRow(db, row);
+                if (existing == null)
+                    return false;
+                if (IsManualEmployeeRow(existing) && !HasRealEmployeePunch(row))
+                    return true;
+                if (existing.Attendance_ScheduleID == null && row.Attendance_ScheduleID != null)
+                    existing.Attendance_ScheduleID = row.Attendance_ScheduleID;
+                ApplyEmployeeUpdate(existing, row);
+                ReclassifyEmployeeFromSchedule(db, existing);
+                db.SaveChanges();
+                return true;
+            }
+            catch (Exception ex) when (IsIgnorableInsteadOfInsertException(ex))
+            {
+                DetachAllTrackedEntities(db);
+                return true;
+            }
+            catch (Exception)
+            {
+                DetachAllTrackedEntities(db);
+                return false;
+            }
+        }
+
+        private static bool SameAttendanceDay(DateTime left, DateTime right)
+        {
+            return left.Date == right.Date;
+        }
+
+        private Attendance_Record FindStudentUpdateRow(EduContext db, Attendance_Record log)
+        {
+            var day = log.AttendanceDate.Date;
+            var next = day.AddDays(1);
+            var rows = db.Attendance_Records
+                .Where(u =>
+                    u.SchoolID == log.SchoolID &&
+                    u.StudentID == log.StudentID &&
+                    u.AttendanceDate >= day &&
+                    u.AttendanceDate < next)
+                .ToList();
+
+            var updateLog = rows.FirstOrDefault(u =>
+                u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
+                (u.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null));
+
+            // Real punch OR Abs correction must overwrite Pre/Late Abs + 12:00 AM rows.
+            if (updateLog == null)
+                updateLog = rows.FirstOrDefault(r => CanTakeOverPlaceholderRow(r, log));
+
+            return updateLog;
+        }
+
+        private Employee_Attendance_Record FindEmployeeUpdateRow(EduContext db, Employee_Attendance_Record log)
+        {
+            var day = log.AttendanceDate.Date;
+            var next = day.AddDays(1);
+            var rows = db.Employee_Attendance_Records
+                .Where(u =>
+                    u.SchoolID == log.SchoolID &&
+                    u.EmployeeID == log.EmployeeID &&
+                    u.AttendanceDate >= day &&
+                    u.AttendanceDate < next)
+                .ToList();
+
+            var updateLog = rows.FirstOrDefault(u =>
+                u.Attendance_ScheduleID == log.Attendance_ScheduleID ||
+                (u.Attendance_ScheduleID == null && log.Attendance_ScheduleID != null));
+
+            if (updateLog == null)
+                updateLog = rows.FirstOrDefault(r => CanTakeOverPlaceholderEmployeeRow(r, log));
+
+            return updateLog;
         }
 
         private static List<Employee_Attendance_Record> FilterNewEmployeeRecords(
@@ -1479,10 +1947,17 @@ namespace Attendance_API.Controllers
 
             foreach (var row in incoming.Where(r => r.Attendance_ScheduleID.HasValue))
             {
-                var scheduled = db.Attendance_Records.FirstOrDefault(sa =>
-                    sa.SchoolID == row.SchoolID &&
-                    sa.StudentID == row.StudentID &&
-                    sa.AttendanceDate == row.AttendanceDate &&
+                var day = row.AttendanceDate.Date;
+                var next = day.AddDays(1);
+                var dayRows = db.Attendance_Records
+                    .Where(sa =>
+                        sa.SchoolID == row.SchoolID &&
+                        sa.StudentID == row.StudentID &&
+                        sa.AttendanceDate >= day &&
+                        sa.AttendanceDate < next)
+                    .ToList();
+
+                var scheduled = dayRows.FirstOrDefault(sa =>
                     sa.Attendance_ScheduleID == row.Attendance_ScheduleID);
 
                 if (scheduled != null)
@@ -1490,11 +1965,8 @@ namespace Attendance_API.Controllers
                     MergeStudentAttendanceRow(scheduled, row);
                     updated = true;
 
-                    var legacyDuplicate = db.Attendance_Records.FirstOrDefault(sa =>
-                        sa.SchoolID == row.SchoolID &&
-                        sa.StudentID == row.StudentID &&
-                        sa.AttendanceDate == row.AttendanceDate &&
-                        sa.Attendance_ScheduleID == null);
+                    var legacyDuplicate = dayRows.FirstOrDefault(sa =>
+                        sa.Attendance_ScheduleID == null && !IsManualRow(sa));
 
                     if (legacyDuplicate != null)
                     {
@@ -1505,12 +1977,18 @@ namespace Attendance_API.Controllers
                     continue;
                 }
 
-                var legacy = db.Attendance_Records.FirstOrDefault(sa =>
-                    sa.SchoolID == row.SchoolID &&
-                    sa.StudentID == row.StudentID &&
-                    sa.AttendanceDate == row.AttendanceDate &&
-                    sa.Attendance_ScheduleID == null);
+                // Same student/day Pre + 12:00 AM with wrong/missing schedule — still overwrite.
+                var placeholder = dayRows.FirstOrDefault(sa => CanTakeOverPlaceholderRow(sa, row));
+                if (placeholder != null)
+                {
+                    placeholder.Attendance_ScheduleID = row.Attendance_ScheduleID;
+                    MergeStudentAttendanceRow(placeholder, row);
+                    updated = true;
+                    continue;
+                }
 
+                var legacy = dayRows.FirstOrDefault(sa =>
+                    sa.Attendance_ScheduleID == null && (HasRealPunch(row) || !IsManualRow(sa)));
                 if (legacy == null)
                     continue;
 
@@ -1534,13 +2012,7 @@ namespace Attendance_API.Controllers
 
         private static void MergeStudentAttendanceRow(Attendance_Record target, Attendance_Record source)
         {
-            if (!string.IsNullOrWhiteSpace(source.Attendance))
-                target.Attendance = source.Attendance;
-            if (source.EntryTime.HasValue)
-                target.EntryTime = source.EntryTime;
-            target.ExitStatus = source.ExitStatus;
-            target.ExitTime = source.ExitTime;
-            target.Is_OUT = source.Is_OUT;
+            ApplyStudentUpdate(target, source);
         }
 
         private static void BackfillEmployeeScheduleRows(EduContext db, List<Employee_Attendance_Record> incoming)
@@ -1549,10 +2021,13 @@ namespace Attendance_API.Controllers
 
             foreach (var row in incoming.Where(r => r.Attendance_ScheduleID.HasValue))
             {
+                // Day range (like the student backfill): legacy rows may carry a time part in AttendanceDate.
+                var day = row.AttendanceDate.Date;
+                var next = day.AddDays(1);
                 var scheduled = db.Employee_Attendance_Records.FirstOrDefault(sa =>
                     sa.SchoolID == row.SchoolID &&
                     sa.EmployeeID == row.EmployeeID &&
-                    sa.AttendanceDate == row.AttendanceDate &&
+                    sa.AttendanceDate >= day && sa.AttendanceDate < next &&
                     sa.Attendance_ScheduleID == row.Attendance_ScheduleID);
 
                 if (scheduled != null)
@@ -1563,8 +2038,9 @@ namespace Attendance_API.Controllers
                     var legacyDuplicate = db.Employee_Attendance_Records.FirstOrDefault(sa =>
                         sa.SchoolID == row.SchoolID &&
                         sa.EmployeeID == row.EmployeeID &&
-                        sa.AttendanceDate == row.AttendanceDate &&
-                        sa.Attendance_ScheduleID == null);
+                        sa.AttendanceDate >= day && sa.AttendanceDate < next &&
+                        sa.Attendance_ScheduleID == null &&
+                        sa.RegistrationID == 0);
 
                     if (legacyDuplicate != null)
                     {
@@ -1578,10 +2054,12 @@ namespace Attendance_API.Controllers
                 var legacy = db.Employee_Attendance_Records.FirstOrDefault(sa =>
                     sa.SchoolID == row.SchoolID &&
                     sa.EmployeeID == row.EmployeeID &&
-                    sa.AttendanceDate == row.AttendanceDate &&
+                    sa.AttendanceDate >= day && sa.AttendanceDate < next &&
                     sa.Attendance_ScheduleID == null);
 
                 if (legacy == null)
+                    continue;
+                if (IsManualEmployeeRow(legacy) && !HasRealEmployeePunch(row))
                     continue;
 
                 legacy.Attendance_ScheduleID = row.Attendance_ScheduleID;
@@ -1604,13 +2082,7 @@ namespace Attendance_API.Controllers
 
         private static void MergeEmployeeAttendanceRow(Employee_Attendance_Record target, Employee_Attendance_Record source)
         {
-            if (!string.IsNullOrWhiteSpace(source.AttendanceStatus))
-                target.AttendanceStatus = source.AttendanceStatus;
-            if (source.EntryTime.HasValue)
-                target.EntryTime = source.EntryTime;
-            target.ExitStatus = source.ExitStatus;
-            target.ExitTime = source.ExitTime;
-            target.Is_OUT = source.Is_OUT;
+            ApplyEmployeeUpdate(target, source);
         }
 
         private static void DetachAllTrackedEntities(EduContext db)

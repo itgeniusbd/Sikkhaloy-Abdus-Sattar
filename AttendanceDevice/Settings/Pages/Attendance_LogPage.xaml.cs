@@ -51,6 +51,21 @@ namespace AttendanceDevice.Settings.Pages
             }
         }
 
+        private async void BtnSendWebsite_Click(object sender, RoutedEventArgs e)
+        {
+            LocalData.Instance.FlagIncompleteRecordsForResync();
+            LocalData.Instance.RepairTodayScheduleIdsForResync();
+
+            var ins = LocalData.Instance.institution;
+            var push = await AttendanceWebsiteSync.PushPendingAsync(ins);
+            RefreshPendingList();
+            MessageBox.Show(
+                push.Message,
+                "Send to Website",
+                MessageBoxButton.OK,
+                push.TotalPushed > 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+
         private void BtnResetSync_Click(object sender, RoutedEventArgs e)
         {
             var confirm = MessageBox.Show(

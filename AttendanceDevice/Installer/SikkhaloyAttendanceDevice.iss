@@ -36,6 +36,8 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
+CloseApplications=force
+RestartApplications=no
 ; x86 app on 64-bit Windows: use x86compatible (x86 alone blocks 64-bit OS)
 ArchitecturesAllowed=x86compatible
 MinVersion=6.1sp1

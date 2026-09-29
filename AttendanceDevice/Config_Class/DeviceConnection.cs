@@ -78,6 +78,13 @@ namespace AttendanceDevice.Config_Class
                     return;
                 }
 
+                // One physical punch = one processing (duplicate event delivery / re-import).
+                if (!PunchLedger.TryClaim(deviceId, dt))
+                {
+                    StartupLogger.LogStage($"punch ignored (already processed): device {deviceId} at {dt:yyyy-MM-dd HH:mm:ss}");
+                    return;
+                }
+
                 userView.Enroll_Time = dt;
                 userView.ScheduleDisplay = string.Empty;
                 userView.ScheduleNameLine = string.Empty;
@@ -150,16 +157,30 @@ namespace AttendanceDevice.Config_Class
                 // Insert or Update Attendance Records
                 using (var db = new ModelContext())
                 {
-                    var attRecords = await db.attendance_Records
-                        .Where(a => a.DeviceID == deviceId && a.ScheduleID == activeSchedule.ScheduleID)
+                    var deviceRecords = await db.attendance_Records
+                        .Where(a => a.DeviceID == deviceId)
                         .ToListAsync();
 
-                    var attRecord = attRecords.FirstOrDefault(a => AttendanceDateHelper.DatesMatch(a.AttendanceDate, sDate));
+                    var todayDeviceRecords = deviceRecords
+                        .Where(a => AttendanceDateHelper.DatesMatch(a.AttendanceDate, sDate))
+                        .ToList();
+
+                    var attRecord = todayDeviceRecords.FirstOrDefault(a => a.ScheduleID == activeSchedule.ScheduleID);
 
                     if (!LocalData.TryGetScheduleTimes(activeSchedule, out var sStartTime, out var sLateTime, out var sEndTime))
                     {
                         reason = "Invalid schedule time on PC";
                         await LogBackupInsert(deviceId, dt, reason);
+                        return;
+                    }
+
+                    // A punch that already closed/opened another schedule must never also open this one.
+                    var opensEntry = attRecord == null || ScheduleRoutingHelper.ShouldApplyAsFirstEntry(
+                        attRecord.AttendanceStatus, attRecord.EntryTime, attRecord.Is_OUT);
+                    if (opensEntry && ScheduleRoutingHelper.IsPunchAlreadyAppliedToOtherSchedule(
+                            todayDeviceRecords, activeSchedule.ScheduleID, time))
+                    {
+                        StartupLogger.LogStage($"punch ignored (already applied to another schedule): device {deviceId} at {dt:HH:mm:ss}, target schedule {activeSchedule.ScheduleID}");
                         return;
                     }
 
@@ -173,22 +194,8 @@ namespace AttendanceDevice.Config_Class
                             EntryTime = time.ToString()
                         };
 
-                        if (time > sEndTime)
-                        {
-                            attRecord.AttendanceStatus = "Late Abs";
-                        }
-                        else if (time <= sStartTime)
-                        {
-                            attRecord.AttendanceStatus = "Pre";
-                        }
-                        else if (time <= sLateTime)
-                        {
-                            attRecord.AttendanceStatus = "Late";
-                        }
-                        else if (time <= sEndTime)
-                        {
-                            attRecord.AttendanceStatus = "Late Abs";
-                        }
+                        attRecord.AttendanceStatus = ScheduleRoutingHelper.ClassifyEntryStatus(
+                            time, sStartTime, sLateTime, sEndTime);
 
                         attRecord.Is_Sent = false;
                         attRecord.Is_Updated = false;
@@ -198,7 +205,8 @@ namespace AttendanceDevice.Config_Class
                     else
                     {
                         var isDuplicatePunch = false;
-                        var hasNoEntryYet = string.IsNullOrWhiteSpace(attRecord.EntryTime) && !attRecord.Is_OUT;
+                        var hasNoEntryYet = ScheduleRoutingHelper.ShouldApplyAsFirstEntry(
+                            attRecord.AttendanceStatus, attRecord.EntryTime, attRecord.Is_OUT);
 
                         if (!hasNoEntryYet)
                         {
@@ -209,26 +217,25 @@ namespace AttendanceDevice.Config_Class
                                     isDuplicatePunch = previousOutTime.TotalMinutes + DuplicatePunchCountableMin > time.TotalMinutes;
                                 }
                             }
-                            else if (TimeSpan.TryParse(attRecord.EntryTime, out var previousTime))
+                            else if (ScheduleTimeHelper.TryParse(attRecord.EntryTime, out var previousTime))
                             {
                                 isDuplicatePunch = previousTime.TotalMinutes + DuplicatePunchCountableMin > time.TotalMinutes;
                             }
                         }
 
+                        if (!hasNoEntryYet && isDuplicatePunch)
+                        {
+                            StartupLogger.LogStage($"punch ignored (duplicate within {DuplicatePunchCountableMin} min): device {deviceId} at {dt:HH:mm:ss}, schedule {activeSchedule.ScheduleID}, entry {attRecord.EntryTime}, exit {attRecord.ExitTime}");
+                        }
+
                         if (hasNoEntryYet || !isDuplicatePunch)
                         {
-                            if (hasNoEntryYet || attRecord.AttendanceStatus == "Abs")
+                            if (hasNoEntryYet)
                             {
                                 attRecord.EntryTime = time.ToString();
 
-                                if (time > sEndTime)
-                                    attRecord.AttendanceStatus = "Late Abs";
-                                else if (time <= sStartTime)
-                                    attRecord.AttendanceStatus = "Pre";
-                                else if (time <= sLateTime)
-                                    attRecord.AttendanceStatus = "Late";
-                                else
-                                    attRecord.AttendanceStatus = "Late Abs";
+                                attRecord.AttendanceStatus = ScheduleRoutingHelper.ClassifyEntryStatus(
+                                    time, sStartTime, sLateTime, sEndTime);
 
                                 attRecord.Is_Sent = false;
                                 attRecord.Is_Updated = false;
@@ -243,6 +250,19 @@ namespace AttendanceDevice.Config_Class
                                 {
                                     attRecord.ExitStatus = "Out";
                                 }
+
+                                if (!ScheduleRoutingHelper.CanMarkExit(
+                                        time,
+                                        sStartTime,
+                                        sEndTime,
+                                        activeSchedule.StartTime,
+                                        attRecord.EntryTime))
+                                {
+                                    reason = "Exit punch outside schedule window";
+                                    await LogBackupInsert(deviceId, dt, reason);
+                                    return;
+                                }
+
                                 attRecord.Is_OUT = true;
                                 attRecord.ExitTime = time.ToString();
                                 attRecord.Is_Updated = false;
@@ -269,19 +289,53 @@ namespace AttendanceDevice.Config_Class
             }
         }
 
-        public void axCZKEM1_OnFingerFeature(int score)
+        private int _enrollPunchCount;
+        private bool _enrollingFinger;
+        private const int EnrollRequiredPunches = 3;
+        public Action<int, bool> FingerEnrollCompleted { get; set; }
+
+        private void SetFingerprintUi(string text)
         {
-            FingerprintMessage.Text = $"Score: ${score}";
+            var block = FingerprintMessage;
+            if (block == null)
+                return;
+
+            void Apply() => block.Text = text;
+
+            if (block.Dispatcher.CheckAccess())
+                Apply();
+            else
+                block.Dispatcher.BeginInvoke((Action)Apply);
         }
 
+        public void axCZKEM1_OnFingerFeature(int score)
+        {
+            if (!_enrollingFinger)
+                return;
+
+            _enrollPunchCount++;
+            var percent = Math.Max(0, Math.Min(100, score));
+            var punch = Math.Min(_enrollPunchCount, EnrollRequiredPunches);
+
+            if (_enrollPunchCount >= EnrollRequiredPunches)
+                SetFingerprintUi($"{punch}/{EnrollRequiredPunches}\n{percent}%");
+            else
+                SetFingerprintUi($"{punch}/{EnrollRequiredPunches}\n{percent}%");
+        }
 
         public void axCZKEM1_OnEnrollFingerEx(string EnrollNumber, int FingerIndex, int ActionResult, int TemplateLength)
         {
-            FingerprintMessage.Text = ActionResult == 0 ? "Success" : "Failed";
+            var success = ActionResult == 0;
+            _enrollingFinger = false;
 
-            if (axCZKEM1.GetUserTmpExStr(Machine.Number, EnrollNumber, _fingerIndex, out var flag, out var tmpData, out var tmpLength))
+            if (success)
+                SetFingerprintUi($"{EnrollRequiredPunches}/{EnrollRequiredPunches}\nSuccess");
+            else
+                SetFingerprintUi("Failed");
+
+            if (success &&
+                axCZKEM1.GetUserTmpExStr(Machine.Number, EnrollNumber, _fingerIndex, out var flag, out var tmpData, out _))
             {
-
                 var deviceIdInt = Convert.ToInt32(EnrollNumber);
                 using (var db = new ModelContext())
                 {
@@ -307,6 +361,27 @@ namespace AttendanceDevice.Config_Class
 
                     db.SaveChanges();
                 }
+            }
+
+            try
+            {
+                axCZKEM1.StartIdentify();
+            }
+            catch
+            {
+                // Device may already be in identify mode.
+            }
+
+            var done = FingerEnrollCompleted;
+            if (done != null)
+            {
+                var finger = _fingerIndex;
+                var ok = success;
+                var block = FingerprintMessage;
+                if (block != null && !block.Dispatcher.CheckAccess())
+                    block.Dispatcher.BeginInvoke(done, finger, ok);
+                else
+                    done(finger, ok);
             }
         }
 
@@ -417,7 +492,7 @@ namespace AttendanceDevice.Config_Class
 
             if (IsConnected())
             {
-                EnsureAttendanceEventHandler();
+                EnsureAttendanceEventHandler(newConnection: false);
                 Returns.Message = "Device is already Connected!";
                 Returns.Code = 0;
                 Returns.IsSuccess = true;
@@ -444,7 +519,7 @@ namespace AttendanceDevice.Config_Class
 
                 this.IsSdkFullSupported = ClearPrevLog();
 
-                EnsureAttendanceEventHandler();
+                EnsureAttendanceEventHandler(newConnection: true);
 
                 return Returns;
             }
@@ -460,16 +535,87 @@ namespace AttendanceDevice.Config_Class
             }
         }
 
-        private void EnsureAttendanceEventHandler()
+        // Realtime event registration: exactly once per device connection, and only one
+        // DeviceConnection instance per physical device may own the live punch handler.
+        private static readonly object EventRegistrationSync = new object();
+        private static readonly Dictionary<string, DeviceConnection> LiveEventOwners =
+            new Dictionary<string, DeviceConnection>();
+        private bool _attEventRegistered;
+        private bool _allEventsRegistered;
+
+        private string DeviceEventKey => $"{Device?.DeviceIP}:{Device?.Port}";
+
+        private void EnsureAttendanceEventHandler(bool newConnection)
         {
-            if (axCZKEM1 == null)
+            lock (EventRegistrationSync)
+            {
+                if (axCZKEM1 == null)
+                    return;
+
+                var key = DeviceEventKey;
+                var threadId = Environment.CurrentManagedThreadId;
+
+                // A new TCP session invalidates any earlier registration on this object.
+                if (newConnection)
+                    ResetEventRegistrationLocked("new connection");
+
+                // Another (older) DeviceConnection for the same device still holds the handler
+                // (e.g. Reconnect / Settings -> Display created new objects) - release it first.
+                if (LiveEventOwners.TryGetValue(key, out var owner) && !ReferenceEquals(owner, this))
+                {
+                    owner.ResetEventRegistrationLocked("superseded by newer connection");
+                    LiveEventOwners.Remove(key);
+                }
+
+                if (_attEventRegistered)
+                {
+                    StartupLogger.LogStage($"device-events: skipped duplicate OnAttTransactionEx registration for {key} (thread {threadId})");
+                    return;
+                }
+
+                axCZKEM1.OnAttTransactionEx -= axCZKEM1_OnAttTransactionEx;
+                if (axCZKEM1.RegEvent(Machine.Number, 1))
+                {
+                    axCZKEM1.OnAttTransactionEx += axCZKEM1_OnAttTransactionEx;
+                    _attEventRegistered = true;
+                    LiveEventOwners[key] = this;
+                    StartupLogger.LogStage($"device-events: registered OnAttTransactionEx for {key} (thread {threadId}, newConnection={newConnection})");
+                }
+                else
+                {
+                    StartupLogger.LogStage($"device-events: RegEvent failed for {key} (thread {threadId})");
+                }
+            }
+        }
+
+        /// <summary>Unsubscribe all realtime handlers of this instance. Caller must hold EventRegistrationSync.</summary>
+        private void ResetEventRegistrationLocked(string reason)
+        {
+            if (!_attEventRegistered && !_allEventsRegistered)
                 return;
 
-            axCZKEM1.OnAttTransactionEx -= axCZKEM1_OnAttTransactionEx;
-            if (axCZKEM1.RegEvent(Machine.Number, 1))
+            try
             {
-                axCZKEM1.OnAttTransactionEx += axCZKEM1_OnAttTransactionEx;
+                if (axCZKEM1 != null)
+                {
+                    axCZKEM1.OnAttTransactionEx -= axCZKEM1_OnAttTransactionEx;
+                    axCZKEM1.OnFingerFeature -= axCZKEM1_OnFingerFeature;
+                    axCZKEM1.OnEnrollFingerEx -= axCZKEM1_OnEnrollFingerEx;
+                }
             }
+            catch (Exception ex)
+            {
+                StartupLogger.LogFailure("device-events: unsubscribe", ex);
+            }
+
+            _attEventRegistered = false;
+            _allEventsRegistered = false;
+
+            var key = DeviceEventKey;
+            if (LiveEventOwners.TryGetValue(key, out var owner) && ReferenceEquals(owner, this))
+                LiveEventOwners.Remove(key);
+
+            StartupLogger.LogStage($"device-events: unregistered handlers for {key} ({reason})");
         }
 
         public DeviceReturn ConnectDeviceWithoutEvent()
@@ -530,6 +676,9 @@ namespace AttendanceDevice.Config_Class
                 Returns.Code = 1;
                 Returns.IsSuccess = true;
 
+                lock (EventRegistrationSync)
+                    ResetEventRegistrationLocked("new connection without events");
+
                 return Returns;
             }
             else
@@ -547,6 +696,9 @@ namespace AttendanceDevice.Config_Class
         {
             if (IsConnected())
             {
+                lock (EventRegistrationSync)
+                    ResetEventRegistrationLocked("disconnect");
+
                 axCZKEM1.Disconnect();
                 //sta_UnRegRealTime();
 
@@ -745,7 +897,12 @@ namespace AttendanceDevice.Config_Class
             }
             return users;
         }
-        public List<LogView> DownloadPrevLogs()
+        /// <param name="recoverFrom">
+        /// Optional earlier lower bound (max <see cref="PrevDayLogCountable"/> days back): re-read punches that
+        /// are older than Last_Down_Log_Time, e.g. ones lost from the PC by a power cut or an app update.
+        /// Re-reading is safe: already-applied punches are ignored by the duplicate / 10-minute rules.
+        /// </param>
+        public List<LogView> DownloadPrevLogs(DateTime? recoverFrom = null)
         {
             if (!IsConnected()) return new List<LogView>();
 
@@ -774,7 +931,24 @@ namespace AttendanceDevice.Config_Class
                 }
 
                 var toTime = DateTime.Today.Date;
+                // Fallback (ReadGeneralLogData) lower bound = same window as the ReadTimeGLogData path.
+                var prevLowerBound = fromTime;
+                if (DateTime.TryParse(Device.Last_Down_Log_Time, out var prevLastDown) &&
+                    (DateTime.Today - prevLastDown).TotalDays < PrevDayLogCountable && prevLastDown > fromTime)
+                    prevLowerBound = prevLastDown;
                 var toTimeString = toTime.ToString("yyyy-MM-dd 00:00:00");
+
+                if (recoverFrom.HasValue)
+                {
+                    var recoverLower = recoverFrom.Value.Date;
+                    if (recoverLower < fromTime)
+                        recoverLower = fromTime;
+                    if (recoverLower < prevLowerBound)
+                    {
+                        prevLowerBound = recoverLower;
+                        fromTimeString = recoverLower.ToString("yyyy-MM-dd 00:00:00");
+                    }
+                }
 
                 if (axCZKEM1.ReadTimeGLogData(Machine.Number, fromTimeString, toTimeString))
                 {
@@ -812,7 +986,7 @@ namespace AttendanceDevice.Config_Class
                                 var dt = new DateTime(idwYear, idwMonth, idwDay, idwHour, idwMinute, idwSecond);
 
                                 //Check data in Last Downloaded Log Time 
-                                if (fromTime <= dt || dt >= toTime) continue;
+                                if (dt < prevLowerBound || dt >= toTime) continue;
 
                                 var deviceId = Convert.ToInt32(sdwEnrollNumber);
                                 var time = new TimeSpan(idwHour, idwMinute, idwSecond);
@@ -912,7 +1086,7 @@ namespace AttendanceDevice.Config_Class
                             {
                                 var dt = new DateTime(idwYear, idwMonth, idwDay, idwHour, idwMinute, idwSecond);
                                 //Check data in Last Downloaded Log Time 
-                                if (fromTime <= dt || dt >= toTime) continue;
+                                if (dt < fromTime || dt >= toTime) continue; // keep only today's punches (was inverted: dropped all of today)
 
                                 var deviceId = Convert.ToInt32(sdwEnrollNumber);
                                 var time = new TimeSpan(idwHour, idwMinute, idwSecond);
@@ -1171,43 +1345,65 @@ namespace AttendanceDevice.Config_Class
         public int FP_Add(string deviceId, int fingerIndex)
         {
             _fingerIndex = fingerIndex;
-            if (axCZKEM1.RegEvent(Machine.Number, 65535))
+            _enrollPunchCount = 0;
+            _enrollingFinger = true;
+
+            lock (EventRegistrationSync)
             {
-                axCZKEM1.OnFingerFeature += new zkemkeeper._IZKEMEvents_OnFingerFeatureEventHandler(axCZKEM1_OnFingerFeature);
-                axCZKEM1.OnEnrollFingerEx += new zkemkeeper._IZKEMEvents_OnEnrollFingerExEventHandler(axCZKEM1_OnEnrollFingerEx);
+                var key = DeviceEventKey;
+                axCZKEM1.OnFingerFeature -= axCZKEM1_OnFingerFeature;
+                axCZKEM1.OnEnrollFingerEx -= axCZKEM1_OnEnrollFingerEx;
+
+                if (_allEventsRegistered)
+                {
+                    StartupLogger.LogStage($"device-events: skipped duplicate RegEvent(65535) for {key} (thread {Environment.CurrentManagedThreadId})");
+                }
+                else if (axCZKEM1.RegEvent(Machine.Number, 65535))
+                {
+                    _allEventsRegistered = true;
+                    StartupLogger.LogStage($"device-events: registered all events (65535) for fingerprint enrol on {key} (thread {Environment.CurrentManagedThreadId})");
+                }
+
+                if (_allEventsRegistered)
+                {
+                    axCZKEM1.OnFingerFeature += axCZKEM1_OnFingerFeature;
+                    axCZKEM1.OnEnrollFingerEx += axCZKEM1_OnEnrollFingerEx;
+                }
             }
 
             var idwErrorCode = 0;
             const int iFlag = 1;
 
             axCZKEM1.CancelOperation();
-
-            //If the specified index of user's templates has existed ,delete it first
             axCZKEM1.SSR_DelUserTmpExt(Machine.Number, deviceId, fingerIndex);
 
             if (axCZKEM1.StartEnrollEx(deviceId, fingerIndex, iFlag))
             {
-                FingerprintMessage.Text = "Start";
-
-                if (axCZKEM1.StartIdentify())
-                {
-                    //FingerprintMessage.Text = $"Enroll a new User,UserId: {deviceId}";
-                }
-                //After enrolling templates,you should let the device into the 1:N verification condition
-
+                SetFingerprintUi($"0/{EnrollRequiredPunches}\nStart");
             }
             else
             {
+                _enrollingFinger = false;
                 axCZKEM1.GetLastError(ref idwErrorCode);
-                FingerprintMessage.Text = $"Operation failed, Error Code: {idwErrorCode}";
+                SetFingerprintUi($"Failed\n{idwErrorCode}");
             }
-            //axCZKEM1.OnFingerFeature -= new zkemkeeper._IZKEMEvents_OnFingerFeatureEventHandler(axCZKEM1_OnFingerFeature);
-            // axCZKEM1.OnEnrollFingerEx -= new zkemkeeper._IZKEMEvents_OnEnrollFingerExEventHandler(axCZKEM1_OnEnrollFingerEx);
+
             return 1;
         }
         public void FP_StateCancel()
         {
-            axCZKEM1.CancelOperation();
+            _enrollingFinger = false;
+            _enrollPunchCount = 0;
+            try
+            {
+                axCZKEM1.CancelOperation();
+                axCZKEM1.StartIdentify();
+            }
+            catch
+            {
+                // ignored
+            }
+            SetFingerprintUi("Cancel");
         }
         public int FP_Delete(string deviceId, int fingerIndex)
         {

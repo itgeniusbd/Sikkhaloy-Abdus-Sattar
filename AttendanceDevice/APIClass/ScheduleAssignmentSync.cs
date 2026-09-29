@@ -230,11 +230,20 @@ namespace AttendanceDevice.APIClass
                 var response = await client.ExecuteTaskAsync(request);
                 var content = ApiResponseHelper.ReadContent(response);
                 if (response.StatusCode != HttpStatusCode.OK || string.IsNullOrWhiteSpace(content))
+                {
+                    // Keep local rows, but never fail silently: while this endpoint fails, multi-schedule
+                    // students are routed only by legacy User_Info.ScheduleID ("No active schedule").
+                    LogSyncFailure("schedule-assignments", schoolId, response.StatusCode,
+                        string.IsNullOrWhiteSpace(content) ? response.ErrorMessage : content);
                     return false;
+                }
 
                 var assignments = ParseAssignments(content);
                 if (!assignments.Any())
+                {
+                    LogSyncFailure("schedule-assignments-parse", schoolId, response.StatusCode, content);
                     return false;
+                }
 
                 var userSchedules = assignments
                     .Select(a => new User_Schedule
@@ -247,12 +256,36 @@ namespace AttendanceDevice.APIClass
                     .Select(g => g.First())
                     .ToList();
 
+                var previous = (LocalData.Instance.User_Schedules ?? new List<User_Schedule>())
+                    .Select(u => u.DeviceID + ":" + u.ScheduleID)
+                    .ToHashSet();
+
                 await LocalData.Instance.UserScheduleDataHandling(userSchedules, fromServer: true);
+
+                var changed = previous.Count != userSchedules.Count ||
+                              userSchedules.Any(u => !previous.Contains(u.DeviceID + ":" + u.ScheduleID));
+                if (changed)
+                {
+                    var localDeviceIds = (LocalData.Instance.Users ?? new List<User>())
+                        .Select(u => u.DeviceID)
+                        .ToHashSet();
+                    var notOnPc = userSchedules
+                        .Select(u => u.DeviceID)
+                        .Distinct()
+                        .Count(id => !localDeviceIds.Contains(id));
+
+                    StartupLogger.LogStage(
+                        $"schedule-assignments: saved {userSchedules.Count} rows for " +
+                        $"{userSchedules.Select(u => u.DeviceID).Distinct().Count()} device IDs" +
+                        (notOnPc > 0 ? $" ({notOnPc} device IDs not in local users - run Download from Server)" : string.Empty));
+                }
+
                 return true;
             }
             catch (Exception ex)
             {
                 StartupLogger.LogFailure("schedule-assignments", ex);
+                LogSyncFailure("schedule-assignments-exception", schoolId, 0, ex.Message);
                 return false;
             }
         }

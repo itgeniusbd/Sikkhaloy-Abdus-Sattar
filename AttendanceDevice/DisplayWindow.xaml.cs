@@ -42,6 +42,12 @@ namespace AttendanceDevice
         private DateTime _lastWebViewRefresh = DateTime.MinValue;
         private bool _displayDataDirty;
 
+        // Day-rollover state for a display left running for days (startup already did today's work).
+        private DateTime _cycleDay = DateTime.MinValue;
+        private DateTime _leaveSyncDay = DateTime.MinValue;
+        private DateTime _tokenRefreshDay = DateTime.Today;
+        private DateTime _deviceClockSyncDay = DateTime.Today;
+
         private sealed class DisplayScheduleFilterItem
         {
             public int id { get; set; }
@@ -281,16 +287,7 @@ namespace AttendanceDevice
 
         private bool ShouldRefreshWebViewDisplay()
         {
-            if (!_displayDataDirty)
-                return false;
-
-            if (_lastWebViewRefresh != DateTime.MinValue &&
-                DateTime.Now - _lastWebViewRefresh < PerformanceSettings.WebViewRefreshMinInterval)
-            {
-                return false;
-            }
-
-            return true;
+            return _displayDataDirty;
         }
 
         private async Task RefreshWebViewDisplayIfNeededAsync()
@@ -299,7 +296,7 @@ namespace AttendanceDevice
                 return;
 
             _displayDataDirty = false;
-            await RefreshWebViewDisplayAsync(forceFullReload: false);
+            await RefreshWebViewDisplayAsync(forceFullReload: true);
         }
 
         private async Task RunDisplaySyncCycleAsync(bool reloadAfterSync)
@@ -313,6 +310,8 @@ namespace AttendanceDevice
             _timerBusy = true;
             try
             {
+                OnDayRolloverIfNeeded();
+
                 var totalDeviceConnected = await _deviceDisplay.Total_DevicesAsync();
 
                 if (totalDeviceConnected == 0)
@@ -340,6 +339,7 @@ namespace AttendanceDevice
                     var ins = LocalData.Instance.institution;
                     var client = new RestClient(ApiUrl.EndPoint);
                     var allDevices = db.Devices.Count();
+                    var attendanceReplayed = false;
 
                     if (ins != null && !string.IsNullOrWhiteSpace(ins.Token))
                     {
@@ -356,8 +356,25 @@ namespace AttendanceDevice
                             DateTime.Now - _lastAssignmentSync >= PerformanceSettings.AssignmentSyncInterval)
                         {
                             var schoolId = LocalData.Instance.GetEffectiveSchoolId();
-                            await ScheduleAssignmentSync.SyncAssignmentsFromServerAsync(client, schoolId, ins.Token);
+                            var assignmentsSynced = await ScheduleAssignmentSync.SyncAssignmentsFromServerAsync(client, schoolId, ins.Token);
                             _lastAssignmentSync = DateTime.Now;
+
+                            if (assignmentsSynced &&
+                                ins.Is_Device_Attendance_Enable &&
+                                !(ins.Is_Today_Holiday && !ins.Holiday_NotActive))
+                            {
+                                // Re-route today's "No active schedule" punches with the fresh assignments
+                                // before Abs_Insert below would mark those users absent.
+                                try
+                                {
+                                    if (await Machine.ReplayRejectedLogsAsAttendance(ins, refreshSchedulesFromNetwork: false) > 0)
+                                        attendanceReplayed = true;
+                                }
+                                catch (Exception replayEx)
+                                {
+                                    StartupLogger.LogFailure("replay-rejected-after-assignment-sync", replayEx);
+                                }
+                            }
                         }
                     }
 
@@ -386,7 +403,7 @@ namespace AttendanceDevice
 
                     var currentDateTime = DateTime.Now;
                     var currentDate = LocalData.Instance.GetAttendanceDateString();
-                    var attendanceChanged = false;
+                    var attendanceChanged = attendanceReplayed;
                     DeviceError.Text = "";
 
                     //Device Attendance Disabled
@@ -409,12 +426,19 @@ namespace AttendanceDevice
                     }
                     else
                     {
-                        //get only Late time exceed and Abs not Count schedules
-                        var schScheduleIDs = LocalData.Instance.GetCurrentOndaySchduleIds();
-                        if (schScheduleIDs.Any())
+                        if (!LocalData.Instance.TodayDeviceLogsImportedFromDevice)
                         {
-                            LocalData.Instance.Abs_Insert(schScheduleIDs, currentDate, ins);
-                            attendanceChanged = true;
+                            await StartupHelper.ImportTodayDeviceLogsAsync(_deviceDisplay.Devices, ins);
+                        }
+
+                        if (LocalData.Instance.TodayDeviceLogsImportedFromDevice)
+                        {
+                            var schScheduleIDs = LocalData.Instance.GetCurrentOndaySchduleIds();
+                            if (schScheduleIDs.Any())
+                            {
+                                LocalData.Instance.Abs_Insert(schScheduleIDs, currentDate, ins);
+                                attendanceChanged = true;
+                            }
                         }
                     }
 
@@ -428,6 +452,8 @@ namespace AttendanceDevice
                         DeviceError.Text = "Student Attendance Disabled";
                     }
 
+                    await SyncDeviceClocksOncePerDayAsync();
+
                     //check internet
                     var internet = await ApiUrl.IsNoNetConnection();
                     if (internet) return;
@@ -436,124 +462,19 @@ namespace AttendanceDevice
                     var server = await ApiUrl.IsServerUnavailable();
                     if (server) return;
 
+                    await RunDailyOnlineTasksAsync(LocalData.Instance.institution);
+                    ins = LocalData.Instance.institution;
+
                     countRecord.Badge = LocalData.Instance.GetPendingAttendanceCount();
 
-                    #region Student Post
-                    var studentLog = await LocalData.Instance.StudentLog_Post();
-
-                    if (studentLog.Count > 0)
-                    {
-                        var request = new RestRequest("api/Attendance/{id}/Students", Method.POST);
-
-                        request.AddUrlSegment("id", ins.SchoolID);
-                        ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
-                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(studentLog));
-
-                        var response = await client.ExecutePostTaskAsync(request);
-                        var syncResult = AttendanceSyncResponseParser.Parse(response);
-
-                        if (response.StatusCode == HttpStatusCode.OK &&
-                            (AttendanceSyncResponseParser.IsLegacyEmptyOk(response) ||
-                             (syncResult != null && (syncResult.Matched > 0 || syncResult.Inserted > 0))))
-                        {
-                            var synced = FilterSyncedLogs(studentLog, syncResult);
-                            await MarkAttendanceRecordsAsync(db, synced, markSent: true, markUpdated: true);
-
-                            DeviceError.Text = BuildPartialSyncMessage("Student", studentLog.Count, syncResult);
-                            attendanceChanged = true;
-                        }
-                        else if (AttendanceSyncResponseParser.TryGetStudentPostFailureMessage(
-                            response, syncResult, out var failureMessage))
-                        {
-                            DeviceError.Text = failureMessage;
-                        }
-                    }
-
-                    #endregion Student Post
-
-                    #region Student Update
-                    var studentLogUpdate = await LocalData.Instance.StudentLog_Put();
-
-                    if (studentLogUpdate.Count > 0)
-                    {
-                        var request = new RestRequest("api/Attendance/{id}/StudentsUpdate", Method.POST);
-
-                        request.AddUrlSegment("id", ins.SchoolID);
-                        ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
-                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(studentLogUpdate));
-
-                        var response = await client.ExecutePostTaskAsync(request);
-
-                        if (response.StatusCode == HttpStatusCode.OK)
-                        {
-                            await MarkAttendanceRecordsAsync(db, studentLogUpdate, markSent: false, markUpdated: true);
-                            attendanceChanged = true;
-                        }
-                        else
-                        {
-                            var detail = string.IsNullOrWhiteSpace(response.Content)
-                                ? $"Student update failed ({(int)response.StatusCode})"
-                                : $"Student update failed ({(int)response.StatusCode}): {response.Content}";
-                            DeviceError.Text = detail;
-                        }
-                    }
-                    #endregion Student Update
-
-                    #region Employee Post
-                    var empLog = await LocalData.Instance.EmpLog_Post();
-
-                    if (empLog.Count > 0)
-                    {
-                        var request = new RestRequest("api/Attendance/{id}/Employees", Method.POST);
-
-                        if (ins != null)
-                        {
-                            request.AddUrlSegment("id", ins.SchoolID);
-                            ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
-                        }
-
-                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(empLog));
-
-                        var response = await client.ExecutePostTaskAsync(request);
-                        var syncResult = AttendanceSyncResponseParser.Parse(response);
-
-                        if (response.StatusCode == HttpStatusCode.OK &&
-                            (AttendanceSyncResponseParser.IsLegacyEmptyOk(response) ||
-                             (syncResult != null && (syncResult.Matched > 0 || syncResult.Inserted > 0))))
-                        {
-                            var synced = FilterSyncedLogs(empLog, syncResult);
-                            await MarkAttendanceRecordsAsync(db, synced, markSent: true, markUpdated: true);
-
-                            DeviceError.Text = BuildPartialSyncMessage("Employee", empLog.Count, syncResult);
-                            attendanceChanged = true;
-                        }
-                        else if (AttendanceSyncResponseParser.TryGetEmployeePostFailureMessage(
-                            response, syncResult, out var failureMessage))
-                        {
-                            DeviceError.Text = failureMessage;
-                        }
-                    }
-                    #endregion Employee Post
-
-                    #region Employees Update
-                    var empLogUpdate = await LocalData.Instance.EmpLog_Put();
-
-                    if (empLogUpdate.Count > 0)
-                    {
-                        var request = new RestRequest("api/Attendance/{id}/EmployeesUpdate", Method.POST);
-
-                        request.AddUrlSegment("id", ins.SchoolID);
-                        ApiRequestHelper.AddAuthorizedJsonHeaders(request, ins.Token);
-                        ApiRequestHelper.AddCamelCaseJsonBody(request, AttendanceRecordMapper.ToApiPayload(empLogUpdate));
-
-                        var response = await client.ExecutePostTaskAsync(request);
-
-                        if (response.StatusCode != HttpStatusCode.OK) return;
-
-                        await MarkAttendanceRecordsAsync(db, empLogUpdate, markSent: false, markUpdated: true);
+                    var push = await AttendanceWebsiteSync.PushPendingAsync(ins);
+                    if (push.Changed)
                         attendanceChanged = true;
-                    }
-                    #endregion Employees Update
+                    if (!string.IsNullOrWhiteSpace(push.Message) && push.TotalPushed > 0)
+                        DeviceError.Text = push.Message;
+                    else if (!string.IsNullOrWhiteSpace(push.Message) &&
+                             !push.Message.StartsWith("No pending attendance", StringComparison.OrdinalIgnoreCase))
+                        DeviceError.Text = push.Message;
 
                     countRecord.Badge = LocalData.Instance.GetPendingAttendanceCount();
 
@@ -572,69 +493,131 @@ namespace AttendanceDevice
             }
         }
 
-        private static async Task MarkAttendanceRecordsAsync(
-            ModelContext db,
-            System.Collections.Generic.IEnumerable<Attendance_Record> logs,
-            bool markSent,
-            bool markUpdated)
+        /// <summary>
+        /// When the attendance date changes while the app keeps running, reset per-day state and force
+        /// schedule / assignment / school-status syncs in this cycle (before Abs_Insert), rebuild today's
+        /// schedule filter and reload the web display - the same work an app restart would do.
+        /// </summary>
+        private void OnDayRolloverIfNeeded()
         {
-            foreach (var log in logs)
+            LocalData.Instance.CheckDayRollover();
+
+            var today = LocalData.Instance.GetAttendanceDate();
+            if (_cycleDay == today)
+                return;
+
+            var firstCycle = _cycleDay == DateTime.MinValue;
+            _cycleDay = today;
+            if (firstCycle)
+                return;
+
+            _lastScheduleSync = DateTime.MinValue;
+            _lastAssignmentSync = DateTime.MinValue;
+            _lastSchoolStatusSync = DateTime.MinValue;
+            _displayDataDirty = true;
+
+            try
             {
-                if (!log.Is_OUT &&
-                    !string.Equals(log.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) &&
-                    string.IsNullOrWhiteSpace(log.EntryTime))
-                    continue;
+                BuildScheduleFilterPanelFromLocal(null);
+            }
+            catch (Exception ex)
+            {
+                StartupLogger.LogFailure("display: new-day filter rebuild", ex);
+            }
 
-                var record = log.RecordID > 0
-                    ? await db.attendance_Records.SingleOrDefaultAsync(r => r.RecordID == log.RecordID)
-                    : null;
+            StartupLogger.LogStage($"display: new day {today:dd-MMM-yy} - forcing schedule/assignment/school/leave sync + display reload");
+        }
 
-                if (record == null)
+        /// <summary>Device clocks drift over days; re-sync them to the PC once per day (startup does it on day one).</summary>
+        private async Task SyncDeviceClocksOncePerDayAsync()
+        {
+            var today = DateTime.Today;
+            if (_deviceClockSyncDay == today)
+                return;
+
+            _deviceClockSyncDay = today;
+            foreach (var device in _deviceDisplay.Devices)
+            {
+                try
                 {
-                    record = await db.attendance_Records.FirstOrDefaultAsync(r =>
-                        r.DeviceID == log.DeviceID &&
-                        r.ScheduleID == log.ScheduleID &&
-                        r.AttendanceDate == log.AttendanceDate);
+                    if (!device.IsConnected())
+                        continue;
+
+                    var deviceTime = await Task.Run(() => device.GetDateTime());
+                    if (deviceTime.ToString("dd-MM-yyyy hh:mm tt") != DateTime.Now.ToString("dd-MM-yyyy hh:mm tt"))
+                    {
+                        await Task.Run(() => device.SetDateTime());
+                        StartupLogger.LogStage($"display: daily device clock sync ({device.Device?.DeviceIP}) {deviceTime:yyyy-MM-dd HH:mm:ss} -> PC time");
+                    }
                 }
-
-                if (record == null) continue;
-
-                if (markSent) record.Is_Sent = true;
-                if (markUpdated) record.Is_Updated = true;
+                catch (Exception ex)
+                {
+                    StartupLogger.LogFailure($"display: daily device clock sync ({device.Device?.DeviceIP})", ex);
+                }
             }
-
-            await db.SaveChangesAsync();
         }
 
-        private static System.Collections.Generic.List<Attendance_Record> FilterSyncedLogs(
-            System.Collections.Generic.List<Attendance_Record> logs,
-            AttendanceSyncResultDto syncResult)
+        /// <summary>
+        /// Once per attendance day while online: refresh the bearer token (server tokens expire after 14 days)
+        /// and download today's leaves (the API returns only today's; previously fetched only at startup).
+        /// </summary>
+        private async Task RunDailyOnlineTasksAsync(Institution ins)
         {
-            if (logs == null || logs.Count == 0)
-                return logs ?? new System.Collections.Generic.List<Attendance_Record>();
+            if (ins == null)
+                return;
 
-            if (syncResult?.MatchedDeviceIds != null && syncResult.MatchedDeviceIds.Length > 0)
+            var today = LocalData.Instance.GetAttendanceDate();
+            var client = ApiRequestHelper.CreateClient();
+
+            if (_tokenRefreshDay != today &&
+                !string.IsNullOrWhiteSpace(ins.UserName) &&
+                !string.IsNullOrWhiteSpace(ins.Password))
             {
-                var matched = new System.Collections.Generic.HashSet<int>(syncResult.MatchedDeviceIds);
-                return logs.Where(l => matched.Contains(l.DeviceID)).ToList();
+                try
+                {
+                    var loginResponse = await ApiRequestHelper.ExecuteAsync(
+                        client, ApiLoginHelper.CreateTokenRequest(ins.UserName, ins.Password));
+                    var token = ApiResponseHelper.GetAccessToken(loginResponse);
+                    if (!string.IsNullOrWhiteSpace(token))
+                    {
+                        ins.Token = token;
+                        _tokenRefreshDay = today;
+                        StartupLogger.LogStage("display: daily token refresh ok");
+                    }
+                    else if (loginResponse != null && loginResponse.StatusCode != 0)
+                    {
+                        // Server answered (e.g. password changed): keep the current token, retry tomorrow.
+                        _tokenRefreshDay = today;
+                        StartupLogger.LogStage($"display: daily token refresh failed ({(int)loginResponse.StatusCode})");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    StartupLogger.LogFailure("display: daily token refresh", ex);
+                }
             }
 
-            return logs;
-        }
-
-        private static string BuildPartialSyncMessage(
-            string entityLabel,
-            int sentCount,
-            AttendanceSyncResultDto syncResult)
-        {
-            if (syncResult == null || string.IsNullOrWhiteSpace(syncResult.Message))
-                return string.Empty;
-
-            if (syncResult.MatchedDeviceIds != null &&
-                syncResult.MatchedDeviceIds.Length >= sentCount)
-                return string.Empty;
-
-            return $"{entityLabel}: {syncResult.Message}";
+            if (_leaveSyncDay != today && ins.SchoolID > 0 && !string.IsNullOrWhiteSpace(ins.Token))
+            {
+                try
+                {
+                    var leaveRequest = new RestRequest("api/Users/{id}/leave", Method.GET);
+                    leaveRequest.AddUrlSegment("id", ins.SchoolID);
+                    ApiRequestHelper.AddAuthorizedJsonHeaders(leaveRequest, ins.Token);
+                    var leaveResponse = await ApiRequestHelper.ExecuteAsync(client, leaveRequest);
+                    if (leaveResponse.StatusCode == HttpStatusCode.OK)
+                    {
+                        var leaveRecords = ApiResponseHelper.ParseLeaveRecords(ApiResponseHelper.ReadContent(leaveResponse));
+                        await LocalData.Instance.LeaveDataHandling(leaveRecords);
+                        _leaveSyncDay = today;
+                        StartupLogger.LogStage($"display: leave sync for {today:dd-MMM-yy} ({leaveRecords.Count} record(s))");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    StartupLogger.LogFailure("display: daily leave sync", ex);
+                }
+            }
         }
 
         private void BuildScheduleFilterPanelFromLocal(HashSet<int> activeIdsOverride)
@@ -807,20 +790,8 @@ namespace AttendanceDevice
 
                 if (deviceList.Count > 0)
                 {
-                    var dCheck = false;
-                    foreach (var item in deviceList)
-                    {
-                        var status = await Task.Run(() => item.ConnectDevice());
-                        if (status.IsSuccess)
-                        {
-                            dCheck = true;
-                            var prevLog = item.DownloadPrevLogs();
-                            var todayLog = item.DownloadTodayLogs();
-
-                            await Machine.SaveLogsOrAttendanceInPc(prevLog, todayLog, ins, item.Device);
-                        }
-                    }
-
+                    var dCheck = await StartupHelper.ImportTodayDeviceLogsAsync(deviceList, ins)
+                        || deviceList.Any(d => d.IsConnected());
 
                     if (dCheck)
                     {

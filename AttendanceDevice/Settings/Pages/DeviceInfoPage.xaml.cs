@@ -1,6 +1,7 @@
 using AttendanceDevice.Config_Class;
 using AttendanceDevice.Model;
 using System;
+using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
@@ -231,6 +232,66 @@ namespace AttendanceDevice.Settings.Pages
         {
             NavigationService?.Refresh();
             ErrorSnackbar.IsActive = false;
+        }
+
+        private async void BtnDownloadTodayLogs_Click(object sender, RoutedEventArgs e)
+        {
+            LoadingDH.IsOpen = true;
+            ErrorSnackbar.IsActive = false;
+
+            try
+            {
+                var ins = LocalData.Instance.institution;
+                List<DeviceConnection> connections;
+                using (var db = new ModelContext())
+                {
+                    var devices = db.Devices.ToList();
+                    connections = new List<DeviceConnection>();
+                    foreach (var device in devices)
+                    {
+                        if (await Device_PingTest.PingHostAsync(device.DeviceIP))
+                            connections.Add(new DeviceConnection(device));
+                    }
+                }
+
+                if (!connections.Any())
+                {
+                    MessageBox.Show(
+                        "No device is connected.\nCheck Device Setting and the device IP.",
+                        "Download Today's Attendance",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                var ok = await StartupHelper.ImportTodayDeviceLogsAsync(connections, ins);
+                if (!ok)
+                {
+                    MessageBox.Show(
+                        "Could not finish downloading logs from every connected device.\nTry again, or open Atten. Display.",
+                        "Download Today's Attendance",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                LocalData.Instance.FlagIncompleteRecordsForResync();
+                LocalData.Instance.RepairTodayScheduleIdsForResync();
+                var push = await AttendanceWebsiteSync.PushPendingAsync(ins);
+                MessageBox.Show(
+                    "Today's punches were downloaded from the device.\n\n" + push.Message,
+                    "Download Today's Attendance",
+                    MessageBoxButton.OK,
+                    push.TotalPushed > 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Download Today's Attendance", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                LoadingDH.IsOpen = false;
+            }
         }
     }
 }

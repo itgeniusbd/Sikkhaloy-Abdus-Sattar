@@ -14,6 +14,30 @@ namespace AttendanceDevice.Config_Class
 
             value = value.Trim();
 
+            if (value.IndexOf("AM", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf("PM", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                var clockFormats = new[]
+                {
+                    "h:mm tt", "hh:mm tt", "h:mm:ss tt", "hh:mm:ss tt",
+                    "h:mmtt", "hh:mmtt", "h:mm:sstt", "hh:mm:sstt"
+                };
+
+                if (DateTime.TryParseExact(value, clockFormats, CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out var clockDt))
+                {
+                    time = clockDt.TimeOfDay;
+                    return true;
+                }
+
+                if (DateTime.TryParseExact(value, clockFormats, CultureInfo.CurrentCulture,
+                        DateTimeStyles.None, out clockDt))
+                {
+                    time = clockDt.TimeOfDay;
+                    return true;
+                }
+            }
+
             if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out time))
                 return true;
 

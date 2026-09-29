@@ -44,6 +44,12 @@ namespace AttendanceDevice.Config_Class
         public List<User> Users { get; set; } = new List<User>();
         public List<User_Schedule> User_Schedules { get; set; } = new List<User_Schedule>();
 
+        /// <summary>
+        /// True only after today's punches were read from every connected device.
+        /// Abs auto-mark must wait so morning punches keep their device time.
+        /// </summary>
+        public bool TodayDeviceLogsImportedFromDevice { get; set; }
+
         private List<Attendance_Schedule_Day> _schedulesCache;
         private readonly Dictionary<int, UserView> _userViewByDeviceId = new Dictionary<int, UserView>();
         private DateTime _lastNetworkBootstrapUtc = DateTime.MinValue;
@@ -101,14 +107,31 @@ namespace AttendanceDevice.Config_Class
         }
 
         // public List<Attendance_Schedule_Day> Schedules { get; set; } = new List<Attendance_Schedule_Day>();
+        // Server clock minus PC clock, captured at each school-status sync (null until first sync).
+        private TimeSpan? _serverClockOffset;
+        private readonly object _dayRolloverSync = new object();
+        private DateTime _rolloverDay = DateTime.MinValue;
+
+        /// <summary>
+        /// Attendance "today", computed on every call so a long-running app rolls over at midnight
+        /// even when offline. The PC clock is validated against the server at login (+/- 1 min), so the
+        /// PC date is used unless the last known server clock differs by an hour or more.
+        /// </summary>
         public DateTime GetAttendanceDate()
         {
-            if (!string.IsNullOrWhiteSpace(institution?.ServerTodayDate) &&
-                DateTime.TryParse(institution.ServerTodayDate, out var stored))
-                return stored.Date;
+            var offset = _serverClockOffset;
+            if (offset.HasValue)
+            {
+                return Math.Abs(offset.Value.TotalHours) >= 1
+                    ? DateTime.Now.Add(offset.Value).Date
+                    : DateTime.Today;
+            }
 
-            if (institution != null && institution.Current_Datetime != default(DateTime))
-                return institution.Current_Datetime.Date;
+            // No server sync yet in this session: never return a stale stored date (e.g. yesterday's).
+            if (!string.IsNullOrWhiteSpace(institution?.ServerTodayDate) &&
+                DateTime.TryParse(institution.ServerTodayDate, out var stored) &&
+                stored.Date > DateTime.Today)
+                return stored.Date;
 
             return DateTime.Today;
         }
@@ -116,6 +139,48 @@ namespace AttendanceDevice.Config_Class
         public string GetAttendanceDateString()
         {
             return GetAttendanceDate().ToString("dd-MMM-yy");
+        }
+
+        /// <summary>
+        /// Call periodically (display sync cycle). Returns true once when the attendance date changes.
+        /// Resets per-day state so a long-running app starts the new day like a fresh start:
+        /// yesterday's holiday flag is dropped (next school-status sync sets today's) and Is_Abs_Count is
+        /// cleared for every schedule that does not yet have a row for all assigned users today.
+        /// </summary>
+        public bool CheckDayRollover()
+        {
+            var today = GetAttendanceDate();
+            DateTime previous;
+            lock (_dayRolloverSync)
+            {
+                if (_rolloverDay == today)
+                    return false;
+                previous = _rolloverDay;
+                _rolloverDay = today;
+            }
+
+            var isNewDay = previous != DateTime.MinValue;
+            try
+            {
+                if (isNewDay && institution != null)
+                    institution.Is_Today_Holiday = false;
+
+                using (var db = new ModelContext())
+                {
+                    var scheduleIds = db.attendance_Schedule_Days.Select(s => s.ScheduleID).Distinct().ToList();
+                    ResetAbsCountForIncompleteSchedules(db, scheduleIds);
+                    db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                StartupLogger.LogFailure("day-rollover", ex);
+            }
+
+            if (isNewDay)
+                StartupLogger.LogStage($"day-rollover: {previous:dd-MMM-yy} -> {today:dd-MMM-yy} (holiday flag + Abs flags reset)");
+
+            return isNewDay;
         }
 
         public int GetEffectiveSchoolId()
@@ -135,6 +200,36 @@ namespace AttendanceDevice.Config_Class
         private static bool IsSameAttendanceDate(string left, string right)
         {
             return DatesMatch(left, right);
+        }
+
+        /// <summary>
+        /// Days (today included) whose local rows still auto-sync and whose device punches are applied to
+        /// their own date. Covers a power cut / no internet / app restart or update over a weekend.
+        /// </summary>
+        internal const int AutoPushWindowDays = 7;
+
+        /// <summary>Device-data backups that were never applied are kept this long before auto-removal.</summary>
+        internal const int UnappliedBackupRetentionDays = 60;
+
+        /// <summary>Same duplicate-punch rule the punch handlers use (minutes).</summary>
+        internal const int DuplicatePunchMinutes = 10;
+
+        /// <summary>
+        /// Today and the previous <see cref="AutoPushWindowDays"/>-1 days: rows saved before midnight, while
+        /// offline, or recovered from the device after a restart still auto-sync instead of being archived.
+        /// </summary>
+        private bool IsInAutoPushWindow(string attendanceDate)
+        {
+            if (!TryParseAttendanceDate(attendanceDate, out var date))
+                return false;
+
+            return IsInRecoveryWindow(date);
+        }
+
+        public bool IsInRecoveryWindow(DateTime date)
+        {
+            var today = GetAttendanceDate().Date;
+            return date.Date <= today && date.Date > today.AddDays(-AutoPushWindowDays);
         }
 
         /// <summary>Delete today's local attendance rows (does not touch server). Close sync loop first.</summary>
@@ -211,6 +306,12 @@ namespace AttendanceDevice.Config_Class
 
         public void UpdateServerDateTime(DateTime serverDateTime)
         {
+            // A missing current_Datetime deserializes as 0001-01-01; never let it become "today".
+            if (serverDateTime == default(DateTime) || serverDateTime.Year < 2000)
+                return;
+
+            _serverClockOffset = serverDateTime - DateTime.Now;
+
             if (institution == null)
                 return;
 
@@ -351,7 +452,7 @@ namespace AttendanceDevice.Config_Class
 
         public Attendance_Schedule_Day GetActiveSchedule(int deviceID, DateTime punchDateTime)
         {
-            const int earlyPreMinutes = 120;
+            const int earlyPreMinutes = ScheduleRoutingHelper.EarlyPreMinutesDefault;
 
             EnsureUserScheduleAssignmentsFromUsers();
             var time = punchDateTime.TimeOfDay;
@@ -424,6 +525,14 @@ namespace AttendanceDevice.Config_Class
             if (!parsedCandidates.Any())
                 return null;
 
+            parsedCandidates = parsedCandidates
+                .Where(x => ScheduleRoutingHelper.IsCandidateAllowedForPunch(
+                    time, x.Start.Value, x.End.Value, x.Schedule.StartTime))
+                .ToList();
+
+            if (!parsedCandidates.Any())
+                return null;
+
             // Morning punches must not route to PM schedules (e.g. Coaching 2 PM at 7:52 AM).
             if (time.Hours < 12)
             {
@@ -457,34 +566,13 @@ namespace AttendanceDevice.Config_Class
             var minStart = parsedCandidates.Min(x => x.Start.Value);
             var maxEnd = parsedCandidates.Max(x => x.End.Value);
 
-            // Early Pre: within 2 hours before each schedule's own start (not only global minStart).
+            // First schedule of the day: no early-pre limit (9:00 AM still counts for a 10:00 start).
             if (time < minStart)
             {
-                var earlyMatch = parsedCandidates
-                    .Where(x => x.Start.HasValue
-                                && (x.Start.Value - time).TotalMinutes <= earlyPreMinutes
-                                && (x.Start.Value - time).TotalMinutes >= 0)
+                return parsedCandidates
                     .OrderBy(x => x.Start.Value)
                     .Select(x => x.Schedule)
-                    .FirstOrDefault();
-
-                if (earlyMatch != null)
-                    return earlyMatch;
-
-                // Morning punch: prefer earliest AM schedule when still before first start.
-                if (time.Hours < 13)
-                {
-                    var morningSchedule = parsedCandidates
-                        .Where(x => x.Start.HasValue && x.Start.Value.Hours < 13)
-                        .OrderBy(x => x.Start.Value)
-                        .Select(x => x.Schedule)
-                        .FirstOrDefault();
-
-                    if (morningSchedule != null)
-                        return morningSchedule;
-                }
-
-                return null;
+                    .First();
             }
 
             // After the last schedule ended → Late Abs on last schedule.
@@ -495,6 +583,13 @@ namespace AttendanceDevice.Config_Class
                     .Select(x => x.Schedule)
                     .First();
             }
+
+            // Gap between AM and PM blocks (e.g. 12:00–4:30 PM) — do not assign a schedule.
+            if (ScheduleRoutingHelper.IsMidDayGap(
+                    time,
+                    parsedCandidates.Select(x => (x.Start.Value, x.End.Value)),
+                    earlyPreMinutes))
+                return null;
 
             // Gap between schedules: next shift only if within early-pre window.
             var nextUpcoming = parsedCandidates
@@ -509,9 +604,9 @@ namespace AttendanceDevice.Config_Class
                     return nextUpcoming.Schedule;
             }
 
-            // Prefer a schedule that is still open (between start and end).
+            // Prefer a schedule that is actually in progress (start <= punch <= end).
             var stillRunning = parsedCandidates
-                .Where(x => time <= x.End.Value)
+                .Where(x => ScheduleRoutingHelper.IsWithinActiveWindow(time, x.Start.Value, x.End.Value))
                 .OrderByDescending(x => x.Start.Value)
                 .Select(x => x.Schedule)
                 .FirstOrDefault();
@@ -533,9 +628,37 @@ namespace AttendanceDevice.Config_Class
         {
             var openSchedule = TryGetOpenScheduleForExit(deviceID, punchDateTime);
             if (openSchedule != null)
-                return openSchedule;
+            {
+                if (TryGetScheduleTimes(openSchedule, out var start, out _, out var end)
+                    && ScheduleRoutingHelper.IsValidExitPunch(
+                        punchDateTime.TimeOfDay,
+                        start,
+                        end,
+                        openSchedule.StartTime,
+                        GetOpenEntryTimeForSchedule(deviceID, openSchedule.ScheduleID, punchDateTime)))
+                {
+                    return openSchedule;
+                }
+            }
 
             return GetActiveSchedule(deviceID, punchDateTime);
+        }
+
+        private string GetOpenEntryTimeForSchedule(int deviceID, int scheduleId, DateTime punchDateTime)
+        {
+            // The punch's own date: a recovered previous-day punch must close that day's shift, not today's.
+            var date = punchDateTime.ToString("dd-MMM-yy");
+            using (var db = new ModelContext())
+            {
+                var record = db.attendance_Records
+                    .AsEnumerable()
+                    .FirstOrDefault(a => a.DeviceID == deviceID
+                                         && a.ScheduleID == scheduleId
+                                         && DatesMatch(a.AttendanceDate, date)
+                                         && !a.Is_OUT
+                                         && !string.IsNullOrWhiteSpace(a.EntryTime));
+                return record?.EntryTime;
+            }
         }
 
         private Attendance_Schedule_Day GetScheduleRowForPunch(int scheduleID, DateTime punchDateTime)
@@ -546,7 +669,7 @@ namespace AttendanceDevice.Config_Class
 
         private Attendance_Schedule_Day TryGetOpenScheduleForExit(int deviceID, DateTime punchDateTime)
         {
-            var date = GetAttendanceDateString();
+            var date = punchDateTime.ToString("dd-MMM-yy");
             var time = punchDateTime.TimeOfDay;
 
             using (var db = new ModelContext())
@@ -556,7 +679,7 @@ namespace AttendanceDevice.Config_Class
                     .Where(a => a.DeviceID == deviceID
                                 && DatesMatch(a.AttendanceDate, date)
                                 && !a.Is_OUT
-                                && !string.IsNullOrWhiteSpace(a.EntryTime)
+                                && !ScheduleRoutingHelper.IsPlaceholderEntryTime(a.EntryTime)
                                 && !string.Equals(a.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
@@ -569,6 +692,9 @@ namespace AttendanceDevice.Config_Class
                 {
                     var scheduleRow = GetScheduleRowForPunch(record.ScheduleID, punchDateTime);
                     if (scheduleRow == null || !TryGetScheduleTimes(scheduleRow, out var start, out _, out var end))
+                        continue;
+
+                    if (!ScheduleRoutingHelper.IsValidExitPunch(time, start, end, scheduleRow.StartTime, record.EntryTime))
                         continue;
 
                     candidates.Add((scheduleRow, start, end, time >= end));
@@ -799,6 +925,38 @@ namespace AttendanceDevice.Config_Class
             RefreshUserSchedulesFromDb();
         }
 
+        public void RepairStudentUserFlags()
+        {
+            using (var db = new ModelContext())
+            {
+                var studentDeviceIds = db.User_Schedules
+                    .Where(s => s.Is_Student)
+                    .Select(s => s.DeviceID)
+                    .ToHashSet();
+
+                var changed = false;
+                foreach (var user in db.Users)
+                {
+                    var isStudent =
+                        user.Is_Student
+                        || studentDeviceIds.Contains(user.DeviceID)
+                        || string.Equals(user.Designation, "Student", StringComparison.OrdinalIgnoreCase);
+
+                    if (user.Is_Student == isStudent)
+                        continue;
+
+                    user.Is_Student = isStudent;
+                    changed = true;
+                }
+
+                if (changed)
+                    db.SaveChanges();
+            }
+
+            using (var db = new ModelContext())
+                Users = db.Users.ToList();
+        }
+
         public List<int> GetCurrentOndaySchduleIds()
         {
             RefreshUserSchedulesFromDb();
@@ -856,6 +1014,9 @@ namespace AttendanceDevice.Config_Class
                         .Where(a => !string.IsNullOrWhiteSpace(a.AttendanceDate) && a.DeviceID > 0)
                         .ToList();
 
+                    foreach (var imported in attendanceData)
+                        ScheduleRoutingHelper.CoercePlaceholderPresentToAbs(imported);
+
                     if (attendanceData.Any())
                     {
                         db.attendance_Records.AddRange(attendanceData);
@@ -880,9 +1041,22 @@ namespace AttendanceDevice.Config_Class
                            where !a.Is_Sent && u.Is_Student
                            select a;
 
-                return (await logs.ToListAsync())
-                    .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
+                var list = (await logs.ToListAsync())
+                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
                     .ToList();
+
+                var changed = false;
+                foreach (var record in list)
+                {
+                    if (!ScheduleRoutingHelper.CoercePlaceholderPresentToAbs(record))
+                        continue;
+                    changed = true;
+                }
+
+                if (changed)
+                    await db.SaveChangesAsync();
+
+                return list;
             }
         }
         public async Task<List<Attendance_Record>> StudentLog_Put()
@@ -897,7 +1071,11 @@ namespace AttendanceDevice.Config_Class
                            select a;
 
                 return (await logs.ToListAsync())
-                    .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
+                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
+                    .Where(a =>
+                        !ScheduleRoutingHelper.IsPlaceholderEntryTime(a.EntryTime) ||
+                        string.Equals(a.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) ||
+                        (a.Is_OUT && !string.IsNullOrWhiteSpace(a.ExitTime)))
                     .ToList();
             }
         }
@@ -912,9 +1090,22 @@ namespace AttendanceDevice.Config_Class
                            where !a.Is_Sent && !u.Is_Student
                            select a;
 
-                return (await logs.ToListAsync())
-                    .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
+                var list = (await logs.ToListAsync())
+                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
                     .ToList();
+
+                var changed = false;
+                foreach (var record in list)
+                {
+                    if (!ScheduleRoutingHelper.CoercePlaceholderPresentToAbs(record))
+                        continue;
+                    changed = true;
+                }
+
+                if (changed)
+                    await db.SaveChangesAsync();
+
+                return list;
             }
         }
         public async Task<List<Attendance_Record>> EmpLog_Put()
@@ -929,7 +1120,11 @@ namespace AttendanceDevice.Config_Class
                            select a;
 
                 return (await logs.ToListAsync())
-                    .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
+                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
+                    .Where(a =>
+                        !ScheduleRoutingHelper.IsPlaceholderEntryTime(a.EntryTime) ||
+                        string.Equals(a.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) ||
+                        (a.Is_OUT && !string.IsNullOrWhiteSpace(a.ExitTime)))
                     .ToList();
             }
         }
@@ -948,17 +1143,39 @@ namespace AttendanceDevice.Config_Class
                         string.Equals(record.AttendanceStatus, "Leave", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    // Abs auto-mark synced earlier but later got a real entry on device — push again.
-                    if (string.Equals(record.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase) &&
-                        !string.IsNullOrWhiteSpace(record.EntryTime))
+                    // Pre + 12:00 AM is not a real student punch — Abs via StudentsUpdate (not POST insert).
+                    if (ScheduleRoutingHelper.CoercePlaceholderPresentToAbs(record))
+                    {
+                        if (!IsFullySynced(record))
+                        {
+                            record.Is_Sent = false;
+                            record.Is_Updated = false;
+                        }
+                        continue;
+                    }
+
+                    // Abs with a real EntryTime is inconsistent (should be Pre/Late/Late Abs) - resync.
+                    // Late Abs + real EntryTime is a valid final status - do NOT keep clearing sync flags.
+                    var isAbs = string.Equals(record.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase);
+                    var isLateAbs = string.Equals(record.AttendanceStatus, "Late Abs", StringComparison.OrdinalIgnoreCase);
+                    if (isAbs && !ScheduleRoutingHelper.IsPlaceholderEntryTime(record.EntryTime))
                     {
                         record.Is_Sent = false;
                         record.Is_Updated = false;
                         continue;
                     }
 
-                    if (string.Equals(record.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase))
+                    // Abs / Late Abs with empty/midnight still need a server row (POST or UPDATE).
+                    if ((isAbs || isLateAbs) && ScheduleRoutingHelper.IsPlaceholderEntryTime(record.EntryTime))
+                    {
+                        // Fresh Abs must POST/insert; UPDATE cannot create a missing server row.
+                        if (!IsFullySynced(record))
+                        {
+                            record.Is_Sent = false;
+                            record.Is_Updated = false;
+                        }
                         continue;
+                    }
 
                     if (!record.Is_Updated && !string.IsNullOrWhiteSpace(record.EntryTime))
                     {
@@ -1002,35 +1219,44 @@ namespace AttendanceDevice.Config_Class
                         punchAt = punchAt.Add(entryTime);
                     }
 
-                    var schedule = GetActiveSchedule(row.DeviceID, punchAt);
+                    // Multi-schedule safe: an Abs/placeholder row (no real punch) already bound to a
+                    // schedule must stay there. Re-routing it by a midnight "punch" would move e.g. the
+                    // Coaching Abs row onto the first (Class) schedule, duplicating that row and leaving
+                    // Coaching without one, so Abs_Insert would recreate it every cycle.
+                    var isPlaceholderRow = ScheduleRoutingHelper.IsPlaceholderEntryTime(row.EntryTime);
+                    var schedule = isPlaceholderRow && row.ScheduleID > 0
+                        ? GetScheduleRowForPunch(row.ScheduleID, punchAt)
+                        : GetActiveSchedule(row.DeviceID, punchAt);
+
                     if (schedule != null && schedule.ScheduleID > 0 &&
                         row.ScheduleID != schedule.ScheduleID)
                     {
-                        row.ScheduleID = schedule.ScheduleID;
-                        rowChanged = true;
-                    }
-                    else if (row.ScheduleID <= 0 && schedule != null && schedule.ScheduleID > 0)
-                    {
-                        row.ScheduleID = schedule.ScheduleID;
-                        rowChanged = true;
+                        var targetSchedule = schedule.ScheduleID;
+                        var targetTaken = todayRows.Any(o =>
+                            !ReferenceEquals(o, row) &&
+                            o.DeviceID == row.DeviceID &&
+                            o.ScheduleID == targetSchedule);
+
+                        if (!targetTaken)
+                        {
+                            row.ScheduleID = targetSchedule;
+                            rowChanged = true;
+                        }
+                        else
+                        {
+                            // Another row already owns that schedule today - keep this one where it is.
+                            schedule = row.ScheduleID > 0 ? GetScheduleRowForPunch(row.ScheduleID, punchAt) : null;
+                        }
                     }
 
                     if (row.ScheduleID <= 0)
                         continue;
 
-                    if (!string.IsNullOrWhiteSpace(row.EntryTime) && schedule != null &&
+                    if (!ScheduleRoutingHelper.IsPlaceholderEntryTime(row.EntryTime) && schedule != null &&
                         TryGetScheduleTimes(schedule, out var start, out var late, out var end) &&
                         ScheduleTimeHelper.TryParse(row.EntryTime, out var time))
                     {
-                        string newStatus;
-                        if (time > end)
-                            newStatus = "Late Abs";
-                        else if (time <= start)
-                            newStatus = "Pre";
-                        else if (time <= late)
-                            newStatus = "Late";
-                        else
-                            newStatus = "Late Abs";
+                        var newStatus = ScheduleRoutingHelper.ClassifyEntryStatus(time, start, late, end);
 
                         if (!string.Equals(newStatus, row.AttendanceStatus, StringComparison.OrdinalIgnoreCase))
                         {
@@ -1058,17 +1284,18 @@ namespace AttendanceDevice.Config_Class
         }
 
         /// <summary>
-        /// Past-date rows leave the pending list: synced rows are removed locally;
-        /// unsynced rows are copied to Device Logs for manual sync.
+        /// Rows older than the auto-push window leave the pending list: synced rows are removed locally;
+        /// unsynced rows are copied to Device Logs for manual sync. Rows inside the window are kept so
+        /// pending ones still auto-sync and recovered device punches can be merged into them.
         /// </summary>
         public int ArchiveExpiredAttendanceRecords()
         {
-            var today = GetAttendanceDate().Date;
+            var cutoff = GetAttendanceDate().Date.AddDays(-(AutoPushWindowDays - 1));
             using (var db = new ModelContext())
             {
                 var expired = db.attendance_Records
                     .AsEnumerable()
-                    .Where(a => TryParseAttendanceDate(a.AttendanceDate, out var d) && d.Date < today)
+                    .Where(a => TryParseAttendanceDate(a.AttendanceDate, out var d) && d.Date < cutoff)
                     .ToList();
 
                 if (!expired.Any())
@@ -1119,7 +1346,7 @@ namespace AttendanceDevice.Config_Class
             {
                 return db.attendance_Records
                     .AsEnumerable()
-                    .Count(a => IsSameAttendanceDate(a.AttendanceDate, today) && !IsFullySynced(a));
+                    .Count(a => IsInAutoPushWindow(a.AttendanceDate) && !IsFullySynced(a));
             }
         }
 
@@ -1148,7 +1375,7 @@ namespace AttendanceDevice.Config_Class
 
                 return logs
                     .AsEnumerable()
-                    .Where(a => IsSameAttendanceDate(a.AttendanceDate, today))
+                    .Where(a => IsInAutoPushWindow(a.AttendanceDate))
                     .ToList();
             }
         }
@@ -1325,6 +1552,130 @@ namespace AttendanceDevice.Config_Class
                 db.SaveChanges();
             }
         }
+
+        public void RecalculateTodayEntryStatusesFromSchedules()
+        {
+            var today = GetAttendanceDateString();
+            using (var db = new ModelContext())
+            {
+                var schedules = db.attendance_Schedule_Days.ToList();
+                var changed = false;
+                foreach (var row in db.attendance_Records.ToList())
+                {
+                    if (!IsSameAttendanceDate(row.AttendanceDate, today))
+                        continue;
+                    if (row.Is_OUT ||
+                        string.Equals(row.AttendanceStatus, "Leave", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(row.AttendanceStatus, "Abs", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (ScheduleRoutingHelper.IsPlaceholderEntryTime(row.EntryTime))
+                        continue;
+                    if (!ScheduleTimeHelper.TryParse(row.EntryTime, out var time))
+                        continue;
+
+                    var schedule = schedules
+                        .Where(s => s.ScheduleID == row.ScheduleID)
+                        .OrderByDescending(s => s.Is_OnDay)
+                        .FirstOrDefault();
+                    if (schedule == null || !TryGetScheduleTimes(schedule, out var start, out var late, out var end))
+                        continue;
+
+                    var newStatus = ScheduleRoutingHelper.ClassifyEntryStatus(time, start, late, end);
+                    if (!string.Equals(newStatus, row.AttendanceStatus, StringComparison.OrdinalIgnoreCase))
+                    {
+                        row.AttendanceStatus = newStatus;
+                        row.Is_Sent = false;
+                        row.Is_Updated = false;
+                        changed = true;
+                    }
+                }
+                if (changed)
+                    db.SaveChanges();
+            }
+            InvalidateScheduleCache();
+        }
+
+        /// <summary>
+        /// Removes a Device Data backup only when its punch is already inside an attendance row that the
+        /// website confirmed (Is_Sent + Is_Updated), or when it is older than
+        /// <see cref="UnappliedBackupRetentionDays"/>. Unapplied punches ("Not Current Data", "No active
+        /// schedule", ...) are never dropped just because the person has some other attendance that day.
+        /// </summary>
+        public int CleanupSyncedLogBackups()
+        {
+            using (var db = new ModelContext())
+            {
+                var backups = db.attendanceLog_Backups.ToList();
+                var logs = db.attendance_Records.ToList();
+                var remove = new List<AttendanceLog_Backup>();
+                var retentionCutoff = GetAttendanceDate().Date.AddDays(-UnappliedBackupRetentionDays);
+
+                foreach (var b in backups)
+                {
+                    if (IsBackupReflectedInRecord(b, logs, requireSynced: true))
+                    {
+                        remove.Add(b);
+                        continue;
+                    }
+
+                    if (AttendanceDateHelper.TryParse(b.Entry_Date, out var entryDate) && entryDate < retentionCutoff)
+                        remove.Add(b);
+                }
+
+                if (remove.Count == 0)
+                    return 0;
+
+                db.attendanceLog_Backups.RemoveRange(remove);
+                db.SaveChanges();
+                return remove.Count;
+            }
+        }
+
+        /// <summary>
+        /// True when the backup's punch is covered by a local attendance row of the same device and date:
+        /// it lies between the row's entry (minus the duplicate window) and its last punch (exit, or entry)
+        /// plus the duplicate window. Punches the handler ignored as duplicates or superseded exits count
+        /// as covered; a punch in a gap outside every row does not.
+        /// </summary>
+        internal static bool IsBackupReflectedInRecord(
+            AttendanceLog_Backup backup,
+            IEnumerable<Attendance_Record> records,
+            bool requireSynced)
+        {
+            if (backup == null || records == null || !ScheduleTimeHelper.TryParse(backup.Entry_Time, out var punch))
+                return false;
+
+            punch = new TimeSpan(punch.Hours, punch.Minutes, 0);
+            var window = TimeSpan.FromMinutes(DuplicatePunchMinutes);
+
+            foreach (var a in records)
+            {
+                if (a == null || a.DeviceID != backup.DeviceID)
+                    continue;
+                if (!AttendanceDateHelper.DatesMatch(a.AttendanceDate, backup.Entry_Date))
+                    continue;
+                if (requireSynced && !IsFullySynced(a))
+                    continue;
+                if (ScheduleRoutingHelper.IsPlaceholderEntryTime(a.EntryTime) ||
+                    !ScheduleTimeHelper.TryParse(a.EntryTime, out var entry))
+                    continue;
+
+                entry = new TimeSpan(entry.Hours, entry.Minutes, 0);
+                var last = entry;
+                if (a.Is_OUT && ScheduleTimeHelper.TryParse(a.ExitTime, out var exit))
+                {
+                    exit = new TimeSpan(exit.Hours, exit.Minutes, 0);
+                    if (exit > last)
+                        last = exit;
+                }
+
+                if (punch >= entry - window && punch <= last + window)
+                    return true;
+            }
+
+            return false;
+        }
+
         public void Abs_Insert(List<int> scheduleIDs, string date, Institution ins)
         {
             if (scheduleIDs == null || !scheduleIDs.Any())
@@ -1344,6 +1695,15 @@ namespace AttendanceDevice.Config_Class
 
             using (var db = new ModelContext())
             {
+                // Same user set that can actually be uploaded: StudentLog_Post / EmpLog_Post join User_Info,
+                // so an Abs row for a DeviceID that is not on this PC would stay pending forever.
+                var localDeviceIds = db.Users.Select(u => u.DeviceID).ToList().ToHashSet();
+                scheduleUsers = scheduleUsers
+                    .Where(u => localDeviceIds.Contains(u.DeviceID))
+                    .GroupBy(u => new { u.DeviceID, u.ScheduleID })
+                    .Select(g => g.First())
+                    .ToList();
+
                 var logs = db.attendance_Records.ToList();
                 var attRecords = new List<Attendance_Record>();
                 var completedScheduleIds = new List<int>();
@@ -1366,10 +1726,19 @@ namespace AttendanceDevice.Config_Class
                         AttendanceDate = date,
                         DeviceID = us.DeviceID,
                         ScheduleID = us.ScheduleID,
-                        AttendanceStatus = "Abs"
+                        AttendanceStatus = "Abs",
+                        Is_Sent = false,
+                        Is_Updated = false
                     }));
 
-                    completedScheduleIds.Add(scheduleId);
+                    var allHaveRow = usersForSchedule.All(us =>
+                        logs.Any(a =>
+                            a.DeviceID == us.DeviceID &&
+                            a.ScheduleID == us.ScheduleID &&
+                            AttendanceDateHelper.DatesMatch(a.AttendanceDate, date))
+                        || missing.Any(m => m.DeviceID == us.DeviceID && m.ScheduleID == us.ScheduleID));
+                    if (allHaveRow)
+                        completedScheduleIds.Add(scheduleId);
                 }
 
                 if (completedScheduleIds.Any())

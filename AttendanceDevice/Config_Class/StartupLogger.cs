@@ -24,12 +24,35 @@ namespace AttendanceDevice.Config_Class
                 lock (Sync)
                 {
                     var path = Path.Combine(AppPaths.LogsDirectory, "startup-error.log");
+                    RotateIfLarge(path);
                     File.AppendAllText(path, line + Environment.NewLine);
                 }
             }
             catch
             {
                 // ignored
+            }
+        }
+
+        private const long MaxLogBytes = 5L * 1024 * 1024;
+
+        /// <summary>Keep the log bounded when the app runs for weeks: above 5 MB it becomes .old.</summary>
+        private static void RotateIfLarge(string path)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                if (!info.Exists || info.Length < MaxLogBytes)
+                    return;
+
+                var old = path + ".old";
+                if (File.Exists(old))
+                    File.Delete(old);
+                File.Move(path, old);
+            }
+            catch
+            {
+                // Logging must never break the app.
             }
         }
 

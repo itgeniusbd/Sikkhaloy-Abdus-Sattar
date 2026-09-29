@@ -242,7 +242,7 @@ namespace AttendanceDevice.Config_Class
 
         {
 
-            if (!value.HasValue)
+            if (!value.HasValue || value.Value == TimeSpan.Zero)
 
                 return null;
 
@@ -338,15 +338,9 @@ namespace AttendanceDevice.Config_Class
 
 
 
-            if (TimeSpan.TryParse(value, out var parsed))
+            if (ScheduleTimeHelper.TryParse(value, out var parsed))
 
-                return parsed;
-
-
-
-            if (DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.None, out var dt))
-
-                return dt.TimeOfDay;
+                return parsed == TimeSpan.Zero ? (TimeSpan?)null : parsed;
 
 
 

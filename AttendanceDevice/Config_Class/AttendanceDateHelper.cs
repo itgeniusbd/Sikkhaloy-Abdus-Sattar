@@ -37,6 +37,19 @@ namespace AttendanceDevice.Config_Class
                 return true;
             }
 
+            var extraFormats = new[]
+            {
+                "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "d-M-yyyy",
+                "yyyy/MM/dd", "yyyy-MM-dd", "dd/MM/yy", "d/M/yy"
+            };
+
+            if (DateTime.TryParseExact(value, extraFormats, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out date)
+                || DateTime.TryParseExact(value, extraFormats, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out date))
+            {
+                date = date.Date;
+                return true;
+            }
+
             return false;
         }
 

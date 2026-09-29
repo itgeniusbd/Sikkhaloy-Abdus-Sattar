@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -87,57 +88,73 @@ namespace AttendanceDevice.Settings.Pages
         {
             LoadingDH.IsOpen = true;
 
-            var logs = new List<LogDataSendModel>();
-            using (var db = new ModelContext())
+            try
             {
-                logs = (from b in db.attendanceLog_Backups
-                        join u in db.Users
-                            on b.DeviceID equals u.DeviceID
-                        select new LogDataSendModel
-                        {
-                            DeviceID = b.DeviceID,
-                            EntryTime = b.Entry_Time,
-                            EntryDate = b.Entry_Date,
-                            EntryDay = b.Entry_Day,
-                            Is_Student = u.Is_Student,
-                            ScheduleID = u.ScheduleID
-                        }).Distinct().ToList().Where(b => Convert.ToDateTime(b.EntryDate) >= fdate && Convert.ToDateTime(b.EntryDate) <= tdate).ToList();
+                var ins = LocalData.Instance.institution;
+
+                // 1) Re-read the device(s) for the recovery window so punches lost from the PC (power cut,
+                //    restart, app update) come back. Already-applied punches are ignored as duplicates.
+                var deviceNote = await RecoverFromDevicesAsync(ins);
+
+                // 2) Apply Device Data backups of today and previous days to their own date.
+                var replay = await Machine.ReplayBackupLogsAsync(ins);
+                LocalData.Instance.FlagIncompleteRecordsForResync();
+                LocalData.Instance.RepairTodayScheduleIdsForResync();
+
+                // 3) Upload, then drop only backups whose punch is in a row the website confirmed.
+                var push = await AttendanceWebsiteSync.PushPendingAsync(ins);
+                var cleared = LocalData.Instance.CleanupSyncedLogBackups();
+
+                _log_Backups = LocalData.Instance.Get_Log_Backup();
+                LogDG.ItemsSource = data_filter();
+
+                MessageBox.Show(
+                    $"{deviceNote}\n" +
+                    $"Applied {replay.Applied} device log(s) to attendance{replay.AppliedByDateText}.\n" +
+                    $"Removed {cleared} device log(s) already saved on the website.\n" +
+                    $"Still in Device Data (not applied): {_log_Backups.Count}.\n\n{push.Message}",
+                    "Sync Record",
+                    MessageBoxButton.OK,
+                    push.TotalPushed > 0 || replay.Applied > 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
-
-            if (logs.Any())
+            catch (Exception ex)
             {
-                var client = new RestClient(ApiUrl.EndPoint);
+                MessageBox.Show(ex.Message, "Sync Record", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                LoadingDH.IsOpen = false;
+            }
+        }
 
-                var backupData = new RestRequest("api/Attendance/{id}/backup_data", Method.POST);
-                backupData.AddUrlSegment("id", LocalData.Instance.institution.SchoolID);
-                backupData.AddHeader("Authorization", "Bearer " + LocalData.Instance.institution.Token);
-                backupData.AddJsonBody(logs);
-                //Leave execute the request
-                var response = await client.ExecutePostTaskAsync(backupData);
-
-                if (response.StatusCode == HttpStatusCode.OK)
+        private static async Task<string> RecoverFromDevicesAsync(Institution ins)
+        {
+            try
+            {
+                var connections = new List<DeviceConnection>();
+                using (var db = new ModelContext())
                 {
-                    using (var db = new ModelContext())
+                    foreach (var device in db.Devices.ToList())
                     {
-                        var bLogs = db.attendanceLog_Backups
-                            .ToList().Where(b =>
-                                Convert.ToDateTime(b.Entry_Date) >= fdate && Convert.ToDateTime(b.Entry_Date) <= tdate)
-                            .ToList();
-                        db.attendanceLog_Backups.RemoveRange(bLogs);
-                        await db.SaveChangesAsync();
+                        if (await Device_PingTest.PingHostAsync(device.DeviceIP))
+                            connections.Add(new DeviceConnection(device));
                     }
-
-                    LogDG.ItemsSource = LocalData.Instance.Get_Log_Backup();
-                }
-                else
-                {
-
                 }
 
+                if (!connections.Any())
+                    return "Device not reachable - used the logs already on this PC.";
 
+                var recoverDays = LocalData.AutoPushWindowDays - 1;
+                var ok = await StartupHelper.ImportTodayDeviceLogsAsync(connections, ins, recoverDays);
+                return ok
+                    ? $"Re-read the device for the last {recoverDays} day(s) and today."
+                    : "Could not read every device - used the logs already on this PC.";
             }
-
-            LoadingDH.IsOpen = false;
+            catch (Exception ex)
+            {
+                StartupLogger.LogFailure("sync-record: device recovery", ex);
+                return "Device read failed - used the logs already on this PC.";
+            }
         }
     }
 }

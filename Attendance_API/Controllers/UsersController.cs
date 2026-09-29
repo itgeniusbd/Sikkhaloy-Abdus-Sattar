@@ -84,18 +84,24 @@ namespace Attendance_API.Controllers
         {
             using (var db = new EduContext())
             {
+                // IsStudent must be a SQL bit (VM property is bool): "1 AS IsStudent" is an int and made EF throw
+                // "The specified cast from a materialized 'System.Int32' type to the 'System.Boolean' type is not valid"
+                // -> HTTP 500 on every call, so devices never received multi-schedule assignments.
+                // NULL/0 DeviceIDs are excluded (they cannot punch and would also fail int materialization).
                 var sql = @"
-                    SELECT s.DeviceID, ass.ScheduleID, 1 AS IsStudent
+                    SELECT CAST(s.DeviceID AS int) AS DeviceID, CAST(ass.ScheduleID AS int) AS ScheduleID, CAST(1 AS bit) AS IsStudent
                     FROM Student s
                     INNER JOIN Attendance_Schedule_AssignStudent ass ON s.StudentID = ass.StudentID
                     WHERE s.SchoolID = @SchoolID AND s.Status = 'Active' AND ass.SchoolID = @SchoolID
+                      AND s.DeviceID IS NOT NULL AND s.DeviceID > 0 AND ass.ScheduleID IS NOT NULL
 
-                    UNION ALL
+                    UNION
 
-                    SELECT e.DeviceID, eas.ScheduleID, 0 AS IsStudent
+                    SELECT CAST(e.DeviceID AS int) AS DeviceID, CAST(eas.ScheduleID AS int) AS ScheduleID, CAST(0 AS bit) AS IsStudent
                     FROM Employee_Info e
                     INNER JOIN Employee_Attendance_Schedule_Assign eas ON e.EmployeeID = eas.EmployeeID
-                    WHERE e.SchoolID = @SchoolID AND e.Job_Status = 'Active' AND eas.SchoolID = @SchoolID";
+                    WHERE e.SchoolID = @SchoolID AND e.Job_Status = 'Active' AND eas.SchoolID = @SchoolID
+                      AND e.DeviceID IS NOT NULL AND e.DeviceID > 0 AND eas.ScheduleID IS NOT NULL";
 
                 var result = db.Database.SqlQuery<DeviceScheduleAssignmentVM>(sql,
                     new System.Data.SqlClient.SqlParameter("@SchoolID", id)).ToList();

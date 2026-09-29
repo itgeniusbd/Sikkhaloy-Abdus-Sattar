@@ -15,6 +15,22 @@ namespace AttendanceDevice
     {
         private static Mutex _mutex = null;
 
+        internal static void ReleaseSingleInstanceMutex()
+        {
+            try
+            {
+                if (_mutex == null)
+                    return;
+                _mutex.ReleaseMutex();
+                _mutex.Dispose();
+                _mutex = null;
+            }
+            catch
+            {
+                // Best-effort — update installer still proceeds.
+            }
+        }
+
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern bool SetDllDirectory(string lpPathName);
 

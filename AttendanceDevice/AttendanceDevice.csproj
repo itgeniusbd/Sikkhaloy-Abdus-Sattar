@@ -187,7 +187,9 @@
     <Compile Include="Config_Class\AttendanceSyncResponseParser.cs" />
     <Compile Include="Config_Class\AttendanceDateHelper.cs" />
     <Compile Include="Config_Class\AttendanceRecordMapper.cs" />
+    <Compile Include="Config_Class\AttendanceWebsiteSync.cs" />
     <Compile Include="Config_Class\AppPaths.cs" />
+    <Compile Include="Config_Class\AppAutoUpdate.cs" />
     <Compile Include="Config_Class\PerformanceSettings.cs" />
     <Compile Include="Config_Class\StartupHelper.cs" />
     <Compile Include="Config_Class\LocalInstallGuard.cs" />
@@ -197,6 +199,7 @@
     <Compile Include="Config_Class\SqliteMultiScheduleMigration.cs" />
     <Compile Include="Config_Class\ZkSdkBootstrap.cs" />
     <Compile Include="Config_Class\ScheduleDayHelper.cs" />
+    <Compile Include="Config_Class\ScheduleRoutingHelper.cs" />
     <Compile Include="Config_Class\ScheduleTimeHelper.cs" />
     <Compile Include="Config_Class\LocalData.cs" />
     <Compile Include="Config_Class\UserPhotoSync.cs" />
@@ -286,6 +289,9 @@
     <Compile Include="Window_Startup.xaml.cs">
       <DependentUpon>Window_Startup.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UpdateAvailableWindow.xaml.cs">
+      <DependentUpon>UpdateAvailableWindow.xaml</DependentUpon>
+    </Compile>
     <Page Include="DisplayWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -363,6 +369,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Window_Startup.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UpdateAvailableWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
