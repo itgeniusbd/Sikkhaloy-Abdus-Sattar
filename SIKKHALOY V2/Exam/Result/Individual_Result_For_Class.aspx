@@ -15,7 +15,40 @@
     <!-- External CSS for English Result Card with cache busting -->
     <link href="Assets/Result_Card_English.css?v=<%= DateTime.Now.Ticks %>" rel="stylesheet" type="text/css" />
 
-   
+    <style>
+        .SignTeacher, .SignGuardian, .SignHead {
+            height: 42px !important;
+            margin-bottom: 4px !important;
+            display: flex !important;
+            align-items: flex-end !important;
+            justify-content: center !important;
+            overflow: hidden;
+        }
+
+        .SignTeacher img, .SignGuardian img, .SignHead img {
+            height: 38px !important;
+            width: 110px !important;
+            max-height: 38px !important;
+            max-width: 110px !important;
+            object-fit: contain !important;
+            object-position: center bottom !important;
+            display: block !important;
+            margin: 0 auto !important;
+        }
+
+        @media print {
+            .SignTeacher, .SignGuardian, .SignHead {
+                height: 42px !important;
+            }
+
+            .SignTeacher img, .SignGuardian img, .SignHead img {
+                height: 38px !important;
+                width: 110px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
 
 </asp:Content>
 
@@ -308,16 +341,16 @@
 
                     <!-- Footer -->
                     <div class="footer">
-                        <div style="text-align: center;">
-                            <div class="SignTeacher" style="height: 40px; margin-bottom: 5px;"></div>
+                        <div style="text-align: center; min-width: 130px;">
+                            <div class="SignTeacher"></div>
                             <div class="Teacher" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">Class Teacher</div>
                         </div>
-                        <div style="text-align: center;">
-                            <div class="SignGuardian" style="height: 40px; margin-bottom: 5px;"></div>
+                        <div style="text-align: center; min-width: 130px;">
+                            <div class="SignGuardian"></div>
                             <div class="GuardianText" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">Guardian</div>
                         </div>
-                        <div style="text-align: center;">
-                            <div class="SignHead" style="height: 40px; margin-bottom: 5px;"></div>
+                        <div style="text-align: center; min-width: 130px;">
+                            <div class="SignHead"></div>
                             <div class="Head" style="border-top: 1px solid #333; padding-top: 5px; font-weight: bold;">Principal</div>
                         </div>
                     </div>
@@ -709,23 +742,27 @@ self.animateProgressTo(100);
             });
         }
 
+        function signatureImageHtml(src) {
+            return '<img src="' + src + '" alt="" class="result-sign-img">';
+        }
+
         function loadDatabaseSignatures() {
-     var teacherSignPath = $('[id$="HiddenTeacherSign"]').val();
-       var principalSignPath = $('[id$="HiddenPrincipalSign"]').val();
+            var teacherSignPath = $('[id$="HiddenTeacherSign"]').val();
+            var principalSignPath = $('[id$="HiddenPrincipalSign"]').val();
 
-   console.log('Loading database signatures:', {
-      teacher: teacherSignPath,
-           principal: principalSignPath
-     });
+            console.log('Loading database signatures:', {
+                teacher: teacherSignPath,
+                principal: principalSignPath
+            });
 
-       if (teacherSignPath && teacherSignPath.trim() !== '') {
-          $('.SignTeacher').html('<img src="' + teacherSignPath + '" style="max-height: 35px; max-width: 120px;">');
-  }
+            if (teacherSignPath && teacherSignPath.trim() !== '') {
+                $('.SignTeacher').html(signatureImageHtml(teacherSignPath));
+            }
 
-      if (principalSignPath && principalSignPath.trim() !== '') {
-  $('.SignHead').html('<img src="' + principalSignPath + '" style="max-height: 35px; max-width: 120px;">');
-          }
-     }
+            if (principalSignPath && principalSignPath.trim() !== '') {
+                $('.SignHead').html(signatureImageHtml(principalSignPath));
+            }
+        }
 
         function updateSignatureTexts() {
             var teacherText = $('[id$="TeacherSignTextBox"]').val() || 'Class Teacher';
@@ -804,7 +841,7 @@ self.animateProgressTo(100);
                 var imageData = e.target.result;
 
                 // ✅ Apply to ALL result cards (client-side only)
-                $('.SignGuardian').html('<img src="' + imageData + '" style="max-height: 35px; max-width: 120px; object-fit: contain;">');
+                $('.SignGuardian').html(signatureImageHtml(imageData));
                 
                 console.log('✅ Guardian signature applied to all result cards (client-side only)');
                 
@@ -843,7 +880,7 @@ self.animateProgressTo(100);
                 var targetClass = signatureType === 'teacher' ? '.SignTeacher' : '.SignHead';
 
                 // Show preview immediately
-                $(targetClass).html('<img src="' + imageData + '" style="max-height: 35px; max-width: 80px; object-fit: contain;">');
+                $(targetClass).html(signatureImageHtml(imageData));
                 console.log('✅ Preview set for:', signatureType);
 
                 var base64Data = imageData.split(',')[1];
@@ -861,22 +898,25 @@ self.animateProgressTo(100);
                     success: function (response) {
                         console.log('Server response:', response);
 
-                        if (response && response.d && response.d.success) {
+                        var result = response && response.d ? response.d : response;
+                        if (result && result.success) {
                             console.log('✅ Signature saved successfully');
-                            
+
+                            if (result.imageUrl) {
+                                if (signatureType === 'teacher') {
+                                    $('[id$="HiddenTeacherSign"]').val(result.imageUrl);
+                                } else {
+                                    $('[id$="HiddenPrincipalSign"]').val(result.imageUrl);
+                                }
+                            }
+
                             var successMsg = signatureType === 'teacher' ?
                                 'Class Teacher signature saved successfully!' :
                                 'Principal signature saved successfully!';
-                            
 
                             showBriefNotification(successMsg, 'success');
-
-                            // Reload signature from database
-                            setTimeout(function () {
-                                loadDatabaseSignatures();
-                            }, 500);
                         } else {
-                            console.error('❌ Signature save failed:', response.d ? response.d.message : 'Unknown error');
+                            console.error('❌ Signature save failed:', result ? result.message : 'Unknown error');
                             showBriefNotification('Error saving signature', 'error');
                         }
                     },

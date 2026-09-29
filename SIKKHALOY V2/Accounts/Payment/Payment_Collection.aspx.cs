@@ -381,6 +381,31 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             int schoolID      = Convert.ToInt32(SchoolID);
             int registrationID = Convert.ToInt32(HttpContext.Current.Session["RegistrationID"]);
 
+            // Session lost (app pool recycle / server restart / timeout) while the page stayed open:
+            // SchoolID and RegistrationID would become 0 and the receipt would be written to
+            // "school 0" (numbered from school 0's own counter, e.g. 100022), invisible to the
+            // real school's reports. Refuse instead of saving anything.
+            if (schoolID <= 0 || registrationID <= 0)
+                return new { Success = false, SessionExpired = true, Message = "সেশন শেষ হয়ে গেছে (Session expired)। কোনো টাকা জমা হয়নি। পেজ রিলোড করে আবার লগইন করুন, তারপর আবার Pay করুন।" };
+
+            // The student and every PayOrder must belong to the logged-in school.
+            try
+            {
+                using (var con = new SqlConnection(ConnStr))
+                using (var cmd = new SqlCommand("SELECT COUNT(*) FROM Student WHERE StudentID=@S AND SchoolID=@Sch", con))
+                {
+                    cmd.Parameters.AddWithValue("@S", studentDbID);
+                    cmd.Parameters.AddWithValue("@Sch", schoolID);
+                    con.Open();
+                    if (Convert.ToInt32(cmd.ExecuteScalar()) == 0)
+                        return new { Success = false, Message = "Student does not belong to the current institution. Please reload the page." };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new { Success = false, Message = "Exception: " + ex.Message };
+            }
+
             try
             {
                 using (var con = new SqlConnection(ConnStr))
@@ -390,7 +415,7 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                     // Validate: no item exceeds due (before opening transaction)
                     foreach (var item in items)
                     {
-                        double due = GetDueByPayOrderID(con, item.PayOrderID);
+                        double due = GetDueByPayOrderID(con, item.PayOrderID, null, schoolID);
                         if (item.PaidAmount > due)
                             return new { Success = false, Message = "Paid amount exceeds due for PayOrder " + item.PayOrderID };
                     }
@@ -427,15 +452,16 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
 
                             foreach (var item in items)
                             {
-                                double due = GetDueByPayOrderID(con, item.PayOrderID, tran);
+                                double due = GetDueByPayOrderID(con, item.PayOrderID, tran, schoolID);
                                 if (item.PaidAmount > due) continue;
 
                                 // Get PayOrder info
                                 int roleID = 0, payOrderEduYearID = educationYearID, scid = studentClassID;
                                 string payFor = "", roleName = "";
-                                using (var cmd = new SqlCommand("SELECT po.RoleID, po.PayFor, po.EducationYearID, po.StudentClassID, ir.Role FROM Income_PayOrder po INNER JOIN Income_Roles ir ON po.RoleID = ir.RoleID WHERE po.PayOrderID=@P", con, tran))
+                                using (var cmd = new SqlCommand("SELECT po.RoleID, po.PayFor, po.EducationYearID, po.StudentClassID, ir.Role FROM Income_PayOrder po INNER JOIN Income_Roles ir ON po.RoleID = ir.RoleID WHERE po.PayOrderID=@P AND po.SchoolID=@SchID", con, tran))
                                 {
                                     cmd.Parameters.AddWithValue("@P", item.PayOrderID);
+                                    cmd.Parameters.AddWithValue("@SchID", schoolID);
                                     using (var dr = cmd.ExecuteReader())
                                         if (dr.Read()) { roleID = Convert.ToInt32(dr["RoleID"]); payFor = dr["PayFor"].ToString(); payOrderEduYearID = Convert.ToInt32(dr["EducationYearID"]); scid = Convert.ToInt32(dr["StudentClassID"]); roleName = dr["Role"].ToString(); }
                                 }
@@ -468,11 +494,13 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
                                             WHEN EndDate < GETDATE() AND ISNULL(LateFee,0) > 0 THEN 1 
                                             ELSE Is_LateFeeAdded 
                                         END
-                                    WHERE PayOrderID = @P", con, tran))
+                                    WHERE PayOrderID = @P AND SchoolID = @SchID", con, tran))
                                 {
                                     cmd.Parameters.AddWithValue("@PA", item.PaidAmount);
                                     cmd.Parameters.AddWithValue("@P", item.PayOrderID);
-                                    cmd.ExecuteNonQuery();
+                                    cmd.Parameters.AddWithValue("@SchID", schoolID);
+                                    if (cmd.ExecuteNonQuery() != 1)
+                                        throw new InvalidOperationException("PayOrder " + item.PayOrderID + " was not updated (not in this institution). Nothing was saved.");
                                 }
 
                                 totalPaid += item.PaidAmount;
@@ -542,13 +570,15 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             }
         }
 
-        private static double GetDueByPayOrderID(SqlConnection con, int payOrderID, SqlTransaction tran = null)
+        private static double GetDueByPayOrderID(SqlConnection con, int payOrderID, SqlTransaction tran = null, int schoolID = 0)
         {
+            // schoolID > 0: a PayOrder of another institution has no due here (returns 0 => rejected/skipped)
             const string sql = @"SELECT ISNULL(Amount,0) + ISNULL(LateFee,0) - ISNULL(Discount,0) - ISNULL(LateFee_Discount,0) - ISNULL(PaidAmount,0) AS Due
-                FROM Income_PayOrder WHERE PayOrderID=@P";
+                FROM Income_PayOrder WHERE PayOrderID=@P AND (@Sch = 0 OR SchoolID = @Sch)";
             using (var cmd = new SqlCommand(sql, con, tran))
             {
                 cmd.Parameters.AddWithValue("@P", payOrderID);
+                cmd.Parameters.AddWithValue("@Sch", schoolID);
                 var val = cmd.ExecuteScalar();
                 return val != null && val != DBNull.Value ? Convert.ToDouble(val) : 0;
             }
@@ -559,21 +589,25 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
         public static object UpdateConcession(List<ConcessionItem> items)
         {
             if (items == null || items.Count == 0) return new { Success = false, Message = "No items." };
+            if (string.IsNullOrEmpty(SchoolID) || SchoolID == "0")
+                return new { Success = false, SessionExpired = true, Message = "সেশন শেষ হয়ে গেছে (Session expired)। পেজ রিলোড করে আবার লগইন করুন।" };
             using (var con = new SqlConnection(ConnStr))
             {
                 con.Open();
                 foreach (var item in items)
                 {
-                    using (var cmd = new SqlCommand("UPDATE Income_PayOrder SET Discount=@D WHERE PayOrderID=@P", con))
+                    using (var cmd = new SqlCommand("UPDATE Income_PayOrder SET Discount=@D WHERE PayOrderID=@P AND SchoolID=@Sch", con))
                     {
+                        cmd.Parameters.AddWithValue("@Sch", SchoolID);
                         cmd.Parameters.AddWithValue("@D", item.Discount);
                         cmd.Parameters.AddWithValue("@P", item.PayOrderID);
                         cmd.ExecuteNonQuery();
                     }
                     if (item.LateFee != item.PrevLateFee)
                     {
-                        using (var cmd = new SqlCommand("UPDATE Income_PayOrder SET LateFee=@L WHERE PayOrderID=@P", con))
+                        using (var cmd = new SqlCommand("UPDATE Income_PayOrder SET LateFee=@L WHERE PayOrderID=@P AND SchoolID=@Sch", con))
                         {
+                            cmd.Parameters.AddWithValue("@Sch", SchoolID);
                             cmd.Parameters.AddWithValue("@L", item.LateFee);
                             cmd.Parameters.AddWithValue("@P", item.PayOrderID);
                             cmd.ExecuteNonQuery();
@@ -590,6 +624,8 @@ namespace EDUCATION.COM.ACCOUNTS.Payment
             int educationYearID, int roleID, string payFor, double amount, double discount)
         {
             int registrationID = Convert.ToInt32(HttpContext.Current.Session["RegistrationID"]);
+            if (string.IsNullOrEmpty(SchoolID) || SchoolID == "0" || registrationID <= 0)
+                return new { Success = false, SessionExpired = true, Message = "সেশন শেষ হয়ে গেছে (Session expired)। পেজ রিলোড করে আবার লগইন করুন।" };
             const string sql = @"INSERT INTO Income_PayOrder(SchoolID,RegistrationID,StudentID,ClassID,StudentClassID,Amount,Discount,LateFee,RoleID,PayFor,StartDate,EndDate,CreatedDate,EducationYearID)
                 VALUES(@SchID,@RID,@SID,@CID,@SCID,@Amt,@Dis,0,@RoleID,@PF,GETDATE(),GETDATE(),GETDATE(),@EID)";
             using (var con = new SqlConnection(ConnStr))

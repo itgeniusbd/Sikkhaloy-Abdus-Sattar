@@ -315,8 +315,10 @@ IF EXISTS (
 BEGIN
     UPDATE Employee_Attendance_Record
     SET AttendanceStatus = @AttendanceStatus,
-        EntryTime = @EntryTime,
-        ExitTime = @ExitTime
+        -- A blank time box (page opened before the punch) must not wipe the device entry/exit time.
+        EntryTime = CASE WHEN @AttendanceStatus IN (N'Abs', N'Leave') THEN NULL ELSE COALESCE(@EntryTime, EntryTime) END,
+        ExitTime = CASE WHEN @AttendanceStatus IN (N'Abs', N'Leave') THEN NULL ELSE COALESCE(@ExitTime, ExitTime) END,
+        RegistrationID = @RegistrationID
     WHERE EmployeeID = @EmployeeID
       AND CAST(AttendanceDate AS DATE) = @AttendanceDate
       AND SchoolID = @SchoolID
@@ -332,9 +334,10 @@ ELSE IF EXISTS (
 BEGIN
     UPDATE Employee_Attendance_Record
     SET AttendanceStatus = @AttendanceStatus,
-        EntryTime = @EntryTime,
-        ExitTime = @ExitTime,
-        Attendance_ScheduleID = @ScheduleID
+        EntryTime = CASE WHEN @AttendanceStatus IN (N'Abs', N'Leave') THEN NULL ELSE COALESCE(@EntryTime, EntryTime) END,
+        ExitTime = CASE WHEN @AttendanceStatus IN (N'Abs', N'Leave') THEN NULL ELSE COALESCE(@ExitTime, ExitTime) END,
+        Attendance_ScheduleID = @ScheduleID,
+        RegistrationID = @RegistrationID
     WHERE EmployeeID = @EmployeeID
       AND CAST(AttendanceDate AS DATE) = @AttendanceDate
       AND SchoolID = @SchoolID

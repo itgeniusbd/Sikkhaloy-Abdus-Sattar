@@ -1,10 +1,10 @@
-﻿<%@ Page Title="Attendance Display" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Attendance_Slider.aspx.cs" Inherits="EDUCATION.COM.Attendances.Online_Display.Attendance_Slider" %>
+<%@ Page Title="Attendance Display" Language="C#" MasterPageFile="~/BASIC.Master" AutoEventWireup="true" CodeBehind="Attendance_Slider.aspx.cs" Inherits="EDUCATION.COM.Attendances.Online_Display.Attendance_Slider" %>
 
 
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
 
-    <link href="CSS/Display.css?v=11.4" rel="stylesheet" />
+    <link href="CSS/Display.css?v=11.5" rel="stylesheet" />
 
 </asp:Content>
 
@@ -55,6 +55,7 @@
                                         <span class="chip late-abs">L.Abs <b><%# Eval("Total_Late_Absent") %></b></span>
 
                                         <span class="chip abs">Abs <b><%# Eval("Total_Absent") %></b></span>
+                                        <span class="chip leave" title="ছুটি">Leave <b><%# Eval("Total_Leave") %></b></span>
 
                                     </div>
 
@@ -66,132 +67,65 @@
 
                         <asp:SqlDataSource ID="StudentScheduleSummarySQL" runat="server"
 
+                            EnableCaching="True" CacheDuration="15" CacheExpirationPolicy="Absolute"
+
                             ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
                             SelectCommand="SELECT sch.ScheduleID,
-
        sch.ScheduleName,
-
        LTRIM(RIGHT(CONVERT(varchar(20), sd.StartTime, 100), 7)) + N' - ' + LTRIM(RIGHT(CONVERT(varchar(20), sd.EndTime, 100), 7)) AS TimeRange,
-
-       (SELECT COUNT(DISTINCT ass.StudentID)
-
-        FROM Attendance_Schedule_AssignStudent ass
-
-        INNER JOIN Student s ON ass.StudentID = s.StudentID
-
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID AND scEy.EducationYearID = @EducationYearID
-
-        WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID AND s.Status = N'Active') AS Total_User,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.EntryTime IS NOT NULL AND ar.Is_OUT = 0 AND ar.Attendance IN (N'Pre', N'Late', N'Late Abs')) AS Current_IN,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.ExitTime IS NOT NULL AND ar.Is_OUT = 1) AS Total_Out,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Pre') AS Total_Present,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Late') AS Total_Late,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Late Abs') AS Total_Late_Absent,
-
-       ((SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID AND ar.Attendance = N'Abs')
-       +
-       (SELECT COUNT(DISTINCT ass.StudentID)
+       u.Total_User,
+       ISNULL(r.Current_IN, 0) AS Current_IN,
+       ISNULL(r.Total_Out, 0) AS Total_Out,
+       ISNULL(r.Total_Present, 0) AS Total_Present,
+       ISNULL(r.Total_Late, 0) AS Total_Late,
+       ISNULL(r.Total_Late_Absent, 0) AS Total_Late_Absent,
+       ISNULL(r.Total_Abs_Recorded, 0) + CASE WHEN CAST(GETDATE() AS time) > sd.LateEntryTime THEN u.Virtual_Absent ELSE 0 END AS Total_Absent,
+       ISNULL(r.Total_Leave_Recorded, 0) + u.Virtual_Leave AS Total_Leave
+FROM Attendance_Schedule sch
+INNER JOIN Attendance_Schedule_Day sd ON sch.ScheduleID = sd.ScheduleID AND sd.SchoolID = sch.SchoolID
+INNER JOIN (
+    -- one pass over assigned active students of this year: total + students with no row today (virtual Abs / virtual Leave)
+    SELECT st.ScheduleID,
+           COUNT(DISTINCT st.StudentID) AS Total_User,
+           COUNT(DISTINCT CASE WHEN st.HasRow = 0 AND st.OnLeave = 0 THEN st.StudentID END) AS Virtual_Absent,
+           COUNT(DISTINCT CASE WHEN st.HasRow = 0 AND st.OnLeave = 1 THEN st.StudentID END) AS Virtual_Leave
+    FROM (
+        SELECT ass.ScheduleID, ass.StudentID,
+               CASE WHEN EXISTS (SELECT 1 FROM Attendance_Record ar2
+                                 WHERE ar2.SchoolID = @SchoolID AND ar2.StudentID = ass.StudentID
+                                   AND ar2.AttendanceDate = CONVERT(date, GETDATE())
+                                   AND ar2.Attendance_ScheduleID = ass.ScheduleID) THEN 1 ELSE 0 END AS HasRow,
+               CASE WHEN EXISTS (SELECT 1 FROM Attendance_Leave al
+                                 WHERE al.SchoolID = @SchoolID AND al.StudentID = ass.StudentID
+                                   AND CONVERT(date, GETDATE()) BETWEEN al.StartDate AND al.EndDate) THEN 1 ELSE 0 END AS OnLeave
         FROM Attendance_Schedule_AssignStudent ass
         INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
         INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID AND scEy.EducationYearID = @EducationYearID
         WHERE ass.SchoolID = @SchoolID
-          AND ass.ScheduleID = sch.ScheduleID
-          AND CAST(GETDATE() AS time) > sd.LateEntryTime
-          AND NOT EXISTS (
-              SELECT 1
-              FROM Attendance_Record ar2
-              WHERE ar2.SchoolID = @SchoolID
-                AND ar2.StudentID = ass.StudentID
-                AND ar2.AttendanceDate = CONVERT(date, GETDATE())
-                AND ISNULL(ar2.Attendance_ScheduleID, 0) = sch.ScheduleID
-          )
-          AND NOT EXISTS (
-              SELECT 1
-              FROM Attendance_Leave al
-              WHERE al.SchoolID = @SchoolID
-                AND al.StudentID = ass.StudentID
-                AND CONVERT(date, GETDATE()) BETWEEN al.StartDate AND al.EndDate
-          )
-       )) AS Total_Absent
-
-FROM Attendance_Schedule sch
-
-INNER JOIN Attendance_Schedule_Day sd ON sch.ScheduleID = sd.ScheduleID AND sd.SchoolID = sch.SchoolID
-
+    ) st
+    GROUP BY st.ScheduleID
+) u ON u.ScheduleID = sch.ScheduleID
+LEFT JOIN (
+    -- one pass over today's rows (was 7 correlated subqueries per schedule)
+    SELECT ass.ScheduleID,
+           SUM(CASE WHEN ISNULL(ar.Is_OUT, 0) = 0 AND ar.Attendance IN (N'Pre', N'Late', N'Late Abs') AND ((ar.EntryTime IS NOT NULL AND ar.EntryTime <> CAST('00:00:00' AS time)) OR ISNULL(ar.RegistrationID, 0) <> 0) THEN 1 ELSE 0 END) AS Current_IN,
+           SUM(CASE WHEN ar.ExitTime IS NOT NULL AND ar.Is_OUT = 1 THEN 1 ELSE 0 END) AS Total_Out,
+           SUM(CASE WHEN ar.Attendance = N'Pre' AND ((ar.EntryTime IS NOT NULL AND ar.EntryTime <> CAST('00:00:00' AS time)) OR ISNULL(ar.RegistrationID, 0) <> 0) THEN 1 ELSE 0 END) AS Total_Present,
+           SUM(CASE WHEN ar.Attendance = N'Late' THEN 1 ELSE 0 END) AS Total_Late,
+           SUM(CASE WHEN ar.Attendance = N'Late Abs' THEN 1 ELSE 0 END) AS Total_Late_Absent,
+           SUM(CASE WHEN ar.Attendance = N'Abs' OR (ar.Attendance = N'Pre' AND ISNULL(ar.RegistrationID, 0) = 0 AND (ar.EntryTime IS NULL OR ar.EntryTime = CAST('00:00:00' AS time))) THEN 1 ELSE 0 END) AS Total_Abs_Recorded,
+           SUM(CASE WHEN ar.Attendance = N'Leave' THEN 1 ELSE 0 END) AS Total_Leave_Recorded
+    FROM Attendance_Record ar
+    INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = ar.Attendance_ScheduleID AND ass.SchoolID = @SchoolID
+    INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
+    INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID AND scEy.EducationYearID = @EducationYearID
+    WHERE ar.SchoolID = @SchoolID AND ar.AttendanceDate = CONVERT(date, GETDATE())
+      AND ar.Attendance_ScheduleID IS NOT NULL
+    GROUP BY ass.ScheduleID
+) r ON r.ScheduleID = sch.ScheduleID
 WHERE sch.SchoolID = @SchoolID
-
   AND sd.Day = DATENAME(dw, GETDATE()) AND sd.Is_OnDay = 1
-
-  AND EXISTS (
-
-      SELECT 1 FROM Attendance_Schedule_AssignStudent ass
-
-      INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
-
-      INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID AND scEy.EducationYearID = @EducationYearID
-
-      WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID
-
-  )
-
 ORDER BY sd.StartTime">
 
                             <SelectParameters>
@@ -245,6 +179,7 @@ ORDER BY sd.StartTime">
                                         <span class="chip late-abs">L.Abs <b><%# Eval("Total_Late_Absent") %></b></span>
 
                                         <span class="chip abs">Abs <b><%# Eval("Total_Absent") %></b></span>
+                                        <span class="chip leave" title="ছুটি">Leave <b><%# Eval("Total_Leave") %></b></span>
 
                                     </div>
 
@@ -255,6 +190,8 @@ ORDER BY sd.StartTime">
                         </asp:Repeater>
 
                         <asp:SqlDataSource ID="EmployeeScheduleSummarySQL" runat="server"
+
+                            EnableCaching="True" CacheDuration="15" CacheExpirationPolicy="Absolute"
 
                             ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
@@ -281,7 +218,7 @@ ORDER BY sd.StartTime">
 
           AND ear.Attendance_ScheduleID = sch.ScheduleID
 
-          AND ear.EntryTime IS NOT NULL AND ear.Is_OUT = 0 AND ear.AttendanceStatus IN (N'Pre', N'Late', N'Late Abs')) AS Current_IN,
+          AND ISNULL(ear.Is_OUT, 0) = 0 AND ear.AttendanceStatus IN (N'Pre', N'Late', N'Late Abs') AND ((ear.EntryTime IS NOT NULL AND ear.EntryTime <> CAST('00:00:00' AS time)) OR ISNULL(ear.RegistrationID, 0) <> 0)) AS Current_IN,
 
        (SELECT COUNT(*)
 
@@ -301,7 +238,7 @@ ORDER BY sd.StartTime">
         INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
         WHERE ear.SchoolID = @SchoolID AND ear.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ear.Attendance_ScheduleID = sch.ScheduleID AND ear.AttendanceStatus = N'Pre') AS Total_Present,
+          AND ear.Attendance_ScheduleID = sch.ScheduleID AND ear.AttendanceStatus = N'Pre' AND ((ear.EntryTime IS NOT NULL AND ear.EntryTime <> CAST('00:00:00' AS time)) OR ISNULL(ear.RegistrationID, 0) <> 0)) AS Total_Present,
 
        (SELECT COUNT(*)
 
@@ -328,7 +265,28 @@ ORDER BY sd.StartTime">
         INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
         WHERE ear.SchoolID = @SchoolID AND ear.AttendanceDate = CONVERT(date, GETDATE())
 
-          AND ear.Attendance_ScheduleID = sch.ScheduleID AND ear.AttendanceStatus = N'Abs') AS Total_Absent
+          AND ear.Attendance_ScheduleID = sch.ScheduleID AND (ear.AttendanceStatus = N'Abs' OR (ear.AttendanceStatus = N'Pre' AND ISNULL(ear.RegistrationID, 0) = 0 AND (ear.EntryTime IS NULL OR ear.EntryTime = CAST('00:00:00' AS time))))) AS Total_Absent,
+       ((SELECT COUNT(*)
+        FROM Employee_Attendance_Record ear
+        INNER JOIN Employee_Attendance_Schedule_Assign eas ON eas.EmployeeID = ear.EmployeeID AND eas.ScheduleID = sch.ScheduleID AND eas.SchoolID = @SchoolID
+        INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
+        WHERE ear.SchoolID = @SchoolID AND ear.AttendanceDate = CONVERT(date, GETDATE())
+          AND ear.Attendance_ScheduleID = sch.ScheduleID AND ear.AttendanceStatus = N'Leave')
+       +
+       (SELECT COUNT(DISTINCT eas.EmployeeID)
+        FROM Employee_Attendance_Schedule_Assign eas
+        INNER JOIN Employee_Info e ON eas.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
+        WHERE eas.SchoolID = @SchoolID AND eas.ScheduleID = sch.ScheduleID
+          AND NOT EXISTS (
+              SELECT 1 FROM Employee_Attendance_Record ear2
+              WHERE ear2.SchoolID = @SchoolID AND ear2.EmployeeID = eas.EmployeeID
+                AND ear2.AttendanceDate = CONVERT(date, GETDATE())
+                AND ear2.Attendance_ScheduleID = sch.ScheduleID)
+          AND EXISTS (
+              SELECT 1 FROM Employee_Leave el
+              WHERE el.SchoolID = @SchoolID AND el.EmployeeID = eas.EmployeeID
+                AND CONVERT(date, GETDATE()) BETWEEN el.LeaveStartDate AND el.LeaveEndDate)
+       )) AS Total_Leave
 
 FROM Attendance_Schedule sch
 
@@ -418,7 +376,7 @@ ORDER BY sd.StartTime">
 
                                                 </div>
 
-                                                <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>" alt="" />
+                                                <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>&amp;cache=1" alt="" />
 
                                                 <span class="notify-badge z-depth-2 <%# Eval("Attendance") %>"><%# Eval("Attendance") %></span>
 
@@ -440,6 +398,8 @@ ORDER BY sd.StartTime">
 
                                 <asp:SqlDataSource ID="Student_Entry_LogSQL" runat="server"
 
+                            EnableCaching="True" CacheDuration="15" CacheExpirationPolicy="Absolute"
+
                                     ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
                                     SelectCommand="SELECT ar.StudentID,
@@ -450,7 +410,7 @@ ORDER BY sd.StartTime">
 
        ar.Attendance,
 
-       CONVERT(varchar(15), ar.EntryTime, 100) AS EntryTime
+       ISNULL(CONVERT(varchar(15), NULLIF(ar.EntryTime, CAST('00:00:00' AS time)), 100), N'Manual') AS EntryTime
 
 FROM Attendance_Record ar
 
@@ -462,15 +422,13 @@ LEFT JOIN Attendance_Schedule sch ON ar.Attendance_ScheduleID = sch.ScheduleID A
 
 WHERE ar.AttendanceDate = CONVERT(date, GETDATE())
 
-  AND ar.EntryTime IS NOT NULL AND ar.Is_OUT = 0
-
-  AND ar.Attendance IN (N'Pre', N'Late', N'Late Abs')
+  AND ISNULL(ar.Is_OUT, 0) = 0 AND ar.Attendance IN (N'Pre', N'Late', N'Late Abs') AND ((ar.EntryTime IS NOT NULL AND ar.EntryTime <> CAST('00:00:00' AS time)) OR ISNULL(ar.RegistrationID, 0) <> 0)
 
   AND ar.SchoolID = @SchoolID
 
   AND ISNULL(ar.Attendance_ScheduleID, 0) > 0
 
-ORDER BY ar.EntryTime DESC">
+ORDER BY CASE WHEN ar.EntryTime IS NULL OR ar.EntryTime = CAST('00:00:00' AS time) THEN 1 ELSE 0 END, ar.EntryTime DESC">
 
                                     <SelectParameters>
 
@@ -510,7 +468,7 @@ ORDER BY ar.EntryTime DESC">
 
                                                 </div>
 
-                                                <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>" alt="" />
+                                                <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>&amp;cache=1" alt="" />
 
                                                 <span class="notify-badge z-depth-2 <%# Eval("Attendance") %>"><%# Eval("Attendance") %></span>
 
@@ -539,6 +497,8 @@ ORDER BY ar.EntryTime DESC">
                                 </asp:Repeater>
 
                                 <asp:SqlDataSource ID="Student_Exit_LogSQL" runat="server"
+
+                            EnableCaching="True" CacheDuration="15" CacheExpirationPolicy="Absolute"
 
                                     ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
@@ -656,7 +616,7 @@ ORDER BY ExitTime DESC, EntryTime DESC">
 
                                                 </div>
 
-                                                <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>" alt="" />
+                                                <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>&amp;cache=1" alt="" />
 
                                                 <span class="notify-badge z-depth-2 <%# Eval("AttendanceStatus") %>"><%# Eval("AttendanceStatus") %></span>
 
@@ -678,6 +638,8 @@ ORDER BY ExitTime DESC, EntryTime DESC">
 
                                 <asp:SqlDataSource ID="Emp_INSQL" runat="server"
 
+                            EnableCaching="True" CacheDuration="15" CacheExpirationPolicy="Absolute"
+
                                     ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
                                     SelectCommand="SELECT ear.EmployeeID,
@@ -688,7 +650,7 @@ ORDER BY ExitTime DESC, EntryTime DESC">
 
        ear.AttendanceStatus,
 
-       CONVERT(varchar(15), ear.EntryTime, 100) AS EntryTime
+       ISNULL(CONVERT(varchar(15), NULLIF(ear.EntryTime, CAST('00:00:00' AS time)), 100), N'Manual') AS EntryTime
 
 FROM Employee_Attendance_Record ear
 
@@ -698,15 +660,13 @@ LEFT JOIN Attendance_Schedule sch ON ear.Attendance_ScheduleID = sch.ScheduleID 
 
 WHERE ear.AttendanceDate = CONVERT(date, GETDATE())
 
-  AND ear.EntryTime IS NOT NULL AND ear.Is_OUT = 0
-
-  AND ear.AttendanceStatus IN (N'Pre', N'Late', N'Late Abs')
+  AND ISNULL(ear.Is_OUT, 0) = 0 AND ear.AttendanceStatus IN (N'Pre', N'Late', N'Late Abs') AND ((ear.EntryTime IS NOT NULL AND ear.EntryTime <> CAST('00:00:00' AS time)) OR ISNULL(ear.RegistrationID, 0) <> 0)
 
   AND ear.SchoolID = @SchoolID
 
   AND ISNULL(ear.Attendance_ScheduleID, 0) > 0
 
-ORDER BY ear.EntryTime DESC">
+ORDER BY CASE WHEN ear.EntryTime IS NULL OR ear.EntryTime = CAST('00:00:00' AS time) THEN 1 ELSE 0 END, ear.EntryTime DESC">
 
                                     <SelectParameters>
 
@@ -744,7 +704,7 @@ ORDER BY ear.EntryTime DESC">
 
                                                 </div>
 
-                                                <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>" alt="" />
+                                                <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>&amp;cache=1" alt="" />
 
                                                 <span class="notify-badge z-depth-2 <%# Eval("AttendanceStatus") %>"><%# Eval("AttendanceStatus") %></span>
 
@@ -773,6 +733,8 @@ ORDER BY ear.EntryTime DESC">
                                 </asp:Repeater>
 
                                 <asp:SqlDataSource ID="Emp_OUTSQL" runat="server"
+
+                            EnableCaching="True" CacheDuration="15" CacheExpirationPolicy="Absolute"
 
                                     ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 

@@ -11,6 +11,16 @@ namespace EDUCATION.COM.Handeler
     {
         public void ProcessRequest(HttpContext context)
         {
+            // Display screens (DeviceDisplay / Attendance_Slider) request photos with cache=1 and
+            // re-render every refresh; let the browser/WebView2 reuse the photo for 30 minutes
+            // instead of one DB round-trip per card per refresh. Other callers are unchanged.
+            if (context.Request.QueryString["cache"] == "1")
+            {
+                context.Response.Cache.SetCacheability(HttpCacheability.Public);
+                context.Response.Cache.SetMaxAge(TimeSpan.FromMinutes(30));
+                context.Response.Cache.SetExpires(DateTime.UtcNow.AddMinutes(30));
+            }
+
             SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ToString());
             con.Open();
             SqlCommand cmd = new SqlCommand("SELECT Image FROM VW_Emp_Info WHERE EmployeeID = @EmployeeID", con);

@@ -1,0 +1,1012 @@
+﻿<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>G.M. International School & Sikkhaloy</title>
+    <script src="https://cdn.tailwindcss.com?v=3.4.1"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+   /* CSS Version: 2.5 - Cache Busting with Pull-to-Refresh */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+     * {
+  margin: 0;
+       padding: 0;
+ box-sizing: border-box;
+        }
+
+  html, body {
+            height: 100%;
+          overflow: hidden;
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+         --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+     }
+
+        /* Animated Background */
+  .animated-bg {
+     position: fixed;
+            width: 100%;
+     height: 100%;
+  z-index: -1;
+   background: linear-gradient(135deg, #163A6B 0%, #1D4F91 50%, #2E6BB5 100%);
+  background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+  }
+
+  @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+       100% { background-position: 0% 50%; }
+  }
+
+        /* Floating Particles */
+        .particle {
+            position: fixed;
+      width: 10px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.5);
+         border-radius: 50%;
+            animation: float 20s infinite;
+ z-index: -1;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+   90% { opacity: 1; }
+          100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+    background: rgba(255, 255, 255, 0.15);
+       backdrop-filter: blur(20px);
+       -webkit-backdrop-filter: blur(20px);
+ border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+        /* Ensure pages are scrollable */
+  .page {
+   display: none;
+      height: 100%;
+    width: 100%;
+opacity: 0;
+        transform: scale(0.95);
+   transition: opacity 0.5s ease, transform 0.5s ease;
+   overflow-y: auto; /* Allow scrolling */
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+     }
+
+     .page.active {
+ display: flex;
+ opacity: 1;
+      transform: scale(1);
+      }
+
+  /* Logo container fixes */
+        .min-h-\[80px\] {
+  min-height: 80px !important;
+        }
+
+   .min-h-\[96px\] {
+      min-height: 96px !important;
+   }
+
+        .min-h-\[160px\] {
+      min-height: 160px !important;
+}
+
+        .min-h-\[64px\] {
+ min-height: 64px !important;
+        }
+
+     .min-h-\[128px\] {
+    min-height: 128px !important;
+        }
+
+   /* Ensure fallback icons are visible */
+      #gmis-fallback,
+   #sikkhaloy-fallback {
+   flex-shrink: 0;
+        }
+
+        /* Loading Animation */
+    .loader {
+            position: fixed;
+     top: 0;
+       left: 0;
+      width: 100%;
+            height: 100%;
+     background: linear-gradient(135deg, #163A6B 0%, #1D4F91 100%);
+            display: flex;
+       align-items: center;
+      justify-content: center;
+       z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader.hidden {
+        opacity: 0;
+            pointer-events: none;
+   }
+
+     .spinner {
+ width: 60px;
+   height: 60px;
+   border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid white;
+    border-radius: 50%;
+  animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+        }
+
+        /* Button Hover Effects */
+        .btn-primary {
+            position: relative;
+         overflow: hidden;
+        transition: all 0.3s ease;
+ }
+
+        .btn-primary::before {
+    content: '';
+            position: absolute;
+      top: 50%;
+    left: 50%;
+    width: 0;
+            height: 0;
+         border-radius: 50%;
+          background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .btn-primary:hover::before {
+         width: 300px;
+            height: 300px;
+ }
+
+     .btn-primary:hover {
+            transform: translateY(-3px);
+box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Icon Animations */
+      .icon-float {
+      animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+      0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+     }
+
+     /* Logo Styles */
+        img {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+ }
+
+      img:hover {
+            transform: scale(1.05);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Card Hover Effect */
+        .info-card {
+            transition: all 0.3s ease;
+        }
+
+    .info-card:hover {
+     transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+
+        /* Navigation Bar (legacy base; modern dock overrides below) */
+        .nav-bar {
+            background: transparent;
+            border-top: none;
+            position: fixed;
+            bottom: 0;
+            z-index: 200;
+            padding-bottom: 0;
+        }
+
+ /* Safe area for mobile devices */
+        .safe-bottom { margin-bottom: 0; }
+
+        .pb-safe {
+       padding-bottom: max(12px, env(safe-area-inset-bottom));
+        }
+
+     /* Mobile viewport fixes */
+        @media (max-width: 768px) {
+         .nav-bar {
+         padding: 8px 4px;
+ padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+       
+      .content-area {
+  padding-bottom: 100px;
+         padding-top: 10px;
+          }
+   
+  .glass-card {
+       padding: 0.5rem !important;
+  margin: 0.1rem;
+      }
+
+   .page {
+     padding: 0.5rem !important;
+       }
+
+    img {
+     max-width: 100%;
+     height: auto;
+  }
+
+      h1, h2, h3 {
+    word-wrap: break-word;
+overflow-wrap: break-word;
+       }
+      }
+
+  /* Extra small mobile devices */
+        @media (max-width: 375px) {
+ .glass-card {
+  padding: 0.5rem !important;
+   }
+
+    h1 {
+  font-size: 1rem !important;
+   line-height: 1.4 !important;
+}
+
+ p {
+        font-size: 0.875rem !important;
+      }
+
+    .badge {
+   font-size: 0.7rem !important;
+     padding: 0.25rem 0.75rem !important;
+    }
+
+ img {
+    max-width: 90%;
+  }
+   }
+
+  /* Large mobile devices */
+ @media (min-width: 376px) and (max-width: 640px) {
+   h1 {
+     font-size: 1.125rem !important;
+    }
+        }
+
+  /* Ensure images load properly */
+        img {
+ image-rendering: -webkit-optimize-contrast;
+ image-rendering: crisp-edges;
+        }
+
+ /* Logo specific fixes */
+        img[alt*="Logo"] {
+      display: block;
+         margin-left: auto;
+            margin-right: auto;
+    }
+
+        /* Dark Mode Toggle */
+        .dark-mode .animated-bg {
+         background: linear-gradient(135deg, #0F2A4D 0%, #163A6B 50%, #163A6B 100%);
+        }
+
+        .dark-mode .glass-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .dark-mode .nav-bar {
+     background: rgba(0, 0, 0, 0.8);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Pull to Refresh Styles */
+   .pull-to-refresh {
+position: fixed;
+ top: 0;
+     left: 0;
+          width: 100%;
+     height: 80px;
+       display: flex;
+     align-items: center;
+         justify-content: center;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
+        transform: translateY(-100%);
+            transition: transform 0.3s ease;
+       z-index: 10000;
+     backdrop-filter: blur(10px);
+   -webkit-backdrop-filter: blur(10px);
+  }
+
+  .pull-to-refresh.pulling {
+            transform: translateY(0);
+   }
+
+      .pull-to-refresh.refreshing {
+            transform: translateY(0);
+        }
+
+        .refresh-spinner {
+     width: 40px;
+            height: 40px;
+ border: 3px solid rgba(255, 255, 255, 0.3);
+   border-top: 3px solid white;
+       border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .refresh-icon {
+            font-size: 28px;
+          color: white;
+        transition: transform 0.3s ease;
+        }
+
+        .refresh-icon.rotate {
+      transform: rotate(180deg);
+        }
+
+        .refresh-text {
+        color: white;
+        font-weight: 600;
+    margin-left: 12px;
+        font-size: 16px;
+  }
+
+        /* Badge Animation */
+        .badge {
+            animation: pulse 2s ease-in-out infinite;
+      }
+
+    @keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+    
+        
+        /* Content cards: hug content (no empty stretch) */
+        #home > .max-w-2xl > .glass-card,
+        #login > .max-w-2xl > .glass-card,
+        #contact > .max-w-2xl > .glass-card {
+            min-height: 0;
+            max-height: none;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+            box-sizing: border-box;
+            padding: 1rem 1rem 0.9rem !important;
+        }
+        #home > .max-w-2xl > .glass-card > .glass-card,
+        #login > .max-w-2xl > .glass-card > .glass-card,
+        #contact > .max-w-2xl > .glass-card > .glass-card {
+            flex: 0 0 auto;
+            overflow: visible;
+            display: block;
+            padding: 0.75rem 0.85rem !important;
+        }
+        #home .after-login-title,
+        #login .after-login-title {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 0.45rem !important;
+            white-space: nowrap;
+            margin-bottom: 0.55rem !important;
+            font-size: 0.95rem !important;
+        }
+        #home .after-login-title i,
+        #login .after-login-title i {
+            display: inline-block;
+            line-height: 1;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+        #home .feature-list,
+        #login .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.42rem;
+            flex: 0 0 auto;
+            justify-content: flex-start;
+            font-size: 0.86rem !important;
+            line-height: 1.35 !important;
+            margin: 0;
+            padding: 0;
+            overflow: visible;
+        }
+        #home .feature-list li,
+        #login .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            padding: 0.05rem 0;
+            margin: 0;
+        }
+        #home .feature-list li i,
+        #login .feature-list li i {
+            width: 1.15rem !important;
+            font-size: 0.82rem !important;
+        }
+        #contact > .max-w-2xl > .glass-card {
+            justify-content: flex-start;
+        }
+        #contact > .max-w-2xl > .glass-card .space-y-4 {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 0.85rem;
+        }
+
+        /* Modern floating bottom dock */
+        .nav-bar,
+        .nav-dock {
+            position: fixed !important;
+            left: 14px !important;
+            right: 14px !important;
+            bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+            z-index: 200 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            border-top: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        .nav-dock-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            gap: 4px;
+            padding: 7px 8px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(255,255,255,0.55) inset;
+        }
+        .dark-mode .nav-dock-inner {
+            background: rgba(15, 23, 42, 0.92);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset;
+        }
+        .nav-btn {
+            flex: 1 1 0;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 3px !important;
+            padding: 7px 4px !important;
+            min-width: 0 !important;
+            border-radius: 16px !important;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            line-height: 1.05 !important;
+        }
+        .nav-btn i {
+            font-size: 1.05rem !important;
+            line-height: 1 !important;
+        }
+        .nav-btn span {
+            font-size: 0.62rem !important;
+            font-weight: 650 !important;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+        .nav-btn:active {
+            transform: scale(0.96);
+        }
+        .nav-btn.is-active-home {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            color: #fff !important;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+        }
+        .nav-btn.is-active-login {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+            color: #fff !important;
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+        }
+        .nav-btn.is-active-contact {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
+            color: #fff !important;
+            box-shadow: 0 6px 16px rgba(236, 72, 153, 0.3);
+        }
+        .content-area {
+            padding-bottom: 88px !important;
+        }
+        #home.page,
+        #login.page,
+        #contact.page {
+            padding-bottom: 92px !important;
+        }
+        @media (max-width: 768px) {
+            .content-area {
+                padding-bottom: 88px !important;
+                padding-top: 6px !important;
+            }
+            #home.page,
+            #login.page,
+            #contact.page {
+                padding: 0.5rem 0.45rem 92px !important;
+            }
+        }
+
+
+    
+
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loader" class="loader">
+        <div class="text-center">
+          <p class="text-white text-xl font-semibold">লোড হচ্ছে...</p>
+        </div>
+    </div>
+
+    <!-- Pull to Refresh Indicator -->
+    <div id="pullToRefresh" class="pull-to-refresh">
+        <i id="refreshIcon" class="fas fa-arrow-down refresh-icon"></i>
+   <span id="refreshText" class="refresh-text">টেনে রিফ্রেশ করুন</span>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+
+    <!-- Floating Particles -->
+    <div id="particles"></div>
+
+    <div id="app">
+        <!-- Content Area -->
+      <div class="content-area">
+            <!-- Home Page -->
+       <div id="home" class="page active flex-col items-center justify-start p-2 pb-3 overflow-y-auto">
+    <div class="max-w-2xl w-full px-2">
+    <div class="glass-card p-4 md:p-12 rounded-3xl shadow-2xl">
+          <div class="text-center mb-6">
+   <!-- GMIS Logo with Fallback -->
+ <div class="mb-3 flex justify-center items-center min-h-[100px] sm:min-h-[112px] md:min-h-[128px]">
+     <!-- Try to load image first -->
+<img src="logo/gmis-logo.png" 
+           alt="GMIS Logo"  
+         class="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full shadow-2xl object-contain border-4 border-white icon-float bg-white" style="display:block;width:96px;height:96px;object-fit:contain"
+         onload="console.log('GMIS Logo loaded successfully')"
+ onerror="console.warn('GMIS Logo not found, showing fallback'); this.style.display='none'; document.getElementById('gmis-fallback').style.display='flex';">
+            
+       <!-- Fallback Icon if image fails -->
+  <div id="gmis-fallback" 
+    class="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center shadow-2xl border-4 border-white icon-float" 
+         style="display: none;">
+     <i class="fas fa-mosque text-white text-2xl sm:text-3xl md:text-5xl"></i>
+  </div>
+  </div>
+  
+        <!-- Rest of header -->
+ <h1 class="text-lg sm:text-xl md:text-2xl font-bold mb-1 text-white drop-shadow-lg leading-tight">
+     G.M. International School
+ </h1>
+      
+      <p class="text-xs sm:text-sm text-orange-200 mb-0.5 font-medium tracking-wide">The School of Wisdom</p>
+      <p class="text-[11px] sm:text-xs text-white mb-1.5 opacity-80">School Management App</p>
+
+      <a href="https://hybrid.sikkhaloy.com/login" target="_blank" rel="noopener noreferrer"
+     class="btn-primary block w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 px-5 rounded-2xl font-bold text-base text-center shadow-2xl mb-3 relative">
+             <i class="fas fa-sign-in-alt mr-2"></i>Login
+         </a>
+      </div>
+
+ <div class="glass-card p-3 rounded-2xl">
+      <h3 class="after-login-title font-semibold text-base text-white mb-2"><i class="fas fa-circle-info"></i><span>After login you will get:</span></h3>
+<ul class="feature-list text-sm leading-snug">
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-gauge-high text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Dashboard</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-circle-info text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Detailed Information</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-file-pen text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Individual Exam</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-list-ol text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Continuous Exam</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-chart-column text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">My Report</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-calculator text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Accounts (Online Payment)</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-user-check text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Attendance</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-calendar-days text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Class Routine</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-calendar-check text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Exam Routine</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-comment-sms text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">SMS Inbox</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-bell text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Notice</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-comments text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Complaints & Suggestions</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-key text-green-300 w-5 text-center flex-shrink-0"></i><span class="truncate">Change Password</span></li>
+        </ul>
+      </div>
+     </div>
+ </div>
+            </div>
+
+            <!-- Login Page -->
+            <div id="login" class="page flex-col items-center justify-start p-2 pb-3 overflow-y-auto">
+    <div class="max-w-2xl w-full px-2">
+   <div class="glass-card p-4 md:p-12 rounded-3xl shadow-2xl">
+ <div class="text-center mb-2">
+       <!-- Sikkhaloy Logo - Horizontal with Fallback -->
+   <div class="mb-4 flex justify-center items-center min-h-[64px] sm:min-h-[80px] md:min-h-[80px]">
+   <!-- Try to load image first -->
+        <img src="logo/sikkhaloy-logo.png" 
+  alt="Sikkhaloy Logo" 
+           class="h-20 sm:h-24 md:h-28 w-auto max-w-full mx-auto shadow-2xl object-contain"
+     style="display: block;"
+     onload="console.log('Sikkhaloy Logo loaded successfully')"
+  onerror="console.warn('Sikkhaloy Logo not found, showing fallback'); this.style.display='none'; document.getElementById('sikkhaloy-fallback').style.display='block';">
+  
+     <!-- Fallback Text if image fails -->
+  <div id="sikkhaloy-fallback" 
+              class="px-6 py-3 bg-white rounded-2xl shadow-2xl" 
+style="display: none;">
+    <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        শিক্ষালয়
+     </h2>
+       </div>
+   </div>
+   
+  <!-- Rest of header -->
+    <p class="text-sm sm:text-base md:text-xl text-white mb-4 md:mb-8 opacity-90">শিক্ষালয় অনলাইন প্ল্যাটফর্ম</p>
+       <div class="inline-block px-3 py-1.5 md:px-4 md:py-2 bg-white bg-opacity-20 rounded-full text-white text-xs md:text-sm badge">
+     <i class="fas fa-shield-alt mr-1 md:mr-2"></i>নিরাপদ লগইন
+     </div>
+        </div>
+
+      <a href="https://hybrid.sikkhaloy.com/login" target="_blank" rel="noopener noreferrer" 
+     class="btn-primary block w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-5 px-6 rounded-2xl font-bold text-lg text-center shadow-2xl mb-6 relative">
+             <i class="fas fa-sign-in-alt mr-2"></i>লগইন করুন
+         </a>
+
+          <div class="glass-card p-6 rounded-2xl">
+              <h3 class="after-login-title font-bold text-white mb-3 text-lg"><i class="fas fa-list-check"></i><span>লগইনের পর যা পাবেন:</span></h3>
+              <ul class="feature-list text-sm leading-snug">
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-gauge-high text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">ড্যাশবোর্ড</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-circle-info text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">বিস্তারিত তথ্য</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-file-pen text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">একক পরীক্ষা</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-list-ol text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">ক্রমিক পরীক্ষা</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-chart-column text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">আমার রিপোর্ট</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-calculator text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">হিসাব (অনলাইন পেমেন্ট)</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-user-check text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">উপস্থিতি</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-calendar-days text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">ক্লাস রুটিন</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-calendar-check text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">পরীক্ষার রুটিন</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-comment-sms text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">এসএমএস ইনবক্স</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-bell text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">নোটিশ</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-comments text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">অভিযোগ ও পরামর্শ</span></li>
+          <li class="flex items-center gap-2 text-white whitespace-nowrap"><i class="fas fa-key text-blue-300 w-5 text-center flex-shrink-0"></i><span class="truncate">পাসওয়ার্ড পরিবর্তন</span></li>
+        </ul>
+ </div>
+          </div>
+     </div>
+      </div>
+
+       <!-- Contact Page -->
+      <div id="contact" class="page flex-col items-center justify-start p-2 pb-3 overflow-y-auto">
+           <div class="max-w-2xl w-full px-2">
+         <div class="glass-card p-6 md:p-8 rounded-3xl shadow-2xl">
+   <div class="text-center mb-8">
+  <div class="w-24 h-24 bg-gradient-to-br from-pink-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl icon-float">
+          <i class="fas fa-address-book text-white text-4xl"></i>
+    </div>
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-lg">যোগাযোগ করুন</h2>
+   
+               </div>
+
+   <div class="space-y-4">
+       <!-- Address -->
+       <div class="info-card glass-card p-5 rounded-2xl">
+           <div class="flex items-start gap-4">
+               <div class="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                   <i class="fas fa-map-marker-alt text-white text-2xl"></i>
+               </div>
+               <div>
+                   <h3 class="font-bold text-lg text-white mb-2">Address</h3>
+                   <p class="text-white opacity-90">GM Tower, Panchar, Mabarchar Road,<br />Shibchar, Madaripur, 790</p>
+               </div>
+           </div>
+       </div>
+
+       <!-- Email -->
+       <div class="info-card glass-card p-5 rounded-2xl">
+           <div class="flex items-start gap-4">
+               <div class="w-14 h-14 bg-gradient-to-br from-pink-400 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                   <i class="fas fa-envelope text-white text-2xl"></i>
+               </div>
+               <div>
+                   <h3 class="font-bold text-lg text-white mb-2">ইমেইল করুন</h3>
+                   <a href="mailto:info@gmisbd.com" class="text-pink-200 hover:text-white block mb-1 hover:underline transition">
+                       <i class="fas fa-paper-plane mr-1"></i>info@gmisbd.com
+                   </a>
+
+               </div>
+
+
+           </div>
+
+
+       </div>
+       <!-- Phone -->
+       <div class="info-card glass-card p-5 rounded-2xl">
+           <div class="flex items-start gap-4">
+               <div class="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                   <i class="fas fa-phone-alt text-white text-2xl"></i>
+               </div>
+               <div>
+                   <h3 class="font-bold text-lg text-white mb-2">কল করুন</h3>
+                   <a href="tel:01344939252" class="text-green-200 hover:text-white block mb-2 hover:underline text-xl font-semibold transition">
+                       <i class="fas fa-phone mr-2"></i>01344939252
+                   </a>
+               </div>
+           </div>
+       </div>
+
+
+   </div>
+ </div>
+      </div>
+          </div>
+   </div>
+
+                <!-- Bottom Navigation -->
+     <nav class="nav-bar nav-dock" aria-label="Main">
+           <div class="nav-dock-inner">
+      <button type="button" onclick="showPage('home')" id="nav-home" class="nav-btn is-active-home">
+         <i class="fas fa-home"></i>
+    <span>হোম</span>
+      </button>
+
+       <button type="button" onclick="showPage('login')" id="nav-login" class="nav-btn">
+    <i class="fas fa-sign-in-alt"></i>
+  <span>লগইন</span>
+ </button>
+
+             <button type="button" onclick="showPage('contact')" id="nav-contact" class="nav-btn">
+   <i class="fas fa-address-book"></i>
+      <span>যোগাযোগ</span>
+  </button>
+
+        <button type="button" onclick="toggleDarkMode()" id="nav-theme" class="nav-btn">
+    <i class="fas fa-moon" id="theme-icon"></i>
+            <span>থিম</span>
+       </button>
+  </div>
+  </nav>
+    </div>
+
+    <script>
+        // CSS Version tracking for cache busting
+        const CSS_VERSION = '2.1';
+        console.log('App CSS Version:', CSS_VERSION);
+
+        // Pull to Refresh Implementation
+        let pullToRefreshElement = document.getElementById('pullToRefresh');
+   let refreshIcon = document.getElementById('refreshIcon');
+      let refreshText = document.getElementById('refreshText');
+        let startY = 0;
+        let currentY = 0;
+     let pulling = false;
+        let refreshing = false;
+      const pullThreshold = 80;
+
+function handleTouchStart(e) {
+ if (refreshing) return;
+        
+         // Only trigger when scrolled to top
+        const scrollableElement = document.querySelector('.page.active');
+     if (scrollableElement && scrollableElement.scrollTop === 0) {
+             startY = e.touches[0].pageY;
+                pulling = false;
+         }
+        }
+
+        function handleTouchMove(e) {
+ if (refreshing) return;
+
+  const scrollableElement = document.querySelector('.page.active');
+   if (scrollableElement && scrollableElement.scrollTop === 0) {
+             currentY = e.touches[0].pageY;
+         const pullDistance = currentY - startY;
+
+         if (pullDistance > 0 && startY > 0) {
+   pulling = true;
+         
+      if (pullDistance >= pullThreshold) {
+      pullToRefreshElement.classList.add('pulling');
+    refreshIcon.classList.add('rotate');
+       refreshText.textContent = 'ছেড়ে দিয়ে রিফ্রেশ করুন';
+        } else {
+       pullToRefreshElement.style.transform = `translateY(-${100 - (pullDistance / pullThreshold * 100)}%)`;
+      refreshIcon.classList.remove('rotate');
+            refreshText.textContent = 'টেনে রিফ্রেশ করুন';
+       }
+      }
+  }
+        }
+
+    function handleTouchEnd(e) {
+            if (refreshing || !pulling) return;
+
+ const pullDistance = currentY - startY;
+
+         if (pullDistance >= pullThreshold) {
+      // Trigger refresh
+      refreshing = true;
+pullToRefreshElement.classList.add('refreshing');
+        refreshIcon.className = 'refresh-spinner';
+        refreshText.textContent = 'রিফ্রেশ হচ্ছে...';
+
+   // Simulate refresh (reload page after animation)
+        setTimeout(() => {
+        window.location.reload();
+        }, 800);
+            } else {
+                // Reset
+           pullToRefreshElement.style.transform = '';
+             pullToRefreshElement.classList.remove('pulling');
+   refreshIcon.classList.remove('rotate');
+refreshText.textContent = 'টেনে রিফ্রেশ করুন';
+            }
+
+ pulling = false;
+   startY = 0;
+     currentY = 0;
+        }
+
+        // Create floating particles
+      function createParticles() {
+  const particlesContainer = document.getElementById('particles');
+ for (let i = 0; i < 30; i++) {
+       const particle = document.createElement('div');
+particle.className = 'particle';
+       particle.style.left = Math.random() * 100 + '%';
+     particle.style.animationDelay = Math.random() * 20 + 's';
+    particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+       particlesContainer.appendChild(particle);
+      }
+      }
+
+      // Check if images loaded
+      function checkImageLoad() {
+            const images = document.querySelectorAll('img[alt*="Logo"]');
+ images.forEach(img => {
+  if (!img.complete || img.naturalHeight === 0) {
+    console.warn('Logo failed to load:', img.src);
+        img.onerror();
+        }
+            });
+        }
+
+        // Show page function
+        function showPage(pageId) {
+        console.log('Switching to page:', pageId);
+
+            // Hide all pages
+            const pages = document.querySelectorAll('.page');
+         pages.forEach(page => {
+         page.classList.remove('active');
+      });
+
+            // Show selected page with animation
+     setTimeout(() => {
+   const selectedPage = document.getElementById(pageId);
+  if (selectedPage) {
+          selectedPage.classList.add('active');
+        }
+  }, 50);
+
+       // Update navigation buttons
+   const navButtons = document.querySelectorAll('.nav-btn');
+ navButtons.forEach(btn => {
+       if (btn.id === 'nav-theme') return;
+       btn.className = 'nav-btn';
+   btn.style.transform = '';
+            });
+
+   // Highlight active button
+            const activeBtn = document.getElementById('nav-' + pageId);
+     if (activeBtn) {
+  activeBtn.className = 'nav-btn is-active-' + pageId;
+             activeBtn.style.transform = '';
+       }
+     }
+
+        // Dark mode toggle
+     function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+    const icon = document.getElementById('theme-icon');
+            if (document.body.classList.contains('dark-mode')) {
+       icon.className = 'fas fa-sun text-xl';
+      localStorage.setItem('darkMode', 'enabled');
+            } else {
+             icon.className = 'fas fa-moon text-xl';
+     localStorage.setItem('darkMode', 'disabled');
+            }
+    }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded - CSS Version:', CSS_VERSION);
+            console.log('Pull-to-Refresh enabled');
+
+     // Hide loader
+setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+            }, 1500);
+
+   // Create particles
+     createParticles();
+
+         // Check dark mode preference
+       if (localStorage.getItem('darkMode') === 'enabled') {
+       document.body.classList.add('dark-mode');
+                document.getElementById('theme-icon').className = 'fas fa-sun text-xl';
+    }
+
+ // Show home page
+            showPage('home');
+
+            // Check image loading
+       setTimeout(checkImageLoad, 2000);
+
+            // Force check all logos after DOM is fully loaded
+          setTimeout(function() {
+    const gmisLogo = document.querySelector('img[alt="GMIS Logo"]');
+           if (gmisLogo && (!gmisLogo.complete || gmisLogo.naturalHeight === 0)) {
+   console.warn('GMIS Logo failed to load, triggering error handler');
+       gmisLogo.onerror();
+              }
+
+   const sikkhaloyLogo = document.querySelector('img[alt="Sikkhaloy Logo"]');
+      if (sikkhaloyLogo && (!sikkhaloyLogo.complete || sikkhaloyLogo.naturalHeight === 0)) {
+    console.warn('Sikkhaloy Logo failed to load, triggering error handler');
+           sikkhaloyLogo.onerror();
+            }
+   }, 3000);
+
+            // Force refresh on mobile
+            if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
+     window.location.reload(true);
+     }
+
+         // Add touch event listeners for pull-to-refresh
+ document.addEventListener('touchstart', handleTouchStart, { passive: true });
+       document.addEventListener('touchmove', handleTouchMove, { passive: true });
+            document.addEventListener('touchend', handleTouchEnd, { passive: true });
+        });
+
+        // Prevent zoom on double tap (mobile)
+   let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+         const now = (new Date()).getTime();
+          if (now - lastTouchEnd <= 300) {
+       event.preventDefault();
+       }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>

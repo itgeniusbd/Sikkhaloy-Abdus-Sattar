@@ -57,7 +57,11 @@ BEGIN
     SET NOCOUNT ON;
 
     DECLARE @MoneyReceipt_SN INT
-    SET @MoneyReceipt_SN = [dbo].[F_MoneyReceipt_SN](@SchoolID)
+    -- Per-school sequence (receipt_sn_setup.sql); old MAX+1 only if not installed
+    IF OBJECT_ID(N'dbo.usp_NextMoneyReceiptSN', N'P') IS NOT NULL
+        EXEC dbo.usp_NextMoneyReceiptSN @SchoolID = @SchoolID, @SN = @MoneyReceipt_SN OUTPUT
+    ELSE
+        SET @MoneyReceipt_SN = [dbo].[F_MoneyReceipt_SN](@SchoolID)
 
     INSERT INTO Income_MoneyReceipt
         (StudentID, RegistrationID, StudentClassID, PaidDate, EducationYearID, PaymentBy, SchoolID, MoneyReceipt_SN, CollectionDate)

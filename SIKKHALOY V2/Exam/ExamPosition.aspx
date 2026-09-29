@@ -300,21 +300,35 @@ ORDER BY Position_InExam_Class , CASE WHEN ISNUMERIC(StudentsClass.RollNo) = 1 T
 
     <script type="text/javascript">
         function applyColToggleChange() {
-            var table = $("[id*=StudentsGridView]");
+            var table = $("#<%= StudentsGridView.ClientID %>");
+            if (!table.length) return;
+
+            var headerRow = table.find("> thead > tr, > tbody > tr").has("th").first();
+            if (!headerRow.length) {
+                headerRow = table.children("tr").has("th").first();
+            }
+            var headers = headerRow.children("th");
+
+            var rows = table.find("> thead > tr, > tbody > tr");
+            if (!rows.length) {
+                rows = table.children("tr");
+            }
+
             $(".col-toggle").each(function () {
                 var headerText = $(this).data("header");
                 var visible = $(this).is(":checked");
-                var colNum = -1;
-                var headers = table.find("thead th");
-                if (headers.length === 0) {
-                    headers = table.find("tr:first th");
-                }
+                var colIndex = -1;
+
                 headers.each(function (i) {
-                    if ($(this).text().trim() === headerText) { colNum = i + 1; return false; }
+                    if ($.trim($(this).text()) === headerText) {
+                        colIndex = i;
+                        return false;
+                    }
                 });
-                if (colNum === -1) return;
-                table.find("tr").each(function () {
-                    $(this).find("th:nth-child(" + colNum + "), td:nth-child(" + colNum + ")").toggle(visible);
+                if (colIndex === -1) return;
+
+                rows.each(function () {
+                    $(this).children("th, td").eq(colIndex).toggle(visible);
                 });
             });
         }

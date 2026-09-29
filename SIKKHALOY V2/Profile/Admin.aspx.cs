@@ -133,30 +133,31 @@ namespace EDUCATION.COM.Profile
                     graceDaysLeft = -1;
                 }
 
+                // Active grace period always wins over "last payment day" / expired warnings.
+                if (graceDaysLeft >= 0 && (totalDue > 0 || dueRecordCount > 0))
+                {
+                    string graceMsg = graceDaysLeft == 0
+                        ? "আজই আপনার গ্রেস পিরিয়ড শেষ হচ্ছে!"
+                        : string.Format("আপনাকে দেওয়া গ্রেস পিরিয়ড শেষ হতে বাকি মাত্র <strong>{0} দিন</strong>।", graceDaysLeft);
+
+                    string graceScript = string.Format(@"
+                        $(document).ready(function() {{
+                            $('#dueWarningSection').show();
+                            $('#dueWarningText').html('{0}');
+                            $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
+                            $('#dueWarningIcon').removeClass('fa-clock fa-ban').addClass('fa-hourglass-half');
+                            $('#dueRecordCount').text('{1}');
+                            $('#totalDueAmount').text('{2}');
+                            $('#dueInvoiceModal').modal('show');
+                        }});
+                    ", graceMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
+
+                    ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", graceScript, true);
+                    return;
+                }
+
                 if (hasExpiredInvoice && (totalDue > 0 || dueRecordCount > 0))
                 {
-                    if (graceDaysLeft >= 0)
-                    {
-                        string graceMsg = graceDaysLeft == 0
-                            ? "আজই আপনার গ্রেস পিরিয়ড শেষ হচ্ছে!"
-                            : string.Format("আপনাকে দেওয়া গ্রেস পিরিয়ড শেষ হতে বাকি মাত্র <strong>{0} দিন</strong>।", graceDaysLeft);
-
-                        string graceScript = string.Format(@"
-                            $(document).ready(function() {{
-                                $('#dueWarningSection').show();
-                                $('#dueWarningText').html('{0}');
-                                $('#dueWarningSubText').text('নির্দিষ্ট সময়ের আগেই পেমেন্ট করে সেবা সচল রাখুন।');
-                                $('#dueWarningIcon').removeClass('fa-clock fa-ban').addClass('fa-hourglass-half');
-                                $('#dueRecordCount').text('{1}');
-                                $('#totalDueAmount').text('{2}');
-                                $('#dueInvoiceModal').modal('show');
-                            }});
-                        ", graceMsg.Replace("'", "\\'"), dueCountStr, dueTotalStr);
-
-                        ScriptManager.RegisterStartupScript(this, this.GetType(), "ShowDueInvoiceModal", graceScript, true);
-                        return;
-                    }
-
                     string blockedScript = string.Format(@"
                         $(document).ready(function() {{
                             $('#dueWarningSection').show();

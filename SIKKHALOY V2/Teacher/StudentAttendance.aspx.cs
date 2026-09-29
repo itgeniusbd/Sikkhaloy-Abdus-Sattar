@@ -344,7 +344,14 @@ namespace EDUCATION.COM.Teacher
             }
 
             if (!hasAttendanceRecord)
+            {
                 ApplyLeaveStatus(studentId, attendance, reasonTextBox, atDateLabel);
+                if (string.IsNullOrEmpty(attendance.SelectedValue) || attendance.SelectedItem == null)
+                    ApplyAttendanceSelection(attendance, "Pre");
+            }
+
+            string statusClass = "att-row att-" + (attendance.SelectedValue ?? "Pre").Trim().ToLowerInvariant();
+            e.Row.CssClass = (hasAttendanceRecord ? "active-attendance " : "") + statusClass;
         }
 
         private static void ApplyAttendanceSelection(RadioButtonList attendance, string attendanceValue)

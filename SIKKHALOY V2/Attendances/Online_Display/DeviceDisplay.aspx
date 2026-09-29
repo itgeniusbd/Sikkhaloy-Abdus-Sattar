@@ -16,7 +16,7 @@
 
     <link href="/CSS/bootstrap/bootstrap.css" rel="stylesheet" />
 
-    <link href="CSS/device-display.css?v=3.17.0" rel="stylesheet" />
+    <link href="CSS/device-display.css?v=3.18.1" rel="stylesheet" />
 
 </head>
 
@@ -55,6 +55,7 @@
                                         <span class="chip late">Late <b><%# Eval("Total_Late") %></b></span>
                                         <span class="chip late-abs">L.Abs <b><%# Eval("Total_Late_Absent") %></b></span>
                                         <span class="chip abs">Abs <b><%# Eval("Total_Absent") %></b></span>
+                                        <span class="chip leave" title="ছুটি">Leave <b><%# Eval("Total_Leave") %></b></span>
                                     </div>
                                 </div>
 
@@ -62,173 +63,14 @@
 
                         </asp:Repeater>
 
+                        <%-- Live SelectCommand is assigned in DeviceDisplay.aspx.cs --%>
                         <asp:SqlDataSource ID="StudentScheduleSummarySQL" runat="server"
 
                             ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
-                            SelectCommand="SELECT sch.ScheduleID,
+                            OnSelecting="DisplaySql_Selecting" OnSelected="DisplaySql_Selected"
 
-       sch.ScheduleName,
-
-       LTRIM(RIGHT(CONVERT(varchar(20), sd.StartTime, 100), 7)) + N' - ' + LTRIM(RIGHT(CONVERT(varchar(20), sd.EndTime, 100), 7)) AS TimeRange,
-
-       (SELECT COUNT(DISTINCT ass.StudentID)
-
-        FROM Attendance_Schedule_AssignStudent ass
-
-        INNER JOIN Student s ON ass.StudentID = s.StudentID
-
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-
-        WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID AND s.Status = N'Active') AS Total_User,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID
-
-          AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.EntryTime IS NOT NULL
-
-          AND ar.Is_OUT = 0
-
-          AND ar.Attendance IN (N'Pre', N'Late', N'Late Abs')) AS Current_IN,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID
-
-          AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.ExitTime IS NOT NULL
-
-          AND ar.Is_OUT = 1) AS Total_Out,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID
-
-          AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.Attendance = N'Pre') AS Total_Present,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID
-
-          AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.Attendance = N'Late') AS Total_Late,
-
-       (SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID
-
-          AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.Attendance = N'Late Abs') AS Total_Late_Absent,
-
-       ((SELECT COUNT(*)
-
-        FROM Attendance_Record ar
-        INNER JOIN Attendance_Schedule_AssignStudent ass ON ass.StudentID = ar.StudentID AND ass.ScheduleID = sch.ScheduleID AND ass.SchoolID = @SchoolID
-        INNER JOIN Student s ON s.StudentID = ar.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-        WHERE ar.SchoolID = @SchoolID
-
-          AND ar.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ar.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ar.Attendance = N'Abs')
-       +
-       (SELECT COUNT(DISTINCT ass.StudentID)
-        FROM Attendance_Schedule_AssignStudent ass
-        INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
-        INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
-          AND scEy.EducationYearID = @EducationYearID
-        WHERE ass.SchoolID = @SchoolID
-          AND ass.ScheduleID = sch.ScheduleID
-          AND CAST(GETDATE() AS time) > sd.LateEntryTime
-          AND NOT EXISTS (
-              SELECT 1
-              FROM Attendance_Record ar2
-              WHERE ar2.SchoolID = @SchoolID
-                AND ar2.StudentID = ass.StudentID
-                AND ar2.AttendanceDate = CONVERT(date, GETDATE())
-                AND ISNULL(ar2.Attendance_ScheduleID, 0) = sch.ScheduleID
-          )
-          AND NOT EXISTS (
-              SELECT 1
-              FROM Attendance_Leave al
-              WHERE al.SchoolID = @SchoolID
-                AND al.StudentID = ass.StudentID
-                AND CONVERT(date, GETDATE()) BETWEEN al.StartDate AND al.EndDate
-          )
-       )) AS Total_Absent
-
-FROM Attendance_Schedule sch
-
-INNER JOIN Attendance_Schedule_Day sd ON sch.ScheduleID = sd.ScheduleID AND sd.SchoolID = sch.SchoolID
-
-WHERE sch.SchoolID = @SchoolID
-
-  AND sd.Day = DATENAME(dw, GETDATE())
-
-  AND EXISTS (
-
-      SELECT 1
-
-      FROM Attendance_Schedule_AssignStudent ass
-
-      INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
-
-      INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
-        AND scEy.EducationYearID = @EducationYearID
-
-      WHERE ass.SchoolID = @SchoolID AND ass.ScheduleID = sch.ScheduleID
-
-  )
-
-ORDER BY sd.StartTime">
-
+                            SelectCommand="SELECT 1 AS ok WHERE 1 = 0">
                             <SelectParameters>
 
                                 <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
@@ -267,6 +109,7 @@ ORDER BY sd.StartTime">
                                         <span class="chip late">Late <b><%# Eval("Total_Late") %></b></span>
                                         <span class="chip late-abs">L.Abs <b><%# Eval("Total_Late_Absent") %></b></span>
                                         <span class="chip abs">Abs <b><%# Eval("Total_Absent") %></b></span>
+                                        <span class="chip leave" title="ছুটি">Leave <b><%# Eval("Total_Leave") %></b></span>
                                     </div>
                                 </div>
 
@@ -278,149 +121,9 @@ ORDER BY sd.StartTime">
 
                             ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
-                            SelectCommand="SELECT sch.ScheduleID,
+                            OnSelecting="DisplaySql_Selecting" OnSelected="DisplaySql_Selected"
 
-       sch.ScheduleName,
-
-       LTRIM(RIGHT(CONVERT(varchar(20), sd.StartTime, 100), 7)) + N' - ' + LTRIM(RIGHT(CONVERT(varchar(20), sd.EndTime, 100), 7)) AS TimeRange,
-
-       (SELECT COUNT(DISTINCT eas.EmployeeID)
-
-        FROM Employee_Attendance_Schedule_Assign eas
-
-        INNER JOIN Employee_Info e ON eas.EmployeeID = e.EmployeeID
-
-        WHERE eas.SchoolID = @SchoolID AND eas.ScheduleID = sch.ScheduleID AND e.Job_Status = N'Active') AS Total_User,
-
-       (SELECT COUNT(*)
-
-        FROM Employee_Attendance_Record ear
-        INNER JOIN Employee_Attendance_Schedule_Assign eas ON eas.EmployeeID = ear.EmployeeID AND eas.ScheduleID = sch.ScheduleID AND eas.SchoolID = @SchoolID
-        INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
-        WHERE ear.SchoolID = @SchoolID
-
-          AND ear.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ear.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ear.EntryTime IS NOT NULL
-
-          AND ear.Is_OUT = 0
-
-          AND ear.AttendanceStatus IN (N'Pre', N'Late', N'Late Abs')) AS Current_IN,
-
-       (SELECT COUNT(*)
-
-        FROM Employee_Attendance_Record ear
-        INNER JOIN Employee_Attendance_Schedule_Assign eas ON eas.EmployeeID = ear.EmployeeID AND eas.ScheduleID = sch.ScheduleID AND eas.SchoolID = @SchoolID
-        INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
-        WHERE ear.SchoolID = @SchoolID
-
-          AND ear.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ear.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ear.ExitTime IS NOT NULL
-
-          AND ear.Is_OUT = 1) AS Total_Out,
-
-       (SELECT COUNT(*)
-
-        FROM Employee_Attendance_Record ear
-        INNER JOIN Employee_Attendance_Schedule_Assign eas ON eas.EmployeeID = ear.EmployeeID AND eas.ScheduleID = sch.ScheduleID AND eas.SchoolID = @SchoolID
-        INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
-        WHERE ear.SchoolID = @SchoolID
-
-          AND ear.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ear.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ear.AttendanceStatus = N'Pre') AS Total_Present,
-
-       (SELECT COUNT(*)
-
-        FROM Employee_Attendance_Record ear
-        INNER JOIN Employee_Attendance_Schedule_Assign eas ON eas.EmployeeID = ear.EmployeeID AND eas.ScheduleID = sch.ScheduleID AND eas.SchoolID = @SchoolID
-        INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
-        WHERE ear.SchoolID = @SchoolID
-
-          AND ear.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ear.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ear.AttendanceStatus = N'Late') AS Total_Late,
-
-       (SELECT COUNT(*)
-
-        FROM Employee_Attendance_Record ear
-        INNER JOIN Employee_Attendance_Schedule_Assign eas ON eas.EmployeeID = ear.EmployeeID AND eas.ScheduleID = sch.ScheduleID AND eas.SchoolID = @SchoolID
-        INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
-        WHERE ear.SchoolID = @SchoolID
-
-          AND ear.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ear.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ear.AttendanceStatus = N'Late Abs') AS Total_Late_Absent,
-
-       ((SELECT COUNT(*)
-
-        FROM Employee_Attendance_Record ear
-        INNER JOIN Employee_Attendance_Schedule_Assign eas ON eas.EmployeeID = ear.EmployeeID AND eas.ScheduleID = sch.ScheduleID AND eas.SchoolID = @SchoolID
-        INNER JOIN Employee_Info e ON e.EmployeeID = ear.EmployeeID AND e.Job_Status = N'Active'
-        WHERE ear.SchoolID = @SchoolID
-
-          AND ear.AttendanceDate = CONVERT(date, GETDATE())
-
-          AND ISNULL(ear.Attendance_ScheduleID, 0) = sch.ScheduleID
-
-          AND ear.AttendanceStatus = N'Abs')
-       +
-       (SELECT COUNT(DISTINCT eas.EmployeeID)
-        FROM Employee_Attendance_Schedule_Assign eas
-        INNER JOIN Employee_Info e ON eas.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
-        WHERE eas.SchoolID = @SchoolID
-          AND eas.ScheduleID = sch.ScheduleID
-          AND CAST(GETDATE() AS time) > sd.LateEntryTime
-          AND NOT EXISTS (
-              SELECT 1
-              FROM Employee_Attendance_Record ear2
-              WHERE ear2.SchoolID = @SchoolID
-                AND ear2.EmployeeID = eas.EmployeeID
-                AND ear2.AttendanceDate = CONVERT(date, GETDATE())
-                AND ISNULL(ear2.Attendance_ScheduleID, 0) = sch.ScheduleID
-          )
-          AND NOT EXISTS (
-              SELECT 1
-              FROM Employee_Leave el
-              WHERE el.SchoolID = @SchoolID
-                AND el.EmployeeID = eas.EmployeeID
-                AND CONVERT(date, GETDATE()) BETWEEN el.LeaveStartDate AND el.LeaveEndDate
-          )
-       )) AS Total_Absent
-
-FROM Attendance_Schedule sch
-
-INNER JOIN Attendance_Schedule_Day sd ON sch.ScheduleID = sd.ScheduleID AND sd.SchoolID = sch.SchoolID
-
-WHERE sch.SchoolID = @SchoolID
-
-  AND sd.Day = DATENAME(dw, GETDATE())
-
-  AND EXISTS (
-
-      SELECT 1
-
-      FROM Employee_Attendance_Schedule_Assign eas
-
-      INNER JOIN Employee_Info e ON eas.EmployeeID = e.EmployeeID
-
-      WHERE eas.SchoolID = @SchoolID AND eas.ScheduleID = sch.ScheduleID AND e.Job_Status = N'Active'
-
-  )
-
-ORDER BY sd.StartTime">
-
+                            SelectCommand="SELECT 1 AS ok WHERE 1 = 0">
                             <SelectParameters>
 
                                 <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
@@ -467,7 +170,7 @@ ORDER BY sd.StartTime">
 
                                             </div>
 
-                                            <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>" alt="" />
+                                            <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>&amp;cache=1" alt="" />
 
                                             <span class="notify-badge z-depth-2 <%# Eval("Attendance") %>"><%# Eval("Attendance") %></span>
 
@@ -491,48 +194,9 @@ ORDER BY sd.StartTime">
 
                                 ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
-                                SelectCommand="SELECT ar.StudentID,
+                                OnSelecting="DisplaySql_Selecting" OnSelected="DisplaySql_Selected"
 
-       s.StudentsName,
-
-       ISNULL(ar.Attendance_ScheduleID, 0) AS ScheduleID,
-
-       ISNULL(schInfo.ScheduleName, N'Schedule') AS ScheduleName,
-
-       ar.Attendance,
-
-       CONVERT(varchar(15), ar.EntryTime, 100) AS EntryTime
-
-FROM Attendance_Record ar
-
-INNER JOIN Student s ON ar.StudentID = s.StudentID AND s.Status = N'Active'
-
-INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-  AND scEy.EducationYearID = @EducationYearID
-
-LEFT JOIN Attendance_Schedule schInfo
-    ON schInfo.SchoolID = ar.SchoolID
-   AND schInfo.ScheduleID = ar.Attendance_ScheduleID
-
-INNER JOIN Attendance_Schedule_Day sdCard
-    ON sdCard.ScheduleID = ar.Attendance_ScheduleID
-   AND sdCard.SchoolID = ar.SchoolID
-   AND sdCard.Day = DATENAME(dw, GETDATE())
-
-WHERE ar.AttendanceDate = CONVERT(date, GETDATE())
-
-  AND ar.EntryTime IS NOT NULL
-
-  AND ar.Is_OUT = 0
-
-  AND ar.Attendance IN (N'Pre', N'Late', N'Late Abs')
-
-  AND ar.SchoolID = @SchoolID
-
-  AND ISNULL(ar.Attendance_ScheduleID, 0) > 0
-
-ORDER BY sdCard.StartTime DESC, ar.EntryTime DESC">
-
+                                SelectCommand="SELECT 1 AS ok WHERE 1 = 0">
                                 <SelectParameters>
 
                                     <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
@@ -566,7 +230,7 @@ ORDER BY sdCard.StartTime DESC, ar.EntryTime DESC">
 
                                             </div>
 
-                                            <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>" alt="" />
+                                            <img class="card-img-top" src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%# Eval("StudentID") %>&amp;cache=1" alt="" />
 
                                             <span class="notify-badge z-depth-2 <%# Eval("Attendance") %>"><%# Eval("Attendance") %></span>
 
@@ -598,169 +262,9 @@ ORDER BY sdCard.StartTime DESC, ar.EntryTime DESC">
 
                                 ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
-                                SelectCommand="SELECT StudentID,
+                                OnSelecting="DisplaySql_Selecting" OnSelected="DisplaySql_Selected"
 
-       StudentsName,
-
-       ScheduleKey AS ScheduleID,
-
-       ScheduleName,
-
-       Attendance,
-
-       EntryTime,
-
-       ExitTime
-
-FROM (
-
-SELECT StudentID,
-
-       StudentsName,
-
-       ScheduleName,
-
-       Attendance,
-
-       EntryTime,
-
-       ExitTime,
-
-       SortStart,
-
-       ScheduleKey,
-
-       ROW_NUMBER() OVER (
-
-           PARTITION BY StudentID, ScheduleKey
-
-           ORDER BY
-
-               CASE Attendance WHEN N'Abs' THEN 2 ELSE 1 END,
-
-               CASE WHEN ExitTime IS NULL THEN 1 ELSE 0 END,
-
-               ExitTime DESC,
-
-               EntryTime DESC
-
-       ) AS RowNum
-
-FROM (
-
-SELECT ar.StudentID,
-
-       s.StudentsName,
-
-       ISNULL(schInfo.ScheduleName, N'Schedule') AS ScheduleName,
-
-       ar.Attendance,
-
-       CONVERT(varchar(15), ar.EntryTime, 100) AS EntryTime,
-
-       CONVERT(varchar(15), ar.ExitTime, 100) AS ExitTime,
-
-       sdCard.StartTime AS SortStart,
-
-       ISNULL(ar.Attendance_ScheduleID, 0) AS ScheduleKey
-
-FROM Attendance_Record ar
-
-INNER JOIN Student s ON ar.StudentID = s.StudentID AND s.Status = N'Active'
-
-INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = @SchoolID
-  AND scEy.EducationYearID = @EducationYearID
-
-LEFT JOIN Attendance_Schedule schInfo
-    ON schInfo.SchoolID = ar.SchoolID
-   AND schInfo.ScheduleID = ar.Attendance_ScheduleID
-
-INNER JOIN Attendance_Schedule_Day sdCard
-    ON sdCard.ScheduleID = ar.Attendance_ScheduleID
-   AND sdCard.SchoolID = ar.SchoolID
-   AND sdCard.Day = DATENAME(dw, GETDATE())
-
-WHERE ar.AttendanceDate = CONVERT(date, GETDATE())
-
-  AND (ar.Is_OUT = 1 OR ar.Attendance = N'Abs')
-
-  AND ar.SchoolID = @SchoolID
-
-  AND ISNULL(ar.Attendance_ScheduleID, 0) > 0
-
-UNION ALL
-
-SELECT ass.StudentID,
-
-       s.StudentsName,
-
-       sch.ScheduleName,
-
-       N'Abs' AS Attendance,
-
-       NULL AS EntryTime,
-
-       NULL AS ExitTime,
-
-       sd.StartTime AS SortStart,
-
-       ass.ScheduleID AS ScheduleKey
-
-FROM Attendance_Schedule_AssignStudent ass
-
-INNER JOIN Student s ON ass.StudentID = s.StudentID AND s.Status = N'Active'
-
-INNER JOIN StudentsClass scEy ON scEy.StudentID = s.StudentID AND scEy.SchoolID = ass.SchoolID
-  AND scEy.EducationYearID = @EducationYearID
-
-INNER JOIN Attendance_Schedule sch
-    ON sch.ScheduleID = ass.ScheduleID AND sch.SchoolID = ass.SchoolID
-
-INNER JOIN Attendance_Schedule_Day sd
-    ON sd.ScheduleID = ass.ScheduleID AND sd.SchoolID = ass.SchoolID AND sd.Day = DATENAME(dw, GETDATE())
-
-WHERE ass.SchoolID = @SchoolID
-
-  AND CAST(GETDATE() AS time) > sd.LateEntryTime
-
-  AND NOT EXISTS (
-
-      SELECT 1
-
-      FROM Attendance_Record ar2
-
-      WHERE ar2.SchoolID = @SchoolID
-
-        AND ar2.StudentID = ass.StudentID
-
-        AND ar2.AttendanceDate = CONVERT(date, GETDATE())
-
-        AND ISNULL(ar2.Attendance_ScheduleID, 0) = ass.ScheduleID
-
-  )
-
-  AND NOT EXISTS (
-
-      SELECT 1
-
-      FROM Attendance_Leave al
-
-      WHERE al.SchoolID = @SchoolID
-
-        AND al.StudentID = ass.StudentID
-
-        AND CONVERT(date, GETDATE()) BETWEEN al.StartDate AND al.EndDate
-
-  )
-
-) rawRows
-
-) rankedRows
-
-WHERE RowNum = 1
-
-ORDER BY SortStart, StudentsName">
-
+                                SelectCommand="SELECT 1 AS ok WHERE 1 = 0">
                                 <SelectParameters>
 
                                     <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
@@ -804,7 +308,7 @@ ORDER BY SortStart, StudentsName">
 
                                             </div>
 
-                                            <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>" alt="" />
+                                            <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>&amp;cache=1" alt="" />
 
                                             <span class="notify-badge z-depth-2 <%# Eval("AttendanceStatus") %>"><%# Eval("AttendanceStatus") %></span>
 
@@ -828,45 +332,9 @@ ORDER BY SortStart, StudentsName">
 
                                 ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
-                                SelectCommand="SELECT ear.EmployeeID,
+                                OnSelecting="DisplaySql_Selecting" OnSelected="DisplaySql_Selected"
 
-       e.FirstName + N' ' + e.LastName AS Name,
-
-       ISNULL(ear.Attendance_ScheduleID, 0) AS ScheduleID,
-
-       ISNULL(schInfo.ScheduleName, N'Schedule') AS ScheduleName,
-
-       ear.AttendanceStatus,
-
-       CONVERT(varchar(15), ear.EntryTime, 100) AS EntryTime
-
-FROM Employee_Attendance_Record ear
-
-INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID
-
-LEFT JOIN Attendance_Schedule schInfo
-    ON schInfo.SchoolID = ear.SchoolID
-   AND schInfo.ScheduleID = ear.Attendance_ScheduleID
-
-INNER JOIN Attendance_Schedule_Day sdCard
-    ON sdCard.ScheduleID = ear.Attendance_ScheduleID
-   AND sdCard.SchoolID = ear.SchoolID
-   AND sdCard.Day = DATENAME(dw, GETDATE())
-
-WHERE ear.AttendanceDate = CONVERT(date, GETDATE())
-
-  AND ear.EntryTime IS NOT NULL
-
-  AND ear.Is_OUT = 0
-
-  AND ear.AttendanceStatus IN (N'Pre', N'Late', N'Late Abs')
-
-  AND ear.SchoolID = @SchoolID
-
-  AND ISNULL(ear.Attendance_ScheduleID, 0) > 0
-
-ORDER BY sdCard.StartTime DESC, ear.EntryTime DESC">
-
+                                SelectCommand="SELECT 1 AS ok WHERE 1 = 0">
                                 <SelectParameters>
 
                                     <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
@@ -899,7 +367,7 @@ ORDER BY sdCard.StartTime DESC, ear.EntryTime DESC">
 
                                             </div>
 
-                                            <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>" alt="" />
+                                            <img class="card-img-top" src="/Handeler/Employee_Image.ashx?Img=<%# Eval("EmployeeID") %>&amp;cache=1" alt="" />
 
                                             <span class="notify-badge z-depth-2 <%# Eval("AttendanceStatus") %>"><%# Eval("AttendanceStatus") %></span>
 
@@ -931,163 +399,9 @@ ORDER BY sdCard.StartTime DESC, ear.EntryTime DESC">
 
                                 ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
 
-                                SelectCommand="SELECT EmployeeID,
+                                OnSelecting="DisplaySql_Selecting" OnSelected="DisplaySql_Selected"
 
-       Name,
-
-       ScheduleKey AS ScheduleID,
-
-       ScheduleName,
-
-       AttendanceStatus,
-
-       EntryTime,
-
-       ExitTime
-
-FROM (
-
-SELECT EmployeeID,
-
-       Name,
-
-       ScheduleName,
-
-       AttendanceStatus,
-
-       EntryTime,
-
-       ExitTime,
-
-       SortStart,
-
-       ScheduleKey,
-
-       ROW_NUMBER() OVER (
-
-           PARTITION BY EmployeeID, ScheduleKey
-
-           ORDER BY
-
-               CASE AttendanceStatus WHEN N'Abs' THEN 2 ELSE 1 END,
-
-               CASE WHEN ExitTime IS NULL THEN 1 ELSE 0 END,
-
-               ExitTime DESC,
-
-               EntryTime DESC
-
-       ) AS RowNum
-
-FROM (
-
-SELECT ear.EmployeeID,
-
-       e.FirstName + N' ' + e.LastName AS Name,
-
-       ISNULL(schInfo.ScheduleName, N'Schedule') AS ScheduleName,
-
-       ear.AttendanceStatus,
-
-       CONVERT(varchar(15), ear.EntryTime, 100) AS EntryTime,
-
-       CONVERT(varchar(15), ear.ExitTime, 100) AS ExitTime,
-
-       sdCard.StartTime AS SortStart,
-
-       ISNULL(ear.Attendance_ScheduleID, 0) AS ScheduleKey
-
-FROM Employee_Attendance_Record ear
-
-INNER JOIN VW_Emp_Info e ON ear.EmployeeID = e.EmployeeID
-
-LEFT JOIN Attendance_Schedule schInfo
-    ON schInfo.SchoolID = ear.SchoolID
-   AND schInfo.ScheduleID = ear.Attendance_ScheduleID
-
-INNER JOIN Attendance_Schedule_Day sdCard
-    ON sdCard.ScheduleID = ear.Attendance_ScheduleID
-   AND sdCard.SchoolID = ear.SchoolID
-   AND sdCard.Day = DATENAME(dw, GETDATE())
-
-WHERE ear.AttendanceDate = CONVERT(date, GETDATE())
-
-  AND (ear.Is_OUT = 1 OR ear.AttendanceStatus = N'Abs')
-
-  AND ear.SchoolID = @SchoolID
-
-  AND ISNULL(ear.Attendance_ScheduleID, 0) > 0
-
-UNION ALL
-
-SELECT eas.EmployeeID,
-
-       e.FirstName + N' ' + e.LastName AS Name,
-
-       sch.ScheduleName,
-
-       N'Abs' AS AttendanceStatus,
-
-       NULL AS EntryTime,
-
-       NULL AS ExitTime,
-
-       sd.StartTime AS SortStart,
-
-       eas.ScheduleID AS ScheduleKey
-
-FROM Employee_Attendance_Schedule_Assign eas
-
-INNER JOIN VW_Emp_Info e ON eas.EmployeeID = e.EmployeeID AND e.Job_Status = N'Active'
-
-INNER JOIN Attendance_Schedule sch
-    ON sch.ScheduleID = eas.ScheduleID AND sch.SchoolID = eas.SchoolID
-
-INNER JOIN Attendance_Schedule_Day sd
-    ON sd.ScheduleID = eas.ScheduleID AND sd.SchoolID = eas.SchoolID AND sd.Day = DATENAME(dw, GETDATE())
-
-WHERE eas.SchoolID = @SchoolID
-
-  AND CAST(GETDATE() AS time) > sd.LateEntryTime
-
-  AND NOT EXISTS (
-
-      SELECT 1
-
-      FROM Employee_Attendance_Record ear2
-
-      WHERE ear2.SchoolID = @SchoolID
-
-        AND ear2.EmployeeID = eas.EmployeeID
-
-        AND ear2.AttendanceDate = CONVERT(date, GETDATE())
-
-        AND ISNULL(ear2.Attendance_ScheduleID, 0) = eas.ScheduleID
-
-  )
-
-  AND NOT EXISTS (
-
-      SELECT 1
-
-      FROM Employee_Leave el
-
-      WHERE el.SchoolID = @SchoolID
-
-        AND el.EmployeeID = eas.EmployeeID
-
-        AND CONVERT(date, GETDATE()) BETWEEN el.LeaveStartDate AND el.LeaveEndDate
-
-  )
-
-) rawRows
-
-) rankedRows
-
-WHERE RowNum = 1
-
-ORDER BY SortStart, Name">
-
+                                SelectCommand="SELECT 1 AS ok WHERE 1 = 0">
                                 <SelectParameters>
 
                                     <asp:QueryStringParameter Name="SchoolID" QueryStringField="SchoolID" />
@@ -1374,6 +688,12 @@ ORDER BY SortStart, Name">
                         oldShell.innerHTML = newShell.innerHTML;
                         initScheduleFilterUI();
                         var schedules = window.getDisplaySchedules();
+                        $('.info-block[data-schedule-id]').each(function () {
+                            var id = parseInt($(this).attr('data-schedule-id'), 10);
+                            if (id && !schedules.some(function (s) { return s.id === id; })) {
+                                schedules.push({ id: id, name: 'Schedule ' + id });
+                            }
+                        });
                         if (schedules.length) {
                             applyScheduleFilter(schedules.map(function (s) { return s.id; }));
                         }

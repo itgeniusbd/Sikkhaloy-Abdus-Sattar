@@ -2264,5 +2264,90 @@ namespace EDUCATION.COM.Exam.Result
 
             return dt;
         }
+
+        [System.Web.Services.WebMethod(EnableSession = true)]
+        public static object SaveSignatureImage(string signatureType, string imageData)
+        {
+            try
+            {
+                var context = HttpContext.Current;
+                if (context == null || context.Session == null)
+                {
+                    return new { success = false, message = "Session context not available" };
+                }
+
+                var schoolId = context.Session["SchoolID"];
+                if (schoolId == null)
+                {
+                    return new { success = false, message = "School ID not found in session" };
+                }
+
+                if (string.IsNullOrEmpty(imageData))
+                {
+                    return new { success = false, message = "No image data provided" };
+                }
+
+                byte[] imageBytes;
+                try
+                {
+                    imageBytes = Convert.FromBase64String(imageData);
+                }
+                catch
+                {
+                    return new { success = false, message = "Invalid image data format" };
+                }
+
+                if (imageBytes.Length == 0)
+                {
+                    return new { success = false, message = "Image data is empty" };
+                }
+
+                string column;
+                switch ((signatureType ?? "").ToLowerInvariant())
+                {
+                    case "teacher":
+                        column = "Teacher_Sign";
+                        break;
+                    case "principal":
+                        column = "Principal_Sign";
+                        break;
+                    default:
+                        return new { success = false, message = "Invalid signature type: " + signatureType };
+                }
+
+                using (SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString))
+                {
+                    con.Open();
+                    string updateQuery = $"UPDATE SchoolInfo SET {column} = @ImageData WHERE SchoolID = @SchoolID";
+
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, con))
+                    {
+                        cmd.Parameters.Add("@ImageData", SqlDbType.VarBinary, -1).Value = imageBytes;
+                        cmd.Parameters.AddWithValue("@SchoolID", schoolId);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        if (rowsAffected <= 0)
+                        {
+                            return new { success = false, message = "No records updated. Please check if school exists." };
+                        }
+                    }
+                }
+
+                string imageUrl = "/Handeler/SignatureHandler.ashx?type=" + signatureType.ToLowerInvariant()
+                    + "&schoolId=" + schoolId + "&t=" + DateTime.Now.Ticks;
+
+                return new
+                {
+                    success = true,
+                    message = "Signature saved successfully",
+                    schoolId = schoolId,
+                    imageUrl = imageUrl
+                };
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, message = ex.Message };
+            }
+        }
     }
 }

@@ -94,6 +94,7 @@
                         <Columns>
                             <asp:BoundField DataField="AccountIN_Amount" HeaderText="Deposit Amount" SortExpression="AccountIN_Amount" />
                             <asp:BoundField DataField="AccountIN_Date" HeaderText="Deposit Date" SortExpression="AccountIN_Date" DataFormatString="{0:d MMM yyyy}" />
+                            <asp:BoundField DataField="Insert_Date" HeaderText="Entry Date" SortExpression="Insert_Date" DataFormatString="{0:d MMM yyyy}" ReadOnly="True" />
                             <asp:BoundField DataField="IN_Details" HeaderText="Details" SortExpression="IN_Details" />
                         </Columns>
                     </asp:GridView>
@@ -147,6 +148,7 @@
                         <Columns>
                             <asp:BoundField DataField="AccountOUT_Amount" HeaderText="Withdraw Amount" SortExpression="AccountOUT_Amount" />
                             <asp:BoundField DataField="AccountOUT_Date" HeaderText="Withdraw Date" SortExpression="AccountOUT_Date" DataFormatString="{0:d MMM yyyy}" />
+                            <asp:BoundField DataField="Insert_Date" HeaderText="Entry Date" SortExpression="Insert_Date" DataFormatString="{0:d MMM yyyy}" ReadOnly="True" />
                             <asp:BoundField DataField="Out_Details" HeaderText="Details" SortExpression="Out_Details" />
                         </Columns>
                     </asp:GridView>

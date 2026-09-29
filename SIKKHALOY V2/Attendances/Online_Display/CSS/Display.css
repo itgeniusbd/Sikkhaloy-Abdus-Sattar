@@ -422,6 +422,8 @@ footer { display: none; }
 .schedule-stats.compact .chip.late b { color: #ef6c00; }
 .schedule-stats.compact .chip.late-abs b { color: #d84315; }
 .schedule-stats.compact .chip.abs b { color: #c62828; }
+.schedule-stats.compact .chip.leave { grid-column: 1 / -1; }
+.schedule-stats.compact .chip.leave b { color: #6a1b9a; }
 .schedule-badge {
     position: absolute;
     left: 4px;

@@ -2,15 +2,181 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <style>
-        .row-selected { background-color: #f3fdf6 }
-        .active-attendance { background-color: #f3fdf6 }
-        .UpdatedByName { color: #2c5282; font-size: 11px; font-weight: bold; white-space: normal; }
+        .att-page .row-selected { background-color: #f3fdf6; }
+        .att-page .active-attendance { background-color: #f3fdf6; }
+        .att-page .UpdatedByName { color: #2c5282; font-size: 11px; font-weight: bold; white-space: normal; }
+
+        .att-filters .form-group { margin-bottom: 10px; }
+        .att-lang { display: inline-flex !important; align-items: center; flex-wrap: wrap; padding: 4px 10px !important; min-height: auto !important; height: auto !important; }
+        .att-lang label {
+            background-image: none !important;
+            height: auto !important;
+            line-height: 1.2 !important;
+            padding: 6px 10px !important;
+            margin: 0 4px 0 0 !important;
+            border-radius: 16px;
+            border: 1px solid #cfd8dc;
+            font-size: 13px !important;
+        }
+        .att-lang input[type=radio]:checked + label { background: #00a12a; color: #fff; border-color: #00a12a; }
+
+        .att-status { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .att-status input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+        .att-status label {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            min-width: 52px;
+            height: 34px !important;
+            line-height: 1 !important;
+            padding: 0 12px !important;
+            margin: 0 !important;
+            border-radius: 17px;
+            border: 1px solid #d0d5dd;
+            background: #fff !important;
+            background-image: none !important;
+            font-size: 13px !important;
+            font-weight: 600;
+            color: #455a64;
+        }
+        .att-status input[value="Pre"] + label { color: #2e7d32; border-color: #a5d6a7; }
+        .att-status input[value="Pre"]:checked + label { background: #2e7d32 !important; color: #fff; border-color: #2e7d32; }
+        .att-status input[value="Abs"] + label { color: #c62828; border-color: #ef9a9a; }
+        .att-status input[value="Abs"]:checked + label { background: #c62828 !important; color: #fff; border-color: #c62828; }
+        .att-status input[value="Late"] + label { color: #ef6c00; border-color: #ffcc80; }
+        .att-status input[value="Late"]:checked + label { background: #ef6c00 !important; color: #fff; border-color: #ef6c00; }
+        .att-status input[value="Leave"] + label { color: #1565c0; border-color: #90caf9; }
+        .att-status input[value="Leave"]:checked + label { background: #1565c0 !important; color: #fff; border-color: #1565c0; }
+        .att-status input[value="Bunk"] + label { color: #6a1b9a; border-color: #ce93d8; }
+        .att-status input[value="Bunk"]:checked + label { background: #6a1b9a !important; color: #fff; border-color: #6a1b9a; }
+
+        .att-extra { margin-top: 8px; }
+        .att-row.att-pre .att-extra { display: none; }
+        .att-page .att-extra input[type=checkbox] {
+            display: inline-block !important;
+            width: 18px;
+            height: 18px;
+            margin: 0 6px 0 0;
+            vertical-align: middle;
+            cursor: pointer;
+            accent-color: #00a12a;
+        }
+        .att-page .att-extra input[type=checkbox] + label,
+        .att-page .att-sms label {
+            background-image: none !important;
+            padding-left: 0 !important;
+            height: auto !important;
+            line-height: 1.4 !important;
+            display: inline !important;
+            cursor: pointer;
+            font-weight: 600;
+            color: #37474f;
+        }
+        .att-submit-bar { margin-top: 12px; }
+        .att-all-pre {
+            margin-left: 8px;
+            border: 1px solid #a5d6a7;
+            background: #e8f5e9;
+            color: #1b5e20;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 767.98px) {
+            .att-page > h3 { font-size: 0.95rem; padding: 0.7rem 0.85rem; }
+            .att-filters.form-inline { display: block; }
+            .att-filters .form-group { width: 100%; margin-right: 0; }
+            .att-filters .form-control,
+            .att-filters select { width: 100%; max-width: 100%; }
+            .att-filters .btn { width: 100%; }
+            .att-lang { width: 100%; justify-content: space-between; }
+            .att-lang label { flex: 1; text-align: center; justify-content: center; }
+
+            .att-table { overflow: visible !important; }
+            .att-grid { border: none; text-align: left; }
+            .att-grid > tbody > tr:first-child {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: #1b5e20;
+                border-radius: 12px;
+                padding: 10px 14px;
+                margin-bottom: 10px;
+            }
+            .att-grid > tbody > tr:first-child th {
+                display: none;
+                border: none;
+                background: transparent;
+                color: #fff;
+                padding: 0;
+            }
+            .att-grid > tbody > tr:first-child th:first-child { display: flex; align-items: center; }
+            .att-all-pre { border-color: rgba(255,255,255,.55); background: rgba(255,255,255,.12); color: #fff; }
+
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) {
+                display: grid;
+                grid-template-columns: 36px 1fr auto;
+                grid-template-areas:
+                    "check name roll"
+                    "check id taken"
+                    "att att att";
+                gap: 2px 8px;
+                background: #fff;
+                border: 1px solid #e6e8ee;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
+                margin-bottom: 10px;
+                padding: 12px;
+                text-align: left;
+            }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td {
+                display: block;
+                width: auto;
+                border: none;
+                padding: 0;
+                font-size: 14px;
+            }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(1) { grid-area: check; padding-top: 2px; }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(2) { grid-area: id; color: #78909c; font-size: 12px; }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(2)::before { content: "ID "; }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(3) { grid-area: name; font-size: 15px; }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(4) {
+                grid-area: roll;
+                background: #e8f5e9;
+                color: #2e7d32;
+                border-radius: 12px;
+                padding: 2px 8px;
+                font-size: 12px;
+                font-weight: 600;
+                text-align: center;
+            }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(4)::before { content: "Roll "; }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(5) { grid-area: taken; font-size: 11px; text-align: right; }
+            .att-grid > tbody > tr:not(:first-child):not(.pgr) > td:nth-child(6) { grid-area: att; padding-top: 8px; }
+            .att-grid .row-selected,
+            .att-grid .active-attendance { background-color: #f3fdf6; }
+            .att-status { width: 100%; }
+            .att-status label { flex: 1 1 18%; min-width: 56px; height: 38px !important; }
+            .att-submit-bar {
+                position: sticky;
+                bottom: 0;
+                z-index: 8;
+                background: #fff;
+                padding: 10px 0 6px;
+                box-shadow: 0 -6px 16px rgba(16, 24, 40, 0.08);
+            }
+            .att-submit-bar .btn { width: 100%; padding: 0.7rem 1rem; }
+        }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
+    <div class="att-page">
     <h3>Students Attendance</h3>
     <asp:Label ID="SuccessLabel" runat="server" CssClass="text-success" Font-Bold="true"></asp:Label>
-    <div class="form-inline">
+    <div class="form-inline att-filters">
         <div class="form-group">
             <asp:DropDownList ID="ClassDropDownList" runat="server" CssClass="form-control" AppendDataBoundItems="True" AutoPostBack="True" DataSourceID="ClassNameSQL" DataTextField="Class" DataValueField="ClassID" OnSelectedIndexChanged="ClassDropDownList_SelectedIndexChanged">
                 <asp:ListItem Value="0">[ SELECT CLASS ]</asp:ListItem>
@@ -75,7 +241,7 @@
             <asp:Button ID="FindButton" runat="server" Text="Find" CssClass="btn btn-default" OnClick="FindButton_Click" />
         </div>
         <div class="form-group">
-            <asp:RadioButtonList ClientIDMode="Static" ID="SMSLanguageRadioButtonList" CssClass="form-control" runat="server" RepeatLayout="Flow" RepeatDirection="Horizontal">
+            <asp:RadioButtonList ClientIDMode="Static" ID="SMSLanguageRadioButtonList" CssClass="form-control att-lang" runat="server" RepeatLayout="Flow" RepeatDirection="Horizontal">
                 <asp:ListItem Selected="True" Value="eng">English SMS</asp:ListItem>
                 <asp:ListItem Value="bn">Bangla SMS</asp:ListItem>
             </asp:RadioButtonList>
@@ -84,12 +250,13 @@
 
      
 
-    <div class="table-responsive">
-        <asp:GridView ID="StudentsAttendanceGridView" AllowSorting="true" runat="server" AutoGenerateColumns="False" DataKeyNames="StudentClassID,SMSPhoneNo,ID,StudentsName,StudentID" DataSourceID="StudentsRecordSQL" CssClass="mGrid" PageSize="50" OnDataBinding="StudentsAttendanceGridView_DataBinding" OnRowDataBound="StudentsAttendanceGridView_RowDataBound">
+    <div class="table-responsive att-table">
+        <asp:GridView ID="StudentsAttendanceGridView" AllowSorting="true" runat="server" AutoGenerateColumns="False" DataKeyNames="StudentClassID,SMSPhoneNo,ID,StudentsName,StudentID" DataSourceID="StudentsRecordSQL" CssClass="mGrid att-grid" PageSize="50" OnDataBinding="StudentsAttendanceGridView_DataBinding" OnRowDataBound="StudentsAttendanceGridView_RowDataBound">
             <Columns>
                 <asp:TemplateField>
                     <HeaderTemplate>
                         <asp:CheckBox ClientIDMode="Static" ID="AllCheckBox" runat="server" Text="All" />
+                        <button type="button" id="MarkAllPresentBtn" class="att-all-pre">All Present</button>
                     </HeaderTemplate>
                     <ItemTemplate>
                         <asp:CheckBox ID="Attendance_CheckBox" onClick="onChangeSelect(this)" runat="server" Text=" " />
@@ -113,20 +280,19 @@
                 </asp:TemplateField>
                 <asp:TemplateField HeaderText="Attendance">
                     <ItemTemplate>
-                        <div class="px-2">
-                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-1">
-                                <asp:RadioButtonList ID="AttendenceRadioButtonList" runat="server" RepeatLayout="Flow" RepeatDirection="Horizontal" data-name='<%# Eval("StudentsName") %>'>
-                                    <asp:ListItem Value="Pre" Selected="True">Pre</asp:ListItem>
-                                    <asp:ListItem Value="Abs">Abs</asp:ListItem>
-                                    <asp:ListItem Value="Late">Late</asp:ListItem>
-                                    <asp:ListItem Value="Leave">Leave</asp:ListItem>
-                                    <asp:ListItem Value="Bunk">Bunk</asp:ListItem>
-                                </asp:RadioButtonList>
-                                <asp:CheckBox ID="SMSCheckBox" runat="server" Enabled="False" Text='Send SMS?' />
+                        <div class="att-cell">
+                            <asp:RadioButtonList ID="AttendenceRadioButtonList" runat="server" CssClass="att-status" RepeatLayout="Flow" RepeatDirection="Horizontal" data-name='<%# Eval("StudentsName") %>'>
+                                <asp:ListItem Value="Pre" Selected="True">Pre</asp:ListItem>
+                                <asp:ListItem Value="Abs">Abs</asp:ListItem>
+                                <asp:ListItem Value="Late">Late</asp:ListItem>
+                                <asp:ListItem Value="Leave">Leave</asp:ListItem>
+                                <asp:ListItem Value="Bunk">Bunk</asp:ListItem>
+                            </asp:RadioButtonList>
+                            <div class="att-extra">
+                                <asp:CheckBox ID="SMSCheckBox" runat="server" CssClass="att-sms" Enabled="False" Text="Send SMS?" />
+                                <asp:Label ID="AtDateLabel" runat="server" CssClass="red-text d-block"></asp:Label>
+                                <asp:TextBox ID="ReasonTextBox" runat="server" CssClass="form-control mt-1" Enabled="false" TextMode="MultiLine" Rows="2"></asp:TextBox>
                             </div>
-
-                            <asp:Label ID="AtDateLabel" runat="server" CssClass="red-text"></asp:Label>
-                            <asp:TextBox ID="ReasonTextBox" runat="server" CssClass="form-control" Enabled="false" TextMode="MultiLine"></asp:TextBox>
                         </div>
                     </ItemTemplate>
                     <ItemStyle HorizontalAlign="Left" />
@@ -151,8 +317,10 @@
 
     <% if (StudentsAttendanceGridView.Rows.Count > 0)
     { %>
-    <asp:Button ID="AttendanceButton" runat="server" CssClass="btn btn-primary" Text="Submit" OnClick="AttendanceButton_Click" ValidationGroup="1" CausesValidation="true" />
-    <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
+    <div class="att-submit-bar">
+        <asp:Button ID="AttendanceButton" runat="server" CssClass="btn btn-primary" Text="Submit" OnClick="AttendanceButton_Click" ValidationGroup="1" CausesValidation="true" />
+        <asp:Label ID="ErrorLabel" runat="server" CssClass="EroorSummer"></asp:Label>
+    </div>
     <%} %>
 
     <asp:SqlDataSource ID="SMS_OtherInfoSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" InsertCommand="INSERT INTO SMS_OtherInfo(SMS_Send_ID, SchoolID, StudentID, TeacherID, EducationYearID) VALUES (@SMS_Send_ID, @SchoolID, @StudentID, @TeacherID, @EducationYearID)" SelectCommand="SELECT * FROM [SMS_OtherInfo]">
@@ -198,13 +366,28 @@
             const checkAll = studentsTable.querySelector("#AllCheckBox");
 
             //on change select all
-            checkAll.addEventListener("change", function () {
-                for (let i = 1; i < rows.length; i++) {
-                    rows[i].querySelector("input[type=checkbox]").checked = this.checked;
+            if (checkAll) {
+                checkAll.addEventListener("change", function () {
+                    for (let i = 1; i < rows.length; i++) {
+                        const box = rows[i].querySelector("[id*=Attendance_CheckBox]");
+                        if (!box) continue;
+                        box.checked = this.checked;
+                        this.checked ? rows[i].classList.add("row-selected") : rows[i].classList.remove("row-selected");
+                    }
+                });
+            }
 
-                    this.checked ? rows[i].classList.add("row-selected") : rows[i].classList.remove("row-selected");
-                }
-            });
+            const markAllPresent = document.getElementById("MarkAllPresentBtn");
+            if (markAllPresent) {
+                markAllPresent.addEventListener("click", function () {
+                    for (let i = 1; i < rows.length; i++) {
+                        const pre = rows[i].querySelector('.att-status input[value="Pre"]');
+                        if (!pre) continue;
+                        pre.checked = true;
+                        setMessage(pre, "", "Pre");
+                    }
+                });
+            }
 
             //sms generator
             function getScheduleName() {
@@ -255,36 +438,55 @@
                 }
             }
 
-            //set sms to textarea
-            function setMessage(element, message) {
-                const parent = element.parentElement.parentElement.parentElement;
-
-                const messageTextarea = parent.getElementsByTagName("textarea")[0];
-                messageTextarea.disabled = message ? false : true;
-                messageTextarea.value = message;
-
-                const smsCheckbox = parent.querySelector("input[type=checkbox]");
-                smsCheckbox.disabled = message ? false : true;
-                smsCheckbox.checked = message ? true : false;
+            function getRow(element) {
+                return element.closest("tr");
             }
 
-            //radio button click
+            function applyStatusClass(row, status) {
+                if (!row) return;
+                row.classList.remove("att-pre", "att-abs", "att-late", "att-leave", "att-bunk");
+                if (status)
+                    row.classList.add("att-" + status.toLowerCase());
+            }
+
+            function setMessage(element, message, status) {
+                const row = getRow(element);
+                applyStatusClass(row, status);
+
+                const messageTextarea = row.querySelector("textarea");
+                if (messageTextarea) {
+                    messageTextarea.disabled = message ? false : true;
+                    messageTextarea.value = message || "";
+                }
+
+                const smsCheckbox = row.querySelector("[id*=SMSCheckBox]");
+                if (smsCheckbox) {
+                    smsCheckbox.disabled = message ? false : true;
+                    smsCheckbox.checked = message ? true : false;
+                }
+            }
+
             studentsTable.addEventListener("click", function (e) {
                 if (e.target.type === "radio") {
                     const element = e.target;
                     const status = element.value;
-                    const studentName = element.parentElement.dataset.name;
+                    const list = element.closest(".att-status") || element.parentElement;
+                    const studentName = list && list.dataset ? list.dataset.name : "";
 
                     const language = getCheckedRadio(languageRadio);
                     const message = createTextSMS(status, studentName, language);
-                    setMessage(element, message);
+                    setMessage(element, message, status);
                 }
-            })
+            });
+
+            for (let i = 1; i < rows.length; i++) {
+                const checked = rows[i].querySelector(".att-status input[type=radio]:checked");
+                applyStatusClass(rows[i], checked ? checked.value : "Pre");
+            }
         })();
 
-        //on change select
         function onChangeSelect(select) {
-            const element = select.parentElement.parentElement;
+            const element = select.closest("tr") || select.parentElement.parentElement;
             select.checked ? element.classList.add("row-selected") : element.classList.remove("row-selected");
         }
 
@@ -292,4 +494,5 @@
             $("#_8").addClass("active");
         });
     </script>
+    </div>
 </asp:Content>

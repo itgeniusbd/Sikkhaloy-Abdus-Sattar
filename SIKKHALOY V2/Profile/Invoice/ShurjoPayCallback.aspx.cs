@@ -18,6 +18,16 @@ namespace EDUCATION.COM.Profile.Invoice
         public string HeaderIcon     { get; private set; } = "fa-clock";
         public string HeaderTitle    { get; private set; } = "পেমেন্ট যাচাই করা হচ্ছে...";
 
+        private string RedirectOrderId { get; set; } = "";
+
+        private string RedirectAmount { get; set; } = "";
+
+        private string RedirectTrx { get; set; } = "";
+
+        private string RedirectKind { get; set; } = "invoice";
+
+        private string RedirectDetail { get; set; } = "";
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -38,11 +48,36 @@ namespace EDUCATION.COM.Profile.Invoice
                     SetHeader("failed", "fa-times-circle", "পেমেন্ট ব্যর্থ");
                     SetLabel("lblMessage", "alert alert-danger d-block text-center",
                              "<i class='fa fa-exclamation-circle'></i> অর্ডার আইডি পাওয়া যায়নি।");
+                    RedirectToHybrid();
                     return;
                 }
 
                 VerifyAndUpdate(spOrderId, merOrderId);
+                RedirectToHybrid();
+                return;
             }
+        }
+
+        private void RedirectToHybrid()
+        {
+            try
+            {
+                var status = HeaderCssClass ?? "pending";
+                if (status == "pending" && string.IsNullOrEmpty(RedirectOrderId))
+                    status = "failed";
+                var url = "https://hybrid.sikkhaloy.com/payment-result"
+                    + "?status=" + Uri.EscapeDataString(status)
+                    + "&kind=" + Uri.EscapeDataString(RedirectKind ?? "invoice")
+                    + "&order=" + Uri.EscapeDataString(RedirectOrderId ?? "")
+                    + "&amount=" + Uri.EscapeDataString(RedirectAmount ?? "")
+                    + "&trx=" + Uri.EscapeDataString(RedirectTrx ?? "")
+                    + "&msg=" + Uri.EscapeDataString(HeaderTitle ?? "");
+                if (!string.IsNullOrEmpty(RedirectDetail))
+                    url += "&detail=" + Uri.EscapeDataString(RedirectDetail);
+                Response.Redirect(url, false);
+                Context.ApplicationInstance.CompleteRequest();
+            }
+            catch { /* fall through to legacy UI if redirect fails */ }
         }
 
         private void VerifyAndUpdate(string spOrderId, string merOrderId)
@@ -89,6 +124,9 @@ namespace EDUCATION.COM.Profile.Invoice
                 SetLabel("lblTrxId",   "", verify.bank_trx_id ?? "-");
                 SetLabel("lblDate",    "", verify.recv_dt ?? DateTime.Now.ToString("dd MMM yyyy"));
                 SetLabel("lblStatus",  "", verify.transaction_status ?? verify.bank_status ?? "-");
+                RedirectOrderId = ourOrderId ?? "";
+                RedirectAmount = (verify.recv_amt ?? verify.amount ?? "0");
+                RedirectTrx = verify.bank_trx_id ?? "";
 
                 bool isPaid = IsSuccessStatus(verify.sp_code, verify.bank_status, verify.transaction_status);
 
@@ -119,6 +157,7 @@ namespace EDUCATION.COM.Profile.Invoice
 
                     if (isSmsRecharge)
                     {
+                        RedirectKind = "sms";
                         bool saved = SaveSMSRechargeAfterPayment(spOrderId, ourOrderId, verify, schoolId, invoiceNote);
                         if (saved)
                         {
@@ -132,7 +171,8 @@ namespace EDUCATION.COM.Profile.Invoice
                     }
                     else
                     {
-                        bool saved = MarkInvoiceAsPaid(spOrderId, ourOrderId, verify, schoolId);
+                        RedirectKind = "invoice";
+                        bool saved = MarkInvoiceAsPaid(spOrderId, ourOrderId, verify, schoolId, invoiceNote);
                         if (saved)
                         {
                             SetHeader("success", "fa-check-circle", "পেমেন্ট সফল!");
@@ -528,12 +568,20 @@ IF NOT EXISTS (SELECT 1 FROM AAP_Invoice WHERE SchoolID = @SID AND IsPaid = 0)
                 using (SqlConnection conn = new SqlConnection(connStr))
                 {
                     conn.Open();
-                    // 1. RegistrationID দিয়ে Admin table থেকে নাম নাও
                     if (registrationID > 0)
                     {
-                        using (SqlCommand cmd = new SqlCommand(
-                            "SELECT TOP 1 FirstName + ISNULL(' ' + NULLIF(LastName,''), '') FROM Admin " +
-                            "WHERE RegistrationID=@RID", conn))
+                        using (SqlCommand cmd = new SqlCommand(@"
+SELECT TOP 1 Name FROM (
+    SELECT LTRIM(RTRIM(FirstName + ISNULL(' ' + NULLIF(LastName,''), ''))) AS Name
+    FROM Admin WHERE RegistrationID = @RID
+    UNION ALL
+    SELECT LTRIM(RTRIM(FirstName + ISNULL(' ' + NULLIF(LastName,''), '')))
+    FROM Teacher WHERE TeacherRegistrationID = @RID
+    UNION ALL
+    SELECT LTRIM(RTRIM(FirstName + ISNULL(' ' + NULLIF(LastName,''), '')))
+    FROM Staff_Info WHERE RegistrationID = @RID
+) n
+WHERE Name IS NOT NULL AND Name <> ''", conn))
                         {
                             cmd.Parameters.AddWithValue("@RID", registrationID);
                             object result = cmd.ExecuteScalar();
@@ -543,7 +591,6 @@ IF NOT EXISTS (SELECT 1 FROM AAP_Invoice WHERE SchoolID = @SID AND IsPaid = 0)
                                 if (!string.IsNullOrEmpty(name)) return name;
                             }
                         }
-                        // 2. Registration table থেকে UserName নাও
                         using (SqlCommand cmd2 = new SqlCommand(
                             "SELECT TOP 1 UserName FROM Registration WHERE RegistrationID=@RID", conn))
                         {
@@ -577,7 +624,7 @@ IF NOT EXISTS (SELECT 1 FROM AAP_Invoice WHERE SchoolID = @SID AND IsPaid = 0)
             return "ShurjoPay Online";
         }
 
-        private bool MarkInvoiceAsPaid(string spOrderId, string ourOrderId, ShurjoPayVerifyResponse verify, int schoolId)
+        private bool MarkInvoiceAsPaid(string spOrderId, string ourOrderId, ShurjoPayVerifyResponse verify, int schoolId, string invoiceNote)
         {
             try
             {
@@ -649,8 +696,7 @@ IF NOT EXISTS (SELECT 1 FROM AAP_Invoice WHERE SchoolID = @SID AND IsPaid = 0)
                 string  method  = verify.method ?? "ShurjoPay";
                 string  trxId   = verify.bank_trx_id ?? ourOrderId;
 
-                // RegistrationID: school-এর primary admin থেকে নেওয়া হবে
-                int registrationID = GetSchoolRegistrationID(schoolId);
+                int registrationID = ResolvePayerRegistrationID(verify, schoolId, invoiceNote);
                 string paymentByName = GetUserDisplayName(registrationID, schoolId);
 
                 string connStr = ConfigurationManager.ConnectionStrings["EducationConnectionString"].ConnectionString;
@@ -825,6 +871,44 @@ IF NOT EXISTS (SELECT 1 FROM AAP_Invoice WHERE SchoolID = @SID AND IsPaid = 0)
                 return false;
             }
         }
+        private int ResolvePayerRegistrationID(ShurjoPayVerifyResponse verify, int schoolId, string invoiceNote)
+        {
+            int registrationID = 0;
+
+            if (verify != null && !string.IsNullOrEmpty(verify.value4))
+                int.TryParse(verify.value4, out registrationID);
+
+            if (registrationID <= 0)
+                registrationID = ParseRegIdFromNote(invoiceNote);
+
+            if (registrationID <= 0 && Session["PendingInvoicePay_RegistrationID"] != null)
+                int.TryParse(Session["PendingInvoicePay_RegistrationID"].ToString(), out registrationID);
+
+            if (registrationID <= 0 && Session["RegistrationID"] != null)
+                int.TryParse(Session["RegistrationID"].ToString(), out registrationID);
+
+            Session.Remove("PendingInvoicePay_RegistrationID");
+
+            if (registrationID <= 0)
+                registrationID = GetSchoolRegistrationID(schoolId);
+
+            return registrationID;
+        }
+
+        private static int ParseRegIdFromNote(string invoiceNote)
+        {
+            if (string.IsNullOrEmpty(invoiceNote)) return 0;
+            const string marker = "RegID:";
+            int idx = invoiceNote.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return 0;
+            string rest = invoiceNote.Substring(idx + marker.Length);
+            int end = 0;
+            while (end < rest.Length && char.IsDigit(rest[end])) end++;
+            if (end == 0) return 0;
+            int registrationID;
+            return int.TryParse(rest.Substring(0, end), out registrationID) ? registrationID : 0;
+        }
+
         private int GetSchoolRegistrationID(int schoolId)
         {
             if (schoolId <= 0) return 0;

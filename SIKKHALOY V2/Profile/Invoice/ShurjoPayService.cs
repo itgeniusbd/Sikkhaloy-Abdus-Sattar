@@ -112,7 +112,7 @@ namespace EDUCATION.COM.Profile.Invoice
                         + "&value1="            + Uri.EscapeDataString(request.SchoolID.ToString())
                         + "&value2="            + Uri.EscapeDataString(safeInvoiceNote)
                         + "&value3="            + Uri.EscapeDataString(request.Value3 ?? "")
-                        + "&value4=";
+                        + "&value4="            + Uri.EscapeDataString(request.Value4 ?? "");
 
             string response   = PostFormWithBearer(url, body, token.token);
             LastRawCreateOrderResponse = response;
@@ -261,6 +261,8 @@ namespace EDUCATION.COM.Profile.Invoice
         public string InvoiceNote     { get; set; }
         /// <summary>Invoice due amount (excluding gateway charge) stored for callback reconciliation</summary>
         public string Value3          { get; set; }
+        /// <summary>RegistrationID of the user who started the payment (survives session-less callback)</summary>
+        public string Value4          { get; set; }
     }
 
     public class ShurjoPayOrderResponse

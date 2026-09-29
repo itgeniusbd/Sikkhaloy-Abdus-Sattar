@@ -32,6 +32,9 @@
         <div class="form-group">
             <asp:Button ID="FindButton" runat="server" CssClass="btn btn-primary" Text="Find" ValidationGroup="1" />
         </div>
+        <div class="form-group">
+            <small class="text-muted">Default: today. Pick a date range, then Find.</small>
+        </div>
     </div>
 
     <asp:FormView ID="FormView1" runat="server" DataSourceID="CountSQL" Width="100%">
@@ -42,13 +45,12 @@
             </div>
         </ItemTemplate>
     </asp:FormView>
-    <asp:SqlDataSource ID="CountSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" SelectCommand="SELECT ISNULL(SUM(SMS_Send_Record.SMSCount),0) AS Total_SENT FROM SMS_Send_Record INNER JOIN SMS_OtherInfo ON SMS_Send_Record.SMS_Send_ID = SMS_OtherInfo.SMS_Send_ID WHERE (SMS_OtherInfo.SchoolID = @SchoolID)  AND (SMS_Send_Record.PurposeOfSMS like @PurposeOfSMS) AND (CAST(SMS_Send_Record.Date AS DATE) BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000'))" CancelSelectOnNullParameter="False">
+    <asp:SqlDataSource ID="CountSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" CancelSelectOnNullParameter="False" OnSelecting="RecordsSQL_Selecting" SelectCommand="SELECT ISNULL(SUM(SMS_Send_Record.SMSCount), 0) AS Total_SENT FROM SMS_Send_Record INNER JOIN SMS_OtherInfo ON SMS_Send_Record.SMS_Send_ID = SMS_OtherInfo.SMS_Send_ID WHERE (SMS_OtherInfo.SchoolID = @SchoolID) AND (SMS_Send_Record.Date &gt;= ISNULL(CONVERT(datetime, NULLIF(@From_Date, '')), DATEADD(DAY, -7, CAST(GETDATE() AS date)))) AND (SMS_Send_Record.Date &lt; DATEADD(DAY, 1, ISNULL(CONVERT(datetime, NULLIF(@To_Date, '')), CAST(GETDATE() AS date)))) AND (@Search IS NULL OR @Search = '' OR SMS_Send_Record.PhoneNumber LIKE @Search + N'%' OR LEFT(SMS_Send_Record.PurposeOfSMS, 120) LIKE N'%' + @Search + N'%')">
         <SelectParameters>
             <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
-            <%-- <asp:SessionParameter Name="EducationYearID" SessionField="Edu_Year" /> --%>
             <asp:ControlParameter ControlID="FromDateTextBox" Name="From_Date" PropertyName="Text" />
             <asp:ControlParameter ControlID="ToDateTextBox" Name="To_Date" PropertyName="Text" />
-            <asp:ControlParameter ControlID="Phone_Purpose_TextBox" DefaultValue="%" Name="PurposeOfSMS" PropertyName="Text" />
+            <asp:ControlParameter ControlID="Phone_Purpose_TextBox" Name="Search" PropertyName="Text" ConvertEmptyStringToNull="true" />
         </SelectParameters>
     </asp:SqlDataSource>
 
@@ -70,16 +72,13 @@
             </Columns>
             <PagerStyle CssClass="pgr" />
         </asp:GridView>
-        <asp:SqlDataSource ID="SMSRecordsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>"
-            SelectCommand="SELECT SMS_Send_Record.SMS_Send_ID, SMS_Send_Record.PhoneNumber, SMS_Send_Record.TextSMS, SMS_Send_Record.TextCount, SMS_Send_Record.SMSCount, SMS_Send_Record.PurposeOfSMS, SMS_Send_Record.SMS_Response, SMS_Send_Record.Status, SMS_Send_Record.Date FROM SMS_Send_Record INNER JOIN SMS_OtherInfo ON SMS_Send_Record.SMS_Send_ID = SMS_OtherInfo.SMS_Send_ID WHERE (SMS_OtherInfo.SchoolID = @SchoolID) AND (CAST(SMS_Send_Record.Date AS DATE) BETWEEN ISNULL(@From_Date, '1-1-1000') AND ISNULL(@To_Date, '1-1-3000')) ORDER BY SMS_Send_Record.Date DESC"
-            FilterExpression="PhoneNumber LIKE '{0}%'or PurposeOfSMS LIKE '{0}%'" CancelSelectOnNullParameter="False">
-            <FilterParameters>
-                <asp:ControlParameter ControlID="Phone_Purpose_TextBox" Name="Phone_Purpose" PropertyName="Text" />
-            </FilterParameters>
+        <asp:SqlDataSource ID="SMSRecordsSQL" runat="server" ConnectionString="<%$ ConnectionStrings:EducationConnectionString %>" CancelSelectOnNullParameter="False" OnSelecting="RecordsSQL_Selecting"
+            SelectCommand="SELECT SMS_Send_Record.PhoneNumber, SMS_Send_Record.TextSMS, SMS_Send_Record.TextCount, SMS_Send_Record.SMSCount, SMS_Send_Record.PurposeOfSMS, SMS_Send_Record.Date FROM SMS_Send_Record INNER JOIN SMS_OtherInfo ON SMS_Send_Record.SMS_Send_ID = SMS_OtherInfo.SMS_Send_ID WHERE (SMS_OtherInfo.SchoolID = @SchoolID) AND (SMS_Send_Record.Date &gt;= ISNULL(CONVERT(datetime, NULLIF(@From_Date, '')), DATEADD(DAY, -7, CAST(GETDATE() AS date)))) AND (SMS_Send_Record.Date &lt; DATEADD(DAY, 1, ISNULL(CONVERT(datetime, NULLIF(@To_Date, '')), CAST(GETDATE() AS date)))) AND (@Search IS NULL OR @Search = '' OR SMS_Send_Record.PhoneNumber LIKE @Search + N'%' OR LEFT(SMS_Send_Record.PurposeOfSMS, 120) LIKE N'%' + @Search + N'%') ORDER BY SMS_Send_Record.Date DESC">
             <SelectParameters>
                 <asp:SessionParameter Name="SchoolID" SessionField="SchoolID" />
                 <asp:ControlParameter ControlID="FromDateTextBox" Name="From_Date" PropertyName="Text" />
                 <asp:ControlParameter ControlID="ToDateTextBox" Name="To_Date" PropertyName="Text" />
+                <asp:ControlParameter ControlID="Phone_Purpose_TextBox" Name="Search" PropertyName="Text" ConvertEmptyStringToNull="true" />
             </SelectParameters>
         </asp:SqlDataSource>
     </div>

@@ -44,14 +44,7 @@ namespace EDUCATION.COM.Attendances
 
         private static FileInfo GetLatestAppInstaller()
         {
-            string folderPath = HttpContext.Current.Server.MapPath("~/Attendances/App_For_Download/");
-            if (!Directory.Exists(folderPath))
-                return null;
-
-            return new DirectoryInfo(folderPath)
-                .GetFiles("*.exe", SearchOption.TopDirectoryOnly)
-                .OrderByDescending(file => file.LastWriteTimeUtc)
-                .FirstOrDefault();
+            return AttendanceDeviceInstallerHelper.GetLatestInstaller(HttpContext.Current);
         }
 
         //Download user info

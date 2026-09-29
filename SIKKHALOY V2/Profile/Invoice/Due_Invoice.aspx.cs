@@ -58,6 +58,11 @@ namespace EDUCATION.COM.Profile.Invoice
                     return;
                 }
 
+                int registrationID = 0;
+                if (Session["RegistrationID"] != null)
+                    int.TryParse(Session["RegistrationID"].ToString(), out registrationID);
+                Session["PendingInvoicePay_RegistrationID"] = registrationID;
+
                 // Due amount ক্যালকুলেট
                 decimal dueAmount = GetTotalDueAmount(schoolId);
                 if (dueAmount <= 0)
@@ -102,9 +107,10 @@ namespace EDUCATION.COM.Profile.Invoice
                     CustomerCountry  = "Bangladesh",
                     ReturnUrl        = returnUrl,
                     CancelUrl        = cancelUrl,
-                    InvoiceNote      = "Sikkhaloy Invoice - SchoolID:" + schoolId,
+                    InvoiceNote      = "Sikkhaloy Invoice - SchoolID:" + schoolId + "|RegID:" + registrationID,
                     // Callback-এ gateway charge calculate করার জন্য invoice due amount store
-                    Value3           = dueAmount.ToString("F2")  // original due (gateway charge ছাড়া)
+                    Value3           = dueAmount.ToString("F2"),  // original due (gateway charge ছাড়া)
+                    Value4           = registrationID > 0 ? registrationID.ToString() : ""
                 };
 
                 var service  = new ShurjoPayService();

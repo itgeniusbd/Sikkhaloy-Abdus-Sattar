@@ -14,31 +14,81 @@
 }
 
             #wrapper > div {
+                --card-theme: #167A40;
+                --card-theme-light: #3A9A5C;
+                --card-body: #F3F9F4;
                 position: relative;
-                border: 2px solid #0075d2; 
-               width: 323.52px; height: 204px;
-                background-image: url("CSS/image/card.PNG");
+                width: 323.52px;
+                height: 204px;
+                overflow: hidden;
+                border: 2px solid var(--card-theme);
+                background-color: var(--card-body);
+                background-image: none;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
 
-                background-position: center; /* Center the image */
-                background-repeat: no-repeat; /* Do not repeat the image */
-                background-size: cover; /* Resize the background image to cover the entire container */
-               
+            #wrapper > div::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 42px;
+                background: linear-gradient(
+                    to bottom,
+                    var(--card-theme) 0,
+                    var(--card-theme) 26px,
+                    var(--card-theme-light) 26px,
+                    var(--card-theme-light) 42px
+                );
+                z-index: 0;
+            }
+
+            #wrapper > div::after {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: 20px;
+                background: var(--card-theme);
+                z-index: 0;
             }
 
         #grid_Header {
-            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 0;
             color: #fff;
             text-align: center;
             display: grid;
-            grid-template-columns: 40px 1fr;
+            grid-template-columns: 58px 1fr;
+            min-height: 42px;
+            padding: 1px 8px 1px 0;
+            align-items: center;
         }
 
 #grid_Header img {
-    height: 50px;
-    border-radius: 50px;
-    margin: 4px 0 0 11px;
-    width: 50px;
+    position: relative;
+    top: 0px;
+    height: 40px;
+    width: 40px;
+    margin: 0 0 0 7px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #0F5E30;
+    background: #fff;
+    object-fit: cover;
+    z-index: 3;
 }
+
+        .gcard-logo-wrap {
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            padding: 0;
+        }
 
         .Hidden_Ins_Name {
             position: absolute;
@@ -48,41 +98,113 @@
             white-space: nowrap;
         }
 
-        .Institution_Dialog {
-            font-size: 11px;
-            letter-spacing: 3.3px;
-            line-height: 14px;
-            text-align: center;
-        }
+  .Institution_Dialog {
+    font-size: 11px;
+    letter-spacing: 2.4px;
+    line-height: 23px;
+    text-align: center;
+    color: #fff;
+    padding-left: 4px;
+    padding-top: 5px;
+}
+
+.Ins_Name {
+    color: #fff;
+    font-weight: 700;
+    padding-left: 4px;
+    line-height: 0.95;
+    font-size:17px !important;
+}
 
 .iCard-title {
-    margin: -27px 0px 0px 109px;
-    background-color: #99d59b;
+    position: relative;
+    z-index: 2;
+    margin: 10px 12px 4px 98px;
+    background-color: var(--card-theme);
     border-radius: 7px;
-    color: #8b0a0a;
+    color: #fff;
     font-size: 12px;
     padding: 2px 10px;
     text-align: center;
     width: 120px;
-    border: solid 1px green;
+    border: solid 1px var(--card-theme);
     font-weight: bold;
 }
 
         #user-info {
-            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 0;
             display: grid;
             grid-template-columns: 90px 1fr;
+            align-items: start;
+            padding-bottom: 16px;
         }
 
-            #user-info img {
-                height: 50px;
-                width:50px;
-                margin: 24px 0px 0px 4px;
+            #user-info .gcard-photo-col {
+                text-align: center;
+                min-height: 90px;
+            }
+
+#user-info .gcard-id {
+    position: absolute;
+    left: 0px;
+    top: 77px;
+    width: 82px;
+    display: block;
+    color: maroon;
+    font-weight: 700;
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.2;
+    margin: 0;
+    text-align: center;
+    z-index: 3;
+}
+
+#user-info .gcard-photo-box {
+    position: absolute;
+    left: 10px;
+    top: -17px;
+    width: 71px;
+    height: 88px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: #fff;
+    border: 2px solid var(--card-theme);
+    box-sizing: border-box;
+    z-index: 2;
+}
+
+            #user-info .gcard-photo-box img {
+                width: 100% !important;
+                height: 100% !important;
+                max-width: none !important;
+                max-height: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block;
+                object-fit: cover;
+                object-position: center top;
             }
 
             #user-info ul {
-                margin: 5px 0 0 0;
-                padding-left: 17px;
+                margin: 2px 0 0 0;
+                padding-left: 8px;
+            }
+
+            .gcard-details {
+                padding-top: 3px;
+                padding-left: 4px;
+            }
+
+            .gcard-details .gcard-name {
+                font-size: 14px;
+                font-weight: 800;
+                color: maroon;
+                margin: 0 0 2px 0;
+                padding-left: 8px;
+                line-height: 1.2;
             }
 
 #user-info ul li {
@@ -101,14 +223,29 @@ font-size: 15px;
     margin-top: -6px;
         }
 
-        .c-address {
-            position: absolute;
-            bottom: 0;
-            font-size: 12px;
-            text-align: center;
-            color: #fff;
-            width: 100%;
-        }
+    .c-address {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 20px;
+    z-index: 2;
+    font-size: 11px;
+    line-height: 20px;
+    text-align: center;
+    color: #fff;
+    width: 100%;
+    padding: 0 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+    .c-address i {
+        margin-right: 4px;
+        font-size: 11px;
+    }
 
         .sign {
             position: absolute;
@@ -127,6 +264,12 @@ font-size: 15px;
         @media print {
             #header, h3 {
                 display: none;
+            }
+
+            #wrapper > div {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                background-image: none !important;
             }
         }
     </style>
@@ -204,6 +347,17 @@ font-size: 15px;
         <div class="form-group">
             <input id="HeadlineText" type="text" placeholder="Change Title" class="form-control" />
         </div>
+        <div class="form-group">
+            <label class="mb-0 mr-1" style="font-size:.81rem">Theme</label>
+            <input type="color" id="ThemeColor" value="#167A40" title="Header / footer color" style="width:42px;height:34px;padding:2px;border:1px solid #ccc;cursor:pointer;" />
+        </div>
+        <div class="form-group">
+            <label class="mb-0 mr-1" style="font-size:.81rem">Body</label>
+            <input type="color" id="BodyColor" value="#F3F9F4" title="Card background color" style="width:42px;height:34px;padding:2px;border:1px solid #ccc;cursor:pointer;" />
+        </div>
+        <div class="form-group">
+            <button type="button" id="ResetCardColors" class="btn btn-white" style="font-size:.81rem">Reset Color</button>
+        </div>
     </div>
 
     <div class="alert alert-info NoPrint">print orientation landscape</div>
@@ -214,7 +368,7 @@ font-size: 15px;
             <ItemTemplate>
                 <div>
                     <div id="grid_Header">
-                        <div style="padding: 5px 0;">
+                        <div class="gcard-logo-wrap">
                             <img alt="No Logo" src="/Handeler/SchoolLogo.ashx?SLogo=<%#Eval("SchoolID") %>" />
                         </div>
                         <div>
@@ -233,13 +387,14 @@ font-size: 15px;
                     <div class="iCard-title"> অভিভাবক কার্ড </div>
 
                     <div id="user-info">
-                        <div style="text-align: center;">
-                           
-                            <strong  class="d-block" style="color:maroon;font-weight:700;margin-top:20px; font-family:Arial">ID : <%#Eval("ID") %></strong>
-                            <img src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%#Eval("StudentID") %>" /><br />
+                        <div class="gcard-photo-col">
+                            <strong class="gcard-id">ID : <%#Eval("ID") %></strong>
+                            <div class="gcard-photo-box">
+                                <img src="/Handeler/Student_Id_Based_Photo.ashx?StudentID=<%#Eval("StudentID") %>" alt="" />
+                            </div>
                         </div>
-                        <div>
-                       <p style="font-size: 14px;font-weight:800;color: maroon;margin-bottom: -6px;padding-left: 16px;margin-top: 1px;">  <%# Eval("StudentsName")%></p>
+                        <div class="gcard-details">
+                       <p class="gcard-name"><%# Eval("StudentsName")%></p>
                             <ul style="font-size:13px">
                                 <li>  </li>
                                 <li> পিতা : <%# Eval("FathersName")%>  </li>
@@ -252,9 +407,7 @@ font-size: 15px;
                     </div>
 
                   <%--  <div class="sign">Principal signature</div>--%>
-                    <div class="c-address">
-                     <%--   <%# Eval("Address") %>--%>
-                    </div>
+                    <div class="c-address"><i class="fa fa-map-marker fas fa-location-dot" aria-hidden="true"></i> <%# Eval("Address") %></div>
                 </div>
             </ItemTemplate>
         </asp:Repeater>
@@ -344,6 +497,57 @@ font-size: 15px;
             else {
                 $(".iCard-title").text("Student ID Card");
             }
+
+            var defaultTheme = "#167A40";
+            var defaultBody = "#F3F9F4";
+
+            function lightenHex(hex, amount) {
+                hex = (hex || "").replace("#", "");
+                if (hex.length === 3) {
+                    hex = hex.split("").map(function (c) { return c + c; }).join("");
+                }
+                if (hex.length !== 6) return defaultTheme;
+                var num = parseInt(hex, 16);
+                var r = Math.min(255, Math.max(0, (num >> 16) + amount));
+                var g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
+                var b = Math.min(255, Math.max(0, (num & 0xff) + amount));
+                return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            }
+
+            function applyCardColors(theme, body) {
+                theme = theme || defaultTheme;
+                body = body || defaultBody;
+                var light = lightenHex(theme, 42);
+                $("#wrapper > div").each(function () {
+                    this.style.setProperty("--card-theme", theme);
+                    this.style.setProperty("--card-theme-light", light);
+                    this.style.setProperty("--card-body", body);
+                });
+            }
+
+            var savedTheme = localStorage.gcardTheme || defaultTheme;
+            var savedBody = localStorage.gcardBody || defaultBody;
+            $("#ThemeColor").val(savedTheme);
+            $("#BodyColor").val(savedBody);
+            applyCardColors(savedTheme, savedBody);
+
+            $("#ThemeColor").on("input change", function () {
+                localStorage.gcardTheme = this.value;
+                applyCardColors(this.value, $("#BodyColor").val());
+            });
+
+            $("#BodyColor").on("input change", function () {
+                localStorage.gcardBody = this.value;
+                applyCardColors($("#ThemeColor").val(), this.value);
+            });
+
+            $("#ResetCardColors").on("click", function () {
+                localStorage.removeItem("gcardTheme");
+                localStorage.removeItem("gcardBody");
+                $("#ThemeColor").val(defaultTheme);
+                $("#BodyColor").val(defaultBody);
+                applyCardColors(defaultTheme, defaultBody);
+            });
         });
     </script>
 </asp:Content>

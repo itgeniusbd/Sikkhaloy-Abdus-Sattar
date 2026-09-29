@@ -1,7 +1,7 @@
 ﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Design.master" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="EDUCATION.COM.Login" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <link href="CSS/Default.css?v=1.5" rel="stylesheet" />
+    <link href="CSS/Default.css?v=1.8" rel="stylesheet" />
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="body" runat="server">
     <div class="view" style="background-image: url('/Home/Features/bg.png'); background-repeat: no-repeat; background-position: center center; /*background-size: cover; */">
@@ -13,7 +13,17 @@
                         <p><strong>Educational institution management service</strong></p>
                         <hr />
                         <h6 class="mb-4 text-justify black-text">Sikkhaloy.com is an educational institution management service to help institutes for save their time and improve management system. It is a simple yet powerful one point integrated platform that connects all the departments with its technologically advanced features and software modules such as Daily attendance which integrated with RFID and fingerprint device with automated SMS notification system, User friendly student fees & payroll management system, fully customable exam & results with graphical explanation and many more solutions.</h6>
-                        <a href="#Contact" class="btn btn-white link-b">Contact Us</a>
+                        <div class="hero-actions">
+                            <a href="#Contact" class="hero-btn hero-btn-contact link-b">
+                                <i class="fa fa-envelope" aria-hidden="true"></i> Contact Us
+                            </a>
+                            <a href="/Handeler/Desktop_App.ashx" class="hero-btn hero-btn-download">
+                                <i class="fa fa-download" aria-hidden="true"></i> Download App
+                            </a>
+                            <a href="https://hybrid.sikkhaloy.com/" target="_blank" rel="noopener noreferrer" class="hero-btn hero-btn-hybrid">
+                                <i class="fa fa-external-link" aria-hidden="true"></i> Hybrid
+                            </a>
+                        </div>
                     </div>
                     <div class="col-md-6 wow fadeInRight col-xl-5 mt-xl-5" data-wow-delay="0.3s">
                         <img src="/Home/Features/Intro.png" alt="" class="img-fluid" />

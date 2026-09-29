@@ -67,6 +67,16 @@
                             <li class="nav-item">
                                 <a href="#Contact" class="nav-link waves-effect link-b">Contact</a>
                             </li>
+                            <li class="nav-item">
+                                <a href="/Handeler/Desktop_App.ashx" class="nav-link waves-effect">
+                                    <i class="fa fa-download" aria-hidden="true"></i> Desktop App
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://hybrid.sikkhaloy.com/" target="_blank" rel="noopener noreferrer" class="nav-link waves-effect">
+                                    <i class="fa fa-external-link" aria-hidden="true"></i> Hybrid
+                                </a>
+                            </li>
                         </ul>
 
                         <ul class="navbar-nav nav-flex-icons">

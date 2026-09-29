@@ -383,6 +383,7 @@
     <Content Include="Attendances\Attendance_Fine_Generate.aspx" />
     <Content Include="Attendances\Attendance_Records.aspx" />
     <Content Include="Attendances\Attendance_Settings.aspx" />
+    <Content Include="Attendances\AttendanceDevice_Update.ashx" />
     <Content Include="Attendances\App_For_Download\README.txt" />
     <Content Include="Attendances\App_For_Download\*.exe" />
     <Content Include="Attendances\CSS\Attendance_Records.css" />
@@ -619,6 +620,8 @@
     <Content Include="Global.asax" />
     <Content Include="Handeler\Default\Default_Sign.jpg" />
     <Content Include="Handeler\FindDonar.asmx" />
+    <Content Include="Home\App_For_Download\README.txt" />
+    <Content Include="Home\App_For_Download\*.exe" />
     <Content Include="Home\DascApp.html" />
     <Content Include="Home\DarulHudaApp.html" />
     <Content Include="Home\KhadizatulKubraApp.html" />
@@ -818,6 +821,7 @@
     <Content Include="Handeler\SignatureHandler.ashx" />
     <Content Include="Handeler\TestHandler.ashx" />
     <Content Include="Handeler\SchoolNameLogo.ashx" />
+    <Content Include="Handeler\Desktop_App.ashx" />
     <Content Include="Home\.htaccess" />
     <None Include="Properties\PublishProfiles\Demo Edu.pubxml" />
     <Content Include="Routines\CSS\Routine.css" />
@@ -1502,6 +1506,10 @@
     </Compile>
     <Compile Include="Attendances\Attendance_Records.aspx.designer.cs">
       <DependentUpon>Attendance_Records.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Attendances\AttendanceDeviceInstallerHelper.cs" />
+    <Compile Include="Attendances\AttendanceDevice_Update.ashx.cs">
+      <DependentUpon>AttendanceDevice_Update.ashx</DependentUpon>
     </Compile>
     <Compile Include="Attendances\Attendance_Settings.aspx.cs">
       <DependentUpon>Attendance_Settings.aspx</DependentUpon>
@@ -2528,6 +2536,9 @@
     </Compile>
     <Compile Include="Handeler\Admin_Photo.ashx.cs">
       <DependentUpon>Admin_Photo.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Handeler\Desktop_App.ashx.cs">
+      <DependentUpon>Desktop_App.ashx</DependentUpon>
     </Compile>
     <Compile Include="Handeler\Authority_Photo.ashx.cs">
       <DependentUpon>Authority_Photo.ashx</DependentUpon>

@@ -5,6 +5,45 @@ namespace EDUCATION.COM.Attendances.Online_Display
 {
     public partial class Attendance_Slider : System.Web.UI.Page
     {
+        private const int DisplaySqlTimeoutSeconds = 45;
+
+        protected void Page_Init(object sender, EventArgs e)
+        {
+            // Same protection DeviceDisplay uses: display reads must not queue behind device-push
+            // inserts (READ UNCOMMITTED), get a longer timeout than the 30s default, and a failing
+            // source must not crash the whole page with "The wait operation timed out".
+            WireDisplaySource(StudentScheduleSummarySQL);
+            WireDisplaySource(EmployeeScheduleSummarySQL);
+            WireDisplaySource(Student_Entry_LogSQL);
+            WireDisplaySource(Student_Exit_LogSQL);
+            WireDisplaySource(Emp_INSQL);
+            WireDisplaySource(Emp_OUTSQL);
+        }
+
+        private void WireDisplaySource(SqlDataSource source)
+        {
+            source.Selecting -= DisplaySql_Selecting;
+            source.Selected -= DisplaySql_Selected;
+            source.Selecting += DisplaySql_Selecting;
+            source.Selected += DisplaySql_Selected;
+        }
+
+        protected void DisplaySql_Selecting(object sender, SqlDataSourceSelectingEventArgs e)
+        {
+            e.Command.CommandTimeout = DisplaySqlTimeoutSeconds;
+            var sql = e.Command.CommandText ?? string.Empty;
+            if (sql.IndexOf("READ UNCOMMITTED", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                e.Command.CommandText = "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; " + sql;
+            }
+        }
+
+        protected void DisplaySql_Selected(object sender, SqlDataSourceStatusEventArgs e)
+        {
+            if (e.Exception != null)
+                e.ExceptionHandled = true;
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["SchoolID"] == null || Session["Edu_Year"] == null)
